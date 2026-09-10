@@ -124,3 +124,68 @@ Append dated bullets when you had to extend or deviate from docs/SPEC.md.
   including the two `.wasm` plugins they ship (about 600 kB together). They are a runtime
   dependency of every PDF, and vendoring them is what keeps a compile offline;
   `npm run vendor:typst` refreshes them.
+
+## 2026-09-10, community and site admin
+
+- Rendered markdown does not cross the Convex boundary. `@moj/content`'s package entry pulls in
+  `node:child_process` and `node:fs` through the Typst renderer, and the Shiki highlighter needs WASM, so no
+  Convex query or mutation can call `renderMarkdown`. Every module that returns user-written text returns the
+  markdown together with the preset the consumer must render it with: `comments.list` returns
+  `{ body, bodyPreset: "comment" }`, `blog.get` returns `contentPreset: "blog"`, `site.flatPage` returns
+  `contentPreset: "flatpage"`, `site.license` returns `textPreset: "license"`, `tickets.get` returns
+  `bodyPreset: "ticket"`, `judges.list` returns `descriptionPreset: "judge"` and `languages.detail` returns
+  `descriptionPreset: "language"`. The web app renders them; the feed routes do the same before building the
+  XML. Nothing else about the presets changes.
+- The feed route handlers still render through `apps/web/src/lib/simple-markdown.tsx` (the foundation branch's
+  placeholder) via `renderToStaticMarkup`, because `@moj/content` is not yet a dependency of `apps/web` and its
+  `exports` map points at an unbuilt `dist`. `apps/web/src/app/feed/items.ts` carries the one-line swap.
+- Comment ordering: DMOJ's `Comment` is an MPTT model with `order_insertion_by = ['-time']`, which orders
+  *every* level newest first. `comments.list` keeps that for the top level and orders replies oldest first
+  inside a thread, per the build brief, so a conversation reads downwards. Ties break on document id.
+- `comments.list` returns hidden comments to holders of `judge.change_comment`, flagged `hidden: true`, so the
+  hide can be undone from the page. DMOJ filters `hidden=False` for everyone and only offers `unhide` from the
+  Django admin.
+- `comments.list` returns a flat array ordered for rendering, with `parentId` and `depth` on each row, rather
+  than a nested tree: Convex validators cannot express a recursive return type and the flat form is what the
+  template walks anyway.
+- `blog.list({ limit })` keeps the array shape the foundation branch's home page already consumes;
+  `/blog/` uses the new `blog.paginated({ paginationOpts })`.
+- `blog.paginated`, `tickets.list` and `admin/tickets.list` return `{ page, isDone, continueCursor, totalCount }`
+  with an integer offset encoded in the cursor, not a Convex index cursor. The blog list is ordered
+  `-sticky, -publish_on` and the ticket lists are filtered per viewer, and neither ordering can be expressed as
+  a single index range. `totalCount` is what DMOJ's "Page x of y" bar needs.
+- Ticket notes are restricted to `judge.change_ticket` holders and the linked problem's editors.
+  `TicketNotesEditView` is gated only by `TicketMixin`, so in DMOJ the reporter can technically write the staff
+  notes; only the template hides the control.
+- `stats.ts` serves the `/stats/language/` charts from a `statsSnapshots` row instead of a `GROUP BY`. Convex
+  has no aggregate query, so `stats.refresh` (an internal mutation, for a cron in section 12) tallies up to
+  50,000 submissions and stores the counts; the queries read the snapshot and fall back to computing one from
+  20,000 rows when there is none. `truncated` says whether the tally saw the whole table.
+- Judge authentication keys are stored only as their SHA-256 (`judges.authKeyHash`, which the schema already
+  named). `admin/judges.create` and `admin/judges.regenerateKey` return the generated key once and it cannot be
+  recovered afterwards. DMOJ keeps `Judge.auth_key` in the clear.
+- `Judge.disconnect` sends a socket packet to the bridge in DMOJ. The pull-model judge has no inbound socket, so
+  `admin/judges.disconnect` sets `disconnectRequestedAt`/`disconnectForce` and the judge acts on it at its next
+  heartbeat; `admin/judges.clearDisconnect` clears the flag once it has been served.
+- `admin/languages.copyLanguage` is the `copy_language` management command as a mutation. DMOJ's
+  `target.problem_set.set(source.problem_set.all())` *replaces* the target's problem set, so the mutation also
+  removes the target language from problems that do not allow the source.
+- Feeds and the sitemap are always built for an anonymous reader, matching `CommentFeed.items`' explicit
+  `AnonymousUser()`, so a signed-in staff member's feed never contains more than a logged-out one's.
+- `NEXT_PUBLIC_SITE_URL` is the name the feed routes read for absolute links; the compose files set
+  `NEXT_PUBLIC_APP_URL`, so `apps/web/src/app/feed/xml.ts` accepts either, in that order.
+- Schema additions (all optional or new, nothing renamed or removed):
+  `judges.createdAt`, `judges.disconnectRequestedAt`, `judges.disconnectForce`;
+  a `blogPosts.by_visible_sticky_publishOn` index and a `tickets.by_time` index;
+  `siteSettings.ticketsPerPage`, `.enableComments`, `.commentVoteHideThreshold`, `.commentReplyTimeframeDays`,
+  `.commentMaxBodyLength`, `.blogNewProblemCount`, `.statsLanguageThreshold`, `.submissionSourceVisibility`,
+  `.submissionLimitPerMinute`, `.maxSubmissionsPerProblem`, `.ppStep`, `.ppEntries`;
+  and a new `statsSnapshots` table (`key`, `computedAt`, `data`) with a `by_key` index.
+- Two files outside the brief's list were added because they are new and cannot collide with another branch:
+  `convex/lib/community.ts` (the helpers every community module shares: the `@moj/core` row adapter, the viewer
+  builder, comment-target resolution, `has_any_solves`, revision writes, judge key generation and the offset
+  pager) and `convex/lib/testing.ts` (row builders for the Convex test suites). `convex/_generated/api.d.ts` was
+  updated by hand for the new modules because `convex codegen` needs a live deployment.
+- Root `package.json` gained `@moj/core` as a dependency and `convex-test`, `@edge-runtime/vm` and
+  `fast-xml-parser` as dev dependencies; `apps/web/vitest.config.ts` gained the `@/` and `@convex/` aliases the
+  feed tests need.
