@@ -32,6 +32,7 @@
   "dependencies": {
     "@convex-dev/aggregate": "^0.3.1",
     "@convex-dev/rate-limiter": "^0.3.2",
+    "@moj/core": "*",
     "fflate": "^0.8.3"
   },
   "devDependencies": {
@@ -41,6 +42,7 @@
     "concurrently": "^10.0.5",
     "convex": "^1.45.0",
     "convex-test": "^0.0.57",
+    "fast-xml-parser": "^5.11.1",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3",
     "vitest": "^4.1.11"

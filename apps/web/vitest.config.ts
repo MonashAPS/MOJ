@@ -1,4 +1,4 @@
-import { fileURLToPath } from "node:url";
+import path from "node:path";
 import { defineConfig } from "vitest/config";
 
 // The TypeScript `paths` in tsconfig.json are compile-time only; vitest needs
@@ -6,8 +6,8 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   resolve: {
     alias: {
-      "@convex": fileURLToPath(new URL("../../convex", import.meta.url)),
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "@convex": path.join(import.meta.dirname, "../../convex"),
+      "@": path.join(import.meta.dirname, "src"),
     },
   },
   test: {

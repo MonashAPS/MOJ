@@ -27,6 +27,11 @@ export const submissionResult = v.union(
 );
 export const testCaseType = v.union(v.literal("C"), v.literal("S"), v.literal("E"));
 export const sourceVisibility = v.union(v.literal("A"), v.literal("S"), v.literal("O"), v.literal("F"));
+export const globalSourceVisibility = v.union(
+  v.literal("all"),
+  v.literal("all-solved"),
+  v.literal("only-own"),
+);
 export const scoreboardVisibility = v.union(v.literal("V"), v.literal("C"), v.literal("P"), v.literal("H"));
 export const labelScheme = v.union(v.literal("letters"), v.literal("numbers"), v.literal("custom"));
 export const requestState = v.union(v.literal("P"), v.literal("A"), v.literal("R"));
@@ -351,6 +356,9 @@ export default defineSchema({
     runtimeKeys: v.array(v.string()),
     lastSeen: v.optional(v.number()),
     currentSubmissionId: v.optional(v.id("submissions")),
+    createdAt: v.optional(v.number()),
+    disconnectRequestedAt: v.optional(v.number()),
+    disconnectForce: v.optional(v.boolean()),
     legacyId: v.optional(v.number()),
   })
     .index("by_name", ["name"])
@@ -628,6 +636,7 @@ export default defineSchema({
   })
     .index("by_slug", ["slug"])
     .index("by_visible_publishOn", ["visible", "publishOn"])
+    .index("by_visible_sticky_publishOn", ["visible", "sticky", "publishOn"])
     .index("by_legacyId", ["legacyId"]),
 
   tickets: defineTable({
@@ -644,6 +653,7 @@ export default defineSchema({
     .index("by_open_time", ["isOpen", "time"])
     .index("by_linked", ["linkedType", "linkedKey"])
     .index("by_profile", ["profileId"])
+    .index("by_time", ["time"])
     .index("by_legacyId", ["legacyId"]),
 
   ticketMessages: defineTable({
@@ -706,7 +716,25 @@ export default defineSchema({
     pdfEnabled: v.boolean(),
     mossApiKey: v.optional(v.string()),
     analytics: v.optional(v.string()),
+    ticketsPerPage: v.optional(v.number()),
+    enableComments: v.optional(v.boolean()),
+    commentVoteHideThreshold: v.optional(v.number()),
+    commentReplyTimeframeDays: v.optional(v.number()),
+    commentMaxBodyLength: v.optional(v.number()),
+    blogNewProblemCount: v.optional(v.number()),
+    statsLanguageThreshold: v.optional(v.number()),
+    submissionSourceVisibility: v.optional(globalSourceVisibility),
+    submissionLimitPerMinute: v.optional(v.number()),
+    maxSubmissionsPerProblem: v.optional(v.number()),
+    ppStep: v.optional(v.number()),
+    ppEntries: v.optional(v.number()),
   }).index("by_singleton", ["singleton"]),
+
+  statsSnapshots: defineTable({
+    key: v.string(),
+    computedAt: v.number(),
+    data: v.any(),
+  }).index("by_key", ["key"]),
 
   revisions: defineTable({
     entityType: v.string(),
