@@ -283,73 +283,94 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
 
-    --nav: #141c33; /* lifted so it clears --bg         */
-    --wordmark-ink: #f9f6ee; /* the bone, off the chrome         */
-    --nav-ink: #f2f4fa;
-    --nav-ink-2: #98a3c4;
-    --nav-hover: rgba(255, 255, 255, 0.08);
-    --nav-active-bg: rgba(65, 105, 225, 0.34);
-    --contest-bar: #1a2340;
-    --contest-bar-ink: #cdd5ee;
+    /* The royal is lifted on dark so the nav keyline, the focus border and the
+       focus halo all clear the ground. */
+    --brand-royal: #6f8dff;
 
+    /* Chrome: the MAPS navy, one step lighter than the light-mode bar so it reads
+       as a bar sitting on the ground rather than as more ground. */
+    --nav: #16234a;
+    --wordmark-ink: #f9f6ee;
+    --nav-ink: #f2f4fa;
+    --nav-ink-2: #a9b8de;
+    --nav-hover: rgba(255, 255, 255, 0.1);
+    --nav-active-bg: rgba(111, 141, 255, 0.28);
+    --contest-bar: #1c2c58;
+    --contest-bar-ink: #dbe2f7;
+
+    /* Accent. #8fa6ff is the foreground royal: links, icons, outline buttons. The
+       filled primary takes --accent-fill instead, because a fill dark enough to
+       carry white text is too dark to read as text itself; theme.css hands the fill
+       to the elements that wear it. */
     --accent: #8fa6ff;
-    --accent-ink: #0b1026;
+    --accent-ink: #ffffff;
     --accent-hover: #a9baff;
     --accent-active: #c2ceff;
-    --accent-soft: #1b2447;
-    --accent-line: #2e3c6e;
+    --accent-fill: #3b5bdb;
+    --accent-fill-hover: #4a69e8;
+    --accent-fill-active: #2f4bc0;
+    --accent-soft: #1b2440;
+    --accent-line: #33437a;
 
-    --bg: #141a28;
-    --bg-2: #0d111c;
-    --bg-grid: rgba(122, 150, 255, 0.05);
-    --surface: #141a28;
-    --surface-2: #1c2434;
-    --titlebar: #1e2748;
-    --titlebar-ink: #e6eafa;
-    --titlebar-ink-2: #a3adcf;
-    --titlebar-line: rgba(255, 255, 255, 0.1);
-    --surface-3: #273044;
-    --ink: #e6e9f0;
-    --ink-2: #aab3c2;
-    --muted: #8590a2;
-    --line: #262f41;
-    --line-strong: #3a4459;
-    --code-bg: #10151f;
-    --code-line: #262f41;
+    /* Surfaces. The ground is near-neutral with only a hint of blue; the navy is
+       spent on the chrome and the titlebars, where it reads as MAPS, instead of
+       being smeared under the whole page. Each step is a clear step. */
+    --bg: #171b21;
+    --bg-2: #0f1216;
+    --bg-grid: rgba(143, 166, 255, 0.03); /* 3%: present, never competing   */
+    --surface: #171b21;
+    --surface-2: #1e232b;
 
-    --row-zebra: #121826;
-    --row-hover: #1a2238;
+    /* Titlebars are deliberately not the nav's navy: a lighter blue band, so a
+       header reads as a header on a dark card. */
+    --titlebar: #243766;
+    --titlebar-ink: #e8ecf7;
+    --titlebar-ink-2: rgba(232, 236, 247, 0.7);
+    --titlebar-line: rgba(255, 255, 255, 0.14);
+    --surface-3: #262c36;
+    --ink: #e6e9ef;
+    --ink-2: #b3bac6;
+    --muted: #8a93a0;
+    --line: #2a313b;
+    --line-strong: #3c4451;
+    --code-bg: #12161c;
+    --code-line: #2a313b;
+
+    --row-zebra: #1b1f26;
+    --row-hover: #1e232b;
     --row-selected: var(--accent-soft);
 
-    --link: #93a9ff;
+    --link: #8fa6ff;
     --link-hover: #b4c4ff;
     --link-active: #f8ca50;
     --link-visited: #b79bf0;
 
-    --info-bg: #0e2836;
-    --info-line: #1c4a63;
+    --info-bg: #10222c;
+    --info-line: #1e4a63;
     --info-ink: #7ecbf0;
-    --success-bg: #10271b;
-    --success-line: #1f5333;
-    --success-ink: #6fd396;
-    --warning-bg: #2c2410;
-    --warning-line: #574518;
-    --warning-ink: #f8ca50;
-    --danger-bg: #2c1512;
-    --danger-line: #572722;
-    --danger-ink: #f0776a;
-    --announcement: #e0554a;
+    --success-bg: #132419;
+    --success-line: #24523a;
+    --success-ink: #5fd08c;
+    --warning-bg: #2a2412;
+    --warning-line: #55471c;
+    --warning-ink: #f2c54a;
+    --danger-bg: #2b1614;
+    --danger-line: #57292a;
+    --danger-ink: #ef8b80;
+    --announcement: #ff7a6e;
 
+    /* Verdicts: the fills are lifted off the ground so a pill reads as a pill on a
+       card, and every text/fill pair clears 4.5:1. */
     --v-good: #52c98a;
-    --v-good-bg: #10271b;
+    --v-good-bg: #14301f;
     --v-bad: #f0776a;
-    --v-bad-bg: #2c1512;
+    --v-bad-bg: #331813;
     --v-warn: #f8ca50; /* the seasonal highlight           */
-    --v-warn-bg: #2c2410;
-    --v-neutral: #97a0ae;
-    --v-neutral-bg: #1f2634;
+    --v-warn-bg: #33290f;
+    --v-neutral: #9aa3b1;
+    --v-neutral-bg: #262c36;
     --v-run: #8fa6ff;
-    --v-run-bg: #1b2447;
+    --v-run-bg: #1b2440;
     --v-ie: #ff9a8e;
 
     --rating-none: #a6adb8;
@@ -358,25 +379,25 @@
     --rating-expert: #5fb3e8;
     --rating-candidate-master: #c58bda;
     --rating-master: #ffb100;
-    --rating-grandmaster: #ff5b5b;
+    --rating-grandmaster: #ff6b6b;
     --rating-target: #ff8a8a;
 
-    --heat-0: #1c2434;
-    --heat-1: #1e4423;
-    --heat-2: #35722f;
+    --heat-0: #232932;
+    --heat-1: #1f4a28;
+    --heat-2: #357a33;
     --heat-3: #63a83f;
     --heat-4: #a9dc76;
 
-    --cell-solved-bg: #15321f;
+    --cell-solved-bg: #17351f;
     --cell-solved-ink: #6fd396;
-    --cell-first-bg: #2f6b25;
-    --cell-first-ink: #d9f3b8;
+    --cell-first-bg: #356f28;
+    --cell-first-ink: #e2f7c4;
     --cell-first-ring: #ffb100;
-    --cell-failed-bg: #2c1512;
+    --cell-failed-bg: #331813;
     --cell-failed-ink: #f0776a;
-    --cell-frozen-bg: #1b2447;
+    --cell-frozen-bg: #1b2440;
     --cell-frozen-ink: #a9baff;
-    --cell-judging-bg: #2c2410;
+    --cell-judging-bg: #33290f;
     --cell-judging-ink: #f8ca50;
 
     --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -392,73 +413,94 @@
 .theme-dark {
   color-scheme: dark;
 
-  --nav: #141c33;
+  /* The royal is lifted on dark so the nav keyline, the focus border and the
+     focus halo all clear the ground. */
+  --brand-royal: #6f8dff;
+
+  /* Chrome: the MAPS navy, one step lighter than the light-mode bar so it reads
+     as a bar sitting on the ground rather than as more ground. */
+  --nav: #16234a;
   --wordmark-ink: #f9f6ee;
   --nav-ink: #f2f4fa;
-  --nav-ink-2: #98a3c4;
-  --nav-hover: rgba(255, 255, 255, 0.08);
-  --nav-active-bg: rgba(65, 105, 225, 0.34);
-  --contest-bar: #1a2340;
-  --contest-bar-ink: #cdd5ee;
+  --nav-ink-2: #a9b8de;
+  --nav-hover: rgba(255, 255, 255, 0.1);
+  --nav-active-bg: rgba(111, 141, 255, 0.28);
+  --contest-bar: #1c2c58;
+  --contest-bar-ink: #dbe2f7;
 
+  /* Accent. #8fa6ff is the foreground royal: links, icons, outline buttons. The
+     filled primary takes --accent-fill instead, because a fill dark enough to
+     carry white text is too dark to read as text itself; theme.css hands the fill
+     to the elements that wear it. */
   --accent: #8fa6ff;
-  --accent-ink: #0b1026;
+  --accent-ink: #ffffff;
   --accent-hover: #a9baff;
   --accent-active: #c2ceff;
-  --accent-soft: #1b2447;
-  --accent-line: #2e3c6e;
+  --accent-fill: #3b5bdb;
+  --accent-fill-hover: #4a69e8;
+  --accent-fill-active: #2f4bc0;
+  --accent-soft: #1b2440;
+  --accent-line: #33437a;
 
-  --bg: #141a28;
-  --bg-2: #0d111c;
-  --bg-grid: rgba(122, 150, 255, 0.05);
-  --surface: #141a28;
-  --surface-2: #1c2434;
-  --titlebar: #1e2748;
-  --titlebar-ink: #e6eafa;
-  --titlebar-ink-2: #a3adcf;
-  --titlebar-line: rgba(255, 255, 255, 0.1);
-  --surface-3: #273044;
-  --ink: #e6e9f0;
-  --ink-2: #aab3c2;
-  --muted: #8590a2;
-  --line: #262f41;
-  --line-strong: #3a4459;
-  --code-bg: #10151f;
-  --code-line: #262f41;
+  /* Surfaces. The ground is near-neutral with only a hint of blue; the navy is
+     spent on the chrome and the titlebars, where it reads as MAPS, instead of
+     being smeared under the whole page. Each step is a clear step. */
+  --bg: #171b21;
+  --bg-2: #0f1216;
+  --bg-grid: rgba(143, 166, 255, 0.03); /* 3%: present, never competing   */
+  --surface: #171b21;
+  --surface-2: #1e232b;
 
-  --row-zebra: #121826;
-  --row-hover: #1a2238;
+  /* Titlebars are deliberately not the nav's navy: a lighter blue band, so a
+     header reads as a header on a dark card. */
+  --titlebar: #243766;
+  --titlebar-ink: #e8ecf7;
+  --titlebar-ink-2: rgba(232, 236, 247, 0.7);
+  --titlebar-line: rgba(255, 255, 255, 0.14);
+  --surface-3: #262c36;
+  --ink: #e6e9ef;
+  --ink-2: #b3bac6;
+  --muted: #8a93a0;
+  --line: #2a313b;
+  --line-strong: #3c4451;
+  --code-bg: #12161c;
+  --code-line: #2a313b;
+
+  --row-zebra: #1b1f26;
+  --row-hover: #1e232b;
   --row-selected: var(--accent-soft);
 
-  --link: #93a9ff;
+  --link: #8fa6ff;
   --link-hover: #b4c4ff;
   --link-active: #f8ca50;
   --link-visited: #b79bf0;
 
-  --info-bg: #0e2836;
-  --info-line: #1c4a63;
+  --info-bg: #10222c;
+  --info-line: #1e4a63;
   --info-ink: #7ecbf0;
-  --success-bg: #10271b;
-  --success-line: #1f5333;
-  --success-ink: #6fd396;
-  --warning-bg: #2c2410;
-  --warning-line: #574518;
-  --warning-ink: #f8ca50;
-  --danger-bg: #2c1512;
-  --danger-line: #572722;
-  --danger-ink: #f0776a;
-  --announcement: #e0554a;
+  --success-bg: #132419;
+  --success-line: #24523a;
+  --success-ink: #5fd08c;
+  --warning-bg: #2a2412;
+  --warning-line: #55471c;
+  --warning-ink: #f2c54a;
+  --danger-bg: #2b1614;
+  --danger-line: #57292a;
+  --danger-ink: #ef8b80;
+  --announcement: #ff7a6e;
 
+  /* Verdicts: the fills are lifted off the ground so a pill reads as a pill on a
+     card, and every text/fill pair clears 4.5:1. */
   --v-good: #52c98a;
-  --v-good-bg: #10271b;
+  --v-good-bg: #14301f;
   --v-bad: #f0776a;
-  --v-bad-bg: #2c1512;
-  --v-warn: #f8ca50;
-  --v-warn-bg: #2c2410;
-  --v-neutral: #97a0ae;
-  --v-neutral-bg: #1f2634;
+  --v-bad-bg: #331813;
+  --v-warn: #f8ca50; /* the seasonal highlight           */
+  --v-warn-bg: #33290f;
+  --v-neutral: #9aa3b1;
+  --v-neutral-bg: #262c36;
   --v-run: #8fa6ff;
-  --v-run-bg: #1b2447;
+  --v-run-bg: #1b2440;
   --v-ie: #ff9a8e;
 
   --rating-none: #a6adb8;
@@ -467,25 +509,25 @@
   --rating-expert: #5fb3e8;
   --rating-candidate-master: #c58bda;
   --rating-master: #ffb100;
-  --rating-grandmaster: #ff5b5b;
+  --rating-grandmaster: #ff6b6b;
   --rating-target: #ff8a8a;
 
-  --heat-0: #1c2434;
-  --heat-1: #1e4423;
-  --heat-2: #35722f;
+  --heat-0: #232932;
+  --heat-1: #1f4a28;
+  --heat-2: #357a33;
   --heat-3: #63a83f;
   --heat-4: #a9dc76;
 
-  --cell-solved-bg: #15321f;
+  --cell-solved-bg: #17351f;
   --cell-solved-ink: #6fd396;
-  --cell-first-bg: #2f6b25;
-  --cell-first-ink: #d9f3b8;
+  --cell-first-bg: #356f28;
+  --cell-first-ink: #e2f7c4;
   --cell-first-ring: #ffb100;
-  --cell-failed-bg: #2c1512;
+  --cell-failed-bg: #331813;
   --cell-failed-ink: #f0776a;
-  --cell-frozen-bg: #1b2447;
+  --cell-frozen-bg: #1b2440;
   --cell-frozen-ink: #a9baff;
-  --cell-judging-bg: #2c2410;
+  --cell-judging-bg: #33290f;
   --cell-judging-ink: #f8ca50;
 
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
