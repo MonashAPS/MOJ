@@ -115,7 +115,7 @@ function SortHead({
           active ? "text-titlebar-ink" : "text-titlebar-ink-2",
         )}
       >
-        <span>{label}</span>
+        <span className="flex shrink-0 items-center [&_svg]:size-3.5">{label}</span>
         <Chevron size={12} aria-hidden className={active ? "text-titlebar-ink" : "text-titlebar-ink-2"} />
       </button>
     </TableHead>

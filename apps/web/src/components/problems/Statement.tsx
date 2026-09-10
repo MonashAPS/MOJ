@@ -1,6 +1,6 @@
 "use client";
 
-import { ContentDescription } from "@moj/ui";
+import { ContentDescription, cn } from "@moj/ui";
 import { useEffect, useRef, useState } from "react";
 import { STATEMENT_COPY_ICONS } from "@/lib/statement";
 
@@ -52,7 +52,10 @@ export function Statement({ html, className }: { html: string; className?: strin
 
   return (
     <div ref={root}>
-      <ContentDescription html={html} className={className} />
+      {/* DESIGN 14.2: the statement is the one place in MOJ that is prose, and it
+          keeps the 74ch measure. `content.css` lives in @moj/content, which this
+          branch does not own, so the cap is applied here. */}
+      <ContentDescription html={html} className={cn("max-w-(--prose-max)", className)} />
       <output aria-live="polite" className="sr-only">
         {announcement}
       </output>

@@ -1,7 +1,7 @@
 import { api } from "@convex/_generated/api";
 import type { Metadata } from "next";
 import { forbidden, notFound } from "next/navigation";
-import { ProblemHeader } from "@/components/problems/ProblemHeader";
+import { ProblemPage } from "@/components/problems/ProblemHeader";
 import { SubmitForm } from "@/components/problems/SubmitForm";
 import { queryAsViewer } from "@/lib/convex-server";
 
@@ -28,18 +28,15 @@ export default async function ResubmitPage({ params }: { params: Promise<{ code:
   if (!problem.canSubmit) forbidden();
 
   return (
-    <>
-      <ProblemHeader problem={problem} active="submit" title={`Submit to ${problem.name}`} />
-      <div id="content-body">
-        <SubmitForm
-          problemCode={problem.code}
-          problemName={problem.name}
-          defaultLanguageKey={previous.languageKey}
-          initialSource={previous.source}
-          canPinJudge={problem.canEdit}
-          submissionsLeft={problem.contestProblem?.submissionsLeft ?? null}
-        />
-      </div>
-    </>
+    <ProblemPage problem={problem} active="submit" title={`Submit to ${problem.name}`}>
+      <SubmitForm
+        problemCode={problem.code}
+        problemName={problem.name}
+        defaultLanguageKey={previous.languageKey}
+        initialSource={previous.source}
+        canPinJudge={problem.canEdit}
+        submissionsLeft={problem.contestProblem?.submissionsLeft ?? null}
+      />
+    </ProblemPage>
   );
 }

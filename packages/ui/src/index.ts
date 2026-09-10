@@ -209,7 +209,7 @@ export {
   TabsRoot,
   TabsTrigger,
 } from "./components/tabs";
-export { PageTabs, TabBar, type TabItem, TitleRow } from "./components/title-row";
+export { PageTabs, TabBar, type TabItem, type TabLink, TitleRow } from "./components/title-row";
 export { Toaster, toast } from "./components/toast";
 export { ToggleButton, ToggleGroup, ToggleGroupItem } from "./components/toggle-group";
 export {

@@ -22,7 +22,7 @@ export function Comments({ targetType, targetKey }: { targetType: CommentTargetT
       {data.comments.length === 0 ? (
         <EmptyState
           icon={<MessageSquare size={20} />}
-          title="No comments yet"
+          title="No comments"
           description="No comments yet — be the first."
         />
       ) : (

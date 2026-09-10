@@ -30,10 +30,10 @@ function Entry({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-baseline gap-2 py-1 text-sm">
+    <div className="flex min-w-0 items-baseline gap-2 py-1 text-sm">
       <span className="relative top-0.5 shrink-0 text-muted-foreground [&_svg]:size-3.5">{icon}</span>
-      <span className="shrink-0 text-subtle">{label}</span>
-      <span className="ml-auto text-right font-mono tabular-nums text-foreground">{children}</span>
+      <span className="min-w-0 flex-1 truncate text-subtle">{label}</span>
+      <span className="shrink-0 text-right font-mono tabular-nums text-foreground">{children}</span>
     </div>
   );
 }
@@ -41,10 +41,10 @@ function Entry({
 function LangLimits({ rows }: { rows: { name: string; value: string }[] }) {
   if (rows.length === 0) return null;
   return (
-    <dl className="mb-1 ml-[22px] grid gap-0.5">
+    <dl className="mb-1 ml-[22px] grid min-w-0 gap-0.5">
       {rows.map((row) => (
-        <div key={row.name} className="flex items-baseline justify-between gap-2 text-sm">
-          <dt className="truncate text-muted-foreground">{row.name}</dt>
+        <div key={row.name} className="flex min-w-0 items-baseline justify-between gap-2 text-sm">
+          <dt className="min-w-0 truncate text-muted-foreground">{row.name}</dt>
           <dd className="shrink-0 font-mono tabular-nums text-subtle">{row.value}</dd>
         </div>
       ))}
@@ -81,8 +81,8 @@ function Disclosure({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-sm border border-border bg-secondary px-2 py-1.5">
-      <div className="font-mono text-md font-medium tabular-nums text-foreground">{value}</div>
+    <div className="min-w-0 rounded-sm border border-border bg-secondary px-2 py-1.5">
+      <div className="truncate font-mono text-md font-medium tabular-nums text-foreground">{value}</div>
       <div className="font-sans text-xs font-semibold uppercase tracking-label text-muted-foreground">
         {label}
       </div>
@@ -100,7 +100,7 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
   const appeared = allContests ? problem.appearedIn : problem.appearedIn.slice(0, 3);
 
   return (
-    <Panel title={problem.code} bodyClassName="grid gap-3 p-3">
+    <Panel title={problem.code} bodyClassName="grid min-w-0 gap-3 p-3 [&>*]:min-w-0">
       {contestProblem ? (
         <p className="-mx-3 -mt-3 border-b border-primary-line bg-primary-soft px-3 py-2 text-sm text-subtle">
           Contest mode — problem{" "}
@@ -206,9 +206,12 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
           <p className="mb-1.5 font-sans text-xs font-semibold uppercase tracking-label text-subtle">
             Appeared in
           </p>
-          <ul className="grid gap-1.5">
+          <ul className="grid min-w-0 gap-1.5">
             {appeared.map((contest) => (
-              <li key={`${contest.contestKey}-${contest.label}`} className="flex items-center gap-2 text-sm">
+              <li
+                key={`${contest.contestKey}-${contest.label}`}
+                className="flex min-w-0 items-center gap-2 text-sm"
+              >
                 <Badge variant="neutral" shape="square" mono>
                   {contest.label}
                 </Badge>
@@ -234,7 +237,7 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
 
       {problem.authors.length > 0 ? (
         <div className="border-t border-border pt-2">
-          <div className="flex items-baseline gap-2 text-sm">
+          <div className="flex min-w-0 items-baseline gap-2 text-sm">
             <PencilLine size={14} aria-hidden className="relative top-0.5 shrink-0 text-muted-foreground" />
             <span className="shrink-0 text-subtle">
               {problem.authors.length === 1 ? "Author:" : "Authors:"}

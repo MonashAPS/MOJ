@@ -2,7 +2,7 @@ import { api } from "@convex/_generated/api";
 import type { Metadata } from "next";
 import { forbidden, notFound } from "next/navigation";
 import { CloneForm } from "@/components/problems/CloneForm";
-import { ProblemHeader } from "@/components/problems/ProblemHeader";
+import { ProblemPage } from "@/components/problems/ProblemHeader";
 import { queryAsViewer } from "@/lib/convex-server";
 
 export const metadata: Metadata = { title: "Clone problem" };
@@ -19,29 +19,26 @@ export default async function ClonePage({ params }: { params: Promise<{ code: st
   if (!problem.canEdit || !username) forbidden();
 
   return (
-    <>
-      <ProblemHeader problem={problem} active="clone" title={`Clone ${problem.name}`} />
-      <div id="content-body">
-        <CloneForm
-          username={username}
-          source={{
-            code: problem.code,
-            name: problem.name,
-            description: problem.statement.source,
-            summary: problem.summary,
-            points: problem.points,
-            partial: problem.partial,
-            timeLimit: problem.timeLimit,
-            memoryLimit: problem.memoryLimit,
-            shortCircuit: problem.shortCircuit,
-            isFullMarkup: problem.isFullMarkup,
-            group: problem.group?.name ?? null,
-            types: (problem.types ?? []).map((type) => type.name),
-            licenseKey: problem.license?.key ?? null,
-            allowedLanguages: problem.allowedLanguages.map((language) => language.key),
-          }}
-        />
-      </div>
-    </>
+    <ProblemPage problem={problem} active="clone" title={`Clone ${problem.name}`}>
+      <CloneForm
+        username={username}
+        source={{
+          code: problem.code,
+          name: problem.name,
+          description: problem.statement.source,
+          summary: problem.summary,
+          points: problem.points,
+          partial: problem.partial,
+          timeLimit: problem.timeLimit,
+          memoryLimit: problem.memoryLimit,
+          shortCircuit: problem.shortCircuit,
+          isFullMarkup: problem.isFullMarkup,
+          group: problem.group?.name ?? null,
+          types: (problem.types ?? []).map((type) => type.name),
+          licenseKey: problem.license?.key ?? null,
+          allowedLanguages: problem.allowedLanguages.map((language) => language.key),
+        }}
+      />
+    </ProblemPage>
   );
 }

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { cn } from "../cn";
 import { focusRing } from "../styles";
 
@@ -9,6 +9,15 @@ export type TabItem = {
   icon?: ReactNode;
   onSelect?: () => void;
 };
+
+/** The element a tab's `href` renders as. Defaults to a plain anchor; a page in
+ *  an app router passes its own `Link` so switching tabs is a client navigation
+ *  and the shell's route progress and page-enter reveal both run. */
+export type TabLink = ComponentType<{
+  href: string;
+  className?: string;
+  children?: ReactNode;
+}>;
 
 /** DMOJ's title row: h1 left, page tabs right, the primary action furthest right,
  *  and a hairline under all of it. Under 700px the tabs take their own scrolling
@@ -21,6 +30,7 @@ export function TitleRow({
   action,
   ruler = true,
   className,
+  linkAs,
 }: {
   title: ReactNode;
   breadcrumb?: ReactNode;
@@ -29,6 +39,7 @@ export function TitleRow({
   action?: ReactNode;
   ruler?: boolean;
   className?: string;
+  linkAs?: TabLink;
 }) {
   return (
     <>
@@ -38,7 +49,7 @@ export function TitleRow({
           <h1 className="min-w-0 flex-1 text-balance font-display text-h1 font-bold tracking-tight text-foreground">
             {title}
           </h1>
-          {tabs && tabs.length > 0 ? <PageTabs tabs={tabs} active={active} /> : null}
+          {tabs && tabs.length > 0 ? <PageTabs tabs={tabs} active={active} linkAs={linkAs} /> : null}
           {action ? (
             // A lone primary action goes full width on a phone; a pair of ghost
             // actions stays a row and wraps rather than overflowing.
@@ -59,10 +70,12 @@ export function PageTabs({
   tabs,
   active,
   className,
+  linkAs: Link = "a" as unknown as TabLink,
 }: {
   tabs: TabItem[];
   active?: string;
   className?: string;
+  linkAs?: TabLink;
 }) {
   return (
     <nav
@@ -97,9 +110,9 @@ export function PageTabs({
           );
         }
         return tab.href ? (
-          <a key={tab.key} href={tab.href} className={classes}>
+          <Link key={tab.key} href={tab.href} className={classes}>
             {inner}
-          </a>
+          </Link>
         ) : (
           <button key={tab.key} type="button" onClick={tab.onSelect} className={classes}>
             {inner}
@@ -118,6 +131,7 @@ export function TabBar({
   after,
   breadcrumb,
   className,
+  linkAs,
 }: {
   title: ReactNode;
   tabs: TabItem[];
@@ -125,6 +139,7 @@ export function TabBar({
   after?: ReactNode;
   breadcrumb?: ReactNode;
   className?: string;
+  linkAs?: TabLink;
 }) {
   return (
     <TitleRow
@@ -134,6 +149,7 @@ export function TabBar({
       action={after}
       breadcrumb={breadcrumb}
       className={className}
+      linkAs={linkAs}
       ruler={false}
     />
   );

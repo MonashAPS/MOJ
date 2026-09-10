@@ -44,6 +44,19 @@ const SORT_OPTIONS: { value: ProblemSort; label: string }[] = [
   { value: "date", label: "Date" },
 ];
 
+/** A value that came in from the URL must stay selectable even when the option
+ *  list has not loaded it — otherwise the control renders blank. */
+function withCurrent(
+  options: { value: string; label: string }[],
+  ...values: string[]
+): { value: string; label: string }[] {
+  const known = new Set(options.map((option) => option.value));
+  const extra = values
+    .filter((value) => value && !known.has(value))
+    .map((value) => ({ value, label: value }));
+  return [...options, ...extra];
+}
+
 /** A group of the panel: a hairline, a micro-label header carrying its active
  *  count, and a body that animates open. No nested boxes (DESIGN 17.1). */
 function Group({
@@ -230,7 +243,10 @@ export function FilterPanel({
             onValueChange={(value) => set({ category: value === "__all__" ? "" : value })}
             options={[
               { value: "__all__", label: "All" },
-              ...options.groups.map((group) => ({ value: group.name, label: group.fullName })),
+              ...withCurrent(
+                options.groups.map((group) => ({ value: group.name, label: group.fullName })),
+                query.category,
+              ),
             ]}
           />
         </Group>
@@ -353,10 +369,10 @@ export function FilterPanel({
 
         <Group label="Contest" count={query.contests.length} defaultOpen={query.contests.length > 0}>
           <MultiSelect
-            options={options.contests.map((contest) => ({
-              value: contest.key,
-              label: contest.name,
-            }))}
+            options={withCurrent(
+              options.contests.map((contest) => ({ value: contest.key, label: contest.name })),
+              ...query.contests,
+            )}
             values={query.contests}
             onChange={(values) => set({ contests: values })}
             searchPlaceholder="Find a contest…"

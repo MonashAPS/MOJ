@@ -1,7 +1,7 @@
 import { api } from "@convex/_generated/api";
 import type { Metadata } from "next";
 import { forbidden, notFound } from "next/navigation";
-import { ProblemHeader } from "@/components/problems/ProblemHeader";
+import { ProblemPage } from "@/components/problems/ProblemHeader";
 import { TestDataEditor } from "@/components/problems/TestDataEditor";
 import { queryAsViewer } from "@/lib/convex-server";
 
@@ -23,11 +23,8 @@ export default async function TestDataPage({ params }: { params: Promise<{ code:
   if (!data) forbidden();
 
   return (
-    <>
-      <ProblemHeader problem={problem} active="test_data" title={`Editing data for ${problem.name}`} />
-      <div id="content-body">
-        <TestDataEditor code={problem.code} initial={data} />
-      </div>
-    </>
+    <ProblemPage problem={problem} active="test_data" title={`Editing data for ${problem.name}`}>
+      <TestDataEditor code={problem.code} initial={data} />
+    </ProblemPage>
   );
 }

@@ -1,7 +1,7 @@
 import { api } from "@convex/_generated/api";
 import type { Metadata } from "next";
 import { forbidden, notFound } from "next/navigation";
-import { ProblemHeader } from "@/components/problems/ProblemHeader";
+import { ProblemPage } from "@/components/problems/ProblemHeader";
 import { VoteView } from "@/components/problems/VoteView";
 import { queryAsViewer } from "@/lib/convex-server";
 
@@ -20,16 +20,13 @@ export default async function VotePage({ params }: { params: Promise<{ code: str
   if (!problem.viewer.canViewVotes) forbidden();
 
   return (
-    <>
-      <ProblemHeader problem={problem} active="vote" title={`Points vote for ${problem.name}`} />
-      <div id="content-body">
-        <VoteView
-          code={problem.code}
-          canVote={problem.viewer.canVote}
-          initialVote={problem.viewer.vote}
-          currentPoints={problem.points}
-        />
-      </div>
-    </>
+    <ProblemPage problem={problem} active="vote" title={`Points vote for ${problem.name}`}>
+      <VoteView
+        code={problem.code}
+        canVote={problem.viewer.canVote}
+        initialVote={problem.viewer.vote}
+        currentPoints={problem.points}
+      />
+    </ProblemPage>
   );
 }

@@ -1,7 +1,7 @@
 import { api } from "@convex/_generated/api";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ProblemHeader } from "@/components/problems/ProblemHeader";
+import { ProblemPage } from "@/components/problems/ProblemHeader";
 import { SubmissionList } from "@/components/submissions/SubmissionList";
 import { queryAsViewer } from "@/lib/convex-server";
 
@@ -32,24 +32,17 @@ export default async function UserProblemSubmissionsPage({
   const mine = viewerState?.profile?.username === user;
 
   return (
-    <>
-      <ProblemHeader
-        problem={problem}
-        active="submissions"
-        title={`${user}'s submissions for ${problem.name}`}
+    <ProblemPage problem={problem} active="submissions" title={`${user}'s submissions for ${problem.name}`}>
+      <SubmissionList
+        problemCode={problem.code}
+        username={user}
+        emptyTitle="Nothing submitted"
+        emptyDescription={
+          mine
+            ? `You haven't submitted to ${problem.name} yet.`
+            : `${user} hasn't submitted to ${problem.name} yet.`
+        }
       />
-      <div id="content-body">
-        <SubmissionList
-          problemCode={problem.code}
-          username={user}
-          emptyTitle="Nothing submitted"
-          emptyDescription={
-            mine
-              ? `You haven't submitted to ${problem.name} yet.`
-              : `${user} hasn't submitted to ${problem.name} yet.`
-          }
-        />
-      </div>
-    </>
+    </ProblemPage>
   );
 }

@@ -1,7 +1,7 @@
 import { api } from "@convex/_generated/api";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ProblemHeader } from "@/components/problems/ProblemHeader";
+import { ProblemPage } from "@/components/problems/ProblemHeader";
 import { RankTable } from "@/components/problems/RankTable";
 import { queryAsViewer } from "@/lib/convex-server";
 
@@ -22,11 +22,8 @@ export default async function RankPage({ params }: { params: Promise<{ code: str
   if (!problem || !ranks) notFound();
 
   return (
-    <>
-      <ProblemHeader problem={problem} active="rank" title={`Best solutions for ${problem.name}`} />
-      <div id="content-body">
-        <RankTable code={problem.code} initial={ranks} />
-      </div>
-    </>
+    <ProblemPage problem={problem} active="rank" title={`Best solutions for ${problem.name}`}>
+      <RankTable code={problem.code} initial={ranks} />
+    </ProblemPage>
   );
 }
