@@ -36,6 +36,9 @@ const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
 const AUTH_URL = process.env.AUTH_URL ?? "http://host.docker.internal:3000";
 const DATABASE_URL = process.env.DATABASE_URL ?? "postgresql://moj:moj@127.0.0.1:5433/moj_auth";
 
+/** Fixed so a code for the dev superuser can be generated from a test, and so
+ *  a re-run of setup does not lock the account out of an authenticator app. */
+const DEV_TOTP_SECRET = "mojdevtotpsecretdonotuseinprod01";
 const ADMIN_USERNAME = process.env.MOJ_ADMIN_USERNAME ?? "admin";
 const ADMIN_PASSWORD = process.env.MOJ_ADMIN_PASSWORD ?? "admin";
 const ADMIN_EMAIL = process.env.MOJ_ADMIN_EMAIL ?? "admin@example.com";
@@ -230,6 +233,11 @@ async function main() {
     LEGACY_SECRET_KEY: existing.LEGACY_SECRET_KEY || "",
     MAIL_MODE: existing.MAIL_MODE || "console",
     MAIL_FROM: existing.MAIL_FROM || "noreply@example.com",
+    // The dev superuser is staff, and staff must hold a second factor, so it is
+    // enrolled in TOTP against a fixed secret. Codes for it are reproducible,
+    // which is what lets a test log the account in. Development only: a
+    // production deploy must not carry this, and setup is a dev script.
+    MOJ_DEV_TOTP_SECRET: existing.MOJ_DEV_TOTP_SECRET || DEV_TOTP_SECRET,
   };
   const rendered = renderEnvFile(env);
   writeFileSync(ENV_LOCAL, rendered);
@@ -299,6 +307,7 @@ async function main() {
   info((seed.stdout ?? "").trim().replace(/\n/g, "\n    "));
 
   step(`Creating the development superuser ${ADMIN_USERNAME}/${ADMIN_PASSWORD}`);
+  info("enrolling it in two factor authentication against MOJ_DEV_TOTP_SECRET");
   const created = pinned(
     "npx",
     ["tsx", "apps/web/scripts/create-admin.ts", ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL],
@@ -306,14 +315,16 @@ async function main() {
   );
   const lastLine = (created.stdout ?? "").trim().split("\n").at(-1) ?? "";
   let userId;
+  let totpUri;
   try {
-    userId = JSON.parse(lastLine).userId;
+    ({ userId, totpUri } = JSON.parse(lastLine));
   } catch {
     process.stderr.write(created.stdout ?? "");
     process.stderr.write(created.stderr ?? "");
     throw new Error("could not read the admin user id from create-admin.ts");
   }
   info(`better auth user ${userId}`);
+  if (totpUri) info(`totp ${totpUri}`);
 
   pinned(
     "npx",
