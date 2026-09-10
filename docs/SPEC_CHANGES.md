@@ -51,8 +51,6 @@ Append dated bullets when you had to extend or deviate from docs/SPEC.md.
 - `apps/web/src/lib/simple-markdown.tsx` renders flat pages and post summaries with a very small subset of
   markdown until `@moj/content` lands. Delete it and call `renderMarkdown` when that package exists.
 
-## packages/core
-## 2026-09-10, core
 ## 2026-09-10, packages/core
 
 - 2026-09-10 (packages/core): the contest format `displayUserProblem` and `displayParticipationResult`
@@ -76,9 +74,7 @@ Append dated bullets when you had to extend or deviate from docs/SPEC.md.
 - 2026-09-10 (packages/core): `@moj/core` has no runtime dependencies at all (zod was permitted but not
   needed; contest format config validation reproduces DMOJ's own error messages).
 
-## 2026-09-10, content
-
-## packages/content
+## 2026-09-10, packages/content
 
 - 2026-09-10: `renderMarkdown(source, preset, options?)` is asynchronous and returns
   `{html, meta}` rather than a bare HTML string. Shiki loads its grammars on demand and KaTeX
@@ -279,8 +275,8 @@ Behaviour worth flagging:
 - `viewer.current` gained `contestModeStale`. `Profile.update_contest()` clears contest mode on every request;
   a Convex query cannot write, so `current` reports the stale participation as `inContest: false` and the
   clearing happens in `contests.clearStaleContest` (called by the shell) or in the internal
-  `jobs/contests.sweepContestMode`, which is what `maintenance.cleanupContestMode` should call.
-- Contest job runners live in `convex/jobs/contests.ts` (`rescoreChunk`, `rateContestJob`,
+  `jobsContests.sweepContestMode`, which is what `maintenance.cleanupContestMode` should call.
+- Contest job runners live in `convex/jobsContests.ts` (`rescoreChunk`, `rateContestJob`,
   `rejudgeContestProblemChunk`, `mossJob`, `sweepContestMode`) with three small private helpers that own the
   `jobs` row, because `convex/jobs.ts` belongs to another agent. Note for the integrator: Convex cannot carry
   both `convex/jobs.ts` and `convex/jobs/`; if the generic module lands under that name these runners move to
@@ -301,7 +297,7 @@ Behaviour worth flagging:
 - `scoreboardEvents.theme` is validated against `default` and `olympics`; the fork's `template` hook has no
   equivalent, because the page is a React route rather than a Django template.
 - MOSS is a stub, as section 12 allows: `contests.moss` answers "MOSS is not configured." unless
-  `siteSettings.mossApiKey` is set, and `jobs/contests.mossJob` fails with the same message. Running MOSS needs an
+  `siteSettings.mossApiKey` is set, and `jobsContests.mossJob` fails with the same message. Running MOSS needs an
   outbound call to moss.stanford.edu from an action, which nothing here has a key for.
 - `convex-test` and `@edge-runtime/vm` are new devDependencies; the contest tests carry
   `// @vitest-environment edge-runtime` per file because the root vitest project runs `node`, and they declare
@@ -498,3 +494,57 @@ Behaviour and interpretation:
 - Root `package.json` gained `@moj/core` as a dependency and `convex-test`, `@edge-runtime/vm` and
   `fast-xml-parser` as dev dependencies; `apps/web/vitest.config.ts` gained the `@/` and `@convex/` aliases the
   feed tests need.
+
+## 2026-09-10, integration
+
+Decisions taken when the six backend branches were merged onto `build`. Every one of them changes a name or
+a wiring point that the page wave will import, so they are recorded here rather than left to be discovered.
+
+- **`convex/jobs/` is gone.** Convex refuses a file and a directory with the same module name, so `jobs.ts`
+  and `jobs/contests.ts` could not both exist. The two directory modules moved up: `convex/jobsContests.ts`
+  and `convex/jobsUsers.ts`, and every reference is `internal.jobsContests.*` / `internal.jobsUsers.*`.
+- **`jobs.run({jobId})`** is the single entry point a queued `jobs` row is started through, per section 12.
+  It reads `type` off the document and schedules the runner that owns it: `rejudge` and `rescore` in
+  `jobs.ts` (or, when the args carry a `contestId`, the contest runners), `rescoreContest`, `rateContest`,
+  `rejudgeContestProblem` and `moss` in `jobsContests.ts`, `userExport` in `jobsUsers.ts`. `pdf` and
+  `sitemap` are marked done with `{skipped: true}`: both are rendered by the web app, and the row only
+  exists so the console can show one was asked for. It also accepts `{type, args}` because
+  `admin/problems.ts` schedules it by name (`makeFunctionReference("jobs:run")`) and cannot import it.
+- `rejudge` job args are resolved rather than assumed: `problemCode` is looked up if `problemId` is absent,
+  `languages` (keys) are mapped to `languageIds`, and `idRange` is accepted as either `{start, end}` (what
+  the staff console sends) or a two-element array (what `startRejudgeJob` writes).
+- **Crons** are judge recovery (`judging.recoverStuckSubmissions`, 1 min), judge offline marking
+  (`judgeApi.markOfflineJudges`, 1 min), stale contest-mode cleanup (`jobsContests.sweepContestMode`,
+  5 min) and stats refresh (`stats.refresh`, 15 min). `convex/maintenance.ts` and its four no-op stubs are
+  deleted. Section 12's "hot problems refresh" has no cron: `problems.hotProblems` computes the box from
+  the submission window on read, so there is nothing to refresh. Add one only if that query is ever cached.
+- **All rate limits live in `convex/lib/rateLimiter.ts`.** `submitDaily`, which `submissions.submit` used to
+  configure inline at the call site, is a named limit there with `SUBMISSION_DAILY_LIMIT`.
+- **`submissionsByProblemResult` is removed.** It was declared in `lib/aggregates.ts` and registered in
+  `convex.config.ts` but nothing read it and nothing maintained it, so it would have answered 0 forever.
+  The three profile aggregates (`profilesByPP`, `profilesByRating`, `profilesByProblemCount`) stay.
+- **Every write that moves a profile's points goes through `rankings.patchProfile` or
+  `rankings.insertProfileAggregates`**, because Convex has no triggers and the aggregates are keyed on
+  `points`, `performancePoints`, `problemCount`, `rating` and `isUnlisted`. That is
+  `judging.recomputeProfilePoints`, `profiles.recalculateProfilePoints`, `profiles.ensureProfile` (through
+  `upsertProfile`), `admin/users.*` and `importer.insertBatch`. After a bulk import run
+  `rankings.rebuildAggregates` anyway: an interrupted import leaves the tree short.
+- **Two new environment variables.** `AUTH_URL` is the web app origin the Convex problems API calls to
+  verify an API key against Better Auth's api-key plugin; setup sets it on the deployment only when the
+  container can reach the host (the same probe as `AUTH_JWKS_URL`), and leaves it unset otherwise so the
+  `apiKeys` table fallback is used. `LEGACY_SECRET_KEY` is DMOJ's `SECRET_KEY`, needed for API v2 tokens
+  minted by the old site to keep verifying; it is only set on the deployment when it is not blank.
+- **`apps/web/src/lib/simple-markdown.tsx` is deleted.** The feed routes, `/` and `/about` render through
+  `renderMarkdown` from `@moj/content`, which is async: a page has to await it before the JSX, and the feed
+  entries are built with `Promise.all`. Feeds render with `{highlight: false, lazyLoadImages: false}`,
+  since a reader has none of the CSS either needs.
+- Two files carried a literal NUL byte inside a string (`judging.ts`'s judge-pin sentinel and the
+  importer's report keys), which made git and grep treat them as binary. They are written as `\u0000`
+  escapes now; the runtime value is unchanged.
+- Test-only modules under `convex/` are named with two dots (`contests.fixtures.ts`,
+  `problems.fixtures.ts`, alongside the existing `fixtures.helpers.ts` and `*.setup.ts`) because Convex's
+  bundler skips any basename with more than one dot. A single-dot helper there would be pushed to the
+  deployment.
+- `convex/_generated/api.d.ts` was hand-merged, not generated: `npx convex codegen` needs a deployment and
+  there is none in this worktree. It lists exactly the modules Convex's own entry-point rules select, so
+  the next `convex dev` in the main tree should produce an identical file.

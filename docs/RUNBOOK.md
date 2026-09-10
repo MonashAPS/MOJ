@@ -29,7 +29,9 @@ npm run dev
 4. writes `.env.local` at the repository root and a copy in `apps/web`, keeping
    any `AUTH_SECRET` that is already there so existing sessions survive,
 5. runs the Drizzle migrations for the Better Auth database,
-6. sets `AUTH_ISSUER` and `AUTH_JWKS_URL` on the Convex deployment,
+6. sets `AUTH_ISSUER`, `AUTH_JWKS_URL` and, when the container can reach the
+   host, `AUTH_URL` on the Convex deployment (plus `LEGACY_SECRET_KEY` if one is
+   in `.env.local`),
 7. pushes the Convex functions,
 8. seeds the 59 DMOJ languages, the navigation bar, the misc config defaults,
    the problem groups and types, two announcements and the sample problem
@@ -126,6 +128,8 @@ the ones only production needs.
 | `AUTH_ISSUER` | web server, Convex | `iss` claim on the JWTs Convex trusts. Must match on both sides. |
 | `AUTH_JWKS_URL` | Convex | Where the backend fetches the public keys. See the note below. |
 | `AUTH_RP_ID` | web server | Passkey relying party id. Bare hostname, no scheme or port. |
+| `AUTH_URL` | Convex | Web app origin the problems API calls to verify an API key against Better Auth. Unset means the `apiKeys` table fallback. |
+| `LEGACY_SECRET_KEY` | web server, Convex | DMOJ's `SECRET_KEY`. API v2 tokens minted by the old site are `hmac_sha256` of it, so legacy tokens only work when it matches. Blank on a fresh install. |
 | `MAIL_MODE` | web server | `console` logs mail, `ses` sends through Amazon SES. |
 | `MAIL_FROM`, `SES_*` | web server | SES sender and credentials, only read when `MAIL_MODE=ses`. |
 | `JUDGE_NAME`, `JUDGE_KEY` | judge container | Credentials the judge presents to the judge API. |
@@ -133,12 +137,17 @@ the ones only production needs.
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT` | postgres | Credentials and the host port (5433 by default). |
 | `TYPST_BIN` | web server | Path to the Typst binary used to render problem PDFs. |
 
-Two variables live on the Convex deployment rather than in `.env.local`, because
-`convex/auth.config.ts` reads them at push time. Setup sets them for you; check
-them with `npx convex env list`:
+Four variables live on the Convex deployment as well as in `.env.local`, because
+Convex functions read them at run time and `convex/auth.config.ts` at push time.
+Setup sets them for you; check them with `npx convex env list`:
 
 - `AUTH_ISSUER`
 - `AUTH_JWKS_URL`
+- `AUTH_URL`, only when the backend container can reach the host. When it cannot,
+  setup removes it and `convex/http/problemsApi.ts` verifies problems-API keys
+  against the `apiKeys` table instead, which is the same fallback a production
+  deployment uses when the web app is briefly unreachable.
+- `LEGACY_SECRET_KEY`, only when it is not blank.
 
 ### If the Convex container cannot reach the web app
 
@@ -151,15 +160,118 @@ seconds and then falls back to being anonymous.
 
 Setup detects this: it probes the backend container's ability to reach the host
 and, when it cannot, inlines the key set as a `data:` URI in `AUTH_JWKS_URL`
-instead of a URL. You will see this line in the setup output:
+instead of a URL. It leaves `AUTH_URL` unset in the same case, so the problems
+API falls back to the `apiKeys` table rather than waiting on a fetch that cannot
+succeed. You will see these lines in the setup output:
 
 ```
 the convex container cannot reach the host, so the JWKS is inlined as a data URI
+the convex container cannot reach the host, so AUTH_URL is left unset
 ```
 
 The only cost is that rotating the Better Auth signing keys needs another
-`npm run setup`. To go back to fetching the URL, open the firewall for the
-Docker bridge subnet and re-run setup.
+`npm run setup`, and that a problems-API key has to exist in the `apiKeys` table
+rather than only in Better Auth. To go back to fetching the URL, open the
+firewall for the Docker bridge subnet and re-run setup.
+
+## Importing the production site
+
+`tools/import` reads a `mysqldump` of the live DMOJ database and writes Convex
+documents plus Better Auth rows. See `tools/import/README.md` for the options
+and the table order; this is the sequence as it was actually run on the
+development box.
+
+The stack has to be up (`npm run setup`), the Drizzle migrations applied, and
+`.env.local` has to carry `CONVEX_SELF_HOSTED_URL`, `CONVEX_SELF_HOSTED_ADMIN_KEY`,
+`DATABASE_URL` and `AUTH_SECRET`. The importer reads them from `.env.local` on
+its own.
+
+```sh
+# 1. the dump and the Django SECRET_KEY, both gitignored
+scp maps:/srv/dumps/dump-2026-09-10.sql.gz tools/import/dump-2026-09-10.sql.gz
+printf 'SECRET_KEY=%s\n' "$SECRET_KEY" > tools/import/secrets.env
+
+# 2. dry run first, and read the report before going further
+taskset -c 0-11,14-31 npm run import -w tools/import -- \
+  --dump tools/import/dump-2026-09-10.sql.gz \
+  --secret-key-file tools/import/secrets.env \
+  --dry-run --report
+
+# 3. the real load
+taskset -c 0-11,14-31 npm run import -w tools/import -- \
+  --dump tools/import/dump-2026-09-10.sql.gz \
+  --secret-key-file tools/import/secrets.env \
+  --report
+
+# 4. rebuild the leaderboard aggregates (see below)
+npx convex run rankings:rebuildAggregates '{}'
+
+# 5. the legacy API v2 tokens only verify if the deployment has the same key
+npx convex env set LEGACY_SECRET_KEY "$SECRET_KEY"
+```
+
+A run that stops part way can be resumed with `--resume`; `--fresh` forgets
+`tools/import/out/state.json` and treats every table as unloaded. A run only
+inserts, so re-importing a table that is already loaded duplicates it.
+
+The 2026-09-10 dump loaded 747 profiles, 313 problems, 63 contests, 1533
+participations, 14933 submissions, 236605 case rows, 18 comments, 12 tickets and
+1812 revisions, plus 749 Postgres users with their Django password hashes
+carried over verbatim.
+
+### `rankings:rebuildAggregates` after an import
+
+The leaderboard is served by three `@convex-dev/aggregate` components
+(`profilesByPP`, `profilesByRating`, `profilesByProblemCount`). Convex has no
+triggers, so every mutation that moves a profile's points maintains them by hand
+through `rankings.patchProfile`. `importer.insertBatch` does the same for the
+profiles it inserts, but an import that was interrupted, resumed, or run with
+`--clear` can still leave the tree short of rows. Rebuilding is cheap and safe
+to repeat:
+
+```sh
+npx convex run rankings:rebuildAggregates '{}'
+```
+
+It clears and refills in pages of 200 and returns `{cursor, isDone, done}`; call
+it again with the cursor until `isDone`. Staff can do the same from the console
+through `rankings.repairAggregates`, which does the whole table in one go.
+
+## End to end: the judge
+
+`npm run e2e:judge` submits `infra/problems/aplusb/sol.py` through the real
+`submissions.submit` mutation and waits for `D`/`AC`. It needs the stack running
+and a judge container polling it with the same name and key.
+
+On this box the container has to run with `--network host`. The NixOS firewall
+trusts only `lo`, so a container on the default bridge cannot reach the Convex
+HTTP port through `host.docker.internal`, and every claim times out. With host
+networking the judge reaches the port on `127.0.0.1` like everything else, which
+is why `MOJ_URL` is a loopback address and not the gateway.
+
+```sh
+docker run --rm --network host \
+  --cap-add SYS_PTRACE \
+  -e MOJ_URL=http://127.0.0.1:3211 \
+  -e JUDGE_NAME=local \
+  -e JUDGE_KEY=localjudgekey \
+  -v "$PWD/infra/problems:/problems" \
+  moj-judge:tier1
+
+# in another shell, once the judge has handshaken
+taskset -c 0-11,14-31 npm run e2e:judge
+```
+
+`e2e:judge` creates the `judges` row with `sha256(key)` if it is not there
+already, so the judge can be started before anything exists in the database. Set
+`JUDGE_NAME` / `JUDGE_KEY` on the container and `MOJ_JUDGE_NAME` /
+`MOJ_JUDGE_KEY` on the script if you use anything other
+than the defaults, and `MOJ_E2E_TIMEOUT_MS` if a cold container needs longer
+than 120 seconds to compile.
+
+The compose stack has the judge behind a profile, but that service uses the
+bridge network and will not grade on this box; use the `docker run` above
+instead.
 
 ## Checks
 
