@@ -256,6 +256,21 @@ Convex HTTP origin through `host.docker.internal`. Watch it come up with
 `docker compose -f infra/compose.dev.yml --project-directory . logs -f judge`; the handshake line names the site
 and the number of problems found.
 
+### Runtime tiers
+
+`TIER` picks the runtime base image DMOJ publishes, and it decides which languages the judge can offer at all.
+
+- **tier1** is enough for everything the club's problems use, C++23 and C23 included. The current image is Debian
+  sid with GCC 16, so `CPP23` and `C23` both pass their self-tests on it, alongside C through C23, C++03 through
+  C++23, Java 8, Python 2 and 3, PyPy 3, Pascal, Perl, x64 assembly, AWK, sed and plain text.
+- **tier2** adds the mid-popularity runtimes.
+- **tier3** adds the rest, and it is the tier that has Clang (`CLPP14` through `CLPP23`), Node.js (`NODEJS`),
+  Lean 4 (`LEAN4`), ALGOL 68 (`ALGL68`) and LLVM IR (`LLC`). It is around 18 GB to pull.
+
+The images come from Docker Hub. DMOJ's ghcr.io mirror has not been rebuilt since March 2022, and its tier 1 image
+still ships GCC 11, which reports `__cplusplus` as `202100L` for `-std=c++23` and rejects `-std=c23` outright. Both
+executors fail their self-tests against it, so a judge built on the mirror never reports C++23 or C23 to the site.
+
 ### When the Docker bridge cannot reach the host
 
 On a Linux host whose firewall trusts only the loopback interface, a container on the default bridge cannot reach
