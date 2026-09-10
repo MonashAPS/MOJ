@@ -31,13 +31,3 @@ export const profilesByProblemCount = new TableAggregate<{
   namespace: (doc) => doc.isUnlisted,
   sortKey: (doc) => doc.problemCount,
 });
-
-export const submissionsByProblemResult = new TableAggregate<{
-  Namespace: string;
-  Key: number;
-  DataModel: DataModel;
-  TableName: "submissions";
-}>(components.submissionsByProblemResult, {
-  namespace: (doc) => `${doc.problemId}:${doc.result ?? "none"}`,
-  sortKey: (doc) => doc.date,
-});

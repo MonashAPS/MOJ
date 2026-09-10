@@ -1,3 +1,7 @@
+// Site chrome: the navigation bar, the misc config keys DMOJ kept in
+// `MiscConfig`, flat pages, licenses and the settings document.
+// judge/models/interface.py, judge/views/license.py.
+
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { query } from "./_generated/server";
@@ -30,13 +34,19 @@ export const miscConfig = query({
   },
 });
 
+/** The preset `@moj/content` renders flat page bodies with. */
+export const FLATPAGE_PRESET = "flatpage" as const;
+/** The preset `@moj/content` renders license texts with. */
+export const LICENSE_PRESET = "license" as const;
+
 export const flatPage = query({
   args: { url: v.string() },
   handler: async (ctx, { url }) => {
-    return await ctx.db
+    const row = await ctx.db
       .query("flatPages")
       .withIndex("by_url", (q) => q.eq("url", url))
       .unique();
+    return row === null ? null : { ...row, contentPreset: FLATPAGE_PRESET };
   },
 });
 
@@ -111,3 +121,56 @@ function buildTree(rows: Doc<"navigationBar">[]): NavNode[] {
   sort(roots);
   return roots;
 }
+
+/** `LicenseDetail` (judge/views/license.py:6). */
+export const license = query({
+  args: { key: v.string() },
+  handler: async (ctx, { key }) => {
+    const row = await ctx.db
+      .query("licenses")
+      .withIndex("by_key", (q) => q.eq("key", key))
+      .unique();
+    return row === null ? null : { ...row, textPreset: LICENSE_PRESET };
+  },
+});
+
+export const licenses = query({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db.query("licenses").collect();
+    rows.sort((a, b) => a.name.localeCompare(b.name));
+    return rows;
+  },
+});
+
+/** `ContestTag`, for the contest list filters and the staff console. */
+export const contestTags = query({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db.query("contestTags").collect();
+    rows.sort((a, b) => a.name.localeCompare(b.name));
+    return rows;
+  },
+});
+
+/** One misc config value; DMOJ reads these through the `misc_config` filter. */
+export const miscConfigValue = query({
+  args: { key: v.string() },
+  handler: async (ctx, { key }) => {
+    const row = await ctx.db
+      .query("miscConfig")
+      .withIndex("by_key", (q) => q.eq("key", key))
+      .unique();
+    return row?.value ?? null;
+  },
+});
+
+/** The flat navigation rows, for the staff console's ordering editor. */
+export const navRows = query({
+  args: {},
+  handler: async (ctx): Promise<Doc<"navigationBar">[]> => {
+    const rows = await ctx.db.query("navigationBar").withIndex("by_order").collect();
+    rows.sort((a, b) => a.order - b.order);
+    return rows;
+  },
+});
