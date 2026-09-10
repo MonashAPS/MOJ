@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 /**
  * Refreshes the vendored Typst packages under `typst/packages/preview`.
  *
@@ -11,13 +12,13 @@
  *   node scripts/vendor-typst-packages.mjs cmarker@0.1.11      # a specific one
  */
 
+import { spawn } from "node:child_process";
 import { createWriteStream } from "node:fs";
-import { mkdir, mkdtemp, rm, readdir } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
-import { spawn } from "node:child_process";
 
 const PINNED = ["cmarker@0.1.10", "mitex@0.2.7"];
 
@@ -60,6 +61,4 @@ async function vendor(spec) {
 
 const specs = process.argv.slice(2);
 for (const spec of specs.length > 0 ? specs : PINNED) await vendor(spec);
-process.stdout.write(
-  "\nRemember to update the `#import \"@preview/...\"` lines in typst/statement.typ.\n",
-);
+process.stdout.write('\nRemember to update the `#import "@preview/..."` lines in typst/statement.typ.\n');

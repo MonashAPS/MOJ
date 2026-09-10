@@ -5,7 +5,7 @@
  * judge/models/problem.py (`Problem.update_stats`) and judge/utils/ranker.py.
  */
 
-import type { Id, SubmissionResult } from './types';
+import type { Id, SubmissionResult } from "./types";
 
 /** `settings.DMOJ_PP_STEP`. */
 export const PP_STEP = 0.95;
@@ -13,9 +13,7 @@ export const PP_STEP = 0.95;
 export const PP_ENTRIES = 100;
 
 /** `[PP_STEP ** i for i in range(PP_ENTRIES)]` (`Profile._pp_table`). */
-export const PP_TABLE: readonly number[] = Array.from({ length: PP_ENTRIES }, (_unused, i) =>
-  PP_STEP ** i,
-);
+export const PP_TABLE: readonly number[] = Array.from({ length: PP_ENTRIES }, (_unused, i) => PP_STEP ** i);
 
 /** `settings.DMOJ_PP_BONUS_FUNCTION`: `300 * (1 - 0.997 ** n)`. */
 export function ppBonus(problemCount: number): number {
@@ -50,7 +48,7 @@ export function isFullSolve(submission: {
   readonly casePoints: number;
   readonly caseTotal: number;
 }): boolean {
-  return submission.result === 'AC' && submission.casePoints >= submission.caseTotal;
+  return submission.result === "AC" && submission.casePoints >= submission.caseTotal;
 }
 
 /**
@@ -113,9 +111,7 @@ export interface ProblemStats {
 }
 
 /** `Problem.update_stats()` (judge/models/problem.py:396). */
-export function computeProblemStats(
-  submissions: readonly ProblemStatsSubmissionRow[],
-): ProblemStats {
+export function computeProblemStats(submissions: readonly ProblemStatsSubmissionRow[]): ProblemStats {
   let total = 0;
   let accepted = 0;
   const solvers = new Set<Id>();
@@ -157,7 +153,7 @@ export function ranker<T>(
   const ranked: RankedItem<T>[] = [];
   let rank = startRank;
   let delta = 1;
-  let last: unknown = Symbol('unset');
+  let last: unknown = Symbol("unset");
 
   for (const item of items) {
     const current = key(item);

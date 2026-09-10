@@ -25,7 +25,7 @@
  */
 
 import type { Root } from "mdast";
-import type { Plugin } from "unified";
+import type { CompileContext, Extension as FromMarkdownExtension, Token } from "mdast-util-from-markdown";
 import type {
   Code,
   Construct,
@@ -33,11 +33,7 @@ import type {
   State,
   Tokenizer,
 } from "micromark-util-types";
-import type {
-  CompileContext,
-  Extension as FromMarkdownExtension,
-  Token,
-} from "mdast-util-from-markdown";
+import type { Plugin } from "unified";
 
 export type MathDelimiter = "tilde" | "paren" | "bracket" | "dollar";
 
@@ -304,22 +300,16 @@ function displayMathData(value: string): Record<string, unknown> {
 
 function enterMath(display: boolean) {
   return function enter(this: CompileContext, token: Token): void {
-    const node = display
-      ? { type: "math", value: "", meta: null }
-      : { type: "inlineMath", value: "" };
+    const node = display ? { type: "math", value: "", meta: null } : { type: "inlineMath", value: "" };
     this.enter(node as never, token);
   };
 }
 
-function exitMath(
-  fixed: { delimiter: MathDelimiter; display: boolean; open: number } | undefined,
-) {
+function exitMath(fixed: { delimiter: MathDelimiter; display: boolean; open: number } | undefined) {
   return function exit(this: CompileContext, token: Token): void {
     const raw = this.sliceSerialize(token);
     const shape = fixed ?? {
-      delimiter: (raw.charCodeAt(1) === CODE_BRACKET_OPEN ? "bracket" : "paren") as
-        | "bracket"
-        | "paren",
+      delimiter: (raw.charCodeAt(1) === CODE_BRACKET_OPEN ? "bracket" : "paren") as "bracket" | "paren",
       display: raw.charCodeAt(1) === CODE_BRACKET_OPEN,
       open: 2,
     };
@@ -359,9 +349,10 @@ export function mojMathFromMarkdown(): FromMarkdownExtension {
  */
 const remarkTildeMath: Plugin<[], Root> = function remarkTildeMath() {
   const data = this.data();
-  const micromarkExtensions = data.micromarkExtensions ?? (data.micromarkExtensions = []);
-  const fromMarkdownExtensions =
-    data.fromMarkdownExtensions ?? (data.fromMarkdownExtensions = []);
+  if (!data.micromarkExtensions) data.micromarkExtensions = [];
+  if (!data.fromMarkdownExtensions) data.fromMarkdownExtensions = [];
+  const micromarkExtensions = data.micromarkExtensions;
+  const fromMarkdownExtensions = data.fromMarkdownExtensions;
 
   micromarkExtensions.push(mojMathSyntax());
   fromMarkdownExtensions.push(mojMathFromMarkdown());

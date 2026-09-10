@@ -9,9 +9,9 @@
  * (`default` numbers its problems, `icpc` letters them).
  */
 
-import type { ContestRow, LabelScheme } from '../types';
-import { letterLabel, numberLabel } from './base';
-import { getFormatOrDefault } from './registry';
+import type { ContestRow, LabelScheme } from "../types";
+import { letterLabel, numberLabel } from "./base";
+import { getFormatOrDefault } from "./registry";
 
 export interface LabelOptions {
   readonly scheme?: LabelScheme;
@@ -24,9 +24,9 @@ export interface LabelOptions {
 export function getLabelForProblem(index: number, options: LabelOptions = {}): string {
   const scheme = options.scheme ?? getFormatOrDefault(options.formatName).defaultLabelScheme;
   switch (scheme) {
-    case 'letters':
+    case "letters":
       return letterLabel(index);
-    case 'custom': {
+    case "custom": {
       const labels = options.customLabels ?? [];
       // Past the end of the list, fall back to letters so a short list never
       // renders blank headers.
@@ -48,7 +48,5 @@ export function getContestLabelForProblem(contest: ContestRow, index: number): s
 
 /** Labels for a whole contest, in problem order. */
 export function getContestLabels(contest: ContestRow, count: number): string[] {
-  return Array.from({ length: count }, (_unused, index) =>
-    getContestLabelForProblem(contest, index),
-  );
+  return Array.from({ length: count }, (_unused, index) => getContestLabelForProblem(contest, index));
 }

@@ -584,7 +584,7 @@ export const ALL_STYLES: readonly string[] = [
   "word-spacing",
   "word-wrap",
   "writing-mode",
-  "z-index"
+  "z-index",
 ];
 
 export const MATHML_TAGS: readonly string[] = [
@@ -789,598 +789,108 @@ export const MATHML_TAGS: readonly string[] = [
   "variance",
   "vector",
   "vectorproduct",
-  "xor"
+  "xor",
 ];
 
 export const MATHML_ATTRS: Readonly<Record<string, readonly string[]>> = {
-  "abs": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "and": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "annotation": [
-    "encoding",
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "annotation-xml": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "apply": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "approx": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "arccos": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "arccosh": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "arccot": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "arccoth": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "arccsc": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "arccsch": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "arcsec": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "arcsech": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "arcsin": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "arcsinh": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "arctan": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "arctanh": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "arg": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "bind": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "bvar": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "card": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "cartesianproduct": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "cbytes": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "ceiling": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "cerror": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "ci": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "cn": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "codomain": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "complexes": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "compose": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "condition": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "conjugate": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "cos": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "cosh": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "cot": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "coth": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "cs": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "csc": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "csch": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "csymbol": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "curl": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "declare": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "degree": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "determinant": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "diff": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "divergence": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "divide": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "domain": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "domainofapplication": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "emptyset": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "encoding": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "eq": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "equivalent": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "eulergamma": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "exists": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "exp": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "exponentiale": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "factorial": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "factorof": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "false": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "floor": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "fn": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "forall": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "function": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "gcd": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "geq": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "grad": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "gt": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "ident": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "image": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "imaginary": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "imaginaryi": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "implies": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "in": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "infinity": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "int": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "integers": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "intersect": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "interval": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "inverse": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "lambda": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "laplacian": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "lcm": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "leq": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "limit": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "list": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "ln": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "log": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "logbase": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "lowlimit": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "lt": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "maction": [
-    "actiontype",
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor",
-    "selection"
-  ],
-  "malign": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "maligngroup": [
-    "groupalign",
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "malignmark": [
-    "edge",
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "malignscope": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "math": [
+  abs: ["href", "id", "mathbackground", "mathcolor"],
+  and: ["href", "id", "mathbackground", "mathcolor"],
+  annotation: ["encoding", "href", "id", "mathbackground", "mathcolor"],
+  "annotation-xml": ["href", "id", "mathbackground", "mathcolor"],
+  apply: ["href", "id", "mathbackground", "mathcolor"],
+  approx: ["href", "id", "mathbackground", "mathcolor"],
+  arccos: ["href", "id", "mathbackground", "mathcolor"],
+  arccosh: ["href", "id", "mathbackground", "mathcolor"],
+  arccot: ["href", "id", "mathbackground", "mathcolor"],
+  arccoth: ["href", "id", "mathbackground", "mathcolor"],
+  arccsc: ["href", "id", "mathbackground", "mathcolor"],
+  arccsch: ["href", "id", "mathbackground", "mathcolor"],
+  arcsec: ["href", "id", "mathbackground", "mathcolor"],
+  arcsech: ["href", "id", "mathbackground", "mathcolor"],
+  arcsin: ["href", "id", "mathbackground", "mathcolor"],
+  arcsinh: ["href", "id", "mathbackground", "mathcolor"],
+  arctan: ["href", "id", "mathbackground", "mathcolor"],
+  arctanh: ["href", "id", "mathbackground", "mathcolor"],
+  arg: ["href", "id", "mathbackground", "mathcolor"],
+  bind: ["href", "id", "mathbackground", "mathcolor"],
+  bvar: ["href", "id", "mathbackground", "mathcolor"],
+  card: ["href", "id", "mathbackground", "mathcolor"],
+  cartesianproduct: ["href", "id", "mathbackground", "mathcolor"],
+  cbytes: ["href", "id", "mathbackground", "mathcolor"],
+  ceiling: ["href", "id", "mathbackground", "mathcolor"],
+  cerror: ["href", "id", "mathbackground", "mathcolor"],
+  ci: ["href", "id", "mathbackground", "mathcolor"],
+  cn: ["href", "id", "mathbackground", "mathcolor"],
+  codomain: ["href", "id", "mathbackground", "mathcolor"],
+  complexes: ["href", "id", "mathbackground", "mathcolor"],
+  compose: ["href", "id", "mathbackground", "mathcolor"],
+  condition: ["href", "id", "mathbackground", "mathcolor"],
+  conjugate: ["href", "id", "mathbackground", "mathcolor"],
+  cos: ["href", "id", "mathbackground", "mathcolor"],
+  cosh: ["href", "id", "mathbackground", "mathcolor"],
+  cot: ["href", "id", "mathbackground", "mathcolor"],
+  coth: ["href", "id", "mathbackground", "mathcolor"],
+  cs: ["href", "id", "mathbackground", "mathcolor"],
+  csc: ["href", "id", "mathbackground", "mathcolor"],
+  csch: ["href", "id", "mathbackground", "mathcolor"],
+  csymbol: ["href", "id", "mathbackground", "mathcolor"],
+  curl: ["href", "id", "mathbackground", "mathcolor"],
+  declare: ["href", "id", "mathbackground", "mathcolor"],
+  degree: ["href", "id", "mathbackground", "mathcolor"],
+  determinant: ["href", "id", "mathbackground", "mathcolor"],
+  diff: ["href", "id", "mathbackground", "mathcolor"],
+  divergence: ["href", "id", "mathbackground", "mathcolor"],
+  divide: ["href", "id", "mathbackground", "mathcolor"],
+  domain: ["href", "id", "mathbackground", "mathcolor"],
+  domainofapplication: ["href", "id", "mathbackground", "mathcolor"],
+  emptyset: ["href", "id", "mathbackground", "mathcolor"],
+  encoding: ["href", "id", "mathbackground", "mathcolor"],
+  eq: ["href", "id", "mathbackground", "mathcolor"],
+  equivalent: ["href", "id", "mathbackground", "mathcolor"],
+  eulergamma: ["href", "id", "mathbackground", "mathcolor"],
+  exists: ["href", "id", "mathbackground", "mathcolor"],
+  exp: ["href", "id", "mathbackground", "mathcolor"],
+  exponentiale: ["href", "id", "mathbackground", "mathcolor"],
+  factorial: ["href", "id", "mathbackground", "mathcolor"],
+  factorof: ["href", "id", "mathbackground", "mathcolor"],
+  false: ["href", "id", "mathbackground", "mathcolor"],
+  floor: ["href", "id", "mathbackground", "mathcolor"],
+  fn: ["href", "id", "mathbackground", "mathcolor"],
+  forall: ["href", "id", "mathbackground", "mathcolor"],
+  function: ["href", "id", "mathbackground", "mathcolor"],
+  gcd: ["href", "id", "mathbackground", "mathcolor"],
+  geq: ["href", "id", "mathbackground", "mathcolor"],
+  grad: ["href", "id", "mathbackground", "mathcolor"],
+  gt: ["href", "id", "mathbackground", "mathcolor"],
+  ident: ["href", "id", "mathbackground", "mathcolor"],
+  image: ["href", "id", "mathbackground", "mathcolor"],
+  imaginary: ["href", "id", "mathbackground", "mathcolor"],
+  imaginaryi: ["href", "id", "mathbackground", "mathcolor"],
+  implies: ["href", "id", "mathbackground", "mathcolor"],
+  in: ["href", "id", "mathbackground", "mathcolor"],
+  infinity: ["href", "id", "mathbackground", "mathcolor"],
+  int: ["href", "id", "mathbackground", "mathcolor"],
+  integers: ["href", "id", "mathbackground", "mathcolor"],
+  intersect: ["href", "id", "mathbackground", "mathcolor"],
+  interval: ["href", "id", "mathbackground", "mathcolor"],
+  inverse: ["href", "id", "mathbackground", "mathcolor"],
+  lambda: ["href", "id", "mathbackground", "mathcolor"],
+  laplacian: ["href", "id", "mathbackground", "mathcolor"],
+  lcm: ["href", "id", "mathbackground", "mathcolor"],
+  leq: ["href", "id", "mathbackground", "mathcolor"],
+  limit: ["href", "id", "mathbackground", "mathcolor"],
+  list: ["href", "id", "mathbackground", "mathcolor"],
+  ln: ["href", "id", "mathbackground", "mathcolor"],
+  log: ["href", "id", "mathbackground", "mathcolor"],
+  logbase: ["href", "id", "mathbackground", "mathcolor"],
+  lowlimit: ["href", "id", "mathbackground", "mathcolor"],
+  lt: ["href", "id", "mathbackground", "mathcolor"],
+  maction: ["actiontype", "href", "id", "mathbackground", "mathcolor", "selection"],
+  malign: ["href", "id", "mathbackground", "mathcolor"],
+  maligngroup: ["groupalign", "href", "id", "mathbackground", "mathcolor"],
+  malignmark: ["edge", "href", "id", "mathbackground", "mathcolor"],
+  malignscope: ["href", "id", "mathbackground", "mathcolor"],
+  math: [
     "altimg",
     "altimg-height",
     "altimg-valign",
@@ -1393,137 +903,27 @@ export const MATHML_ATTRS: Readonly<Record<string, readonly string[]>> = {
     "mathbackground",
     "mathcolor",
     "overflow",
-    "xmlns"
+    "xmlns",
   ],
-  "matrix": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "matrixrow": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "max": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "mean": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "median": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "menclose": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor",
-    "notation"
-  ],
-  "merror": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "mfenced": [
-    "close",
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor",
-    "open",
-    "separators"
-  ],
-  "mfrac": [
-    "bevelled",
-    "denomalign",
-    "href",
-    "id",
-    "linethickness",
-    "mathbackground",
-    "mathcolor",
-    "numalign"
-  ],
-  "mfraction": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "mglyph": [
-    "height",
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor",
-    "src",
-    "width"
-  ],
-  "mi": [
-    "dir",
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor",
-    "mathsize",
-    "mathvariant"
-  ],
-  "min": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "minus": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "mlabeledtr": [
-    "columnalign",
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "mlongdiv": [
-    "href",
-    "id",
-    "longdivstyle",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "mmultiscripts": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor",
-    "subscriptshift",
-    "supscriptshift"
-  ],
-  "mn": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor",
-    "mathsize",
-    "mathvariant"
-  ],
-  "mo": [
+  matrix: ["href", "id", "mathbackground", "mathcolor"],
+  matrixrow: ["href", "id", "mathbackground", "mathcolor"],
+  max: ["href", "id", "mathbackground", "mathcolor"],
+  mean: ["href", "id", "mathbackground", "mathcolor"],
+  median: ["href", "id", "mathbackground", "mathcolor"],
+  menclose: ["href", "id", "mathbackground", "mathcolor", "notation"],
+  merror: ["href", "id", "mathbackground", "mathcolor"],
+  mfenced: ["close", "href", "id", "mathbackground", "mathcolor", "open", "separators"],
+  mfrac: ["bevelled", "denomalign", "href", "id", "linethickness", "mathbackground", "mathcolor", "numalign"],
+  mfraction: ["href", "id", "mathbackground", "mathcolor"],
+  mglyph: ["height", "href", "id", "mathbackground", "mathcolor", "src", "width"],
+  mi: ["dir", "href", "id", "mathbackground", "mathcolor", "mathsize", "mathvariant"],
+  min: ["href", "id", "mathbackground", "mathcolor"],
+  minus: ["href", "id", "mathbackground", "mathcolor"],
+  mlabeledtr: ["columnalign", "href", "id", "mathbackground", "mathcolor"],
+  mlongdiv: ["href", "id", "longdivstyle", "mathbackground", "mathcolor"],
+  mmultiscripts: ["href", "id", "mathbackground", "mathcolor", "subscriptshift", "supscriptshift"],
+  mn: ["href", "id", "mathbackground", "mathcolor", "mathsize", "mathvariant"],
+  mo: [
     "accent",
     "dir",
     "fence",
@@ -1553,113 +953,23 @@ export const MATHML_ATTRS: Readonly<Record<string, readonly string[]>> = {
     "rspace",
     "separator",
     "stretchy",
-    "symmetric"
+    "symmetric",
   ],
-  "mode": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "moment": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "momentabout": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "mover": [
-    "accent",
-    "align",
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "mpadded": [
-    "depth",
-    "height",
-    "href",
-    "id",
-    "lspace",
-    "mathbackground",
-    "mathcolor",
-    "voffset",
-    "width"
-  ],
-  "mphantom": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "mprescripts": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "mroot": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "mrow": [
-    "dir",
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "ms": [
-    "dir",
-    "href",
-    "id",
-    "lquote",
-    "mathbackground",
-    "mathcolor",
-    "mathsize",
-    "mathvariant",
-    "rquote"
-  ],
-  "mscarries": [
-    "href",
-    "id",
-    "location",
-    "mathbackground",
-    "mathcolor",
-    "position"
-  ],
-  "mscarry": [
-    "crossout",
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "msgroup": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor",
-    "position",
-    "shift"
-  ],
-  "msline": [
-    "href",
-    "id",
-    "length",
-    "mathbackground",
-    "mathcolor",
-    "position"
-  ],
-  "mspace": [
+  mode: ["href", "id", "mathbackground", "mathcolor"],
+  moment: ["href", "id", "mathbackground", "mathcolor"],
+  momentabout: ["href", "id", "mathbackground", "mathcolor"],
+  mover: ["accent", "align", "href", "id", "mathbackground", "mathcolor"],
+  mpadded: ["depth", "height", "href", "id", "lspace", "mathbackground", "mathcolor", "voffset", "width"],
+  mphantom: ["href", "id", "mathbackground", "mathcolor"],
+  mprescripts: ["href", "id", "mathbackground", "mathcolor"],
+  mroot: ["href", "id", "mathbackground", "mathcolor"],
+  mrow: ["dir", "href", "id", "mathbackground", "mathcolor"],
+  ms: ["dir", "href", "id", "lquote", "mathbackground", "mathcolor", "mathsize", "mathvariant", "rquote"],
+  mscarries: ["href", "id", "location", "mathbackground", "mathcolor", "position"],
+  mscarry: ["crossout", "href", "id", "mathbackground", "mathcolor"],
+  msgroup: ["href", "id", "mathbackground", "mathcolor", "position", "shift"],
+  msline: ["href", "id", "length", "mathbackground", "mathcolor", "position"],
+  mspace: [
     "height",
     "href",
     "id",
@@ -1676,31 +986,12 @@ export const MATHML_ATTRS: Readonly<Record<string, readonly string[]>> = {
     "lineleading",
     "mathbackground",
     "mathcolor",
-    "width"
+    "width",
   ],
-  "msqrt": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "msrow": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor",
-    "position"
-  ],
-  "mstack": [
-    "align",
-    "charalign",
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor",
-    "stackalign"
-  ],
-  "mstyle": [
+  msqrt: ["href", "id", "mathbackground", "mathcolor"],
+  msrow: ["href", "id", "mathbackground", "mathcolor", "position"],
+  mstack: ["align", "charalign", "href", "id", "mathbackground", "mathcolor", "stackalign"],
+  mstyle: [
     "decimalpoint",
     "displaystyle",
     "href",
@@ -1710,31 +1001,12 @@ export const MATHML_ATTRS: Readonly<Record<string, readonly string[]>> = {
     "mathcolor",
     "scriptlevel",
     "scriptminsize",
-    "scriptsizemultiplier"
+    "scriptsizemultiplier",
   ],
-  "msub": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor",
-    "subscriptshift"
-  ],
-  "msubsup": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor",
-    "subscriptshift",
-    "supscriptshift"
-  ],
-  "msup": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor",
-    "supscriptshift"
-  ],
-  "mtable": [
+  msub: ["href", "id", "mathbackground", "mathcolor", "subscriptshift"],
+  msubsup: ["href", "id", "mathbackground", "mathcolor", "subscriptshift", "supscriptshift"],
+  msup: ["href", "id", "mathbackground", "mathcolor", "supscriptshift"],
+  mtable: [
     "align",
     "alignmentscope",
     "columnalign",
@@ -1756,9 +1028,9 @@ export const MATHML_ATTRS: Readonly<Record<string, readonly string[]>> = {
     "rowlines",
     "rowspacing",
     "side",
-    "width"
+    "width",
   ],
-  "mtd": [
+  mtd: [
     "columnalign",
     "columnspan",
     "groupalign",
@@ -1767,383 +1039,67 @@ export const MATHML_ATTRS: Readonly<Record<string, readonly string[]>> = {
     "mathbackground",
     "mathcolor",
     "rowalign",
-    "rowspan"
+    "rowspan",
   ],
-  "mtext": [
-    "dir",
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor",
-    "mathsize",
-    "mathvariant"
-  ],
-  "mtr": [
-    "columnalign",
-    "groupalign",
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor",
-    "rowalign"
-  ],
-  "munder": [
-    "accentunder",
-    "align",
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "munderover": [
-    "accent",
-    "accentunder",
-    "align",
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "naturalnumbers": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "neq": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "none": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "not": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "notanumber": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "notin": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "notprsubset": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "notsubset": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "or": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "otherwise": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "outerproduct": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "partialdiff": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "pi": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "piece": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "piecewice": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "piecewise": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "plus": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "power": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "primes": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "product": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "prsubset": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "quotient": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "rationals": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "real": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "reals": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "reln": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "rem": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "root": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "scalarproduct": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "sdev": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "sec": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "sech": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "select": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "selector": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "semantics": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "sep": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "set": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "setdiff": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "share": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "sin": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "sinh": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "span": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "subset": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "sum": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "tan": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "tanh": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "tendsto": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "times": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "transpose": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "true": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "union": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "uplimit": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "var": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "variance": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "vector": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "vectorproduct": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ],
-  "xor": [
-    "href",
-    "id",
-    "mathbackground",
-    "mathcolor"
-  ]
+  mtext: ["dir", "href", "id", "mathbackground", "mathcolor", "mathsize", "mathvariant"],
+  mtr: ["columnalign", "groupalign", "href", "id", "mathbackground", "mathcolor", "rowalign"],
+  munder: ["accentunder", "align", "href", "id", "mathbackground", "mathcolor"],
+  munderover: ["accent", "accentunder", "align", "href", "id", "mathbackground", "mathcolor"],
+  naturalnumbers: ["href", "id", "mathbackground", "mathcolor"],
+  neq: ["href", "id", "mathbackground", "mathcolor"],
+  none: ["href", "id", "mathbackground", "mathcolor"],
+  not: ["href", "id", "mathbackground", "mathcolor"],
+  notanumber: ["href", "id", "mathbackground", "mathcolor"],
+  notin: ["href", "id", "mathbackground", "mathcolor"],
+  notprsubset: ["href", "id", "mathbackground", "mathcolor"],
+  notsubset: ["href", "id", "mathbackground", "mathcolor"],
+  or: ["href", "id", "mathbackground", "mathcolor"],
+  otherwise: ["href", "id", "mathbackground", "mathcolor"],
+  outerproduct: ["href", "id", "mathbackground", "mathcolor"],
+  partialdiff: ["href", "id", "mathbackground", "mathcolor"],
+  pi: ["href", "id", "mathbackground", "mathcolor"],
+  piece: ["href", "id", "mathbackground", "mathcolor"],
+  piecewice: ["href", "id", "mathbackground", "mathcolor"],
+  piecewise: ["href", "id", "mathbackground", "mathcolor"],
+  plus: ["href", "id", "mathbackground", "mathcolor"],
+  power: ["href", "id", "mathbackground", "mathcolor"],
+  primes: ["href", "id", "mathbackground", "mathcolor"],
+  product: ["href", "id", "mathbackground", "mathcolor"],
+  prsubset: ["href", "id", "mathbackground", "mathcolor"],
+  quotient: ["href", "id", "mathbackground", "mathcolor"],
+  rationals: ["href", "id", "mathbackground", "mathcolor"],
+  real: ["href", "id", "mathbackground", "mathcolor"],
+  reals: ["href", "id", "mathbackground", "mathcolor"],
+  reln: ["href", "id", "mathbackground", "mathcolor"],
+  rem: ["href", "id", "mathbackground", "mathcolor"],
+  root: ["href", "id", "mathbackground", "mathcolor"],
+  scalarproduct: ["href", "id", "mathbackground", "mathcolor"],
+  sdev: ["href", "id", "mathbackground", "mathcolor"],
+  sec: ["href", "id", "mathbackground", "mathcolor"],
+  sech: ["href", "id", "mathbackground", "mathcolor"],
+  select: ["href", "id", "mathbackground", "mathcolor"],
+  selector: ["href", "id", "mathbackground", "mathcolor"],
+  semantics: ["href", "id", "mathbackground", "mathcolor"],
+  sep: ["href", "id", "mathbackground", "mathcolor"],
+  set: ["href", "id", "mathbackground", "mathcolor"],
+  setdiff: ["href", "id", "mathbackground", "mathcolor"],
+  share: ["href", "id", "mathbackground", "mathcolor"],
+  sin: ["href", "id", "mathbackground", "mathcolor"],
+  sinh: ["href", "id", "mathbackground", "mathcolor"],
+  span: ["href", "id", "mathbackground", "mathcolor"],
+  subset: ["href", "id", "mathbackground", "mathcolor"],
+  sum: ["href", "id", "mathbackground", "mathcolor"],
+  tan: ["href", "id", "mathbackground", "mathcolor"],
+  tanh: ["href", "id", "mathbackground", "mathcolor"],
+  tendsto: ["href", "id", "mathbackground", "mathcolor"],
+  times: ["href", "id", "mathbackground", "mathcolor"],
+  transpose: ["href", "id", "mathbackground", "mathcolor"],
+  true: ["href", "id", "mathbackground", "mathcolor"],
+  union: ["href", "id", "mathbackground", "mathcolor"],
+  uplimit: ["href", "id", "mathbackground", "mathcolor"],
+  var: ["href", "id", "mathbackground", "mathcolor"],
+  variance: ["href", "id", "mathbackground", "mathcolor"],
+  vector: ["href", "id", "mathbackground", "mathcolor"],
+  vectorproduct: ["href", "id", "mathbackground", "mathcolor"],
+  xor: ["href", "id", "mathbackground", "mathcolor"],
 };

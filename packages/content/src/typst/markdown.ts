@@ -118,10 +118,7 @@ function isBlockish(nodes: readonly RootContent[]): boolean {
   return nodes.some((node) => node.type === "image");
 }
 
-export function normaliseForCmarker(
-  source: string,
-  options: NormaliseOptions = {},
-): NormaliseResult {
+export function normaliseForCmarker(source: string, options: NormaliseOptions = {}): NormaliseResult {
   const resolveImage = options.resolveImage ?? defaultResolveImage;
   const topLevel = options.topHeadingLevel ?? 2;
   const droppedImages: string[] = [];
@@ -191,9 +188,7 @@ export function normaliseForCmarker(
   });
 
   // 5. Empty paragraphs left behind by a dropped image.
-  tree.children = tree.children.filter(
-    (node) => !(node.type === "paragraph" && node.children.length === 0),
-  );
+  tree.children = tree.children.filter((node) => !(node.type === "paragraph" && node.children.length === 0));
 
   const markdown = unified()
     .use(remarkStringify, {

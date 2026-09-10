@@ -2,20 +2,17 @@
  * Contest formats: the registry plus the participation update entry point.
  */
 
-import type { ParticipationUpdate, UpdateParticipationInput } from './base';
-import { getFormatOrDefault } from './registry';
-import type { ContestRow } from '../types';
+import type { ContestRow } from "../types";
+import type { ParticipationUpdate, UpdateParticipationInput } from "./base";
+import { getFormatOrDefault } from "./registry";
 
 /** The format a contest row uses. */
-export function getContestFormat(contest: Pick<ContestRow, 'formatName'>) {
+export function getContestFormat(contest: Pick<ContestRow, "formatName">) {
   return getFormatOrDefault(contest.formatName);
 }
 
 /** `Contest.format.validate(config)` for a contest row. */
-export function validateContestFormatConfig(
-  formatName: string | null | undefined,
-  config: unknown,
-): void {
+export function validateContestFormatConfig(formatName: string | null | undefined, config: unknown): void {
   getFormatOrDefault(formatName).validate(config);
 }
 
@@ -32,19 +29,19 @@ export function updateParticipation(input: UpdateParticipationInput): Participat
   return update;
 }
 
-export * from './base';
-export * from './labels';
-export * from './registry';
-export { atcoderFormat, ATCODER_DEFAULTS, resolveAtcoderConfig, validateAtcoderConfig } from './atcoder';
-export { defaultFormat, validateDefaultConfig } from './default';
-export { ecooFormat, ECOO_DEFAULTS, resolveEcooConfig, validateEcooConfig } from './ecoo';
-export { icpcFormat, ICPC_DEFAULTS, resolveIcpcConfig, validateIcpcConfig } from './icpc';
-export { ioi16Format, IOI16_DEFAULTS } from './ioi16';
+export { ATCODER_DEFAULTS, atcoderFormat, resolveAtcoderConfig, validateAtcoderConfig } from "./atcoder";
+export * from "./base";
+export { defaultFormat, validateDefaultConfig } from "./default";
+export { ECOO_DEFAULTS, ecooFormat, resolveEcooConfig, validateEcooConfig } from "./ecoo";
+export { ICPC_DEFAULTS, icpcFormat, resolveIcpcConfig, validateIcpcConfig } from "./icpc";
+export { IOI16_DEFAULTS, ioi16Format } from "./ioi16";
+export * from "./labels";
 export {
-  legacyIoiFormat,
   LEGACY_IOI_DEFAULTS,
+  legacyIoiFormat,
   resolveLegacyIoiConfig,
   validateLegacyIoiConfig,
-} from './legacyIoi';
-export { computeMaxPointsRows, PENALTY_IGNORED_RESULTS } from './penalty';
-export type { MaxPointsRow } from './penalty';
+} from "./legacyIoi";
+export type { MaxPointsRow } from "./penalty";
+export { computeMaxPointsRows, PENALTY_IGNORED_RESULTS } from "./penalty";
+export * from "./registry";

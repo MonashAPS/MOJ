@@ -11,10 +11,9 @@
  * format: one point per solve, penalty minutes for wrong attempts.
  */
 
-import { getContestFormat, updateParticipation } from './formats/index';
-import type { ParticipationUpdate } from './formats/base';
-import { contestIsEditableBy, hasPerm, isAuthenticated, isSuperuser } from './permissions';
-import { IN_PROGRESS_GRADING_STATUS } from './verdicts';
+import type { ParticipationUpdate } from "./formats/base";
+import { getContestFormat, updateParticipation } from "./formats/index";
+import { contestIsEditableBy, hasPerm, isAuthenticated, isSuperuser } from "./permissions";
 import type {
   ContestParticipationRow,
   ContestProblemRow,
@@ -23,33 +22,29 @@ import type {
   Id,
   SubmissionResult,
   Viewer,
-} from './types';
+} from "./types";
+import { IN_PROGRESS_GRADING_STATUS } from "./verdicts";
 
 /* -------------------------------------------------------------------------- */
 /* Cell and event states                                                      */
 /* -------------------------------------------------------------------------- */
 
 /** Accepted, and the accept happened before the freeze. */
-export const SOLVED = 'solved';
+export const SOLVED = "solved";
 /** Something was submitted at or after the freeze: an answer is being withheld. */
-export const FROZEN = 'frozen';
+export const FROZEN = "frozen";
 /** Still being judged, but all of it predates the freeze. Nothing is withheld. */
-export const JUDGING = 'judging';
+export const JUDGING = "judging";
 /** Attempted, no accept, nothing outstanding. */
-export const FAILED = 'failed';
+export const FAILED = "failed";
 /** Never attempted. */
-export const EMPTY = 'empty';
+export const EMPTY = "empty";
 
-export type CellState =
-  | typeof SOLVED
-  | typeof FROZEN
-  | typeof JUDGING
-  | typeof FAILED
-  | typeof EMPTY;
+export type CellState = typeof SOLVED | typeof FROZEN | typeof JUDGING | typeof FAILED | typeof EMPTY;
 
-export const CORRECT = 'correct';
-export const PENDING = 'pending';
-export const INCORRECT = 'incorrect';
+export const CORRECT = "correct";
+export const PENDING = "pending";
+export const INCORRECT = "incorrect";
 
 export type EventState = typeof CORRECT | typeof PENDING | typeof INCORRECT;
 
@@ -57,19 +52,14 @@ export type EventState = typeof CORRECT | typeof PENDING | typeof INCORRECT;
  * Verdicts that never count for anything: judge/contest_format/icpc.py's
  * ignored set plus AB (aborted), which is likewise not the competitor's fault.
  */
-export const IGNORED_RESULTS: readonly string[] = ['IE', 'CE', 'AB'];
+export const IGNORED_RESULTS: readonly string[] = ["IE", "CE", "AB"];
 
 /**
  * Verdicts meaning "not judged yet". An unjudged submission has a null result,
  * but a grading status can leak into the field, so the in-progress statuses
  * count too ('D' is graded-but-not-scored).
  */
-export const PENDING_RESULTS: readonly (string | null)[] = [
-  null,
-  '',
-  'D',
-  ...IN_PROGRESS_GRADING_STATUS,
-];
+export const PENDING_RESULTS: readonly (string | null)[] = [null, "", "D", ...IN_PROGRESS_GRADING_STATUS];
 
 export const DEFAULT_PENALTY_MINUTES = 20;
 export const DEFAULT_FREEZE_MINUTES = 60;
@@ -106,7 +96,7 @@ export function attemptPending(attempt: Attempt): boolean {
 /** `Attempt.accepted`. */
 export function attemptAccepted(attempt: Attempt): boolean {
   if (attemptPending(attempt)) return false;
-  if (attempt.result === 'AC') return true;
+  if (attempt.result === "AC") return true;
   // Fall back to points for formats that award full marks without an 'AC'.
   return attempt.maxPoints > 0 && attempt.points >= attempt.maxPoints;
 }
@@ -114,7 +104,7 @@ export function attemptAccepted(attempt: Attempt): boolean {
 /** Flatten a contest submission into an attempt. */
 export function toAttempt(
   submission: ContestSubmissionRow,
-  contest: Pick<ContestRow, 'startTime'>,
+  contest: Pick<ContestRow, "startTime">,
   maxPoints: number,
 ): Attempt {
   return {
@@ -363,11 +353,7 @@ export function firstSolves(rows: readonly ScoreboardRow[]): Map<number, number>
 }
 
 /** Whether a cell holds the first solve of its problem. */
-export function isFirstBlood(
-  rows: readonly ScoreboardRow[],
-  row: ScoreboardRow,
-  cellIndex: number,
-): boolean {
+export function isFirstBlood(rows: readonly ScoreboardRow[], row: ScoreboardRow, cellIndex: number): boolean {
   const cell = row.cells[cellIndex];
   if (!cell || cell.state !== SOLVED || cell.time === null) return false;
   return firstSolves(rows).get(cellIndex) === cell.time;
@@ -375,7 +361,7 @@ export function isFirstBlood(
 
 /** `build_contest_payload`: the freeze cutoff as seconds from the contest start. */
 export function freezeOffsetFor(
-  contest: Pick<ContestRow, 'startTime' | 'endTime' | 'freezeMinutes'>,
+  contest: Pick<ContestRow, "startTime" | "endTime" | "freezeMinutes">,
   freezeMinutes = contest.freezeMinutes,
 ): number {
   const duration = (contest.endTime - contest.startTime) / 1000;
@@ -388,14 +374,14 @@ export function freezeOffsetFor(
 
 /** The wall-clock instant the board freezes, or null when there is no freeze. */
 export function freezeTime(
-  contest: Pick<ContestRow, 'startTime' | 'endTime' | 'freezeMinutes'>,
+  contest: Pick<ContestRow, "startTime" | "endTime" | "freezeMinutes">,
 ): number | null {
   if (!contest.freezeMinutes || contest.freezeMinutes <= 0) return null;
   return Math.max(contest.startTime, contest.endTime - contest.freezeMinutes * 60_000);
 }
 
 /** `_penalty_minutes(contest)`: the contest's own ICPC penalty when it has one. */
-export function penaltyMinutesFor(contest: Pick<ContestRow, 'formatName' | 'formatConfig'>): number {
+export function penaltyMinutesFor(contest: Pick<ContestRow, "formatName" | "formatConfig">): number {
   const format = getContestFormat(contest);
   let config: Record<string, unknown>;
   try {
@@ -529,7 +515,7 @@ export function revealAll(state: RevealState): RevealState {
 export function canSeeThroughFreeze(contest: ContestRow, viewer: Viewer): boolean {
   if (!isAuthenticated(viewer)) return false;
   if (isSuperuser(viewer)) return true;
-  if (hasPerm(viewer, 'judge.see_private_contest') || hasPerm(viewer, 'judge.edit_all_contest')) {
+  if (hasPerm(viewer, "judge.see_private_contest") || hasPerm(viewer, "judge.edit_all_contest")) {
     return true;
   }
   if (contestIsEditableBy(contest, viewer)) return true;
@@ -548,11 +534,7 @@ export interface FreezeStatusOptions {
  * The freeze starts at `endTime - freezeMinutes` and, per SPEC section 7, stays
  * on after the contest ends until staff reveal it.
  */
-export function isFrozenFor(
-  contest: ContestRow,
-  viewer: Viewer,
-  options: FreezeStatusOptions = {},
-): boolean {
+export function isFrozenFor(contest: ContestRow, viewer: Viewer, options: FreezeStatusOptions = {}): boolean {
   const cutoff = freezeTime(contest);
   if (cutoff === null) return false;
   if (options.revealed) return false;
@@ -619,7 +601,7 @@ export function applyFreeze(
 /* -------------------------------------------------------------------------- */
 
 export interface MaskedSubmission {
-  readonly status: 'QU';
+  readonly status: "QU";
   readonly result: null;
   readonly points: null;
   readonly casePoints: 0;
@@ -628,7 +610,7 @@ export interface MaskedSubmission {
 }
 
 const MASKED: MaskedSubmission = {
-  status: 'QU',
+  status: "QU",
   result: null,
   points: null,
   casePoints: 0,

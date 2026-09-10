@@ -1,9 +1,9 @@
 "use client";
 
+import type { FeedItem } from "@convex/pages/scoreboard";
 import { EASE_OUT } from "@moj/ui";
 import { X } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef } from "react";
-import type { FeedItem } from "@convex/pages/scoreboard";
 import { contestClock } from "./hall";
 
 const SHIFT_MS = 420;

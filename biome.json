@@ -14,6 +14,9 @@
       "!convex/_generated",
       "!apps/web/drizzle",
       "!apps/web/public",
+      "!docs/public",
+      "!docs/.vitepress/cache",
+      "!packages/content/test/__snapshots__",
       "!infra/data",
       "!**/*.json"
     ]

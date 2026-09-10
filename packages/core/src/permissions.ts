@@ -12,7 +12,7 @@
  * The prose version, with line numbers, is in docs/DMOJ_RULES.md.
  */
 
-import { participationHasEnded } from './contestTiming';
+import { participationHasEnded } from "./contestTiming";
 import type {
   BlogPostRow,
   ClassRow,
@@ -26,7 +26,7 @@ import type {
   SolutionRow,
   SubmissionSourceVisibility,
   Viewer,
-} from './types';
+} from "./types";
 
 /* -------------------------------------------------------------------------- */
 /* Permission codes                                                           */
@@ -48,7 +48,7 @@ export function isStaff(viewer: Viewer): boolean {
 }
 
 function codename(code: string): string {
-  const dot = code.indexOf('.');
+  const dot = code.indexOf(".");
   return dot === -1 ? code : code.slice(dot + 1);
 }
 
@@ -80,7 +80,7 @@ export function hasPerm(viewer: Viewer, code: string): boolean {
 /* -------------------------------------------------------------------------- */
 
 function has(ids: readonly Id[] | undefined, id: Id | undefined): boolean {
-  return id !== undefined && ids !== undefined && ids.includes(id);
+  return id !== undefined && (ids?.includes(id) ?? false);
 }
 
 function intersects(a: readonly Id[] | undefined, b: readonly Id[] | undefined): boolean {
@@ -107,18 +107,15 @@ export function problemIsEditor(problem: ProblemRow, profileId: Id): boolean {
 /** `Problem.is_editable_by(user)` (judge/models/problem.py:199). */
 export function problemIsEditableBy(problem: ProblemRow, viewer: Viewer): boolean {
   if (!isAuthenticated(viewer)) return false;
-  if (!hasPerm(viewer, 'judge.edit_own_problem')) return false;
+  if (!hasPerm(viewer, "judge.edit_own_problem")) return false;
   if (
-    hasPerm(viewer, 'judge.edit_all_problem') ||
-    (hasPerm(viewer, 'judge.edit_public_problem') && problem.isPublic)
+    hasPerm(viewer, "judge.edit_all_problem") ||
+    (hasPerm(viewer, "judge.edit_public_problem") && problem.isPublic)
   ) {
     return true;
   }
   if (problemIsEditor(problem, viewer.id)) return true;
-  if (
-    problem.isOrganizationPrivate &&
-    intersects(problem.organizationIds, viewer.adminOfOrganizationIds)
-  ) {
+  if (problem.isOrganizationPrivate && intersects(problem.organizationIds, viewer.adminOfOrganizationIds)) {
     return true;
   }
   return false;
@@ -150,14 +147,14 @@ export function problemIsAccessibleBy(
 
   if (problem.isPublic) {
     if (!problem.isOrganizationPrivate) return true;
-    if (hasPerm(viewer, 'judge.see_organization_problem')) return true;
+    if (hasPerm(viewer, "judge.see_organization_problem")) return true;
     if (isAuthenticated(viewer) && intersects(problem.organizationIds, viewer.organizationIds)) {
       return true;
     }
   }
 
   if (!isAuthenticated(viewer)) return false;
-  if (hasPerm(viewer, 'judge.see_private_problem')) return true;
+  if (hasPerm(viewer, "judge.see_private_problem")) return true;
   if (problemIsEditableBy(problem, viewer) || problemIsEditor(problem, viewer.id)) return true;
   if (has(problem.testerProfileIds, viewer.id)) return true;
   return false;
@@ -166,9 +163,7 @@ export function problemIsAccessibleBy(
 /** `Problem.is_subs_manageable_by(user)` (problem.py:255). */
 export function problemIsSubsManageableBy(problem: ProblemRow, viewer: Viewer): boolean {
   return (
-    isStaff(viewer) &&
-    hasPerm(viewer, 'judge.rejudge_submission') &&
-    problemIsEditableBy(problem, viewer)
+    isStaff(viewer) && hasPerm(viewer, "judge.rejudge_submission") && problemIsEditableBy(problem, viewer)
   );
 }
 
@@ -184,32 +179,26 @@ export function problemIsVisibleTo(problem: ProblemRow, viewer: Viewer): boolean
     return problem.isPublic && !problem.isOrganizationPrivate;
   }
 
-  const editOwnProblem = hasPerm(viewer, 'judge.edit_own_problem');
-  const editPublicProblem = editOwnProblem && hasPerm(viewer, 'judge.edit_public_problem');
-  const editAllProblem = editOwnProblem && hasPerm(viewer, 'judge.edit_all_problem');
+  const editOwnProblem = hasPerm(viewer, "judge.edit_own_problem");
+  const editPublicProblem = editOwnProblem && hasPerm(viewer, "judge.edit_public_problem");
+  const editAllProblem = editOwnProblem && hasPerm(viewer, "judge.edit_all_problem");
 
-  if (hasPerm(viewer, 'judge.see_private_problem') || editAllProblem) return true;
+  if (hasPerm(viewer, "judge.see_private_problem") || editAllProblem) return true;
 
   let q = problem.isPublic;
-  if (!(hasPerm(viewer, 'judge.see_organization_problem') || editPublicProblem)) {
+  if (!(hasPerm(viewer, "judge.see_organization_problem") || editPublicProblem)) {
     q =
       q &&
       (!problem.isOrganizationPrivate ||
-        (problem.isOrganizationPrivate &&
-          intersects(problem.organizationIds, viewer.organizationIds)));
+        (problem.isOrganizationPrivate && intersects(problem.organizationIds, viewer.organizationIds)));
   }
   if (editOwnProblem) {
     q =
       q ||
-      (problem.isOrganizationPrivate &&
-        intersects(problem.organizationIds, viewer.adminOfOrganizationIds));
+      (problem.isOrganizationPrivate && intersects(problem.organizationIds, viewer.adminOfOrganizationIds));
   }
   // Authors, curators and testers always have access.
-  return (
-    q ||
-    problemIsEditor(problem, viewer.id) ||
-    has(problem.testerProfileIds, viewer.id)
-  );
+  return q || problemIsEditor(problem, viewer.id) || has(problem.testerProfileIds, viewer.id);
 }
 
 /** `Problem.get_visible_problems(user)` applied to a list. */
@@ -219,18 +208,15 @@ export function getVisibleProblems<T extends ProblemRow>(problems: readonly T[],
 
 /** `Problem.get_editable_problems(user)` (problem.py:319) as a predicate. */
 export function problemIsInEditableSet(problem: ProblemRow, viewer: Viewer): boolean {
-  if (!hasPerm(viewer, 'judge.edit_own_problem')) return false;
-  if (hasPerm(viewer, 'judge.edit_all_problem')) return true;
+  if (!hasPerm(viewer, "judge.edit_own_problem")) return false;
+  if (hasPerm(viewer, "judge.edit_all_problem")) return true;
   if (!isAuthenticated(viewer)) return false;
 
   if (problemIsEditor(problem, viewer.id)) return true;
-  if (
-    problem.isOrganizationPrivate &&
-    intersects(problem.organizationIds, viewer.adminOfOrganizationIds)
-  ) {
+  if (problem.isOrganizationPrivate && intersects(problem.organizationIds, viewer.adminOfOrganizationIds)) {
     return true;
   }
-  if (hasPerm(viewer, 'judge.edit_public_problem') && problem.isPublic) return true;
+  if (hasPerm(viewer, "judge.edit_public_problem") && problem.isPublic) return true;
   return false;
 }
 
@@ -239,9 +225,9 @@ export function problemIsInEditableSet(problem: ProblemRow, viewer: Viewer): boo
 /* -------------------------------------------------------------------------- */
 
 export const VOTE_PERMISSION = {
-  NONE: 'NONE',
-  VIEW: 'VIEW',
-  VOTE: 'VOTE',
+  NONE: "NONE",
+  VIEW: "VIEW",
+  VOTE: "VOTE",
 } as const;
 
 export type VotePermission = (typeof VOTE_PERMISSION)[keyof typeof VOTE_PERMISSION];
@@ -293,7 +279,7 @@ export function solutionIsAccessibleBy(
   now: number = Date.now(),
 ): boolean {
   if (solution.isPublic && solution.publishOn < now) return true;
-  if (hasPerm(viewer, 'judge.see_private_solution')) return true;
+  if (hasPerm(viewer, "judge.see_private_solution")) return true;
   if (problemIsEditableBy(problem, viewer)) return true;
   return false;
 }
@@ -302,10 +288,10 @@ export function solutionIsAccessibleBy(
 /* Contests                                                                   */
 /* -------------------------------------------------------------------------- */
 
-export const SCOREBOARD_VISIBLE = 'V';
-export const SCOREBOARD_AFTER_CONTEST = 'C';
-export const SCOREBOARD_AFTER_PARTICIPATION = 'P';
-export const SCOREBOARD_HIDDEN = 'H';
+export const SCOREBOARD_VISIBLE = "V";
+export const SCOREBOARD_AFTER_CONTEST = "C";
+export const SCOREBOARD_AFTER_PARTICIPATION = "P";
+export const SCOREBOARD_HIDDEN = "H";
 
 export interface ContestViewerContext {
   readonly now?: number;
@@ -377,7 +363,7 @@ export function contestCanSeeFullScoreboard(
   const now = context.now ?? Date.now();
   if (contestShowScoreboard(contest, now)) return true;
   if (!isAuthenticated(viewer)) return false;
-  if (hasPerm(viewer, 'judge.see_private_contest') || hasPerm(viewer, 'judge.edit_all_contest')) {
+  if (hasPerm(viewer, "judge.see_private_contest") || hasPerm(viewer, "judge.edit_all_contest")) {
     return true;
   }
   if (contestIsEditor(contest, viewer.id)) return true;
@@ -413,15 +399,15 @@ export function contestCanSeeOwnScoreboard(
 }
 
 export type ContestAccess =
-  | { readonly kind: 'ok' }
-  | { readonly kind: 'inaccessible' }
-  | { readonly kind: 'privateContest'; readonly organizationIds: readonly Id[] };
+  | { readonly kind: "ok" }
+  | { readonly kind: "inaccessible" }
+  | { readonly kind: "privateContest"; readonly organizationIds: readonly Id[] };
 
-const ACCESS_OK: ContestAccess = { kind: 'ok' };
-const ACCESS_INACCESSIBLE: ContestAccess = { kind: 'inaccessible' };
+const ACCESS_OK: ContestAccess = { kind: "ok" };
+const ACCESS_INACCESSIBLE: ContestAccess = { kind: "inaccessible" };
 
 function privateContest(contest: ContestRow): ContestAccess {
-  return { kind: 'privateContest', organizationIds: contest.organizationIds ?? [] };
+  return { kind: "privateContest", organizationIds: contest.organizationIds ?? [] };
 }
 
 /**
@@ -438,7 +424,7 @@ export function contestAccessCheck(contest: ContestRow, viewer: Viewer): Contest
     return ACCESS_OK;
   }
 
-  if (hasPerm(viewer, 'judge.see_private_contest') || hasPerm(viewer, 'judge.edit_all_contest')) {
+  if (hasPerm(viewer, "judge.see_private_contest") || hasPerm(viewer, "judge.edit_all_contest")) {
     return ACCESS_OK;
   }
   if (contestIsEditor(contest, viewer.id)) return ACCESS_OK;
@@ -467,15 +453,15 @@ export function contestAccessCheck(contest: ContestRow, viewer: Viewer): Contest
 
 /** `Contest.is_accessible_by(user)` (contest.py:441). */
 export function contestIsAccessibleBy(contest: ContestRow, viewer: Viewer): boolean {
-  return contestAccessCheck(contest, viewer).kind === 'ok';
+  return contestAccessCheck(contest, viewer).kind === "ok";
 }
 
 /** `Contest.is_editable_by(user)` (contest.py:449). */
 export function contestIsEditableBy(contest: ContestRow, viewer: Viewer): boolean {
-  if (hasPerm(viewer, 'judge.edit_all_contest')) return true;
+  if (hasPerm(viewer, "judge.edit_all_contest")) return true;
   if (
     isAuthenticated(viewer) &&
-    hasPerm(viewer, 'judge.edit_own_contest') &&
+    hasPerm(viewer, "judge.edit_own_contest") &&
     contestIsEditor(contest, viewer.id)
   ) {
     return true;
@@ -521,7 +507,7 @@ export function contestIsVisibleTo(contest: ContestRow, viewer: Viewer): boolean
   if (!isAuthenticated(viewer)) {
     return contest.isVisible && !contest.isOrganizationPrivate && !contest.isPrivate;
   }
-  if (hasPerm(viewer, 'judge.see_private_contest') || hasPerm(viewer, 'judge.edit_all_contest')) {
+  if (hasPerm(viewer, "judge.see_private_contest") || hasPerm(viewer, "judge.edit_all_contest")) {
     return true;
   }
 
@@ -556,24 +542,24 @@ export function getVisibleContests<T extends ContestRow>(contests: readonly T[],
 /* -------------------------------------------------------------------------- */
 
 /** The site default when a problem follows the global setting. */
-export const DEFAULT_SUBMISSION_SOURCE_VISIBILITY: GlobalSubmissionSourceVisibility = 'all-solved';
+export const DEFAULT_SUBMISSION_SOURCE_VISIBILITY: GlobalSubmissionSourceVisibility = "all-solved";
 
 const GLOBAL_VISIBILITY_MAP: Record<
   GlobalSubmissionSourceVisibility,
-  Exclude<SubmissionSourceVisibility, 'F'>
+  Exclude<SubmissionSourceVisibility, "F">
 > = {
-  all: 'A',
-  'all-solved': 'S',
-  'only-own': 'O',
+  all: "A",
+  "all-solved": "S",
+  "only-own": "O",
 };
 
 /** `Problem.submission_source_visibility` (problem.py:390). */
 export function resolveSubmissionSourceVisibility(
   problem: ProblemRow,
   globalDefault: GlobalSubmissionSourceVisibility = DEFAULT_SUBMISSION_SOURCE_VISIBILITY,
-): Exclude<SubmissionSourceVisibility, 'F'> {
-  const mode: SubmissionSourceVisibility = problem.submissionSourceVisibility ?? 'F';
-  if (mode === 'F') return GLOBAL_VISIBILITY_MAP[globalDefault];
+): Exclude<SubmissionSourceVisibility, "F"> {
+  const mode: SubmissionSourceVisibility = problem.submissionSourceVisibility ?? "F";
+  if (mode === "F") return GLOBAL_VISIBILITY_MAP[globalDefault];
   return mode;
 }
 
@@ -608,17 +594,17 @@ export function canSeeSubmissionDetail(
   );
 
   if (problemIsEditableBy(problem, viewer)) return true;
-  if (hasPerm(viewer, 'judge.view_all_submission')) return true;
+  if (hasPerm(viewer, "judge.view_all_submission")) return true;
   if (submission.profileId === viewer.id) return true;
-  if (sourceVisibility === 'A') return true;
+  if (sourceVisibility === "A") return true;
   if (
-    sourceVisibility === 'S' &&
+    sourceVisibility === "S" &&
     (problem.isPublic || has(problem.testerProfileIds, viewer.id)) &&
     context.hasSolvedProblem === true
   ) {
     return true;
   }
-  if (sourceVisibility === 'O' && has(problem.testerProfileIds, viewer.id)) return true;
+  if (sourceVisibility === "O" && has(problem.testerProfileIds, viewer.id)) return true;
 
   if (contest) {
     if (
@@ -640,8 +626,8 @@ export function canSeeSubmissionDetail(
 /** `BlogPost.is_editable_by(user)` (judge/models/interface.py:280). */
 export function blogPostIsEditableBy(post: BlogPostRow, viewer: Viewer): boolean {
   if (!isAuthenticated(viewer)) return false;
-  if (hasPerm(viewer, 'judge.edit_all_post')) return true;
-  return hasPerm(viewer, 'judge.change_blogpost') && has(post.authorProfileIds, viewer.id);
+  if (hasPerm(viewer, "judge.edit_all_post")) return true;
+  return hasPerm(viewer, "judge.change_blogpost") && has(post.authorProfileIds, viewer.id);
 }
 
 /** `BlogPost.can_see(user)` (interface.py:275). */
@@ -659,15 +645,15 @@ export function blogPostCanSee(post: BlogPostRow, viewer: Viewer, now: number = 
  * `ObjectDoesNotExist`, which makes the comment inaccessible.
  */
 export type CommentTarget =
-  | { readonly type: 'problem'; readonly problem: ProblemRow | null }
+  | { readonly type: "problem"; readonly problem: ProblemRow | null }
   | {
-      readonly type: 'solution';
+      readonly type: "solution";
       readonly solution: SolutionRow | null;
       readonly problem: ProblemRow | null;
     }
-  | { readonly type: 'contest'; readonly contest: ContestRow | null }
-  | { readonly type: 'blog'; readonly post: BlogPostRow | null }
-  | { readonly type: 'other' };
+  | { readonly type: "contest"; readonly contest: ContestRow | null }
+  | { readonly type: "blog"; readonly post: BlogPostRow | null }
+  | { readonly type: "other" };
 
 export interface CommentAccessOptions {
   readonly now?: number;
@@ -682,18 +668,18 @@ export function commentIsAccessibleBy(
 ): boolean {
   const now = options.now ?? Date.now();
   switch (target.type) {
-    case 'problem':
+    case "problem":
       if (!target.problem) return false;
       return problemIsAccessibleBy(target.problem, viewer, options.problemAccess);
-    case 'solution':
+    case "solution":
       // DMOJ checks the solution only here; the "recent comments" widget also
       // requires problem access. See docs/DMOJ_RULES.md.
       if (!target.solution || !target.problem) return false;
       return solutionIsAccessibleBy(target.solution, target.problem, viewer, now);
-    case 'contest':
+    case "contest":
       if (!target.contest) return false;
       return contestIsAccessibleBy(target.contest, viewer);
-    case 'blog':
+    case "blog":
       if (!target.post) return false;
       return blogPostCanSee(target.post, viewer, now);
     default:
@@ -717,24 +703,18 @@ export function organizationCanEdit(organization: OrganizationRow, viewer: Viewe
 
 /** The admin-site rule: `judge.change_organization` plus admin-of or `edit_all_organization`. */
 export function organizationIsEditableBy(organization: OrganizationRow, viewer: Viewer): boolean {
-  if (!hasPerm(viewer, 'judge.change_organization')) return false;
-  if (hasPerm(viewer, 'judge.edit_all_organization')) return true;
+  if (!hasPerm(viewer, "judge.change_organization")) return false;
+  if (hasPerm(viewer, "judge.edit_all_organization")) return true;
   return organizationIsAdmin(organization, viewer);
 }
 
 /** `Organization.can_review_all_requests(profile)` (judge/models/profile.py:86). */
-export function organizationCanReviewAllRequests(
-  organization: OrganizationRow,
-  viewer: Viewer,
-): boolean {
+export function organizationCanReviewAllRequests(organization: OrganizationRow, viewer: Viewer): boolean {
   return organizationIsAdmin(organization, viewer);
 }
 
 /** `Organization.can_review_class_requests(profile)` (profile.py:89). */
-export function organizationCanReviewClassRequests(
-  classes: readonly ClassRow[],
-  viewer: Viewer,
-): boolean {
+export function organizationCanReviewClassRequests(classes: readonly ClassRow[], viewer: Viewer): boolean {
   if (!isAuthenticated(viewer)) return false;
   return classes.some((klass) => has(klass.adminProfileIds, viewer.id));
 }
@@ -759,8 +739,11 @@ export function classIsVisibleTo(
   options: { readonly organizationsAdministeredByViewer?: readonly Id[] } = {},
 ): boolean {
   if (!isAuthenticated(viewer)) return false;
-  if (hasPerm(viewer, 'judge.edit_all_organization')) return true;
+  if (hasPerm(viewer, "judge.edit_all_organization")) return true;
   if (has(klass.adminProfileIds, viewer.id)) return true;
   // Classes of contests whose organizations the viewer administers.
-  return has(options.organizationsAdministeredByViewer ?? viewer.adminOfOrganizationIds, klass.organizationId);
+  return has(
+    options.organizationsAdministeredByViewer ?? viewer.adminOfOrganizationIds,
+    klass.organizationId,
+  );
 }

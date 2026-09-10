@@ -1,7 +1,6 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { useQuery } from "convex/react";
 import {
   Button,
   Command,
@@ -15,6 +14,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@moj/ui";
+import { useQuery } from "convex/react";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
 

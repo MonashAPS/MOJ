@@ -156,10 +156,7 @@ export async function typstAvailable(bin = typstBinary()): Promise<boolean> {
   }
 }
 
-export async function renderPdf(
-  typstSource: string,
-  options: RenderPdfOptions = {},
-): Promise<Buffer> {
+export async function renderPdf(typstSource: string, options: RenderPdfOptions = {}): Promise<Buffer> {
   const bin = options.bin ?? typstBinary();
   const packagePath = options.packagePath ?? DEFAULT_TYPST_PACKAGE_PATH;
   const entry = options.entry ?? "main.typ";

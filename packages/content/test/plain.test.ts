@@ -4,9 +4,7 @@ import { loadFixtures } from "./helpers.js";
 
 describe("renderPlain", () => {
   it("strips markup and keeps the maths source", () => {
-    expect(renderPlain("**Bold** and ~n \\le 10~ and `code`.")).toBe(
-      "Bold and n \\le 10 and code.",
-    );
+    expect(renderPlain("**Bold** and ~n \\le 10~ and `code`.")).toBe("Bold and n \\le 10 and code.");
   });
 
   it("leaves sample IO out", () => {

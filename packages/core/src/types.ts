@@ -14,33 +14,22 @@ export type Id = string;
 /** Milliseconds since the Unix epoch. */
 export type Timestamp = number;
 
-export type SubmissionResult =
-  | 'AC'
-  | 'WA'
-  | 'TLE'
-  | 'MLE'
-  | 'OLE'
-  | 'IR'
-  | 'RTE'
-  | 'CE'
-  | 'IE'
-  | 'SC'
-  | 'AB';
+export type SubmissionResult = "AC" | "WA" | "TLE" | "MLE" | "OLE" | "IR" | "RTE" | "CE" | "IE" | "SC" | "AB";
 
-export type SubmissionStatus = 'QU' | 'P' | 'G' | 'D' | 'IE' | 'CE' | 'AB';
+export type SubmissionStatus = "QU" | "P" | "G" | "D" | "IE" | "CE" | "AB";
 
 /** Problem.submission_source_visibility_mode. */
-export type SubmissionSourceVisibility = 'A' | 'S' | 'O' | 'F';
+export type SubmissionSourceVisibility = "A" | "S" | "O" | "F";
 
 /** The site-wide DMOJ_SUBMISSION_SOURCE_VISIBILITY setting. */
-export type GlobalSubmissionSourceVisibility = 'all' | 'all-solved' | 'only-own';
+export type GlobalSubmissionSourceVisibility = "all" | "all-solved" | "only-own";
 
 /** Contest.scoreboard_visibility. */
-export type ScoreboardVisibility = 'V' | 'C' | 'P' | 'H';
+export type ScoreboardVisibility = "V" | "C" | "P" | "H";
 
-export type DisplayRank = 'user' | 'setter' | 'admin' | (string & {});
+export type DisplayRank = "user" | "setter" | "admin" | (string & {});
 
-export type LabelScheme = 'letters' | 'numbers' | 'custom';
+export type LabelScheme = "letters" | "numbers" | "custom";
 
 /**
  * A viewer. `null` (or `undefined`) is Django's `AnonymousUser`: every rule
@@ -255,7 +244,7 @@ export interface BlogPostRow {
   readonly authorProfileIds?: readonly Id[];
 }
 
-export type CommentTargetType = 'problem' | 'contest' | 'blog' | 'solution';
+export type CommentTargetType = "problem" | "contest" | "blog" | "solution";
 
 export interface CommentRow {
   readonly id: Id;

@@ -13,8 +13,8 @@ import {
   markdownToTypst,
   normaliseForCmarker,
   renderPdf,
-  typstAvailable,
   TypstCompileError,
+  typstAvailable,
 } from "../src/index.js";
 import { loadFixtures, placeholderAssets } from "./helpers.js";
 import { pdfPages, pdfText } from "./pdf.js";
@@ -144,7 +144,7 @@ function renderReport(rows: readonly Row[]): string {
     "  dropped; the canonical name comes from the problem metadata and is set by the header.",
     "- Automatic heading labels are switched off (`heading-labels: none`), otherwise a booklet",
     "  whose problems all have an `Input` section fails on duplicate labels.",
-    "- `smart-punctuation` is off, so a literal `\"YES\"` in an output specification is not",
+    '- `smart-punctuation` is off, so a literal `"YES"` in an output specification is not',
     "  turned into curly quotes.",
     "",
   );

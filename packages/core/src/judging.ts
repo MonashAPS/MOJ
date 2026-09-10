@@ -8,8 +8,8 @@
  * judge/judge_priority.py.
  */
 
-import { pyRound } from './util/number';
-import type { Id, SubmissionResult, SubmissionStatus, SubmissionTestCaseRow } from './types';
+import type { Id, SubmissionResult, SubmissionStatus, SubmissionTestCaseRow } from "./types";
+import { pyRound } from "./util/number";
 
 /* -------------------------------------------------------------------------- */
 /* Test case status bitmask                                                   */
@@ -31,14 +31,14 @@ export const STATUS_BIT = {
  * The order is load-bearing: a case that is both TLE and WA reads as TLE.
  */
 export function decodeCaseStatus(status: number): SubmissionResult {
-  if (status & STATUS_BIT.TLE) return 'TLE';
-  if (status & STATUS_BIT.MLE) return 'MLE';
-  if (status & STATUS_BIT.OLE) return 'OLE';
-  if (status & STATUS_BIT.RTE) return 'RTE';
-  if (status & STATUS_BIT.IR) return 'IR';
-  if (status & STATUS_BIT.WA) return 'WA';
-  if (status & STATUS_BIT.SC) return 'SC';
-  return 'AC';
+  if (status & STATUS_BIT.TLE) return "TLE";
+  if (status & STATUS_BIT.MLE) return "MLE";
+  if (status & STATUS_BIT.OLE) return "OLE";
+  if (status & STATUS_BIT.RTE) return "RTE";
+  if (status & STATUS_BIT.IR) return "IR";
+  if (status & STATUS_BIT.WA) return "WA";
+  if (status & STATUS_BIT.SC) return "SC";
+  return "AC";
 }
 
 /* -------------------------------------------------------------------------- */
@@ -49,16 +49,7 @@ export function decodeCaseStatus(status: number): SubmissionResult {
  * The worst-first order `on_grading_end` uses to pick a submission's result.
  * A higher index wins, so `SC` is the mildest and `OLE` the worst.
  */
-export const STATUS_CODES: readonly SubmissionResult[] = [
-  'SC',
-  'AC',
-  'WA',
-  'MLE',
-  'TLE',
-  'IR',
-  'RTE',
-  'OLE',
-];
+export const STATUS_CODES: readonly SubmissionResult[] = ["SC", "AC", "WA", "MLE", "TLE", "IR", "RTE", "OLE"];
 
 export interface GradingEndProblem {
   readonly points: number;
@@ -132,7 +123,7 @@ export function computeGradingEnd(
   if (!problem.partial && awarded !== problem.points) awarded = 0;
 
   return {
-    status: 'D',
+    status: "D",
     result: STATUS_CODES[statusIndex] as SubmissionResult,
     time,
     memory,
@@ -296,7 +287,7 @@ export function selectClaim(
   if (minTier === null || judge.tier > minTier) return null;
 
   const reserve = shouldReserveJudge(judges, minTier);
-  const candidates = queue.filter((submission) => submission.status === 'QU').sort(compareQueued);
+  const candidates = queue.filter((submission) => submission.status === "QU").sort(compareQueued);
 
   for (const submission of candidates) {
     if (submission.priority >= REJUDGE_PRIORITY && reserve) return null;
@@ -314,6 +305,6 @@ export function canClaim(
   submission: ClaimableSubmission,
   judges: readonly JudgeRow[],
 ): boolean {
-  if (submission.status !== 'QU') return false;
+  if (submission.status !== "QU") return false;
   return selectClaim(judge, [submission], judges)?.id === submission.id;
 }

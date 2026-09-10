@@ -2,15 +2,15 @@
  * The delimiter rules from DMOJ's `judge/jinja2/markdown/math.py`.
  */
 
-import { describe, expect, it } from "vitest";
+import type { Root } from "mdast";
+import rehypeStringify from "rehype-stringify";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
-import rehypeStringify from "rehype-stringify";
 import { unified } from "unified";
 import { visit } from "unist-util-visit";
-import type { Root } from "mdast";
+import { describe, expect, it } from "vitest";
 import remarkTildeMath from "../src/plugins/remark-tilde-math.js";
 import { countTildePairs, loadFixtures } from "./helpers.js";
 
@@ -67,9 +67,7 @@ describe("delimiters", () => {
   });
 
   it("leaves $x$ to remark-math as inline maths", () => {
-    expect(mathNodes("a $n$ b")).toEqual([
-      { type: "inlineMath", value: "n", delimiter: "dollar" },
-    ]);
+    expect(mathNodes("a $n$ b")).toEqual([{ type: "inlineMath", value: "n", delimiter: "dollar" }]);
   });
 
   it("keeps ~~strikethrough~~ working", () => {
@@ -93,9 +91,7 @@ describe("delimiters", () => {
   });
 
   it("lets \\[...\\] span a line ending, as DMOJ's DOTALL rule does", () => {
-    expect(mathNodes("a \\[x +\ny\\] b")).toEqual([
-      { type: "math", value: "x +\ny", delimiter: "bracket" },
-    ]);
+    expect(mathNodes("a \\[x +\ny\\] b")).toEqual([{ type: "math", value: "x +\ny", delimiter: "bracket" }]);
   });
 
   it("ignores delimiters inside code", () => {

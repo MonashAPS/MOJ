@@ -31,17 +31,13 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
-import { unified, type PluggableList } from "unified";
 import { bundledLanguages, createHighlighter, type Highlighter } from "shiki";
+import { type PluggableList, unified } from "unified";
 
-import { plainTextFromMdast, truncateSummary, type SummaryOptions } from "./plain.js";
-import { presetConfig, type Preset } from "./presets.js";
+import { plainTextFromMdast, type SummaryOptions, truncateSummary } from "./plain.js";
+import { collectFenceLanguages, normaliseLanguage, rehypeCodehilite } from "./plugins/rehype-codehilite.js";
 import {
-  collectFenceLanguages,
-  normaliseLanguage,
-  rehypeCodehilite,
-} from "./plugins/rehype-codehilite.js";
-import {
+  type CamoOptions,
   rehypeAbsolutify,
   rehypeCamo,
   rehypeLazyImages,
@@ -49,21 +45,21 @@ import {
   rehypeScrollableTables,
   rehypeTidyTables,
   rehypeUserReferences,
-  type CamoOptions,
   type UserReference,
 } from "./plugins/rehype-dmoj.js";
 import { rehypeEscapeDisallowed } from "./plugins/rehype-escape-disallowed.js";
 import { rehypeStyleAllowlist } from "./plugins/rehype-style-allowlist.js";
 import {
+  type CollectedHeading,
   emptyCollectedMeta,
   remarkCollect,
   remarkDemoteHeadings,
   remarkEscapeHtml,
-  type CollectedHeading,
 } from "./plugins/remark-dmoj.js";
 import remarkTildeMath from "./plugins/remark-tilde-math.js";
-import { userSafeSchema, USER_SAFE_TAGS } from "./sanitize/schema.js";
+import { type Preset, presetConfig } from "./presets.js";
 import { MATHML_TAGS } from "./sanitize/bleach-whitelist.js";
+import { USER_SAFE_TAGS, userSafeSchema } from "./sanitize/schema.js";
 
 export interface ShikiThemes {
   readonly light: string;
@@ -160,14 +156,16 @@ async function runPlugins<T>(plugins: PluggableList, tree: unknown): Promise<T> 
 }
 
 function parseMdast(source: string, singleDollar: boolean): MdastRoot {
-  return unified()
-    .use(remarkParse)
-    .use(remarkGfm, { singleTilde: false })
-    // `remark-math` first: micromark tries extension constructs newest-first, so registering
-    // `remarkTildeMath` afterwards is what puts its `$$` rule ahead of `remark-math`'s.
-    .use(remarkMath, { singleDollarTextMath: singleDollar })
-    .use(remarkTildeMath)
-    .parse(source);
+  return (
+    unified()
+      .use(remarkParse)
+      .use(remarkGfm, { singleTilde: false })
+      // `remark-math` first: micromark tries extension constructs newest-first, so registering
+      // `remarkTildeMath` afterwards is what puts its `$$` rule ahead of `remark-math`'s.
+      .use(remarkMath, { singleDollarTextMath: singleDollar })
+      .use(remarkTildeMath)
+      .parse(source)
+  );
 }
 
 export async function renderMarkdown(
@@ -300,5 +298,5 @@ export function normaliseCodeLanguage(language: string): string {
   return normaliseLanguage(language);
 }
 
+export type { CamoOptions, CollectedHeading, UserReference };
 export { presetConfig };
-export type { UserReference, CamoOptions, CollectedHeading };

@@ -10,9 +10,9 @@
  */
 
 import type { Element, Root } from "hast";
+import type { Highlighter } from "shiki";
 import type { Plugin } from "unified";
 import { visit } from "unist-util-visit";
-import type { Highlighter } from "shiki";
 
 export interface CodehiliteOptions {
   readonly highlighter: Highlighter;
@@ -117,9 +117,7 @@ const rehypeCodehilite: Plugin<[CodehiliteOptions], Root> = function rehypeCodeh
         type: "element",
         tagName: "div",
         properties: { className: ["codehilite"] },
-        children: highlighted.children.filter(
-          (child): child is Element => child.type === "element",
-        ),
+        children: highlighted.children.filter((child): child is Element => child.type === "element"),
       };
       parent.children.splice(index, 1, wrapper);
       return index + 1;

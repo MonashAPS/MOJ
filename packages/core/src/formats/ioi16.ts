@@ -16,7 +16,10 @@
  * joins the test cases onto `sub.status = 'D'`.
  */
 
-import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base';
+import { participationStart } from "../contestTiming";
+import type { ContestSubmissionRow, FormatData } from "../types";
+import { pyRound } from "../util/number";
+import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from "./base";
 import {
   breakdown,
   buildParticipationResult,
@@ -27,15 +30,12 @@ import {
   orderedProblemIds,
   pointsPrecision,
   secondsSince,
-} from './base';
-import { participationStart } from '../contestTiming';
-import { pyRound } from '../util/number';
-import { resolveLegacyIoiConfig, validateLegacyIoiConfig } from './legacyIoi';
-import type { ContestSubmissionRow, FormatData } from '../types';
+} from "./base";
+import { resolveLegacyIoiConfig, validateLegacyIoiConfig } from "./legacyIoi";
 
 export const IOI16_DEFAULTS = { cumtime: false } as const;
 
-const NO_BATCH = 'null';
+const NO_BATCH = "null";
 
 function batchKey(batch: number | null | undefined): string {
   return batch === null || batch === undefined ? NO_BATCH : String(batch);
@@ -73,7 +73,7 @@ export function updateParticipationIoi16(input: UpdateParticipationInput): Parti
 
     const best = new Map<string, BestBatch>();
     for (const submission of rows) {
-      if (submission.status !== 'D') continue;
+      if (submission.status !== "D") continue;
       for (const [key, points] of batchPointsOf(submission)) {
         const current = best.get(key);
         if (current === undefined || points > current.points) {
@@ -107,10 +107,10 @@ export function updateParticipationIoi16(input: UpdateParticipationInput): Parti
 }
 
 export const ioi16Format: ContestFormat = {
-  name: 'ioi16',
-  displayName: 'IOI',
+  name: "ioi16",
+  displayName: "IOI",
   configDefaults: IOI16_DEFAULTS,
-  defaultLabelScheme: 'numbers',
+  defaultLabelScheme: "numbers",
 
   validate: validateLegacyIoiConfig,
   resolveConfig: (config) => resolveLegacyIoiConfig(config),
@@ -118,7 +118,7 @@ export const ioi16Format: ContestFormat = {
   updateParticipation: updateParticipationIoi16,
 
   displayUserProblem(participation, contestProblem, contest, config) {
-    const entry = (participation.formatData ?? {})[contestProblem.id];
+    const entry = participation.formatData?.[contestProblem.id];
     if (!entry) return null;
     const resolved = resolveLegacyIoiConfig(config ?? contest.formatConfig);
     return buildProblemCell(entry, contestProblem, contest, { showTime: resolved.cumtime });
@@ -134,11 +134,11 @@ export const ioi16Format: ContestFormat = {
 
   getShortFormDisplay(config) {
     const resolved = resolveLegacyIoiConfig(config);
-    const lines = ['The maximum score for each problem batch will be used.'];
+    const lines = ["The maximum score for each problem batch will be used."];
     lines.push(
       resolved.cumtime
-        ? 'Ties will be broken by the sum of the last score altering submission time on problems with a non-zero score.'
-        : 'Ties by score will **not** be broken.',
+        ? "Ties will be broken by the sum of the last score altering submission time on problems with a non-zero score."
+        : "Ties by score will **not** be broken.",
     );
     return lines;
   },

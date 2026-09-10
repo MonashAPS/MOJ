@@ -6,7 +6,10 @@
  * zero and ties are not broken.
  */
 
-import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base';
+import { participationStart } from "../contestTiming";
+import type { FormatData } from "../types";
+import { pyRound } from "../util/number";
+import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from "./base";
 import {
   breakdown,
   buildParticipationResult,
@@ -19,15 +22,12 @@ import {
   pointsPrecision,
   secondsSince,
   validateAgainstDefaults,
-} from './base';
-import { participationStart } from '../contestTiming';
-import { pyRound } from '../util/number';
-import type { FormatData } from '../types';
+} from "./base";
 
 export const LEGACY_IOI_DEFAULTS = { cumtime: false } as const;
 
 export function validateLegacyIoiConfig(config: unknown): void {
-  validateAgainstDefaults(config, LEGACY_IOI_DEFAULTS, {}, 'IOI-styled contest');
+  validateAgainstDefaults(config, LEGACY_IOI_DEFAULTS, {}, "IOI-styled contest");
 }
 
 export function resolveLegacyIoiConfig(config: unknown): { cumtime: boolean } {
@@ -50,9 +50,7 @@ export function updateParticipationLegacyIoi(input: UpdateParticipationInput): P
     const rows = groups.get(problemId) as { date: number; contestPoints: number }[];
     const points = Math.max(...rows.map((row) => row.contestPoints));
     // MIN(date) among the submissions that scored the maximum.
-    const time = Math.min(
-      ...rows.filter((row) => row.contestPoints === points).map((row) => row.date),
-    );
+    const time = Math.min(...rows.filter((row) => row.contestPoints === points).map((row) => row.date));
 
     let dt = 0;
     if (config.cumtime) {
@@ -73,10 +71,10 @@ export function updateParticipationLegacyIoi(input: UpdateParticipationInput): P
 }
 
 export const legacyIoiFormat: ContestFormat = {
-  name: 'ioi',
-  displayName: 'IOI (pre-2016)',
+  name: "ioi",
+  displayName: "IOI (pre-2016)",
   configDefaults: LEGACY_IOI_DEFAULTS,
-  defaultLabelScheme: 'numbers',
+  defaultLabelScheme: "numbers",
 
   validate: validateLegacyIoiConfig,
   resolveConfig: (config) => resolveLegacyIoiConfig(config),
@@ -84,7 +82,7 @@ export const legacyIoiFormat: ContestFormat = {
   updateParticipation: updateParticipationLegacyIoi,
 
   displayUserProblem(participation, contestProblem, contest, config) {
-    const entry = (participation.formatData ?? {})[contestProblem.id];
+    const entry = participation.formatData?.[contestProblem.id];
     if (!entry) return null;
     const resolved = resolveLegacyIoiConfig(config ?? contest.formatConfig);
     return buildProblemCell(entry, contestProblem, contest, { showTime: resolved.cumtime });
@@ -100,11 +98,11 @@ export const legacyIoiFormat: ContestFormat = {
 
   getShortFormDisplay(config) {
     const resolved = resolveLegacyIoiConfig(config);
-    const lines = ['The maximum score submission for each problem will be used.'];
+    const lines = ["The maximum score submission for each problem will be used."];
     lines.push(
       resolved.cumtime
-        ? 'Ties will be broken by the sum of the last score altering submission time on problems with a non-zero score.'
-        : 'Ties by score will **not** be broken.',
+        ? "Ties will be broken by the sum of the last score altering submission time on problems with a non-zero score."
+        : "Ties by score will **not** be broken.",
     );
     return lines;
   },

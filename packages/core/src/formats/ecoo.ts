@@ -7,7 +7,10 @@
  * window when it was submitted earns one more point.
  */
 
-import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base';
+import { participationEndTime, participationStart } from "../contestTiming";
+import type { ContestSubmissionRow, FormatData } from "../types";
+import { pyRound } from "../util/number";
+import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from "./base";
 import {
   breakdown,
   buildParticipationResult,
@@ -21,10 +24,7 @@ import {
   pointsPrecision,
   secondsSince,
   validateAgainstDefaults,
-} from './base';
-import { participationEndTime, participationStart } from '../contestTiming';
-import { pyRound } from '../util/number';
-import type { ContestSubmissionRow, FormatData } from '../types';
+} from "./base";
 
 export const ECOO_DEFAULTS = { cumtime: false, first_ac_bonus: 10, time_bonus: 5 } as const;
 
@@ -41,7 +41,7 @@ export type EcooConfig = {
 };
 
 export function validateEcooConfig(config: unknown): void {
-  validateAgainstDefaults(config, ECOO_DEFAULTS, VALIDATORS, 'ECOO-styled contest');
+  validateAgainstDefaults(config, ECOO_DEFAULTS, VALIDATORS, "ECOO-styled contest");
 }
 
 export function resolveEcooConfig(config: unknown): EcooConfig {
@@ -56,7 +56,7 @@ export function resolveEcooConfig(config: unknown): EcooConfig {
 
 /** DMOJ's excluded verdicts: IE and CE only, a null result still counts. */
 function counts(submission: ContestSubmissionRow): boolean {
-  return submission.result !== 'IE' && submission.result !== 'CE';
+  return submission.result !== "IE" && submission.result !== "CE";
 }
 
 export function updateParticipationEcoo(input: UpdateParticipationInput): ParticipationUpdate {
@@ -74,9 +74,7 @@ export function updateParticipationEcoo(input: UpdateParticipationInput): Partic
 
     // The latest submission date, then MAX(points) among submissions at it.
     const date = Math.max(...rows.map((row) => row.date));
-    const points = Math.max(
-      ...rows.filter((row) => row.date === date).map((row) => row.contestPoints),
-    );
+    const points = Math.max(...rows.filter((row) => row.date === date).map((row) => row.contestPoints));
     const problemPoints = contestProblemPoints(contestProblems, problemId);
 
     const dt = secondsSince(start, date);
@@ -108,10 +106,10 @@ export function updateParticipationEcoo(input: UpdateParticipationInput): Partic
 }
 
 export const ecooFormat: ContestFormat = {
-  name: 'ecoo',
-  displayName: 'ECOO',
+  name: "ecoo",
+  displayName: "ECOO",
   configDefaults: ECOO_DEFAULTS,
-  defaultLabelScheme: 'numbers',
+  defaultLabelScheme: "numbers",
 
   validate: validateEcooConfig,
   resolveConfig: (config) => resolveEcooConfig(config),
@@ -119,7 +117,7 @@ export const ecooFormat: ContestFormat = {
   updateParticipation: updateParticipationEcoo,
 
   displayUserProblem(participation, contestProblem, contest) {
-    const entry = (participation.formatData ?? {})[contestProblem.id];
+    const entry = participation.formatData?.[contestProblem.id];
     if (!entry) return null;
     return buildProblemCell(entry, contestProblem, contest, { bonus: true });
   },
@@ -134,7 +132,7 @@ export const ecooFormat: ContestFormat = {
 
   getShortFormDisplay(config) {
     const resolved = resolveEcooConfig(config);
-    const lines = ['The score on your **last** non-CE submission for each problem will be used.'];
+    const lines = ["The score on your **last** non-CE submission for each problem will be used."];
     if (resolved.firstAcBonus) {
       lines.push(
         `There is a **${resolved.firstAcBonus} bonus** for fully solving on your first non-CE submission.`,
@@ -143,14 +141,14 @@ export const ecooFormat: ContestFormat = {
     if (resolved.timeBonus) {
       lines.push(
         `For every **${resolved.timeBonus} ${
-          resolved.timeBonus === 1 ? 'minute' : 'minutes'
+          resolved.timeBonus === 1 ? "minute" : "minutes"
         }** you submit before the end of your window, there will be a **1** point bonus.`,
       );
     }
     lines.push(
       resolved.cumtime
-        ? 'Ties will be broken by the sum of the last submission time on **all** problems.'
-        : 'Ties by score will **not** be broken.',
+        ? "Ties will be broken by the sum of the last submission time on **all** problems."
+        : "Ties by score will **not** be broken.",
     );
     return lines;
   },

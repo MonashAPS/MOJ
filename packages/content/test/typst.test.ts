@@ -64,9 +64,7 @@ describe("markdown normalisation", () => {
   });
 
   it("turns an HTML image into a markdown image", () => {
-    const { markdown, images } = normaliseForCmarker(
-      '<img src="/media/x.png" alt="a picture" width="180"/>',
-    );
+    const { markdown, images } = normaliseForCmarker('<img src="/media/x.png" alt="a picture" width="180"/>');
     expect(markdown).toContain("![a picture](/media/x.png)");
     expect(images).toEqual(["/media/x.png"]);
   });
@@ -121,9 +119,9 @@ describe("markdownToTypst", () => {
   it("emits none for a missing Python time limit", () => {
     const problem = fixture("coconutpairs");
     expect(markdownToTypst(problem.source, problem.meta)).toContain("python-time-limit: none");
-    expect(
-      markdownToTypst(problem.source, { ...problem.meta, pythonTimeLimit: 3 }),
-    ).toContain("python-time-limit: 3");
+    expect(markdownToTypst(problem.source, { ...problem.meta, pythonTimeLimit: 3 })).toContain(
+      "python-time-limit: 3",
+    );
   });
 });
 
@@ -203,14 +201,14 @@ describe.skipIf(!hasTypst)("pdf compilation", () => {
   });
 
   it("reports a compile failure with the Typst diagnostics", async () => {
-    await expect(renderPdf("#panic(\"boom\")")).rejects.toMatchObject({
+    await expect(renderPdf('#panic("boom")')).rejects.toMatchObject({
       name: "TypstCompileError",
     });
   });
 
   it("refuses to write an asset outside the work directory", async () => {
-    await expect(
-      renderPdf("Hello.", { assets: { "../escape.png": Buffer.from("x") } }),
-    ).rejects.toThrow(/escapes the work directory/);
+    await expect(renderPdf("Hello.", { assets: { "../escape.png": Buffer.from("x") } })).rejects.toThrow(
+      /escapes the work directory/,
+    );
   });
 });

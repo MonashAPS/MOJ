@@ -201,9 +201,7 @@ export function AdminChrome({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        <div className="min-h-0 min-w-0 flex-1 px-(--gutter) py-4">
-          {children}
-        </div>
+        <div className="min-h-0 min-w-0 flex-1 px-(--gutter) py-4">{children}</div>
       </div>
     </div>
   );

@@ -107,7 +107,13 @@ export function AdminForm({
         </Field>
       </div>
 
-      <AdminFormFooter dirty={dirty} busy={busy} busyLabel={busyLabel} submitLabel={submitLabel} secondary={actions} />
+      <AdminFormFooter
+        dirty={dirty}
+        busy={busy}
+        busyLabel={busyLabel}
+        submitLabel={submitLabel}
+        secondary={actions}
+      />
     </form>
   );
 }

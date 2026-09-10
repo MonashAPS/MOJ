@@ -9,7 +9,7 @@
  * reads 1, 2, 3 with no gaps where a remote competitor was.
  */
 
-import type { BoardCell, BoardRow, Division, ScoreboardEventPayload } from "@convex/scoreboard";
+import type { BoardCell, BoardRow, Division } from "@convex/scoreboard";
 
 export type Attendance = "all" | "in-person";
 
@@ -92,7 +92,6 @@ export function contestClock(seconds: number): string {
 export function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`;
 }
-
 
 /* -------------------------------------------------------------------------- */
 /* Persistence                                                                */

@@ -3,9 +3,9 @@
  */
 
 import type { Heading, Html, Root, RootContent } from "mdast";
+import { toString as mdastToString } from "mdast-util-to-string";
 import type { Plugin } from "unified";
 import { visit } from "unist-util-visit";
-import { toString as mdastToString } from "mdast-util-to-string";
 import type { MathDelimiter } from "./remark-tilde-math.js";
 
 /* ---------------------------------------------------------------- heading demotion ----- */
@@ -18,16 +18,15 @@ export interface DemoteHeadingsOptions {
  * `AwesomeRenderer.header` renders every markdown heading two levels down, so a statement's
  * `##` lands under the page's own `h2` title.
  */
-const remarkDemoteHeadings: Plugin<[DemoteHeadingsOptions], Root> =
-  function remarkDemoteHeadings(options) {
-    const by = options.by;
-    if (!by) return;
-    return (tree: Root) => {
-      visit(tree, "heading", (node: Heading) => {
-        node.depth = Math.min(6, Math.max(1, node.depth + by)) as Heading["depth"];
-      });
-    };
+const remarkDemoteHeadings: Plugin<[DemoteHeadingsOptions], Root> = function remarkDemoteHeadings(options) {
+  const by = options.by;
+  if (!by) return;
+  return (tree: Root) => {
+    visit(tree, "heading", (node: Heading) => {
+      node.depth = Math.min(6, Math.max(1, node.depth + by)) as Heading["depth"];
+    });
   };
+};
 
 /* ------------------------------------------------------------------- safe_mode HTML ----- */
 

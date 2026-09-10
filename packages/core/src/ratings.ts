@@ -10,7 +10,7 @@
  * monotonicity of performance in rank are DMOJ's.
  */
 
-import type { ContestRow, Id } from './types';
+import type { ContestRow, Id } from "./types";
 
 /* -------------------------------------------------------------------------- */
 /* Constants (judge/ratings.py:12)                                            */
@@ -22,13 +22,9 @@ export const RATING_INIT = 1200;
 export const MEAN_INIT = 1500;
 export const VAR_INIT = 350 ** 2 * (BETA2 / 212 ** 2);
 export const SD_INIT = Math.sqrt(VAR_INIT);
-export const VALID_RANGE: readonly [number, number] = [
-  MEAN_INIT - 20 * SD_INIT,
-  MEAN_INIT + 20 * SD_INIT,
-];
+export const VALID_RANGE: readonly [number, number] = [MEAN_INIT - 20 * SD_INIT, MEAN_INIT + 20 * SD_INIT];
 export const VAR_PER_CONTEST = 1219.047619 * (BETA2 / 212 ** 2);
-export const VAR_LIM =
-  (Math.sqrt(VAR_PER_CONTEST ** 2 + 4 * BETA2 * VAR_PER_CONTEST) - VAR_PER_CONTEST) / 2;
+export const VAR_LIM = (Math.sqrt(VAR_PER_CONTEST ** 2 + 4 * BETA2 * VAR_PER_CONTEST) - VAR_PER_CONTEST) / 2;
 export const SD_LIM = Math.sqrt(VAR_LIM);
 export const TANH_C = Math.sqrt(3) / Math.PI;
 
@@ -263,7 +259,7 @@ export interface RatingInputRow {
 export interface RateContestOptions {
   readonly contest?: Pick<
     ContestRow,
-    'rateAll' | 'ratingFloor' | 'ratingCeiling' | 'performanceCeilingOverride' | 'rateExcludeProfileIds'
+    "rateAll" | "ratingFloor" | "ratingCeiling" | "performanceCeilingOverride" | "rateExcludeProfileIds"
   >;
   /** Past performances per profile, newest rated contest first. */
   readonly priorHistory?: Readonly<Record<Id, readonly number[]>>;
@@ -284,7 +280,7 @@ export interface RatingOutputRow {
 
 /** `Contest.performance_ceiling` (judge/models/contest.py:299). */
 export function performanceCeiling(
-  contest: Pick<ContestRow, 'performanceCeilingOverride' | 'ratingCeiling'> | undefined,
+  contest: Pick<ContestRow, "performanceCeilingOverride" | "ratingCeiling"> | undefined,
 ): number | null {
   if (!contest) return null;
   if (contest.performanceCeilingOverride !== null && contest.performanceCeilingOverride !== undefined) {
@@ -361,25 +357,25 @@ export function rateContest(
 /* -------------------------------------------------------------------------- */
 
 export const RATING_LEVELS: readonly string[] = [
-  'Newbie',
-  'Amateur',
-  'Expert',
-  'Candidate Master',
-  'Master',
-  'Grandmaster',
-  'Target',
+  "Newbie",
+  "Amateur",
+  "Expert",
+  "Candidate Master",
+  "Master",
+  "Grandmaster",
+  "Target",
 ];
 
 export const RATING_VALUES: readonly number[] = [1000, 1300, 1600, 1900, 2400, 3000];
 
 export const RATING_CLASS: readonly string[] = [
-  'rate-newbie',
-  'rate-amateur',
-  'rate-expert',
-  'rate-candidate-master',
-  'rate-master',
-  'rate-grandmaster',
-  'rate-target',
+  "rate-newbie",
+  "rate-amateur",
+  "rate-expert",
+  "rate-candidate-master",
+  "rate-master",
+  "rate-grandmaster",
+  "rate-target",
 ];
 
 /** Python's `bisect.bisect` (bisect_right). */
@@ -425,6 +421,6 @@ export function getUserCssClass(
   ratingColors = true,
 ): string {
   if (!ratingColors) return String(displayRank);
-  const cls = rating === null || rating === undefined ? 'rate-none' : ratingClass(rating);
+  const cls = rating === null || rating === undefined ? "rate-none" : ratingClass(rating);
   return `rating ${cls} ${displayRank}`;
 }

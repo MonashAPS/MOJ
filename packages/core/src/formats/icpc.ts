@@ -7,7 +7,10 @@
  * before each solve. `tiebreaker` is the last solve time, sorted ascending.
  */
 
-import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base';
+import { participationStart } from "../contestTiming";
+import type { FormatData } from "../types";
+import { pyRound } from "../util/number";
+import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from "./base";
 import {
   breakdown,
   buildParticipationResult,
@@ -19,18 +22,15 @@ import {
   pointsPrecision,
   secondsSince,
   validateAgainstDefaults,
-} from './base';
-import { computeMaxPointsRows } from './penalty';
-import { participationStart } from '../contestTiming';
-import { pyRound } from '../util/number';
-import type { FormatData } from '../types';
+} from "./base";
+import { computeMaxPointsRows } from "./penalty";
 
 export const ICPC_DEFAULTS = { penalty: 20 } as const;
 
 const VALIDATORS = { penalty: (value: number) => value >= 0 };
 
 export function validateIcpcConfig(config: unknown): void {
-  validateAgainstDefaults(config, ICPC_DEFAULTS, VALIDATORS, 'ICPC-styled contest');
+  validateAgainstDefaults(config, ICPC_DEFAULTS, VALIDATORS, "ICPC-styled contest");
 }
 
 export function resolveIcpcConfig(config: unknown): { penalty: number } {
@@ -75,10 +75,10 @@ export function updateParticipationIcpc(input: UpdateParticipationInput): Partic
 }
 
 export const icpcFormat: ContestFormat = {
-  name: 'icpc',
-  displayName: 'ICPC',
+  name: "icpc",
+  displayName: "ICPC",
   configDefaults: ICPC_DEFAULTS,
-  defaultLabelScheme: 'letters',
+  defaultLabelScheme: "letters",
 
   validate: validateIcpcConfig,
   resolveConfig: (config) => resolveIcpcConfig(config),
@@ -86,7 +86,7 @@ export const icpcFormat: ContestFormat = {
   updateParticipation: updateParticipationIcpc,
 
   displayUserProblem(participation, contestProblem, contest) {
-    const entry = (participation.formatData ?? {})[contestProblem.id];
+    const entry = participation.formatData?.[contestProblem.id];
     if (!entry) return null;
     return buildProblemCell(entry, contestProblem, contest, { penalty: true });
   },
@@ -100,16 +100,16 @@ export const icpcFormat: ContestFormat = {
 
   getShortFormDisplay(config) {
     const { penalty } = resolveIcpcConfig(config);
-    const lines = ['The maximum score submission for each problem will be used.'];
+    const lines = ["The maximum score submission for each problem will be used."];
     if (penalty) {
       lines.push(
         `Each submission before the first maximum score submission will incur a **penalty of ${penalty} ${
-          penalty === 1 ? 'minute' : 'minutes'
+          penalty === 1 ? "minute" : "minutes"
         }**.`,
       );
     }
     lines.push(
-      'Ties will be broken by the sum of the last score altering submission time on problems with a non-zero score, followed by the time of the last score altering submission.',
+      "Ties will be broken by the sum of the last score altering submission time on problems with a non-zero score, followed by the time of the last score altering submission.",
     );
     return lines;
   },

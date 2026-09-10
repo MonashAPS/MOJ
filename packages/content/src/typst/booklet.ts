@@ -5,8 +5,8 @@
  */
 
 import { typstEscapeString, typstOptional } from "./escape.js";
-import { markdownToTypstBody, statementArguments, type ProblemMeta } from "./statement.js";
 import type { NormaliseOptions } from "./markdown.js";
+import { markdownToTypstBody, type ProblemMeta, statementArguments } from "./statement.js";
 
 export interface BookletProblem {
   readonly meta: ProblemMeta;
@@ -70,10 +70,7 @@ export function booklet(
 
   if (options.cover !== false) {
     const entries = labelled
-      .map(
-        (problem) =>
-          `    (${typstEscapeString(problem.label)}, ${typstEscapeString(problem.meta.name)}),`,
-      )
+      .map((problem) => `    (${typstEscapeString(problem.label)}, ${typstEscapeString(problem.meta.name)}),`)
       .join("\n");
     lines.push(
       "#cover(",

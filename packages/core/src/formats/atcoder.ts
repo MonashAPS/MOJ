@@ -6,7 +6,10 @@
  * rejected submission that preceded a solve.
  */
 
-import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base';
+import { participationStart } from "../contestTiming";
+import type { FormatData } from "../types";
+import { pyRound } from "../util/number";
+import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from "./base";
 import {
   breakdown,
   buildParticipationResult,
@@ -18,18 +21,15 @@ import {
   pointsPrecision,
   secondsSince,
   validateAgainstDefaults,
-} from './base';
-import { computeMaxPointsRows } from './penalty';
-import { participationStart } from '../contestTiming';
-import { pyRound } from '../util/number';
-import type { FormatData } from '../types';
+} from "./base";
+import { computeMaxPointsRows } from "./penalty";
 
 export const ATCODER_DEFAULTS = { penalty: 5 } as const;
 
 const VALIDATORS = { penalty: (value: number) => value >= 0 };
 
 export function validateAtcoderConfig(config: unknown): void {
-  validateAgainstDefaults(config, ATCODER_DEFAULTS, VALIDATORS, 'AtCoder-styled contest');
+  validateAgainstDefaults(config, ATCODER_DEFAULTS, VALIDATORS, "AtCoder-styled contest");
 }
 
 export function resolveAtcoderConfig(config: unknown): { penalty: number } {
@@ -70,10 +70,10 @@ export function updateParticipationAtcoder(input: UpdateParticipationInput): Par
 }
 
 export const atcoderFormat: ContestFormat = {
-  name: 'atcoder',
-  displayName: 'AtCoder',
+  name: "atcoder",
+  displayName: "AtCoder",
   configDefaults: ATCODER_DEFAULTS,
-  defaultLabelScheme: 'numbers',
+  defaultLabelScheme: "numbers",
 
   validate: validateAtcoderConfig,
   resolveConfig: (config) => resolveAtcoderConfig(config),
@@ -81,7 +81,7 @@ export const atcoderFormat: ContestFormat = {
   updateParticipation: updateParticipationAtcoder,
 
   displayUserProblem(participation, contestProblem, contest) {
-    const entry = (participation.formatData ?? {})[contestProblem.id];
+    const entry = participation.formatData?.[contestProblem.id];
     if (!entry) return null;
     return buildProblemCell(entry, contestProblem, contest, { penalty: true });
   },
@@ -95,15 +95,15 @@ export const atcoderFormat: ContestFormat = {
 
   getShortFormDisplay(config) {
     const { penalty } = resolveAtcoderConfig(config);
-    const lines = ['The maximum score submission for each problem will be used.'];
+    const lines = ["The maximum score submission for each problem will be used."];
     if (penalty) {
       lines.push(
         `Each submission before the first maximum score submission will incur a **penalty of ${penalty} ${
-          penalty === 1 ? 'minute' : 'minutes'
+          penalty === 1 ? "minute" : "minutes"
         }**.`,
       );
     }
-    lines.push('Ties will be broken by the last score altering submission time.');
+    lines.push("Ties will be broken by the last score altering submission time.");
     return lines;
   },
 };

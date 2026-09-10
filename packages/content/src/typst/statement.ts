@@ -4,7 +4,7 @@
  */
 
 import { typstEscapeString, typstOptional, typstStringArray } from "./escape.js";
-import { normaliseForCmarker, type NormaliseOptions } from "./markdown.js";
+import { type NormaliseOptions, normaliseForCmarker } from "./markdown.js";
 
 export interface ProblemMeta {
   readonly name: string;
@@ -53,11 +53,7 @@ export function statementArguments(meta: ProblemMeta): string[] {
   ];
 }
 
-export function markdownToTypst(
-  source: string,
-  meta: ProblemMeta,
-  options: TypstOptions = {},
-): string {
+export function markdownToTypst(source: string, meta: ProblemMeta, options: TypstOptions = {}): string {
   const template = options.template ?? "statement.typ";
   const body = markdownToTypstBody(source, options);
   if (options.bodyOnly) return body;

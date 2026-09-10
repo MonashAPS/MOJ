@@ -1,4 +1,4 @@
-import { readFile, readdir } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import type { ProblemMeta } from "../src/typst/statement.js";
 
@@ -16,12 +16,11 @@ let cache: Fixture[] | undefined;
 /** Every real MAPS statement kept under `test/fixtures/statements`. */
 export async function loadFixtures(): Promise<Fixture[]> {
   if (cache) return cache;
-  const metas = JSON.parse(
-    await readFile(new URL("problems.json", FIXTURE_DIR), "utf8"),
-  ) as Record<string, ProblemMeta>;
-  const files = (await readdir(fileURLToPath(STATEMENT_DIR)))
-    .filter((name) => name.endsWith(".md"))
-    .sort();
+  const metas = JSON.parse(await readFile(new URL("problems.json", FIXTURE_DIR), "utf8")) as Record<
+    string,
+    ProblemMeta
+  >;
+  const files = (await readdir(fileURLToPath(STATEMENT_DIR))).filter((name) => name.endsWith(".md")).sort();
   cache = await Promise.all(
     files.map(async (file) => {
       const code = file.replace(/\.md$/, "");
@@ -58,9 +57,7 @@ export function placeholderImage(path: string): Buffer {
 
 /** Assets for a compile, keyed the way `renderPdf` wants them. */
 export function placeholderAssets(paths: readonly string[]): Record<string, Buffer> {
-  return Object.fromEntries(
-    paths.map((path) => [path.replace(/^\/+/, ""), placeholderImage(path)]),
-  );
+  return Object.fromEntries(paths.map((path) => [path.replace(/^\/+/, ""), placeholderImage(path)]));
 }
 
 /** Counts the `~...~` pairs a statement contains, independently of the renderer. */

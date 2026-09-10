@@ -18,7 +18,7 @@ import type {
   ProfileRow,
   SolutionRow,
   Viewer,
-} from '../src/types';
+} from "../src/types";
 
 export const SECOND = 1000;
 export const MINUTE = 60 * SECOND;
@@ -47,9 +47,7 @@ export function createUser(username: string, spec: UserSpec = {}): ProfileRow {
     username,
     isStaff: spec.isStaff ?? false,
     isSuperuser: spec.isSuperuser ?? false,
-    permissions: (spec.permissions ?? []).map((code) =>
-      code.includes('.') ? code : `judge.${code}`,
-    ),
+    permissions: (spec.permissions ?? []).map((code) => (code.includes(".") ? code : `judge.${code}`)),
     organizationIds: spec.organizationIds ?? [],
     adminOfOrganizationIds: spec.adminOfOrganizationIds ?? [],
     classIds: spec.classIds ?? [],
@@ -87,7 +85,7 @@ export function createProblem(code: string, spec: Partial<ProblemRow> = {}): Pro
     bannedProfileIds: [],
     points: 1,
     partial: false,
-    submissionSourceVisibility: 'F',
+    submissionSourceVisibility: "F",
     ...spec,
   };
 }
@@ -127,8 +125,8 @@ export function createContest(key: string, spec: Partial<ContestRow> = {}): Cont
     limitJoinOrganizations: false,
     joinOrganizationIds: [],
     bannedProfileIds: [],
-    scoreboardVisibility: 'V',
-    formatName: 'default',
+    scoreboardVisibility: "V",
+    formatName: "default",
     formatConfig: null,
     pointsPrecision: 3,
     runPretestsOnly: false,
@@ -189,44 +187,44 @@ export function createBlogPost(title: string, spec: Partial<BlogPostRow> = {}): 
 /** `CommonDataMixin.setUpTestData`. */
 export function commonUsers(): Record<string, Viewer> {
   return {
-    superuser: createUser('superuser', { isSuperuser: true, isStaff: true }),
-    staff_problem_edit_own: createUser('staff_problem_edit_own', {
+    superuser: createUser("superuser", { isSuperuser: true, isStaff: true }),
+    staff_problem_edit_own: createUser("staff_problem_edit_own", {
       isStaff: true,
-      permissions: ['edit_own_problem', 'rejudge_submission'],
+      permissions: ["edit_own_problem", "rejudge_submission"],
     }),
-    staff_problem_see_all: createUser('staff_problem_see_all', {
-      permissions: ['see_private_problem'],
+    staff_problem_see_all: createUser("staff_problem_see_all", {
+      permissions: ["see_private_problem"],
     }),
-    staff_problem_edit_all: createUser('staff_problem_edit_all', {
+    staff_problem_edit_all: createUser("staff_problem_edit_all", {
       isStaff: true,
-      permissions: ['edit_own_problem', 'edit_all_problem'],
+      permissions: ["edit_own_problem", "edit_all_problem"],
     }),
-    staff_problem_edit_public: createUser('staff_problem_edit_public', {
+    staff_problem_edit_public: createUser("staff_problem_edit_public", {
       isStaff: true,
-      permissions: ['edit_own_problem', 'edit_public_problem'],
+      permissions: ["edit_own_problem", "edit_public_problem"],
     }),
-    staff_problem_see_organization: createUser('staff_problem_see_organization', {
-      permissions: ['see_organization_problem'],
+    staff_problem_see_organization: createUser("staff_problem_see_organization", {
+      permissions: ["see_organization_problem"],
     }),
-    staff_problem_edit_all_with_rejudge: createUser('staff_problem_edit_all_with_rejudge', {
+    staff_problem_edit_all_with_rejudge: createUser("staff_problem_edit_all_with_rejudge", {
       isStaff: true,
-      permissions: ['edit_own_problem', 'edit_all_problem', 'rejudge_submission'],
+      permissions: ["edit_own_problem", "edit_all_problem", "rejudge_submission"],
     }),
-    staff_problem_edit_own_no_staff: createUser('staff_problem_edit_own_no_staff', {
-      permissions: ['edit_own_problem', 'rejudge_submission'],
+    staff_problem_edit_own_no_staff: createUser("staff_problem_edit_own_no_staff", {
+      permissions: ["edit_own_problem", "rejudge_submission"],
     }),
-    staff_organization_admin: createUser('staff_organization_admin', {
+    staff_organization_admin: createUser("staff_organization_admin", {
       isStaff: true,
-      permissions: ['organization_admin'],
-      adminOfOrganizationIds: ['open'],
+      permissions: ["organization_admin"],
+      adminOfOrganizationIds: ["open"],
     }),
-    normal: createUser('normal'),
+    normal: createUser("normal"),
     anonymous: null,
   };
 }
 
-export const OPEN_ORGANIZATION = createOrganization('open', {
-  adminProfileIds: ['staff_organization_admin'],
+export const OPEN_ORGANIZATION = createOrganization("open", {
+  adminProfileIds: ["staff_organization_admin"],
 });
 
 /** Add an organization membership to a profile, returning a new row. */
@@ -235,10 +233,7 @@ export function withOrganizations(profile: ProfileRow, organizationIds: readonly
 }
 
 /** Add organization admin rights to a profile, returning a new row. */
-export function withOrganizationAdmin(
-  profile: ProfileRow,
-  organizationIds: readonly Id[],
-): ProfileRow {
+export function withOrganizationAdmin(profile: ProfileRow, organizationIds: readonly Id[]): ProfileRow {
   return {
     ...profile,
     adminOfOrganizationIds: [...(profile.adminOfOrganizationIds ?? []), ...organizationIds],

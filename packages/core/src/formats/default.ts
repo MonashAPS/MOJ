@@ -7,7 +7,10 @@
  * score.
  */
 
-import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base';
+import { participationStart } from "../contestTiming";
+import type { FormatData } from "../types";
+import { pyRound } from "../util/number";
+import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from "./base";
 import {
   breakdown,
   buildParticipationResult,
@@ -19,17 +22,14 @@ import {
   orderedProblemIds,
   pointsPrecision,
   secondsSince,
-} from './base';
-import { participationStart } from '../contestTiming';
-import { pyRound } from '../util/number';
-import type { FormatData } from '../types';
+} from "./base";
 
 export function validateDefaultConfig(config: unknown): void {
   if (config === null || config === undefined) return;
   const isEmptyDict =
-    typeof config === 'object' && !Array.isArray(config) && Object.keys(config).length === 0;
+    typeof config === "object" && !Array.isArray(config) && Object.keys(config).length === 0;
   if (!isEmptyDict) {
-    throw new FormatConfigError('default contest expects no config or empty dict as config');
+    throw new FormatConfigError("default contest expects no config or empty dict as config");
   }
 }
 
@@ -63,10 +63,10 @@ export function updateParticipationDefault(input: UpdateParticipationInput): Par
 }
 
 export const defaultFormat: ContestFormat = {
-  name: 'default',
-  displayName: 'Default',
+  name: "default",
+  displayName: "Default",
   configDefaults: {},
-  defaultLabelScheme: 'numbers',
+  defaultLabelScheme: "numbers",
 
   validate: validateDefaultConfig,
   resolveConfig(config) {
@@ -77,7 +77,7 @@ export const defaultFormat: ContestFormat = {
   updateParticipation: updateParticipationDefault,
 
   displayUserProblem(participation, contestProblem, contest) {
-    const entry = (participation.formatData ?? {})[contestProblem.id];
+    const entry = participation.formatData?.[contestProblem.id];
     if (!entry) return null;
     return buildProblemCell(entry, contestProblem, contest);
   },
@@ -91,8 +91,8 @@ export const defaultFormat: ContestFormat = {
 
   getShortFormDisplay() {
     return [
-      'The maximum score submission for each problem will be used.',
-      'Ties will be broken by the sum of the last submission time on problems with a non-zero score.',
+      "The maximum score submission for each problem will be used.",
+      "Ties will be broken by the sum of the last submission time on problems with a non-zero score.",
     ];
   },
 };

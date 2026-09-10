@@ -539,9 +539,7 @@ export function ContestGeneralTab({
         >
           <div
             title={
-              permissions.createPrivateContest
-                ? undefined
-                : "You do not have judge.create_private_contest."
+              permissions.createPrivateContest ? undefined : "You do not have judge.create_private_contest."
             }
           >
             <MultiSelect

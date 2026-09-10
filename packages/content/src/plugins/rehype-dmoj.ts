@@ -55,9 +55,7 @@ const rehypeTidyTables: Plugin<[], Root> = function rehypeTidyTables() {
   return (tree: Root) => {
     visit(tree, "element", (node: Element) => {
       if (!TABLE_CONTAINERS.has(node.tagName)) return;
-      node.children = node.children.filter(
-        (child) => !(child.type === "text" && child.value.trim() === ""),
-      );
+      node.children = node.children.filter((child) => !(child.type === "text" && child.value.trim() === ""));
     });
   };
 };
@@ -182,49 +180,48 @@ const REFERENCE = /\[(r?user):(\w+)\]/g;
 
 const SKIP_INSIDE = new Set(["code", "pre", "script", "style", "textarea"]);
 
-const rehypeUserReferences: Plugin<[UserReferenceOptions], Root> =
-  function rehypeUserReferences(options) {
-    const href = options.href ?? ((username: string) => `/user/${encodeURIComponent(username)}`);
+const rehypeUserReferences: Plugin<[UserReferenceOptions], Root> = function rehypeUserReferences(options) {
+  const href = options.href ?? ((username: string) => `/user/${encodeURIComponent(username)}`);
 
-    return (tree: Root) => {
-      visit(tree, "text", (node: Text, index, parent: Parent | undefined) => {
-        if (!parent || index === undefined) return;
-        if (parent.type === "element" && SKIP_INSIDE.has((parent as Element).tagName)) return;
-        if (!node.value.includes("[")) return;
+  return (tree: Root) => {
+    visit(tree, "text", (node: Text, index, parent: Parent | undefined) => {
+      if (!parent || index === undefined) return;
+      if (parent.type === "element" && SKIP_INSIDE.has((parent as Element).tagName)) return;
+      if (!node.value.includes("[")) return;
 
-        REFERENCE.lastIndex = 0;
-        const pieces: RootContent[] = [];
-        let last = 0;
-        let match: RegExpExecArray | null = REFERENCE.exec(node.value);
-        while (match) {
-          const [whole, kind, username] = match as unknown as [string, "user" | "ruser", string];
-          if (match.index > last) {
-            pieces.push({ type: "text", value: node.value.slice(last, match.index) });
-          }
-          options.onReference?.({ type: kind, username });
-          pieces.push({
-            type: "element",
-            tagName: "a",
-            properties: {
-              className: kind === "ruser" ? ["user-link", "rate-group"] : ["user-link"],
-              href: href(username),
-              "data-username": username,
-              ...(kind === "ruser" ? { "data-rating": "true" } : {}),
-            },
-            children: [{ type: "text", value: username }],
-          });
-          last = match.index + whole.length;
-          match = REFERENCE.exec(node.value);
+      REFERENCE.lastIndex = 0;
+      const pieces: RootContent[] = [];
+      let last = 0;
+      let match: RegExpExecArray | null = REFERENCE.exec(node.value);
+      while (match) {
+        const [whole, kind, username] = match as unknown as [string, "user" | "ruser", string];
+        if (match.index > last) {
+          pieces.push({ type: "text", value: node.value.slice(last, match.index) });
         }
-        if (pieces.length === 0) return;
-        if (last < node.value.length) {
-          pieces.push({ type: "text", value: node.value.slice(last) });
-        }
-        parent.children.splice(index, 1, ...pieces);
-        return index + pieces.length;
-      });
-    };
+        options.onReference?.({ type: kind, username });
+        pieces.push({
+          type: "element",
+          tagName: "a",
+          properties: {
+            className: kind === "ruser" ? ["user-link", "rate-group"] : ["user-link"],
+            href: href(username),
+            "data-username": username,
+            ...(kind === "ruser" ? { "data-rating": "true" } : {}),
+          },
+          children: [{ type: "text", value: username }],
+        });
+        last = match.index + whole.length;
+        match = REFERENCE.exec(node.value);
+      }
+      if (pieces.length === 0) return;
+      if (last < node.value.length) {
+        pieces.push({ type: "text", value: node.value.slice(last) });
+      }
+      parent.children.splice(index, 1, ...pieces);
+      return index + pieces.length;
+    });
   };
+};
 
 /* --------------------------------------------------------------------- absolutify ----- */
 

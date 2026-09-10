@@ -5,7 +5,7 @@
  */
 
 import { afterAll, describe, expect, it } from "vitest";
-import { disposeHighlighters, presetAllowsRawHtml, PRESET_NAMES, renderMarkdown } from "../src/index.js";
+import { disposeHighlighters, PRESET_NAMES, presetAllowsRawHtml, renderMarkdown } from "../src/index.js";
 import { filterStyle } from "../src/plugins/rehype-style-allowlist.js";
 import { loadFixtures } from "./helpers.js";
 
@@ -39,10 +39,7 @@ describe("bleach parity", () => {
   });
 
   it("keeps allowed inline styles and drops the rest", async () => {
-    const { html } = await renderMarkdown(
-      '<img style="display: block; margin: 0 auto">',
-      "problem",
-    );
+    const { html } = await renderMarkdown('<img style="display: block; margin: 0 auto">', "problem");
     expect(html).toContain('style="display: block; margin: 0 auto;"');
   });
 
@@ -103,7 +100,7 @@ describe("no script survives any user preset", () => {
   for (const preset of userPresets) {
     it(preset, async () => {
       const { html } = await renderMarkdown(
-        "<script>alert(1)</script>\n\n<a href=\"javascript:alert(1)\">x</a>",
+        '<script>alert(1)</script>\n\n<a href="javascript:alert(1)">x</a>',
         preset,
       );
       expect(html).not.toMatch(/<script/i);

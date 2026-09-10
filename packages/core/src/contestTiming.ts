@@ -16,15 +16,15 @@ import {
   hasPerm,
   isAuthenticated,
   isSuperuser,
-} from './permissions';
+} from "./permissions";
 import {
-  PARTICIPATION_LIVE,
-  PARTICIPATION_SPECTATE,
   type ContestParticipationRow,
   type ContestRow,
   type Id,
+  PARTICIPATION_LIVE,
+  PARTICIPATION_SPECTATE,
   type Viewer,
-} from './types';
+} from "./types";
 
 /** `ContestParticipation.live`. */
 export function participationIsLive(participation: ContestParticipationRow): boolean {
@@ -52,10 +52,7 @@ function hasTimeLimit(contest: ContestRow): boolean {
  * Live and spectating participations of an untimed contest start when the
  * contest does; everything else starts when the participation was created.
  */
-export function participationStart(
-  participation: ContestParticipationRow,
-  contest: ContestRow,
-): number {
+export function participationStart(participation: ContestParticipationRow, contest: ContestRow): number {
   const untimed = contest.timeLimit == null;
   if (untimed && (participationIsLive(participation) || participationIsSpectating(participation))) {
     return contest.startTime;
@@ -70,10 +67,7 @@ export function participationStart(
  * - virtual: real start plus the time limit, or plus the whole window
  * - live: the contest end, or the earlier of (real start + limit) and the end
  */
-export function participationEndTime(
-  participation: ContestParticipationRow,
-  contest: ContestRow,
-): number {
+export function participationEndTime(participation: ContestParticipationRow, contest: ContestRow): number {
   if (participationIsSpectating(participation)) return contest.endTime;
 
   if (participation.virtual !== PARTICIPATION_LIVE) {
@@ -121,16 +115,16 @@ export function contestTimeBeforeEnd(contest: ContestRow, now: number = Date.now
 
 export type ContestJoinDecision =
   /** Join (or resume) the live participation. */
-  | { readonly kind: 'live'; readonly participationId?: Id }
+  | { readonly kind: "live"; readonly participationId?: Id }
   /** Join (or resume) the spectating participation. */
-  | { readonly kind: 'spectate'; readonly participationId?: Id }
+  | { readonly kind: "spectate"; readonly participationId?: Id }
   /** The contest is over: joining creates the n-th virtual participation. */
-  | { readonly kind: 'virtual'; readonly virtualId: number }
-  | { readonly kind: 'notStarted' }
-  | { readonly kind: 'banned' }
-  | { readonly kind: 'accessCodeRequired' }
-  | { readonly kind: 'cannotEnter' }
-  | { readonly kind: 'loginRequired' };
+  | { readonly kind: "virtual"; readonly virtualId: number }
+  | { readonly kind: "notStarted" }
+  | { readonly kind: "banned" }
+  | { readonly kind: "accessCodeRequired" }
+  | { readonly kind: "cannotEnter" }
+  | { readonly kind: "loginRequired" };
 
 export interface ContestJoinOptions {
   readonly now?: number;
@@ -152,7 +146,7 @@ export function contestJoinDecision(
   viewer: Viewer,
   options: ContestJoinOptions = {},
 ): ContestJoinDecision {
-  if (!isAuthenticated(viewer)) return { kind: 'loginRequired' };
+  if (!isAuthenticated(viewer)) return { kind: "loginRequired" };
 
   const now = options.now ?? Date.now();
   const participations = options.participations ?? [];
@@ -165,44 +159,42 @@ export function contestJoinDecision(
     (contest.curatorProfileIds ?? []).includes(viewer.id);
   const isTester = (contest.testerProfileIds ?? []).includes(viewer.id);
 
-  if (contest.startTime > now && !(isEditor || isTester)) return { kind: 'notStarted' };
+  if (contest.startTime > now && !(isEditor || isTester)) return { kind: "notStarted" };
 
   if (!isSuperuser(viewer) && (contest.bannedProfileIds ?? []).includes(viewer.id)) {
-    return { kind: 'banned' };
+    return { kind: "banned" };
   }
 
   const canEdit =
-    hasPerm(viewer, 'judge.edit_all_contest') ||
-    (hasPerm(viewer, 'judge.edit_own_contest') && isEditor);
-  const requiresAccessCode =
-    !canEdit && !!contest.accessCode && options.accessCode !== contest.accessCode;
+    hasPerm(viewer, "judge.edit_all_contest") || (hasPerm(viewer, "judge.edit_own_contest") && isEditor);
+  const requiresAccessCode = !canEdit && !!contest.accessCode && options.accessCode !== contest.accessCode;
 
   if (contest.endTime < now) {
-    if (requiresAccessCode) return { kind: 'accessCodeRequired' };
+    if (requiresAccessCode) return { kind: "accessCodeRequired" };
     const highest = participations.reduce((max, p) => Math.max(max, p.virtual), 0);
-    return { kind: 'virtual', virtualId: Math.max(highest + 1, 1) };
+    return { kind: "virtual", virtualId: Math.max(highest + 1, 1) };
   }
 
   let type: number;
   if (contestIsLiveJoinableBy(contest, viewer, context)) type = PARTICIPATION_LIVE;
   else if (contestIsSpectatableBy(contest, viewer)) type = PARTICIPATION_SPECTATE;
-  else return { kind: 'cannotEnter' };
+  else return { kind: "cannotEnter" };
 
   const existing = participations.find((p) => p.virtual === type) ?? null;
   if (!existing) {
-    if (requiresAccessCode) return { kind: 'accessCodeRequired' };
-    return type === PARTICIPATION_LIVE ? { kind: 'live' } : { kind: 'spectate' };
+    if (requiresAccessCode) return { kind: "accessCodeRequired" };
+    return type === PARTICIPATION_LIVE ? { kind: "live" } : { kind: "spectate" };
   }
 
   if (participationHasEnded(existing, contest, now)) {
     // A finished window drops the user into spectating.
     const spectating = participations.find((p) => p.virtual === PARTICIPATION_SPECTATE) ?? null;
-    return spectating ? { kind: 'spectate', participationId: spectating.id } : { kind: 'spectate' };
+    return spectating ? { kind: "spectate", participationId: spectating.id } : { kind: "spectate" };
   }
 
   return type === PARTICIPATION_LIVE
-    ? { kind: 'live', participationId: existing.id }
-    : { kind: 'spectate', participationId: existing.id };
+    ? { kind: "live", participationId: existing.id }
+    : { kind: "spectate", participationId: existing.id };
 }
 
 /**
@@ -217,7 +209,5 @@ export function shouldLeaveContest(
   now: number = Date.now(),
 ): boolean {
   if (!participation || !contest) return false;
-  return (
-    participationHasEnded(participation, contest, now) || !contestIsAccessibleBy(contest, viewer)
-  );
+  return participationHasEnded(participation, contest, now) || !contestIsAccessibleBy(contest, viewer);
 }

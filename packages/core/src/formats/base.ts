@@ -10,7 +10,6 @@
  * Source: judge/contest_format/*.py.
  */
 
-import { floatformat, niceRepr } from '../util/number';
 import type {
   ContestParticipationRow,
   ContestProblemRow,
@@ -19,13 +18,14 @@ import type {
   FormatData,
   FormatDataEntry,
   Id,
-} from '../types';
+} from "../types";
+import { floatformat, niceRepr } from "../util/number";
 
 /** Thrown by `validate(config)`, standing in for Django's `ValidationError`. */
 export class FormatConfigError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'FormatConfigError';
+    this.name = "FormatConfigError";
   }
 }
 
@@ -33,17 +33,17 @@ export class FormatConfigError extends Error {
 export class UnknownContestFormatError extends Error {
   constructor(name: string) {
     super(`unknown contest format "${name}"`);
-    this.name = 'UnknownContestFormatError';
+    this.name = "UnknownContestFormatError";
   }
 }
 
-export type SolutionState = 'failed-score' | 'full-score' | 'partial-score';
+export type SolutionState = "failed-score" | "full-score" | "partial-score";
 
 /** `BaseContestFormat.best_solution_state(points, total)` (base.py:104). */
 export function bestSolutionState(points: number, total: number): SolutionState {
-  if (!points) return 'failed-score';
-  if (points === total) return 'full-score';
-  return 'partial-score';
+  if (!points) return "failed-score";
+  if (points === total) return "full-score";
+  return "partial-score";
 }
 
 export interface UpdateParticipationInput {
@@ -98,7 +98,7 @@ export interface ContestFormat {
   readonly displayName: string;
   readonly configDefaults: Readonly<Record<string, unknown>>;
   /** Label scheme this format uses when the contest does not override it. */
-  readonly defaultLabelScheme: 'letters' | 'numbers';
+  readonly defaultLabelScheme: "letters" | "numbers";
 
   /** `validate(config)`; throws `FormatConfigError`. */
   validate(config: unknown): void;
@@ -108,20 +108,20 @@ export interface ContestFormat {
   updateParticipation(input: UpdateParticipationInput): ParticipationUpdate;
 
   displayUserProblem(
-    participation: Pick<ContestParticipationRow, 'formatData'>,
+    participation: Pick<ContestParticipationRow, "formatData">,
     contestProblem: ContestProblemRow,
     contest: ContestRow,
     config?: unknown,
   ): ProblemCellDisplay | null;
 
   displayParticipationResult(
-    participation: Pick<ContestParticipationRow, 'score' | 'cumtime'>,
+    participation: Pick<ContestParticipationRow, "score" | "cumtime">,
     contest: ContestRow,
     config?: unknown,
   ): ParticipationResultDisplay;
 
   getProblemBreakdown(
-    participation: Pick<ContestParticipationRow, 'formatData'>,
+    participation: Pick<ContestParticipationRow, "formatData">,
     contestProblems: readonly ContestProblemRow[],
   ): (FormatDataEntry | null)[];
 
@@ -148,7 +148,7 @@ export function validateAgainstDefaults(
   styleName: string,
 ): void {
   if (config === null || config === undefined) return;
-  if (typeof config !== 'object' || Array.isArray(config)) {
+  if (typeof config !== "object" || Array.isArray(config)) {
     throw new FormatConfigError(`${styleName} expects no config or dict as config`);
   }
   for (const [key, value] of Object.entries(config as Record<string, unknown>)) {
@@ -170,8 +170,8 @@ export function validateAgainstDefaults(
  * default; the reverse does not hold.
  */
 function sameType(value: unknown, expected: unknown): boolean {
-  if (typeof expected === 'boolean') return typeof value === 'boolean';
-  if (typeof expected === 'number') return typeof value === 'number' || typeof value === 'boolean';
+  if (typeof expected === "boolean") return typeof value === "boolean";
+  if (typeof expected === "number") return typeof value === "number" || typeof value === "boolean";
   return typeof value === typeof expected;
 }
 
@@ -180,7 +180,7 @@ export function mergeConfig(
   config: unknown,
 ): Record<string, unknown> {
   const merged: Record<string, unknown> = { ...defaults };
-  if (config && typeof config === 'object' && !Array.isArray(config)) {
+  if (config && typeof config === "object" && !Array.isArray(config)) {
     Object.assign(merged, config as Record<string, unknown>);
   }
   return merged;
@@ -237,10 +237,7 @@ export function orderedProblemIds(
   return ordered;
 }
 
-export function contestProblemPoints(
-  contestProblems: readonly ContestProblemRow[],
-  id: Id,
-): number {
+export function contestProblemPoints(contestProblems: readonly ContestProblemRow[], id: Id): number {
   return contestProblems.find((problem) => problem.id === id)?.points ?? 0;
 }
 
@@ -256,26 +253,26 @@ export function buildProblemCell(
   const cell: {
     -readonly [K in keyof ProblemCellDisplay]: ProblemCellDisplay[K];
   } = {
-    state: (isPretest ? 'pretest-' : '') + solutionState,
+    state: (isPretest ? "pretest-" : "") + solutionState,
     solutionState,
     isPretest,
     points: entry.points,
     pointsText: floatformat(entry.points),
-    timeText: options.showTime === false ? '' : niceRepr(entry.time),
+    timeText: options.showTime === false ? "" : niceRepr(entry.time),
   };
   if (options.penalty) {
     cell.penalty = entry.penalty ?? 0;
-    cell.penaltyText = entry.penalty ? floatformat(entry.penalty) : '';
+    cell.penaltyText = entry.penalty ? floatformat(entry.penalty) : "";
   }
   if (options.bonus) {
     cell.bonus = entry.bonus ?? 0;
-    cell.bonusText = entry.bonus ? floatformat(entry.bonus) : '';
+    cell.bonusText = entry.bonus ? floatformat(entry.bonus) : "";
   }
   return cell;
 }
 
 export function buildParticipationResult(
-  participation: Pick<ContestParticipationRow, 'score' | 'cumtime'>,
+  participation: Pick<ContestParticipationRow, "score" | "cumtime">,
   contest: ContestRow,
   showCumtime = true,
 ): ParticipationResultDisplay {
@@ -285,12 +282,12 @@ export function buildParticipationResult(
     points: score,
     pointsText: floatformat(score, -pointsPrecision(contest)),
     cumtime,
-    cumtimeText: showCumtime ? niceRepr(cumtime) : '',
+    cumtimeText: showCumtime ? niceRepr(cumtime) : "",
   };
 }
 
 export function breakdown(
-  participation: Pick<ContestParticipationRow, 'formatData'>,
+  participation: Pick<ContestParticipationRow, "formatData">,
   contestProblems: readonly ContestProblemRow[],
 ): (FormatDataEntry | null)[] {
   const data = participation.formatData ?? {};
@@ -305,10 +302,10 @@ export function numberLabel(index: number): string {
 /** `ICPCContestFormat.get_label_for_problem`: A, B, ... Z, AA, AB, ... */
 export function letterLabel(index: number): string {
   let value = index + 1;
-  let label = '';
+  let label = "";
   while (value > 0) {
     label += String.fromCharCode(((value - 1) % 26) + 65);
     value = Math.floor((value - 1) / 26);
   }
-  return [...label].reverse().join('');
+  return [...label].reverse().join("");
 }
