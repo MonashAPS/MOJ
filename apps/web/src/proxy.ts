@@ -26,6 +26,7 @@ const EXEMPT_PREFIXES = [
   "/accounts/api",
   "/edit/profile",
   "/api/auth",
+  "/media",
   "/_next",
   "/fonts",
   "/favicon",
@@ -96,5 +97,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|fonts|.*\\.(?:svg|png|ico|webmanifest|woff2)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|fonts|media|.*\\.(?:svg|png|ico|webmanifest|woff2)$).*)"],
 };

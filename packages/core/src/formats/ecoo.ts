@@ -13,6 +13,7 @@ import {
   buildParticipationResult,
   buildProblemCell,
   contestProblemPoints,
+  cumtimeSeconds,
   groupByProblem,
   mergeConfig,
   numberLabel,
@@ -99,7 +100,7 @@ export function updateParticipationEcoo(input: UpdateParticipationInput): Partic
   }
 
   return {
-    cumtime,
+    cumtime: cumtimeSeconds(cumtime),
     score: pyRound(score, pointsPrecision(contest)),
     tiebreaker: 0,
     formatData,

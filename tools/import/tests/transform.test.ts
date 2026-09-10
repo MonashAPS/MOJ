@@ -119,6 +119,25 @@ describe("full transform over a fixture dump", () => {
     expect(contests[1]?.timeLimit).toBeUndefined();
   });
 
+  it("takes the label scheme from the format, as DMOJ's format class does", () => {
+    const contests = docs(dir, "contests");
+    // icpc letters its problems, every other format numbers them; a Lua
+    // problem_label_script is not portable and becomes `custom`.
+    expect(contests[0]).toMatchObject({ key: "week1", formatName: "icpc", labelScheme: "letters" });
+    expect(contests[1]).toMatchObject({ key: "week2", formatName: "default", labelScheme: "custom" });
+    expect(contests[2]).toMatchObject({ key: "week3", formatName: "default", labelScheme: "numbers" });
+  });
+
+  it("rekeys format_data from ContestProblem ids to the imported ids", () => {
+    const [first, second] = docs(dir, "contestParticipations");
+    // The dump keys by judge_contestproblem.id: 1 and 4 exist, 999 does not.
+    expect(first?.formatData).toEqual({
+      dry_contestProblems_1: { points: 100 },
+      dry_contestProblems_4: { points: 50 },
+    });
+    expect(second?.formatData).toBeNull();
+  });
+
   it("folds judge_contestsubmission into the submission", () => {
     const submissions = docs(dir, "submissions");
     expect(submissions).toHaveLength(2);

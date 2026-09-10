@@ -34,12 +34,15 @@ export function SiteShell({
   misc,
   viewer,
   registrationOpen,
+  language,
   children,
 }: {
   nav: NavNode[];
   misc: Record<string, string>;
   viewer: ViewerSummary | null;
   registrationOpen: boolean;
+  /** The viewer's `LANGUAGE_CODE`, read from the cookie by the layout. */
+  language: string;
   children: ReactNode;
 }) {
   const pathname = usePathname() ?? "/";
@@ -112,7 +115,7 @@ export function SiteShell({
             {children}
           </div>
         </main>
-        <Footer footerHtml={misc.footer} />
+        <Footer footerHtml={misc.footer} language={language} />
       </div>
 
       {contest && !onContestPage ? (

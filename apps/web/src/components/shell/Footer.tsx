@@ -3,17 +3,22 @@
 import { Select } from "@moj/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { DEFAULT_LANGUAGE, LANGUAGE_COOKIE, SITE_LANGUAGES } from "@/lib/language";
 
-const LANGUAGES = [
-  { value: "en", label: "English (en)" },
-  { value: "zh-hans", label: "简体中文 (zh-hans)" },
-  { value: "vi", label: "Tiếng Việt (vi)" },
-  { value: "fr", label: "Français (fr)" },
-];
+const LANGUAGES = SITE_LANGUAGES.map((language) => ({
+  value: language.code,
+  label: language.label,
+}));
 
-export function Footer({ footerHtml }: { footerHtml?: string }) {
+export function Footer({
+  footerHtml,
+  language: initialLanguage,
+}: {
+  footerHtml?: string;
+  language?: string;
+}) {
   const router = useRouter();
-  const [language, setLanguage] = useState("en");
+  const [language, setLanguage] = useState(initialLanguage ?? DEFAULT_LANGUAGE);
 
   return (
     <footer className="mt-8 border-t border-border bg-ground">
@@ -42,7 +47,7 @@ export function Footer({ footerHtml }: { footerHtml?: string }) {
           onValueChange={(value) => {
             setLanguage(value);
             // biome-ignore lint/suspicious/noDocumentCookie: cookieStore is not in every browser MOJ supports
-            document.cookie = `moj-language=${value};path=/;max-age=31536000;samesite=lax`;
+            document.cookie = `${LANGUAGE_COOKIE}=${value};path=/;max-age=31536000;samesite=lax`;
             router.refresh();
           }}
         />

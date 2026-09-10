@@ -12,6 +12,7 @@ import {
   breakdown,
   buildParticipationResult,
   buildProblemCell,
+  cumtimeSeconds,
   groupByProblem,
   letterLabel,
   mergeConfig,
@@ -66,7 +67,7 @@ export function updateParticipationIcpc(input: UpdateParticipationInput): Partic
   }
 
   return {
-    cumtime: cumtime + penalty,
+    cumtime: cumtimeSeconds(cumtime + penalty),
     score: pyRound(score, pointsPrecision(contest)),
     tiebreaker: last,
     formatData,
