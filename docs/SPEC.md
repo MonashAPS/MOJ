@@ -467,3 +467,43 @@ directories' test data to the judge host exactly as the club's current workflows
 `skipped`, `failed` (JSON lists) and a step summary table. Fails the job on any failed upload. Documented on the
 "Problem repos and CI" page with a complete example workflow (secrets `JUDGE_URL`, `JUDGE_API_KEY`, `JUDGE_HOST`,
 `JUDGE_SSH_KEY`) and on the action's own README.
+
+Spoiler rule (club feedback, 2026-09-11). "Appeared in" is collapsed by default on the problem page behind a
+"Show contests" toggle, exactly like DMOJ's "Show problem types" toggle, because a contest or workshop name can give
+the technique away. The toggle state is remembered per viewer (profile preference, like DMOJ's), and the contest
+filter on `/problems/` is opt-in in the same way (never applied unless the viewer asks). Contest pages themselves
+still list their problems normally.
+
+Editorial confirmation (club feedback, 2026-09-11). Clicking the Editorial tab or any editorial link on a
+problem page opens a confirmation dialog before navigating: title "View the editorial?", body "The editorial
+reveals the intended solution to this problem.", buttons "Yes, show it" and "No", and a "Don't ask me again"
+checkbox that stores the choice as a viewer preference (profile field, with a localStorage fallback when logged
+out). Direct visits to `/problem/[code]/editorial` from elsewhere are not intercepted. The preference can be reset
+from the edit-profile page.
+
+Editorial confirmation (club feedback, 2026-09-11). Clicking the Editorial tab or any editorial link on a
+problem page opens a confirmation dialog before navigating: title "View the editorial?", body "The editorial
+reveals the intended solution to this problem.", buttons "Yes, show it" and "No", and a "Don't ask me again"
+checkbox stored in localStorage only. Direct visits to `/problem/[code]/editorial` from elsewhere are not
+intercepted.
+
+## 23. Public voice
+
+MOJ is a public project. Every README, docs page, action description, error message and code comment is written
+for someone running their own judge: no references to the club's internal history or tooling (the Playwright
+uploader, "the old site", "our fork", internal repo names), no first-person club voice. MAPS is named once as the
+maintainer in the root README and the docs home page. Where an example needs a name, use `example.org` style
+placeholders, not the club's hosts or secrets.
+
+## 24. Branding configuration
+
+Operators must be able to rebrand without touching code. `siteSettings` gains: `siteName` (short, nav and titles),
+`siteLongName` (footer and metadata), `logoStorageId` (SVG or PNG wordmark shown in the nav and on auth pages;
+default is the bundled MOJ wordmark; MAPS's logo is applied through this setting on the club's instance),
+`faviconStorageId`, `accentColor`, `navColor` (also drives the titlebar colour), `customCss` (appended last),
+and `themeDefault` (light / dark / system). The staff console gets a "Branding" page under Config with live
+preview. The shell reads `site.branding` (public query) once per request and emits the overrides as CSS variables on
+`:root` (`--accent`, `--nav`, `--titlebar` and their dark-mode derivatives computed server-side) plus the logo, so
+the token file stays the single source of defaults. Fonts stay as the design system's stack; an operator who wants
+different faces uses `customCss` with their own `@font-face` rules. `npm run setup` seeds the defaults and reads
+`MOJ_SITE_NAME` / `MOJ_SITE_LONG_NAME` from the environment when present.
