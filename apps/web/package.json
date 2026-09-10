@@ -45,7 +45,6 @@
     "pg": "^8.23.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "recharts": "^3.10.1",
     "shiki": "^3.23.0"
   },
   "devDependencies": {
