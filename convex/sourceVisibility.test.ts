@@ -26,7 +26,7 @@ async function seed(t: ReturnType<typeof convexTest>, visibility?: "all" | "all-
     const problemId = await ctx.db.insert("problems", problemRow("alpha", groupId));
 
     const author = await ctx.db.insert("profiles", profileRow("author"));
-    const onlooker = await ctx.db.insert("profiles", profileRow("onlooker"));
+    await ctx.db.insert("profiles", profileRow("onlooker"));
 
     const submissionId = await ctx.db.insert("submissions", {
       profileId: author,
@@ -46,7 +46,8 @@ async function seed(t: ReturnType<typeof convexTest>, visibility?: "all" | "all-
       points: 100,
     });
     await ctx.db.insert("submissionSources", { submissionId, source: "print(1)" });
-    return { submissionId, onlookerId: `user-onlooker` };
+    // `profileRow` derives userId as `user-<username>`.
+    return { submissionId, onlookerId: "user-onlooker" };
   });
 }
 
