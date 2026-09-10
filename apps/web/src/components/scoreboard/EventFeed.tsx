@@ -81,9 +81,7 @@ export function EventFeed({
           <X size={12} strokeWidth={2} aria-hidden />
         </button>
       </div>
-      {entries.length === 0 ? (
-        <p className="hall-feed-empty">Solves appear here as they land.</p>
-      ) : null}
+      {entries.length === 0 ? <p className="hall-feed-empty">Solves appear here as they land.</p> : null}
       <ol className="hall-feed-list scroll-quiet" ref={listRef}>
         {entries.map((entry) => (
           <li

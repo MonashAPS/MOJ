@@ -45,7 +45,9 @@ export function HallShortcuts({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title="Keyboard shortcuts" width={520}>
+      {/* The dialog portals to the body, outside the hall's own scope, so it
+          carries the dark palette itself. */}
+      <DialogContent className="theme-dark" title="Keyboard shortcuts" width={520}>
         <dl className="grid gap-y-1">
           {shortcuts.map((shortcut) => (
             <div

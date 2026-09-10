@@ -79,7 +79,10 @@ export function TagDialog({
 
   return (
     <Dialog open={row !== null} onOpenChange={(next) => (next ? undefined : onClose())}>
+      {/* Portalled to the body, outside the hall's scope: it carries the dark
+          palette itself so the modal is not a white card on the projector. */}
       <DialogContent
+        className="theme-dark"
         title={row?.displayName ?? "Badges"}
         description={row ? `${divisionName} · ${row.username}` : undefined}
         width={420}

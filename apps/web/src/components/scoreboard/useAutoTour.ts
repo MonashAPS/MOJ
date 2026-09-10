@@ -36,6 +36,8 @@ export function useAutoTour({
   const panelRef = useRef(panel);
   panelRef.current = panel;
 
+  // The cycle never reads restartKey; changing it is what starts the tour again.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: restartKey is a restart trigger
   useEffect(() => {
     if (!on) return;
 

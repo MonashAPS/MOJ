@@ -40,8 +40,7 @@ function assignRanks(rows: BoardRow[]): DisplayRow[] {
 
 /** The rows actually on screen: filtered by attendance, then re-ranked. */
 export function displayRows(division: Division, attendance: Attendance): DisplayRow[] {
-  const rows =
-    attendance === "in-person" ? division.rows.filter((row) => row.inPerson) : [...division.rows];
+  const rows = attendance === "in-person" ? division.rows.filter((row) => row.inPerson) : [...division.rows];
   rows.sort(compareRows);
   return assignRanks(rows);
 }

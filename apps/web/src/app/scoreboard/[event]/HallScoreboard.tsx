@@ -18,6 +18,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DivisionPanel } from "@/components/scoreboard/DivisionPanel";
 import { EventFeed } from "@/components/scoreboard/EventFeed";
+import { HallShortcuts } from "@/components/scoreboard/HallShortcuts";
 import {
   type Attendance,
   contestClock,
@@ -29,7 +30,6 @@ import {
   readSetting,
   writeSetting,
 } from "@/components/scoreboard/hall";
-import { HallShortcuts } from "@/components/scoreboard/HallShortcuts";
 import { type EditableBadge, TagDialog } from "@/components/scoreboard/TagDialog";
 import { useAutoTour } from "@/components/scoreboard/useAutoTour";
 import "@/components/scoreboard/hall.css";
@@ -53,13 +53,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
  * board — the projector, the stream and the organiser's laptop — turns over the
  * same result at the same moment.
  */
-export function HallScoreboard({
-  eventKey,
-  initial,
-}: {
-  eventKey: string;
-  initial: ScoreboardEventPayload;
-}) {
+export function HallScoreboard({ eventKey, initial }: { eventKey: string; initial: ScoreboardEventPayload }) {
   const live = useQuery(api.scoreboard.event, { key: eventKey });
   const payload = live === undefined ? initial : live;
 
@@ -118,10 +112,7 @@ export function HallScoreboard({
     [count],
   );
 
-  const rows = useMemo(
-    () => (division ? displayRows(division, attendance) : []),
-    [division, attendance],
-  );
+  const rows = useMemo(() => (division ? displayRows(division, attendance) : []), [division, attendance]);
   const target = useMemo(() => nextRevealTarget(rows), [rows]);
   const entries = useMemo(() => feedEntries(payload), [payload]);
 
@@ -374,12 +365,7 @@ export function HallScoreboard({
               <Button size="sm" disabled={!target} busy={busy} onClick={step}>
                 Reveal next
               </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={division.revealedCount === 0}
-                onClick={undo}
-              >
+              <Button variant="secondary" size="sm" disabled={division.revealedCount === 0} onClick={undo}>
                 Undo
               </Button>
               <Button

@@ -60,10 +60,7 @@ export function DivisionPanel({
   const seen = useRef<Map<string, string>>(new Map());
   const olympics = theme === "olympics";
 
-  const labels = useMemo(
-    () => Object.fromEntries(badges.map((badge) => [badge.key, badge.label])),
-    [badges],
-  );
+  const labels = useMemo(() => Object.fromEntries(badges.map((badge) => [badge.key, badge.label])), [badges]);
 
   /** Cells whose value differs from the last update this panel drew. */
   const changed = useMemo(() => {
