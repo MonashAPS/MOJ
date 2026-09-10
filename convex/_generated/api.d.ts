@@ -10,6 +10,7 @@
 
 import type * as blog from "../blog.js";
 import type * as comments from "../comments.js";
+import type * as contestFormats from "../contestFormats.js";
 import type * as contests from "../contests.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
@@ -37,6 +38,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   blog: typeof blog;
   comments: typeof comments;
+  contestFormats: typeof contestFormats;
   contests: typeof contests;
   crons: typeof crons;
   http: typeof http;
