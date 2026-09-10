@@ -21,7 +21,7 @@ is stored, queried or scheduled lives in Convex; everything that runs untrusted 
    +---------------------+     +-------------------------------------+
    |  Postgres           |     |  Convex backend (self-hosted)       |
    |    moj_auth         |     |    3210 cloud origin: queries and   |
-   |    convex           |     |         mutations from the browser  |
+   |    moj_dev          |     |         mutations from the browser  |
    +---------------------+     |    3211 site origin: HTTP actions   |
                                |         /judge/*, /api/problems/*   |
                                |    scheduler, crons, aggregates     |
@@ -39,8 +39,8 @@ is stored, queried or scheduled lives in Convex; everything that runs untrusted 
 ## The web app
 
 `apps/web` is a Next.js App Router application on React 19. Routes match DMOJ's URLs exactly, so old links,
-bookmarks and scripts keep working: `/problem/aplusb`, `/submissions/user/alice/`, `/contest/mcpc26/ranking/` and
-the rest.
+bookmarks and scripts keep working: `/problem/aplusb`, `/submissions/user/alice/`, `/contest/spring26/ranking/`
+and the rest. [Compatibility with DMOJ](/guide/compatibility) has the full list of what that promise covers.
 
 Pages are server components that call `fetchQuery` for the first render, then hand the result to a client component
 that subscribes with `useQuery`. That gives a fast first paint with real data (and correct behaviour without
@@ -54,7 +54,7 @@ statements are the same markdown converted to Typst and rendered by the Typst bi
 ## Convex
 
 The Convex backend is the database, the query layer and the scheduler in one process. Self-hosted, it stores its
-data in Postgres and exposes two origins:
+data in a Postgres database of its own, named after the deployment, and exposes two origins:
 
 - the **cloud origin** (3210 in development) serves queries, mutations and actions to the browser over a websocket.
   This is the connection that makes pages live;
@@ -62,12 +62,14 @@ data in Postgres and exposes two origins:
   judge protocol, the problems API and the feeds live, because those callers speak plain HTTP.
 
 Functions are grouped one file per area: `problems.ts`, `submissions.ts`, `contests.ts`, `judging.ts`,
-`judgeApi.ts`, `scoreboard.ts`, `ratings.ts`, `admin/*.ts` and so on. Permission checks are pure functions in
+`judgeApi.ts`, `scoreboard.ts`, `ratings.ts`, `admin/*.ts`, and `pages/*.ts` for reads that exist to serve one
+page rather than to express a domain rule. Permission checks are pure functions in
 `packages/core`, so the same rule runs in a query, in a mutation and in a test.
 
-Counts and ranks that would otherwise mean scanning a table use the `@convex-dev/aggregate` component: user points,
-ratings and problem counts each have an aggregate keyed for the list they sort. Submission and registration rate
-limits use `@convex-dev/rate-limiter`.
+Counts and ranks that would otherwise mean scanning a table use the `@convex-dev/aggregate` component: user
+points, ratings and problem counts each have an aggregate keyed for the list they sort. Convex has no triggers, so
+every write that moves a profile's points maintains those aggregates by hand, and a bulk import is followed by a
+rebuild. Submission, registration, password-reset and comment rate limits use `@convex-dev/rate-limiter`.
 
 ## Better Auth and Postgres
 
@@ -130,13 +132,15 @@ them as an internal error rather than looping.
 
 ## A submission, end to end
 
-1. A signed-in user posts the form on `/problem/aplusb/submit`. The web app calls the `submissions.create`
+1. A signed-in user posts the form on `/problem/aplusb/submit`. The web app calls the `submissions.submit`
    mutation with the problem code, the language key and the source.
 2. The mutation checks that the user may see the problem, that the language is allowed, and that the submission
    rate limit has room. In a contest it also checks the participation, the per-problem submission cap and whether
    the contest is running.
 3. It inserts a `submissions` row with status `QU`, a `submissionSources` row with the code, and a priority: 0 in
-   contest, 1 otherwise. The mutation returns the submission id and the browser navigates to `/submission/<id>`.
+   contest, 1 otherwise. The row is given an integer id of its own, because the judge formats the submission id
+   into a process name and a document id would crash the grader. The mutation returns that id and the browser
+   navigates to `/submission/<id>`.
 4. The submission page subscribes to a query for that row and its test cases. It shows Queued.
 5. A judge calls `POST /judge/claim`. `judging.claimNext` picks the row, sets it to `P`, records
    `claimedByJudgeId`, `claimedAt` and `judgedOnJudgeId`, and returns the source, the limits and the metadata.
@@ -172,6 +176,11 @@ a progress object, then schedules the first chunk with `ctx.scheduler.runAfter`;
 of work, updates progress and schedules the next one. The staff console subscribes to the job document, so its
 progress bar is live for the same reason everything else is.
 
-Job types are `rejudge`, `rescore`, `rateContest`, `moss`, `userExport`, `pdf` and `sitemap`. Crons handle judge
-recovery every minute, marking judges offline when heartbeats stop, clearing stale contest mode every five minutes,
-and refreshing the hot problems list every quarter of an hour.
+`jobs.run` is the single entry point: it reads the row's type and schedules the runner that owns it. The types
+are `rejudge`, `rescore`, `rescoreContest`, `rateContest`, `rejudgeContestProblem`, `moss`, `userExport`, `pdf`
+and `sitemap`. The last two are marked done immediately, because the PDF and the sitemap are rendered by the web
+app on request; the row exists only so the console can show one was asked for. MOSS needs an API key and reports
+that it is not configured without one.
+
+Four crons run: judge recovery every minute, marking judges offline when heartbeats stop every minute, clearing
+stale contest mode every five minutes, and refreshing the language statistics snapshot every quarter of an hour.
