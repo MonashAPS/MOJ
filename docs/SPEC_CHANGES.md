@@ -847,3 +847,45 @@ a wiring point that the page wave will import, so they are recorded here rather 
 - `convex/_generated/api.d.ts` was hand-merged, not generated: `npx convex codegen` needs a deployment and
   there is none in this worktree. It lists exactly the modules Convex's own entry-point rules select, so
   the next `convex dev` in the main tree should produce an identical file.
+
+## 2026-09-11, problems pages
+
+- Spec section 20's spoiler rule asks for the "Show contests" toggle to be remembered as a profile
+  preference. `profiles` has no column for it and this branch cannot deploy a schema change, so the
+  preference lives in `localStorage` under `moj.show-contests`, which is still per viewer and survives a
+  reload. Wiring it to a profile field means adding `profiles.showContests?: boolean`, exposing it on
+  `viewer.current` and accepting it in `profiles.updateProfile`; nothing on the page changes but the
+  read and the write.
+- `packages/ui`'s `PageTabs` / `TitleRow` / `TabBar` take an optional `linkAs`, the component a tab's
+  `href` renders as. It defaults to a plain anchor, so every existing call is unchanged; the problem
+  pages pass `next/link` so switching tabs is a client navigation and the shell's route progress bar and
+  page-enter reveal both run. Without it a tab is a full page load and the change reads as a jump.
+- `packages/ui` gained `Slider`, a Radix slider on the tokens. `@radix-ui/react-slider` was already a
+  dependency of the package with no component using it, and DESIGN section 17.1 asks for the point range
+  to be one; the design system forbids `input[type=range]`.
+- `convex/pages/problems.ts` is new: `filterOptions` (the problem types, groups and contests the filter
+  panel offers, with facet counts over the problems the viewer may see) and `rejudgePreview` (how many
+  submissions the manage-submissions filter matches, through `jobs.matchesFilter`, so the confirmation
+  can name the number). Neither existed on `problems.ts`, and both are page reads rather than domain
+  reads. `/problems/` degrades to deriving its options from the current page while the module is
+  undeployed.
+- The statement column's 74ch measure (DESIGN 14.2) and the frame on a statement image are applied by
+  `components/problems/Statement.tsx` rather than `content.css`, which lives in `@moj/content` and is
+  not this branch's to edit.
+- `formatMemoryLimit` prints megabytes always, as DMOJ's `kbsimpleformat` does; a limit of 1 000 000 KB
+  reads "976.6 MB" rather than a six-digit kilobyte count.
+- The problem page's tab bar carries the links DMOJ keeps in the info box (submissions, editorial,
+  ranks, vote, test data, manage submissions, clone), which is what the club asked for. The info box
+  keeps "Submit solution", the submission links and the ticket row, as DESIGN section 14.1 lists them.
+  The Clone tab is gated on `canEdit`; DMOJ gates it on `judge.clone_problem`, which `problems.get`
+  does not return.
+- `/problem/[code]/clone` clones through `admin/problems.create` with the source problem's fields, the
+  cloner as its author and `isPublic: false`. DMOJ's `ProblemClone` copies the same metadata; test data
+  is not copied there either.
+- `TitleRow`'s wrapper is `grid-cols-1`, not a bare `grid`. An `auto` grid track sizes to max-content, so
+  a page whose tab strip is wider than the viewport pushed the whole title row past the right edge and
+  the body scrolled horizontally at 375 px, which section 22 forbids. The strip still scrolls inside its
+  own wrapper.
+- The editorial confirmation (spec section 20) is a kit `Dialog` opened by the Editorial tab, and its
+  "don't ask me again" flag lives in `localStorage` under `moj.editorial-confirmed`. A direct visit to
+  `/problem/<code>/editorial` is deliberately not intercepted, so a shared link still works.
