@@ -104,6 +104,10 @@ services:
       SES_REGION: ${SES_REGION:-}
       SES_ACCESS_KEY_ID: ${SES_ACCESS_KEY_ID:-}
       SES_SECRET_ACCESS_KEY: ${SES_SECRET_ACCESS_KEY:-}
+      MOJ_MEDIA_ROOT: /srv/media
+    volumes:
+      # Statement uploads imported from DMOJ, served at /media/... .
+      - ./infra/media:/srv/media:ro
     depends_on:
       postgres:
         condition: service_healthy

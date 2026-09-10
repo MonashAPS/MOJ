@@ -11,6 +11,7 @@ import {
   breakdown,
   buildParticipationResult,
   buildProblemCell,
+  cumtimeSeconds,
   groupByProblem,
   mergeConfig,
   numberLabel,
@@ -61,7 +62,7 @@ export function updateParticipationAtcoder(input: UpdateParticipationInput): Par
   }
 
   return {
-    cumtime: cumtime + penalty,
+    cumtime: cumtimeSeconds(cumtime + penalty),
     score: pyRound(points, pointsPrecision(contest)),
     tiebreaker: 0,
     formatData,
