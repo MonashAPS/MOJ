@@ -219,3 +219,19 @@ judge now makes; `convex/http.ts` has to match them, and `apps/judge/README.md` 
   for a superuser. Every superuser the seed and the importer create is also staff, so nothing in the
   product changes, but a hand-made superuser without the staff flag would now fail `requireStaff`.
 - `packages/ui/src/controls.css` is deleted; its contents live in the components.
+- Three more notes on the shell, all from review:
+  - The nav's logo cell is the full 44 px with the wordmark at 30 px (26 px under the mobile
+    breakpoint), 12 px either side and no plate, which is the proportion the DMOJ fork uses.
+    Above an auth card the same mark is an inline SVG (`apps/web/src/components/Wordmark.tsx`)
+    drawn in `currentColor` through a mask, so it takes a new token, `--wordmark-ink` — MAPS navy
+    on light, the club's bone on dark — rather than needing a dark plate behind it.
+  - The light/dark switch has exactly one home: the user dropdown when signed in, and a ghost icon
+    button beside "Log in" when signed out. DESIGN.md section 18 puts one on the auth pages as
+    well; two homes for one control is worse than the spec's convenience, so the auth card no
+    longer carries it.
+  - `DropdownMenu` defaults to `modal={false}`. A modal Radix menu leaves `pointer-events: none`
+    on the body long enough that a dialog opened straight after it (the user menu, then Ctrl+K)
+    comes up under the menu's dismissable layer and stops answering Escape.
+  - The user dropdown adds **My profile** above **Edit profile**. DMOJ's own nav makes the username
+    itself the link to the profile and opens the menu on hover; MOJ's username is the menu trigger,
+    so without this row there is no way to reach your own profile from the chrome.
