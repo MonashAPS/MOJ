@@ -15,11 +15,7 @@ import { decorateStatement } from "@/lib/statement";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ code: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
   const { code } = await params;
   const problem = await queryAsViewer(api.problems.get, { code }).catch(() => null);
   if (!problem) return { title: "No such problem" };
@@ -43,9 +39,7 @@ export default async function ProblemPage({ params }: { params: Promise<{ code: 
 
   const [{ html }, bar] = await Promise.all([
     renderMarkdown(problem.statement.source, problem.statement.preset),
-    problem.contestProblem
-      ? queryAsViewer(api.contests.navBar, {}).catch(() => null)
-      : Promise.resolve(null),
+    problem.contestProblem ? queryAsViewer(api.contests.navBar, {}).catch(() => null) : Promise.resolve(null),
   ]);
   const statement = decorateStatement(html);
 
@@ -74,9 +68,7 @@ export default async function ProblemPage({ params }: { params: Promise<{ code: 
         }
         title={
           <span className="flex items-center gap-2">
-            {state ? (
-              <state.Icon size={20} aria-label={state.label} style={{ color: state.tone }} />
-            ) : null}
+            {state ? <state.Icon size={20} aria-label={state.label} style={{ color: state.tone }} /> : null}
             <span>{problem.name}</span>
           </span>
         }

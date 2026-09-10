@@ -120,6 +120,9 @@ export function CodeEditor({
   // Held in refs so the editor is created once and never torn down on a keystroke.
   const change = useRef(onChange);
   const submit = useRef(onSubmit);
+  // The document the editor opens with. Reading `value` inside the mount effect
+  // would make it a dependency, and the editor would be rebuilt on a keystroke.
+  const initialDoc = useRef(value);
   change.current = onChange;
   submit.current = onSubmit;
 
@@ -130,7 +133,7 @@ export function CodeEditor({
     const editor = new EditorView({
       parent: node,
       state: EditorState.create({
-        doc: value,
+        doc: initialDoc.current,
         extensions: [
           lineNumbers(),
           highlightActiveLineGutter(),

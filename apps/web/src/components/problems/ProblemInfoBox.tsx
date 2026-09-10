@@ -81,7 +81,7 @@ function Disclosure({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-sm border border-border bg-ground px-2 py-1.5">
+    <div className="rounded-sm border border-border bg-secondary px-2 py-1.5">
       <div className="font-mono text-md font-medium tabular-nums text-foreground">{value}</div>
       <div className="font-sans text-xs font-semibold uppercase tracking-label text-muted-foreground">
         {label}
@@ -119,9 +119,7 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
             full
             disabled
             title={
-              exhausted
-                ? "You have no submissions left for this problem."
-                : "Log in to submit a solution."
+              exhausted ? "You have no submissions left for this problem." : "Log in to submit a solution."
             }
           >
             Submit solution

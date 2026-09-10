@@ -27,7 +27,9 @@ import { plural } from "@/lib/units";
 
 const MAX_SOURCE_LENGTH = 65_536;
 
-type UsableLanguage = NonNullable<(typeof api.languages.usableForProblem)["_returnType"]>["languages"][number];
+type UsableLanguage = NonNullable<
+  (typeof api.languages.usableForProblem)["_returnType"]
+>["languages"][number];
 
 function draftKey(code: string, languageKey: string): string {
   return `submit:${code}:${languageKey}`;
@@ -75,10 +77,7 @@ export function SubmitForm({
   const [busy, setBusy] = useState(false);
   const touched = useRef(initialSource.length > 0);
 
-  const template = useQuery(
-    api.problems.languageTemplate,
-    languageKey ? { languageKey } : "skip",
-  );
+  const template = useQuery(api.problems.languageTemplate, languageKey ? { languageKey } : "skip");
 
   const languages = usable?.languages ?? [];
   const language = languages.find((row) => row.key === languageKey) ?? null;
@@ -126,7 +125,9 @@ export function SubmitForm({
       return;
     }
     if (source.length > MAX_SOURCE_LENGTH) {
-      setError(`Your source code must contain at most ${MAX_SOURCE_LENGTH.toLocaleString("en-AU")} characters.`);
+      setError(
+        `Your source code must contain at most ${MAX_SOURCE_LENGTH.toLocaleString("en-AU")} characters.`,
+      );
       return;
     }
     setBusy(true);
@@ -171,7 +172,9 @@ export function SubmitForm({
         <Alert variant={exhausted ? "danger" : "warning"}>
           <TriangleAlert size={16} aria-hidden />
           <AlertTitle>
-            {exhausted ? "You have 0 submissions left" : `You have ${plural(submissionsLeft, "submission")} left`}
+            {exhausted
+              ? "You have 0 submissions left"
+              : `You have ${plural(submissionsLeft, "submission")} left`}
           </AlertTitle>
         </Alert>
       ) : null}

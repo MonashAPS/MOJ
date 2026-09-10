@@ -13,11 +13,10 @@ const FRAME =
   // The statement stylesheet loads after Tailwind's utilities layer, so the
   // frame has to win the margin and border back explicitly.
   "[&_pre]:m-0! [&_pre]:rounded-none! [&_pre]:border-0! [&_.codehilite]:m-0! [&_.codehilite]:rounded-none! [&_.codehilite]:border-0!";
-const BAR =
-  "flex h-[26px] items-center justify-between gap-2 border-b border-border bg-secondary pl-3 pr-1";
-const BAR_LABEL = "font-sans text-xs font-semibold uppercase tracking-label text-subtle";
+const BAR = "flex h-[26px] items-center justify-between gap-2 bg-titlebar pl-3 pr-1 text-titlebar-ink";
+const BAR_LABEL = "font-sans text-xs font-semibold uppercase tracking-label";
 const COPY_BUTTON =
-  "inline-flex size-[22px] items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-royal";
+  "inline-flex size-[22px] items-center justify-center rounded-sm text-titlebar-ink-2 hover:bg-white/10 hover:text-titlebar-ink focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-royal";
 
 const COPY_ICON =
   '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';

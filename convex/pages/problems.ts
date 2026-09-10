@@ -9,8 +9,11 @@
 
 import { problemIsVisibleTo } from "@moj/core";
 import { v } from "convex/values";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
+import { matchesFilter, type RejudgeFilter } from "../jobs";
+import { optionalViewer } from "../lib/auth";
+import { forbidden } from "../lib/errors";
 import { loadViewerContext, toCoreProblem } from "../problems";
 
 /** The same cap `problems.list` scans behind. */
@@ -59,9 +62,7 @@ export const filterOptions = query({
     const limit = Math.max(1, Math.min(Math.floor(args.contestLimit ?? 200), 500));
     const visibleIds = new Set(visible.map((row) => row._id as string));
     const contests: { key: string; name: string; startTime: number; problemCount: number }[] = [];
-    const rows = (await ctx.db.query("contests").collect()).filter(
-      (row: Doc<"contests">) => row.isVisible,
-    );
+    const rows = (await ctx.db.query("contests").collect()).filter((row: Doc<"contests">) => row.isVisible);
     rows.sort((a, b) => b.startTime - a.startTime);
     for (const contest of rows) {
       if (contests.length >= limit) break;
@@ -71,7 +72,12 @@ export const filterOptions = query({
         .collect();
       const count = links.filter((link) => visibleIds.has(link.problemId as string)).length;
       if (count === 0) continue;
-      contests.push({ key: contest.key, name: contest.name, startTime: contest.startTime, problemCount: count });
+      contests.push({
+        key: contest.key,
+        name: contest.name,
+        startTime: contest.startTime,
+        problemCount: count,
+      });
     }
 
     return {
@@ -83,6 +89,68 @@ export const filterOptions = query({
         min: Number.isFinite(min) ? min : 0,
         max: Number.isFinite(max) ? max : 0,
       },
+    };
+  },
+});
+
+/* -------------------------------------------------------------------------- */
+/* Rejudge preview                                                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * DMOJ's `problem_submissions_rejudge_preview`: how many submissions the filter
+ * on `/problem/<code>/manage/submission` would put back in the queue, so the
+ * confirmation can name the number before anything is scheduled.
+ *
+ * The filter is `jobs.matchesFilter`, the same predicate the job itself runs, so
+ * the preview cannot drift from the work.
+ */
+export const rejudgePreview = query({
+  args: {
+    problemCode: v.string(),
+    idRange: v.optional(v.array(v.number())),
+    languageKeys: v.optional(v.array(v.string())),
+    results: v.optional(v.array(v.string())),
+    archiveLocked: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const profile = await optionalViewer(ctx);
+    if (!profile || !(profile.isStaff || profile.isSuperuser)) throw forbidden("Staff only.");
+
+    const problem = await ctx.db
+      .query("problems")
+      .withIndex("by_code", (q) => q.eq("code", args.problemCode))
+      .unique();
+    if (!problem) return { count: 0, capped: false };
+
+    const languageIds: Id<"languages">[] = [];
+    for (const key of args.languageKeys ?? []) {
+      const language = await ctx.db
+        .query("languages")
+        .withIndex("by_key", (q) => q.eq("key", key))
+        .unique();
+      if (language) languageIds.push(language._id);
+    }
+
+    const filter: RejudgeFilter = {
+      problemId: problem._id,
+      idRange:
+        args.idRange && args.idRange.length === 2
+          ? [args.idRange[0] as number, args.idRange[1] as number]
+          : undefined,
+      languageIds: languageIds.length > 0 ? languageIds : undefined,
+      results: args.results && args.results.length > 0 ? args.results : undefined,
+      archiveLocked: args.archiveLocked ?? true,
+    };
+
+    const now = Date.now();
+    const rows = await ctx.db
+      .query("submissions")
+      .withIndex("by_problem_date", (q) => q.eq("problemId", problem._id))
+      .take(MAX_SCAN);
+    return {
+      count: rows.filter((row) => matchesFilter(row, filter, now)).length,
+      capped: rows.length >= MAX_SCAN,
     };
   },
 });

@@ -74,7 +74,7 @@ function StateIcon({ state, code, username }: { state: string; code: string; use
           {glyph}
         </Link>
       ) : (
-        <span className="inline-flex" aria-label={label}>
+        <span className="inline-flex" role="img" aria-label={label}>
           {glyph}
         </span>
       )}
@@ -110,13 +110,13 @@ function SortHead({
         onClick={() => onApply(toggleSort(query, sort))}
         aria-label={srLabel}
         className={cn(
-          "flex h-8 w-full items-center gap-1 px-3 text-inherit",
+          "flex h-8 w-full items-center gap-1 px-3 text-inherit hover:text-titlebar-ink",
           numeric && "justify-end",
-          active && "text-foreground",
+          active ? "text-titlebar-ink" : "text-titlebar-ink-2",
         )}
       >
         <span>{label}</span>
-        <Chevron size={12} aria-hidden className={active ? "text-primary" : "text-muted-foreground"} />
+        <Chevron size={12} aria-hidden className={active ? "text-titlebar-ink" : "text-titlebar-ink-2"} />
       </button>
     </TableHead>
   );
@@ -134,7 +134,7 @@ function EditorialCell({ item }: { item: ListItem }) {
       </Link>
     </Tooltip>
   ) : (
-    <span aria-label="No editorial" className="inline-flex opacity-35">
+    <span role="img" aria-label="No editorial" className="inline-flex opacity-35">
       <BookOpen size={14} aria-hidden className="text-muted-foreground" />
     </span>
   );
@@ -248,7 +248,10 @@ function StackedRow({
         </span>
       ) : null}
       <div className="min-w-0 flex-1">
-        <Link href={`/problem/${item.code}`} className="font-medium text-foreground after:absolute after:inset-0">
+        <Link
+          href={`/problem/${item.code}`}
+          className="font-medium text-foreground after:absolute after:inset-0"
+        >
           {item.contestLabel ? `${item.contestLabel}. ` : ""}
           {item.i18nName}
         </Link>
@@ -379,7 +382,10 @@ export function ProblemsView({
           }
           action={
             activeFilterCount(query) > 0 ? (
-              <Button variant="secondary" onClick={() => apply({ ...EMPTY_QUERY, showTypes: query.showTypes })}>
+              <Button
+                variant="secondary"
+                onClick={() => apply({ ...EMPTY_QUERY, showTypes: query.showTypes })}
+              >
                 Clear filters
               </Button>
             ) : null
@@ -519,7 +525,11 @@ export function ProblemsView({
         <div className="flex items-center gap-2">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="secondary" icon={<SlidersHorizontal size={14} />} className="min-[900px]:hidden">
+              <Button
+                variant="secondary"
+                icon={<SlidersHorizontal size={14} />}
+                className="min-[900px]:hidden"
+              >
                 Filters{activeFilterCount(query) > 0 ? ` (${activeFilterCount(query)})` : ""}
               </Button>
             </SheetTrigger>

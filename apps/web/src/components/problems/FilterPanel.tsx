@@ -4,10 +4,10 @@ import {
   Badge,
   Button,
   Checkbox,
-  cn,
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
+  cn,
   Input,
   InputGroup,
   InputGroupInput,
@@ -152,18 +152,22 @@ export function FilterPanel({
     });
 
   return (
-    <Panel title="Filters" bodyClassName="p-0" action={
-      total > 0 ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          icon={<RotateCcw size={12} />}
-          onClick={() => onApply({ ...EMPTY_QUERY, showTypes: query.showTypes, sort: query.sort })}
-        >
-          Reset
-        </Button>
-      ) : null
-    }>
+    <Panel
+      title="Filters"
+      bodyClassName="p-0"
+      action={
+        total > 0 ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<RotateCcw size={12} />}
+            onClick={() => onApply({ ...EMPTY_QUERY, showTypes: query.showTypes, sort: query.sort })}
+          >
+            Reset
+          </Button>
+        ) : null
+      }
+    >
       <div className="px-3 pb-3">
         <div className="py-3">
           <InputGroup
@@ -201,9 +205,7 @@ export function FilterPanel({
             name={`${ids}-status`}
             ariaLabel="Status"
             value={query.hideSolved ? "unsolved" : query.status}
-            onValueChange={(value) =>
-              set({ status: value as ProblemQuery["status"], hideSolved: false })
-            }
+            onValueChange={(value) => set({ status: value as ProblemQuery["status"], hideSolved: false })}
             options={[
               { value: "all", label: "All" },
               { value: "solved", label: "Solved", disabled: !authenticated },
@@ -299,9 +301,7 @@ export function FilterPanel({
                   <button
                     type="button"
                     className="inline-flex h-[18px] items-center gap-1 rounded-full border border-primary-line bg-primary-soft px-2 font-mono text-xs text-foreground hover:bg-secondary"
-                    onClick={() =>
-                      set({ solvedBy: query.solvedBy.filter((name) => name !== username) })
-                    }
+                    onClick={() => set({ solvedBy: query.solvedBy.filter((name) => name !== username) })}
                   >
                     {username}
                     <X size={10} aria-hidden />

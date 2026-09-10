@@ -1,15 +1,5 @@
 import type { TabItem } from "@moj/ui";
-import {
-  BookOpen,
-  Copy,
-  Database,
-  FileText,
-  ListChecks,
-  Send,
-  Settings,
-  Trophy,
-  Vote,
-} from "lucide-react";
+import { BookOpen, Copy, Database, FileText, ListChecks, Send, Settings, Trophy, Vote } from "lucide-react";
 import type { ProblemDetail } from "@/components/problems/ProblemInfoBox";
 
 export type ProblemTabKey =

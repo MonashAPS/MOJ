@@ -34,7 +34,11 @@ export function SubmissionList({
   emptyDescription = "No submissions yet.",
   pageSize = 20,
 }: SubmissionListProps) {
-  const { results: rows, status, loadMore } = usePaginatedQuery(
+  const {
+    results: rows,
+    status,
+    loadMore,
+  } = usePaginatedQuery(
     api.submissions.list,
     { username, problemCode, contestKey, languageKeys, results },
     { initialNumItems: pageSize },

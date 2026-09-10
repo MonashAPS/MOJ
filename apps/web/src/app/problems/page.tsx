@@ -9,11 +9,7 @@ import { parseProblemQuery, problemListArgs, type RawSearchParams } from "@/lib/
 export const metadata: Metadata = { title: "Problems" };
 export const dynamic = "force-dynamic";
 
-export default async function ProblemsPage({
-  searchParams,
-}: {
-  searchParams: Promise<RawSearchParams>;
-}) {
+export default async function ProblemsPage({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
   const query = parseProblemQuery(await searchParams);
 
   const [initial, viewerState, options] = await Promise.all([
