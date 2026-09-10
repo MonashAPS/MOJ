@@ -162,7 +162,10 @@ export {
   type RatingClass,
   RatingDelta,
   RatingName,
+  RATING_VALUES,
   ratingClass,
+  ratingLevel,
+  ratingProgress,
   ratingTitle,
 } from "./components/rating-name";
 export {

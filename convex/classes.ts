@@ -90,12 +90,14 @@ export type ClassDetail = {
   _id: Id<"classes">;
   name: string;
   slug: string;
+  legacyId?: number;
   description: string;
   isActive: boolean;
   requiresAccessCode: boolean;
   organization: {
     _id: Id<"organizations">;
     slug: string;
+    legacyId?: number;
     name: string;
     logoOverrideImage?: string;
   };
@@ -143,12 +145,14 @@ export const get = query({
       _id: klass._id,
       name: klass.name,
       slug: klass.slug,
+      legacyId: klass.legacyId,
       description: klass.description ?? "",
       isActive: klass.isActive,
       requiresAccessCode: !!klass.accessCode,
       organization: {
         _id: organization._id,
         slug: organization.slug,
+        legacyId: organization.legacyId,
         name: organization.name,
         logoOverrideImage: organization.logoOverrideImage,
       },

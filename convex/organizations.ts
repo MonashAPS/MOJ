@@ -127,6 +127,8 @@ async function organizationClasses(
 export type OrganizationListRow = {
   _id: Id<"organizations">;
   slug: string;
+  /** DMOJ's primary key, which its URLs carry as `<pk>-<slug>`. */
+  legacyId?: number;
   name: string;
   shortName: string;
   isOpen: boolean;
@@ -155,6 +157,7 @@ export const list = query({
       .map((organization) => ({
         _id: organization._id,
         slug: organization.slug,
+        legacyId: organization.legacyId,
         name: organization.name,
         shortName: organization.shortName,
         isOpen: organization.isOpen,
@@ -168,6 +171,7 @@ export const list = query({
 export type OrganizationDetail = {
   _id: Id<"organizations">;
   slug: string;
+  legacyId?: number;
   name: string;
   shortName: string;
   about: string;
@@ -183,6 +187,7 @@ export type OrganizationDetail = {
     _id: Id<"classes">;
     name: string;
     slug: string;
+    legacyId?: number;
     description: string;
     isActive: boolean;
     memberCount: number;
@@ -230,6 +235,7 @@ export const get = query({
         _id: klass._id,
         name: klass.name,
         slug: klass.slug,
+        legacyId: klass.legacyId,
         description: klass.description ?? "",
         isActive: klass.isActive,
         memberCount: klass.memberProfileIds.length,
@@ -263,6 +269,7 @@ export const get = query({
     return {
       _id: organization._id,
       slug: organization.slug,
+      legacyId: organization.legacyId,
       name: organization.name,
       shortName: organization.shortName,
       about: organization.about,
