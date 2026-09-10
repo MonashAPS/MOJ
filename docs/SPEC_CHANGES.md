@@ -235,3 +235,27 @@ judge now makes; `convex/http.ts` has to match them, and `apps/judge/README.md` 
   - The user dropdown adds **My profile** above **Edit profile**. DMOJ's own nav makes the username
     itself the link to the profile and opens the menu on hover; MOJ's username is the menu trigger,
     so without this row there is no way to reach your own profile from the chrome.
+- Two design overrides from review, applied to `tokens.css` and written back into DESIGN.md and HOME.md:
+  - `--bg-2`, the page ground, is plain white in light mode, not the bone off-white. Panels, cards and
+    tables are white too and are separated from the ground by their hairline and their titlebar rather
+    than by a tint. Dark mode keeps its navy-tinted ground.
+  - Panel titlebars and table header bands are the club's navy, on a new `--titlebar` /
+    `--titlebar-ink` / `--titlebar-ink-2` / `--titlebar-line` set (`#101A3D` on light, `#1E2748` on
+    dark so the band still lifts off `--surface`), rather than `--surface-2`. That is DMOJ's dark
+    header band in our own colour, and it is the same hue on a home side box, on a sample case, on the
+    contest floater and on a list page's table. `--surface-2` keeps the wells, chips and segmented
+    controls. Statement tables are the exception: `.content-description table.table thead th` is styled
+    inside `@moj/content`'s `styles/content.css`, which this branch does not own; that band still reads
+    from `--surface-2` and should be pointed at `--titlebar` when the content package is next edited.
+- Home side boxes, from the same review: the rows are DMOJ-dense — 14 px text, ~26 px rows, 4 px of
+  vertical padding, each list on its own grid so the columns line up (rank / username / points in Top
+  users, name / points in New problems, username over target with a short relative time at the right in
+  Recent comments), and hairlines as the only dividers. Their links take `--accent` rather than `--link`,
+  which reads washed out at that size, and that override also wins over the `--rating-*` colour, so an
+  unrated member is not rendered grey in a list of links. DESIGN.md section 12.3 and HOME.md section 4.5
+  still put the rating colour on a username, and the ranking pages keep it; the home side boxes do not.
+- The footer's club credit must point at <https://monashaps.com>; MOJ is a MAPS site, not a MAC one.
+  The value is data, in `miscConfig.footer`, and the dev deployment's row has been corrected. The
+  default it was seeded from is still `https://monashcoding.com/` in `convex/seed.ts`'s
+  `MISC_CONFIG_DEFAULTS`, which this branch does not own — the one-line change belongs with whoever
+  owns that file, otherwise a fresh `npm run setup` puts the wrong link back.
