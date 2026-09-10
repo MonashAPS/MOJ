@@ -29,6 +29,11 @@ const WEB_ENV_LOCAL = join(ROOT, "apps", "web", ".env.local");
 const CONVEX_URL = process.env.CONVEX_URL ?? "http://127.0.0.1:3210";
 const CONVEX_SITE_URL = process.env.CONVEX_SITE_URL ?? "http://127.0.0.1:3211";
 const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
+/**
+ * What the Convex deployment calls to verify a problems-API key against Better
+ * Auth. The backend is in Docker, so the host gateway, not localhost.
+ */
+const AUTH_URL = process.env.AUTH_URL ?? "http://host.docker.internal:3000";
 const DATABASE_URL = process.env.DATABASE_URL ?? "postgresql://moj:moj@127.0.0.1:5433/moj_auth";
 
 const ADMIN_USERNAME = process.env.MOJ_ADMIN_USERNAME ?? "admin";
@@ -219,6 +224,10 @@ async function main() {
     AUTH_ISSUER: APP_URL,
     AUTH_JWKS_URL: "http://host.docker.internal:3000/api/auth/jwks",
     AUTH_RP_ID: new URL(APP_URL).hostname,
+    AUTH_URL,
+    // DMOJ's SECRET_KEY, so API v2 tokens minted by the old site still verify.
+    // Only set once a dump has been imported; blank is fine on a fresh install.
+    LEGACY_SECRET_KEY: existing.LEGACY_SECRET_KEY || "",
     MAIL_MODE: existing.MAIL_MODE || "console",
     MAIL_FROM: existing.MAIL_FROM || "noreply@example.com",
   };
@@ -238,7 +247,8 @@ async function main() {
   info(`AUTH_ISSUER=${env.AUTH_ISSUER}`);
 
   let jwksValue = env.AUTH_JWKS_URL;
-  if (await backendCanReachHost(env.AUTH_JWKS_URL)) {
+  const hostReachable = await backendCanReachHost(env.AUTH_JWKS_URL);
+  if (hostReachable) {
     info(`AUTH_JWKS_URL=${jwksValue}`);
   } else {
     // Convex also accepts the key set inline as a data URI. Re-run setup after
@@ -255,6 +265,31 @@ async function main() {
     info("re-run npm run setup if the Better Auth signing keys are ever rotated");
   }
   pinned("npx", ["convex", "env", "set", "AUTH_JWKS_URL", jwksValue], { env, capture: true });
+
+  // `convex/http/problemsApi.ts` verifies API keys against Better Auth over
+  // AUTH_URL and falls back to the `apiKeys` table when it is unset. The same
+  // firewall that blocks the JWKS fetch blocks this one, so reuse the probe:
+  // an unreachable host means the fallback, not a URL that always times out.
+  if (hostReachable) {
+    pinned("npx", ["convex", "env", "set", "AUTH_URL", env.AUTH_URL], { env, capture: true });
+    info(`AUTH_URL=${env.AUTH_URL}`);
+  } else {
+    pinned("npx", ["convex", "env", "remove", "AUTH_URL"], {
+      env,
+      capture: true,
+      allowFailure: true,
+    });
+    info("the convex container cannot reach the host, so AUTH_URL is left unset");
+    info("problems-API keys are verified against the apiKeys table instead");
+  }
+
+  if (env.LEGACY_SECRET_KEY) {
+    pinned("npx", ["convex", "env", "set", "LEGACY_SECRET_KEY", env.LEGACY_SECRET_KEY], {
+      env,
+      capture: true,
+    });
+    info("LEGACY_SECRET_KEY set on the deployment");
+  }
 
   step("Pushing the Convex functions");
   pinned("npx", ["convex", "dev", "--once"], { env });
