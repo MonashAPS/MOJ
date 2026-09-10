@@ -1,3 +1,4 @@
+import { hasPerm as coreHasPerm, isStaff as coreIsStaff, type ProfileRow } from "@moj/core";
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { forbidden, mojError } from "./errors";
@@ -34,14 +35,18 @@ export async function requireViewer(ctx: AuthCtx): Promise<Viewer> {
   return profile;
 }
 
+/** `@moj/core` speaks plain rows: a profile document is one, once its Convex id
+ *  is published under the name the pure rules read. */
+function asProfileRow(profile: Viewer | null): ProfileRow | null {
+  return profile ? { ...profile, id: profile._id } : null;
+}
+
 export function hasPerm(profile: Viewer | null, code: string): boolean {
-  if (!profile) return false;
-  if (profile.isSuperuser) return true;
-  return profile.permissions.includes(code);
+  return coreHasPerm(asProfileRow(profile), code);
 }
 
 export function isStaff(profile: Viewer | null): boolean {
-  return !!profile && (profile.isStaff || profile.isSuperuser);
+  return coreIsStaff(asProfileRow(profile));
 }
 
 export async function requireStaff(ctx: AuthCtx): Promise<Viewer> {
