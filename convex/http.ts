@@ -1,7 +1,10 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
+import { registerJudgeRoutes } from "./http/judge";
 
 const http = httpRouter();
+
+registerJudgeRoutes(http);
 
 http.route({
   path: "/health",
