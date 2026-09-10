@@ -1,7 +1,7 @@
 # Upstream state of the judge subtree
 
 `apps/judge/judge-server/` is a git subtree of `git@github.com:MonashAPS/judge-server.git`, branch `v2`.
-That branch is DMOJ's `master` (as of `5ef74c5d`, "ci: Print runner diagnostic information; #1257") plus a
+That branch is upstream `master` (as of `5ef74c5d`, "ci: Print runner diagnostic information; #1257") plus a
 small set of MAPS changes, and then a small set of open upstream pull requests that we found worth carrying
 early. This file records what is in the subtree beyond plain upstream `master` and why.
 
@@ -36,22 +36,22 @@ conflict, are self-contained, and either fix something we would hit or improve s
 
 | PR | Title | Why |
 | --- | --- | --- |
-| [#1260](https://github.com/DMOJ/judge-server/pull/1260) | Update syscall lists | Security relevant and approved upstream. Adds `fchroot` (472) to the Linux tables and `pdptrace` (605) to FreeBSD's, so the seccomp policy names them instead of letting them through as unknown numbers on newer kernels. Pure data. |
-| [#1261](https://github.com/DMOJ/judge-server/pull/1261) | ci: Fix mypy type failure | One `type: ignore[misc]` on the pyyaml non-printable patch, which typeshed now declares `Final`. Keeps `mypy` clean so our own type checking of the subtree is meaningful. |
-| [#1212](https://github.com/DMOJ/judge-server/pull/1212) | Logging grading points | Prints the points a case earned next to its time and memory. Partial scoring is otherwise invisible in judge logs, which matters when debugging a batch that scored unexpectedly. |
-| [#1241](https://github.com/DMOJ/judge-server/pull/1241) | Fix language autodetection | Replaces the hardcoded C/C++ preference in `compile_with_auxiliary_files` with an `ext_priority` ordering over executors. Checkers, interactors, validators and generators can then be written in any supported language, `.cc` is recognised as C++, and multi-file compilation is gated on the executor declaring support rather than on the file extension. Additive: existing C and C++ helpers keep working. |
+| [#1260](https://github.com/dmoj/judge-server/pull/1260) | Update syscall lists | Security relevant and approved upstream. Adds `fchroot` (472) to the Linux tables and `pdptrace` (605) to FreeBSD's, so the seccomp policy names them instead of letting them through as unknown numbers on newer kernels. Pure data. |
+| [#1261](https://github.com/dmoj/judge-server/pull/1261) | ci: Fix mypy type failure | One `type: ignore[misc]` on the pyyaml non-printable patch, which typeshed now declares `Final`. Keeps `mypy` clean so our own type checking of the subtree is meaningful. |
+| [#1212](https://github.com/dmoj/judge-server/pull/1212) | Logging grading points | Prints the points a case earned next to its time and memory. Partial scoring is otherwise invisible in judge logs, which matters when debugging a batch that scored unexpectedly. |
+| [#1241](https://github.com/dmoj/judge-server/pull/1241) | Fix language autodetection | Replaces the hardcoded C/C++ preference in `compile_with_auxiliary_files` with an `ext_priority` ordering over executors. Checkers, interactors, validators and generators can then be written in any supported language, `.cc` is recognised as C++, and multi-file compilation is gated on the executor declaring support rather than on the file extension. Additive: existing C and C++ helpers keep working. |
 
 ## Upstream pull requests skipped
 
 | PR | Title | Why not |
 | --- | --- | --- |
-| [#1148](https://github.com/DMOJ/judge-server/pull/1148) | judge: implement instant aborts | Wanted, and directly relevant to our abort polling, but it does not apply to `v2`: `dmoj/executors/compiled_executor.py` and `dmoj/graders/base.py` have both moved since. The branch also still carries leftover debug `print()` calls in `compiled_executor.py` and `utils/helper_files.py`, and it drops the compiled-binary cache cleanup in the worker's teardown in favour of a tempdir it removes from the parent. Resolving all of that is a rewrite, not a cherry-pick. We use the existing `REQUEST_ABORT` path instead, which is fast enough: the abort poller kills the running process through the grader, the current case returns, and `GRADING_ABORTED` follows immediately. Worth revisiting if the PR lands upstream. |
-| [#1198](https://github.com/DMOJ/judge-server/pull/1198) | Implement submission memfd output | Does not apply: `dmoj/graders/signature.py` has changed. It also reorders `Result.CODE_DISPLAY_ORDER` so OLE outranks TLE, which changes the verdict a case reports, and we want our verdicts to match the DMOJ instance we are importing from. |
-| [#1027](https://github.com/DMOJ/judge-server/pull/1027) | judgeenv: properly specify a default in docker | Superseded. It renames a `problem_dirs` variable that no longer exists; current `judgeenv` already sets `problem_globs = ['/problems/**/']` in Docker mode, which is what the PR was reaching for. |
-| [#903](https://github.com/DMOJ/judge-server/pull/903) | Initial implementation of landlock calls | Too large and too deep in the sandbox to carry out of tree. |
-| [#627](https://github.com/DMOJ/judge-server/pull/627) | Sample cases in judge and protocol | Changes the problem format and the bridge protocol. We express sample cases as a zero-point batch instead, which needs nothing from the judge. |
-| [#1075](https://github.com/DMOJ/judge-server/pull/1075) | Pretest dependencies | Changes the problem format. |
-| [#1208](https://github.com/DMOJ/judge-server/pull/1208) | fix: bad seccomp detection | Not on the candidate list and unreviewed upstream; the tier images we run do not hit it. |
+| [#1148](https://github.com/dmoj/judge-server/pull/1148) | judge: implement instant aborts | Wanted, and directly relevant to our abort polling, but it does not apply to `v2`: `dmoj/executors/compiled_executor.py` and `dmoj/graders/base.py` have both moved since. The branch also still carries leftover debug `print()` calls in `compiled_executor.py` and `utils/helper_files.py`, and it drops the compiled-binary cache cleanup in the worker's teardown in favour of a tempdir it removes from the parent. Resolving all of that is a rewrite, not a cherry-pick. We use the existing `REQUEST_ABORT` path instead, which is fast enough: the abort poller kills the running process through the grader, the current case returns, and `GRADING_ABORTED` follows immediately. Worth revisiting if the PR lands upstream. |
+| [#1198](https://github.com/dmoj/judge-server/pull/1198) | Implement submission memfd output | Does not apply: `dmoj/graders/signature.py` has changed. It also reorders `Result.CODE_DISPLAY_ORDER` so OLE outranks TLE, which changes the verdict a case reports, and we want our verdicts to match the site we are importing from. |
+| [#1027](https://github.com/dmoj/judge-server/pull/1027) | judgeenv: properly specify a default in docker | Superseded. It renames a `problem_dirs` variable that no longer exists; current `judgeenv` already sets `problem_globs = ['/problems/**/']` in Docker mode, which is what the PR was reaching for. |
+| [#903](https://github.com/dmoj/judge-server/pull/903) | Initial implementation of landlock calls | Too large and too deep in the sandbox to carry out of tree. |
+| [#627](https://github.com/dmoj/judge-server/pull/627) | Sample cases in judge and protocol | Changes the problem format and the bridge protocol. We express sample cases as a zero-point batch instead, which needs nothing from the judge. |
+| [#1075](https://github.com/dmoj/judge-server/pull/1075) | Pretest dependencies | Changes the problem format. |
+| [#1208](https://github.com/dmoj/judge-server/pull/1208) | fix: bad seccomp detection | Not on the candidate list and unreviewed upstream; the tier images we run do not hit it. |
 
 ## Known lint failure
 

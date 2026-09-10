@@ -1,9 +1,10 @@
 # The MOJ judge
 
-This directory builds the grader. It is the DMOJ judge-server, vendored as a git subtree under
-`judge-server/`, with one file added so it can talk to MOJ instead of a DMOJ bridge. Everything else in the
-subtree is upstream; see `UPSTREAM.md` for exactly what has been changed and which upstream pull requests
-have been pulled in early.
+This directory builds the grader. It is the judge-server, vendored as a git subtree of
+`git@github.com:MonashAPS/judge-server.git` branch `v2` under `judge-server/`, with one file added so it can
+talk to MOJ instead of to a bridge: a pull-mode packet manager. Everything else in the subtree is upstream;
+see `UPSTREAM.md` for exactly what has been changed and which upstream pull requests have been pulled in
+early.
 
 ```
 apps/judge/
@@ -15,7 +16,7 @@ apps/judge/
   UPSTREAM.md         subtree provenance
 ```
 
-## How the DMOJ judge works
+## How the judge works
 
 ### The sandbox
 
@@ -53,7 +54,7 @@ A problem is a directory whose name is the problem code, holding an `init.yml` a
 finds problems by globbing `problem_storage_globs` for `init.yml`. A dotted code maps to nested directories,
 so `algo101.a1.knapsack` lives at `/problems/algo101/a1/knapsack/`.
 
-`init.yml` is DMOJ's format. The interesting keys:
+`init.yml` is upstream's format, and MOJ never parses it: only the judge reads it. The interesting keys:
 
 - `test_cases`: an ordered list. A plain entry is one case, with `in` and `out` naming files relative to the
   problem directory (or entries in `archive`, a zip in the same directory), plus `points`.
@@ -93,11 +94,11 @@ and WA together, because the checker is skipped once a case is known to have fai
 
 ## How MOJ's pull protocol works
 
-DMOJ's judge connects out to a bridge on TCP 9999 and waits for the site to push submissions down that
+Upstream, the judge connects out to a bridge on TCP 9999 and waits for the site to push submissions down that
 socket. MOJ has no bridge. The site is a Convex deployment reachable only over HTTPS, so the judge asks for
 work instead. `judge-server/dmoj/moj_packet.py` is a drop-in replacement for `dmoj.packet.PacketManager`
 that implements this; `dmoj/judge.py` selects it when `MOJ_URL` is set and is otherwise untouched, so the
-same image can still run against a DMOJ bridge.
+same image can still run against an upstream bridge.
 
 Every request carries `judgeName` and `judgeKey`, in the JSON body for POSTs and in the query string for the
 one GET. The site checks `sha256(judgeKey)` against the judge record and refuses blocked judges.
@@ -177,7 +178,7 @@ returns either `{"submission": null}` or
 ```
 
 `timeLimit` is seconds and `memoryLimit` is kilobytes, both already resolved against any per-language
-override. `meta` is translated into the dashed keys DMOJ's problem configs expect (`pretests-only`,
+override. `meta` is translated into the dashed keys a problem config expects (`pretests-only`,
 `in-contest`, `attempt-no`, `user`, `user-notes`), so a problem's dynamic `init.yml` keys keep working.
 
 `POST /judge/event`
@@ -219,7 +220,7 @@ A case in `test-case-status` is
 }
 ```
 
-`position` is 1-based across the whole submission, not per batch. `status` is DMOJ's bitmask, and the first
+`position` is 1-based across the whole submission, not per batch. `status` is the judge's bitmask, and the first
 bit that matches in this order decides the verdict: 4 TLE, 8 MLE, 64 OLE, 2 RTE, 16 IR, 1 WA, 32 SC,
 otherwise AC. Cases routinely carry several bits, because the checker is skipped once a case is known to have
 failed and its WA bit is set anyway: a submission killed at the time limit reports 7, TLE and RTE and WA
@@ -237,19 +238,19 @@ empty log is normal and should not be shown to the user.
 
 ## Tiers
 
-The base image comes from DMOJ and decides which languages exist:
+The base image is `dmoj/runtimes-<tier>` on Docker Hub, and it decides which languages exist:
 
 - `tier1`: C through C23, C++03 through C++23, Java 8, Python 2 and 3, PyPy 3, Pascal, Perl, x64 assembly,
   AWK, sed, plain text. Around 2.7 GB built. This is the default and covers what a contest problem set
   normally needs, C++23 (`CPP23`) and C23 (`C23`) included.
 - `tier2`: tier1 plus the mid-popularity runtimes.
-- `tier3`: everything DMOJ supports, and considerably larger, around 18 GB to pull. This is the tier that
+- `tier3`: every runtime there is, and considerably larger, around 18 GB to pull. This is the tier that
   has Clang (`CLPP14`, `CLPP17`, `CLPP20`, `CLPP23`), Node.js (`NODEJS`), Lean 4 (`LEAN4`), ALGOL 68
   (`ALGL68`) and LLVM IR (`LLC`).
 
-The images come from Docker Hub. DMOJ's ghcr.io mirror has not been rebuilt since March 2022 and its tier 1
-image still ships GCC 11, which fails the C++23 and C23 self-tests, so a judge built on it never reports
-those languages.
+Take the images from Docker Hub, not from the ghcr.io mirror. The mirror has not been rebuilt since March
+2022 and its tier 1 image still ships GCC 11, which fails the C++23 and C23 self-tests, so a judge built on
+it never reports those languages.
 
 Pick one at build time with `--build-arg TIER=`. Judges are also assigned a tier in the staff console, which
 is a different thing: it controls which judges the site prefers when handing out submissions, so a slow
