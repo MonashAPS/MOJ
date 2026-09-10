@@ -1,5 +1,6 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
+import { registerProblemsApiRoutes } from "./http/problemsApi";
 
 const http = httpRouter();
 
@@ -13,5 +14,7 @@ http.route({
     });
   }),
 });
+
+registerProblemsApiRoutes(http);
 
 export default http;
