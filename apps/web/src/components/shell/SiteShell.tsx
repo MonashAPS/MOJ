@@ -135,9 +135,13 @@ export function SiteShell({
           wantsGrid(pathname) && "page-grid",
         )}
       >
+        {/* `overflow-x: clip` (not hidden, which would make this a scroll
+            container and break every sticky header inside it): a dense table
+            already scrolls inside its own wrapper, but a wide console page
+            still widened the document on a phone. */}
         <main
           id="content"
-          className="relative mx-auto w-full max-w-(--content-max) flex-1 px-(--gutter) py-6 min-[760px]:px-(--gutter-lg)"
+          className="relative mx-auto w-full max-w-(--content-max) flex-1 overflow-x-clip px-(--gutter) py-6 min-[760px]:px-(--gutter-lg)"
         >
           <RouteProgress />
           {/* Page enter is the content column only; the chrome must feel nailed
