@@ -2,7 +2,12 @@
 // judges, stats, feeds). Nothing here is a Convex function; every export is a
 // plain helper the modules call.
 
-import type { CommentTarget, ProfileRow } from "@moj/core";
+import {
+  type CommentTarget,
+  DEFAULT_SUBMISSION_SOURCE_VISIBILITY,
+  type GlobalSubmissionSourceVisibility,
+  type ProfileRow,
+} from "@moj/core";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 
@@ -53,6 +58,15 @@ export function replyTimeframeMs(settings: SiteSettings): number {
 
 export function commentMaxBody(settings: SiteSettings): number {
   return settings?.commentMaxBodyLength ?? COMMENT_MAX_BODY;
+}
+
+/**
+ * `settings.DMOJ_SUBMISSION_SOURCE_VISIBILITY`, the default every problem left
+ * on `F` follows. All 313 imported problems are on `F`, so this setting alone
+ * decides who may read their source.
+ */
+export function globalSourceVisibility(settings: SiteSettings): GlobalSubmissionSourceVisibility {
+  return settings?.submissionSourceVisibility ?? DEFAULT_SUBMISSION_SOURCE_VISIBILITY;
 }
 
 /* -------------------------------------------------------------------------- */
