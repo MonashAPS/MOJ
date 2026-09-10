@@ -79,6 +79,39 @@ export function activationEmail(username: string, url: string): OutgoingMail {
   };
 }
 
+export function emailChangeActivationEmail(username: string, url: string): OutgoingMail {
+  return {
+    to: "",
+    subject: "Email change request on MOJ",
+    text: [
+      `Hi ${username},`,
+      "",
+      "You asked to move your MAPS Online Judge account to this address.",
+      "Follow the link below to confirm the change. The link is good for seven days.",
+      "",
+      url,
+      "",
+      "If you did not ask for this, ignore this message and nothing will change.",
+    ].join("\n"),
+  };
+}
+
+export function emailChangeNotifyEmail(username: string, newEmail: string): OutgoingMail {
+  return {
+    to: "",
+    subject: "Alert: email change request on MOJ",
+    text: [
+      `Hi ${username},`,
+      "",
+      `Somebody, hopefully you, asked to change the address on your MAPS Online Judge`,
+      `account to ${newEmail}.`,
+      "",
+      "If this was you, nothing more is needed here: confirm it from the new address.",
+      "If this was not you, change your password straight away and open a ticket.",
+    ].join("\n"),
+  };
+}
+
 export function passwordResetEmail(username: string, url: string): OutgoingMail {
   return {
     to: "",
