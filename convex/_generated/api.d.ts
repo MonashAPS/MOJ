@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as admin_contests from "../admin/contests.js";
+import type * as admin_scoreboards from "../admin/scoreboards.js";
 import type * as blog from "../blog.js";
 import type * as comments from "../comments.js";
 import type * as contestFormats from "../contestFormats.js";
@@ -40,6 +42,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "admin/contests": typeof admin_contests;
+  "admin/scoreboards": typeof admin_scoreboards;
   blog: typeof blog;
   comments: typeof comments;
   contestFormats: typeof contestFormats;
