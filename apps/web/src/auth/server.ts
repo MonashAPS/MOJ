@@ -6,7 +6,7 @@ import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/a
 import { hashPassword, verifyPassword } from "better-auth/crypto";
 import { admin, bearer, jwt, twoFactor, username } from "better-auth/plugins";
 import { haveIBeenPwned, isPasswordCompromised } from "better-auth/plugins/haveibeenpwned";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db, schema } from "./db";
 import { DISPOSABLE_EMAIL_MESSAGE, isDisposableEmail } from "./disposable-email";
 import { isDjangoHash, isUnusablePassword, verifyDjangoPassword } from "./django-hash";
@@ -110,7 +110,10 @@ export const auth = betterAuth({
         return verifyPassword({ hash, password });
       },
     },
-    sendResetPassword: async ({ user, url }) => {
+    sendResetPassword: async ({ user, token }) => {
+      // DMOJ puts the token in the path; the confirm page hands it back to
+      // Better Auth's /reset-password, so the link never leaves the site.
+      const url = `${appUrl}/accounts/reset/confirm/${token}/`;
       const mail = passwordResetEmail(user.name || user.email, url);
       rememberLink(user.email, "reset", url);
       await sendMail({ ...mail, to: user.email });
@@ -153,11 +156,15 @@ export const auth = betterAuth({
     cookiePrefix: "moj",
   },
 
-  // DMOJ throttles password-reset and email-change requests per address
-  // (DMOJ_PASSWORD_RESET_LIMIT_*, DMOJ_EMAIL_CHANGE_LIMIT_*): ten a minute.
+  // DMOJ throttles password resets and email changes at ten a minute
+  // (DMOJ_PASSWORD_RESET_LIMIT_*, DMOJ_EMAIL_CHANGE_LIMIT_*). The same budget
+  // covers the login prompt, which is more forgiving than Better Auth's default
+  // of three in ten seconds: somebody who mistypes twice is not an attacker.
   rateLimit: {
     enabled: true,
     customRules: {
+      "/sign-in/email": { window: 60, max: 10 },
+      "/sign-in/username": { window: 60, max: 10 },
       "/request-password-reset": { window: 60, max: 10 },
       "/forget-password": { window: 60, max: 10 },
       "/change-email": { window: 60, max: 10 },

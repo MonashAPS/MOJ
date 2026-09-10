@@ -1,15 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { COMPROMISED_COOKIE } from "@/auth/password-compromised";
 
 /** Gates that must run before any page renders.
  *
  *  1. Staff 2FA, DMOJ's `DMOJ_REQUIRE_STAFF_2FA`: a staff account without a
- *     second factor is sent to /accounts/2fa/ to enrol. Account management
- *     stays reachable, as it does in DMOJ, because that is where the 2FA
- *     status and the enrolment link live.
- *  2. Pwned password: a stub. Better Auth's haveibeenpwned plugin blocks new
- *     passwords at sign-up; this gate is where the "your password appeared in a
- *     breach, change it" interstitial goes once the accounts agent adds the
- *     check. It reads a cookie set by the login flow so it costs nothing today.
+ *     second factor is sent to /accounts/2fa/ to enrol, carrying the page they
+ *     were headed for so enrolment returns them to it. Account management stays
+ *     reachable, as it does in DMOJ, because that is where the 2FA status and
+ *     the enrolment link live.
+ *  2. Pwned password, DMOJ's `password_pwned` session flag: the login hook in
+ *     auth/server.ts checks the typed password against Have I Been Pwned and
+ *     sets a cookie on a hit. This gate turns that cookie into DMOJ's forced
+ *     password change; completing one clears the cookie.
  */
 
 const EXEMPT_PREFIXES = [
@@ -19,6 +21,9 @@ const EXEMPT_PREFIXES = [
   "/accounts/register",
   "/accounts/activate",
   "/accounts/password",
+  "/accounts/reset",
+  "/accounts/email",
+  "/accounts/api",
   "/edit/profile",
   "/api/auth",
   "/_next",
@@ -71,7 +76,7 @@ export async function proxy(request: NextRequest) {
   const cookieHeader = request.headers.get("cookie") ?? "";
   if (!cookieHeader.includes("moj.session_token")) return NextResponse.next();
 
-  if (request.cookies.get("moj-password-compromised")?.value === "1") {
+  if (request.cookies.get(COMPROMISED_COOKIE)?.value === "1") {
     const url = request.nextUrl.clone();
     url.pathname = "/accounts/password/change/";
     url.searchParams.set("compromised", "1");
