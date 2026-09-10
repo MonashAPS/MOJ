@@ -1,49 +1,31 @@
 import { api } from "@convex/_generated/api";
-import { notFound } from "next/navigation";
-import { SubmissionList } from "@/components/submissions/SubmissionList";
-import { UserShell } from "@/components/users/UserShell";
-import { query, queryAsViewer } from "@/lib/convex-server";
-import { gravatarUrlForUserId } from "@/lib/gravatar";
-import { organizationHref } from "@/lib/organizations";
+import { type SearchParams, SubmissionListPage } from "@/components/submissions/SubmissionListPage";
+import { queryAsViewer } from "@/lib/convex-server";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ user: string }> }) {
   const { user } = await params;
-  return { title: `Submissions by ${decodeURIComponent(user)}` };
+  return { title: `All submissions by ${decodeURIComponent(user)}` };
 }
 
-export default async function UserSubmissionsPage({ params }: { params: Promise<{ user: string }> }) {
+/** `dmoj/urls.py`: `/user/<user>/submissions/` is `AllUserSubmissions`, the same
+ *  view `/submissions/user/<user>/` renders. */
+export default async function UserSubmissionsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ user: string }>;
+  searchParams: Promise<SearchParams>;
+}) {
   const { user } = await params;
   const username = decodeURIComponent(user);
-
-  const data = await queryAsViewer(api.profiles.userPage, { username });
-  if (!data) notFound();
-
-  const [gravatar, organizations] = await Promise.all([
-    gravatarUrlForUserId(data.profile.userId, 224),
-    query(api.organizations.list, {}).catch(() => []),
-  ]);
-  const organizationLinks: Record<string, string> = {};
-  for (const organization of organizations) {
-    organizationLinks[organization.slug] = organizationHref(organization);
-  }
-
+  const viewer = await queryAsViewer(api.viewer.current, {});
   return (
-    <UserShell
-      data={data}
-      gravatar={gravatar}
-      tab="submissions"
-      isViewer={data.isViewer}
-      organizationLinks={organizationLinks}
-    >
-      <SubmissionList
-        username={username}
-        emptyTitle="No submissions"
-        emptyDescription={
-          data.isViewer ? "You haven't submitted anything yet." : `${username} hasn't submitted anything yet.`
-        }
-      />
-    </UserShell>
+    <SubmissionListPage
+      filters={{ username }}
+      tab={viewer.profile?.username === username ? "mine" : "user"}
+      searchParams={await searchParams}
+    />
   );
 }

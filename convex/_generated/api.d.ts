@@ -52,6 +52,7 @@ import type * as organizations from "../organizations.js";
 import type * as pages_contests from "../pages/contests.js";
 import type * as pages_problems from "../pages/problems.js";
 import type * as pages_submissions from "../pages/submissions.js";
+import type * as pages_users from "../pages/users.js";
 import type * as problemData from "../problemData.js";
 import type * as problems from "../problems.js";
 import type * as profiles from "../profiles.js";
@@ -118,6 +119,7 @@ declare const fullApi: ApiFromModules<{
   "pages/contests": typeof pages_contests;
   "pages/problems": typeof pages_problems;
   "pages/submissions": typeof pages_submissions;
+  "pages/users": typeof pages_users;
   problemData: typeof problemData;
   problems: typeof problems;
   profiles: typeof profiles;
