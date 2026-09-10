@@ -16,36 +16,36 @@ export function Footer({ footerHtml }: { footerHtml?: string }) {
   const [language, setLanguage] = useState("en");
 
   return (
-    <footer>
-      <div id="footer-content">
-        <a href="https://github.com/MonashAPS/MOJ">
-          proudly powered by <b>MOJ</b>
+    <footer className="mt-8 border-t border-border bg-ground">
+      <div className="mx-auto flex w-full max-w-(--content-max) flex-wrap items-center justify-center gap-x-3 gap-y-2 px-4 py-4 text-sm text-muted-foreground md:px-6">
+        <a href="https://github.com/MonashAPS/MOJ" className="text-muted-foreground hover:text-subtle">
+          proudly powered by <b className="font-semibold">MOJ</b>
         </a>
-        <span className="footer-sep" aria-hidden>
-          |
-        </span>
         {footerHtml ? (
           <>
-            {/* biome-ignore lint/security/noDangerouslySetInnerHtml: misc config, staff authored */}
-            <span dangerouslySetInnerHTML={{ __html: footerHtml }} />
-            <span className="footer-sep" aria-hidden>
+            <span aria-hidden className="text-border-strong">
               |
             </span>
+            {/* biome-ignore lint/security/noDangerouslySetInnerHtml: misc config, staff authored */}
+            <span dangerouslySetInnerHTML={{ __html: footerHtml }} />
           </>
         ) : null}
-        <span className="footer-language">
-          <Select
-            ariaLabel="Site language"
-            value={language}
-            options={LANGUAGES}
-            onValueChange={(value) => {
-              setLanguage(value);
-              // biome-ignore lint/suspicious/noDocumentCookie: cookieStore is not in every browser MOJ supports
-              document.cookie = `moj-language=${value};path=/;max-age=31536000;samesite=lax`;
-              router.refresh();
-            }}
-          />
+        <span aria-hidden className="text-border-strong">
+          |
         </span>
+        <Select
+          size="sm"
+          ariaLabel="Site language"
+          value={language}
+          options={LANGUAGES}
+          className="w-[168px]"
+          onValueChange={(value) => {
+            setLanguage(value);
+            // biome-ignore lint/suspicious/noDocumentCookie: cookieStore is not in every browser MOJ supports
+            document.cookie = `moj-language=${value};path=/;max-age=31536000;samesite=lax`;
+            router.refresh();
+          }}
+        />
       </div>
     </footer>
   );

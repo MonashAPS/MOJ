@@ -2,18 +2,10 @@
 
 @import "@moj/ui/fonts.css";
 @import "@moj/ui/tokens.css";
+@import "@moj/ui/theme.css";
 @import "@moj/ui/skin.css";
-@import "@moj/ui/controls.css";
-
-@theme inline {
-  --color-accent: var(--accent);
-  --color-ink: var(--ink);
-  --color-surface: var(--surface);
-  --color-line: var(--line);
-  --font-display: var(--font-display);
-  --font-sans: var(--font-body);
-  --font-mono: var(--font-mono);
-}
+@import "@moj/content/styles/content.css";
+@import "katex/dist/katex.min.css";
 
 @source "../../src";
 @source "../../../../packages/ui/src";

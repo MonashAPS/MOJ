@@ -1,10 +1,23 @@
 "use client";
 
-import { ChevronDown, LogOut, Settings, ShieldCheck } from "lucide-react";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  Button,
+  cn,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@moj/ui";
+import { ChevronDown, LogOut, Settings, UserCog, UserX } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/auth/client";
-import { type ThemeChoice, ThemeToggle } from "./ThemeToggle";
+import { type ThemeChoice, ThemeSegmented } from "./ThemeToggle";
 
 export type ViewerSummary = {
   username: string;
@@ -13,6 +26,7 @@ export type ViewerSummary = {
   ratingClass: string;
   siteTheme: ThemeChoice;
   gravatarUrl: string;
+  isImpersonating?: boolean;
 };
 
 export function UserBlock({
@@ -26,70 +40,99 @@ export function UserBlock({
 
   if (!viewer) {
     return (
-      <span id="user-links">
-        <span className="anon">
-          <Link href="/accounts/login/">
-            <b>Log in</b>
-          </Link>
-          {registrationOpen ? (
-            <>
-              <span>or</span>
-              <Link href="/accounts/register/">
-                <b>Sign up</b>
-              </Link>
-            </>
-          ) : null}
-        </span>
-      </span>
+      <div className="flex shrink-0 items-center gap-2 pl-2 pr-4">
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="text-nav-ink/90 hover:bg-nav-hover hover:text-nav-ink"
+        >
+          <Link href="/accounts/login/">Log in</Link>
+        </Button>
+        {registrationOpen ? (
+          <Button asChild variant="canary" size="pill">
+            <Link href="/accounts/register/">Sign up</Link>
+          </Button>
+        ) : null}
+      </div>
     );
   }
 
+  const initials = viewer.displayName.slice(0, 2).toUpperCase();
+
   return (
-    <span id="user-links">
-      <ul>
-        <li>
-          <Link href={`/user/${viewer.username}`}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="avatar" src={viewer.gravatarUrl} alt="" width={24} height={24} />
-            <span className="username-text">
-              Hello, <b className={viewer.ratingClass}>{viewer.displayName}</b>.
-            </span>
-            <ChevronDown size={13} aria-hidden />
-          </Link>
-          <ul className="nav-menu align-right">
-            {viewer.isStaff ? (
-              <li>
-                <Link href="/admin">
-                  <ShieldCheck size={14} aria-hidden />
-                  Admin
-                </Link>
-              </li>
-            ) : null}
-            <li>
-              <Link href="/edit/profile/">
-                <Settings size={14} aria-hidden />
-                Edit profile
+    <div className="flex shrink-0 items-center pr-2">
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          className={cn(
+            "flex h-11 items-center gap-2 px-3 text-base font-medium text-nav-ink transition-colors",
+            "hover:bg-nav-hover data-[state=open]:bg-nav-hover",
+          )}
+        >
+          <Avatar className="size-6">
+            <AvatarImage src={viewer.gravatarUrl} alt="" />
+            <AvatarFallback>{initials}</AvatarFallback>
+          </Avatar>
+          {/* Rating colours on the nav's dark ground use the dark values. */}
+          <span
+            data-chrome="dark"
+            className={cn("max-w-[12ch] truncate font-mono font-medium", viewer.ratingClass)}
+          >
+            {viewer.displayName}
+          </span>
+          <ChevronDown size={14} aria-hidden className="shrink-0 text-nav-ink-2" />
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent align="end" sideOffset={6} className="min-w-[220px]">
+          {viewer.isStaff ? (
+            <DropdownMenuItem asChild>
+              <Link href="/admin">
+                <Settings aria-hidden />
+                Admin
               </Link>
-            </li>
-            <li>
-              <ThemeToggle initial={viewer.siteTheme} />
-            </li>
-            <li>
-              <button
-                type="button"
-                onClick={async () => {
-                  await authClient.signOut();
-                  router.push("/");
-                  router.refresh();
-                }}
-              >
-                <LogOut size={14} aria-hidden />
-                Log out
-              </button>
-            </li>
-          </ul>
-        </li>
-      </ul>
-    </span>
+            </DropdownMenuItem>
+          ) : null}
+          <DropdownMenuItem asChild>
+            <Link href={`/user/${viewer.username}`}>
+              <UserCog aria-hidden />
+              My profile
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/edit/profile/">
+              <UserCog aria-hidden />
+              Edit profile
+            </Link>
+          </DropdownMenuItem>
+          {viewer.isStaff && viewer.isImpersonating ? (
+            <DropdownMenuItem className="text-warn" asChild>
+              <a href="/impersonate/stop/">
+                <UserX aria-hidden />
+                Stop impersonating
+              </a>
+            </DropdownMenuItem>
+          ) : null}
+
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel>Theme</DropdownMenuLabel>
+          <div className="px-1 pb-1">
+            <ThemeSegmented initial={viewer.siteTheme} />
+          </div>
+
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={async () => {
+              await authClient.signOut();
+              router.push("/");
+              router.refresh();
+            }}
+          >
+            <LogOut aria-hidden />
+            Log out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }

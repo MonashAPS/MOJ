@@ -28,8 +28,15 @@ export function CommandDialog({
   description = "Search problems, contests, users and organisations.",
   children,
   className,
+  shouldFilter,
   ...props
-}: ComponentProps<typeof Dialog> & { title?: string; description?: string; className?: string }) {
+}: ComponentProps<typeof Dialog> & {
+  title?: string;
+  description?: string;
+  className?: string;
+  /** Turn cmdk's own filter off when the results are already ranked upstream. */
+  shouldFilter?: boolean;
+}) {
   return (
     <Dialog {...props}>
       <DialogPortal>
@@ -37,7 +44,9 @@ export function CommandDialog({
         <CommandPanel className={className}>
           <DialogTitle className="sr-only">{title}</DialogTitle>
           <DialogDescription className="sr-only">{description}</DialogDescription>
-          <Command loop>{children}</Command>
+          <Command loop shouldFilter={shouldFilter}>
+            {children}
+          </Command>
         </CommandPanel>
       </DialogPortal>
     </Dialog>

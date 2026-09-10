@@ -481,3 +481,39 @@
     --dur-curtain: 1ms;
   }
 }
+
+/* The navy chrome is dark in both themes, so anything drawn on it — rating
+   names in the nav, problem-state chips and the countdown in the ContestBar —
+   always takes the dark values, whatever the page theme is. Marking the chrome
+   `data-chrome="dark"` re-points those tokens without re-declaring the theme.
+   DESIGN.md sections 8.1 and 9. */
+[data-chrome="dark"] {
+  --accent-ink: #0b1026;
+
+  --v-good: #52c98a;
+  --v-good-bg: #10271b;
+  --v-bad: #f0776a;
+  --v-bad-bg: #2c1512;
+  --v-warn: #f8ca50;
+  --v-warn-bg: #2c2410;
+  --v-neutral: #97a0ae;
+  --v-neutral-bg: #1f2634;
+  --v-run: #8fa6ff;
+  --v-run-bg: #1b2447;
+
+  --state-solved: var(--v-good);
+  --state-solved-bg: var(--v-good-bg);
+  --state-partial: var(--v-warn);
+  --state-partial-bg: var(--v-warn-bg);
+  --state-attempted: var(--v-bad);
+  --state-attempted-bg: var(--v-bad-bg);
+
+  --rating-none: #a6adb8;
+  --rating-newbie: #a6adb8;
+  --rating-amateur: #3bc957;
+  --rating-expert: #5fb3e8;
+  --rating-candidate-master: #c58bda;
+  --rating-master: #ffb100;
+  --rating-grandmaster: #ff5b5b;
+  --rating-target: #ff8a8a;
+}

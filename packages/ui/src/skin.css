@@ -304,6 +304,14 @@
      of DMOJ's base-description.scss onto these tokens. Nothing here duplicates it;
      the app imports both. */
 
+  /* First-paint reveal: fade and rise, one-way, and it cannot strand content
+     invisible because it is a CSS animation with `both` fill rather than an
+     IntersectionObserver a fast flick can miss. Stagger is applied inline and
+     capped at 300ms. */
+  .enter-rise {
+    animation: enter-rise var(--dur-slow) var(--ease-out) both;
+  }
+
   /* Display maths gets its own scrolling row and never scrollbars the page. */
   .display-math,
   .katex-display {
@@ -314,6 +322,17 @@
 
   .katex {
     color: inherit;
+  }
+}
+
+@keyframes enter-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -331,5 +350,12 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.15s !important;
     filter: none !important;
+  }
+
+  /* The reveal keeps its fade branch, so progressive disclosure survives; only
+     the travel goes. */
+  .enter-rise {
+    animation-delay: 0ms !important;
+    transform: none !important;
   }
 }

@@ -1,8 +1,19 @@
 "use client";
 
+import { Button, Panel } from "@moj/ui";
+import { FileQuestion, ShieldAlert, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 
-/** DMOJ's error page: a fake segfault on a blue screen. */
+function SignalIcon({ code }: { code: number }) {
+  if (code === 403) return <ShieldAlert size={14} strokeWidth={2} aria-hidden />;
+  if (code === 404) return <FileQuestion size={14} strokeWidth={2} aria-hidden />;
+  return <TriangleAlert size={14} strokeWidth={2} aria-hidden />;
+}
+
+/** DMOJ's joke, rebuilt on the design system: the fake segfault now lives inside the
+ *  club's window motif — a framed panel with a `SIGSEGV` titlebar over a `--code-bg`
+ *  body — centred on the page ground with the royal grid. No stack traces, and the
+ *  way out is a real button rather than a link inside a `<pre>`. */
 export function ErrorScreen({
   code,
   id,
@@ -15,22 +26,40 @@ export function ErrorScreen({
   onRetry?: () => void;
 }) {
   return (
-    <div className="error-screen">
-      <h2>SIGSEGV: {id}</h2>
-      <pre>
-        {description}
-        {"\n"}site: fatal signal: Segmentation fault{"\n"}
-        site died (signal <b>{code}</b>, exit -11)
-        {"\n\n"}panic: <Link href="/">go home</Link>
-        {onRetry ? (
-          <>
-            {" | "}
-            <button type="button" onClick={onRetry}>
-              try again
-            </button>
-          </>
-        ) : null}
-      </pre>
+    <div className="page-grid flex min-h-[50dvh] items-center justify-center py-12">
+      <Panel
+        framed
+        title="SIGSEGV"
+        action={<span className="font-mono text-xs text-muted-foreground">{id}</span>}
+        icon={<SignalIcon code={code} />}
+        className="w-full max-w-[520px]"
+        bodyClassName="grid gap-5 bg-code p-6"
+      >
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <span className="font-mono text-[44px] font-bold leading-none tracking-tight tabular-nums text-foreground">
+            {code}
+          </span>
+          <h1>{description}</h1>
+        </div>
+
+        <div className="grid gap-1 font-mono text-mono text-muted-foreground">
+          <span>site: fatal signal: Segmentation fault</span>
+          <span>
+            site died (signal <span className="tabular-nums">{code}</span>, exit -11)
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild variant="secondary">
+            <Link href="/">Go home</Link>
+          </Button>
+          {onRetry ? (
+            <Button variant="primary" onClick={onRetry}>
+              Try again
+            </Button>
+          ) : null}
+        </div>
+      </Panel>
     </div>
   );
 }
