@@ -77,14 +77,9 @@ export default async function UserAboutPage({ params }: { params: Promise<{ user
           minYear={data.submissionActivity.minYear}
         />
 
-        {data.ratingHistory.length > 0 ? (
-          <section>
-            <h3 className="mb-2 font-display text-h3 font-semibold text-foreground">Rating history</h3>
-            <div className="rounded-md border border-border bg-card p-3">
-              <RatingChart points={data.ratingHistory} />
-            </div>
-          </section>
-        ) : null}
+        <Panel title="Rating" bodyClassName="p-3">
+          <RatingChart points={data.ratingHistory} />
+        </Panel>
 
         {best.length > 0 ? (
           <Panel
