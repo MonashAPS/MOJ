@@ -2,8 +2,9 @@ import type {
   GenericDatabaseReader,
   GenericDatabaseWriter,
   GenericDataModel,
-  GenericId,
+  GenericDocument,
 } from "convex/server";
+import type { GenericId, Value } from "convex/values";
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import schema from "./schema";
@@ -40,6 +41,11 @@ function legacyIdOf(doc: unknown): number | null {
   return typeof value === "number" ? value : null;
 }
 
+/** The importer sends plain JSON, which the schema validates on insert. */
+function asDocument(doc: unknown): Record<string, Value> {
+  return doc as Record<string, Value>;
+}
+
 /**
  * Inserts a batch of imported documents and returns the legacy id to Convex id
  * pairs, so tools/import can resolve foreign keys for the tables it imports
@@ -56,7 +62,7 @@ export const insertBatch = internalMutation({
     const db = writer(ctx.db);
     const out: { legacyId: number | null; id: string }[] = [];
     for (const doc of args.docs) {
-      const id = await db.insert(table, doc as Record<string, unknown>);
+      const id = await db.insert(table, asDocument(doc));
       out.push({ legacyId: legacyIdOf(doc), id });
     }
     return out;
@@ -74,7 +80,7 @@ export const patchBatch = internalMutation({
     assertTable(args.table);
     const db = writer(ctx.db);
     for (const patch of args.patches) {
-      await db.patch(patch.id as GenericId<string>, patch.fields as Record<string, unknown>);
+      await db.patch(patch.id as GenericId<string>, asDocument(patch.fields));
     }
     return args.patches.length;
   },
@@ -95,7 +101,7 @@ export const clearTable = internalMutation({
     const db = writer(ctx.db);
     const limit = args.limit ?? 2000;
     const docs = await db.query(table).take(limit);
-    for (const doc of docs) await db.delete(doc._id);
+    for (const doc of docs) await db.delete(doc._id as GenericId<string>);
     return { deleted: docs.length, isDone: docs.length < limit };
   },
 });
@@ -120,7 +126,10 @@ export const mapping = internalQuery({
     const db = reader(ctx.db);
     const result = await db.query(table).paginate({ cursor: args.cursor, numItems: args.numItems ?? 512 });
     return {
-      page: result.page.map((doc) => ({ legacyId: legacyIdOf(doc), id: doc._id as string })),
+      page: result.page.map((doc: GenericDocument) => ({
+        legacyId: legacyIdOf(doc),
+        id: doc._id as string,
+      })),
       continueCursor: result.isDone ? null : result.continueCursor,
       isDone: result.isDone,
     };
