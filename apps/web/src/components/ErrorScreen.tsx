@@ -26,7 +26,10 @@ export function ErrorScreen({
   onRetry?: () => void;
 }) {
   return (
-    <div className="page-grid flex min-h-[50dvh] items-center justify-center py-12">
+    <div className="relative flex min-h-[60dvh] items-center justify-center py-12">
+      {/* An error page can be served from any path, so the shell cannot know to
+          paint the club's grid on the ground for it; this one paints its own. */}
+      <div aria-hidden className="page-grid pointer-events-none fixed inset-0 -z-10 bg-ground" />
       <Panel
         framed
         title="SIGSEGV"
