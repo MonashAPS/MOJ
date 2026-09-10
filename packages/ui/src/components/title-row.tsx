@@ -45,6 +45,8 @@ export function TitleRow({
     <>
       <div className={cn("grid grid-cols-1 gap-3", className)}>
         {breadcrumb ? <div className="text-sm text-muted-foreground">{breadcrumb}</div> : null}
+        {/* `min-w-0`: without it this row's grid track takes the tab strip's
+            max-content width and the page scrolls sideways on a phone. */}
         <div className="flex min-w-0 flex-wrap items-end gap-x-4 gap-y-3 max-md:flex-col max-md:items-stretch">
           <h1 className="min-w-0 flex-1 text-balance font-display text-h1 font-bold tracking-tight text-foreground">
             {title}
@@ -81,7 +83,7 @@ export function PageTabs({
     <nav
       aria-label="Sections"
       className={cn(
-        "-mb-px flex min-w-0 shrink-0 items-end gap-1 overflow-x-auto max-md:w-full max-md:pb-px",
+        "-mb-px flex min-w-0 max-w-full shrink-0 items-end gap-1 overflow-x-auto max-md:w-full max-md:pb-px",
         className,
       )}
     >
