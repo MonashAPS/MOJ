@@ -430,3 +430,11 @@ gains a "Compare with me" toggle that lists problems that user solved and the vi
 palette (Ctrl+K or `/`) searches problems, users, contests and organisations from any page, with recent items, and
 navigates on Enter; it uses the Convex search indexes. Users list gets a username search box that jumps to the page
 containing the user, as DMOJ's `/users/find` does.
+
+Problem observability. Problems record every contest they appeared in (from `contestProblems`), and the problem
+page shows an "Appeared in" line under the info box: contest name, the label it had there (e.g. "C"), the date, and
+a link to that contest's ranking page. The `/problems/` filter panel gets a Contest filter (pick one or more contests
+to list their problems, grouped by contest with the contest name as a group header when the filter is active) and a
+"Group by contest" view toggle. The problem page also shows a small stats strip (solvers, attempts, AC rate,
+best solve time, fastest solver) and a per-language breakdown on `/problem/[code]/rank/`. Contest pages list their
+problems with each problem's public solve count.
