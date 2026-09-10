@@ -87,8 +87,8 @@ export function TableHead({ className, numeric, ...props }: ComponentProps<"th">
     <th
       data-slot="table-head"
       className={cn(
-        "h-8 whitespace-nowrap border-b border-border bg-secondary px-3 text-left align-middle",
-        "font-sans text-xs font-semibold uppercase leading-none tracking-label text-subtle",
+        "h-8 whitespace-nowrap bg-titlebar px-3 text-left align-middle text-titlebar-ink",
+        "font-sans text-xs font-semibold uppercase leading-none tracking-label",
         numeric && "text-right",
         className,
       )}
