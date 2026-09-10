@@ -4,11 +4,7 @@ import { notFound } from "next/navigation";
 import { queryAsViewer } from "@/lib/convex-server";
 import { RankingClient } from "./RankingClient";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ key: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ key: string }> }): Promise<Metadata> {
   const { key } = await params;
   const detail = await queryAsViewer(api.contests.get, { key }).catch(() => null);
   return { title: detail?.contest ? `${detail.contest.name} rankings` : "Rankings" };
@@ -37,9 +33,16 @@ export default async function ContestRankingPage({ params }: { params: Promise<{
     ),
   );
 
-  // SPEC section 7's pending marks. The query is new, so a deployment without it
-  // simply renders a frozen board the way the ranking query scores it.
-  const frozen = await queryAsViewer(api.pages.contests.frozenCells, { key }).catch(() => null);
+  // SPEC section 7's pending marks. `pages.contests.frozenCells` is new, so a
+  // deployment that has not taken it yet must not have the browser subscribe to
+  // it: a missing function is a thrown error, not an empty result. The server
+  // call is the probe.
+  let frozenCellsAvailable = true;
+  try {
+    await queryAsViewer(api.pages.contests.frozenCells, { key });
+  } catch {
+    frozenCellsAvailable = false;
+  }
 
   return (
     <RankingClient
@@ -48,7 +51,7 @@ export default async function ContestRankingPage({ params }: { params: Promise<{
       initial={ranking}
       viewerUsername={viewerState?.profile?.username ?? null}
       classOptions={classGroups.flat()}
-      frozenCellsAvailable={frozen !== null || detail.contest.freezeMinutes === 0}
+      frozenCellsAvailable={frozenCellsAvailable}
     />
   );
 }

@@ -2,16 +2,12 @@ import { api } from "@convex/_generated/api";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Comments } from "@/components/comments/Comments";
-import { renderContent } from "@/lib/markdown";
 import { queryAsViewer } from "@/lib/convex-server";
+import { renderContent } from "@/lib/markdown";
 import { ContestDetailClient } from "./ContestDetailClient";
 import { PrivateContest } from "./PrivateContest";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ key: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ key: string }> }): Promise<Metadata> {
   const { key } = await params;
   const detail = await queryAsViewer(api.contests.get, { key }).catch(() => null);
   if (!detail?.contest) return { title: "Contest" };

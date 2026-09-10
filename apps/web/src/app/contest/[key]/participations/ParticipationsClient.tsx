@@ -17,8 +17,8 @@ import { useQuery } from "convex/react";
 import { Search, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ContestChips } from "@/components/contests/pieces";
 import { JoinControl } from "@/components/contests/JoinControls";
+import { ContestChips } from "@/components/contests/pieces";
 import { formatDateTime, formatPoints } from "@/lib/format";
 import { contestTabs, joinKindFor } from "../tabs";
 
@@ -53,10 +53,7 @@ export function ParticipationsClient({
 }) {
   const router = useRouter();
   const [lookup, setLookup] = useState("");
-  const live = useQuery(
-    api.contests.participations,
-    isOwn ? { key: contestKey } : "skip",
-  );
+  const live = useQuery(api.contests.participations, isOwn ? { key: contestKey } : "skip");
   const liveOther = useQuery(
     api.contests.participationsOfUser,
     !isOwn && subject ? { key: contestKey, username: subject } : "skip",
@@ -109,10 +106,7 @@ export function ParticipationsClient({
               }}
             >
               <MicroLabel>View user participation</MicroLabel>
-              <InputGroup
-                className="h-(--control-h-sm) w-[220px]"
-                leading={<Search size={14} aria-hidden />}
-              >
+              <InputGroup className="h-(--control-h-sm) w-[220px]" leading={<Search size={14} aria-hidden />}>
                 <InputGroupInput
                   name="user"
                   type="search"
@@ -162,7 +156,7 @@ export function ParticipationsClient({
                   {labels.map((label) => (
                     <th
                       key={label}
-                      className="h-8 w-11 bg-titlebar px-1 text-center align-middle font-mono text-sm font-semibold text-titlebar-ink"
+                      className="h-8 w-11 min-w-11 bg-titlebar px-1 text-center align-middle font-mono text-sm font-semibold text-titlebar-ink"
                     >
                       {label}
                     </th>
@@ -174,7 +168,13 @@ export function ParticipationsClient({
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <tr key={row._id} className="hover:bg-row-hover">
+                  <tr
+                    key={row._id}
+                    className={cn(
+                      "hover:bg-row-hover",
+                      row.isDisqualified && "text-muted-foreground line-through decoration-1",
+                    )}
+                  >
                     <td className="h-(--row-h-dense) whitespace-nowrap border-b border-border px-3 align-middle">
                       <span className="flex items-center gap-2">
                         <RatingName
@@ -210,10 +210,12 @@ export function ParticipationsClient({
                         // biome-ignore lint/suspicious/noArrayIndexKey: cells are positional
                         key={`${row._id}-${index}`}
                         className={cn(
-                          "h-(--row-h-dense) w-11 border-b border-border px-1 text-center align-middle",
+                          "h-(--row-h-dense) w-11 min-w-11 border-b border-border px-1 text-center align-middle",
                           cell ? cellSkin(cell.state) : "text-(--cell-empty-ink)",
                         )}
-                        title={cell ? [cell.pointsText, cell.timeText].filter(Boolean).join(" · ") : undefined}
+                        title={
+                          cell ? [cell.pointsText, cell.timeText].filter(Boolean).join(" · ") : undefined
+                        }
                       >
                         {cell ? (
                           <>
@@ -232,16 +234,26 @@ export function ParticipationsClient({
                       </td>
                     ))}
                     <td className="h-(--row-h-dense) whitespace-nowrap border-b border-border px-3 text-right align-middle">
-                      <Tooltip content={`${formatPoints(row.score, precision)} points`}>
-                        <span className="block font-mono text-sm font-semibold tabular-nums leading-tight">
-                          {row.result.pointsText}
-                        </span>
-                      </Tooltip>
-                      {row.result.cumtimeText ? (
-                        <span className="block font-mono text-xs tabular-nums text-muted-foreground">
-                          {row.result.cumtimeText}
-                        </span>
-                      ) : null}
+                      {row.isDisqualified ? (
+                        <Tooltip content="Disqualified: this run does not score.">
+                          <span className="block font-mono text-sm font-semibold tabular-nums leading-tight text-muted-foreground">
+                            {DASH}
+                          </span>
+                        </Tooltip>
+                      ) : (
+                        <>
+                          <Tooltip content={`${formatPoints(row.score, precision)} points`}>
+                            <span className="block font-mono text-sm font-semibold tabular-nums leading-tight">
+                              {row.result.pointsText}
+                            </span>
+                          </Tooltip>
+                          {row.result.cumtimeText ? (
+                            <span className="block font-mono text-xs tabular-nums text-muted-foreground">
+                              {row.result.cumtimeText}
+                            </span>
+                          ) : null}
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}

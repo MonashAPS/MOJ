@@ -2,8 +2,8 @@ import { api } from "@convex/_generated/api";
 import { EmptyState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TitleRow } from "@moj/ui";
 import { Tag } from "lucide-react";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ContestWindow, tagInk, UserCount } from "@/components/contests/pieces";
 import { queryAsViewer } from "@/lib/convex-server";
 import { renderContent } from "@/lib/markdown";
@@ -28,11 +28,7 @@ async function loadTag(name: string) {
   return { tag: resolved, contests, found: !!tag || !!fallback };
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ name: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ name: string }> }): Promise<Metadata> {
   const { name } = await params;
   return { title: `Contest tag: ${name}` };
 }

@@ -28,8 +28,8 @@ import { Gavel } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ContestChips } from "@/components/contests/pieces";
 import { JoinControl } from "@/components/contests/JoinControls";
+import { ContestChips } from "@/components/contests/pieces";
 import { contestTabs, joinKindFor } from "../tabs";
 
 /** `ContestMossView` (contests.py:852). MOSS needs an outbound call with a key

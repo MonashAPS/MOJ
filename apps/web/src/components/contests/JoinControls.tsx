@@ -50,6 +50,7 @@ export function JoinControl({
   long = false,
   full = false,
   size = "sm",
+  banned = false,
   className,
 }: {
   contestKey: string;
@@ -57,6 +58,8 @@ export function JoinControl({
   long?: boolean;
   full?: boolean;
   size?: ButtonSize;
+  /** DMOJ's persona non grata: the reason the button is off. */
+  banned?: boolean;
   className?: string;
 }) {
   const pathname = usePathname() ?? "/contests/";
@@ -74,17 +77,13 @@ export function JoinControl({
   }
 
   if (kind === "blocked") {
+    const why = banned
+      ? "You have been declared persona non grata for this contest. You are permanently barred from joining it."
+      : "You cannot join this contest.";
     return (
-      <Tooltip content="You cannot join this contest.">
+      <Tooltip content={why}>
         <span className={full ? "block w-full" : "inline-block"}>
-          <Button
-            variant="secondary"
-            size={size}
-            full={full}
-            disabled
-            title="You cannot join this contest."
-            className={className}
-          >
+          <Button variant="secondary" size={size} full={full} disabled title={why} className={className}>
             {label}
           </Button>
         </span>

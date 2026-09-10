@@ -4,11 +4,7 @@ import { notFound } from "next/navigation";
 import { queryAsViewer } from "@/lib/convex-server";
 import { CloneForm } from "./CloneForm";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ key: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ key: string }> }): Promise<Metadata> {
   const { key } = await params;
   const detail = await queryAsViewer(api.contests.get, { key }).catch(() => null);
   return { title: detail?.contest ? `Clone ${detail.contest.name}` : "Clone contest" };
@@ -25,10 +21,6 @@ export default async function ContestClonePage({ params }: { params: Promise<{ k
   if (!detail.contest || !detail.viewer.canClone) notFound();
 
   return (
-    <CloneForm
-      contestKey={key}
-      detail={detail}
-      viewerUsername={viewerState?.profile?.username ?? null}
-    />
+    <CloneForm contestKey={key} detail={detail} viewerUsername={viewerState?.profile?.username ?? null} />
   );
 }

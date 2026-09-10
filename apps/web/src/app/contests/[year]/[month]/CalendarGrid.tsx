@@ -9,8 +9,7 @@ const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frida
  *  start, run within, or end on it. */
 export function CalendarGrid({ calendar }: { calendar: NonNullable<CalendarPayload> }) {
   const today = new Date(calendar.now);
-  const isThisMonth =
-    calendar.year === today.getFullYear() && calendar.month === today.getMonth() + 1;
+  const isThisMonth = calendar.year === today.getFullYear() && calendar.month === today.getMonth() + 1;
 
   return (
     <div className="grid gap-4">

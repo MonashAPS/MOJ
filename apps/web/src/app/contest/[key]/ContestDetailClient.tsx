@@ -4,9 +4,8 @@ import { api } from "@convex/_generated/api";
 import type { ContestDetail, ContestProblemEntry } from "@convex/contests";
 import {
   Badge,
-  Button,
-  cn,
   ContentDescription,
+  cn,
   EmptyRow,
   MicroLabel,
   Panel,
@@ -22,10 +21,10 @@ import {
   TwoColumn,
 } from "@moj/ui";
 import { useQuery } from "convex/react";
-import { BookOpen, CircleHelp, Clock, MessageSquareWarning } from "lucide-react";
+import { BookOpen, CircleHelp, Clock } from "lucide-react";
 import Link from "next/link";
-import { ContestChips, ProblemStateIcon, humanDuration, OPEN_ENDED } from "@/components/contests/pieces";
 import { JoinControl } from "@/components/contests/JoinControls";
+import { ContestChips, humanDuration, OPEN_ENDED, ProblemStateIcon } from "@/components/contests/pieces";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { formatDateTime, formatPoints } from "@/lib/format";
 import { Clarifications } from "./Clarifications";
@@ -59,10 +58,11 @@ function Banner({ detail }: { detail: ContestDetail }) {
 
   let sentence: string;
   if (spectating) sentence = clock ? `Spectating, contest ends in ${clock}.` : "Spectating.";
-  else if (virtual) sentence = clock ? `Participating virtually, ${clock} remaining.` : "Participating virtually.";
+  else if (virtual)
+    sentence = clock ? `Participating virtually, ${clock} remaining.` : "Participating virtually.";
   else if (!detail.timing.started) sentence = clock ? `Starting in ${clock}.` : "Not started yet.";
   else if (detail.timing.ended) sentence = "Contest is over.";
-  else if (live && live.ended) sentence = clock ? `Your time is up! Contest ends in ${clock}.` : "Your time is up!";
+  else if (live?.ended) sentence = clock ? `Your time is up! Contest ends in ${clock}.` : "Your time is up!";
   else if (live) sentence = clock ? `You have ${clock} remaining.` : "Participating.";
   else sentence = clock ? `Contest ends in ${clock}.` : "Contest is running.";
 
@@ -175,7 +175,7 @@ function ProblemRow({
         )}
       </TableCell>
       {showEditorials ? (
-        <TableCell className="relative z-1 w-8 text-center">
+        <TableCell className="relative z-1 w-20">
           {problem.isAccessible && problem.hasPublicEditorial ? (
             <Tooltip content="Editorial">
               <Link href={`/problem/${problem.code}/editorial/`} className="text-good">
@@ -201,7 +201,11 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-function UserList({ users }: { users: { _id: string; username: string; displayName: string; rating: number | null; displayRank: string }[] }) {
+function UserList({
+  users,
+}: {
+  users: { _id: string; username: string; displayName: string; rating: number | null; displayRank: string }[];
+}) {
   return (
     <span className="flex flex-wrap gap-x-2 gap-y-1">
       {users.map((user) => (
@@ -293,7 +297,10 @@ function Sidebar({ detail }: { detail: ContestDetail }) {
         </Panel>
       ) : null}
 
-      {contest.authors.length > 0 || contest.testers.length > 0 || contest.curators.length > 0 ? (
+      {contest.authors.length > 0 ||
+      contest.testers.length > 0 ||
+      contest.curators.length > 0 ||
+      contest.spectators.length > 0 ? (
         <Panel title="People" bodyClassName="p-0">
           {contest.authors.length > 0 ? (
             <InfoRow label={contest.authors.length === 1 ? "Author" : "Authors"}>
@@ -308,6 +315,11 @@ function Sidebar({ detail }: { detail: ContestDetail }) {
           {contest.testers.length > 0 ? (
             <InfoRow label={contest.testers.length === 1 ? "Tester" : "Testers"}>
               <UserList users={contest.testers} />
+            </InfoRow>
+          ) : null}
+          {contest.spectators.length > 0 ? (
+            <InfoRow label={contest.spectators.length === 1 ? "Spectator" : "Spectators"}>
+              <UserList users={contest.spectators} />
             </InfoRow>
           ) : null}
         </Panel>
@@ -362,7 +374,15 @@ export function ContestDetailClient({
         tabs={contestTabs(detail, contestKey, viewerUsername)}
         active="detail"
         action={
-          joinKind ? <JoinControl contestKey={contestKey} kind={joinKind} long size="default" /> : undefined
+          joinKind ? (
+            <JoinControl
+              contestKey={contestKey}
+              kind={joinKind}
+              long
+              size="default"
+              banned={detail.viewer.isBanned}
+            />
+          ) : undefined
         }
       />
 
@@ -386,7 +406,9 @@ export function ContestDetailClient({
                   {showState ? <TableHead numeric>Your score</TableHead> : null}
                   <TableHead numeric>AC rate</TableHead>
                   <TableHead numeric>Users</TableHead>
-                  {detail.metadata.hasPublicEditorials ? <TableHead className="w-8" /> : null}
+                  {detail.metadata.hasPublicEditorials ? (
+                    <TableHead className="w-20">Editorial</TableHead>
+                  ) : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -407,7 +429,9 @@ export function ContestDetailClient({
                 )}
               </TableBody>
             </Table>
-            {detail.timing.ended && showState ? (
+            {detail.timing.ended &&
+            showState &&
+            detail.problems.some((problem) => problem.state !== "untouched") ? (
               <p className="text-sm text-muted-foreground">
                 A tick marks a problem you have solved; hover it to see whether the solve landed during the
                 contest or since.
@@ -417,7 +441,11 @@ export function ContestDetailClient({
         ) : null}
 
         {contest.useClarifications ? (
-          <Clarifications contestKey={contestKey} canPost={detail.viewer.canEdit} problems={detail.problems} />
+          <Clarifications
+            contestKey={contestKey}
+            canPost={detail.viewer.canEdit}
+            problems={detail.problems}
+          />
         ) : null}
       </TwoColumn>
     </>

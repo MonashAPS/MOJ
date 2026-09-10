@@ -7,11 +7,7 @@ import { BarChart3, Copy, FileText, Gavel, Info, Pencil, PieChart, Users } from 
  * Participation, MOSS, Edit, Clone — with Submissions added for the contest's
  * own submission list (SPEC section 8's `contest_all_user_submissions`).
  */
-export function contestTabs(
-  detail: ContestDetail,
-  key: string,
-  viewerUsername: string | null,
-): TabItem[] {
+export function contestTabs(detail: ContestDetail, key: string, viewerUsername: string | null): TabItem[] {
   const tabs: TabItem[] = [
     { key: "detail", label: "Info", href: `/contest/${key}/`, icon: <Info aria-hidden /> },
   ];
@@ -77,15 +73,9 @@ export function contestTabs(
 }
 
 /** The pseudo-tab DMOJ puts after the tabs: join, leave, spectate or log in. */
-export function joinKindFor(detail: ContestDetail):
-  | "join"
-  | "spectate"
-  | "virtual"
-  | "leave"
-  | "stopSpectating"
-  | "blocked"
-  | "login"
-  | null {
+export function joinKindFor(
+  detail: ContestDetail,
+): "join" | "spectate" | "virtual" | "leave" | "stopSpectating" | "blocked" | "login" | null {
   const viewer = detail.viewer;
   if (!viewer.isAuthenticated) return detail.timing.started ? "login" : null;
   if (!detail.timing.started && !viewer.isEditor && !viewer.isTester) return null;

@@ -50,11 +50,7 @@ export function Clarifications({
 
   return (
     <section id="clarifications" className="mt-8 grid gap-3 scroll-mt-24">
-      <Panel
-        title="Clarifications"
-        icon={<MessageSquareWarning size={14} aria-hidden />}
-        bodyClassName="p-0"
-      >
+      <Panel title="Clarifications" icon={<MessageSquareWarning size={14} aria-hidden />} bodyClassName="p-0">
         {rows === undefined ? null : rows === null || rows.length === 0 ? (
           <EmptyState
             className="border-0 bg-transparent"

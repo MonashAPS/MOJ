@@ -1,8 +1,8 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import type { ContestDetail } from "@convex/contests";
 import type { RankByProblemPayload } from "@convex/contestRankings";
+import type { ContestDetail } from "@convex/contests";
 import {
   EmptyState,
   MicroLabel,
@@ -53,9 +53,7 @@ export function RankByProblemClient({
   const precision = detail.contest?.pointsPrecision ?? 2;
 
   const languageOptions = [
-    ...new Map(
-      (initial?.rows ?? []).map((row) => [row.languageKey, row.languageName] as const),
-    ).entries(),
+    ...new Map((initial?.rows ?? []).map((row) => [row.languageKey, row.languageName] as const)).entries(),
   ]
     .filter(([key]) => key)
     .map(([value, label]) => ({ value, label }))
@@ -64,12 +62,8 @@ export function RankByProblemClient({
   return (
     <>
       <TitleRow
-        breadcrumb={
-          <Link href={`/contest/${contestKey}/`}>{detail.contest?.name ?? contestKey}</Link>
-        }
-        title={
-          data ? `${data.label}. ${data.problemName}` : `Best solutions for ${problemCode}`
-        }
+        breadcrumb={<Link href={`/contest/${contestKey}/`}>{detail.contest?.name ?? contestKey}</Link>}
+        title={data ? `${data.label}. ${data.problemName}` : `Best solutions for ${problemCode}`}
         tabs={contestTabs(detail, contestKey, viewerUsername)}
         active="ranking"
         action={

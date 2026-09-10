@@ -2,19 +2,11 @@
 
 import { api } from "@convex/_generated/api";
 import type { ContestDetail, ContestStats } from "@convex/contests";
-import {
-  cn,
-  EmptyState,
-  Panel,
-  TitleRow,
-  Tooltip,
-  verdictTone,
-  type VerdictTone,
-} from "@moj/ui";
+import { cn, EmptyState, Panel, TitleRow, Tooltip, type VerdictTone, verdictTone } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { PieChart } from "lucide-react";
-import { ContestChips } from "@/components/contests/pieces";
 import { JoinControl } from "@/components/contests/JoinControls";
+import { ContestChips } from "@/components/contests/pieces";
 import { contestTabs, joinKindFor } from "../tabs";
 
 /** The verdict families are the product's reserved status palette; a stacked bar
@@ -32,24 +24,33 @@ const TONE_FILL: Record<VerdictTone, string> = {
 function StatusBar({
   counts,
   total,
+  max,
   codes,
 }: {
   counts: { code: string; value: number }[];
   total: number;
+  /** The busiest problem in the contest: bars are to scale, not each to itself. */
+  max: number;
   codes: string[];
 }) {
   if (total === 0) {
     return <div className="h-3 rounded-full bg-secondary" />;
   }
   return (
-    <div className="flex h-3 gap-0.5 overflow-hidden rounded-full">
+    <div
+      className="flex h-3 gap-0.5 overflow-hidden rounded-full"
+      style={{ width: `${max > 0 ? Math.max(2, (100 * total) / max) : 0}%` }}
+    >
       {codes.map((code) => {
         const value = counts.find((entry) => entry.code === code)?.value ?? 0;
         if (value === 0) return null;
         return (
           <Tooltip key={code} content={`${code}: ${value} of ${total}`}>
             <span
-              className={cn("block h-full first:rounded-l-full last:rounded-r-full", TONE_FILL[verdictTone(code)])}
+              className={cn(
+                "block h-full first:rounded-l-full last:rounded-r-full",
+                TONE_FILL[verdictTone(code)],
+              )}
               style={{ width: `${(100 * value) / total}%` }}
             />
           </Tooltip>
@@ -107,6 +108,7 @@ export function StatsClient({
 
   const codes = (data?.problemStatusCount ?? []).map((row) => row.code);
   const maxLanguageCount = Math.max(1, ...(data?.languageCount ?? []).map((row) => row.count));
+  const maxProblemTotal = Math.max(1, ...(data?.problems ?? []).map((row) => row.total));
 
   return (
     <>
@@ -179,6 +181,7 @@ export function StatsClient({
                   <StatusBar
                     codes={codes}
                     total={problem.total}
+                    max={maxProblemTotal}
                     counts={data.problemStatusCount.map((row) => ({
                       code: row.code,
                       value: row.counts[index] ?? 0,

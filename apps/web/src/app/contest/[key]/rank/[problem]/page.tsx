@@ -31,6 +31,8 @@ export default async function ContestRankByProblemPage({
 
   if (!detail || detail.access.kind === "notFound" || detail.access.kind === "inaccessible") notFound();
   if (!detail.contest) notFound();
+  // A problem that is not in this contest has no page here, as DMOJ 404s it.
+  if (!detail.problems.some((entry) => entry.code === problem)) notFound();
 
   return (
     <RankByProblemClient

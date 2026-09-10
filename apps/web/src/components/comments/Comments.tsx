@@ -15,13 +15,7 @@ export type CommentTargetType = "problem" | "contest" | "blog" | "solution";
  * this is the seam the pages write against so the thread appears the moment
  * that component lands, and it renders the real thread meanwhile.
  */
-export function Comments({
-  targetType,
-  targetKey,
-}: {
-  targetType: CommentTargetType;
-  targetKey: string;
-}) {
+export function Comments({ targetType, targetKey }: { targetType: CommentTargetType; targetKey: string }) {
   const thread = useQuery(api.comments.list, { targetType, targetKey });
   if (thread === null) return null;
 

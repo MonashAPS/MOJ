@@ -4,11 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { queryAsViewer } from "@/lib/convex-server";
 import { JoinPanel } from "./JoinPanel";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ key: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ key: string }> }): Promise<Metadata> {
   const { key } = await params;
   const detail = await queryAsViewer(api.contests.get, { key }).catch(() => null);
   if (!detail?.contest) return { title: "Join contest" };
@@ -42,6 +38,7 @@ export default async function ContestJoinPage({ params }: { params: Promise<{ ke
       requiresAccessCode={detail.viewer.requiresAccessCode}
       isVirtual={detail.timing.ended}
       alreadyIn={detail.viewer.inContest}
+      timeLimit={detail.contest.timeLimit}
     />
   );
 }

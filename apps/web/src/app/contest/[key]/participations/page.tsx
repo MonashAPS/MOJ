@@ -4,21 +4,13 @@ import { notFound } from "next/navigation";
 import { queryAsViewer } from "@/lib/convex-server";
 import { ParticipationsClient } from "./ParticipationsClient";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ key: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ key: string }> }): Promise<Metadata> {
   const { key } = await params;
   const detail = await queryAsViewer(api.contests.get, { key }).catch(() => null);
   return { title: detail?.contest ? `${detail.contest.name} participation` : "Participation" };
 }
 
-export default async function ContestParticipationsPage({
-  params,
-}: {
-  params: Promise<{ key: string }>;
-}) {
+export default async function ContestParticipationsPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
   const [detail, rows, viewerState] = await Promise.all([
     queryAsViewer(api.contests.get, { key }).catch(() => null),

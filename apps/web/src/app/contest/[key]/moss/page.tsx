@@ -4,11 +4,7 @@ import { notFound } from "next/navigation";
 import { queryAsViewer } from "@/lib/convex-server";
 import { MossClient } from "./MossClient";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ key: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ key: string }> }): Promise<Metadata> {
   const { key } = await params;
   const detail = await queryAsViewer(api.contests.get, { key }).catch(() => null);
   return { title: detail?.contest ? `${detail.contest.name} MOSS` : "MOSS" };

@@ -3,9 +3,8 @@
  * `convex/contestRankings.ts`.
  *
  * Everything here is presentation plumbing: the tag page's own header, the
- * filter options the ranking page offers, the per-cell pending marks SPEC
- * section 7 asks for while a scoreboard is frozen, and the MOSS delete the
- * `/contest/[key]/moss` page needs.
+ * per-cell pending marks SPEC section 7 asks for while a scoreboard is frozen,
+ * and the MOSS delete the `/contest/[key]/moss` page needs.
  */
 
 import {
@@ -20,9 +19,14 @@ import {
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, type QueryCtx, query } from "../_generated/server";
-import { contestByKey, loadContestProblems, toContestRow, toParticipationRow } from "../contestFormats";
+import {
+  contestByKey,
+  loadContestProblems,
+  toContestRow,
+  toParticipationRow,
+  toViewerRowInContest,
+} from "../contestFormats";
 import { contestIsRevealed } from "../contestRankings";
-import { toViewerRowInContest } from "../contestFormats";
 import { optionalViewer, requireViewer } from "../lib/auth";
 import { forbidden, notFound } from "../lib/errors";
 
@@ -76,31 +80,9 @@ export const tag = query({
   },
 });
 
-/** Every tag in use, for the contest list's tag filter. */
-export const tags = query({
-  args: {},
-  handler: async (ctx): Promise<NonNullable<ContestTagPayload>[]> => {
-    const rows = await ctx.db.query("contestTags").collect();
-    return rows
-      .map((row) => ({
-        _id: row._id,
-        name: row.name,
-        color: row.color,
-        textColor: tagTextColor(row.color),
-        description: row.description,
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  },
-});
-
 /* -------------------------------------------------------------------------- */
-/* Ranking filters                                                            */
+/* Frozen cells                                                               */
 /* -------------------------------------------------------------------------- */
-
-export type RankingFilters = {
-  organizations: { _id: Id<"organizations">; name: string; shortName: string; slug: string }[];
-  classes: { _id: Id<"classes">; name: string; slug: string; organizationName: string }[];
-} | null;
 
 async function accessibleContest(ctx: QueryCtx, key: string): Promise<Doc<"contests"> | null> {
   const contest = await contestByKey(ctx, key);
@@ -111,71 +93,6 @@ async function accessibleContest(ctx: QueryCtx, key: string): Promise<Doc<"conte
   if (current?.contestId === contest._id) return contest;
   return contestAccessCheck(toContestRow(contest), viewer).kind === "ok" ? contest : null;
 }
-
-/**
- * The organisations that actually have someone on this scoreboard, and the
- * classes the contest is restricted to. Both drive the ranking page's filters,
- * so an empty list means the control is not offered at all.
- */
-export const rankingFilters = query({
-  args: { key: v.string() },
-  handler: async (ctx, { key }): Promise<RankingFilters> => {
-    const contest = await accessibleContest(ctx, key);
-    if (!contest) return null;
-
-    const participations = await ctx.db
-      .query("contestParticipations")
-      .withIndex("by_contest_virtual_score", (q) => q.eq("contestId", contest._id))
-      .collect();
-
-    const organizations = new Map<
-      string,
-      { _id: Id<"organizations">; name: string; shortName: string; slug: string }
-    >();
-    const seenProfiles = new Set<string>();
-    for (const participation of participations) {
-      if (seenProfiles.has(participation.profileId)) continue;
-      seenProfiles.add(participation.profileId);
-      const memberships = await ctx.db
-        .query("organizationMemberships")
-        .withIndex("by_profile", (q) => q.eq("profileId", participation.profileId))
-        .collect();
-      for (const membership of memberships) {
-        if (organizations.has(membership.organizationId)) continue;
-        const organization = await ctx.db.get(membership.organizationId);
-        if (!organization) continue;
-        organizations.set(organization._id, {
-          _id: organization._id,
-          name: organization.name,
-          shortName: organization.shortName,
-          slug: organization.slug,
-        });
-      }
-    }
-
-    const classes: NonNullable<RankingFilters>["classes"] = [];
-    for (const id of contest.classIds) {
-      const row = await ctx.db.get(id);
-      if (!row) continue;
-      const organization = await ctx.db.get(row.organizationId);
-      classes.push({
-        _id: row._id,
-        name: row.name,
-        slug: row.slug,
-        organizationName: organization?.name ?? "",
-      });
-    }
-
-    return {
-      organizations: [...organizations.values()].sort((a, b) => a.name.localeCompare(b.name)),
-      classes: classes.sort((a, b) => a.name.localeCompare(b.name)),
-    };
-  },
-});
-
-/* -------------------------------------------------------------------------- */
-/* Frozen cells                                                               */
-/* -------------------------------------------------------------------------- */
 
 export type FrozenCells = {
   /** The freeze point, so the page can name it. */
@@ -219,8 +136,7 @@ export const frozenCells = query({
       .collect();
     const live = participations.filter((row) => row.virtual === PARTICIPATION_LIVE);
 
-    const liveOfViewer =
-      (profile ? live.find((row) => row.profileId === profile._id) : null) ?? null;
+    const liveOfViewer = (profile ? live.find((row) => row.profileId === profile._id) : null) ?? null;
     if (
       !contestCanSeeFullScoreboard(contestRow, viewer, {
         now,

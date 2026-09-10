@@ -20,18 +20,20 @@ import {
   TableRow,
   Tooltip,
 } from "@moj/ui";
+import { useQuery } from "convex/react";
 import { CalendarClock, ChevronDown, ChevronUp, Search, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "convex/react";
 import { useEffect, useState } from "react";
+import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips, ContestWindow, UserCount } from "@/components/contests/pieces";
-import { JoinControl, type JoinKind } from "@/components/contests/JoinControls";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { type ContestListArgs, PAST_PER_PAGE } from "./shared";
 
 /** Radix has no empty option value, so "every tag" needs a name of its own. */
 const ALL_TAGS = "__all__";
+
+const SKELETON_ROWS = ["a", "b", "c", "d", "e", "f"];
 
 /** A live countdown that reads as a sentence, as DMOJ's `as_countdown` does. */
 function Countdown({ label, endsAt }: { label: string; endsAt: number }) {
@@ -69,14 +71,6 @@ function ContestName({ contest }: { contest: ContestListRow }) {
       />
     </span>
   );
-}
-
-function joinKindFor(contest: ContestListRow, kind: "current" | "past"): JoinKind {
-  if (kind === "past") return "virtual";
-  // The list cannot tell join from spectate without the contest page's rules;
-  // the contest page is where DMOJ makes that call, so the row offers Join and
-  // the mutation says no if the viewer may not.
-  return "join";
 }
 
 function ContestBlock({ contest, when }: { contest: ContestListRow; when?: React.ReactNode }) {
@@ -144,10 +138,7 @@ function ActiveRow({ participation }: { participation: ActiveParticipation }) {
       <ContestBlock
         contest={contest}
         when={
-          <Countdown
-            label={contest.timeLimit ? "Window ends in" : "Ends in"}
-            endsAt={participation.endsAt}
-          />
+          <Countdown label={contest.timeLimit ? "Window ends in" : "Ends in"} endsAt={participation.endsAt} />
         }
       />
       <TableCell numeric className="align-top">
@@ -165,9 +156,8 @@ function ListSkeleton() {
     <div className="grid gap-2">
       <Skeleton className="h-5 w-40" />
       <div className="overflow-hidden rounded-md border border-border bg-card">
-        {Array.from({ length: 6 }, (_, index) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: skeleton rows have no identity
-          <div key={index} className="flex items-center gap-4 border-b border-border px-3 py-3 last:border-b-0">
+        {SKELETON_ROWS.map((row) => (
+          <div key={row} className="flex items-center gap-4 border-b border-border px-3 py-3 last:border-b-0">
             <Skeleton className="h-4 w-1/2" />
             <Skeleton className="ml-auto h-4 w-10" />
           </div>
@@ -286,7 +276,10 @@ export function ContestListClient({
           action={(contest) => (
             <JoinControl
               contestKey={contest.key}
-              kind={data.finishedKeys.includes(contest.key) ? "spectate" : joinKindFor(contest, "current")}
+              // The list cannot tell join from spectate without the contest page's
+              // rules; DMOJ makes that call on the contest page, so a row offers
+              // Join and the mutation says no if the viewer may not.
+              kind={data.finishedKeys.includes(contest.key) ? "spectate" : "join"}
               full
             />
           )}

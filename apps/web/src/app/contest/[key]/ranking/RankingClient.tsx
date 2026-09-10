@@ -1,8 +1,8 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import type { ContestDetail } from "@convex/contests";
 import type { RankingPayload, RankingRow } from "@convex/contestRankings";
+import type { ContestDetail } from "@convex/contests";
 import {
   Alert,
   AlertDescription,
@@ -16,20 +16,52 @@ import {
   Select,
   Switch,
   TitleRow,
-  toast,
   Tooltip,
+  toast,
 } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { Ban, Snowflake, Trophy, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { ContestChips } from "@/components/contests/pieces";
 import { JoinControl } from "@/components/contests/JoinControls";
+import { ContestChips, humanDuration } from "@/components/contests/pieces";
+import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { formatDateTime, formatPoints } from "@/lib/format";
 import { contestTabs, joinKindFor } from "../tabs";
 
 const DASH = "—";
 const ALL = "__all__";
+
+/**
+ * C1: a window contest's clock is the *participation's*, and the ranking has to
+ * say so. `contests.get` carries `timeLimit` and the participation's computed
+ * end; `contestRankings.ranking` does not, which is why the page reads both.
+ */
+function WindowNote({ detail }: { detail: ContestDetail }) {
+  const contest = detail.contest;
+  const participation = detail.participation ?? detail.liveParticipation;
+  const target = participation && !participation.ended ? participation.endsAt : (contest?.endTime ?? null);
+  const remaining = useCountdown(detail.timing.ended ? null : target);
+  if (!contest) return null;
+
+  const window = contest.timeLimit
+    ? `${humanDuration(contest.timeLimit * 1000)} window between ${formatDateTime(contest.startTime)} and ${formatDateTime(contest.endTime)}`
+    : null;
+  const clock = remaining !== null && remaining <= COUNTDOWN_HORIZON ? formatDuration(remaining) : null;
+
+  if (!window && !clock) return null;
+  return (
+    <p className="font-mono text-sm tabular-nums text-muted-foreground">
+      {clock
+        ? participation && !participation.ended
+          ? `Your window closes in ${clock}.`
+          : `The contest ends in ${clock}.`
+        : null}
+      {clock && window ? " " : null}
+      {window}
+    </p>
+  );
+}
 
 type CellData = NonNullable<RankingRow["problems"][number]>;
 
@@ -53,11 +85,10 @@ function ProblemCell({
 }) {
   if (pending > 0) {
     return (
-      <td className="h-(--row-h-dense) w-11 border-b border-border bg-(--cell-frozen-bg) px-1 text-center align-middle text-(--cell-frozen-ink)">
+      <td className="h-(--row-h-dense) w-11 min-w-11 border-b border-border bg-(--cell-frozen-bg) px-1 text-center align-middle text-(--cell-frozen-ink)">
         <Tooltip content={`${pending} ${pending === 1 ? "submission" : "submissions"} after the freeze`}>
           <span className="block font-mono text-sm font-medium tabular-nums">
-            ?
-            <span className="block text-xs opacity-80">{`-${pending}`}</span>
+            ?<span className="block text-xs opacity-80">{`-${pending}`}</span>
           </span>
         </Tooltip>
       </td>
@@ -66,7 +97,7 @@ function ProblemCell({
 
   if (!cell) {
     return (
-      <td className="h-(--row-h-dense) w-11 border-b border-border px-1 text-center align-middle font-mono text-sm text-(--cell-empty-ink)">
+      <td className="h-(--row-h-dense) w-11 min-w-11 border-b border-border px-1 text-center align-middle font-mono text-sm text-(--cell-empty-ink)">
         {DASH}
       </td>
     );
@@ -86,7 +117,7 @@ function ProblemCell({
   return (
     <td
       className={cn(
-        "h-(--row-h-dense) w-11 border-b border-border px-1 text-center align-middle",
+        "h-(--row-h-dense) w-11 min-w-11 border-b border-border px-1 text-center align-middle",
         cellSkin(cell.state),
         isPretest && "outline-1 -outline-offset-1 outline-dashed outline-(--line-strong)",
       )}
@@ -147,13 +178,13 @@ function Row({
       className={cn(
         "transition-colors duration-(--dur-fast) hover:bg-row-hover",
         "data-[selected]:bg-row-selected data-[selected]:shadow-[inset_3px_0_0_var(--brand-royal)]",
-        row.isDisqualified && "opacity-60",
+        row.isDisqualified && "text-muted-foreground line-through decoration-1",
       )}
     >
       <td className="sticky left-0 z-1 h-(--row-h-dense) w-12 border-b border-border bg-inherit px-3 text-right align-middle font-mono text-sm tabular-nums text-muted-foreground">
         {row.rankLabel}
       </td>
-      <td className="sticky left-12 z-1 h-(--row-h-dense) min-w-[180px] border-b border-r border-r-(--line-strong) border-border bg-inherit px-3 align-middle">
+      <td className="sticky left-12 z-1 h-(--row-h-dense) min-w-[180px] whitespace-nowrap border-b border-r border-r-(--line-strong) border-border bg-inherit px-3 align-middle">
         <span className="flex items-center gap-2">
           <RatingName
             username={row.user.username}
@@ -178,22 +209,26 @@ function Row({
               DQ
             </Badge>
           ) : null}
-          {showOrganizations
-            ? row.organizations.map((organization) => (
-                <Tooltip key={organization._id} content={organization.name}>
-                  <Link href={`/organization/${organization.slug}/`} className="relative z-1">
-                    <Badge variant="outline" shape="square" mono>
-                      {organization.shortName || organization.name}
-                    </Badge>
-                  </Link>
-                </Tooltip>
-              ))
-            : null}
         </span>
       </td>
       {hasRating ? (
         <td className="h-(--row-h-dense) border-b border-border px-3 text-right align-middle font-mono text-sm tabular-nums">
           {row.rating ?? DASH}
+        </td>
+      ) : null}
+      {showOrganizations ? (
+        <td className="h-(--row-h-dense) w-full border-b border-border pl-5 pr-3 align-middle">
+          <span className="flex flex-wrap items-center gap-1">
+            {row.organizations.map((organization) => (
+              <Tooltip key={organization._id} content={organization.name}>
+                <Link href={`/organization/${organization.slug}/`} className="relative z-1">
+                  <Badge variant="outline" shape="square" mono>
+                    {organization.shortName || organization.name}
+                  </Badge>
+                </Link>
+              </Tooltip>
+            ))}
+          </span>
         </td>
       ) : null}
       {row.problems.map((cell, index) => (
@@ -206,14 +241,22 @@ function Row({
         />
       ))}
       <td className="h-(--row-h-dense) border-b border-border px-3 text-right align-middle">
-        <span className="block font-mono text-sm font-semibold tabular-nums leading-tight">
-          {row.result.pointsText}
-        </span>
-        {row.result.cumtimeText ? (
-          <span className="block font-mono text-xs tabular-nums text-muted-foreground">
-            {row.result.cumtimeText}
+        {row.isDisqualified ? (
+          <span className="block font-mono text-sm font-semibold tabular-nums leading-tight text-muted-foreground">
+            {DASH}
           </span>
-        ) : null}
+        ) : (
+          <>
+            <span className="block font-mono text-sm font-semibold tabular-nums leading-tight">
+              {row.result.pointsText}
+            </span>
+            {row.result.cumtimeText ? (
+              <span className="block font-mono text-xs tabular-nums text-muted-foreground">
+                {row.result.cumtimeText}
+              </span>
+            ) : null}
+          </>
+        )}
       </td>
       {canDisqualify ? (
         <td className="h-(--row-h-dense) border-b border-border px-2 text-center align-middle">
@@ -307,6 +350,9 @@ export function RankingClient({
   };
 
   const problemIds = (data?.problems ?? []).map((problem) => problem.contestProblemId as string);
+  // An organisation column nobody is in is 300px of nothing; DMOJ hides it too.
+  const anyOrganizations = (data?.rows ?? []).some((row) => row.organizations.length > 0);
+  const organizationColumn = anyOrganizations && showOrganizations;
 
   return (
     <>
@@ -364,23 +410,23 @@ export function RankingClient({
             </Alert>
           ) : null}
 
+          <WindowNote detail={detail} />
+
           <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-              <Switch
-                label="Include virtual"
-                checked={includeVirtual}
-                onCheckedChange={setIncludeVirtual}
-              />
+              <Switch label="Include virtual" checked={includeVirtual} onCheckedChange={setIncludeVirtual} />
               <Switch
                 label="Include spectators"
                 checked={includeSpectators}
                 onCheckedChange={setIncludeSpectators}
               />
-              <Switch
-                label="Show organizations"
-                checked={showOrganizations}
-                onCheckedChange={setShowOrganizations}
-              />
+              {anyOrganizations ? (
+                <Switch
+                  label="Show organizations"
+                  checked={showOrganizations}
+                  onCheckedChange={setShowOrganizations}
+                />
+              ) : null}
             </div>
 
             <div className="flex flex-wrap items-end gap-3">
@@ -446,10 +492,15 @@ export function RankingClient({
                         Rating
                       </th>
                     ) : null}
+                    {organizationColumn ? (
+                      <th className="h-8 w-full whitespace-nowrap bg-titlebar pl-5 pr-3 text-left align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">
+                        Organization
+                      </th>
+                    ) : null}
                     {data.problems.map((problem) => (
                       <th
                         key={problem.contestProblemId}
-                        className="h-8 w-11 bg-titlebar px-1 text-center align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink"
+                        className="h-8 w-11 min-w-11 bg-titlebar px-1 text-center align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink"
                       >
                         <Link
                           href={`/contest/${contestKey}/rank/${problem.code}/`}
@@ -481,7 +532,7 @@ export function RankingClient({
                       contestKey={contestKey}
                       problemIds={problemIds}
                       hasRating={data.hasRating}
-                      showOrganizations={showOrganizations}
+                      showOrganizations={organizationColumn}
                       canDisqualify={data.canDisqualify}
                       pendingOf={pendingOf}
                       precision={precision}
