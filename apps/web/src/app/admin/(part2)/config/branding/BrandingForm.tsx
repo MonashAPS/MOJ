@@ -159,6 +159,10 @@ export function BrandingForm({ branding }: { branding: Branding }) {
         ...(favicon ? { faviconStorageId: favicon.storageId as Id<"_storage"> } : {}),
         reason,
       });
+      // The uploads are part of the saved state now, so the form is clean again
+      // and the unsaved-changes guard must stop firing.
+      setLogo(null);
+      setFavicon(null);
       setStatus({ saved: "The branding has been saved. Reload to see it applied across the site." });
       setReason("");
     } catch (error) {

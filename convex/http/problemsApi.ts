@@ -688,8 +688,7 @@ async function languageForKey(ctx: MutationCtx, key: string): Promise<Doc<"langu
   const wanted = key.toLowerCase();
   const all = await ctx.db.query("languages").collect();
   return (
-    all.find(
-      (row) => row.commonName.toLowerCase() === wanted || row.shortName.toLowerCase() === wanted,
-    ) ?? null
+    all.find((row) => row.commonName.toLowerCase() === wanted || row.shortName.toLowerCase() === wanted) ??
+    null
   );
 }

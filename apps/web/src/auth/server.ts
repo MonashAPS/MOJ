@@ -220,11 +220,7 @@ export const auth = betterAuth({
         return;
       }
 
-      if (
-        ctx.path === "/change-password" ||
-        ctx.path === "/reset-password" ||
-        ctx.path === "/sign-out"
-      ) {
+      if (ctx.path === "/change-password" || ctx.path === "/reset-password" || ctx.path === "/sign-out") {
         ctx.setCookie(COMPROMISED_COOKIE, "", { path: "/", maxAge: 0 });
       }
     }),
