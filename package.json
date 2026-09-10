@@ -19,6 +19,7 @@
     "dev:web": "npm run dev --workspace apps/web",
     "build": "npm run build --workspaces --if-present",
     "test": "vitest run",
+    "e2e:judge": "node infra/scripts/e2e-judge.mjs",
     "test:watch": "vitest",
     "lint": "biome check .",
     "format": "biome format --write .",
