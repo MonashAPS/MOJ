@@ -234,15 +234,20 @@ export const contests = query({
     const truncated = all.length > SCAN_CAP;
     const rows = truncated ? all.slice(0, SCAN_CAP) : all;
 
+    const wantedOrganizations = args.organization
+      ? new Set(await resolveOrganizationIds(ctx, args.organization))
+      : null;
+
     const objects: ApiContestListObject[] = [];
     for (const contest of rows) {
       if (!contestIsVisibleTo(contestRow(contest), viewer)) continue;
       if (args.is_rated !== undefined && contest.isRated !== args.is_rated) continue;
       if (args.key && !args.key.includes(contest.key)) continue;
-      if (args.organization) {
-        const organizationIds = new Set(contest.organizationIds.map((id) => id as string));
-        const wanted = await resolveOrganizationIds(ctx, args.organization);
-        if (!wanted.some((id) => organizationIds.has(id))) continue;
+      if (
+        wantedOrganizations &&
+        !contest.organizationIds.some((id) => wantedOrganizations.has(id as string))
+      ) {
+        continue;
       }
       const tags = await contestTagNames(ctx, contest);
       if (args.tag && !args.tag.some((name) => tags.includes(name))) continue;
@@ -331,6 +336,7 @@ export const contest = query({
         return a.tiebreaker - b.tiebreaker;
       });
 
+      const contestCache = new Map<Id<"contests">, Doc<"contests"> | null>();
       const format = getContestFormat(core);
       const formatProblems = contestProblems.map((contestProblem) => ({
         id: contestProblem._id as string,
@@ -348,6 +354,8 @@ export const contest = query({
         if (!profile) continue;
 
         const newRating = ratings.find((r) => r.participationId === participation._id) ?? null;
+        // `old_ratings_subquery`: the rating from the most recent contest that
+        // ended before this one.
         const previous = await ctx.db
           .query("ratings")
           .withIndex("by_profile", (q) => q.eq("profileId", participation.profileId))
@@ -355,7 +363,11 @@ export const contest = query({
         let oldRating: number | null = null;
         let bestEnd = Number.NEGATIVE_INFINITY;
         for (const entry of previous) {
-          const entryContest = await ctx.db.get(entry.contestId);
+          let entryContest = contestCache.get(entry.contestId);
+          if (entryContest === undefined) {
+            entryContest = await ctx.db.get(entry.contestId);
+            contestCache.set(entry.contestId, entryContest);
+          }
           if (!entryContest) continue;
           if (entryContest.endTime >= contestDoc.endTime) continue;
           if (entryContest.endTime > bestEnd) {
@@ -769,6 +781,11 @@ export const user = query({
       .withIndex("by_profile_contest", (q) => q.eq("profileId", profile._id))
       .collect();
 
+    const ratingRows = await ctx.db
+      .query("ratings")
+      .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
+      .collect();
+
     const history: ApiUserDetailObject["contests"] = [];
     for (const participation of participations) {
       if (participation.virtual !== 0) continue;
@@ -776,11 +793,7 @@ export const user = query({
       if (!contestDoc) continue;
       if (contestDoc.endTime >= now) continue;
       if (!contestIsVisibleTo(contestRow(contestDoc), viewer)) continue;
-      const rating = await ctx.db
-        .query("ratings")
-        .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
-        .collect();
-      const entry = rating.find((row) => row.participationId === participation._id) ?? null;
+      const entry = ratingRows.find((row) => row.participationId === participation._id) ?? null;
       history.push({
         key: contestDoc.key,
         score: participation.score,
@@ -946,9 +959,6 @@ export const submissions = query({
         contest: contestBlock,
       });
     }
-
-    // `order_by('id')`: oldest first.
-    objects.reverse();
 
     const data = usedBasicFilters
       ? paginateInfinite(objects, page, truncated)

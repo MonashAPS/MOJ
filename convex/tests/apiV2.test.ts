@@ -469,6 +469,40 @@ describe("submissions", () => {
     expect(parsed.total_objects).toBe(1);
   });
 
+  test("the list is oldest first, as `order_by('id')` is", async () => {
+    await fixture.t.run(async (ctx) => {
+      const group = await ctx.db
+        .query("problemGroups")
+        .withIndex("by_name", (q) => q.eq("name", "Uncategorised"))
+        .unique();
+      const language = await ctx.db
+        .query("languages")
+        .withIndex("by_key", (q) => q.eq("key", "PY3"))
+        .unique();
+      if (!group || !language) throw new Error("fixture is missing");
+      const later = await makeProblem(ctx, "later", group._id, { points: 10 });
+      await makeSubmission(ctx, fixture.ids.alice, later, language._id, {
+        date: Date.UTC(2024, 4, 1),
+        points: 10,
+        legacyId: 42,
+      });
+      await makeSubmission(ctx, fixture.ids.alice, later, language._id, {
+        date: Date.UTC(2024, 5, 1),
+        points: 10,
+        legacyId: 43,
+      });
+    });
+
+    const unfiltered = await fixture.t.query(api.apiV2.submissions, {});
+    expect(unfiltered.objects.map((row) => row.id)).toEqual([41, 42, 43]);
+
+    const filtered = await fixture.t.query(api.apiV2.submissions, { user: "alice" });
+    expect(filtered.objects.map((row) => row.id)).toEqual([41, 42, 43]);
+
+    const byProblem = await fixture.t.query(api.apiV2.submissions, { problem: "later" });
+    expect(byProblem.objects.map((row) => row.id)).toEqual([42, 43]);
+  });
+
   test("a basic filter switches to infinite pagination", async () => {
     const data = await fixture.t.query(api.apiV2.submissions, { user: "alice" });
     expect(data.used_basic_filters).toBe(true);
