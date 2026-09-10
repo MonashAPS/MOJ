@@ -1,0 +1,24 @@
+#!/bin/bash
+
+export DMOJ_IN_DOCKER=1
+export PYTHONUNBUFFERED=1
+export LANG=C.UTF-8
+export PYTHONIOENCODING=utf8
+
+cd /judge || exit
+/env/bin/pip3 install -q -e .
+
+case "$1" in
+run) command=(/env/bin/dmoj) ;;
+cli) command=(/env/bin/dmoj-cli) ;;
+test) command=(/env/bin/python3 -m dmoj.testsuite testsuite) ;;
+*)
+  echo "Invalid command, must be one of [run, cli, test]" 1>&2
+  exit 1
+  ;;
+esac
+
+shift
+export HOME=~judge
+. ~judge/.profile
+exec setpriv --reuid judge --regid judge --clear-groups "${command[@]}" "$@"
