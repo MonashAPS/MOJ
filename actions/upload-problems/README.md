@@ -4,11 +4,6 @@ Push a problem repository to a MOJ judge: statements, editorials, statement
 images and problem metadata over the problems API, and, optionally, the test
 data over rsync.
 
-This replaces the club's Playwright uploader
-(`frontend-automation/scripts/create-problem.mjs`), which drove the Django admin
-form in a headless browser. The API is a plain `PUT`, so a push takes seconds
-and does not break when the admin template changes.
-
 ```yaml
 uses: MonashAPS/MOJ/actions/upload-problems@main
 ```
@@ -29,7 +24,7 @@ problems/
   .image-registry.json   commit this: the sha-keyed image upload cache
 ```
 
-`config.json` carries the same keys the old uploader read:
+`config.json` carries the problem's metadata:
 
 ```json
 {
