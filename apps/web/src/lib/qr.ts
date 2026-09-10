@@ -195,7 +195,7 @@ function drawFunctionPatterns(grid: Grid, version: number) {
         if (px < 0 || py < 0 || px >= size || py >= size) continue;
         const inRing = x >= 0 && x <= 6 && y >= 0 && y <= 6;
         const dark =
-          inRing && ((x === 0 || x === 6 || y === 0 || y === 6) || (x >= 2 && x <= 4 && y >= 2 && y <= 4));
+          inRing && (x === 0 || x === 6 || y === 0 || y === 6 || (x >= 2 && x <= 4 && y >= 2 && y <= 4));
         reserve(grid, px, py, dark ? 1 : 0);
       }
     }

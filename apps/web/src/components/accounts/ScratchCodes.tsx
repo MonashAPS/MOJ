@@ -7,7 +7,13 @@ import { useState } from "react";
 /** DMOJ shows the scratch codes exactly once, with the warning that they will
  *  never be shown again. Copy and download are here so nobody has to retype
  *  them out of a screenshot. */
-export function ScratchCodes({ codes, filename = "moj-scratch-codes.txt" }: { codes: string[]; filename?: string }) {
+export function ScratchCodes({
+  codes,
+  filename = "moj-scratch-codes.txt",
+}: {
+  codes: string[];
+  filename?: string;
+}) {
   const [copied, setCopied] = useState(false);
   const text = codes.join("\n");
 
