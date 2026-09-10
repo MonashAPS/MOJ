@@ -29,6 +29,10 @@
   --color-primary-active: var(--accent-active);
   --color-primary-soft: var(--accent-soft);
   --color-primary-line: var(--accent-line);
+  --color-titlebar: var(--titlebar);
+  --color-titlebar-ink: var(--titlebar-ink);
+  --color-titlebar-ink-2: var(--titlebar-ink-2);
+  --color-titlebar-line: var(--titlebar-line);
   --color-secondary: var(--surface-2);
   --color-secondary-foreground: var(--ink);
   --color-muted: var(--surface-2);
@@ -112,6 +116,8 @@
   --text-sm--line-height: 18px;
   --text-base: var(--fs-base);
   --text-base--line-height: 20px;
+  --text-list: 15px; /* side-box list rows: one step over the table's 14px */
+  --text-list--line-height: 20px;
   --text-md: var(--fs-md);
   --text-md--line-height: var(--lh-prose);
   --text-mono: var(--fs-mono);
