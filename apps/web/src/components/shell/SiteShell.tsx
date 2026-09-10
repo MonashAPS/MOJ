@@ -12,6 +12,7 @@ import { Announcement } from "./Announcement";
 import { ContestBar } from "./ContestBar";
 import { ContestFloater } from "./ContestFloater";
 import { Footer } from "./Footer";
+import { ImpersonationBar } from "./ImpersonationBar";
 import { NavBar } from "./NavBar";
 import { RouteProgress } from "./RouteProgress";
 import { ShortcutLayer } from "./ShortcutLayer";
@@ -123,6 +124,7 @@ export function SiteShell({
         {onContestPage && contest ? (
           <ContestBar data={contest} currentCode={problemCode} viewerUsername={viewer?.username ?? null} />
         ) : null}
+        {viewer?.isImpersonating ? <ImpersonationBar username={viewer.displayName} /> : null}
       </header>
 
       <ProfileBootstrap />

@@ -5,19 +5,20 @@ import {
   Alert,
   AlertTitle,
   Button,
-  Card,
-  CardContent,
   Field,
   FieldGroup,
   FormFooter,
-  Input,
+  MultiSelect,
+  Panel,
   Select,
-  Textarea,
 } from "@moj/ui";
 import { useMutation } from "convex/react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import type { ThemeChoice } from "@/components/shell/ThemeToggle";
+
+const MAX_ORGANIZATIONS = 3;
 
 const EDITOR_THEMES = [
   { value: "github", label: "GitHub" },
@@ -40,40 +41,53 @@ type FormState = {
   languageKey: string;
   siteTheme: ThemeChoice;
   editorTheme: string;
+  organizationSlugs: string[];
 };
 
 export function EditProfileForm({
-  username,
   about,
   timezone,
   languageKey,
   siteTheme,
   editorTheme,
+  organizationSlugs,
   timezones,
   languages,
+  organizations,
+  canEditAbout,
 }: {
-  username: string;
   about: string;
   timezone: string;
   languageKey: string;
   siteTheme: ThemeChoice;
   editorTheme: string;
+  organizationSlugs: string[];
   timezones: string[];
   languages: Array<{ key: string; name: string }>;
+  organizations: Array<{ slug: string; name: string }>;
+  /** DMOJ makes the self-description wait until a first solve. */
+  canEditAbout: boolean;
 }) {
-  const update = useMutation(api.profiles.updatePreferences);
+  const update = useMutation(api.profiles.updateProfile);
   const [baseline, setBaseline] = useState<FormState>({
     about,
     timezone,
     languageKey,
     siteTheme,
     editorTheme,
+    organizationSlugs,
   });
   const [form, setForm] = useState<FormState>(baseline);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState("");
 
-  const dirty = (Object.keys(baseline) as Array<keyof FormState>).some((key) => form[key] !== baseline[key]);
+  const dirty =
+    form.about !== baseline.about ||
+    form.timezone !== baseline.timezone ||
+    form.languageKey !== baseline.languageKey ||
+    form.siteTheme !== baseline.siteTheme ||
+    form.editorTheme !== baseline.editorTheme ||
+    form.organizationSlugs.join(",") !== baseline.organizationSlugs.join(",");
 
   useEffect(() => {
     if (!dirty) return;
@@ -89,26 +103,6 @@ export function EditProfileForm({
     setStatus((current) => (current === "saved" ? "idle" : current));
   }
 
-  async function onSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    setStatus("saving");
-    try {
-      await update({
-        about: form.about,
-        timezone: form.timezone,
-        languageKey: form.languageKey,
-        siteTheme: form.siteTheme,
-        editorTheme: form.editorTheme,
-      });
-      setBaseline(form);
-      setStatus("saved");
-      setMessage("Your profile has been updated.");
-    } catch (error) {
-      setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Your profile could not be saved.");
-    }
-  }
-
   function applyTheme(value: ThemeChoice) {
     change("siteTheme", value);
     const root = document.documentElement;
@@ -121,99 +115,148 @@ export function EditProfileForm({
         localStorage.setItem("moj-theme", value);
       }
     } catch {
-      // private mode
+      // private mode: the preference still saves server side
+    }
+  }
+
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setStatus("saving");
+    try {
+      await update({
+        about: canEditAbout ? form.about : undefined,
+        timezone: form.timezone,
+        languageKey: form.languageKey,
+        siteTheme: form.siteTheme,
+        editorTheme: form.editorTheme,
+        organizationSlugs: form.organizationSlugs,
+      });
+      setBaseline(form);
+      setStatus("saved");
+      setMessage("Your profile has been updated.");
+    } catch (error) {
+      setStatus("error");
+      setMessage(error instanceof Error ? error.message : "Your profile could not be saved.");
     }
   }
 
   return (
-    <Card className="max-w-[44rem]">
-      <CardContent>
-        <form onSubmit={onSubmit}>
-          {status === "saved" ? (
-            <Alert variant="success" className="mb-4">
-              <CheckCircle2 className="size-3.5" aria-hidden />
-              <AlertTitle>{message}</AlertTitle>
-            </Alert>
-          ) : null}
-          {status === "error" ? (
-            <Alert variant="danger" className="mb-4">
-              <AlertCircle className="size-3.5" aria-hidden />
-              <AlertTitle>{message}</AlertTitle>
-            </Alert>
-          ) : null}
+    <form onSubmit={onSubmit} noValidate className="grid gap-4">
+      {status === "error" ? (
+        <Alert variant="danger">
+          <AlertCircle className="size-3.5" aria-hidden />
+          <AlertTitle>{message}</AlertTitle>
+        </Alert>
+      ) : null}
+      {status === "saved" ? (
+        <Alert variant="success">
+          <CheckCircle2 className="size-3.5" aria-hidden />
+          <AlertTitle>{message}</AlertTitle>
+        </Alert>
+      ) : null}
 
-          <FieldGroup columns={2} className="items-start">
-            <Field
-              label="Username"
-              htmlFor="profile-username"
-              hint="Your username cannot be changed."
-              className="sm:col-span-2"
-            >
-              <Input id="profile-username" type="text" value={username} readOnly aria-readonly />
-            </Field>
+      <Panel title="Profile">
+        <Field
+          label="Self-description"
+          htmlFor="profile-about"
+          optional=" optional"
+          hint={
+            canEditAbout
+              ? "Markdown, shown on your profile page. Links, code and maths all work."
+              : "Solve a problem first and this opens up."
+          }
+        >
+          <MarkdownEditor
+            id="profile-about"
+            preset="self-description"
+            value={form.about}
+            onChange={(value) => change("about", value)}
+            disabled={!canEditAbout}
+            disabledReason="Solve a problem first, then you can write one."
+            maxLength={20000}
+            placeholder="A line or two about you."
+            ariaLabel="Self-description"
+          />
+        </Field>
+      </Panel>
 
-            <Field
-              label="Self-description"
-              htmlFor="profile-about"
-              hint="Shown on your profile. Markdown is allowed."
-              className="sm:col-span-2"
-            >
-              <Textarea
-                id="profile-about"
-                rows={6}
-                value={form.about}
-                onChange={(event) => change("about", event.target.value)}
-              />
-            </Field>
+      <Panel title="Preferences">
+        <FieldGroup columns={2}>
+          <Field label="Timezone" htmlFor="profile-timezone" hint="Every date on the site uses it.">
+            <Select
+              id="profile-timezone"
+              ariaLabel="Timezone"
+              value={form.timezone}
+              onValueChange={(value) => change("timezone", value)}
+              options={timezones.map((zone) => ({ value: zone, label: zone }))}
+            />
+          </Field>
 
-            <Field label="Timezone" htmlFor="profile-timezone">
-              <Select
-                id="profile-timezone"
-                ariaLabel="Timezone"
-                value={form.timezone}
-                onValueChange={(value) => change("timezone", value)}
-                options={timezones.map((zone) => ({ value: zone, label: zone }))}
-              />
-            </Field>
+          <Field label="Preferred language" htmlFor="profile-language" hint="Preselected on the submit page.">
+            <Select
+              id="profile-language"
+              ariaLabel="Preferred language"
+              value={form.languageKey}
+              onValueChange={(value) => change("languageKey", value)}
+              options={languages.map((language) => ({ value: language.key, label: language.name }))}
+            />
+          </Field>
 
-            <Field label="Preferred language" htmlFor="profile-language">
-              <Select
-                id="profile-language"
-                ariaLabel="Preferred language"
-                value={form.languageKey}
-                onValueChange={(value) => change("languageKey", value)}
-                options={languages.map((language) => ({ value: language.key, label: language.name }))}
-              />
-            </Field>
+          <Field label="Site theme" htmlFor="profile-site-theme" hint="Applies as soon as you pick it.">
+            <Select
+              id="profile-site-theme"
+              ariaLabel="Site theme"
+              value={form.siteTheme}
+              onValueChange={(value) => applyTheme(value as ThemeChoice)}
+              options={SITE_THEMES}
+            />
+          </Field>
 
-            <Field label="Site theme" htmlFor="profile-theme">
-              <Select
-                id="profile-theme"
-                ariaLabel="Site theme"
-                value={form.siteTheme}
-                onValueChange={(value) => applyTheme(value as ThemeChoice)}
-                options={SITE_THEMES}
-              />
-            </Field>
+          <Field label="Editor theme" htmlFor="profile-editor-theme" hint="Used by the code editor.">
+            <Select
+              id="profile-editor-theme"
+              ariaLabel="Editor theme"
+              value={form.editorTheme}
+              onValueChange={(value) => change("editorTheme", value)}
+              options={EDITOR_THEMES}
+            />
+          </Field>
+        </FieldGroup>
+      </Panel>
 
-            <Field label="Editor theme" htmlFor="profile-editor-theme">
-              <Select
-                id="profile-editor-theme"
-                ariaLabel="Editor theme"
-                value={form.editorTheme}
-                onValueChange={(value) => change("editorTheme", value)}
-                options={EDITOR_THEMES}
-              />
-            </Field>
-          </FieldGroup>
+      <Panel title="Organisations">
+        <Field
+          label="Your organisations"
+          htmlFor="profile-organizations"
+          optional=" optional"
+          hint={`${form.organizationSlugs.length} of ${MAX_ORGANIZATIONS} chosen. Closed organisations are joined by request from their own page.`}
+        >
+          <MultiSelect
+            id="profile-organizations"
+            ariaLabel="Organisations"
+            values={form.organizationSlugs}
+            onChange={(values) => change("organizationSlugs", values)}
+            max={MAX_ORGANIZATIONS}
+            placeholder="None"
+            emptyText="There are no open organizations."
+            options={organizations.map((organization) => ({
+              value: organization.slug,
+              label: organization.name,
+            }))}
+          />
+        </Field>
+      </Panel>
 
-          <FormFooter note={dirty ? "Unsaved changes" : undefined}>
-            <Button type="submit" busy={status === "saving"}>
-              {status === "saving" ? "Saving…" : "Update profile"}
-            </Button>
-          </FormFooter>
-        </form>
-      </CardContent>
-    </Card>
+      <FormFooter note={dirty ? "Unsaved changes" : undefined}>
+        <Button
+          type="submit"
+          busy={status === "saving"}
+          disabled={!dirty && status !== "error"}
+          title={!dirty && status !== "error" ? "Nothing has changed yet." : undefined}
+        >
+          {status === "saving" ? "Saving…" : "Update profile"}
+        </Button>
+      </FormFooter>
+    </form>
   );
 }

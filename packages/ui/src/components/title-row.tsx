@@ -43,7 +43,7 @@ export function TitleRow({
 }) {
   return (
     <>
-      <div className={cn("grid grid-cols-1 gap-3", className)}>
+      <div className={cn("grid min-w-0 grid-cols-1 gap-3", className)}>
         {breadcrumb ? <div className="text-sm text-muted-foreground">{breadcrumb}</div> : null}
         {/* `min-w-0`: without it this row's grid track takes the tab strip's
             max-content width and the page scrolls sideways on a phone. */}
@@ -83,6 +83,8 @@ export function PageTabs({
     <nav
       aria-label="Sections"
       className={cn(
+        // `min-w-0` so a long tab strip scrolls inside itself instead of
+        // widening the page: a grid or flex child is min-content wide by default.
         "-mb-px flex min-w-0 max-w-full shrink-0 items-end gap-1 overflow-x-auto max-md:w-full max-md:pb-px",
         className,
       )}

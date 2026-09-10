@@ -106,12 +106,17 @@ export function UserBlock({
               Edit profile
             </Link>
           </DropdownMenuItem>
-          {viewer.isStaff && viewer.isImpersonating ? (
-            <DropdownMenuItem className="text-warn" asChild>
-              <a href="/impersonate/stop/">
-                <UserX aria-hidden />
-                Stop impersonating
-              </a>
+          {viewer.isImpersonating ? (
+            <DropdownMenuItem
+              className="text-warn"
+              onSelect={async () => {
+                await authClient.admin.stopImpersonating();
+                router.push("/admin/users/");
+                router.refresh();
+              }}
+            >
+              <UserX aria-hidden />
+              Stop impersonating
             </DropdownMenuItem>
           ) : null}
 
@@ -122,16 +127,13 @@ export function UserBlock({
           </div>
 
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            variant="destructive"
-            onSelect={async () => {
-              await authClient.signOut();
-              router.push("/");
-              router.refresh();
-            }}
-          >
-            <LogOut aria-hidden />
-            Log out
+          {/* DMOJ logs out with a POST, so the item goes to the confirmation page
+              rather than ending a session from a menu. */}
+          <DropdownMenuItem variant="destructive" asChild>
+            <Link href="/accounts/logout/">
+              <LogOut aria-hidden />
+              Log out
+            </Link>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

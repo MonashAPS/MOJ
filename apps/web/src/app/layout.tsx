@@ -58,7 +58,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         siteTheme: profile.siteTheme,
         gravatarUrl: gravatarUrl(session?.user.email, 64),
         // The admin plugin stamps the acting superuser onto the session; the
-        // dropdown's "Stop impersonating" row hangs off this.
+        // impersonation bar and the dropdown's "Stop impersonating" row hang
+        // off this.
         isImpersonating: Boolean(
           (session?.session as { impersonatedBy?: string | null } | undefined)?.impersonatedBy,
         ),

@@ -170,6 +170,71 @@ own `error.tsx` so a refused subscription shows a panel inside the console inste
   without a factor cannot reach the console at all. Screenshots of this branch were taken with a temporary
   local escape hatch that was reverted; whoever reviews the console needs an enrolled account, or the gate has
   to learn about a development flag.
+## 2026-09-11, account pages
+
+- **The reset flow uses the URLs docs/using/accounts.md already published**, `/accounts/reset/confirm/<token>/`,
+  `/accounts/reset/complete/` and `/accounts/reset/done/`, not Django's `password/reset/confirm/<uidb64>-<token>/`.
+  DMOJ's three paths exist as redirects to them, so an old link still lands in the right place. Better Auth's
+  token is one opaque string, so DMOJ's `uidb64-token` split has nothing to split.
+- **The two-factor login step is `/accounts/login/2fa/`**, not DMOJ's `/accounts/2fa/`. SPEC section 8 gives
+  `/accounts/2fa/` to the status page, and DMOJ can only overload it because its 2FA settings live under edit
+  profile. `LoginForm` pushes to it when `signIn` answers `twoFactorRedirect`, carrying `next` and the methods
+  Better Auth reported. Nothing is signed in until the challenge is answered: Better Auth holds the session
+  behind a short-lived `moj.two_factor` cookie.
+- **Enrolment asks for the password first.** Better Auth's `twoFactor.enable` will not mint a secret without it
+  for an account that has a password, so DMOJ's one-page `totp_enable` becomes password, then scan, then the
+  scratch codes. The account is not two-factor until a live code is verified, which is DMOJ's behaviour and
+  Better Auth's default (`skipVerificationOnEnable` is off).
+- **The QR code is drawn in the browser from a hand-rolled encoder**, `apps/web/src/lib/qr.ts`: byte mode at
+  error-correction level M, versions 1 to 15. DMOJ renders a PNG server-side with `qrcode`; doing it client-side
+  keeps the secret out of an image URL and adds no runtime dependency. It is verified module for module against
+  the `qrcode` package in `qr.test.ts`.
+- **Staff cannot remove their last factor, enforced in a Better Auth `before` hook** on `/two-factor/disable` and
+  `/passkey/delete-passkey` (`apps/web/src/auth/server.ts`). The pages hide the control, but the endpoints are
+  reachable without them, so the rule has to live where DMOJ's `DMOJ_REQUIRE_STAFF_2FA` check does.
+- **The pwned-password check is split.** `haveIBeenPwned` (Better Auth's own plugin, k-anonymity) rejects a
+  compromised password on `/sign-up/email`, `/change-password` and `/reset-password`. The login prompt cannot
+  reject — the password is already on the account — so an `after` hook on `/sign-in/*` checks it and sets the
+  `moj-password-compromised` cookie, which `src/proxy.ts` turns into DMOJ's forced password change. Completing a
+  change clears it. `HIBP_CHECK=off` disables the plugin for an install with no outbound network.
+- **Email change is Better Auth's `changeEmail`.** With a verified address it sends the activation link to the
+  *new* address, which is DMOJ's behaviour; `sendVerificationEmail` tells a change from a signup by the `updateTo`
+  claim in the token and routes it to `/accounts/email/change/activate/<token>/`, then mails the old address the
+  "somebody asked" warning. The password check in front of it is `auth.api.verifyPassword`, which is server-only,
+  so the page uses a server action rather than a second sign-in from the browser.
+- **Rate limits are on in every environment**, with DMOJ's numbers: ten a minute for `/sign-in/*`,
+  `/request-password-reset`, `/change-email` and `/send-verification-email`. Better Auth's default for sign-in is
+  three in ten seconds, which punishes a member who mistypes twice.
+- **API tokens are the api-key plugin.** `/accounts/api/token/generate/` lists, creates and revokes them; scopes
+  are `read` (`{api: ["read"]}`) and `problems:write` (`{problems: ["write"]}`), the wire names in
+  docs/using/accounts.md. The imported DMOJ token is reported separately and revoked through
+  `profiles.revokeLegacyApiToken`, since it does not live in Postgres.
+- **Logout is a page with a POST form** at DMOJ's `/accounts/logout/`, replacing the route handler, and the user
+  menu links to it. A `GET` no longer ends a session, which matters because Next prefetches menu links.
+- **Disposable-email blocking** is `apps/web/src/auth/disposable-email.ts`, a built-in list plus
+  `BAD_MAIL_PROVIDERS` and `BAD_MAIL_PROVIDER_REGEX` — DMOJ's setting names. It is enforced in the `before` hook
+  on `/sign-up/email` and `/change-email`, and pre-checked in the form so the message lands on the field.
+- **`npm run setup` enrols the dev superuser in TOTP** against `MOJ_DEV_TOTP_SECRET`, written into the generated
+  `.env.local` outside production. The superuser is staff, so without a second factor the staff gate locks it out
+  of the site it was just created for. The secret is fixed so a test can generate a code; five fixed scratch codes
+  come with it. `apps/web/scripts/create-admin.ts` writes the two-factor row Better Auth would have written,
+  encrypting both the secret and the codes with the auth secret (the plugin's default is
+  `storeBackupCodes: "encrypted"`).
+- **`allowedDevOrigins: ["127.0.0.1"]` in `apps/web/next.config.ts`.** Every worktree's dev server shares
+  `localhost` for cookies, so signing in on one port signs you out on another. `127.0.0.1` is a separate cookie
+  origin, but without this Next refuses the dev client's HMR handshake as cross-origin and the page never
+  hydrates. Production is unaffected.
+- **`min-w-0` on `TitleRow` and `PageTabs`.** A five-tab strip made every page carrying one scroll sideways at
+  390 px: a grid or flex child is min-content wide by default, so `overflow-x-auto` on the strip never engaged.
+- `apps/web/src/components/markdown/MarkdownEditor.tsx` is a placeholder: a textarea with a write/preview pair
+  over `renderMarkdown` through a server action. The community branch owns the real one; the props are the same,
+  so the swap is a deletion.
+- `otpauth` is a new dev dependency of `apps/web`, used by `src/auth/totp.test.ts` to check that codes from the
+  reference RFC 6238 implementation verify against Better Auth's verifier with this site's options.
+- **Not done through Better Auth:** nothing. Every account operation on these pages goes through the client or
+  server API. Two things are worth knowing: `viewBackupCodes` is server-only, so the count of remaining scratch
+  codes is read in a server component; and passkeys are a sign-in path of their own rather than a second factor
+  after a password, so "use a passkey" on the challenge page completes the sign-in instead of answering it.
 
 ## 2026-09-10, foundation
 
