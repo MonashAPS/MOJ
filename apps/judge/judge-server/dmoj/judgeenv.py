@@ -83,7 +83,9 @@ def load_env(cli: bool = False, testsuite: bool = False) -> None:  # pragma: no 
 
     parser = argparse.ArgumentParser(description=description)
     if not cli:
-        parser.add_argument('server_host', help='host to connect for the server')
+        # MOJ's pull protocol takes its base URL from $MOJ_URL, so it needs no bridge host positional.
+        if not os.environ.get('MOJ_URL'):
+            parser.add_argument('server_host', help='host to connect for the server')
         parser.add_argument('judge_name', nargs='?', help='judge name (overrides configuration)')
         parser.add_argument('judge_key', nargs='?', help='judge key (overrides configuration)')
         parser.add_argument('-p', '--server-port', type=int, default=9999, help='port to connect for the server')
