@@ -4,8 +4,11 @@
  * sides of a protocol can import the same one.
  */
 
-export * from "./apiV2.js";
-export * from "./judge.js";
+// Extensionless, not `.js`: the package publishes TypeScript source, and
+// Turbopack does not rewrite a `.js` specifier to the `.ts` file beside it, so
+// `apps/web` cannot resolve these re-exports when they carry one.
+export * from "./apiV2";
+export * from "./judge";
 
 export {
   API_ERROR_CODES,
@@ -31,4 +34,4 @@ export {
   problemSummary,
   problemUpsertInput,
   problemUpsertResponse,
-} from "./problems.js";
+} from "./problems";

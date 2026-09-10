@@ -2,6 +2,46 @@
 
 Append dated bullets when you had to extend or deviate from docs/SPEC.md.
 
+## 2026-09-11, submission, judge and statistics pages
+
+- `submissions.list` truncated its page at `numItems` while returning the cursor for the end of the whole scan it
+  had walked, so every row between the cut and the cursor was unreachable: a problem with 174 submissions only
+  ever offered the first 50. The page is now the scan minus what the viewer may not see, which is what the
+  function's own docstring already promised, and `PAGE_SCAN_MULTIPLIER` is 2 so a page stays a sensible length.
+  `convex/__tests__/submissionsListPaging.test.ts` walks every page and fails without the fix.
+- `packages/protocol/src/index.ts` re-exported with `.js` specifiers. Turbopack does not rewrite a `.js` specifier
+  to the `.ts` file beside it, so `next build` could not resolve `API_VERSION` and the whole app failed to build.
+  The barrel is extensionless now. **`@moj/core` has the same problem and still has it**: its barrel and every
+  internal import carry `.js`, so `import { hasPerm } from "@moj/core"` fails inside `apps/web`. Subpaths whose
+  file has no runtime imports (`@moj/core/verdicts`, `@moj/core/util/number`) do resolve, and `apps/web` adds
+  `@moj/core` to `transpilePackages` so they compile; `apps/web/src/lib/viewerPerms.ts` carries copies of
+  `isStaff` and `hasPerm` because `@moj/core/permissions` cannot be reached at all. Dropping the extensions
+  across that package removes the workaround.
+- `apps/web` still cannot `next build`: `packages/content/dist/typst/render-pdf.js` locates its templates with
+  `new URL("../../typst/", import.meta.url)`, which Turbopack tries to resolve as a module, and
+  `/problem/[code]/pdf` pulls it in. `serverExternalPackages` does not help because the package is a workspace
+  symlink. Every other route builds; this one belongs to whoever owns the content package.
+- DESIGN.md section 15 asks the status page for a "12 / 18 cases" progress bar. A judge streams its cases as it
+  runs them and never says how many there are, so there is no honest denominator: the bar pulses at full width
+  while `P`/`G` with the case the judge is on beside it in mono, and a queued submission gets the words alone.
+- The submission row's stretched link points at the submission, not at the problem as section 12.2 says; the
+  problem name is a separate link above it. A submission list's row is about the submission, and DMOJ's own row
+  carries a "view" link for exactly that.
+- The statistics side box is left off `/submissions/user/<u>/` and the contest lists.
+  `submissions.resultsForProblem` counts globally or for one problem, and DMOJ's `_get_result_data` counts the
+  list's own queryset, so showing it there would report a total that is not the list's.
+- New page queries, for the integrator to deploy: `convex/pages/submissions.ts` exports `listContext` (the filter
+  panel's options, DMOJ's `get_searchable_status_codes`, and the `access_check` each list runs), `statusExtras`
+  (the judge a submission ran on, the language's time-limit override, the maximum single-case runtime, a contest
+  problem's output-prefix clip and the abort/rejudge/resubmit flags) and `sourceView` (the source plus the Shiki
+  grammar for the language). Until they are deployed the pages fall back to composing the same shape from
+  `viewer.current`, `languages.list`, `profiles.byUsername`, `problems.get`, `contests.get`,
+  `submissions.detail` and `submissions.source`; the fallback loses the judge name, the language time-limit
+  override and the output-prefix clip, and nothing else.
+- `verdictTone` in `@moj/ui` did not know `_AC`, the code `Submission.result_class_from_code` produces for an
+  accept that did not take every point, so a partial accept was drawn as a neutral pill. It is in the `warn`
+  family now, as section 2.3 lists it, and the pill still reads `AC`.
+
 ## 2026-09-10, foundation
 
 - Convex's backing Postgres database is named `moj_dev`, not `convex` as section 14 says. The backend derives the
