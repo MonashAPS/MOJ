@@ -6,8 +6,8 @@ import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
-/** `RequestJoinClass`, with the club's access-code path: a tutor hands the code
- *  out in a lab and the member joins on the spot. */
+/** `RequestJoinClass`, plus the access-code path: a tutor hands the code out in
+ *  a lab and the member joins on the spot. */
 export function JoinClassForm({
   organizationSlug,
   classSlug,

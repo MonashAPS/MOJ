@@ -34,8 +34,8 @@ export type MembershipViewer = {
 
 /**
  * `organization/home.html`'s info float: join an open organisation, leave one you
- * are in, or ask to join a private one. The access-code dialog is the club's
- * addition — `organizations.join` checks the code DMOJ only checks on approval.
+ * are in, or ask to join a private one. The access-code dialog is an addition:
+ * `organizations.join` checks the code DMOJ only checks on approval.
  */
 export function MembershipActions({
   slug,

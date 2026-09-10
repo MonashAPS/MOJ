@@ -51,7 +51,7 @@ function plural(count: number, one: string, many: string) {
 }
 
 /**
- * DMOJ's submission heatmap, on the club's green rather than GitHub's. One
+ * DMOJ's submission heatmap, on the design system's green rather than GitHub's. One
  * delegated tooltip serves all 365 cells; the cells carry their own labels so the
  * information is not hover-only.
  */
