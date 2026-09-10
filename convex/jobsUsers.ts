@@ -10,9 +10,9 @@
 
 import { v } from "convex/values";
 import { strToU8, zipSync } from "fflate";
-import { internal } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
-import { internalAction, internalMutation, internalQuery } from "../_generated/server";
+import { internal } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
+import { internalAction, internalMutation, internalQuery } from "./_generated/server";
 
 /** How many submissions are read (and zipped) per scheduler slice. */
 const CHUNK = 200;
@@ -194,19 +194,19 @@ export const recordUpload = internalMutation({
 export const run = internalAction({
   args: { jobId: v.id("jobs") },
   handler: async (ctx, { jobId }): Promise<{ storageId: Id<"_storage">; count: number }> => {
-    await ctx.runMutation(internal.jobs.users.setProgress, {
+    await ctx.runMutation(internal.jobsUsers.setProgress, {
       jobId,
       status: "running",
       progress: { done: 0, total: 2, stage: "Applying filters" },
     });
 
     try {
-      const data: ExportPayload | null = await ctx.runQuery(internal.jobs.users.loadExport, {
+      const data: ExportPayload | null = await ctx.runQuery(internal.jobsUsers.loadExport, {
         jobId,
       });
       if (!data) throw new Error("job or profile is gone");
 
-      await ctx.runMutation(internal.jobs.users.setProgress, {
+      await ctx.runMutation(internal.jobsUsers.setProgress, {
         jobId,
         progress: { done: 2, total: 2, stage: "Applying filters" },
       });
@@ -233,14 +233,14 @@ export const run = internalAction({
           files[`submissions/${key}.${submission.extension}`] = strToU8(submission.source);
           prepared += 1;
           if (prepared % CHUNK === 0) {
-            await ctx.runMutation(internal.jobs.users.setProgress, {
+            await ctx.runMutation(internal.jobsUsers.setProgress, {
               jobId,
               progress: { done: prepared, total, stage: "Preparing your submission data" },
             });
           }
         }
         files["submissions/info.json"] = strToU8(sortedJson(submissionInfo));
-        await ctx.runMutation(internal.jobs.users.setProgress, {
+        await ctx.runMutation(internal.jobsUsers.setProgress, {
           jobId,
           progress: { done: total, total, stage: "Preparing your submission data" },
         });
@@ -261,14 +261,14 @@ export const run = internalAction({
           files[`comments/${key}.txt`] = strToU8(comment.body);
           prepared += 1;
           if (prepared % CHUNK === 0) {
-            await ctx.runMutation(internal.jobs.users.setProgress, {
+            await ctx.runMutation(internal.jobsUsers.setProgress, {
               jobId,
               progress: { done: prepared, total, stage: "Preparing your comment data" },
             });
           }
         }
         files["comments/info.json"] = strToU8(sortedJson(commentInfo));
-        await ctx.runMutation(internal.jobs.users.setProgress, {
+        await ctx.runMutation(internal.jobsUsers.setProgress, {
           jobId,
           progress: { done: total, total, stage: "Preparing your comment data" },
         });
@@ -279,11 +279,11 @@ export const run = internalAction({
       const storageId = await ctx.storage.store(blob);
       const name = `${data.username}-data.zip`;
 
-      const profileId: Id<"profiles"> | null = await ctx.runQuery(internal.jobs.users.exportProfileId, {
+      const profileId: Id<"profiles"> | null = await ctx.runQuery(internal.jobsUsers.exportProfileId, {
         jobId,
       });
       if (profileId) {
-        await ctx.runMutation(internal.jobs.users.recordUpload, {
+        await ctx.runMutation(internal.jobsUsers.recordUpload, {
           jobId,
           storageId,
           name,
@@ -291,7 +291,7 @@ export const run = internalAction({
         });
       }
 
-      await ctx.runMutation(internal.jobs.users.setProgress, {
+      await ctx.runMutation(internal.jobsUsers.setProgress, {
         jobId,
         status: "done",
         result: {
@@ -304,7 +304,7 @@ export const run = internalAction({
       });
       return { storageId, count: data.submissions.length + data.comments.length };
     } catch (error) {
-      await ctx.runMutation(internal.jobs.users.setProgress, {
+      await ctx.runMutation(internal.jobsUsers.setProgress, {
         jobId,
         status: "failed",
         error: error instanceof Error ? error.message : String(error),

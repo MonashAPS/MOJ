@@ -599,7 +599,7 @@ export const RESCORE_CHUNK = 25;
 
 /**
  * `rescore_contest` (judge/tasks/contest.py:14) as a chunked job: the runner
- * lives in `convex/jobs/contests.ts` and walks the participations in batches.
+ * lives in `convex/jobsContests.ts` and walks the participations in batches.
  */
 export const rescoreContest = mutation({
   args: { key: v.string() },
@@ -624,7 +624,7 @@ export const rescoreContest = mutation({
       createdAt: Date.now(),
     });
 
-    await ctx.scheduler.runAfter(0, internal.jobs.contests.rescoreChunk, {
+    await ctx.scheduler.runAfter(0, internal.jobsContests.rescoreChunk, {
       jobId,
       contestId: contest._id,
       cursor: 0,

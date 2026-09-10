@@ -1008,7 +1008,7 @@ export const prepareDataExport = mutation({
     });
 
     await ctx.db.patch(profile._id, { dataLastDownloaded: now });
-    await ctx.scheduler.runAfter(0, internal.jobs.users.run, { jobId });
+    await ctx.scheduler.runAfter(0, internal.jobsUsers.run, { jobId });
     return jobId;
   },
 });

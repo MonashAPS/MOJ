@@ -663,7 +663,7 @@ export const rescore = mutation({
       createdByProfileId: profile._id,
       createdAt: Date.now(),
     });
-    await ctx.scheduler.runAfter(0, internal.jobs.contests.rescoreChunk, {
+    await ctx.scheduler.runAfter(0, internal.jobsContests.rescoreChunk, {
       jobId,
       contestId: contest._id,
       cursor: 0,
@@ -691,7 +691,7 @@ export const rate = mutation({
       createdByProfileId: profile._id,
       createdAt: Date.now(),
     });
-    await ctx.scheduler.runAfter(0, internal.jobs.contests.rateContestJob, {
+    await ctx.scheduler.runAfter(0, internal.jobsContests.rateContestJob, {
       jobId,
       contestId: contest._id,
     });
@@ -726,7 +726,7 @@ export const rejudgeProblem = mutation({
       createdByProfileId: profile._id,
       createdAt: Date.now(),
     });
-    await ctx.scheduler.runAfter(0, internal.jobs.contests.rejudgeContestProblemChunk, {
+    await ctx.scheduler.runAfter(0, internal.jobsContests.rejudgeContestProblemChunk, {
       jobId,
       contestId: contest._id,
       contestProblemId,

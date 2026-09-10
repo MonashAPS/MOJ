@@ -9,11 +9,11 @@
 
 import { shouldLeaveContest } from "@moj/core";
 import { v } from "convex/values";
-import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { internalMutation, type MutationCtx } from "../_generated/server";
-import { toContestRow, toParticipationRow, toViewerRowInContest } from "../contestFormats";
-import { RESCORE_CHUNK, recompute } from "../contestRankings";
+import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
+import { internalMutation, type MutationCtx } from "./_generated/server";
+import { toContestRow, toParticipationRow, toViewerRowInContest } from "./contestFormats";
+import { RESCORE_CHUNK, recompute } from "./contestRankings";
 
 async function startJob(ctx: MutationCtx, jobId: Id<"jobs">, stage: string): Promise<void> {
   const job = await ctx.db.get(jobId);
@@ -73,7 +73,7 @@ export const rescoreChunk = internalMutation({
     await advance(ctx, jobId, done);
 
     if (done < participations.length) {
-      await ctx.scheduler.runAfter(0, internal.jobs.contests.rescoreChunk, {
+      await ctx.scheduler.runAfter(0, internal.jobsContests.rescoreChunk, {
         jobId,
         contestId,
         cursor: done,
@@ -168,7 +168,7 @@ export const rejudgeContestProblemChunk = internalMutation({
     await advance(ctx, jobId, done);
 
     if (done < submissions.length) {
-      await ctx.scheduler.runAfter(0, internal.jobs.contests.rejudgeContestProblemChunk, {
+      await ctx.scheduler.runAfter(0, internal.jobsContests.rejudgeContestProblemChunk, {
         jobId,
         contestId,
         contestProblemId,
