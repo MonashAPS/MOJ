@@ -267,6 +267,55 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
         </p>
       ) : null}
 
+      {problem.authors.length > 0 ? (
+        <div className="border-t border-border pt-2">
+          <div className="flex min-w-0 items-baseline gap-2 text-sm">
+            <PencilLine size={14} aria-hidden className="relative top-0.5 shrink-0 text-muted-foreground" />
+            <span className="shrink-0 text-subtle">
+              {problem.authors.length === 1 ? "Author:" : "Authors:"}
+            </span>
+            <span className="flex flex-wrap gap-x-1.5">
+              {problem.authors.map((author) => (
+                <RatingName
+                  key={author.username}
+                  username={author.username}
+                  rating={author.rating}
+                  href={`/user/${author.username}`}
+                  isAdmin={author.displayRank === "admin"}
+                />
+              ))}
+            </span>
+          </div>
+        </div>
+      ) : null}
+
+      {problem.types && problem.types.length > 0 ? (
+        <Disclosure label={problem.types.length === 1 ? "Problem type" : "Problem types"}>
+          {problem.types.map((type) => type.fullName).join(", ")}
+        </Disclosure>
+      ) : null}
+
+      {problem.showLanguages ? (
+        <Disclosure label="Allowed languages" defaultOpen>
+          <span className="flex flex-wrap gap-x-1.5 gap-y-1">
+            {problem.allowedLanguages.map((language) => (
+              <span key={language.key}>{language.name}</span>
+            ))}
+          </span>
+        </Disclosure>
+      ) : null}
+
+      {problem.canEdit ? (
+        <div className="border-t border-border pt-2">
+          <Entry icon={<Database />} label="Judges:">
+            {problem.availableJudges > 0 ? (
+              problem.availableJudges
+            ) : (
+              <span className="font-sans italic text-muted-foreground">none available</span>
+            )}
+          </Entry>
+        </div>
+      ) : null}
       {problem.appearedIn.length > 0 ? (
         <div className="border-t border-border pt-2">
           {/* A contest or workshop name can give the technique away, so the list
@@ -325,56 +374,6 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
               ) : null}
             </>
           ) : null}
-        </div>
-      ) : null}
-
-      {problem.authors.length > 0 ? (
-        <div className="border-t border-border pt-2">
-          <div className="flex min-w-0 items-baseline gap-2 text-sm">
-            <PencilLine size={14} aria-hidden className="relative top-0.5 shrink-0 text-muted-foreground" />
-            <span className="shrink-0 text-subtle">
-              {problem.authors.length === 1 ? "Author:" : "Authors:"}
-            </span>
-            <span className="flex flex-wrap gap-x-1.5">
-              {problem.authors.map((author) => (
-                <RatingName
-                  key={author.username}
-                  username={author.username}
-                  rating={author.rating}
-                  href={`/user/${author.username}`}
-                  isAdmin={author.displayRank === "admin"}
-                />
-              ))}
-            </span>
-          </div>
-        </div>
-      ) : null}
-
-      {problem.types && problem.types.length > 0 ? (
-        <Disclosure label={problem.types.length === 1 ? "Problem type" : "Problem types"}>
-          {problem.types.map((type) => type.fullName).join(", ")}
-        </Disclosure>
-      ) : null}
-
-      {problem.showLanguages ? (
-        <Disclosure label="Allowed languages" defaultOpen>
-          <span className="flex flex-wrap gap-x-1.5 gap-y-1">
-            {problem.allowedLanguages.map((language) => (
-              <span key={language.key}>{language.name}</span>
-            ))}
-          </span>
-        </Disclosure>
-      ) : null}
-
-      {problem.canEdit ? (
-        <div className="border-t border-border pt-2">
-          <Entry icon={<Database />} label="Judges:">
-            {problem.availableJudges > 0 ? (
-              problem.availableJudges
-            ) : (
-              <span className="font-sans italic text-muted-foreground">none available</span>
-            )}
-          </Entry>
         </div>
       ) : null}
     </Panel>
