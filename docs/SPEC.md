@@ -467,3 +467,9 @@ directories' test data to the judge host exactly as the club's current workflows
 `skipped`, `failed` (JSON lists) and a step summary table. Fails the job on any failed upload. Documented on the
 "Problem repos and CI" page with a complete example workflow (secrets `JUDGE_URL`, `JUDGE_API_KEY`, `JUDGE_HOST`,
 `JUDGE_SSH_KEY`) and on the action's own README.
+
+Spoiler rule (club feedback, 2026-09-11). "Appeared in" is collapsed by default on the problem page behind a
+"Show contests" toggle, exactly like DMOJ's "Show problem types" toggle, because a contest or workshop name can give
+the technique away. The toggle state is remembered per viewer (profile preference, like DMOJ's), and the contest
+filter on `/problems/` is opt-in in the same way (never applied unless the viewer asks). Contest pages themselves
+still list their problems normally.
