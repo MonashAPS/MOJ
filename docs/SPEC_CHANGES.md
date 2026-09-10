@@ -842,3 +842,10 @@ a wiring point that the page wave will import, so they are recorded here rather 
 - `/problem/[code]/clone` clones through `admin/problems.create` with the source problem's fields, the
   cloner as its author and `isPublic: false`. DMOJ's `ProblemClone` copies the same metadata; test data
   is not copied there either.
+- `TitleRow`'s wrapper is `grid-cols-1`, not a bare `grid`. An `auto` grid track sizes to max-content, so
+  a page whose tab strip is wider than the viewport pushed the whole title row past the right edge and
+  the body scrolled horizontally at 375 px, which section 22 forbids. The strip still scrolls inside its
+  own wrapper.
+- The editorial confirmation (spec section 20) is a kit `Dialog` opened by the Editorial tab, and its
+  "don't ask me again" flag lives in `localStorage` under `moj.editorial-confirmed`. A direct visit to
+  `/problem/<code>/editorial` is deliberately not intercepted, so a shared link still works.

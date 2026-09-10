@@ -343,8 +343,9 @@ export function ProblemsView({
   const columns =
     (username ? 1 : 0) + 3 + (query.showTypes ? 1 : 0) + (inContest ? 0 : 2) + (inContest ? 0 : 0);
 
-  const panel = (
+  const renderPanel = (bare: boolean) => (
     <FilterPanel
+      bare={bare}
       query={query}
       options={options}
       onApply={apply}
@@ -356,6 +357,7 @@ export function ProblemsView({
       busy={pending}
     />
   );
+  const panel = renderPanel(false);
 
   const pager =
     data.totalPages > 1 ? (
@@ -537,7 +539,7 @@ export function ProblemsView({
               <SheetHeader>
                 <SheetTitle>Filters</SheetTitle>
               </SheetHeader>
-              <div className="px-4 pb-6">{panel}</div>
+              <div className="px-4 pb-6">{renderPanel(true)}</div>
             </SheetContent>
           </Sheet>
           {pager ? <div className="max-md:hidden">{pager}</div> : null}
