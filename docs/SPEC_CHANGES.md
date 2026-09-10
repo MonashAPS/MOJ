@@ -971,3 +971,61 @@ a wiring point that the page wave will import, so they are recorded here rather 
   named (`username`, `problemCode`, `contestKey`, plus `pageSize` and the empty-state copy). It renders
   `submissions.list` in DESIGN.md section 12.2's row shape so the Submissions tab is finished; the
   submissions agent's component replaces it at integration.
+## 2026-09-11, the hall scoreboard
+
+- **The carousel cross-fades; it does not slide.** The fork translates a track between divisions;
+  DESIGN.md section 16.2 asks for a cross-fade over `--dur-slow`/`--ease-out` with no movement, and that is
+  what `/scoreboard/[event]` does. The panels are stacked and only the active one takes pointers, so each
+  division keeps its own scroll position for the auto-preview tour.
+- **The reveal is a mutation, not local state.** The fork runs its ceremony entirely in the browser: the
+  organiser's tab holds the revealed cells and nothing else on the network sees them. MOJ already had
+  `scoreboard.revealStep` / `revealUndo` / `revealAll` writing `contests.revealState`, so the page calls those
+  and lets the subscription push the new board to every screen at once — the projector, the stream and the
+  organiser's laptop turn over the same result at the same moment. Consequences: "reveal all" is one server
+  call rather than one undoable client step, and undo walks the persisted list.
+- **The ceremony's target and the server's target can differ under the attendance filter.** The page
+  highlights the bottom-most frozen cell of the *displayed* rows, as the fork does, so an in-person-only board
+  never stops on a remote competitor. `scoreboard.revealStep` picks the bottom-most frozen cell of the whole
+  division. With "In person" on, the step may therefore resolve a row that is not on screen. Either the
+  mutation grows a participation filter or the page passes the target it means; the mutation is not this
+  branch's file.
+- **The event feed is derived from the board, not from a second subscription.** `scoreboard.event` already
+  carries every solve time and every outstanding submission, so `feedEntries` in
+  `apps/web/src/components/scoreboard/hall.ts` builds the sidebar from the same payload: no extra query, and
+  the sidebar can never disagree with the grid beside it. It shows solves and pending cells; the fork's
+  per-submission entries (wrong answers, wall-clock times, a verdict chip that settles in place) need
+  submission rows, so **`convex/pages/scoreboard.ts` adds a `feed` query** that returns exactly those, covered
+  by `convex/__tests__/scoreboardFeed.test.ts`. It is not deployed on this branch — swap `feedEntries` for it
+  at integration. Its ordering rule is the freeze's: an entry from inside the freeze reads as pending and
+  carries no verdict for staff as much as for the hall, so the sidebar cannot spoil the grid or the reveal.
+  The derived list caps the outstanding block at a fifth of the sidebar, because everything the freeze is
+  holding is newer than every solve on the board and strict time order would bury them.
+- **The olympics pictograms are the fork's artwork, not Lucide.** DESIGN.md section 16.2 says the theme uses
+  Lucide's sport-adjacent glyphs; the fork ships eleven drawn pictograms and a gold medal, and they are what
+  the club has already put on a projector. They are copied to `apps/web/public/scoreboard-themes/olympics/`
+  and the Jinja `sports` / `problem_icons` tables become
+  `apps/web/src/components/scoreboard/olympics.ts`. Still no emoji. One behaviour change: the fork leaves a
+  problem the table does not name as a plain number, and MOJ falls back to the sport at that column's
+  position, so every column carries a pictogram as section 16.2 describes. The explicit table still wins.
+- **`tokens.css` gained a `.theme-dark` scope.** The hall is dark by identity whatever the viewer's theme is
+  (section 16.2), and the dark palette was only reachable through `:root[data-theme="dark"]`. The dark block's
+  selector list now also carries `.theme-dark`, which the hall's root element uses; nothing else changes.
+- **`SiteShell` renders `/scoreboard/[event]` bare.** The hall board is a projector surface with its own
+  chrome, so the nav, the ContestBar, the footer and the content column are not rendered for it. `/scoreboard/`
+  itself is an ordinary page.
+- **No countdown beside the division title.** Section 16.2 puts one there, but `scoreboard.event`'s division
+  payload carries `duration`, `freezeOffset`, `hasStarted` and `hasEnded` — no absolute start or end time — so
+  the page cannot count down without changing that query's shape. The freeze banner states the freeze as a
+  contest clock ("froze at 3:00, with the final 60 minutes withheld") rather than a wall-clock time. Add
+  `startTime`/`endTime` to the division payload when the query is next edited and the countdown is a
+  ten-line component.
+- **The badge editor saves one badge at a time.** The fork posts `{add: [], remove: []}` in one request;
+  `scoreboard.setTag` takes a single slug, so the modal diffs the boxes and sends one mutation per changed
+  badge. A partial failure therefore leaves the earlier changes applied, and the modal stays open on the
+  boxes as they were left.
+- **Staff cannot reach the page in this build.** `apps/web/src/proxy.ts` sends any staff account without a
+  second factor to `/accounts/2fa/`, and that page has no enrolment control yet, so no staff session can open
+  any page — including this one. The reveal bar, the badge editor and the `E`/`R` shortcuts are therefore
+  unexercised in a browser; they are covered by the payload's `canReveal` / `canEditTags` flags and by the
+  mutations, which were driven directly against the deployment. Nothing here needs changing once the accounts
+  agent lands 2FA enrolment.

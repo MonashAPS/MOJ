@@ -387,7 +387,10 @@
   }
 }
 
-:root[data-theme="dark"] {
+/* `.theme-dark` is the same palette scoped to a subtree, for the one surface that
+   is dark by identity whatever the viewer's theme is: the hall scoreboard. */
+:root[data-theme="dark"],
+.theme-dark {
   color-scheme: dark;
 
   --nav: #141c33;

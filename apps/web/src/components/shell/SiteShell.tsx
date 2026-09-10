@@ -17,6 +17,14 @@ import { RouteProgress } from "./RouteProgress";
 import { ShortcutLayer } from "./ShortcutLayer";
 import type { ViewerSummary } from "./UserBlock";
 
+/** The hall scoreboard is a projector surface, not a page of the site: it draws
+ *  its own chrome full-bleed and must not carry the nav, the footer or the
+ *  content column (DESIGN.md section 16.2). The index at `/scoreboard/` is an
+ *  ordinary page. */
+function isHallScoreboard(pathname: string): boolean {
+  return /^\/scoreboard\/.+/.test(pathname);
+}
+
 /** The club's royal grid belongs on the pages that are mostly words. Behind a
  *  table it is noise (DESIGN.md section 7). */
 function wantsGrid(pathname: string): boolean {
@@ -79,6 +87,16 @@ export function SiteShell({
       `calc(var(--header-height, var(--nav-height)) + var(--space-5))`,
     );
   }, []);
+
+  if (isHallScoreboard(pathname)) {
+    return (
+      <TooltipProvider>
+        <ProfileBootstrap />
+        {children}
+        <Toaster />
+      </TooltipProvider>
+    );
+  }
 
   return (
     <TooltipProvider>
