@@ -2,21 +2,19 @@
 // judge/feed.py: ProblemFeed, CommentFeed and BlogFeed.
 
 import { api } from "@convex/_generated/api";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderMarkdown } from "@moj/content";
 import { query } from "@/lib/convex-server";
-import { renderFlatPage } from "@/lib/simple-markdown";
 import type { FeedEntry, FeedMeta } from "./xml";
 
 /**
- * Markdown to HTML for a feed body.
- *
- * NOTE: this uses the shell's placeholder renderer. Swap it for
- * `renderMarkdown(body, preset)` from `@moj/content` when that package is built
- * into the web app; the preset each item wants already travels with it.
+ * Markdown to HTML for a feed body, under the preset the item travels with.
+ * A feed is read outside the site, so nothing is highlighted and no image is
+ * lazy-loaded: both need CSS the reader does not have.
  */
-function renderBody(body: string, _preset: string): string {
+async function renderBody(body: string, preset: string): Promise<string> {
   if (!body.trim()) return "";
-  return renderToStaticMarkup(renderFlatPage(body));
+  const { html } = await renderMarkdown(body, preset, { highlight: false, lazyLoadImages: false });
+  return html;
 }
 
 export type FeedKind = "problems" | "comment" | "blog";
@@ -44,15 +42,17 @@ export async function loadFeed(
         link: "/",
         self: `/feed/problems/${format}/`,
       },
-      entries: items.map((item) => ({
-        id: item.id,
-        title: item.title,
-        link: item.link,
-        // DMOJ truncates the rendered problem statement at 500 characters.
-        descriptionHtml: `${renderBody(item.body, item.preset).slice(0, PROBLEM_DESCRIPTION_LIMIT)}...`,
-        published: item.published,
-        updated: item.updated,
-      })),
+      entries: await Promise.all(
+        items.map(async (item) => ({
+          id: item.id,
+          title: item.title,
+          link: item.link,
+          // DMOJ truncates the rendered problem statement at 500 characters.
+          descriptionHtml: `${(await renderBody(item.body, item.preset)).slice(0, PROBLEM_DESCRIPTION_LIMIT)}...`,
+          published: item.published,
+          updated: item.updated,
+        })),
+      ),
     };
   }
 
@@ -65,14 +65,16 @@ export async function loadFeed(
         link: "/",
         self: `/feed/comment/${format}/`,
       },
-      entries: items.map((item) => ({
-        id: item.id,
-        title: item.title,
-        link: item.link,
-        descriptionHtml: renderBody(item.body, item.preset),
-        published: item.published,
-        updated: item.updated,
-      })),
+      entries: await Promise.all(
+        items.map(async (item) => ({
+          id: item.id,
+          title: item.title,
+          link: item.link,
+          descriptionHtml: await renderBody(item.body, item.preset),
+          published: item.published,
+          updated: item.updated,
+        })),
+      ),
     };
   }
 
@@ -84,13 +86,15 @@ export async function loadFeed(
       link: "/",
       self: `/feed/blog/${format}/`,
     },
-    entries: items.map((item) => ({
-      id: item.id,
-      title: item.title,
-      link: item.link,
-      descriptionHtml: renderBody(item.body, item.preset),
-      published: item.published,
-      updated: item.updated,
-    })),
+    entries: await Promise.all(
+      items.map(async (item) => ({
+        id: item.id,
+        title: item.title,
+        link: item.link,
+        descriptionHtml: await renderBody(item.body, item.preset),
+        published: item.published,
+        updated: item.updated,
+      })),
+    ),
   };
 }

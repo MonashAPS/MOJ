@@ -1,11 +1,11 @@
 import { api } from "@convex/_generated/api";
+import { renderMarkdown } from "@moj/content";
 import { ContentDescription, RatingName, TitleRow, TwoColumn } from "@moj/ui";
 import { MessageSquare, Pin } from "lucide-react";
 import Link from "next/link";
 import { ContestsBox, NewProblemsBox, RecentCommentsBox, TopUsersBox } from "@/components/home/SideBoxes";
 import { query, queryAsViewer } from "@/lib/convex-server";
 import { formatDate } from "@/lib/format";
-import { renderFlatPage } from "@/lib/simple-markdown";
 
 export const metadata = { title: "Home" };
 export const dynamic = "force-dynamic";
@@ -15,6 +15,19 @@ export default async function HomePage() {
     query(api.site.miscConfig, {}).catch(() => ({}) as Record<string, string>),
     queryAsViewer(api.blog.list, { limit: 10 }).catch(() => []),
   ]);
+  // The summaries are rendered here rather than in the map below so the page
+  // stays a single await; `renderMarkdown` is async, JSX is not.
+  const summaries = new Map(
+    await Promise.all(
+      posts.map(
+        async (post) =>
+          [
+            post._id,
+            (await renderMarkdown(post.summary || firstParagraph(post.content), "blog")).html,
+          ] as const,
+      ),
+    ),
+  );
 
   return (
     <>
@@ -81,9 +94,7 @@ export default async function HomePage() {
                   ) : null}
                 </p>
 
-                <ContentDescription>
-                  {renderFlatPage(post.summary || firstParagraph(post.content))}
-                </ContentDescription>
+                <ContentDescription html={summaries.get(post._id) ?? ""} />
 
                 <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: "0.95em" }}>
                   <Link href={post.href}>read more</Link>
