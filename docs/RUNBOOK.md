@@ -101,8 +101,18 @@ The judge service is behind a compose profile so the stack comes up without it:
 docker compose -f infra/compose.dev.yml --project-directory . --profile judge up -d judge
 ```
 
-It needs `apps/judge/Dockerfile`, which the judge agent builds. Test data lives
-in `infra/problems/<code>`; only `aplusb` is committed.
+That service runs on host networking and pulls from `http://127.0.0.1:3211`.
+A bridged container reaches the host through `host.docker.internal`, and a
+Linux host that firewalls its bridge interface drops that traffic, so the
+handshake never lands; host networking sidesteps it. Docker Desktop on macOS
+and Windows has no host networking, so use the bridged service there:
+
+```sh
+docker compose -f infra/compose.dev.yml --project-directory . --profile judge-bridge up -d judge-bridge
+```
+
+Either way test data lives in `infra/problems/<code>`; only `aplusb` is
+committed. `MOJ_JUDGE_URL`, `JUDGE_NAME` and `JUDGE_KEY` override the defaults.
 
 ## Resetting
 
