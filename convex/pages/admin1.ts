@@ -9,18 +9,13 @@
  * viewer is allowed to see at all. Nothing here writes.
  */
 
-import {
-  contestIsEditableBy,
-  hasPerm,
-  problemIsEditableBy,
-  problemIsInEditableSet,
-} from "@moj/core";
+import { contestIsEditableBy, hasPerm, problemIsEditableBy, problemIsInEditableSet } from "@moj/core";
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { mutation, type QueryCtx, query } from "../_generated/server";
 import { contestByKey, labelsForContest, toContestRow, toViewerRowInContest } from "../contestFormats";
-import { forbidden, invalid, mojError } from "../lib/errors";
 import { requireViewer } from "../lib/auth";
+import { forbidden, invalid, mojError } from "../lib/errors";
 import { labelFor, loadViewerContext, problemByCode, solutionFor, toCoreProblem } from "../problems";
 
 /* -------------------------------------------------------------------------- */
@@ -603,7 +598,9 @@ export const contestOptions = query({
         .map((row) => ({ slug: row.slug, name: row.name }))
         .sort((a, b) => a.name.localeCompare(b.name)),
       classes: classRows.sort((a, b) => a.name.localeCompare(b.name)),
-      tags: tags.map((row) => ({ name: row.name, color: row.color })).sort((a, b) => a.name.localeCompare(b.name)),
+      tags: tags
+        .map((row) => ({ name: row.name, color: row.color }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
     };
   },
 });
@@ -614,17 +611,20 @@ export const contestOptions = query({
  */
 export const resolveProfiles = query({
   args: { usernames: v.array(v.string()) },
-  handler: async (ctx, { usernames }): Promise<{ ids: Id<"profiles">[]; missing: string[] }> => {
+  handler: async (
+    ctx,
+    { usernames },
+  ): Promise<{ ids: Record<string, Id<"profiles">>; missing: string[] }> => {
     const viewer = await staffViewer(ctx);
-    if (!viewer) return { ids: [], missing: usernames };
-    const ids: Id<"profiles">[] = [];
+    if (!viewer) return { ids: {}, missing: usernames };
+    const ids: Record<string, Id<"profiles">> = {};
     const missing: string[] = [];
-    for (const username of usernames) {
+    for (const username of [...new Set(usernames)]) {
       const row = await ctx.db
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", username))
         .unique();
-      if (row) ids.push(row._id);
+      if (row) ids[username] = row._id;
       else missing.push(username);
     }
     return { ids, missing };
@@ -759,9 +759,7 @@ export const submissionsList = query({
           .withIndex("by_username", (q) => q.eq("username", args.username as string))
           .unique()
       : null;
-    const problem = args.problemCode
-      ? await problemByCode(ctx, args.problemCode)
-      : null;
+    const problem = args.problemCode ? await problemByCode(ctx, args.problemCode) : null;
     const contest = args.contestKey ? await contestByKey(ctx, args.contestKey) : null;
     const judge = args.judgeName
       ? await ctx.db
@@ -792,17 +790,11 @@ export const submissionsList = query({
     const results = new Set(args.results ?? []);
 
     const source = problem
-      ? ctx.db
-          .query("submissions")
-          .withIndex("by_problem_date", (q) => q.eq("problemId", problem._id))
+      ? ctx.db.query("submissions").withIndex("by_problem_date", (q) => q.eq("problemId", problem._id))
       : profile
-        ? ctx.db
-            .query("submissions")
-            .withIndex("by_profile_date", (q) => q.eq("profileId", profile._id))
+        ? ctx.db.query("submissions").withIndex("by_profile_date", (q) => q.eq("profileId", profile._id))
         : contest
-          ? ctx.db
-              .query("submissions")
-              .withIndex("by_contest_date", (q) => q.eq("contestId", contest._id))
+          ? ctx.db.query("submissions").withIndex("by_contest_date", (q) => q.eq("contestId", contest._id))
           : ctx.db.query("submissions").withIndex("by_date");
 
     const scanned = await source.order("desc").take(20_000);
@@ -971,4 +963,3 @@ export const scoreboardOptions = query({
     return { contests, organizations };
   },
 });
-
