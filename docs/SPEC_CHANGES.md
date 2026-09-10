@@ -120,3 +120,72 @@ Append dated bullets when you had to extend or deviate from docs/SPEC.md.
   including the two `.wasm` plugins they ship (about 600 kB together). They are a runtime
   dependency of every PDF, and vendoring them is what keeps a compile offline;
   `npm run vendor:typst` refreshes them.
+
+## 2026-09-10, users, organisations and API v2
+
+Schema (all additive, all recorded here as section 4 asks):
+
+- `profiles.isActive?` — DMOJ's `User.is_active`. API v2's user list filters on it
+  (`filter(is_unlisted=False, user__is_active=True)`) and `admin/users.deactivate` sets it.
+  Absent means active, so imported rows need no backfill.
+- `classes.description?` — DMOJ's `Class.description`, which section 4 omitted; the class page
+  shows it.
+- New indexes: `profiles.by_listed_points` (the leaderboard can sort by points, which section 4
+  gave no index for), `classes.by_organization_slug` (a class is addressed by organisation slug
+  plus class slug), `organizationRequests.by_profile_state` ("do you already have a pending
+  request" without a scan), `jobs.by_creator_type_createdAt` (a user's latest `userExport` job).
+
+Behaviour and interpretation:
+
+- Markdown is never rendered inside Convex. `@moj/content` pulls in Shiki, whose default engine
+  is WASM, which does not belong in a Convex isolate. `profiles.userPage` and
+  `organizations.get` return `about` as source alongside the preset name the page must use
+  (`self-description` and `organization-about`), and the web layer renders it. Every other
+  Convex module on this branch already worked that way.
+- API v2 object ids. DMOJ exposes Django primary keys. MOJ keeps them in `legacyId` for imported
+  rows and has none for rows created afterwards, so `id` is `number | string`: the Django id
+  where there is one, the Convex document id otherwise. `?id=` filters accept either spelling.
+  `/api/v2/submission/[id]` accepts either too.
+- API v2 list endpoints scan at most 20000 rows before paginating. DMOJ filters for visibility
+  in SQL and paginates in the database; Convex has to apply `@moj/core`'s rules in the function,
+  so the scan is bounded and `has_more` stays true past the cap rather than lying.
+- `organizations.join` also checks the access code and the slot limit. DMOJ's
+  `JoinOrganization.handle` checks neither (only the request-approval path counts slots), but
+  both were asked for. The other three rules are DMOJ's verbatim: already a member, organisation
+  not open, and at most `DMOJ_USER_MAX_ORGANIZATION_COUNT` (3) open organisations.
+- `classes.join` takes an access code. DMOJ's `Class.access_code` field exists but its only
+  join path is a request; the club hands the code out in a lab, so a code join was added beside
+  it. A class join still requires organisation membership, as `RequestJoinClass` does.
+- `profiles.updateProfile` exposes `usernameDisplayOverride` to staff only. DMOJ only exposes
+  `username_display_override` through the Django admin, and `ProfileForm` never carries it.
+- The leaderboard's tie order. `by_listed_pp` and its siblings order ties by document id in the
+  same direction as the sort column, where DMOJ's `order_by(self.order, 'id')` always breaks
+  ties ascending, so the page is re-sorted after the index read. `rankings.find` counts
+  "performance points greater than" and "equal points, smaller id" as two bounded aggregate
+  counts, which is `user_ranking_redirect`'s arithmetic exactly.
+- The three profile aggregates have no automatic trigger. Every mutation that inserts a profile
+  or changes `performancePoints`, `points`, `problemCount`, `rating` or `isUnlisted` goes
+  through `rankings.patchProfile` / `insertProfileAggregates`. Other modules that write those
+  fields (the judging bookkeeping, ratings) must do the same. `rankings.rebuildAggregates`
+  (internal, paginated) repairs the tree after an import, which writes rows straight into the
+  table; `rankings.repairAggregates` is the staff-facing one-shot version.
+- API v2 authentication mints a short-lived JWT. `apps/web/src/lib/apiAuth.ts` resolves the
+  Bearer token (api-key plugin key, then legacy DMOJ token), then signs a five-minute JWT for
+  that user with `auth.api.signJWT` through the same JWKS the jwt plugin uses for browser
+  sessions, and passes it to `fetchQuery`. Convex already trusts those keys through the
+  `customJwt` provider, so there is one trust path and no shared secret to keep in step. The
+  alternative in the brief (an action plus a shared secret) would have added a second one.
+- `LEGACY_SECRET_KEY` is a new environment variable: the Django `SECRET_KEY` of the site being
+  imported from, used to verify legacy 48-character API tokens against
+  `profiles.legacyApiTokenHash`. Without it, legacy tokens are simply rejected and api-key
+  plugin keys still work. It belongs beside `AUTH_SECRET` in `infra/.env.example`.
+- `apps/web/vitest.config.ts` gained `resolve.alias` for `@/` and `@convex/`. The tsconfig
+  `paths` are compile-time only and vitest could not resolve either.
+- Convex function tests live in `convex/tests/*.test.ts` with two shared helpers named
+  `convexTest.setup.ts` and `fixtures.setup.ts`. Convex's bundler skips any entry point whose
+  basename has more than one dot, so neither the tests nor the helpers reach a deployment.
+- `fflate` is a new root dependency: the `userExport` job builds its zip with `zipSync` inside a
+  Convex action.
+- Impersonation is Better Auth's admin plugin (`authClient.admin.impersonateUser`), so no Convex
+  function exposes it. `admin/users.deactivate` only marks the profile and hands the route the
+  Better Auth user id to ban.
