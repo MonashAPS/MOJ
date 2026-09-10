@@ -187,6 +187,7 @@ export {
   SheetTitle,
   SheetTrigger,
 } from "./components/sheet";
+export { Slider } from "./components/slider";
 export { Switch, type SwitchProps, Toggle } from "./components/switch";
 export {
   EmptyRow,
