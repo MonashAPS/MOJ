@@ -41,9 +41,6 @@ import { rateLimiter } from "./lib/rateLimiter";
 
 /** `settings.DMOJ_SUBMISSION_LIMIT`: submissions in flight at once. */
 export const SUBMISSION_LIMIT = 2;
-/** `settings.DMOJ_SUBMISSION_RATELIMIT` over `DMOJ_SUBMISSION_RATELIMIT_TIMEFRAME`. */
-export const SUBMISSION_DAILY_LIMIT = 500;
-const DAY_MS = 24 * 60 * 60 * 1000;
 /** `ProblemSubmitForm.source`: `CharField(max_length=65536)`. */
 export const MAX_SOURCE_LENGTH = 65536;
 /** How many rows a filtered page walks before giving up on filling itself. */
@@ -797,10 +794,7 @@ export const submit = mutation({
       }
       const burst = await rateLimiter.limit(ctx, "submit", { key: profile._id });
       if (!burst.ok) throw mojError("RATE_LIMITED", "You submitted too many submissions.");
-      const daily = await rateLimiter.limit(ctx, "submitDaily", {
-        key: profile._id,
-        config: { kind: "fixed window", rate: SUBMISSION_DAILY_LIMIT, period: DAY_MS },
-      });
+      const daily = await rateLimiter.limit(ctx, "submitDaily", { key: profile._id });
       if (!daily.ok) throw mojError("RATE_LIMITED", "You submitted too many submissions.");
     }
 
