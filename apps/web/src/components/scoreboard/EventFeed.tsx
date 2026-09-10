@@ -101,7 +101,7 @@ export function EventFeed({
             <span className="hall-feed-line">
               <b>{entry.displayName}</b>
               <span className="hall-feed-said">
-                {entry.state === "correct" ? " solved problem " : " is waiting on problem "}
+                {entry.state === "correct" ? " solved " : " waiting on "}
               </span>
               <b>{entry.problem}</b>
               {entry.note ? <span className="hall-feed-said">{` · ${entry.note}`}</span> : null}

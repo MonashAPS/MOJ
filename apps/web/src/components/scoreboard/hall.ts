@@ -122,7 +122,8 @@ export type FeedEntry = {
  * wall-clock times); swap `entries` for it once it is deployed.
  *
  * Anything the freeze is holding sorts above the solves, because a frozen cell
- * is by definition a submission made at or after the freeze point.
+ * is by definition a submission made at or after the freeze point — but only a
+ * fifth of the list, so a long freeze cannot bury every solve.
  */
 export function feedEntries(payload: ScoreboardEventPayload, limit = 60): FeedEntry[] {
   if (!payload) return [];
@@ -148,7 +149,7 @@ export function feedEntries(payload: ScoreboardEventPayload, limit = 60): FeedEn
             ...base,
             state: "correct",
             time: cell.time,
-            note: cell.wrong ? plural(cell.wrong, "wrong try", "wrong tries") : "",
+            note: cell.wrong ? `+${cell.wrong}` : "",
           });
         } else if (cell.state === "frozen" || cell.state === "judging") {
           const outstanding = cell.pending || 1;
@@ -156,7 +157,7 @@ export function feedEntries(payload: ScoreboardEventPayload, limit = 60): FeedEn
             ...base,
             state: "pending",
             time: null,
-            note: plural(outstanding, "submission", "submissions"),
+            note: plural(outstanding, "sub", "subs"),
           });
         }
       });
@@ -167,7 +168,12 @@ export function feedEntries(payload: ScoreboardEventPayload, limit = 60): FeedEn
     (a, b) => a.divisionName.localeCompare(b.divisionName) || a.displayName.localeCompare(b.displayName),
   );
   solves.sort((a, b) => (b.time ?? 0) - (a.time ?? 0));
-  return [...pending, ...solves].slice(0, limit);
+
+  // Everything the freeze is holding is newer than every solve on the board, so
+  // strict time order would bury the solves under a long freeze. The
+  // outstanding submissions keep the top of the list but only a fifth of it.
+  const room = Math.max(6, Math.floor(limit / 5));
+  return [...pending.slice(0, room), ...solves].slice(0, limit);
 }
 
 /* -------------------------------------------------------------------------- */
