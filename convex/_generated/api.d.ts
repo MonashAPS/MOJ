@@ -9,8 +9,12 @@
  */
 
 import type * as admin_submissions from "../admin/submissions.js";
+import type * as admin_contests from "../admin/contests.js";
+import type * as admin_scoreboards from "../admin/scoreboards.js";
 import type * as blog from "../blog.js";
 import type * as comments from "../comments.js";
+import type * as contestFormats from "../contestFormats.js";
+import type * as contestRankings from "../contestRankings.js";
 import type * as contests from "../contests.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
@@ -18,6 +22,7 @@ import type * as http_judge from "../http/judge.js";
 import type * as jobs from "../jobs.js";
 import type * as judgeApi from "../judgeApi.js";
 import type * as judging from "../judging.js";
+import type * as jobs_contests from "../jobs/contests.js";
 import type * as languages from "../languages.js";
 import type * as lib_aggregates from "../lib/aggregates.js";
 import type * as lib_auth from "../lib/auth.js";
@@ -28,6 +33,8 @@ import type * as maintenance from "../maintenance.js";
 import type * as problems from "../problems.js";
 import type * as profiles from "../profiles.js";
 import type * as rankings from "../rankings.js";
+import type * as ratings from "../ratings.js";
+import type * as scoreboard from "../scoreboard.js";
 import type * as search from "../search.js";
 import type * as seed from "../seed.js";
 import type * as site from "../site.js";
@@ -42,8 +49,12 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "admin/submissions": typeof admin_submissions;
+  "admin/contests": typeof admin_contests;
+  "admin/scoreboards": typeof admin_scoreboards;
   blog: typeof blog;
   comments: typeof comments;
+  contestFormats: typeof contestFormats;
+  contestRankings: typeof contestRankings;
   contests: typeof contests;
   crons: typeof crons;
   http: typeof http;
@@ -51,6 +62,7 @@ declare const fullApi: ApiFromModules<{
   jobs: typeof jobs;
   judgeApi: typeof judgeApi;
   judging: typeof judging;
+  "jobs/contests": typeof jobs_contests;
   languages: typeof languages;
   "lib/aggregates": typeof lib_aggregates;
   "lib/auth": typeof lib_auth;
@@ -61,6 +73,8 @@ declare const fullApi: ApiFromModules<{
   problems: typeof problems;
   profiles: typeof profiles;
   rankings: typeof rankings;
+  ratings: typeof ratings;
+  scoreboard: typeof scoreboard;
   search: typeof search;
   seed: typeof seed;
   site: typeof site;

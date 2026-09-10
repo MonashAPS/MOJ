@@ -490,6 +490,8 @@ export default defineSchema({
     blindDuringFreeze: v.boolean(),
     revealedUntilRank: v.optional(v.number()),
     isUnfrozen: v.optional(v.boolean()),
+    freezeRevealed: v.optional(v.boolean()),
+    revealState: v.optional(v.any()),
     legacyId: v.optional(v.number()),
   })
     .index("by_key", ["key"])
