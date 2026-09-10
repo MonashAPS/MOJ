@@ -1,0 +1,37 @@
+<img src="https://me.glipr.xyz/img/comp/cardtrick.png" alt="problem header" width="180" loading="lazy" decoding="async">
+<p>Gerald and Leanne are doing a card trick. This trick is centred around Gerald guessing the final card in Leanne's hand.</p>
+<p>Leanne will begin by drawing 5 random cards from a standard deck of 52 cards. Then, one by one, she will reveal 4 out of the 5 cards she has drawn. After this, without looking, Gerald will respond with the final card that Leanne drew!</p>
+<p>Your job is to execute this card trick.</p>
+<h5>Interaction</h5>
+<p>This program will be tested across two process, which will communicate with one another.</p>
+<p>Your program should first read in a single integer on a line. If this integer is <code>0</code>, you are Leanne. If this integer is <code>1</code>, you are Gerald.</p>
+<p>In either case, you should read a single integer <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi></mrow><annotation encoding="application/x-tex">T</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6833em;"></span><span class="mord mathnormal" style="margin-right: 0.1389em;">T</span></span></span></span>, the number of test cases.</p>
+<p>If you are Leanne, <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi></mrow><annotation encoding="application/x-tex">T</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6833em;"></span><span class="mord mathnormal" style="margin-right: 0.1389em;">T</span></span></span></span> lines will follow, each containing 5 space-separated card values.
+Card values are represented as 2 characters, the first representing suit (One of <code>SCDH</code>) and the second representing face value (One of <code>A23456789TJQK</code>).</p>
+<p>Next, for each test case Leanne should output 4 space-separated card values, that she wants to show Gerald, one by one.</p>
+<p>If you are Bob, <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi></mrow><annotation encoding="application/x-tex">T</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6833em;"></span><span class="mord mathnormal" style="margin-right: 0.1389em;">T</span></span></span></span> lines will follow, each containing 4 space-separated card values, these will be exactly the card values that Leanne printed.</p>
+<p>Gerald should then output a single card value for each test case: The value of Leanne's final card.</p>
+<h5>Constraints</h5>
+<ul>
+<li><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>≤</mo><mi>T</mi><mo>≤</mo><msup><mn>10</mn><mn>5</mn></msup></mrow><annotation encoding="application/x-tex">1 \leq T \leq 10^5</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.7804em; vertical-align: -0.136em;"></span><span class="mord">1</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.8193em; vertical-align: -0.136em;"></span><span class="mord mathnormal" style="margin-right: 0.1389em;">T</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height: 0.8141em;"><span style="top: -3.063em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span></li>
+<li>The five space-separated cards Leanne receives will be distinct.</li>
+</ul>
+<h5>Example Run</h5>
+<p>Leanne's Input:</p>
+<pre><code>2
+ST D5 HJ DA C8
+HA SA CA DA H5
+</code></pre>
+<p>Leanne's Output:</p>
+<pre><code>D5 DA HJ ST
+DA SA CA HA
+</code></pre>
+<p>Gerald's Input:</p>
+<pre><code>2
+D5 DA HJ ST
+DA SA CA HA
+</code></pre>
+<p>Gerald's Output:</p>
+<pre><code>C8
+H5
+</code></pre>
