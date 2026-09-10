@@ -75,8 +75,7 @@ export async function listKeysAction(): Promise<ActionResult<ConsoleKeyRow[]>> {
 /**
  * Mints the key with Better Auth's api-key plugin and mirrors its sha256 into
  * the `apiKeys` Convex table, because the problems API verifies a presented key
- * against that table whenever it cannot reach the web app (SPEC_CHANGES,
- * 2026-09-10). The key itself is shown once and never stored in the clear.
+ * against that table whenever it cannot reach the web app.. The key itself is shown once and never stored in the clear.
  *
  * `permissions` is a server-only property, so the call must not carry request
  * headers; the acting user is passed explicitly instead, after this module's
