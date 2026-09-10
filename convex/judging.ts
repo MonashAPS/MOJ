@@ -40,6 +40,7 @@ import {
   JUDGE_HEARTBEAT_TIMEOUT_MS,
 } from "./judgeApi";
 import { invalid } from "./lib/errors";
+import { patchProfile } from "./rankings";
 
 /* -------------------------------------------------------------------------- */
 /* Limits                                                                     */
@@ -350,7 +351,9 @@ export async function recomputeProfilePoints(ctx: MutationCtx, profileId: Id<"pr
   }
 
   const computed = calculateProfilePoints(rows);
-  await ctx.db.patch(profileId, {
+  // Through `patchProfile`, not `ctx.db.patch`: the leaderboard aggregates are
+  // keyed on these three fields and Convex has no triggers to follow a write.
+  await patchProfile(ctx, profileId, {
     points: computed.points,
     performancePoints: computed.performancePoints,
     problemCount: computed.problemCount,

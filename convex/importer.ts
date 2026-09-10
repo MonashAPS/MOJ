@@ -6,7 +6,9 @@ import type {
 } from "convex/server";
 import type { GenericId, Value } from "convex/values";
 import { v } from "convex/values";
+import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery } from "./_generated/server";
+import { insertProfileAggregates } from "./rankings";
 import schema from "./schema";
 
 const tableNames = new Set(Object.keys(schema.tables));
@@ -63,6 +65,13 @@ export const insertBatch = internalMutation({
     const out: { legacyId: number | null; id: string }[] = [];
     for (const doc of args.docs) {
       const id = await db.insert(table, asDocument(doc));
+      // The leaderboard aggregates have no triggers, so a straight insert has
+      // to add the profile itself. `rankings.rebuildAggregates` repairs the
+      // tree if an import is interrupted part way through.
+      if (table === "profiles") {
+        const inserted = await ctx.db.get(id as unknown as Doc<"profiles">["_id"]);
+        if (inserted) await insertProfileAggregates(ctx, inserted as Doc<"profiles">);
+      }
       out.push({ legacyId: legacyIdOf(doc), id });
     }
     return out;

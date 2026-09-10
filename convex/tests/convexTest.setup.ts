@@ -21,7 +21,6 @@ export function setupConvexTest() {
   aggregateTest.register(t, "profilesByPP");
   aggregateTest.register(t, "profilesByRating");
   aggregateTest.register(t, "profilesByProblemCount");
-  aggregateTest.register(t, "submissionsByProblemResult");
   rateLimiterTest.register(t, "rateLimiter");
   return t;
 }

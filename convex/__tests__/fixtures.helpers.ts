@@ -7,6 +7,7 @@
  * pushed to a deployment.
  */
 
+import aggregateTest from "@convex-dev/aggregate/test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { convexTest, type TestConvex } from "convex-test";
 import type { Id } from "../_generated/dataModel";
@@ -16,9 +17,14 @@ export const modules = import.meta.glob("../**/*.*s");
 
 export type T = TestConvex<typeof schema>;
 
+/** Every component in convex/convex.config.ts, or a mutation that touches one
+ *  fails with "component not registered". */
 export function setupTest(): T {
   const t = convexTest(schema, modules);
-  rateLimiterTest.register(t);
+  aggregateTest.register(t, "profilesByPP");
+  aggregateTest.register(t, "profilesByRating");
+  aggregateTest.register(t, "profilesByProblemCount");
+  rateLimiterTest.register(t, "rateLimiter");
   return t;
 }
 
