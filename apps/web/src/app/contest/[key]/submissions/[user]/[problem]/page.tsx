@@ -1,6 +1,6 @@
-import { redirect } from "next/navigation";
 import { api } from "@convex/_generated/api";
-import { SubmissionListPage, type SearchParams } from "@/components/submissions/SubmissionListPage";
+import { redirect } from "next/navigation";
+import { type SearchParams, SubmissionListPage } from "@/components/submissions/SubmissionListPage";
 import { queryAsViewer } from "@/lib/convex-server";
 
 export const dynamic = "force-dynamic";

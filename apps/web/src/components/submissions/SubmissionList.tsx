@@ -14,17 +14,17 @@ import {
   Button,
   cn,
   EmptyState,
-  toast,
   TwoColumn,
+  toast,
   verdictTone,
 } from "@moj/ui";
-import { useMutation, useConvex, usePaginatedQuery } from "convex/react";
+import { useConvex, useMutation, usePaginatedQuery } from "convex/react";
 import { Inbox, PlugZap } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { ListContext } from "@/lib/submissionsData";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { plural, verdictCode } from "@/lib/submissionFormat";
-import { ResultsChart, type ResultData } from "./ResultsChart";
+import type { ListContext } from "@/lib/submissionsData";
+import { type ResultData, ResultsChart } from "./ResultsChart";
 import { SubmissionFilters } from "./SubmissionFilters";
 import { SubmissionListSkeleton } from "./SubmissionListSkeleton";
 import { SubmissionRow } from "./SubmissionRow";
@@ -61,9 +61,8 @@ export type SubmissionListProps = {
   results: ResultData;
   /** The server's clock, so relative times match before hydration. */
   now: number;
-  /** Where the "my submissions" quick link and the user search box point. */
+  /** Where the "my submissions" quick link points. */
   myHref: string | null;
-  userHref: (username: string) => string;
   /** An empty list says what would fill it. */
   emptyTitle: string;
   emptyDescription: string;
@@ -86,7 +85,6 @@ export function SubmissionList({
   results,
   now,
   myHref,
-  userHref,
   emptyTitle,
   emptyDescription,
   emptyAction,
@@ -164,9 +162,7 @@ export function SubmissionList({
       } else {
         const outcome = await abort({ submissionId: id });
         toast.success(
-          outcome.pending
-            ? `Asked the judge to stop submission ${id}.`
-            : `Submission ${id} aborted.`,
+          outcome.pending ? `Asked the judge to stop submission ${id}.` : `Submission ${id} aborted.`,
         );
       }
     } catch (error) {
@@ -191,7 +187,11 @@ export function SubmissionList({
               onReset={() => setFilters({ status: [], language: [] })}
               myUsername={context.viewer?.username ?? null}
               myHref={myHref}
-              userSearchHref={userHref}
+              userSearchHref={(username) =>
+                filters.problemCode
+                  ? `/problem/${filters.problemCode}/submissions/${username}/`
+                  : `/submissions/user/${username}/`
+              }
             />
             <ResultsChart problemCode={filters.problemCode} initial={results} />
           </>
@@ -298,7 +298,8 @@ function Disconnected() {
   const [down, setDown] = useState(false);
 
   useEffect(() => {
-    const apply = (connected: boolean) => setDown((previous) => (previous === !connected ? previous : !connected));
+    const apply = (connected: boolean) =>
+      setDown((previous) => (previous === !connected ? previous : !connected));
     apply(convex.connectionState().isWebSocketConnected);
     return convex.subscribeToConnectionState((state) => apply(state.isWebSocketConnected));
   }, [convex]);
@@ -307,9 +308,7 @@ function Disconnected() {
   return (
     <div className="mb-3 flex items-center gap-2 rounded-md border border-warning-line bg-warning-bg px-3 py-2 text-sm text-warning-ink">
       <PlugZap aria-hidden className="size-4 shrink-0" />
-      <span className="min-w-0 flex-1">
-        You were disconnected, so this list has stopped updating.
-      </span>
+      <span className="min-w-0 flex-1">You were disconnected, so this list has stopped updating.</span>
       <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
         Reconnect
       </Button>

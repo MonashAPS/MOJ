@@ -1,6 +1,9 @@
 /*
  * The source window and the compiler-output block.
  *
+ * CSS Modules rename class names only, so the element selectors below (`pre`,
+ * `span`, `a`, `b`) reach Shiki's and ansi-to-html's markup without `:global`.
+ *
  * Shiki runs with `defaultColor: false`, so every token carries both themes as
  * custom properties. One rule picks the light values; two override with the dark
  * ones — the media query for the "system" setting, the attribute selector for an
@@ -8,7 +11,7 @@
  * because a submission's source is not prose and does not want prose typography.
  */
 
-.code :global(pre) {
+.code pre {
   margin: 0;
   padding: var(--space-3);
   overflow-x: auto;
@@ -18,8 +21,8 @@
   tab-size: 4;
 }
 
-.code :global(pre),
-.code :global(pre span) {
+.code pre,
+.code pre span {
   background-color: var(--shiki-light-bg, var(--code-bg));
   color: var(--shiki-light, var(--ink));
   font-style: var(--shiki-light-font-style, inherit);
@@ -28,8 +31,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .code :global(pre),
-  :root:not([data-theme="light"]) .code :global(pre span) {
+  :root:not([data-theme="light"]) .code pre,
+  :root:not([data-theme="light"]) .code pre span {
     background-color: var(--shiki-dark-bg, var(--code-bg));
     color: var(--shiki-dark, var(--ink));
     font-style: var(--shiki-dark-font-style, inherit);
@@ -38,8 +41,8 @@
   }
 }
 
-:root[data-theme="dark"] .code :global(pre),
-:root[data-theme="dark"] .code :global(pre span) {
+:root[data-theme="dark"] .code pre,
+:root[data-theme="dark"] .code pre span {
   background-color: var(--shiki-dark-bg, var(--code-bg));
   color: var(--shiki-dark, var(--ink));
   font-style: var(--shiki-dark-font-style, inherit);
@@ -48,7 +51,7 @@
 }
 
 /* Shiki puts a `tabindex` on the block so it can be scrolled from the keyboard. */
-.code :global(pre:focus-visible) {
+.code pre:focus-visible {
   outline: 2px solid var(--brand-royal);
   outline-offset: -2px;
 }
@@ -107,6 +110,6 @@
   overflow-x: auto;
 }
 
-.ansi :global(b) {
+.ansi b {
   font-weight: 700;
 }

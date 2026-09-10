@@ -1,4 +1,4 @@
-import { SubmissionListPage, type SearchParams } from "@/components/submissions/SubmissionListPage";
+import { type SearchParams, SubmissionListPage } from "@/components/submissions/SubmissionListPage";
 
 export const dynamic = "force-dynamic";
 

@@ -1,7 +1,16 @@
 import { api } from "@convex/_generated/api";
-import type { SubmissionListContext, SubmissionStatusExtras, SubmissionSourceView } from "@convex/pages/submissions";
-import { hasPerm, isStaff, SUBMISSION_RESULTS, USER_DISPLAY_CODES } from "@moj/core";
+import type {
+  SubmissionListContext,
+  SubmissionSourceView,
+  SubmissionStatusExtras,
+} from "@convex/pages/submissions";
+// Imported from the subpath rather than the barrel: `@moj/core`'s index
+// re-exports with `export *` across `.js` specifiers, which Turbopack does not
+// follow. `permissions` cannot be reached at all for the same reason, so the two
+// rules this file needs live in `@/lib/viewerPerms`.
+import { SUBMISSION_RESULTS, USER_DISPLAY_CODES } from "@moj/core/verdicts";
 import { queryAsViewer } from "@/lib/convex-server";
+import { hasPerm, isStaff } from "@/lib/viewerPerms";
 
 /**
  * The submission pages read their extra context from `convex/pages/submissions.ts`.
@@ -52,8 +61,7 @@ async function fallbackListContext(args: {
     queryAsViewer(api.languages.list, {}),
   ]);
   const profile = viewerState.profile;
-  const core = profile ? { ...profile, id: profile._id } : null;
-  const staff = isStaff(core);
+  const staff = isStaff(profile);
 
   const context: ListContext = {
     found: true,
@@ -61,10 +69,10 @@ async function fallbackListContext(args: {
     viewer: profile
       ? {
           username: profile.username,
-          canRejudge: hasPerm(core, "judge.rejudge_submission"),
-          canAbortAny: hasPerm(core, "judge.abort_any_submission"),
-          canViewAllSubmissions: hasPerm(core, "judge.view_all_submission"),
-          canEditAllProblems: hasPerm(core, "judge.edit_all_problem"),
+          canRejudge: hasPerm(profile, "judge.rejudge_submission"),
+          canAbortAny: hasPerm(profile, "judge.abort_any_submission"),
+          canViewAllSubmissions: hasPerm(profile, "judge.view_all_submission"),
+          canEditAllProblems: hasPerm(profile, "judge.edit_all_problem"),
           isStaff: staff,
         }
       : null,
@@ -137,10 +145,7 @@ async function fallbackStatusExtras(id: string): Promise<StatusExtras | null> {
 
   const row = detail.submission;
   const profile = viewerState.profile;
-  const core = profile ? { ...profile, id: profile._id } : null;
-  const language = row.language
-    ? await queryAsViewer(api.languages.byKey, { key: row.language.key })
-    : null;
+  const language = row.language ? await queryAsViewer(api.languages.byKey, { key: row.language.key }) : null;
   const isOwn = profile?.username === row.user?.username;
 
   return {
@@ -182,17 +187,15 @@ async function fallbackStatusExtras(id: string): Promise<StatusExtras | null> {
           total: row.problem?.points ?? 0,
         }
       : null,
-    problemEditable: hasPerm(core, "judge.edit_all_problem"),
-    canAbort: hasPerm(core, "judge.abort_any_submission") || isOwn,
-    canRejudge: hasPerm(core, "judge.rejudge_submission") && (!row.isLocked || !!profile?.isSuperuser),
-    canResubmit: isOwn || hasPerm(core, "judge.resubmit_other"),
+    problemEditable: hasPerm(profile, "judge.edit_all_problem"),
+    canAbort: hasPerm(profile, "judge.abort_any_submission") || isOwn,
+    canRejudge: hasPerm(profile, "judge.rejudge_submission") && (!row.isLocked || !!profile?.isSuperuser),
+    canResubmit: isOwn || hasPerm(profile, "judge.resubmit_other"),
   };
 }
 
 export async function loadSourceView(id: string): Promise<SourceView | null> {
-  const direct = await tryQuery(() =>
-    queryAsViewer(api.pages.submissions.sourceView, { submissionId: id }),
-  );
+  const direct = await tryQuery(() => queryAsViewer(api.pages.submissions.sourceView, { submissionId: id }));
   if (direct) return direct;
   return await fallbackSourceView(id);
 }
@@ -207,10 +210,7 @@ async function fallbackSourceView(id: string): Promise<SourceView | null> {
 
   const row = detail.submission;
   const profile = viewerState.profile;
-  const core = profile ? { ...profile, id: profile._id } : null;
-  const language = row.language
-    ? await queryAsViewer(api.languages.byKey, { key: row.language.key })
-    : null;
+  const language = row.language ? await queryAsViewer(api.languages.byKey, { key: row.language.key }) : null;
   const isOwn = profile?.username === row.user?.username;
 
   return {
@@ -242,7 +242,7 @@ async function fallbackSourceView(id: string): Promise<SourceView | null> {
     points: row.points,
     problemPoints: row.problem?.points ?? 0,
     isLocked: row.isLocked,
-    canRejudge: hasPerm(core, "judge.rejudge_submission") && (!row.isLocked || !!profile?.isSuperuser),
-    canResubmit: isOwn || hasPerm(core, "judge.resubmit_other"),
+    canRejudge: hasPerm(profile, "judge.rejudge_submission") && (!row.isLocked || !!profile?.isSuperuser),
+    canResubmit: isOwn || hasPerm(profile, "judge.resubmit_other"),
   };
 }

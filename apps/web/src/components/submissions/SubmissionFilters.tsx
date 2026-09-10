@@ -43,13 +43,6 @@ export function SubmissionFilters({
     <Panel
       title="Filter submissions"
       icon={<Filter aria-hidden className="size-3.5" />}
-      action={
-        active > 0 ? (
-          <Button variant="ghost" size="sm" onClick={onReset}>
-            Reset
-          </Button>
-        ) : null
-      }
       bodyClassName="grid gap-4 p-3"
     >
       <div className="grid gap-1.5">
@@ -110,6 +103,17 @@ export function SubmissionFilters({
           </Link>
         ) : null}
       </div>
+
+      {active > 0 ? (
+        <div className="-mx-3 -mb-3 flex items-center justify-between gap-3 border-t border-border px-3 py-2 text-sm text-muted-foreground">
+          <span className="font-mono tabular-nums">
+            {active} filter{active === 1 ? "" : "s"}
+          </span>
+          <Button variant="ghost" size="sm" onClick={onReset}>
+            Reset
+          </Button>
+        </div>
+      ) : null}
     </Panel>
   );
 }

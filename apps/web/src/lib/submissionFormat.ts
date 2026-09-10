@@ -1,4 +1,6 @@
-import { floatformat } from "@moj/core";
+// `@moj/core`'s barrel re-exports with `export *` across `.js` specifiers, which
+// Turbopack does not follow; the subpath export map resolves straight to the file.
+import { floatformat } from "@moj/core/util/number";
 
 /** A missing value is an em-dash, never `---` (DESIGN.md section 12.2). */
 export const DASH = "—";

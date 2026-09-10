@@ -76,11 +76,6 @@ export async function SubmissionListPage({
       ? `/problem/${filters.problemCode}/submissions/${me}/`
       : `/submissions/user/${me}/`
     : null;
-  const userHref = (username: string) =>
-    filters.problemCode
-      ? `/problem/${filters.problemCode}/submissions/${username}/`
-      : `/submissions/user/${username}/`;
-
   const tabs: TabItem[] = [
     { key: "all", label: "All", href: allHref, icon: <List aria-hidden /> },
     ...(myHref ? [{ key: "mine", label: "Mine", href: myHref, icon: <User aria-hidden /> }] : []),
@@ -124,7 +119,6 @@ export async function SubmissionListPage({
           results={results}
           now={Date.now()}
           myHref={myHref}
-          userHref={userHref}
           {...emptyCopy(context, isOwn)}
         />
       </div>

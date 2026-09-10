@@ -37,13 +37,7 @@ export function useTokenColors(names: readonly string[]): string[] {
 }
 
 /** The five families DMOJ's submission-result pie uses, as MOJ tokens. */
-export const RESULT_TOKENS = [
-  "--v-good",
-  "--v-bad",
-  "--brand-royal",
-  "--v-neutral",
-  "--v-warn",
-] as const;
+export const RESULT_TOKENS = ["--v-good", "--v-bad", "--brand-royal", "--v-neutral", "--v-warn"] as const;
 
 /** A categorical ramp for the language charts, built out of the rating and
  *  verdict hues so it reads as the same system and flips with the theme. */

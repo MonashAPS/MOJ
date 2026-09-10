@@ -57,6 +57,9 @@ export function Chart({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const key = JSON.stringify({ labels, datasets, options });
 
+  /* biome-ignore lint/correctness/useExhaustiveDependencies: `key` is the serialised
+     input. The label, dataset and option objects are new on every render, so listing
+     them would tear the chart down and rebuild it on every render. */
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -71,8 +74,7 @@ export function Chart({
       },
     });
     return () => chart.destroy();
-    // `key` is the serialised input; the arrays are rebuilt on every render.
-  }, [key, type, labels, datasets, options]);
+  }, [key, type]);
 
   return (
     <div className={className} style={{ height }}>

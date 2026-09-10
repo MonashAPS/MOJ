@@ -6,8 +6,8 @@ import { Eye, Loader2, RefreshCw, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
-  DASH,
   absoluteTime,
+  DASH,
   formatMemory,
   formatScore,
   formatTime,
@@ -27,7 +27,7 @@ const RAIL: Record<string, string> = {
 };
 
 function railClass(tone: string): string {
-  return RAIL[tone] ?? RAIL.neutral;
+  return RAIL[tone] ?? "bg-neutral";
 }
 
 export type RowPermissions = {
@@ -68,7 +68,8 @@ export function SubmissionRow({
   const showScore = !grading && row.status !== "IE" && row.status !== "CE" && row.status !== "AB";
   const noUsage = ["QU", "P", "G", "CE", "IE", "AB"].includes(row.status);
   const isOwn = permissions.username !== null && permissions.username === row.user?.username;
-  const canRejudge = permissions.canRejudge && (permissions.canEditAllProblems || permissions.problemEditable);
+  const canRejudge =
+    permissions.canRejudge && (permissions.canEditAllProblems || permissions.problemEditable);
   const canAbort = grading && (permissions.canAbortAny || isOwn);
 
   const href = row.canSeeDetail
@@ -232,9 +233,7 @@ export function SubmissionRow({
       {/* The whole row is the hit area; the links above it stay clickable. */}
       <Link
         href={href}
-        aria-label={
-          row.problem ? `Submission ${row.id} for ${row.problem.name}` : `Submission ${row.id}`
-        }
+        aria-label={row.problem ? `Submission ${row.id} for ${row.problem.name}` : `Submission ${row.id}`}
         className={cn("absolute inset-0", focusRingInset)}
       >
         <span className="sr-only">Open submission {row.id}</span>
