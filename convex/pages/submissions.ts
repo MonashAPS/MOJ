@@ -352,10 +352,8 @@ export const statusExtras = query({
       problemEditable,
       // `abort_submission`: your own, not a rejudge, or the permission.
       canAbort:
-        coreHasPerm(viewer, "judge.abort_any_submission") ||
-        (isOwn && submission.rejudgedDate === undefined),
-      canRejudge:
-        coreHasPerm(viewer, "judge.rejudge_submission") && (!locked || coreIsSuperuser(viewer)),
+        coreHasPerm(viewer, "judge.abort_any_submission") || (isOwn && submission.rejudgedDate === undefined),
+      canRejudge: coreHasPerm(viewer, "judge.rejudge_submission") && (!locked || coreIsSuperuser(viewer)),
       canResubmit: isOwn || coreHasPerm(viewer, "judge.resubmit_other"),
     };
   },
