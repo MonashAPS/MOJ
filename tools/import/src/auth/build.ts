@@ -57,11 +57,32 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
     passkeys: 0,
   };
 
-  // profile id -> auth_user id, plus the 2FA columns we need per user.
+  // Language keys and organisation slugs live on the Better Auth user, so the
+  // web app can bootstrap a Convex profile from the session alone.
+  const languageKeys = new Map<number, string>();
+  for await (const row of ctx.rows("judge_language")) languageKeys.set(row.id(), row.s("key"));
+
+  const organizationSlugs = new Map<number, string>();
+  for await (const row of ctx.rows("judge_organization")) organizationSlugs.set(row.id(), row.s("slug"));
+
+  const slugsByProfile = new Map<number, { slug: string; order: number }[]>();
+  for await (const row of ctx.rows("judge_profile_organizations")) {
+    const slug = organizationSlugs.get(row.n("organization_id"));
+    if (slug === undefined) continue;
+    const list = slugsByProfile.get(row.n("profile_id")) ?? [];
+    list.push({ slug, order: row.n("sort_value") });
+    slugsByProfile.set(row.n("profile_id"), list);
+  }
+
+  // profile id -> auth_user id, plus the per user columns the user row needs.
   const profileToUser = new Map<number, number>();
   const totpByUser = new Map<
     number,
     { enabled: boolean; totpKey: Buffer | null; scratchCodes: Buffer | null }
+  >();
+  const profileByUser = new Map<
+    number,
+    { timezone: string; languageKey: string | null; slugs: string | null }
   >();
   for await (const row of ctx.rows("judge_profile")) {
     const legacyUserId = row.n("user_id");
@@ -70,6 +91,15 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
       enabled: row.b("is_totp_enabled"),
       totpKey: row.blob("totp_key"),
       scratchCodes: row.blob("scratch_codes"),
+    });
+    const slugs = (slugsByProfile.get(row.id()) ?? [])
+      .sort((a, b) => a.order - b.order)
+      .map((entry) => entry.slug);
+    profileByUser.set(legacyUserId, {
+      timezone: row.s("timezone"),
+      languageKey: languageKeys.get(row.n("language_id")) ?? null,
+      // The registration form stores this as a comma separated list of slugs.
+      slugs: slugs.length > 0 ? slugs.join(",") : null,
     });
   }
 
@@ -92,18 +122,27 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
 
     const joined = row.t("date_joined");
     const totp = totpByUser.get(legacyUserId);
+    const profile = profileByUser.get(legacyUserId);
     users.push({
       id,
       name: username,
       email,
-      emailVerified: row.b("is_active"),
+      email_verified: row.b("is_active"),
+      image: null,
+      created_at: new Date(joined),
+      updated_at: new Date(joined),
       username,
-      displayUsername: username,
+      display_username: username,
+      two_factor_enabled: totp?.enabled === true && totp.totpKey !== null,
       role: row.b("is_superuser") ? "admin" : "user",
       banned: false,
-      twoFactorEnabled: totp?.enabled === true && totp.totpKey !== null,
-      createdAt: new Date(joined),
-      updatedAt: new Date(joined),
+      ban_reason: null,
+      ban_expires: null,
+      is_staff: row.b("is_staff"),
+      is_superuser: row.b("is_superuser"),
+      timezone: profile?.timezone || null,
+      preferred_language: profile?.languageKey ?? null,
+      organization_slugs: profile?.slugs ?? null,
     });
     stats.users++;
 
@@ -114,12 +153,12 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
     } else {
       accounts.push({
         id: `${id}-credential`,
-        accountId: id,
-        providerId: "credential",
-        userId: id,
+        account_id: id,
+        provider_id: "credential",
+        user_id: id,
         password,
-        createdAt: new Date(joined),
-        updatedAt: new Date(joined),
+        created_at: new Date(joined),
+        updated_at: new Date(joined),
       });
       stats.accounts++;
     }
@@ -159,10 +198,12 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
       const id = userIdFor(legacyUserId);
       twoFactors.push({
         id: `${id}-totp`,
-        userId: id,
         secret: symmetricEncrypt(options.authSecret, secret),
-        backupCodes: encodeBackupCodes(options.authSecret, codes),
+        backup_codes: encodeBackupCodes(options.authSecret, codes),
+        user_id: id,
         verified: true,
+        failed_verification_count: 0,
+        locked_until: null,
       });
       stats.twoFactors++;
     } catch (error) {
@@ -185,14 +226,14 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
     passkeys.push({
       id: `pk${row.id()}`,
       name: row.s("name"),
-      publicKey: base64urlToBase64(row.s("public_key")),
-      userId: id,
-      credentialID: row.s("cred_id"),
+      public_key: base64urlToBase64(row.s("public_key")),
+      user_id: id,
+      credential_id: row.s("cred_id"),
       counter: row.n("counter"),
-      deviceType: "multiDevice",
-      backedUp: false,
+      device_type: "multiDevice",
+      backed_up: false,
       transports: "",
-      createdAt: new Date(),
+      created_at: new Date(),
       aaguid: null,
     });
     stats.passkeys++;

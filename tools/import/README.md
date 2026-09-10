@@ -79,6 +79,7 @@ Options:
 | `--resume` | skip tables already finished in `<out>/state.json`. |
 | `--clear` | clear each Convex table before inserting into it. |
 | `--force-extract` | re-parse the dump even if `<out>/raw` looks current. |
+| `--fresh` | forget `<out>/state.json` and treat every table as unloaded. |
 | `--skip-auth` | do not write the Better Auth tables. |
 | `--skip-convex` | write only the Better Auth tables. |
 
@@ -119,15 +120,24 @@ without `--dry-run`.
 
 ## Resuming
 
-Every finished table is recorded in `out/state.json`. Re-running with
-`--resume` skips those tables and pulls their legacy id map back from Convex
-(the `mapping` query), so references still resolve. A dry run resumes from the
-JSONL it wrote instead. Resuming a load with a dry run state file, or the other
-way round, is refused.
+Every finished table is recorded in `out/state.json`, and that file is carried
+forward by every run against the same dump, whether or not the run resumes.
+Re-running with `--resume` skips the finished tables and pulls their legacy id
+map back from Convex (the `mapping` query), so references still resolve. A dry
+run resumes from the JSONL it wrote instead. Resuming a load with a dry run
+state file, or the other way round, is refused. `--fresh` forgets the state file
+and treats every table as unloaded.
 
 `--tables` works the same way: tables that are not selected are skipped, and
 their id maps come from whatever is already in Convex. So importing a single
 table later works as long as everything it points at is already loaded.
+
+A run only inserts, it never deletes, so importing a table that is already
+loaded duplicates it. Use `--clear` together with `--tables` to reload one
+table, and keep in mind that clearing a table other rows point at, `profiles`
+above all, leaves those references dangling, because the ids change when the
+rows come back. If the thing you need to reload is referenced widely, clear and
+import everything in one run instead.
 
 ## What ends up where
 
@@ -172,6 +182,14 @@ table later works as long as everything it points at is already loaded.
   `tree_id`) which are replaced by `parentId`, and `reversion_version.format`,
   `object_repr` and `db`.
 
+## Write rate
+
+A self hosted Convex deployment caps writes, 4 MiB per second by default. The
+loader catches `TooManyWrites` and retries the batch with exponential backoff,
+printing a line each time it does, so a large table simply takes a little
+longer. Nothing is written twice: a batch is one transaction, and a rejected one
+wrote nothing.
+
 ## Things worth knowing before you look at the report
 
 - **Problems with no date.** DMOJ allows `judge_problem.date` to be null, and
@@ -210,20 +228,27 @@ table later works as long as everything it points at is already loaded.
 
 ## Better Auth column lists
 
-Confirmed against Better Auth 1.7 with the `username`, `twoFactor`, `passkey`,
-`admin`, `apiKey`, `bearer` and `jwt` plugins, by reading `getAuthTables` out of
-`@better-auth/core/db`. Postgres folds unquoted identifiers to lower case, so
-every camelCase name is quoted in the SQL.
+These match `apps/web/drizzle/0000_aberrant_rage.sql`, the schema Better Auth
+1.7 generates here with the `username`, `twoFactor`, `passkey`, `admin`,
+`apiKey`, `bearer` and `jwt` plugins plus MOJ's extra user fields. Drizzle names
+columns in snake_case.
 
-- `"user"`: `id`, `name`, `email`, `"emailVerified"`, `username`,
-  `"displayUsername"`, `role`, `banned`, `"twoFactorEnabled"`, `"createdAt"`,
-  `"updatedAt"`.
-- `"account"`: `id`, `"accountId"`, `"providerId"`, `"userId"`, `password`,
-  `"createdAt"`, `"updatedAt"`.
-- `"twoFactor"`: `id`, `"userId"`, `secret`, `"backupCodes"`, `verified`.
-- `"passkey"`: `id`, `name`, `"publicKey"`, `"userId"`, `"credentialID"`,
-  `counter`, `"deviceType"`, `"backedUp"`, `transports`, `"createdAt"`,
-  `aaguid`.
+- `"user"`: `id`, `name`, `email`, `email_verified`, `image`, `created_at`,
+  `updated_at`, `username`, `display_username`, `two_factor_enabled`, `role`,
+  `banned`, `ban_reason`, `ban_expires`, `is_staff`, `is_superuser`, `timezone`,
+  `preferred_language`, `organization_slugs`.
+- `"account"`: `id`, `account_id`, `provider_id`, `user_id`, `password`,
+  `created_at`, `updated_at`.
+- `"two_factor"`: `id`, `secret`, `backup_codes`, `user_id`, `verified`,
+  `failed_verification_count`, `locked_until`.
+- `"passkey"`: `id`, `name`, `public_key`, `user_id`, `credential_id`,
+  `counter`, `device_type`, `backed_up`, `transports`, `created_at`, `aaguid`.
+
+The MOJ specific user columns come from the dump as well: `is_staff` and
+`is_superuser` from `auth_user`, `timezone` and `preferred_language` (the
+language key, for example `PY3`) from `judge_profile`, and `organization_slugs`
+from the user's organisations, written as the comma separated list of slugs the
+registration form uses.
 
 Every write is an upsert on `id`, so the step is safe to repeat. Before writing,
 the importer reads `information_schema.columns` for each table: a missing table

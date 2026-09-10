@@ -9,99 +9,126 @@ export interface AuthUserRow {
   id: string;
   name: string;
   email: string;
-  emailVerified: boolean;
+  email_verified: boolean;
+  image: string | null;
+  created_at: Date;
+  updated_at: Date;
   username: string;
-  displayUsername: string;
+  display_username: string;
+  two_factor_enabled: boolean;
   role: string;
   banned: boolean;
-  twoFactorEnabled: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  ban_reason: string | null;
+  ban_expires: Date | null;
+  is_staff: boolean;
+  is_superuser: boolean;
+  timezone: string | null;
+  preferred_language: string | null;
+  organization_slugs: string | null;
 }
 
 export interface AuthAccountRow {
   id: string;
-  accountId: string;
-  providerId: string;
-  userId: string;
+  account_id: string;
+  provider_id: string;
+  user_id: string;
   password: string;
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface AuthTwoFactorRow {
   id: string;
-  userId: string;
   secret: string;
-  backupCodes: string;
+  backup_codes: string;
+  user_id: string;
   verified: boolean;
+  failed_verification_count: number;
+  locked_until: Date | null;
 }
 
 export interface AuthPasskeyRow {
   id: string;
   name: string;
-  publicKey: string;
-  userId: string;
-  credentialID: string;
+  public_key: string;
+  user_id: string;
+  credential_id: string;
   counter: number;
-  deviceType: string;
-  backedUp: boolean;
+  device_type: string;
+  backed_up: boolean;
   transports: string;
-  createdAt: Date;
+  created_at: Date;
   aaguid: string | null;
 }
 
 /**
- * Column lists confirmed against Better Auth 1.7 with the username, twoFactor,
- * passkey, admin, apiKey, bearer and jwt plugins (getAuthTables from
- * @better-auth/core/db). Postgres folds unquoted identifiers to lower case, so
- * every camelCase table and column is quoted.
+ * Column lists taken from apps/web/drizzle/0000_aberrant_rage.sql, which is the
+ * schema Better Auth 1.7 generates here with the username, twoFactor, passkey,
+ * admin, apiKey, bearer and jwt plugins plus MOJ's extra user fields. Drizzle
+ * writes snake_case, so no identifier needs quoting for case, but they are
+ * quoted anyway because "user" is a reserved word.
  */
 export const USER_COLUMNS = [
   "id",
   "name",
   "email",
-  "emailVerified",
+  "email_verified",
+  "image",
+  "created_at",
+  "updated_at",
   "username",
-  "displayUsername",
+  "display_username",
+  "two_factor_enabled",
   "role",
   "banned",
-  "twoFactorEnabled",
-  "createdAt",
-  "updatedAt",
+  "ban_reason",
+  "ban_expires",
+  "is_staff",
+  "is_superuser",
+  "timezone",
+  "preferred_language",
+  "organization_slugs",
 ] as const;
 
 export const ACCOUNT_COLUMNS = [
   "id",
-  "accountId",
-  "providerId",
-  "userId",
+  "account_id",
+  "provider_id",
+  "user_id",
   "password",
-  "createdAt",
-  "updatedAt",
+  "created_at",
+  "updated_at",
 ] as const;
 
-export const TWO_FACTOR_COLUMNS = ["id", "userId", "secret", "backupCodes", "verified"] as const;
+export const TWO_FACTOR_COLUMNS = [
+  "id",
+  "secret",
+  "backup_codes",
+  "user_id",
+  "verified",
+  "failed_verification_count",
+  "locked_until",
+] as const;
 
 export const PASSKEY_COLUMNS = [
   "id",
   "name",
-  "publicKey",
-  "userId",
-  "credentialID",
+  "public_key",
+  "user_id",
+  "credential_id",
   "counter",
-  "deviceType",
-  "backedUp",
+  "device_type",
+  "backed_up",
   "transports",
-  "createdAt",
+  "created_at",
   "aaguid",
 ] as const;
 
 export const REQUIRED_COLUMNS: Record<string, string[]> = {
-  user: ["id", "name", "email", "emailVerified", "createdAt", "updatedAt"],
-  account: ["id", "accountId", "providerId", "userId", "createdAt", "updatedAt"],
-  twoFactor: ["id", "userId", "secret", "backupCodes"],
-  passkey: ["id", "publicKey", "userId", "credentialID", "counter", "deviceType", "backedUp"],
+  user: ["id", "name", "email", "email_verified", "created_at", "updated_at"],
+  account: ["id", "account_id", "provider_id", "user_id", "created_at", "updated_at"],
+  two_factor: ["id", "user_id", "secret", "backup_codes"],
+  passkey: ["id", "public_key", "user_id", "credential_id", "counter", "device_type", "backed_up"],
 };
 
 function quote(identifier: string): string {
@@ -201,7 +228,7 @@ export async function writeBetterAuthRows(
   );
   const twoFactors = await writeTable(
     client,
-    "twoFactor",
+    "two_factor",
     TWO_FACTOR_COLUMNS,
     input.twoFactors as unknown as Record<string, unknown>[],
     droppedColumns,

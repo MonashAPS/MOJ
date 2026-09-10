@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { ImportContext } from "../src/context.ts";
+import type { DryRunLoader, Loader } from "../src/loader.ts";
 import { runPipeline, type StateFile } from "../src/pipeline.ts";
 import { reportToJson } from "../src/report.ts";
 import { makeFixtureContext } from "./fixtures.ts";
@@ -16,11 +17,13 @@ function docs(dir: string, table: string): Record<string, unknown>[] {
 describe("full transform over a fixture dump", () => {
   let ctx: ImportContext;
   let dir: string;
+  let loader: Loader;
 
   beforeAll(async () => {
     const fixture = await makeFixtureContext();
     ctx = fixture.ctx;
     dir = fixture.dir;
+    loader = fixture.loader;
     const state: StateFile = { mode: "dry-run", dump: "fixture", startedAt: "", finished: {} };
     await runPipeline(ctx, state, { resume: false, log: () => {} });
     await ctx.closeEmitters();
@@ -183,7 +186,7 @@ describe("full transform over a fixture dump", () => {
   });
 
   it("patches the deferred current participation pointer", () => {
-    expect(ctx.deferredProfileParticipation).toEqual([{ profileLegacyId: 1, participationLegacyId: 1 }]);
+    expect((loader as DryRunLoader).patched.get("profiles")).toBe(1);
   });
 
   it("reports the columns it never read", () => {

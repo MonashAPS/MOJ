@@ -54,7 +54,38 @@ export interface ConvexClientLike {
 export class ConvexLoader implements Loader {
   readonly name = "convex";
 
-  constructor(private readonly client: ConvexClientLike) {}
+  constructor(
+    private readonly client: ConvexClientLike,
+    private readonly retries = 8,
+  ) {}
+
+  /**
+   * A self hosted deployment caps how much can be written per second, and a
+   * batch that trips the cap comes back as TooManyWrites. Back off and retry:
+   * the batch is a single transaction, so nothing was written.
+   */
+  private async withRetry<T>(what: string, run: () => Promise<T>): Promise<T> {
+    let wait = 250;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await run();
+      } catch (error) {
+        const message = (error as Error).message ?? String(error);
+        const transient =
+          message.includes("TooManyWrites") ||
+          message.includes("Too many writes") ||
+          message.includes("TooManyReads") ||
+          message.includes("OptimisticConcurrencyControlFailure") ||
+          message.includes("Transient") ||
+          message.includes("ECONNRESET") ||
+          message.includes("fetch failed");
+        if (!transient || attempt >= this.retries) throw error;
+        process.stderr.write(`  ${what}: ${message.split("\n")[0]}, retrying in ${wait}ms\n`);
+        await new Promise((resolve) => setTimeout(resolve, wait));
+        wait = Math.min(wait * 2, 8000);
+      }
+    }
+  }
 
   static fromAdminKey(url: string, adminKey: string): ConvexLoader {
     // setAdminAuth is how the self-hosted admin key reaches internal functions.
@@ -67,20 +98,30 @@ export class ConvexLoader implements Loader {
   }
 
   async insert(table: string, docs: ImportDoc[]): Promise<InsertedId[]> {
-    return (await this.client.mutation(insertBatchRef, { table, docs })) as InsertedId[];
+    return await this.withRetry(
+      `insert ${table}`,
+      async () => (await this.client.mutation(insertBatchRef, { table, docs })) as InsertedId[],
+    );
   }
 
   async patch(table: string, patches: { id: string; fields: ImportDoc }[]): Promise<number> {
-    return (await this.client.mutation(patchBatchRef, { table, patches })) as number;
+    return await this.withRetry(
+      `patch ${table}`,
+      async () => (await this.client.mutation(patchBatchRef, { table, patches })) as number,
+    );
   }
 
   async clear(table: string): Promise<number> {
     let deleted = 0;
     for (;;) {
-      const result = (await this.client.mutation(clearTableRef, { table, limit: 2000 })) as {
-        deleted: number;
-        isDone: boolean;
-      };
+      const result = await this.withRetry(
+        `clear ${table}`,
+        async () =>
+          (await this.client.mutation(clearTableRef, { table, limit: 2000 })) as {
+            deleted: number;
+            isDone: boolean;
+          },
+      );
       deleted += result.deleted;
       if (result.isDone) return deleted;
     }
@@ -90,11 +131,15 @@ export class ConvexLoader implements Loader {
     const out: InsertedId[] = [];
     let cursor: string | null = null;
     for (;;) {
-      const page = (await this.client.query(mappingRef, { table, cursor, numItems: 512 })) as {
-        page: InsertedId[];
-        continueCursor: string | null;
-        isDone: boolean;
-      };
+      const page = await this.withRetry(
+        `mapping ${table}`,
+        async () =>
+          (await this.client.query(mappingRef, { table, cursor, numItems: 512 })) as {
+            page: InsertedId[];
+            continueCursor: string | null;
+            isDone: boolean;
+          },
+      );
       out.push(...page.page);
       if (page.isDone || !page.continueCursor) return out;
       cursor = page.continueCursor;
