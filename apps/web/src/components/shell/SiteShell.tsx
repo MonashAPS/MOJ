@@ -34,12 +34,17 @@ export function SiteShell({
   viewer,
   registrationOpen,
   language,
+  logoUrl = null,
+  siteName = "MAPS Online Judge",
   children,
 }: {
   nav: NavNode[];
   misc: Record<string, string>;
   viewer: ViewerSummary | null;
   registrationOpen: boolean;
+  /** SPEC section 24: the operator's wordmark, when one is uploaded. */
+  logoUrl?: string | null;
+  siteName?: string;
   /** The viewer's `LANGUAGE_CODE`, read from the cookie by the layout. */
   language: string;
   children: ReactNode;
@@ -88,6 +93,8 @@ export function SiteShell({
           viewer={viewer}
           registrationOpen={registrationOpen}
           onOpenSearch={() => setPaletteOpen(true)}
+          logoUrl={logoUrl}
+          siteName={siteName}
         />
         {/* The club's royal, carried across the top of every page. */}
         <div aria-hidden className="h-[3px] bg-royal" />

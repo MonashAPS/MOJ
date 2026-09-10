@@ -9,6 +9,7 @@ import {
   LifeBuoy,
   ListTree,
   Newspaper,
+  Palette,
   Scale,
   Send,
   Settings,
@@ -65,6 +66,7 @@ export const ADMIN_SECTIONS: AdminSectionGroup[] = [
     items: [
       { href: "/admin/navigation", label: "Navigation", icon: ListTree },
       { href: "/admin/config", label: "Config", icon: Settings },
+      { href: "/admin/config/branding", label: "Branding", icon: Palette },
       { href: "/admin/flatpages", label: "Flat pages", icon: FileText },
       { href: "/admin/blog", label: "Blog", icon: Newspaper },
       { href: "/admin/licenses", label: "Licenses", icon: Scale },

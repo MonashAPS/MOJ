@@ -3,6 +3,8 @@ import { v } from "convex/values";
 
 export const displayRank = v.union(v.literal("user"), v.literal("setter"), v.literal("admin"));
 export const siteTheme = v.union(v.literal("auto"), v.literal("light"), v.literal("dark"));
+/** The theme a visitor with no stored preference gets (SPEC section 24). */
+export const themeDefault = v.union(v.literal("system"), v.literal("light"), v.literal("dark"));
 export const submissionStatus = v.union(
   v.literal("QU"),
   v.literal("P"),
@@ -728,6 +730,14 @@ export default defineSchema({
     maxSubmissionsPerProblem: v.optional(v.number()),
     ppStep: v.optional(v.number()),
     ppEntries: v.optional(v.number()),
+    // Branding (SPEC section 24). All optional: an unset field falls back to
+    // the token file, which stays the single source of the defaults.
+    logoStorageId: v.optional(v.id("_storage")),
+    faviconStorageId: v.optional(v.id("_storage")),
+    accentColor: v.optional(v.string()),
+    navColor: v.optional(v.string()),
+    customCss: v.optional(v.string()),
+    themeDefault: v.optional(themeDefault),
   }).index("by_singleton", ["singleton"]),
 
   statsSnapshots: defineTable({

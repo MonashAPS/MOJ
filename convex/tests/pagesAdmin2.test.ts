@@ -312,3 +312,104 @@ describe("pages/admin2 api keys", () => {
     expect(await t.run(async (ctx) => await ctx.db.get(id))).toBeNull();
   });
 });
+
+describe("branding", () => {
+  async function withSettings() {
+    const { t, ids } = await seed();
+    await t.run(async (ctx) => {
+      await ctx.db.insert("siteSettings", {
+        singleton: "site",
+        siteName: "MOJ",
+        siteLongName: "MAPS Online Judge",
+        siteAdminEmail: "admin@example.com",
+        registrationOpen: true,
+        defaultUserTimezone: "Australia/Melbourne",
+        defaultUserLanguageKey: "PY3",
+        problemsPerPage: 50,
+        commentsPerPage: 50,
+        submissionsPerPage: 50,
+        userRankingsPerPage: 100,
+        blogPostsPerPage: 10,
+        ratingRatios: [0, 0.05, 0.15, 0.4, 0.7, 0.9],
+        requireStaffTwoFactor: true,
+        pdfEnabled: true,
+      });
+    });
+    return { t, ids };
+  }
+
+  test("an unbranded instance answers with the design system's own values", async () => {
+    const { t } = await withSettings();
+    const branding = await t.query(api.site.branding, {});
+    expect(branding.siteName).toBe("MOJ");
+    expect(branding.accentColor).toBe("#2941a5");
+    expect(branding.navColor).toBe("#101a3d");
+    expect(branding.logoUrl).toBeNull();
+    expect(branding.themeDefault).toBe("system");
+    expect(branding.isCustomised).toBe(false);
+  });
+
+  test("a superuser sets the colours and the dark accent is derived from them", async () => {
+    const { t } = await withSettings();
+    await t.withIdentity({ subject: "user_root" }).mutation(api.pages.admin2.updateBranding, {
+      siteName: "MCPC",
+      accentColor: "#B3001B",
+      navColor: "#1A1A2E",
+      themeDefault: "dark",
+      customCss: ":root { --radius: 2px; }",
+      reason: "Rebranded for the contest",
+    });
+
+    const branding = await t.query(api.site.branding, {});
+    expect(branding.siteName).toBe("MCPC");
+    expect(branding.accentColor).toBe("#b3001b");
+    expect(branding.accentColorDark).not.toBe(branding.accentColor);
+    expect(branding.titlebarColor).toBe("#1a1a2e");
+    expect(branding.themeDefault).toBe("dark");
+    expect(branding.customCss).toContain("--radius");
+    expect(branding.isCustomised).toBe(true);
+  });
+
+  test("an empty colour puts the default back", async () => {
+    const { t } = await withSettings();
+    const asRoot = t.withIdentity({ subject: "user_root" });
+    await asRoot.mutation(api.pages.admin2.updateBranding, { accentColor: "#B3001B", reason: "Trying it" });
+    await asRoot.mutation(api.pages.admin2.updateBranding, { accentColor: "", reason: "Back to default" });
+    expect((await t.query(api.site.branding, {})).accentColor).toBe("#2941a5");
+  });
+
+  test("a colour that is not a hex value is refused, and so is an empty name", async () => {
+    const { t } = await withSettings();
+    const asRoot = t.withIdentity({ subject: "user_root" });
+    await expect(
+      asRoot.mutation(api.pages.admin2.updateBranding, { accentColor: "red", reason: "No" }),
+    ).rejects.toThrow(/hex value/);
+    await expect(
+      asRoot.mutation(api.pages.admin2.updateBranding, { siteName: "   ", reason: "No" }),
+    ).rejects.toThrow(/needs a name/);
+  });
+
+  test("staff who are not superusers cannot rebrand the site", async () => {
+    const { t } = await withSettings();
+    await expect(
+      t
+        .withIdentity({ subject: "user_clerk" })
+        .mutation(api.pages.admin2.updateBranding, { siteName: "Mine", reason: "No" }),
+    ).rejects.toThrow(/Superusers only/);
+  });
+
+  test("the change is recorded as a revision on the settings document", async () => {
+    const { t } = await withSettings();
+    await t
+      .withIdentity({ subject: "user_root" })
+      .mutation(api.pages.admin2.updateBranding, { navColor: "#123456", reason: "Club colours" });
+    const rows = await t.run(
+      async (ctx) =>
+        await ctx.db
+          .query("revisions")
+          .withIndex("by_entity", (q) => q.eq("entityType", "siteSettings"))
+          .collect(),
+    );
+    expect(rows.map((row) => row.reason)).toContain("Club colours");
+  });
+});

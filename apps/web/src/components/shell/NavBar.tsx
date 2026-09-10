@@ -34,11 +34,16 @@ export function NavBar({
   viewer,
   registrationOpen = true,
   onOpenSearch,
+  logoUrl = null,
+  siteName = "MAPS Online Judge",
 }: {
   nav: NavNode[];
   viewer: ViewerSummary | null;
   registrationOpen?: boolean;
   onOpenSearch?: () => void;
+  /** SPEC section 24: an uploaded wordmark replaces the bundled one. */
+  logoUrl?: string | null;
+  siteName?: string;
 }) {
   const pathname = usePathname() ?? "/";
   const active = activeNavKeys(nav, pathname);
@@ -133,10 +138,10 @@ export function NavBar({
           breakpoint, vertically centred, with 12px either side and no plate. */}
       <Link
         href="/"
-        aria-label="MOJ home"
+        aria-label={`${siteName} home`}
         className="flex h-full shrink-0 items-center px-3 transition-opacity hover:opacity-90"
       >
-        <img src="/logo.svg" alt="MAPS Online Judge" className="h-[26px] w-auto min-[760px]:h-[30px]" />
+        <img src={logoUrl ?? "/logo.svg"} alt={siteName} className="h-[26px] w-auto min-[760px]:h-[30px]" />
       </Link>
       <span aria-hidden className="my-2 w-px shrink-0 bg-white/20" />
 

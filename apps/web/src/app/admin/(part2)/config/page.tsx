@@ -1,5 +1,6 @@
 import { api } from "@convex/_generated/api";
-import { TitleRow } from "@moj/ui";
+import { Button, TitleRow } from "@moj/ui";
+import Link from "next/link";
 import { queryAsViewer } from "@/lib/convex-server";
 import { timezoneList } from "@/lib/timezones";
 import { ConfigTabs } from "./ConfigTabs";
@@ -14,7 +15,14 @@ export default async function AdminConfigPage() {
 
   return (
     <>
-      <TitleRow title="Config" />
+      <TitleRow
+        title="Config"
+        action={
+          <Button asChild variant="secondary">
+            <Link href="/admin/config/branding/">Branding</Link>
+          </Button>
+        }
+      />
       <ConfigTabs
         settings={settings}
         languages={languages.map((language) => ({ key: language.key, name: language.name }))}

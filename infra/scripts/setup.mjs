@@ -295,7 +295,12 @@ async function main() {
   pinned("npx", ["convex", "dev", "--once"], { env });
 
   step("Seeding languages, navigation, config and the sample problem");
-  const seed = pinned("npx", ["convex", "run", "seed:run", "{}"], { env, capture: true });
+  // SPEC section 24: an operator names the instance from the environment.
+  const seedArgs = JSON.stringify({
+    ...(process.env.MOJ_SITE_NAME ? { siteName: process.env.MOJ_SITE_NAME } : {}),
+    ...(process.env.MOJ_SITE_LONG_NAME ? { siteLongName: process.env.MOJ_SITE_LONG_NAME } : {}),
+  });
+  const seed = pinned("npx", ["convex", "run", "seed:run", seedArgs], { env, capture: true });
   info((seed.stdout ?? "").trim().replace(/\n/g, "\n    "));
 
   step(`Creating the development superuser ${ADMIN_USERNAME}/${ADMIN_PASSWORD}`);

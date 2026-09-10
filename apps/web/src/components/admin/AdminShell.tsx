@@ -7,11 +7,21 @@ import { usePathname } from "next/navigation";
 import { type ReactNode, useState } from "react";
 import { ADMIN_SECTIONS } from "./sections";
 
-function isActive(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(`${href}/`);
+/** A section is current when its href is the longest one the path matches, so
+ *  /admin/config/branding lights Branding rather than Config as well. */
+function bestMatch(pathname: string): string | null {
+  let best: string | null = null;
+  for (const group of ADMIN_SECTIONS) {
+    for (const item of group.items) {
+      if (pathname !== item.href && !pathname.startsWith(`${item.href}/`)) continue;
+      if (!best || item.href.length > best.length) best = item.href;
+    }
+  }
+  return best;
 }
 
 function Rail({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+  const current = bestMatch(pathname);
   return (
     <nav aria-label="Console sections" className="grid gap-4 py-3">
       {ADMIN_SECTIONS.map((group) => (
@@ -21,7 +31,7 @@ function Rail({ pathname, onNavigate }: { pathname: string; onNavigate?: () => v
           </div>
           {group.items.map((item) => {
             const Icon = item.icon;
-            const active = isActive(pathname, item.href);
+            const active = current === item.href;
             return (
               <Link
                 key={item.href}

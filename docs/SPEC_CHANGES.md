@@ -5,8 +5,8 @@ Append dated bullets when you had to extend or deviate from docs/SPEC.md.
 ## 2026-09-11, staff console part 2
 
 Routes added under `/admin`: `/admin/` (the section index), `users`, `users/[username]`, `organizations`,
-`organizations/[slug]`, `classes`, `judges`, `languages`, `navigation`, `config`, `flatpages`, `blog`,
-`licenses`, `tags`, `tickets`, `api-keys`. The pages live in the `(part2)` route group; the group carries its
+`organizations/[slug]`, `classes`, `judges`, `languages`, `navigation`, `config`, `config/branding`,
+`flatpages`, `blog`, `licenses`, `tags`, `tickets`, `api-keys`. The pages live in the `(part2)` route group; the group carries its
 own `error.tsx` so a refused subscription shows a panel inside the console instead of the site's 500.
 
 - New Convex module `convex/pages/admin2.ts`, covered by `convex/tests/pagesAdmin2.test.ts`: `revisions`
@@ -62,6 +62,30 @@ own `error.tsx` so a refused subscription shows a panel inside the console inste
   reasonLabel?, reasonHint?, dirty, busy, submitLabel, error, saved, actions?})`;
   `RevisionsPanel({rows, title?, emptyText?})`; `JobProgress({jobId, onDismiss?})`. `/admin/page.tsx` (the
   section index) is also written here; drop it if part 1 has one.
+- Branding (SPEC section 24) is implemented here: `siteSettings` gains `logoStorageId`, `faviconStorageId`,
+  `accentColor`, `navColor`, `customCss` and `themeDefault`, all optional, so an unset field falls back to
+  `packages/ui/src/tokens.css`. The public query is `site.branding`; it resolves the storage URLs and computes
+  the dark-mode derivatives server-side (the accent is mixed 45% towards white, the nav is kept and the dark
+  titlebar lifted slightly, the way the token file does it) so the same pair reaches the server render and any
+  client. The mutations are `pages/admin2.updateBranding` and `generateBrandingUploadUrl`, superusers only,
+  with a revision. Replacing an upload deletes the old blob.
+  - `apps/web/src/lib/branding.ts` builds the `:root` override block (`--accent`, `--nav`, `--titlebar`,
+    `--brand-royal`, plus the `prefers-color-scheme` and `[data-theme="dark"]` variants) and appends the custom
+    CSS last; `BrandingStyle` emits it from the root layout's `<head>`. Every stored value is stripped of the
+    characters that could close the element or start a rule; `apps/web/src/lib/branding.test.ts` covers that.
+  - The nav takes an uploaded wordmark through `NavBar`'s `src`. The auth pages draw the bundled SVG from
+    `components/auth/AuthCard.tsx`, which is rendered from client components and so cannot read the branding;
+    until that component takes a prop, the emitted CSS replaces it with `content: url(...)` on
+    `svg[aria-label="MAPS Online Judge"]`.
+  - `ThemeScript` now takes the operator's default theme and applies it when the visitor has nothing stored;
+    "system" keeps the previous behaviour of leaving `data-theme` off.
+  - `generateMetadata` in the root layout reads the branding for the title template and the favicon.
+  - `seed.run` takes `siteName` / `siteLongName`, and `infra/scripts/setup.mjs` passes `MOJ_SITE_NAME` /
+    `MOJ_SITE_LONG_NAME` through when they are set. An existing settings document is only renamed under `force`.
+  - The logo and favicon pickers are a `sr-only` `input[type=file]` driven by a kit `Button`. DESIGN.md forbids
+    a native file input, and the kit has no replacement; the visible control is still the kit's, and there is no
+    other way to open a file dialog.
+
 - Staff two-factor is enforced by `apps/web/src/proxy.ts` for every page including `/admin`, so a staff account
   without a factor cannot reach the console at all. Screenshots of this branch were taken with a temporary
   local escape hatch that was reverted; whoever reviews the console needs an enrolled account, or the gate has
