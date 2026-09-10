@@ -25,7 +25,7 @@ import {
   Trophy,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatDate } from "@/lib/format";
 import { formatMemoryLimit, formatPoints, formatSeconds, formatTime, plural } from "@/lib/units";
 
@@ -101,6 +101,33 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+/** The viewer's "Show contests" preference (spec section 20, spoiler rule).
+ *  There is no profile column for it yet, so it lives in `localStorage`, which
+ *  is per viewer and survives a reload; see docs/SPEC_CHANGES.md. */
+const SHOW_CONTESTS_KEY = "moj.show-contests";
+
+function useShowContests(): [boolean, (next: boolean) => void] {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    try {
+      setShow(window.localStorage.getItem(SHOW_CONTESTS_KEY) === "1");
+    } catch {
+      // A browser with storage denied simply keeps the safe default.
+    }
+  }, []);
+  return [
+    show,
+    (next: boolean) => {
+      setShow(next);
+      try {
+        window.localStorage.setItem(SHOW_CONTESTS_KEY, next ? "1" : "0");
+      } catch {
+        // Nothing to remember when storage is unavailable.
+      }
+    },
+  ];
+}
+
 /**
  * DMOJ's ticket row: "Manage tickets" for someone who can edit the problem,
  * "My tickets" for everyone else, with the open count as a badge
@@ -129,6 +156,7 @@ function TicketLink({ problem }: { problem: ProblemDetail }) {
 
 export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
   const [allContests, setAllContests] = useState(false);
+  const [showContests, setShowContests] = useShowContests();
   const contestProblem = problem.contestProblem;
   const points = contestProblem ? contestProblem.points : problem.points;
   const partial = contestProblem ? contestProblem.partial : problem.partial;
@@ -241,34 +269,61 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
 
       {problem.appearedIn.length > 0 ? (
         <div className="border-t border-border pt-2">
-          <p className="mb-1.5 font-sans text-xs font-semibold uppercase tracking-label text-subtle">
-            Appeared in
-          </p>
-          <ul className="grid min-w-0 gap-1.5">
-            {appeared.map((contest) => (
-              <li
-                key={`${contest.contestKey}-${contest.label}`}
-                className="flex min-w-0 items-center gap-2 text-sm"
-              >
-                <Badge variant="neutral" shape="square" mono>
-                  {contest.label}
-                </Badge>
-                <Link
-                  href={`/contest/${contest.contestKey}/ranking/`}
-                  className="min-w-0 flex-1 truncate text-subtle hover:text-link"
+          {/* A contest or workshop name can give the technique away, so the list
+              is collapsed until the viewer asks for it (spec section 20). */}
+          <button
+            type="button"
+            onClick={() => setShowContests(!showContests)}
+            className="flex w-full items-center gap-1.5 text-left text-sm text-subtle hover:text-foreground"
+            aria-expanded={showContests}
+          >
+            <ChevronRight
+              size={12}
+              aria-hidden
+              className={cn(
+                "shrink-0 text-muted-foreground transition-transform",
+                showContests && "rotate-90",
+              )}
+            />
+            <span>Show contests</span>
+            <span className="ml-auto font-mono text-sm tabular-nums text-muted-foreground">
+              {problem.appearedIn.length}
+            </span>
+          </button>
+          {showContests ? (
+            <>
+              <ul className="mt-2 grid min-w-0 gap-1.5">
+                {appeared.map((contest) => (
+                  <li
+                    key={`${contest.contestKey}-${contest.label}`}
+                    className="flex min-w-0 items-center gap-2 text-sm"
+                  >
+                    <Badge variant="neutral" shape="square" mono>
+                      {contest.label}
+                    </Badge>
+                    <Link
+                      href={`/contest/${contest.contestKey}/ranking/`}
+                      className="min-w-0 flex-1 truncate text-subtle hover:text-link"
+                    >
+                      {contest.contestName}
+                    </Link>
+                    <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                      {formatDate(contest.startTime)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {problem.appearedIn.length > 3 ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-1"
+                  onClick={() => setAllContests(!allContests)}
                 >
-                  {contest.contestName}
-                </Link>
-                <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
-                  {formatDate(contest.startTime)}
-                </span>
-              </li>
-            ))}
-          </ul>
-          {problem.appearedIn.length > 3 ? (
-            <Button variant="ghost" size="sm" className="mt-1" onClick={() => setAllContests(!allContests)}>
-              {allContests ? "Show fewer" : `Show all ${problem.appearedIn.length}`}
-            </Button>
+                  {allContests ? "Show fewer" : `Show all ${problem.appearedIn.length}`}
+                </Button>
+              ) : null}
+            </>
           ) : null}
         </div>
       ) : null}

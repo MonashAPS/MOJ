@@ -447,7 +447,7 @@ export function ProblemsView({
                 <TableSkeleton columns={columns} />
               ) : (
                 <TableBody>
-                  {data.groups
+                  {data.groups && (query.groupByContest || query.contests.length > 0)
                     ? data.groups.flatMap((group) => [
                         <TableRow key={`g-${group.contestKey}`} className="bg-secondary hover:bg-secondary">
                           <TableCell colSpan={columns} className="h-(--row-h-dense) py-0">

@@ -84,12 +84,18 @@ export function SubmitForm({
   const noJudges = usable !== undefined && usable !== null && usable.onlineJudges === 0;
   const exhausted = submissionsLeft !== null && submissionsLeft <= 0;
 
-  // Pick the first runnable language once the list arrives.
+  // The member's default first; then something a judge can actually run; then
+  // the club's usual two, so a fresh account never lands on Ada.
   useEffect(() => {
     if (languageKey || languages.length === 0) return;
-    const runnable = languages.find((row) => row.runnable) ?? languages[0];
-    if (runnable) setLanguageKey(runnable.key);
-  }, [languageKey, languages]);
+    const pick =
+      languages.find((row) => row.key === defaultLanguageKey) ??
+      languages.find((row) => row.runnable) ??
+      languages.find((row) => row.commonName === "C++") ??
+      languages.find((row) => row.commonName === "Python") ??
+      languages[0];
+    if (pick) setLanguageKey(pick.key);
+  }, [defaultLanguageKey, languageKey, languages]);
 
   // A fresh buffer takes the saved draft, else the language's template.
   useEffect(() => {

@@ -27,7 +27,31 @@ export function RankTable({ code, initial }: { code: string; initial: Ranks }) {
   const data = live ?? initial;
 
   return (
-    <div className="grid gap-6 min-[900px]:grid-cols-[1fr_17rem]">
+    <div className="grid gap-4">
+      {data.byLanguage.length > 0 ? (
+        <Panel title="By language" bodyClassName="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3">
+          {data.byLanguage.map((row) => (
+            <div
+              key={row.languageKey}
+              className="flex min-w-0 items-baseline gap-2 rounded-sm border border-border bg-secondary px-2 py-1.5"
+            >
+              <span className="min-w-0 flex-1 truncate font-mono text-sm text-foreground">
+                {row.languageKey}
+              </span>
+              <span className="shrink-0 font-mono text-sm tabular-nums text-subtle">
+                {row.accepted.toLocaleString("en-AU")} / {row.total.toLocaleString("en-AU")}
+              </span>
+              <span className="shrink-0 font-mono text-sm tabular-nums text-muted-foreground">
+                {row.acRate.toFixed(0)}%
+              </span>
+              <span className="shrink-0 font-mono text-sm tabular-nums text-muted-foreground">
+                {formatTime(row.bestTime)}
+              </span>
+            </div>
+          ))}
+        </Panel>
+      ) : null}
+
       <div className="min-w-0">
         {data.rows.length === 0 ? (
           <EmptyState
@@ -85,36 +109,6 @@ export function RankTable({ code, initial }: { code: string; initial: Ranks }) {
           </Table>
         )}
       </div>
-
-      <aside>
-        <div className="sticky top-[70px]">
-          <Panel title="By language" bodyClassName="p-0">
-            {data.byLanguage.length === 0 ? (
-              <p className="p-3 text-sm text-muted-foreground">No submissions yet.</p>
-            ) : (
-              <ul>
-                {data.byLanguage.map((row) => (
-                  <li
-                    key={row.languageKey}
-                    className="grid grid-cols-[1fr_auto] gap-x-3 border-b border-border px-3 py-2 last:border-b-0"
-                  >
-                    <span className="font-mono text-sm text-foreground">{row.languageKey}</span>
-                    <span className="font-mono text-sm tabular-nums text-foreground">
-                      {row.acRate.toFixed(0)}%
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      {row.accepted.toLocaleString("en-AU")} / {row.total.toLocaleString("en-AU")} AC
-                    </span>
-                    <span className="text-right font-mono text-sm tabular-nums text-muted-foreground">
-                      {formatTime(row.bestTime)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Panel>
-        </div>
-      </aside>
     </div>
   );
 }
