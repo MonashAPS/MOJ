@@ -237,7 +237,7 @@ def get_problem_root(problem_id) -> Optional[str]:
     cached_root = _problem_root_cache.get(problem_id)
     if cached_root is None or not os.path.isfile(os.path.join(cached_root, 'init.yml')):
         for root_dir in get_problem_roots():
-            problem_root_dir = os.path.join(root_dir, problem_id)
+            problem_root_dir = os.path.join(root_dir, *problem_id.split('.'))
             problem_config = os.path.join(problem_root_dir, 'init.yml')
             if os.path.isfile(problem_config):
                 if problem_globs and not any(
