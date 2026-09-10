@@ -9,7 +9,8 @@ coverage/
 *.log
 .DS_Store
 infra/data/
-infra/problems/*/tests/
+infra/problems/*
+!infra/problems/aplusb/
 tools/import/out/
 tools/import/*.sql*
 .playwright-mcp/
@@ -21,3 +22,4 @@ tools/import/dump*.sql.gz
 tools/import/secrets*
 docs/.vitepress/dist/
 docs/.vitepress/cache/
+.convex-tmp/
