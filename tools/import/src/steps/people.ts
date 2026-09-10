@@ -108,14 +108,6 @@ export const profilesStep: Step = {
       }
       const siteTheme = row.s("site_theme");
 
-      const participation = row.nOpt("current_contest_id");
-      if (participation !== undefined) {
-        ctx.deferredProfileParticipation.push({
-          profileLegacyId: row.id(),
-          participationLegacyId: participation,
-        });
-      }
-
       await emitter.emit({
         userId: `u${legacyUserId}`,
         username: user.s("username"),

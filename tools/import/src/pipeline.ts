@@ -79,23 +79,21 @@ export async function runPipeline(
 }
 
 async function patchProfileParticipations(ctx: ImportContext, log: (message: string) => void): Promise<void> {
-  if (ctx.deferredProfileParticipation.length === 0) return;
+  if (!ctx.selected("profiles")) return;
   const patches: { id: string; fields: Record<string, unknown> }[] = [];
-  for (const entry of ctx.deferredProfileParticipation) {
-    const profileId = ctx.ids.get("profiles", entry.profileLegacyId);
-    const participationId = ctx.ids.get("contestParticipations", entry.participationLegacyId);
+  for await (const row of ctx.rows("judge_profile")) {
+    const participationLegacyId = row.nOpt("current_contest_id");
+    if (participationLegacyId === undefined) continue;
+    const profileId = ctx.ids.get("profiles", row.id());
     if (!profileId) continue;
+    const participationId = ctx.ids.get("contestParticipations", participationLegacyId);
     if (!participationId) {
-      ctx.report.unresolvedRef(
-        "judge_profile",
-        "current_contest_id",
-        "contestParticipations",
-        entry.profileLegacyId,
-      );
+      ctx.report.unresolvedRef("judge_profile", "current_contest_id", "contestParticipations", row.id());
       continue;
     }
     patches.push({ id: profileId, fields: { currentParticipationId: participationId } });
   }
+  if (patches.length === 0) return;
   for (let i = 0; i < patches.length; i += BATCH_SIZE) {
     await ctx.loader.patch("profiles", patches.slice(i, i + BATCH_SIZE));
   }
