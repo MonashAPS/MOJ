@@ -20,12 +20,11 @@ import json
 import logging
 import os
 import threading
-import time
 import traceback
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple
 
 from dmoj.judgeenv import get_runtime_versions, get_supported_problems_and_mtimes
 from dmoj.result import Result
@@ -321,7 +320,9 @@ class MojPacketManager:
                     return
                 if self._shutdown.is_set():
                     break
-                log.warning('Retrying %s event for %s in %.1fs (attempt %d)', event_type, submission_id, delay, attempt + 1)
+                log.warning(
+                    'Retrying %s event for %s in %.1fs (attempt %d)', event_type, submission_id, delay, attempt + 1
+                )
                 self._sleep(delay)
                 delay = min(delay * 2, CLAIM_MAX_BACKOFF)
             log.error('Giving up on %s event for submission %s', event_type, submission_id)

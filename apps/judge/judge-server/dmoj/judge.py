@@ -10,7 +10,7 @@ from enum import Enum
 from http.server import HTTPServer
 from itertools import groupby
 from operator import itemgetter
-from typing import Any, Callable, Dict, Generator, List, NamedTuple, Optional, Set, Tuple
+from typing import Any, Callable, Dict, Generator, List, NamedTuple, Optional, Set, Tuple, cast
 
 from dmoj import packet
 from dmoj.control import JudgeControlRequestHandler
@@ -565,7 +565,9 @@ class MojJudge(Judge):
     def __init__(self, url: str) -> None:
         from dmoj.moj_packet import MojPacketManager
 
-        super().__init__(MojPacketManager(url, self, env['id'], env['key']))
+        # MojPacketManager reimplements PacketManager's surface rather than inheriting from it, because none
+        # of the socket machinery in the base class applies to a pull protocol.
+        super().__init__(cast(packet.PacketManager, MojPacketManager(url, self, env['id'], env['key'])))
 
 
 def sanity_check():
