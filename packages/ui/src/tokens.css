@@ -1,0 +1,265 @@
+/* MOJ design tokens.
+ *
+ * Three blocks, in this order, so the toggle wins in both directions:
+ *   :root                                        light palette (the default)
+ *   @media (prefers-color-scheme: dark) guarded   system dark, unless the user
+ *     by :root:not([data-theme="light"])          explicitly chose light
+ *   :root[data-theme="dark"]                      explicit dark
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Chrome ---------------------------------------------------------------- */
+  --nav: #3b3b3b;
+  --nav-ink: #ffffff;
+  --nav-hover: rgba(255, 255, 255, 0.25);
+  --nav-height: 44px;
+  --nav-height-compact: 36px;
+  --contest-bar-height: 36px;
+
+  /* Accent ---------------------------------------------------------------- */
+  --accent: #2980b9;
+  --accent-ink: #ffffff;
+  --accent-hover: #226d9e;
+  --accent-soft: #e3f0f9;
+
+  /* Surfaces and text ----------------------------------------------------- */
+  --bg: #ffffff;
+  --bg-2: #f5f6f7;
+  --surface: #f8f8f8;
+  --surface-2: #e9ebed;
+  --surface-3: #dfe2e5;
+  --ink: #14171a;
+  --ink-2: #4a5157;
+  --muted: #7c848b;
+  --line: #d6dade;
+  --line-strong: #b9bfc5;
+  --code-bg: #f4f6f8;
+  --shadow: rgba(0, 0, 0, 0.16);
+
+  /* Links ----------------------------------------------------------------- */
+  --link: #1958c1;
+  --link-hover: #0645ad;
+  --link-active: #c98000;
+  --link-title: #5b80b9;
+
+  /* Feedback -------------------------------------------------------------- */
+  --info-bg: #ddeefa;
+  --info-line: #b0d5ee;
+  --info-ink: #1c5b83;
+  --success-bg: #ddeee2;
+  --success-line: #a8d5b8;
+  --success-ink: #16663a;
+  --warning-bg: #fbf3d6;
+  --warning-line: #e8d492;
+  --warning-ink: #7d5f16;
+  --danger-bg: #f8e0e0;
+  --danger-line: #e5b4b4;
+  --danger-ink: #8f2d2d;
+  --announcement: #ae0000;
+
+  /* Verdicts -------------------------------------------------------------- */
+  --v-ac: #1f9254;
+  --v-wa: #cf3b3b;
+  --v-tle: #7c848b;
+  --v-mle: #7c848b;
+  --v-ce: #7c848b;
+  --v-ab: #7c848b;
+  --v-ole: #c98000;
+  --v-ir: #c98000;
+  --v-rte: #c98000;
+  --v-sc: #1f9254;
+  --v-ie: #cf3b3b;
+  --v-qu: #7c848b;
+  --v-pending: #2980b9;
+
+  /* Ratings --------------------------------------------------------------- */
+  --rating-none: #999999;
+  --rating-newbie: #999999;
+  --rating-amateur: #00a900;
+  --rating-expert: #2f8ecc;
+  --rating-candidate-master: #a44fbf;
+  --rating-master: #ffb100;
+  --rating-grandmaster: #ee0000;
+  --rating-target: #770000;
+
+  /* Submission heatmap ---------------------------------------------------- */
+  --heat-0: #dddddd;
+  --heat-1: #9be9a8;
+  --heat-2: #40c463;
+  --heat-3: #2f9c4c;
+  --heat-4: #216e39;
+
+  /* Spacing, on an 8 px grid with a 4 px half step ------------------------- */
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Controls -------------------------------------------------------------- */
+  --control-height: 36px;
+  --control-height-sm: 28px;
+  --control-padding-x: 10px;
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent) 32%, transparent);
+  --shadow-1: 0 1px 2px var(--shadow);
+  --shadow-2: 0 8px 30px var(--shadow);
+
+  /* Shape and type -------------------------------------------------------- */
+  --radius: 4px;
+  --radius-pill: 999px;
+  --font-display: "Bai Jamjuree", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, "Liberation Mono", monospace;
+  --font-size: 14px;
+  --line-height: 1.45;
+  --content-max: 107em;
+  --sticky-top: 70px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --accent: #5fa8dc;
+    --accent-ink: #08151d;
+    --accent-hover: #7dbbe6;
+    --accent-soft: #16313f;
+
+    --bg: #16181c;
+    --bg-2: #0f1113;
+    --surface: #1d2025;
+    --surface-2: #272b31;
+    --surface-3: #333941;
+    --ink: #e7e9ec;
+    --ink-2: #aeb5bc;
+    --muted: #878f97;
+    --line: #333941;
+    --line-strong: #454c55;
+    --code-bg: #1a1d22;
+    --shadow: rgba(0, 0, 0, 0.55);
+
+    --link: #6bb7f0;
+    --link-hover: #93cdf7;
+    --link-active: #dd9944;
+    --link-title: #8fc3ec;
+
+    --info-bg: #10293a;
+    --info-line: #1d4a68;
+    --info-ink: #8ed0f5;
+    --success-bg: #11291d;
+    --success-line: #1f5637;
+    --success-ink: #7ede9f;
+    --warning-bg: #2e2410;
+    --warning-line: #5c4718;
+    --warning-ink: #e8c46a;
+    --danger-bg: #2e1414;
+    --danger-line: #5c2626;
+    --danger-ink: #f09a9a;
+    --announcement: #b81414;
+
+    --v-ac: #4cc07d;
+    --v-wa: #ec6a6a;
+    --v-tle: #9aa2aa;
+    --v-mle: #9aa2aa;
+    --v-ce: #9aa2aa;
+    --v-ab: #9aa2aa;
+    --v-ole: #e0a53d;
+    --v-ir: #e0a53d;
+    --v-rte: #e0a53d;
+    --v-sc: #4cc07d;
+    --v-ie: #ec6a6a;
+    --v-qu: #9aa2aa;
+    --v-pending: #5fa8dc;
+
+    --rating-none: #aaaaaa;
+    --rating-newbie: #aaaaaa;
+    --rating-amateur: #17c217;
+    --rating-expert: #6aaee6;
+    --rating-candidate-master: #bd7ed4;
+    --rating-master: #ffb100;
+    --rating-grandmaster: #ff4d4d;
+    --rating-target: #ff8080;
+
+    --heat-0: #2a2f36;
+    --heat-1: #0e4429;
+    --heat-2: #006d32;
+    --heat-3: #26a641;
+    --heat-4: #39d353;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --accent: #5fa8dc;
+  --accent-ink: #08151d;
+  --accent-hover: #7dbbe6;
+  --accent-soft: #16313f;
+
+  --bg: #16181c;
+  --bg-2: #0f1113;
+  --surface: #1d2025;
+  --surface-2: #272b31;
+  --surface-3: #333941;
+  --ink: #e7e9ec;
+  --ink-2: #aeb5bc;
+  --muted: #878f97;
+  --line: #333941;
+  --line-strong: #454c55;
+  --code-bg: #1a1d22;
+  --shadow: rgba(0, 0, 0, 0.55);
+
+  --link: #6bb7f0;
+  --link-hover: #93cdf7;
+  --link-active: #dd9944;
+  --link-title: #8fc3ec;
+
+  --info-bg: #10293a;
+  --info-line: #1d4a68;
+  --info-ink: #8ed0f5;
+  --success-bg: #11291d;
+  --success-line: #1f5637;
+  --success-ink: #7ede9f;
+  --warning-bg: #2e2410;
+  --warning-line: #5c4718;
+  --warning-ink: #e8c46a;
+  --danger-bg: #2e1414;
+  --danger-line: #5c2626;
+  --danger-ink: #f09a9a;
+  --announcement: #b81414;
+
+  --v-ac: #4cc07d;
+  --v-wa: #ec6a6a;
+  --v-tle: #9aa2aa;
+  --v-mle: #9aa2aa;
+  --v-ce: #9aa2aa;
+  --v-ab: #9aa2aa;
+  --v-ole: #e0a53d;
+  --v-ir: #e0a53d;
+  --v-rte: #e0a53d;
+  --v-sc: #4cc07d;
+  --v-ie: #ec6a6a;
+  --v-qu: #9aa2aa;
+  --v-pending: #5fa8dc;
+
+  --rating-none: #aaaaaa;
+  --rating-newbie: #aaaaaa;
+  --rating-amateur: #17c217;
+  --rating-expert: #6aaee6;
+  --rating-candidate-master: #bd7ed4;
+  --rating-master: #ffb100;
+  --rating-grandmaster: #ff4d4d;
+  --rating-target: #ff8080;
+
+  --heat-0: #2a2f36;
+  --heat-1: #0e4429;
+  --heat-2: #006d32;
+  --heat-3: #26a641;
+  --heat-4: #39d353;
+}
