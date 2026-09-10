@@ -45,6 +45,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         ratingClass: ratingClass(profile.rating),
         siteTheme: profile.siteTheme,
         gravatarUrl: gravatarUrl(session?.user.email, 64),
+        // The admin plugin marks an impersonated session; the chrome says so.
+        isImpersonating: Boolean(
+          (session?.session as { impersonatedBy?: string | null } | undefined)?.impersonatedBy,
+        ),
       }
     : null;
 

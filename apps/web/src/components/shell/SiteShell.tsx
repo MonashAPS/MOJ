@@ -12,6 +12,7 @@ import { Announcement } from "./Announcement";
 import { ContestBar } from "./ContestBar";
 import { ContestFloater } from "./ContestFloater";
 import { Footer } from "./Footer";
+import { ImpersonationBar } from "./ImpersonationBar";
 import { NavBar } from "./NavBar";
 import { RouteProgress } from "./RouteProgress";
 import { ShortcutLayer } from "./ShortcutLayer";
@@ -89,6 +90,7 @@ export function SiteShell({
         {/* The club's royal, carried across the top of every page. */}
         <div aria-hidden className="h-[3px] bg-royal" />
         {onContestPage && contest ? <ContestBar data={contest} currentCode={problemCode} /> : null}
+        {viewer?.isImpersonating ? <ImpersonationBar username={viewer.displayName} /> : null}
       </header>
 
       <ProfileBootstrap />
