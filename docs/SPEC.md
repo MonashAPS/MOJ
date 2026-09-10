@@ -467,3 +467,22 @@ directories' test data to the judge host exactly as the club's current workflows
 `skipped`, `failed` (JSON lists) and a step summary table. Fails the job on any failed upload. Documented on the
 "Problem repos and CI" page with a complete example workflow (secrets `JUDGE_URL`, `JUDGE_API_KEY`, `JUDGE_HOST`,
 `JUDGE_SSH_KEY`) and on the action's own README.
+
+Spoiler rule (club feedback, 2026-09-11). "Appeared in" is collapsed by default on the problem page behind a
+"Show contests" toggle, exactly like DMOJ's "Show problem types" toggle, because a contest or workshop name can give
+the technique away. The toggle state is remembered per viewer (profile preference, like DMOJ's), and the contest
+filter on `/problems/` is opt-in in the same way (never applied unless the viewer asks). Contest pages themselves
+still list their problems normally.
+
+Editorial confirmation (club feedback, 2026-09-11). Clicking the Editorial tab or any editorial link on a
+problem page opens a confirmation dialog before navigating: title "View the editorial?", body "The editorial
+reveals the intended solution to this problem.", buttons "Yes, show it" and "No", and a "Don't ask me again"
+checkbox that stores the choice as a viewer preference (profile field, with a localStorage fallback when logged
+out). Direct visits to `/problem/[code]/editorial` from elsewhere are not intercepted. The preference can be reset
+from the edit-profile page.
+
+Editorial confirmation (club feedback, 2026-09-11). Clicking the Editorial tab or any editorial link on a
+problem page opens a confirmation dialog before navigating: title "View the editorial?", body "The editorial
+reveals the intended solution to this problem.", buttons "Yes, show it" and "No", and a "Don't ask me again"
+checkbox stored in localStorage only. Direct visits to `/problem/[code]/editorial` from elsewhere are not
+intercepted.
