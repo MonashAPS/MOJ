@@ -153,6 +153,30 @@
   --animate-spin-slow: spin 0.8s linear infinite;
 }
 
+/* The filled primary, on dark only.
+ *
+ * `--color-primary` is one name doing two jobs: `bg-primary` is a fill and
+ * `text-primary` is a foreground. On the bone ground one royal serves both. On a
+ * dark ground it cannot — a royal dark enough to carry white text is too dark to
+ * read as text on the surface — so an element that wears the fill re-points the
+ * accent family for itself and every utility built on it follows. `--accent-fill`
+ * exists only in the dark blocks of tokens.css, so this never fires in light.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) [class~="bg-primary"] {
+    --accent: var(--accent-fill);
+    --accent-hover: var(--accent-fill-hover);
+    --accent-active: var(--accent-fill-active);
+  }
+}
+
+:root[data-theme="dark"] [class~="bg-primary"],
+.theme-dark [class~="bg-primary"] {
+  --accent: var(--accent-fill);
+  --accent-hover: var(--accent-fill-hover);
+  --accent-active: var(--accent-fill-active);
+}
+
 /* One z-scale. Nothing in the product writes a z-index literal. */
 :root {
   --z-nav: 100;
