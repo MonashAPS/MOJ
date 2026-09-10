@@ -5,13 +5,13 @@ of files with an `init.yml` in it, and is exactly DMOJ's format. The **statement
 are pushed there from a problem repository by `config.json` and `statement.md`.
 
 If you have written problems for DMOJ before, nothing on this page is new except `config.json`. Data written for
-`judge.monashaps.com` grades unchanged on MOJ, including batches, dependencies, checkers, custom graders,
-generators and pretests.
+a DMOJ site grades unchanged on MOJ, including batches, dependencies, checkers, custom graders, generators and
+pretests, because the grader is the DMOJ judge-server and MOJ never parses `init.yml` itself.
 
 ## The problem directory
 
 The judge reads problems from the directories named in its `problem_storage_globs`, which in the container is
-`/problems/*`. One directory per problem, named after the problem code:
+`/problems/**/`. One directory per problem, named after the problem code:
 
 ```
 /problems/
@@ -41,11 +41,15 @@ the problem repository, the URL at `/problem/<code>`, and the key the problems A
 
 - Lowercase letters, digits and dots only. The site validates against `^[a-z.0-9]+$`.
 - At most 20 characters.
+- A dot in a code becomes a directory separator on the judge, so `course.a1.knapsack` lives at
+  `/problems/course/a1/knapsack/`. That is a fork behaviour carried in the judge subtree, and it is how a large
+  repository keeps its problems in folders.
 - Globally unique across the site, not per contest and not per repository.
 - Fixed once problems have been submitted to. Changing a code orphans the existing submissions and breaks every
   link to the problem, so treat it as permanent.
 
-Codes like `aplusb`, `mcpc26a` and `dmopc19c6p3` are all valid. `A+B`, `MCPC26A` and `mcpc-26-a` are not.
+Codes like `aplusb`, `spring26a` and `course.a1.knapsack` are all valid. `A+B`, `SPRING26A` and `spring-26-a`
+are not.
 
 ## `init.yml`
 
@@ -305,7 +309,7 @@ the extensions DMOJ uses, rendered by `packages/content` on the site and convert
 The conventional shape, and the one the PDF template expects:
 
 ````markdown
-In the kingdom of MAPS, specific hours of the day are celebrated.
+In the kingdom of Baldonia, certain hours of the day are celebrated.
 
 ## Input
 
@@ -340,13 +344,15 @@ when rendered, so `##` becomes an `h4` inside the page.
 
 ### Maths
 
-Inline maths is written between tildes, which is DMOJ's convention and the one the club's existing problems use:
+Inline maths is written between tildes, which is DMOJ's convention:
 
 ```markdown
 The answer is ~O(n \log n)~ for ~1 \le n \le 10^6~.
 ```
 
-`$...$` is accepted as well. Display maths is `$$...$$`, `\[...\]`, or a fenced block. `\(...\)` works inline.
+`$...$` is accepted as well, which DMOJ does not offer. Display maths is `$$...$$`, `\[...\]`, or a fenced
+block. `\(...\)` works inline. Unlike DMOJ, a tilde pair may not span a line ending, so an unbalanced tilde
+spoils one line rather than the rest of the paragraph.
 Everything goes through KaTeX, so KaTeX's function support is the limit; `\begin{align}` and friends are
 available, `\newcommand` at document scope is not.
 
@@ -373,8 +379,8 @@ Reference images by their file name, relative to the problem directory:
 ![Layout of the archery banners](images/archery.jpg)
 ```
 
-`upload-problem.mjs` uploads any local image referenced by a markdown image or an HTML `<img src="...">` and
-rewrites the source to the uploaded URL, keeping other attributes such as `width`. Keep the files next to the
+The uploader posts any local image referenced by a markdown image or an HTML `<img src="...">` and rewrites the
+source to the uploaded link, keeping other attributes such as `width`. Keep the files next to the
 statement in an `images/` directory and commit them; do not link to an external host, because those links rot and
 the PDF renderer will not fetch them.
 
@@ -384,21 +390,25 @@ An `editorial.md` beside the statement becomes the problem's editorial at `/prob
 same markdown. Visibility is controlled from the site or through the problems API `editorial` field; an editorial
 that exists but is not public is visible to staff and to users who have solved the problem, following DMOJ's rule.
 
+The Editorial tab asks for confirmation before it opens, so nobody spoils a problem for themselves with a stray
+click. A link straight to the editorial URL is not intercepted.
+
 ## `config.json`
 
-`config.json` is the metadata for the problem: everything the site needs that is not the statement and not the test
-data. It sits in the problem's directory in the repository and is read by `upload-problem.mjs`.
+`config.json` is the metadata for the problem: everything the site needs that is not the statement and not the
+test data. It sits in the problem's directory in the repository and is read by the uploader.
 
 ```json
 {
   "title": "Celebrated Hours",
-  "authors": ["indra", "swofty"],
-  "testers": ["alice"],
+  "authors": ["alice", "bruno"],
+  "testers": ["carla"],
   "points": 100,
   "timeLimit": 1,
   "pythonTimeLimit": 3,
   "memoryLimit": 256000,
   "shortCircuit": true,
+  "partial": false,
   "public": true
 }
 ```
@@ -413,10 +423,12 @@ data. It sits in the problem's directory in the repository and is read by `uploa
 | `pythonTimeLimit` | number, seconds | falls back to `timeLimit` | Language-specific limit written for Python 3 and PyPy 3. |
 | `memoryLimit` | number, KB | 1000000 | Memory limit. This is kilobytes, so 256 MB is `256000`. |
 | `shortCircuit` | boolean | true | Stop at the first failing case. |
-| `public` | boolean | true | Whether the problem is visible to everyone. |
+| `partial` | boolean | false | Whether a submission can score less than full marks and keep the points. |
+| `summary` | string | none | A short description used where the statement is too long. |
+| `public` | boolean | false on create | Whether the problem is visible to everyone. Setting it needs the permission to publish problems. |
 
 Two notes that catch people out. `memoryLimit` is in **kilobytes**, matching DMOJ's admin field, so `1000000` is
-roughly one gigabyte rather than one megabyte. And `pythonTimeLimit` exists because the interpreted languages need
+roughly one gigabyte rather than one megabyte, and it is also the default. And `pythonTimeLimit` exists because the interpreted languages need
 more than the reference C++ solution; if you omit it, Python gets the same limit as everything else.
 
 On update, a field that is absent from `config.json` is left alone on the site. The exception is the Python
@@ -432,13 +444,14 @@ Change them in the staff console.
 ## Problem repository layout
 
 A problem repository holds the statements, the metadata and the test data together, and its CI pushes both halves
-to where they belong. The layout the club uses:
+to where they belong. A workable layout:
 
 ```
-mcpc26/
-  .github/workflows/ci.yml       pushes to the site and the judge
+problems-2026/
+  .github/workflows/upload.yml   pushes to the site and the judge
   problems/
-    template/                    an example, skipped by CI
+    .image-registry.json         the image upload cache, committed
+    template/                    an example, skipped because it has no config.json
     celebratedhours/
       config.json                metadata for the site
       statement.md               statement for the site
@@ -455,4 +468,4 @@ mcpc26/
 
 The directory name is the problem code. The site half (`config.json`, `statement.md`, `editorial.md`, images) goes
 through the problems API. The judge half (`init.yml`, `tests/`, checkers, generators) is copied to the judge boxes
-with rsync. [Problem repos and CI](/problems/repos-and-ci) has the workflow that does both.
+with rsync. [Problem repos and CI](/problems/repos-and-ci) has the reusable action that does both.

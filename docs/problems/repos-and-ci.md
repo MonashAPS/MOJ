@@ -3,20 +3,22 @@
 A problem repository is a git repository holding problems, one directory per problem code. Its CI does two
 independent things whenever a problem changes:
 
-1. pushes the statement and the metadata to the site through the problems API, using `upload-problem.mjs`;
+1. pushes the statement, the editorial, the images and the metadata to the site through the problems API;
 2. copies the test data to the judge boxes with rsync.
 
-The order matters. The site half runs first, so that a brand new problem exists in the database before its data
-lands on a judge. If the upload fails, the rsync is skipped, because data for a problem the site does not know
-about is only going to confuse the judge's handshake.
+The order matters. The site half runs first, so that a new problem exists in the database before its data lands on
+a judge.
+
+Both halves are one reusable action, so a problem repository's whole workflow is a checkout and a `uses:`.
 
 ## Repository layout
 
 ```
-mcpc26/
-  .github/workflows/ci.yml
+problems-2026/
+  .github/workflows/upload.yml
   problems/
-    template/                    an example, skipped by CI
+    .image-registry.json         the image upload cache, committed
+    template/                    an example, skipped: it has no config.json
     celebratedhours/
       config.json
       statement.md
@@ -29,264 +31,212 @@ mcpc26/
   README.md
 ```
 
-Files split cleanly by destination. `config.json`, `statement.md`, `editorial.md` and anything the statement
-references go to the site. `init.yml`, `tests/`, checkers, graders and generators go to the judges. Reference
-solutions and generators' own sources are only for humans and stay in git.
+Files split by destination. `config.json`, `statement.md`, `editorial.md` and anything the statement references go
+to the site. `init.yml`, `tests/`, checkers, graders and generators go to the judges. Reference solutions are only
+for humans and stay in git.
 
-A directory without a `config.json` is not uploaded to the site. That is how a work in progress lives in the
-repository without appearing on the judge, and it is why the `template/` directory is skipped explicitly.
+A directory counts as a problem when it holds a `config.json` or a `statement.md`. That is how a work in progress
+lives in the repository without appearing on the site, and it is why a `template/` directory with neither is
+skipped without having to be named.
+
+See [problem format](/problems/format) for what goes in each file.
 
 ## Credentials
 
 The upload needs an API key with the `problems:write` scope.
 
-1. Sign in as a user who can edit the problems in question. A key never grants more than its owner has.
-2. Open `/accounts/api/token/generate/`, or the **API keys** panel on **Edit profile**.
-3. Create a key, tick **problems:write**, and copy it. Only the hash is stored, so it is shown once.
-4. Put it in the problem repository as the `JUDGE_API_KEY` secret, and the site's base URL as `JUDGE_URL`.
+1. Sign in as someone who can edit the problems in question. A key never grants more than its owner has.
+2. Open `/admin/api-keys` if you are staff, or `/accounts/api/token/generate/` otherwise.
+3. Create a key with `problems:write` and copy it. Only its hash is stored, so it is shown once.
+4. Put it in the problem repository as the `JUDGE_API_KEY` secret.
 
-For the rsync half you also need an SSH key that can write to the problems directory on each judge box. Add its
-private half as `JUDGE_SSH_KEY` and the host and user as `JUDGE_HOST` and `JUDGE_USER`.
+`JUDGE_URL` is the second secret, and it is the one people get wrong. **It is the Convex site origin, not the
+address you browse the site on.** The problems API is a Convex HTTP action, so the base URL looks like
+`https://convex-site.judge.example.org`. `/admin/api-keys` prints the right value for the deployment you are
+looking at.
 
-Keys belonging to a shared bot account are easier to rotate than a person's. Revoke a key from the same panel;
+For the rsync half you also need an SSH key that can write to the problems directory on the judge box. Add its
+private half as `JUDGE_SSH_KEY` and the host as `JUDGE_HOST`.
+
+A key belonging to a shared bot account is easier to rotate than a person's. Revoke a key from the same page;
 revocation takes effect on the next request.
 
-## `upload-problem.mjs`
+## The reusable action
 
-`upload-problem.mjs` lives in the MOJ repository at `tools/upload-problem/upload-problem.mjs`. It is a single file
-with no dependencies, because Node 24 already has `fetch` and `FormData`, so problem repositories fetch it in CI
-rather than vendoring a copy that drifts:
-
-```bash
-curl -fsSL -o upload-problem.mjs \
-  https://raw.githubusercontent.com/MonashAPS/MOJ/main/tools/upload-problem/upload-problem.mjs
+```yaml
+uses: MonashAPS/MOJ/actions/upload-problems@main
 ```
 
-Pin the branch to a tag if you want the script to change only when you decide it does.
+It sets up Node, works out which problem directories the push touched, uploads each one, writes a table to the job
+summary, and then, if the rsync inputs are present, syncs the test data to the judge host.
 
-### Usage
+### Inputs
 
-```bash
-export JUDGE_URL=https://judge.monashaps.com
-export JUDGE_API_KEY=...
-
-# Upload one problem directory.
-node upload-problem.mjs --problem-dir problems/celebratedhours
-
-# Show what would be sent without sending it.
-node upload-problem.mjs --problem-dir problems/celebratedhours --dry-run
-
-# Statement and editorial only, leaving every setting on the site alone.
-node upload-problem.mjs --problem-dir problems/celebratedhours --statement-only
-```
-
-| Environment variable | Required | Meaning |
+| Input | Default | What it does |
 | --- | --- | --- |
-| `JUDGE_URL` | yes | Base URL of the site, with no trailing slash. The script calls `$JUDGE_URL/api/problems/<code>`. |
-| `JUDGE_API_KEY` | yes | An API key with the `problems:write` scope. Sent as `Authorization: Bearer`. |
+| `judge-url` | required | Base URL of the problems API: the Convex site origin. |
+| `api-key` | required | API key with the `problems:write` scope. Use a repository secret. |
+| `problems-dir` | `problems` | The directory the problem directories live in. |
+| `only-changed` | `true` | Upload only the problems this push touched, using the event's before and after SHAs. Falls back to every problem when the event carries no usable range, such as a new branch or a manual run. |
+| `include` | | Newline-separated globs; only matching problem codes are uploaded. |
+| `exclude` | | Newline-separated globs; matching codes are skipped. |
+| `dry-run` | `false` | Resolve and report, send nothing. Also skips the rsync. |
+| `registry` | `<problems-dir>/.image-registry.json` | The image upload cache. |
+| `rsync-host` | | The judge host to sync test data to. Empty skips the sync entirely. |
+| `rsync-user` | | SSH user on that host. Required if `rsync-host` is set. |
+| `rsync-key` | | Private SSH key for that host. Required if `rsync-host` is set. |
+| `rsync-target` | `~/problems/<repo name>/` | Directory on the judge host. |
+| `rsync-delete` | `true` | Pass `--delete`, so test data you removed in git disappears on the judge. |
+| `node-version` | `24` | The Node version to run the uploader with. |
 
-The problem code is the directory's name. The title, points and limits come from `config.json`, the statement from
-`statement.md`, and the editorial from `editorial.md` when that file exists and is not empty.
+### Outputs
 
-The script exits non-zero on any failure and prints the API's error message, so a failing upload fails the job.
-
-### What it sends
-
-One `PUT /api/problems/<code>` with a JSON body:
+`uploaded`, `skipped` and `failed` are JSON lists:
 
 ```json
-{
-  "name": "Celebrated Hours",
-  "statement": "In the kingdom of MAPS...",
-  "editorial": { "content": "Check the hour...", "isPublic": false },
-  "points": 100,
-  "timeLimit": 1,
-  "memoryLimit": 256000,
-  "shortCircuit": true,
-  "isPublic": true,
-  "authors": ["indra"],
-  "testers": ["alice"],
-  "languageLimits": {
-    "python3": { "timeLimit": 3 },
-    "pypy3": { "timeLimit": 3 }
-  }
-}
+[{ "code": "aplusb", "created": false, "name": "A plus B" }]
+[{ "code": "mst", "reason": "dry-run" }]
+[{ "code": "coconut", "error": "coconut: HTTP 422 A new problem requires a name." }]
 ```
 
-The endpoint creates the problem if the code is new and updates it otherwise. `name` is required on create.
+The job fails when anything failed, and every run writes a table to the job summary saying what was created,
+updated, skipped or failed and why.
 
-### Partial update semantics
+### Example workflow
+
+`.github/workflows/upload.yml` in the problem repository:
+
+```yaml
+name: Upload problems
+
+on:
+  push:
+    branches: [main]
+    paths: ["problems/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: upload-problems
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The action compares the push's before and after SHAs, so it needs
+          # more than the tip commit.
+          fetch-depth: 0
+
+      - uses: MonashAPS/MOJ/actions/upload-problems@main
+        with:
+          judge-url: ${{ secrets.JUDGE_URL }}
+          api-key: ${{ secrets.JUDGE_API_KEY }}
+          problems-dir: problems
+          only-changed: true
+          rsync-host: ${{ secrets.JUDGE_HOST }}
+          rsync-user: judge
+          rsync-key: ${{ secrets.JUDGE_SSH_KEY }}
+```
+
+Secrets to add under Settings, Secrets and variables, Actions:
+
+| Secret | What it is |
+| --- | --- |
+| `JUDGE_URL` | The problems API base, the Convex site origin. |
+| `JUDGE_API_KEY` | An API key with the `problems:write` scope. |
+| `JUDGE_HOST` | The judge host to rsync test data to. |
+| `JUDGE_SSH_KEY` | A private SSH key authorised on that host. |
+
+Leave `rsync-host` out to upload statements only.
+
+The `concurrency` group is worth keeping. Two pushes racing each other means two rsyncs writing the same directory
+at once, which can leave a judge reading half a test set.
+
+The rsync copies the whole problems directory apart from `.git` and the image registry, so the judge also ends up
+with the statements and the images. They are harmless there; if disk on the judge is tight, narrow it with your
+own step instead.
+
+## Partial update semantics
 
 The API updates only the fields it is given, which is what lets a repository own some settings and the staff
 console own the rest.
 
 - A field that is absent is left unchanged.
 - `authors: []` is treated as absent, so an empty array never clears the author list. Clear it in the staff
-  console.
+  console. The same is true of `testers` and `curators`.
 - `group`, `types`, `publishOn` and the allowed language list are create-only. On create they default to the
   `uncategorized` group and type, publish immediately, and allow every language. Later uploads never touch them,
   so a problem moved into a group or restricted to C++ in the staff console stays that way.
-- `languageLimits` is rewritten whenever `timeLimit` or `pythonTimeLimit` is present in `config.json`, so removing
-  `pythonTimeLimit` returns Python to the general limit instead of leaving the old value behind.
+- The Python language limits are rewritten whenever `timeLimit` or `pythonTimeLimit` is present in `config.json`,
+  so removing `pythonTimeLimit` returns Python to the general limit rather than leaving the old value behind.
+- Making a problem public needs the permission to publish problems. Without it the upload is refused rather than
+  silently ignored.
+- An unknown username or an unknown language key is a warning on the response, not a failure.
 - `DELETE` is not supported. Retiring a problem is a staff console action, because deleting one would take its
   submissions with it.
 
-### Images
+## Images
 
-Before sending the statement, the script scans it for local images: markdown `![alt](images/archery.jpg)` and HTML
-`<img src="images/archery.jpg" width="400">`. Each local file is posted to:
+Before sending a statement, the uploader scans it for local images: markdown `![alt](images/archery.jpg)` and HTML
+`<img src="images/archery.jpg" width="400">`. Each local file is posted to the images endpoint, and the source in
+the statement is rewritten to the link that comes back, keeping any other attributes. Absolute URLs, root-relative
+paths and `data:` URIs are left alone.
 
-```
-POST /api/problems/<code>/images
-Content-Type: multipart/form-data, field name "file"
-```
+Uploads are content-addressed by the sha256 of the bytes, so re-uploading an unchanged image returns the existing
+link rather than making a second copy.
 
-which answers `{"status": 200, "link": "https://..."}`. The script rewrites that source in the statement to the
-returned link, keeping any other attributes, and only then sends the statement. Absolute URLs are left alone.
+On top of that, the uploader keeps `.image-registry.json` in the problems directory, keyed by file hash.
+**Commit that file.** It is what stops every push re-uploading every image, and it is excluded from the rsync so
+it never reaches a judge.
 
-Uploads are content-addressed, so re-uploading an unchanged image returns the existing link rather than making a
-second copy. A statement that references a file which does not exist is an error, not a warning, because a broken
-image on a contest problem is worse than a failed build.
+A statement that references a file which does not exist is an error, not a warning, because a broken image on a
+contest problem is worse than a failed build.
 
-## Example workflow
+## Running the uploader by hand
 
-This is a complete `.github/workflows/ci.yml` for a problem repository. It uploads changed problems on a push to
-`main`, then syncs the test data.
+The action is a thin wrapper around `tools/upload-problem/upload-problem.mjs` in the MOJ repository, a single file
+with no dependencies:
 
-```yaml
-name: CI
+```bash
+export JUDGE_URL=https://convex-site.judge.example.org
+export JUDGE_API_KEY=...
 
-on:
-  push:
-    branches: [main]
-  pull_request:
+# One problem
+node upload-problem.mjs --problem-dir problems/celebratedhours
 
-jobs:
-  upload:
-    name: Upload changed problems
-    runs-on: ubuntu-latest
-    concurrency: judge-upload
-    if: >
-      github.ref == 'refs/heads/main' &&
-      !contains(github.event.head_commit.message, '[skip ci]') &&
-      !contains(github.event.head_commit.message, '#skip-upload')
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+# Everything under a root, reporting only
+node upload-problem.mjs --problems-root problems --dry-run
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-
-      - name: Detect changed problem directories
-        id: detect
-        run: |
-          before='${{ github.event.before }}'
-          after='${{ github.event.after }}'
-          if [ "$before" = '0000000000000000000000000000000000000000' ]; then
-            changed=$(git diff-tree --no-commit-id --name-only -r "$after" -- problems/)
-          else
-            changed=$(git diff --name-only "$before" "$after" -- problems/)
-          fi
-
-          dirs=$(printf '%s\n' "$changed" \
-            | grep -E '^problems/[^/]+/(config\.json|statement\.md|editorial\.md|images/.*)$' \
-            | cut -d/ -f2 \
-            | grep -vx template \
-            | sort -u \
-            | while read -r d; do [ -f "problems/$d/config.json" ] && echo "$d"; done)
-
-          {
-            echo 'dirs<<EOF'
-            echo "$dirs"
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Fetch the uploader
-        if: steps.detect.outputs.dirs != ''
-        run: |
-          curl -fsSL -o upload-problem.mjs \
-            https://raw.githubusercontent.com/MonashAPS/MOJ/main/tools/upload-problem/upload-problem.mjs
-
-      - name: Upload
-        if: steps.detect.outputs.dirs != ''
-        env:
-          JUDGE_URL: ${{ vars.JUDGE_URL }}
-          JUDGE_API_KEY: ${{ secrets.JUDGE_API_KEY }}
-        run: |
-          failed=''
-          while read -r problem; do
-            [ -z "$problem" ] && continue
-            echo "::group::$problem"
-            if node upload-problem.mjs --problem-dir "problems/$problem"; then
-              echo "::endgroup::"
-            else
-              echo "::endgroup::"
-              echo "::error::failed to upload $problem"
-              failed="$failed $problem"
-            fi
-          done <<< '${{ steps.detect.outputs.dirs }}'
-          [ -z "$failed" ] || { echo "failed:$failed"; exit 1; }
-
-  deploy:
-    name: Sync test data to the judges
-    runs-on: ubuntu-latest
-    needs: upload
-    concurrency: judge-deploy
-    if: >
-      always() && !cancelled() &&
-      (needs.upload.result == 'success' || needs.upload.result == 'skipped') &&
-      github.ref == 'refs/heads/main' &&
-      !contains(github.event.head_commit.message, '[skip ci]') &&
-      !contains(github.event.head_commit.message, '#skip-deploy')
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Load the deploy key
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.JUDGE_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "${{ secrets.JUDGE_HOST }}" >> ~/.ssh/known_hosts
-
-      - name: Rsync problems
-        run: |
-          rsync -avz --delete \
-            --exclude '.git*' \
-            --exclude 'config.json' \
-            --exclude 'statement.md' \
-            --exclude 'editorial.md' \
-            --exclude 'images/' \
-            --exclude 'sol.*' \
-            --exclude 'judge.yml' \
-            -e 'ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes' \
-            problems/ \
-            "${{ secrets.JUDGE_USER }}@${{ secrets.JUDGE_HOST }}:~/problems/${{ github.event.repository.name }}/"
+# Just the text, leaving points and limits alone
+node upload-problem.mjs --problem-dir problems/celebratedhours --statement-only
 ```
 
-Some details worth keeping if you adapt it:
+| Option | Meaning |
+| --- | --- |
+| `--problem-dir <dir>` | A problem directory. Repeatable. |
+| `--problems-root <dir>` | The directory problem directories live in. |
+| `--changed <list>` | Newline or comma separated changed paths; only the problem directories they touch are uploaded. |
+| `--include <glob>`, `--exclude <glob>` | Filter by problem code. Repeatable. |
+| `--registry <path>` | The image cache file. |
+| `--statement-only` | Send the statement and the editorial and nothing else. |
+| `--dry-run` | Resolve and report, send nothing. |
+| `--json` | Print a machine-readable summary on the last line. |
+| `--judge-url`, `--api-key` | Override `JUDGE_URL` and `JUDGE_API_KEY`. |
 
-- `concurrency: judge-upload` and `concurrency: judge-deploy` stop two pushes from racing. Two rsyncs writing the
-  same directory at once can leave a judge reading half a test set.
-- The `--exclude` list keeps site-only files off the judges. They would be harmless, but a judge that copies
-  gigabytes of images has less disk for the data it needs.
-- `--delete` is what removes cases you deleted in git. Without it, an old `tests/9.in` stays on the judge forever
-  and keeps getting graded.
-- The commit-message escapes (`[skip ci]`, `#skip-upload`, `#skip-deploy`) exist for the times when you are fixing
-  the repository itself rather than the problems.
-- On a pull request the workflow does nothing except run whatever validation you add. Do not let pull requests
-  push to a live judge.
+The problem code is the directory's name. The script exits non-zero on any failure and prints the API's error
+message, so a failing upload fails the job.
 
-### Validating before you push
+## Validating before you push
 
 Two checks worth adding to the pull request job, both cheap:
 
 ```bash
-# Every problem directory that has config.json also parses as JSON and has a title.
+# Every problem directory that has config.json parses as JSON and has a title.
 for d in problems/*/; do
   [ -f "$d/config.json" ] || continue
-  node -e 'const c=require("./"+process.argv[1]+"/config.json"); if(!c.title) {console.error(process.argv[1]+": no title"); process.exit(1)}' "$d"
+  node -e 'const c=require("./"+process.argv[1]+"/config.json"); if(!c.title){console.error(process.argv[1]+": no title");process.exit(1)}' "$d"
 done
 
 # Every init.yml parses and names files that exist.
@@ -309,20 +259,17 @@ sys.exit(1 if bad else 0)
 '
 ```
 
+Do not let pull requests push to a live judge. Run the action with `dry-run: true` on a pull request if you want
+the report without the write.
+
 ## Syncing to more than one judge
 
-Judges do not share problem data; each grades from its own disk. With several judge boxes, either run the rsync
-step once per host in a matrix:
+Judges do not share problem data; each grades from its own disk. With several judge boxes, either run the action
+once per host in a matrix, or sync to one host and let the others pull from it on a timer.
 
-```yaml
-    strategy:
-      matrix:
-        host: [judge1.example.org, judge2.example.org]
-```
-
-or rsync to one host and let the others pull from it on a timer. The site copes with judges that disagree about
-which problems exist, because the handshake tells it what each one has, but a problem that has reached no judge
-will queue forever, and a contest problem that has reached only the slow judge will grade slowly.
+The site copes with judges that disagree about which problems exist, because the handshake tells it what each one
+has. But a problem that has reached no judge will queue forever, and a contest problem that has reached only the
+slow judge will grade slowly.
 
 After a sync, judges pick up new problem directories on their next handshake. Restarting a judge container forces
 one immediately:

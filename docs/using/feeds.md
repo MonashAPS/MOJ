@@ -1,10 +1,10 @@
 # Feeds and integrations
 
-MOJ publishes the same feeds DMOJ does, at the same URLs, so an existing subscription keeps working after the
-migration. Everything on this page is public and unauthenticated: the feeds contain only what a signed-out visitor
-can already see, so a private problem or a hidden blog post never appears in one.
+MOJ publishes the same feeds DMOJ does, at the same URLs, so an existing subscription keeps working after a
+migration. Everything on this page is public and unauthenticated: a feed is always built as though nobody were
+signed in, so a private problem or a hidden blog post never appears in one, whoever fetches it.
 
-Replace `https://judge.monashaps.com` below with your own site if you are running one.
+The examples use `https://judge.example.org`. Substitute your own site.
 
 ## The feeds
 
@@ -23,27 +23,31 @@ The RSS and Atom versions of a feed carry the same items with the same content; 
 prefers. Atom is the better choice for anything that cares about update timestamps, since it distinguishes
 published from updated.
 
+Each feed carries the 25 most recent items. Every one of them is served with a five-minute cache header.
+
+Absolute links in the feeds, the calendar and the sitemap come from `NEXT_PUBLIC_SITE_URL` when it is set and
+`NEXT_PUBLIC_APP_URL` otherwise, so a site behind a proxy that terminates on a different name can be corrected
+without touching anything else.
+
 Check one from the command line before you point a bot at it:
 
 ```bash
-curl -s https://judge.monashaps.com/feed/problems/atom/ | head -40
+curl -s https://judge.example.org/feed/problems/atom/ | head -40
 ```
 
 ### New problems
 
-The 25 most recently published public problems, newest first, ordered by publish date.
+The 25 most recently published public problems, newest first, by publish date.
 
 | Item field | Contents |
 | --- | --- |
 | `title` | The problem name. |
 | `link` | The absolute URL of the problem, `/problem/<code>`. |
-| `guid` (Atom `id`) | The same URL, stable for the life of the problem. |
-| `description` (Atom `summary`) | The first 500 characters of the rendered statement, followed by an ellipsis. |
-| `pubDate` (Atom `published`) | The problem's publish date. |
-| `updated` (Atom only) | The same date. |
+| `guid`, Atom `id` | The same URL. |
+| `description`, Atom `summary` | The rendered statement, cut to 500 characters, with an ellipsis. |
+| `pubDate`, Atom `published` and `updated` | The problem's date. |
 
-A problem appears when it becomes public, not when it is created, so a problem written weeks in advance of a
-contest appears at the contest, which is what you want.
+Organisation-private problems are never in it.
 
 ### Comments
 
@@ -51,47 +55,49 @@ The 25 most recent comments visible to a signed-out visitor, across problems, co
 
 | Item field | Contents |
 | --- | --- |
-| `title` | `username -> page title`, for example `indra -> Celebrated Hours`. |
+| `title` | `username -> page title`. |
 | `link` | The absolute URL of the comment on its page, with the comment anchor. |
-| `guid` (Atom `id`) | The same URL. |
-| `description` (Atom `summary`) | The rendered comment body. |
-| `pubDate` (Atom `published`) | When the comment was posted. |
+| `guid`, Atom `id` | The same URL. |
+| `description`, Atom `summary` | The rendered comment body. |
+| `pubDate`, Atom `published` | When the comment was posted. |
 
-Hidden comments and comments on pages the public cannot see are left out.
+Hidden comments, comments on pages the public cannot see, and comments whose target no longer exists are left
+out.
 
 ### Blog posts
 
-Every visible blog post whose publish date has passed, sticky posts first, then newest first.
+The 25 most recent visible blog posts whose publish date has passed, sticky posts first, then newest first.
 
 | Item field | Contents |
 | --- | --- |
 | `title` | The post title. |
 | `link` | The absolute URL, `/post/<id>-<slug>`. |
-| `guid` (Atom `id`) | The same URL. |
-| `description` (Atom `summary`) | The rendered summary, or the rendered body when the post has no summary. |
-| `pubDate` (Atom `published`) | The publish date, not the creation date. |
+| `guid`, Atom `id` | The same URL. |
+| `description`, Atom `summary` | The rendered summary, or the rendered body when the post has no summary. |
+| `pubDate`, Atom `published` | The publish date, not the creation date. |
 
-This is the feed to subscribe a club announcements channel to, because contest announcements are blog posts.
+This is the feed to subscribe an announcements channel to, because contest announcements are blog posts.
 
 ## The contest calendar
 
-`/contests.ics` is an iCalendar file with one event per visible contest.
+`/contests.ics` is an iCalendar file with one event per visible contest, in start order.
 
 | Event property | Contents |
 | --- | --- |
 | `UID` | `contest-<key>@<site host>`, stable, so an edited contest updates rather than duplicating. |
 | `SUMMARY` | The contest name. |
-| `LOCATION` | The absolute URL of the contest page. |
 | `DTSTART`, `DTEND` | The contest's start and end, in UTC. Your calendar converts to local time. |
 | `DTSTAMP` | When the file was generated. |
+| `URL` | The absolute URL of the contest page. |
+| `DESCRIPTION` | The contest's summary, when it has one. |
 
 Subscribe to it rather than downloading it, so that new contests appear on their own. Downloading imports a
 snapshot that never updates.
 
 **Google Calendar**: Other calendars, then **From URL**, and paste
-`https://judge.monashaps.com/contests.ics`. Google refreshes subscribed calendars on its own schedule, which is
-often several hours, so a contest announced the same morning may not show up in time. Treat it as a planning tool,
-not a reminder.
+`https://judge.example.org/contests.ics`. Google refreshes subscribed calendars on its own schedule, which is
+often several hours, so a contest announced the same morning may not show up in time. Treat it as a planning
+tool, not a reminder.
 
 **Apple Calendar**: File, then **New Calendar Subscription**, paste the same URL, and set the refresh interval.
 Apple lets you choose, so five minutes or an hour is available if you want it.
@@ -101,17 +107,17 @@ Apple lets you choose, so five minutes or an hour is available if you want it.
 **Command line**, for a script that wants to know what is on:
 
 ```bash
-curl -s https://judge.monashaps.com/contests.ics | grep -E '^(SUMMARY|DTSTART|DTEND):'
+curl -s https://judge.example.org/contests.ics | grep -E '^(SUMMARY|DTSTART|DTEND):'
 ```
 
-Contests you cannot see are not in the file. A contest private to an organisation is absent for everyone, since the
-file is generated without a signed-in user.
+Contests you cannot see are not in the file. A contest private to an organisation is absent for everyone, since
+the file is generated without a signed-in user.
 
 ## The sitemap
 
-`/sitemap.xml` lists the public pages worth indexing: problems, contests, blog posts, organisations, user profiles
-and the flat pages. It is regenerated by a job rather than on request, so it is cheap to fetch and slightly stale
-by design.
+`/sitemap.xml` is built on each request and lists the home page, the about page, every public problem, every
+published public editorial, every visible blog post, every visible public contest, every organisation and every
+listed user profile, each with a change frequency and a priority.
 
 It is there for search engines. If you want a machine-readable list of problems for your own tooling, use
 [the API](/reference/api) instead, which paginates and filters properly.
@@ -123,13 +129,7 @@ It is there for search engines. If you want a machine-readable list of problems 
 Discord has no built-in RSS reader, so use a webhook and a bot that polls.
 
 1. In the Discord channel, **Edit Channel**, **Integrations**, **Create Webhook**, and copy the webhook URL.
-2. Point an RSS bot at the feed and the webhook. With
-   [MonitoRSS](https://monitorss.xyz), which is the usual choice, the command is:
-
-   ```
-   /add feed_url: https://judge.monashaps.com/feed/blog/atom/
-   ```
-
+2. Point an RSS bot at the feed and the webhook.
 3. If you would rather not add a bot, a cron job on any box you already run works:
 
    ```bash
@@ -137,7 +137,7 @@ Discord has no built-in RSS reader, so use a webhook and a bot that polls.
    # post-new-blog-posts.sh, run every 15 minutes from cron
    set -euo pipefail
 
-   FEED=https://judge.monashaps.com/feed/blog/atom/
+   FEED=https://judge.example.org/feed/blog/atom/
    WEBHOOK=https://discord.com/api/webhooks/...
    STATE=$HOME/.cache/moj-blog-feed.seen
    mkdir -p "$(dirname "$STATE")"
@@ -161,7 +161,7 @@ Discord has no built-in RSS reader, so use a webhook and a bot that polls.
 Slack has a built-in RSS app, so no bot is needed:
 
 ```
-/feed subscribe https://judge.monashaps.com/feed/blog/atom/
+/feed subscribe https://judge.example.org/feed/blog/atom/
 ```
 
 Run it in the channel that should receive the posts. `/feed list` shows the channel's subscriptions and
@@ -170,11 +170,10 @@ the blog feed is the post summary, so write summaries worth reading.
 
 For the problems feed, the same command with `/feed/problems/atom/` gives a channel that announces every new
 problem as it goes public. That is a good fit for a practice channel and a bad fit for a general one, because a
-problem set landing at once is 10 messages in a row.
+problem set landing at once is ten messages in a row.
 
-## Rate limits and caching
+## Polling politely
 
-The feeds are cached and cheap, but they are not a substitute for the API. Poll them at most every few minutes; a
-reader hitting them every 10 seconds gets nothing new and will eventually be rate limited along with everything
-else from that address. Item bodies are rendered markdown, cached for a day, so an edited comment can take that
-long to change in a feed.
+The feeds are cheap and are cached for five minutes at the edge, so there is nothing to gain from polling more
+often than that. They are not a substitute for the API: a reader that wants to filter, paginate or ask about
+something other than the newest 25 items should use [the API](/reference/api).
