@@ -65,8 +65,13 @@ const ADMIN_PERMISSIONS = [
   "judge.totp",
 ];
 
-// This machine has two faulty cores; every heavy child process is pinned.
-const CPU_PIN = ["taskset", "-c", "0-11,14-31"];
+/**
+ * Optional CPU pinning for the heavy child processes, for a machine that has to
+ * keep some cores free (or has cores that must not be used at all). Set
+ * `MOJ_CPUSET` to a taskset-style list, e.g. `MOJ_CPUSET=0-11,14-31`. Unset,
+ * nothing is pinned, which is the only default that works everywhere.
+ */
+const CPU_PIN = process.env.MOJ_CPUSET ? ["taskset", "-c", process.env.MOJ_CPUSET] : [];
 
 const CYAN = "\u001b[36m";
 const RED = "\u001b[31m";
@@ -98,7 +103,8 @@ function run(command, args, options = {}) {
 }
 
 function pinned(command, args, options) {
-  return run(CPU_PIN[0], [CPU_PIN[1], CPU_PIN[2], command, ...args], options);
+  if (CPU_PIN.length === 0) return run(command, args, options);
+  return run(CPU_PIN[0], [...CPU_PIN.slice(1), command, ...args], options);
 }
 
 function compose(args, options) {

@@ -1,0 +1,24 @@
+# Machine-specific compose overrides. Copy to `infra/compose.override.local.yml`
+# (gitignored) and edit; nothing in the tracked compose files should ever carry
+# a value that is true of one machine only.
+#
+# Layer it on top of whichever stack you are running, from the repository root:
+#
+#   docker compose -f infra/compose.dev.yml -f infra/compose.override.local.yml \
+#     --project-directory . --profile judge up -d judge
+#
+# `JUDGE_CPUSET` is the reason this file exists. A judge grades with wall-clock
+# time limits, so it wants cores that nothing else is fighting it for, and some
+# boxes have cores that must not be used at all. Set the variable in `.env.local`
+# (or export it) to a taskset-style CPU list, e.g. `JUDGE_CPUSET=0-11,14-31`.
+#
+# Leave the file uncopied and the judge floats across every core, which is the
+# right default and the only one that works on a machine whose core count you do
+# not know.
+
+services:
+  judge:
+    cpuset: "${JUDGE_CPUSET:?set JUDGE_CPUSET, e.g. 0-11,14-31}"
+
+  judge-bridge:
+    cpuset: "${JUDGE_CPUSET:?set JUDGE_CPUSET, e.g. 0-11,14-31}"

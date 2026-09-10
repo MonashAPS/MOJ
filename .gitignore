@@ -25,3 +25,6 @@ docs/.vitepress/cache/
 .convex-tmp/
 *.tsbuildinfo
 .local/
+
+# Machine-specific compose overrides (see infra/compose.override.local.example.yml).
+infra/compose.override.local.yml
