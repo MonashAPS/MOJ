@@ -1,7 +1,6 @@
 import { api } from "@convex/_generated/api";
 import { Alert, AlertDescription, AlertTitle, TitleRow } from "@moj/ui";
 import { Info } from "lucide-react";
-import Link from "next/link";
 import { requireAccount } from "@/auth/account-state";
 import { accountTabs } from "@/components/accounts/AccountTabs";
 import { queryAsViewer } from "@/lib/convex-server";
@@ -33,8 +32,8 @@ export default async function ApiTokenPage() {
           <Info className="size-3.5" aria-hidden />
           <AlertTitle>Send it as a bearer token.</AlertTitle>
           <AlertDescription>
-            <code className="font-mono text-mono">Authorization: Bearer &lt;token&gt;</code>. A token never
-            has more access than you do. See <Link href="/about/">the API reference</Link> for the endpoints.
+            <code className="font-mono text-mono">Authorization: Bearer &lt;token&gt;</code>
+            <p>A token never has more access than its owner does.</p>
           </AlertDescription>
         </Alert>
       </div>
