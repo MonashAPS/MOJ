@@ -25,13 +25,7 @@ const password = process.argv[3] ?? "admin";
 const email = process.argv[4] ?? "admin@example.com";
 
 /** Five fixed scratch codes, in the plugin's `xxxxx-xxxxx` shape. */
-const DEV_SCRATCH_CODES = [
-  "mojde-vcode1",
-  "mojde-vcode2",
-  "mojde-vcode3",
-  "mojde-vcode4",
-  "mojde-vcode5",
-];
+const DEV_SCRATCH_CODES = ["mojde-vcode1", "mojde-vcode2", "mojde-vcode3", "mojde-vcode4", "mojde-vcode5"];
 
 /** Writes the two-factor row Better Auth would have written after a successful
  *  enrolment, with a known secret instead of a random one. */
