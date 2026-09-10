@@ -18,11 +18,14 @@ export type CommentsProps = {
  * new comments, votes, edits and hides, and renders the rows that changed.
  */
 export async function Comments({ targetType, targetKey }: CommentsProps) {
-  const [data, viewerState] = await Promise.all([
+  const [data, viewerState, settings] = await Promise.all([
     queryAsViewer(api.comments.list, { targetType, targetKey }).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
+    queryAsViewer(api.site.settings, {}).catch(() => null),
   ]);
-  if (!data) return null;
+  // `enable_comments` (blog/content.html): a page whose target no longer exists,
+  // or a site with comments switched off, renders no section at all.
+  if (!data || settings?.enableComments === false) return null;
 
   const rendered = await Promise.all(
     data.comments.map(
