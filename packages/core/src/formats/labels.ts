@@ -9,9 +9,9 @@
  * (`default` numbers its problems, `icpc` letters them).
  */
 
-import type { ContestRow, LabelScheme } from '../types.js';
-import { letterLabel, numberLabel } from './base.js';
-import { getFormatOrDefault } from './registry.js';
+import type { ContestRow, LabelScheme } from '../types';
+import { letterLabel, numberLabel } from './base';
+import { getFormatOrDefault } from './registry';
 
 export interface LabelOptions {
   readonly scheme?: LabelScheme;

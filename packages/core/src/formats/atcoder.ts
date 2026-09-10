@@ -6,7 +6,7 @@
  * rejected submission that preceded a solve.
  */
 
-import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base.js';
+import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base';
 import {
   breakdown,
   buildParticipationResult,
@@ -18,11 +18,11 @@ import {
   pointsPrecision,
   secondsSince,
   validateAgainstDefaults,
-} from './base.js';
-import { computeMaxPointsRows } from './penalty.js';
-import { participationStart } from '../contestTiming.js';
-import { pyRound } from '../util/number.js';
-import type { FormatData } from '../types.js';
+} from './base';
+import { computeMaxPointsRows } from './penalty';
+import { participationStart } from '../contestTiming';
+import { pyRound } from '../util/number';
+import type { FormatData } from '../types';
 
 export const ATCODER_DEFAULTS = { penalty: 5 } as const;
 

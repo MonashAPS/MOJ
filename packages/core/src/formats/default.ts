@@ -7,7 +7,7 @@
  * score.
  */
 
-import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base.js';
+import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base';
 import {
   breakdown,
   buildParticipationResult,
@@ -19,10 +19,10 @@ import {
   orderedProblemIds,
   pointsPrecision,
   secondsSince,
-} from './base.js';
-import { participationStart } from '../contestTiming.js';
-import { pyRound } from '../util/number.js';
-import type { FormatData } from '../types.js';
+} from './base';
+import { participationStart } from '../contestTiming';
+import { pyRound } from '../util/number';
+import type { FormatData } from '../types';
 
 export function validateDefaultConfig(config: unknown): void {
   if (config === null || config === undefined) return;

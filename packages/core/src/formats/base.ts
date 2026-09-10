@@ -10,7 +10,7 @@
  * Source: judge/contest_format/*.py.
  */
 
-import { floatformat, niceRepr } from '../util/number.js';
+import { floatformat, niceRepr } from '../util/number';
 import type {
   ContestParticipationRow,
   ContestProblemRow,
@@ -19,7 +19,7 @@ import type {
   FormatData,
   FormatDataEntry,
   Id,
-} from '../types.js';
+} from '../types';
 
 /** Thrown by `validate(config)`, standing in for Django's `ValidationError`. */
 export class FormatConfigError extends Error {

@@ -19,9 +19,9 @@ import {
   numberLabel,
   updateParticipation,
   validateContestFormatConfig,
-} from '../src/formats/index.js';
-import type { ContestSubmissionRow, SubmissionTestCaseRow } from '../src/types.js';
-import { NOW, createContest, createContestProblem, createParticipation } from './fixtures.js';
+} from '../src/formats/index';
+import type { ContestSubmissionRow, SubmissionTestCaseRow } from '../src/types';
+import { NOW, createContest, createContestProblem, createParticipation } from './fixtures';
 
 const START = NOW;
 const HOURS = 3_600_000;

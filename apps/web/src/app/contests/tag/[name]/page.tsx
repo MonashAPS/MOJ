@@ -4,7 +4,7 @@ import { Tag } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ContestWindow, tagInk, UserCount } from "@/components/contests/pieces";
+import { ContestWindow, UserCount } from "@/components/contests/pieces";
 import { queryAsViewer } from "@/lib/convex-server";
 import { renderContent } from "@/lib/markdown";
 
@@ -16,16 +16,12 @@ const LIST_ARGS = {
 
 async function loadTag(name: string) {
   const [tag, list] = await Promise.all([
-    queryAsViewer(api.pages.contests.tag, { name }).catch(() => null),
-    queryAsViewer(api.contests.list, { ...LIST_ARGS, tagName: name }).catch(() => null),
+    queryAsViewer(api.pages.contests.tag, { name }),
+    queryAsViewer(api.contests.list, { ...LIST_ARGS, tagName: name }),
   ]);
 
-  const contests = list ? [...list.current, ...list.future, ...list.past.page] : [];
-  // Without the (new) tag query, the tag's own colour and description still come
-  // out of the contests carrying it.
-  const fallback = contests.flatMap((contest) => contest.tags).find((row) => row.name === name);
-  const resolved = tag ?? (fallback ? { ...fallback, textColor: tagInk(fallback.color) } : null);
-  return { tag: resolved, contests, found: !!tag || !!fallback };
+  const contests = [...list.current, ...list.future, ...list.past.page];
+  return { tag, contests, found: !!tag };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ name: string }> }): Promise<Metadata> {

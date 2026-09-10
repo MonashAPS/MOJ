@@ -10,7 +10,7 @@ import {
   participationIsVirtual,
   participationStart,
   participationTimeRemaining,
-} from '../src/contestTiming.js';
+} from '../src/contestTiming';
 import {
   IN_PROGRESS_GRADING_STATUS,
   RESULT_NAMES,
@@ -21,9 +21,9 @@ import {
   verdictClassName,
   verdictName,
   verdictTone,
-} from '../src/verdicts.js';
-import { PARTICIPATION_SPECTATE } from '../src/types.js';
-import { DAY, HOUR, MINUTE, NOW, createContest, createParticipation, createUser } from './fixtures.js';
+} from '../src/verdicts';
+import { PARTICIPATION_SPECTATE } from '../src/types';
+import { DAY, HOUR, MINUTE, NOW, createContest, createParticipation, createUser } from './fixtures';
 
 const contest = createContest('c', {
   startTime: NOW - HOUR,

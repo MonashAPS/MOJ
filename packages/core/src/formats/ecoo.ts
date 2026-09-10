@@ -7,7 +7,7 @@
  * window when it was submitted earns one more point.
  */
 
-import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base.js';
+import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base';
 import {
   breakdown,
   buildParticipationResult,
@@ -21,10 +21,10 @@ import {
   pointsPrecision,
   secondsSince,
   validateAgainstDefaults,
-} from './base.js';
-import { participationEndTime, participationStart } from '../contestTiming.js';
-import { pyRound } from '../util/number.js';
-import type { ContestSubmissionRow, FormatData } from '../types.js';
+} from './base';
+import { participationEndTime, participationStart } from '../contestTiming';
+import { pyRound } from '../util/number';
+import type { ContestSubmissionRow, FormatData } from '../types';
 
 export const ECOO_DEFAULTS = { cumtime: false, first_ac_bonus: 10, time_bonus: 5 } as const;
 

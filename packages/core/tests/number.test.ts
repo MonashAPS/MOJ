@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { floatformat, niceRepr, pyRound, roundHalfUp } from '../src/util/number.js';
+import { floatformat, niceRepr, pyRound, roundHalfUp } from '../src/util/number';
 
 describe('pyRound', () => {
   it('rounds halves to even, like CPython', () => {

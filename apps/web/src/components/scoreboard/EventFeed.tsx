@@ -3,9 +3,17 @@
 import { EASE_OUT } from "@moj/ui";
 import { X } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef } from "react";
-import { contestClock, type FeedEntry } from "./hall";
+import type { FeedItem } from "@convex/pages/scoreboard";
+import { contestClock } from "./hall";
 
 const SHIFT_MS = 420;
+
+const CHIP: Record<string, string> = { correct: "Solved", incorrect: "Wrong", pending: "Pending" };
+const SAID: Record<string, string> = {
+  correct: " solved ",
+  incorrect: " missed ",
+  pending: " waiting on ",
+};
 
 function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -25,7 +33,7 @@ export function EventFeed({
   open,
   onClose,
 }: {
-  entries: FeedEntry[];
+  entries: FeedItem[];
   open: boolean;
   onClose: () => void;
 }) {
@@ -34,7 +42,7 @@ export function EventFeed({
   const painted = useRef(false);
 
   const fresh = useMemo(() => {
-    const keys = new Set(entries.map((entry) => entry.key));
+    const keys = new Set(entries.map((entry) => entry.id));
     const arrived = new Set<string>();
     if (painted.current) {
       for (const key of keys) if (!positions.current.has(key)) arrived.add(key);
@@ -85,24 +93,22 @@ export function EventFeed({
       <ol className="hall-feed-list scroll-quiet" ref={listRef}>
         {entries.map((entry) => (
           <li
-            key={entry.key}
-            data-entry={entry.key}
+            key={entry.id}
+            data-entry={entry.id}
             data-state={entry.state}
-            data-fresh={fresh.has(entry.key) ? "true" : undefined}
+            data-fresh={fresh.has(entry.id) ? "true" : undefined}
             className="hall-feed-item"
           >
-            <span className="hall-feed-time">{entry.time === null ? "—" : contestClock(entry.time)}</span>
+            <span className="hall-feed-time">{contestClock(entry.minute * 60)}</span>
             <span className="hall-feed-division" title={entry.divisionName}>
               {entry.divisionName}
             </span>
-            <span className="hall-feed-chip">{entry.state === "correct" ? "Solved" : "Pending"}</span>
+            <span className="hall-feed-chip">{CHIP[entry.state] ?? "Pending"}</span>
             <span className="hall-feed-line">
               <b>{entry.displayName}</b>
-              <span className="hall-feed-said">
-                {entry.state === "correct" ? " solved " : " waiting on "}
-              </span>
+              <span className="hall-feed-said">{SAID[entry.state] ?? " waiting on "}</span>
               <b>{entry.problem}</b>
-              {entry.note ? <span className="hall-feed-said">{` · ${entry.note}`}</span> : null}
+              {entry.verdict ? <span className="hall-feed-said">{` · ${entry.verdict}`}</span> : null}
             </span>
           </li>
         ))}

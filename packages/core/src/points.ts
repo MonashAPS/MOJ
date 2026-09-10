@@ -5,7 +5,7 @@
  * judge/models/problem.py (`Problem.update_stats`) and judge/utils/ranker.py.
  */
 
-import type { Id, SubmissionResult } from './types.js';
+import type { Id, SubmissionResult } from './types';
 
 /** `settings.DMOJ_PP_STEP`. */
 export const PP_STEP = 0.95;

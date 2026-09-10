@@ -8,8 +8,8 @@
  * judge/judge_priority.py.
  */
 
-import { pyRound } from './util/number.js';
-import type { Id, SubmissionResult, SubmissionStatus, SubmissionTestCaseRow } from './types.js';
+import { pyRound } from './util/number';
+import type { Id, SubmissionResult, SubmissionStatus, SubmissionTestCaseRow } from './types';
 
 /* -------------------------------------------------------------------------- */
 /* Test case status bitmask                                                   */

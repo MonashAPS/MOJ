@@ -6,13 +6,13 @@
  * of DMOJ's, documented function by function in docs/DMOJ_RULES.md.
  */
 
-export * from './types.js';
-export * from './permissions.js';
-export * from './contestTiming.js';
-export * from './verdicts.js';
-export * from './formats/index.js';
-export * from './ratings.js';
-export * from './points.js';
-export * from './judging.js';
-export * from './scoreboard.js';
-export { floatformat, niceRepr, pyRound, roundHalfUp } from './util/number.js';
+export * from './types';
+export * from './permissions';
+export * from './contestTiming';
+export * from './verdicts';
+export * from './formats/index';
+export * from './ratings';
+export * from './points';
+export * from './judging';
+export * from './scoreboard';
+export { floatformat, niceRepr, pyRound, roundHalfUp } from './util/number';

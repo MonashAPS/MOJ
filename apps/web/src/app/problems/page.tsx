@@ -15,9 +15,7 @@ export default async function ProblemsPage({ searchParams }: { searchParams: Pro
   const [initial, viewerState, options] = await Promise.all([
     queryAsViewer(api.problems.list, problemListArgs(query)),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
-    // Deployed alongside the rest of `convex/pages/`; until then the panel falls
-    // back to the options the current page can see.
-    queryAsViewer(api.pages.problems.filterOptions, {}).catch(() => null),
+    queryAsViewer(api.pages.problems.filterOptions, {}),
   ]);
 
   const profile = viewerState?.profile ?? null;

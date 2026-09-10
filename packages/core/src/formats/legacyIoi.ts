@@ -6,7 +6,7 @@
  * zero and ties are not broken.
  */
 
-import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base.js';
+import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base';
 import {
   breakdown,
   buildParticipationResult,
@@ -19,10 +19,10 @@ import {
   pointsPrecision,
   secondsSince,
   validateAgainstDefaults,
-} from './base.js';
-import { participationStart } from '../contestTiming.js';
-import { pyRound } from '../util/number.js';
-import type { FormatData } from '../types.js';
+} from './base';
+import { participationStart } from '../contestTiming';
+import { pyRound } from '../util/number';
+import type { FormatData } from '../types';
 
 export const LEGACY_IOI_DEFAULTS = { cumtime: false } as const;
 

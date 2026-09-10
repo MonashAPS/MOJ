@@ -46,7 +46,7 @@ export async function listKeysAction(): Promise<ActionResult<ConsoleKeyRow[]>> {
     await requireConsoleViewer();
     const listed = await auth.api.listApiKeys({ headers: await authHeaders() });
     const keys = Array.isArray(listed) ? listed : ((listed as { apiKeys?: unknown[] }).apiKeys ?? []);
-    const mirrored = await queryAsViewer(api.pages.admin2.myApiKeys, {}).catch(() => []);
+    const mirrored = await queryAsViewer(api.pages.admin2.myApiKeys, {});
     const byPrefix = new Map(mirrored.map((row) => [row.prefix ?? "", row]));
 
     const rows: ConsoleKeyRow[] = (keys as Record<string, unknown>[]).map((key) => {

@@ -17,8 +17,8 @@ import {
   votePermissionForUser,
   voteCanView,
   voteCanVote,
-} from '../src/permissions.js';
-import type { ProblemRow, ProfileRow, Viewer } from '../src/types.js';
+} from '../src/permissions';
+import type { ProblemRow, ProfileRow, Viewer } from '../src/types';
 import {
   DAY,
   NOW,
@@ -28,7 +28,7 @@ import {
   createUser,
   withOrganizationAdmin,
   withOrganizations,
-} from './fixtures.js';
+} from './fixtures';
 
 type Matrix = Record<string, Partial<Record<'is_accessible_by' | 'is_editable_by' | 'is_subs_manageable_by', boolean>>>;
 

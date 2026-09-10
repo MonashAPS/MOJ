@@ -16,7 +16,7 @@
  * joins the test cases onto `sub.status = 'D'`.
  */
 
-import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base.js';
+import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base';
 import {
   breakdown,
   buildParticipationResult,
@@ -27,11 +27,11 @@ import {
   orderedProblemIds,
   pointsPrecision,
   secondsSince,
-} from './base.js';
-import { participationStart } from '../contestTiming.js';
-import { pyRound } from '../util/number.js';
-import { resolveLegacyIoiConfig, validateLegacyIoiConfig } from './legacyIoi.js';
-import type { ContestSubmissionRow, FormatData } from '../types.js';
+} from './base';
+import { participationStart } from '../contestTiming';
+import { pyRound } from '../util/number';
+import { resolveLegacyIoiConfig, validateLegacyIoiConfig } from './legacyIoi';
+import type { ContestSubmissionRow, FormatData } from '../types';
 
 export const IOI16_DEFAULTS = { cumtime: false } as const;
 

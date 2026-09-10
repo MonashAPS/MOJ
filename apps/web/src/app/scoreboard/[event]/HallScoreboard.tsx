@@ -24,7 +24,6 @@ import {
   contestClock,
   type DisplayRow,
   displayRows,
-  feedEntries,
   nextRevealTarget,
   plural,
   readSetting,
@@ -114,7 +113,7 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
 
   const rows = useMemo(() => (division ? displayRows(division, attendance) : []), [division, attendance]);
   const target = useMemo(() => nextRevealTarget(rows), [rows]);
-  const entries = useMemo(() => feedEntries(payload), [payload]);
+  const entries = useQuery(api.pages.scoreboard.feed, { key: eventKey }) ?? [];
 
   const badges: EditableBadge[] = useMemo(() => {
     if (!payload) return [];

@@ -7,7 +7,7 @@
  * before each solve. `tiebreaker` is the last solve time, sorted ascending.
  */
 
-import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base.js';
+import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base';
 import {
   breakdown,
   buildParticipationResult,
@@ -19,11 +19,11 @@ import {
   pointsPrecision,
   secondsSince,
   validateAgainstDefaults,
-} from './base.js';
-import { computeMaxPointsRows } from './penalty.js';
-import { participationStart } from '../contestTiming.js';
-import { pyRound } from '../util/number.js';
-import type { FormatData } from '../types.js';
+} from './base';
+import { computeMaxPointsRows } from './penalty';
+import { participationStart } from '../contestTiming';
+import { pyRound } from '../util/number';
+import type { FormatData } from '../types';
 
 export const ICPC_DEFAULTS = { penalty: 20 } as const;
 

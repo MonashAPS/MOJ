@@ -2,9 +2,9 @@
  * Contest formats: the registry plus the participation update entry point.
  */
 
-import type { ParticipationUpdate, UpdateParticipationInput } from './base.js';
-import { getFormatOrDefault } from './registry.js';
-import type { ContestRow } from '../types.js';
+import type { ParticipationUpdate, UpdateParticipationInput } from './base';
+import { getFormatOrDefault } from './registry';
+import type { ContestRow } from '../types';
 
 /** The format a contest row uses. */
 export function getContestFormat(contest: Pick<ContestRow, 'formatName'>) {
@@ -32,19 +32,19 @@ export function updateParticipation(input: UpdateParticipationInput): Participat
   return update;
 }
 
-export * from './base.js';
-export * from './labels.js';
-export * from './registry.js';
-export { atcoderFormat, ATCODER_DEFAULTS, resolveAtcoderConfig, validateAtcoderConfig } from './atcoder.js';
-export { defaultFormat, validateDefaultConfig } from './default.js';
-export { ecooFormat, ECOO_DEFAULTS, resolveEcooConfig, validateEcooConfig } from './ecoo.js';
-export { icpcFormat, ICPC_DEFAULTS, resolveIcpcConfig, validateIcpcConfig } from './icpc.js';
-export { ioi16Format, IOI16_DEFAULTS } from './ioi16.js';
+export * from './base';
+export * from './labels';
+export * from './registry';
+export { atcoderFormat, ATCODER_DEFAULTS, resolveAtcoderConfig, validateAtcoderConfig } from './atcoder';
+export { defaultFormat, validateDefaultConfig } from './default';
+export { ecooFormat, ECOO_DEFAULTS, resolveEcooConfig, validateEcooConfig } from './ecoo';
+export { icpcFormat, ICPC_DEFAULTS, resolveIcpcConfig, validateIcpcConfig } from './icpc';
+export { ioi16Format, IOI16_DEFAULTS } from './ioi16';
 export {
   legacyIoiFormat,
   LEGACY_IOI_DEFAULTS,
   resolveLegacyIoiConfig,
   validateLegacyIoiConfig,
-} from './legacyIoi.js';
-export { computeMaxPointsRows, PENALTY_IGNORED_RESULTS } from './penalty.js';
-export type { MaxPointsRow } from './penalty.js';
+} from './legacyIoi';
+export { computeMaxPointsRows, PENALTY_IGNORED_RESULTS } from './penalty';
+export type { MaxPointsRow } from './penalty';

@@ -25,7 +25,7 @@ import {
   recalculateRatings,
   solve,
   tieRanker,
-} from '../src/ratings.js';
+} from '../src/ratings';
 
 const PRECISION = 9;
 

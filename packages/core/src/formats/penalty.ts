@@ -12,8 +12,8 @@
  * scoreboard; see docs/DMOJ_RULES.md.
  */
 
-import type { ContestProblemRow, ContestSubmissionRow, Id } from '../types.js';
-import { orderedProblemIds } from './base.js';
+import type { ContestProblemRow, ContestSubmissionRow, Id } from '../types';
+import { orderedProblemIds } from './base';
 
 /** Results that never count towards an ICPC/AtCoder penalty. */
 export const PENALTY_IGNORED_RESULTS: readonly string[] = ['IE', 'CE'];

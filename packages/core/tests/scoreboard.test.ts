@@ -40,9 +40,9 @@ import {
   revealUndo,
   startReveal,
   toAttempt,
-} from '../src/scoreboard.js';
-import type { Attempt, ScoreboardRow } from '../src/scoreboard.js';
-import type { ContestSubmissionRow } from '../src/types.js';
+} from '../src/scoreboard';
+import type { Attempt, ScoreboardRow } from '../src/scoreboard';
+import type { ContestSubmissionRow } from '../src/types';
 import {
   HOUR,
   MINUTE,
@@ -52,7 +52,7 @@ import {
   createContestProblem,
   createParticipation,
   createUser,
-} from './fixtures.js';
+} from './fixtures';
 
 const START = NOW;
 const END = START + 5 * HOUR;

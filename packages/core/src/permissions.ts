@@ -12,7 +12,7 @@
  * The prose version, with line numbers, is in docs/DMOJ_RULES.md.
  */
 
-import { participationHasEnded } from './contestTiming.js';
+import { participationHasEnded } from './contestTiming';
 import type {
   BlogPostRow,
   ClassRow,
@@ -26,7 +26,7 @@ import type {
   SolutionRow,
   SubmissionSourceVisibility,
   Viewer,
-} from './types.js';
+} from './types';
 
 /* -------------------------------------------------------------------------- */
 /* Permission codes                                                           */

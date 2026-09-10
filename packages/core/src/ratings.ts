@@ -10,7 +10,7 @@
  * monotonicity of performance in rank are DMOJ's.
  */
 
-import type { ContestRow, Id } from './types.js';
+import type { ContestRow, Id } from './types';
 
 /* -------------------------------------------------------------------------- */
 /* Constants (judge/ratings.py:12)                                            */

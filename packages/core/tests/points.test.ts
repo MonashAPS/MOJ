@@ -13,10 +13,10 @@ import {
   isFullSolve,
   ppBonus,
   ranker,
-} from '../src/points.js';
-import { getUserCssClass } from '../src/ratings.js';
-import { shouldLeaveContest } from '../src/contestTiming.js';
-import { DAY, NOW, commonUsers, createContest, createParticipation, createUser } from './fixtures.js';
+} from '../src/points';
+import { getUserCssClass } from '../src/ratings';
+import { shouldLeaveContest } from '../src/contestTiming';
+import { DAY, NOW, commonUsers, createContest, createParticipation, createUser } from './fixtures';
 
 describe('ProfileTestCase', () => {
   const users = commonUsers();

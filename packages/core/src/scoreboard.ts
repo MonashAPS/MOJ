@@ -11,10 +11,10 @@
  * format: one point per solve, penalty minutes for wrong attempts.
  */
 
-import { getContestFormat, updateParticipation } from './formats/index.js';
-import type { ParticipationUpdate } from './formats/base.js';
-import { contestIsEditableBy, hasPerm, isAuthenticated, isSuperuser } from './permissions.js';
-import { IN_PROGRESS_GRADING_STATUS } from './verdicts.js';
+import { getContestFormat, updateParticipation } from './formats/index';
+import type { ParticipationUpdate } from './formats/base';
+import { contestIsEditableBy, hasPerm, isAuthenticated, isSuperuser } from './permissions';
+import { IN_PROGRESS_GRADING_STATUS } from './verdicts';
 import type {
   ContestParticipationRow,
   ContestProblemRow,
@@ -23,7 +23,7 @@ import type {
   Id,
   SubmissionResult,
   Viewer,
-} from './types.js';
+} from './types';
 
 /* -------------------------------------------------------------------------- */
 /* Cell and event states                                                      */

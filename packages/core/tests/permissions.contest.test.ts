@@ -17,7 +17,7 @@ import {
   contestIsVisibleTo,
   contestShowScoreboard,
   contestStarted,
-} from '../src/permissions.js';
+} from '../src/permissions';
 import {
   contestTimeBeforeEnd,
   contestTimeBeforeStart,
@@ -28,9 +28,9 @@ import {
   participationIsSpectating,
   participationStart,
   participationTimeRemaining,
-} from '../src/contestTiming.js';
-import { getContestLabelForProblem } from '../src/formats/index.js';
-import { PARTICIPATION_SPECTATE, type ContestParticipationRow, type ContestRow, type Id, type Viewer } from '../src/types.js';
+} from '../src/contestTiming';
+import { getContestLabelForProblem } from '../src/formats/index';
+import { PARTICIPATION_SPECTATE, type ContestParticipationRow, type ContestRow, type Id, type Viewer } from '../src/types';
 import {
   DAY,
   HOUR,
@@ -40,7 +40,7 @@ import {
   createParticipation,
   createUser,
   withOrganizations,
-} from './fixtures.js';
+} from './fixtures';
 
 const METHODS = [
   'can_see_own_scoreboard',

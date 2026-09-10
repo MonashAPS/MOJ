@@ -13,8 +13,8 @@ import {
   organizationIsAdmin,
   organizationIsEditableBy,
   canViewOrganizationRequest,
-} from '../src/permissions.js';
-import type { Viewer } from '../src/types.js';
+} from '../src/permissions';
+import type { Viewer } from '../src/types';
 import {
   DAY,
   NOW,
@@ -25,7 +25,7 @@ import {
   createProblem,
   createSolution,
   createUser,
-} from './fixtures.js';
+} from './fixtures';
 
 const users = commonUsers();
 users.staff_blogpost_edit_own = createUser('staff_blogpost_edit_own', {

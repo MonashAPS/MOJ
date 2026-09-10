@@ -2,14 +2,14 @@
  * The contest format registry (judge/contest_format/registry.py).
  */
 
-import type { ContestFormat } from './base.js';
-import { UnknownContestFormatError } from './base.js';
-import { atcoderFormat } from './atcoder.js';
-import { defaultFormat } from './default.js';
-import { ecooFormat } from './ecoo.js';
-import { icpcFormat } from './icpc.js';
-import { ioi16Format } from './ioi16.js';
-import { legacyIoiFormat } from './legacyIoi.js';
+import type { ContestFormat } from './base';
+import { UnknownContestFormatError } from './base';
+import { atcoderFormat } from './atcoder';
+import { defaultFormat } from './default';
+import { ecooFormat } from './ecoo';
+import { icpcFormat } from './icpc';
+import { ioi16Format } from './ioi16';
+import { legacyIoiFormat } from './legacyIoi';
 
 export const FORMATS: Readonly<Record<string, ContestFormat>> = {
   atcoder: atcoderFormat,

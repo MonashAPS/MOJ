@@ -5,7 +5,7 @@
  * `USER_DISPLAY_CODES`, `result_class_from_code`) and resources/status.scss.
  */
 
-import type { SubmissionResult, SubmissionStatus } from './types.js';
+import type { SubmissionResult, SubmissionStatus } from './types';
 
 /** `SUBMISSION_RESULT`, in DMOJ's declaration order. */
 export const SUBMISSION_RESULTS: readonly SubmissionResult[] = [

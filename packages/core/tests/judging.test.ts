@@ -22,9 +22,9 @@ import {
   selectClaim,
   shouldReserveJudge,
   submissionPriority,
-} from '../src/judging.js';
-import type { ClaimableSubmission, JudgeRow } from '../src/judging.js';
-import type { SubmissionTestCaseRow } from '../src/types.js';
+} from '../src/judging';
+import type { ClaimableSubmission, JudgeRow } from '../src/judging';
+import type { SubmissionTestCaseRow } from '../src/types';
 
 describe('decodeCaseStatus', () => {
   it('decodes single bits', () => {

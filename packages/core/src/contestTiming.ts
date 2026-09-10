@@ -16,7 +16,7 @@ import {
   hasPerm,
   isAuthenticated,
   isSuperuser,
-} from './permissions.js';
+} from './permissions';
 import {
   PARTICIPATION_LIVE,
   PARTICIPATION_SPECTATE,
@@ -24,7 +24,7 @@ import {
   type ContestRow,
   type Id,
   type Viewer,
-} from './types.js';
+} from './types';
 
 /** `ContestParticipation.live`. */
 export function participationIsLive(participation: ContestParticipationRow): boolean {
