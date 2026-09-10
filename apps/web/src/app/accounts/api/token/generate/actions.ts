@@ -1,9 +1,10 @@
 "use server";
 
+import type { ApiScope } from "@moj/protocol";
 import { headers } from "next/headers";
 import { auth } from "@/auth/server";
 
-export type TokenScope = "read" | "problems:write";
+export type TokenScope = ApiScope;
 
 export type ApiKeySummary = {
   id: string;
@@ -16,8 +17,8 @@ export type ApiKeySummary = {
 
 export type GenerateResult = { ok: true; token: string } | { ok: false; message: string };
 
-/** Better Auth models scopes as `{resource: [action]}`; the wire names in
- *  docs/using/accounts.md are `read` and `problems:write`. */
+/** Better Auth models scopes as `{resource: [action]}`; the two wire names are
+ *  `read` and `problems:write` (docs/using/accounts.md). */
 function permissionsFor(scopes: TokenScope[]): Record<string, string[]> {
   const permissions: Record<string, string[]> = {};
   for (const scope of scopes) {

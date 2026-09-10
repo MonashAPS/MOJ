@@ -7,6 +7,7 @@
  * is not reachable from the Convex container (docs/SPEC_CHANGES.md).
  */
 
+import { API_SCOPES, isApiScope } from "@moj/protocol";
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation, type QueryCtx, query } from "../_generated/server";
@@ -301,6 +302,10 @@ export const recordApiKey = mutation({
     if (name.length === 0) throw invalid("A key needs a name.");
     if (!/^[0-9a-f]{64}$/.test(args.keyHash)) throw invalid("That is not a sha256 hash.");
     if (args.scopes.length === 0) throw invalid("A key needs at least one scope.");
+    const unknown = args.scopes.filter((scope) => !isApiScope(scope));
+    if (unknown.length > 0) {
+      throw invalid(`Not a scope: ${unknown.join(", ")}. The scopes are ${API_SCOPES.join(" and ")}.`);
+    }
 
     const clash = await ctx.db
       .query("apiKeys")

@@ -1,9 +1,9 @@
 /**
  * Problems API wire schemas (SPEC section 8).
  *
- * `PUT /api/problems/:code` replaces the club's Playwright uploader
- * (frontend-automation/scripts/create-problem.mjs), so the semantics here are
- * that script's, field for field:
+ * `PUT /api/problems/:code` replaces driving the Django admin form with a
+ * browser, which is how a problem repository used to publish, so the semantics
+ * here are that era's, field for field:
  *
  *   - an absent key means "leave unchanged" on an existing problem;
  *   - `authors: []` means "leave unchanged" too, because the uploader writes
@@ -153,6 +153,19 @@ export const API_ERROR_STATUS: Record<ApiErrorCode, number> = {
 
 /** The scope an API key must carry to write problems. */
 export const PROBLEMS_WRITE_SCOPE = "problems:write";
+
+/** Reading API v2, limited to what the key's owner can already see. */
+export const READ_SCOPE = "read";
+
+/** Every scope a key can hold. There are exactly two, and both `/admin/api-keys`
+ *  and `/accounts/api/token/generate/` offer the same pair. */
+export const API_SCOPES = [READ_SCOPE, PROBLEMS_WRITE_SCOPE] as const;
+
+export type ApiScope = (typeof API_SCOPES)[number];
+
+export function isApiScope(value: string): value is ApiScope {
+  return (API_SCOPES as readonly string[]).includes(value);
+}
 
 /** Largest statement image the endpoint accepts, matching DMOJ's martor limit. */
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
