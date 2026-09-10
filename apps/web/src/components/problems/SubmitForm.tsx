@@ -205,7 +205,7 @@ export function SubmitForm({
                   {group.items.map((item) => (
                     <SelectItem key={item.key} value={item.key}>
                       {item.name}
-                      {item.runnable ? "" : " — no judge online"}
+                      
                     </SelectItem>
                   ))}
                 </SelectGroup>

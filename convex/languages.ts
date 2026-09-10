@@ -78,6 +78,7 @@ export const usableForProblem = query({
     for (const id of problem.allowedLanguageIds) {
       const language = await ctx.db.get(id);
       if (!language) continue;
+      if (!runtimeKeys.has(language.key)) continue;
       const limit = limitByLanguage.get(language._id);
       out.push({
         key: language.key,
@@ -90,7 +91,7 @@ export const usableForProblem = query({
         extension: language.extension,
         timeLimit: limit?.timeLimit ?? problem.timeLimit,
         memoryLimit: limit?.memoryLimit ?? problem.memoryLimit,
-        runnable: runtimeKeys.size === 0 ? false : runtimeKeys.has(language.key),
+        runnable: true,
       });
     }
     out.sort((a, b) => a.name.localeCompare(b.name) || a.key.localeCompare(b.key));

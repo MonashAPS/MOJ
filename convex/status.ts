@@ -79,7 +79,6 @@ export const runtimes = query({
         .collect();
 
       const relevant = seeAll ? versions : versions.filter((row) => onlineJudgeIds.has(row.judgeId));
-      if (!seeAll && relevant.length === 0) continue;
 
       out.push({
         _id: language._id,
