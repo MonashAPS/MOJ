@@ -486,3 +486,11 @@ problem page opens a confirmation dialog before navigating: title "View the edit
 reveals the intended solution to this problem.", buttons "Yes, show it" and "No", and a "Don't ask me again"
 checkbox stored in localStorage only. Direct visits to `/problem/[code]/editorial` from elsewhere are not
 intercepted.
+
+## 23. Public voice
+
+MOJ is a public project. Every README, docs page, action description, error message and code comment is written
+for someone running their own judge: no references to the club's internal history or tooling (the Playwright
+uploader, "the old site", "our fork", internal repo names), no first-person club voice. MAPS is named once as the
+maintainer in the root README and the docs home page. Where an example needs a name, use `example.org` style
+placeholders, not the club's hosts or secrets.
