@@ -208,14 +208,23 @@ export const auth = betterAuth({
         try {
           if (await isPasswordCompromised(password)) {
             ctx.setCookie(COMPROMISED_COOKIE, "1", { path: "/", sameSite: "lax", maxAge: 60 * 60 * 24 });
+            return;
           }
         } catch {
           // A login must never fail because the breach service was unreachable.
         }
+        // DMOJ keeps the flag in the session, so it dies with it. The cookie
+        // outlives a sign-out, so a clean login has to clear it or the next
+        // account inherits the last one's interstitial.
+        ctx.setCookie(COMPROMISED_COOKIE, "", { path: "/", maxAge: 0 });
         return;
       }
 
-      if (ctx.path === "/change-password" || ctx.path === "/reset-password") {
+      if (
+        ctx.path === "/change-password" ||
+        ctx.path === "/reset-password" ||
+        ctx.path === "/sign-out"
+      ) {
         ctx.setCookie(COMPROMISED_COOKIE, "", { path: "/", maxAge: 0 });
       }
     }),
