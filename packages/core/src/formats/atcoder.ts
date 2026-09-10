@@ -1,0 +1,108 @@
+/**
+ * `atcoder` — judge/contest_format/atcoder.py.
+ *
+ * Score is the sum of per-problem maxima. Cumulative time is the *latest*
+ * first-to-max time over solved problems, plus `penalty` minutes for every
+ * rejected submission that preceded a solve.
+ */
+
+import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base.js';
+import {
+  breakdown,
+  buildParticipationResult,
+  buildProblemCell,
+  groupByProblem,
+  mergeConfig,
+  numberLabel,
+  pointsPrecision,
+  secondsSince,
+  validateAgainstDefaults,
+} from './base.js';
+import { computeMaxPointsRows } from './penalty.js';
+import { participationStart } from '../contestTiming.js';
+import { pyRound } from '../util/number.js';
+import type { FormatData } from '../types.js';
+
+export const ATCODER_DEFAULTS = { penalty: 5 } as const;
+
+const VALIDATORS = { penalty: (value: number) => value >= 0 };
+
+export function validateAtcoderConfig(config: unknown): void {
+  validateAgainstDefaults(config, ATCODER_DEFAULTS, VALIDATORS, 'AtCoder-styled contest');
+}
+
+export function resolveAtcoderConfig(config: unknown): { penalty: number } {
+  validateAtcoderConfig(config);
+  const merged = mergeConfig(ATCODER_DEFAULTS, config);
+  return { penalty: Number(merged.penalty) };
+}
+
+export function updateParticipationAtcoder(input: UpdateParticipationInput): ParticipationUpdate {
+  const { participation, submissions, contestProblems, contest } = input;
+  const config = resolveAtcoderConfig(input.config ?? contest.formatConfig);
+  const start = input.start ?? participationStart(participation, contest);
+
+  let cumtime = 0;
+  let penalty = 0;
+  let points = 0;
+  const formatData: FormatData = {};
+
+  const groups = groupByProblem(submissions, participation.id);
+  for (const row of computeMaxPointsRows(groups, contestProblems, config.penalty)) {
+    const dt = secondsSince(start, row.time);
+
+    if (config.penalty && row.points) {
+      penalty += row.penaltyCount * config.penalty * 60;
+    }
+    if (row.points) cumtime = Math.max(cumtime, dt);
+
+    formatData[row.problemId] = { time: dt, points: row.points, penalty: row.penaltyCount };
+    points += row.points;
+  }
+
+  return {
+    cumtime: cumtime + penalty,
+    score: pyRound(points, pointsPrecision(contest)),
+    tiebreaker: 0,
+    formatData,
+  };
+}
+
+export const atcoderFormat: ContestFormat = {
+  name: 'atcoder',
+  displayName: 'AtCoder',
+  configDefaults: ATCODER_DEFAULTS,
+  defaultLabelScheme: 'numbers',
+
+  validate: validateAtcoderConfig,
+  resolveConfig: (config) => resolveAtcoderConfig(config),
+
+  updateParticipation: updateParticipationAtcoder,
+
+  displayUserProblem(participation, contestProblem, contest) {
+    const entry = (participation.formatData ?? {})[contestProblem.id];
+    if (!entry) return null;
+    return buildProblemCell(entry, contestProblem, contest, { penalty: true });
+  },
+
+  displayParticipationResult(participation, contest) {
+    return buildParticipationResult(participation, contest, true);
+  },
+
+  getProblemBreakdown: breakdown,
+  getLabelForProblem: numberLabel,
+
+  getShortFormDisplay(config) {
+    const { penalty } = resolveAtcoderConfig(config);
+    const lines = ['The maximum score submission for each problem will be used.'];
+    if (penalty) {
+      lines.push(
+        `Each submission before the first maximum score submission will incur a **penalty of ${penalty} ${
+          penalty === 1 ? 'minute' : 'minutes'
+        }**.`,
+      );
+    }
+    lines.push('Ties will be broken by the last score altering submission time.');
+    return lines;
+  },
+};
