@@ -1,0 +1,100 @@
+# Development stack for MOJ.
+#
+# Always run this from the repository root so the relative paths below resolve:
+#   docker compose -f infra/compose.dev.yml --project-directory . up -d
+# `npm run setup` does exactly that.
+
+name: moj
+
+x-host-gateway: &host-gateway
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    <<: *host-gateway
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-moj}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-moj}
+      POSTGRES_DB: postgres
+      CONVEX_DATABASE: ${CONVEX_DATABASE:-moj_dev}
+      AUTH_DATABASE: ${AUTH_DATABASE:-moj_auth}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/scripts/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-moj} -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  convex-backend:
+    image: ghcr.io/get-convex/convex-backend:${CONVEX_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    <<: *host-gateway
+    ports:
+      - "${CONVEX_PORT:-3210}:3210"
+      - "${CONVEX_SITE_PORT:-3211}:3211"
+    environment:
+      INSTANCE_NAME: ${INSTANCE_NAME:-moj-dev}
+      INSTANCE_SECRET: ${INSTANCE_SECRET:-4d4f4a2d646576656c6f706d656e742d696e7374616e63652d7365637265740a}
+      CONVEX_CLOUD_ORIGIN: ${CONVEX_CLOUD_ORIGIN:-http://127.0.0.1:3210}
+      CONVEX_SITE_ORIGIN: ${CONVEX_SITE_ORIGIN:-http://127.0.0.1:3211}
+      POSTGRES_URL: postgresql://${POSTGRES_USER:-moj}:${POSTGRES_PASSWORD:-moj}@postgres:5432
+      DO_NOT_REQUIRE_SSL: "1"
+      DISABLE_BEACON: "1"
+      REDACT_LOGS_TO_CLIENT: "false"
+      RUST_LOG: ${RUST_LOG:-info}
+    volumes:
+      - convex-data:/convex/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3210/version || exit 1"]
+      interval: 5s
+      timeout: 5s
+      start_period: 10s
+      retries: 30
+
+  convex-dashboard:
+    image: ghcr.io/get-convex/convex-dashboard:${CONVEX_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    <<: *host-gateway
+    ports:
+      - "${CONVEX_DASHBOARD_PORT:-6791}:6791"
+    environment:
+      NEXT_PUBLIC_DEPLOYMENT_URL: ${CONVEX_CLOUD_ORIGIN:-http://127.0.0.1:3210}
+    depends_on:
+      convex-backend:
+        condition: service_healthy
+
+  # Optional: `docker compose --profile judge up -d judge` once apps/judge exists.
+  judge:
+    profiles: ["judge"]
+    build:
+      context: ./apps/judge
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    <<: *host-gateway
+    cap_add:
+      - SYS_PTRACE
+    cpuset: "0-11,14-31"
+    environment:
+      MOJ_URL: ${MOJ_JUDGE_URL:-http://host.docker.internal:3211}
+      JUDGE_NAME: ${JUDGE_NAME:-local}
+      JUDGE_KEY: ${JUDGE_KEY:-localjudgekey}
+    volumes:
+      - ./infra/problems:/problems
+
+volumes:
+  postgres-data:
+  convex-data:

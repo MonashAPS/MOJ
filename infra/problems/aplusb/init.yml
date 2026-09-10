@@ -1,0 +1,16 @@
+# Test data for the sample problem "aplusb".
+#
+# DMOJ init.yml format: the judge reads this from $problem_storage_root/aplusb.
+# Two batches, matching the problemTestCases rows written by convex/seed.ts:
+#   batch 1 (0 points)   the two sample cases from the statement
+#   batch 2 (100 points) the real cases
+archive: null
+test_cases:
+  - points: 0
+    batched:
+      - {in: 00.in, out: 00.out}
+      - {in: 01.in, out: 01.out}
+  - points: 100
+    batched:
+      - {in: 02.in, out: 02.out}
+      - {in: 03.in, out: 03.out}
