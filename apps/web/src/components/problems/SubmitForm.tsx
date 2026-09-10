@@ -35,8 +35,8 @@ function draftKey(code: string, languageKey: string): string {
   return `submit:${code}:${languageKey}`;
 }
 
-/** DMOJ orders the select by name; the club asked for the common-name groups,
- *  which is what `Language.common_name` is for. */
+/** DMOJ orders the select by name; MOJ groups by common name, which is what
+ *  `Language.common_name` is for. */
 function groupLanguages(languages: UsableLanguage[]): { name: string; items: UsableLanguage[] }[] {
   const groups = new Map<string, UsableLanguage[]>();
   for (const language of languages) {
@@ -85,7 +85,7 @@ export function SubmitForm({
   const exhausted = submissionsLeft !== null && submissionsLeft <= 0;
 
   // The member's default first; then something a judge can actually run; then
-  // the club's usual two, so a fresh account never lands on Ada.
+  // the two most common languages, so a fresh account never lands on Ada.
   useEffect(() => {
     if (languageKey || languages.length === 0) return;
     const pick =

@@ -5,8 +5,8 @@
  * The parameter names are DMOJ's wherever DMOJ has one — `search`, `full_text`,
  * `hide_solved`, `has_public_editorial`, `show_types`, `category`, `type`,
  * `point_start`, `point_end`, `order`, `page` — so an old bookmark still resolves.
- * The club's additions (`status`, `solved_by`, `not_by_me`, `author`, `contest`,
- * `group_by_contest`) follow the same spelling.
+ * The parameters MOJ adds (`status`, `solved_by`, `not_by_me`, `author`,
+ * `contest`, `group_by_contest`) follow the same spelling.
  */
 
 export type ProblemSort =

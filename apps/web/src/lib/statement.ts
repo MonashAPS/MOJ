@@ -1,5 +1,5 @@
 /**
- * Turns the code blocks in a rendered statement into the club's window motif
+ * Turns the code blocks in a rendered statement into the window motif
  * (DESIGN 14.3): a 26px titlebar carrying the block's role and a Copy button,
  * over the code body, with an input/output pair sitting side by side above 900px.
  *

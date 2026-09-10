@@ -15,9 +15,9 @@ export type ProblemTabKey =
   | "tickets";
 
 /**
- * DMOJ keeps these as links inside the info box; the club asked for the page's
- * own tab bar, so they are promoted to `make_tab` entries. The conditions are
- * DMOJ's, unchanged.
+ * DMOJ keeps these as links inside the info box; MOJ gives the page its own tab
+ * bar, so they are promoted to `make_tab` entries. The conditions are DMOJ's,
+ * unchanged.
  */
 export function problemTabs(problem: ProblemDetail): TabItem[] {
   const base = `/problem/${problem.code}`;
