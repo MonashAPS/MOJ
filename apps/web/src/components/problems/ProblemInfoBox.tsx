@@ -41,8 +41,8 @@ function Entry({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 items-baseline gap-2 py-1 text-sm">
-      <span className="relative top-0.5 shrink-0 text-muted-foreground [&_svg]:size-3.5">{icon}</span>
+    <div className="flex min-w-0 items-center gap-2 py-1 text-sm leading-5">
+      <span className="flex shrink-0 items-center text-muted-foreground [&_svg]:size-3.5">{icon}</span>
       <span className="min-w-0 flex-1 truncate text-subtle">{label}</span>
       <span className="shrink-0 text-right font-mono tabular-nums text-foreground">{children}</span>
     </div>

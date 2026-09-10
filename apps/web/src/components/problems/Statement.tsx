@@ -52,13 +52,10 @@ export function Statement({ html, className }: { html: string; className?: strin
 
   return (
     <div ref={root}>
-      {/* DESIGN 14.2: the statement is the one place in MOJ that is prose, and it
-          keeps the 74ch measure. `content.css` lives in @moj/content, which this
-          branch does not own, so the cap is applied here. */}
+      {/* The statement fills its column, as DMOJ's does. */}
       <ContentDescription
         html={html}
         className={cn(
-          "max-w-(--prose-max)",
           // DESIGN 14.2 frames statement images; content.css is @moj/content's.
           "[&_img]:rounded-md [&_img]:border [&_img]:border-border [&_img]:bg-secondary",
           className,
