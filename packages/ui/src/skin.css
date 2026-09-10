@@ -267,14 +267,13 @@
   table.table th {
     height: 32px;
     padding: 0 var(--space-3);
-    background: var(--surface-2);
-    color: var(--ink-2);
+    background: var(--titlebar);
+    color: var(--titlebar-ink);
     font: 600 var(--fs-xs) / 1 var(--font-body);
     letter-spacing: var(--tracking-label);
     text-transform: uppercase;
     text-align: left;
     white-space: nowrap;
-    border-bottom: 1px solid var(--line);
   }
 
   .h-scrollable-table > table td,
