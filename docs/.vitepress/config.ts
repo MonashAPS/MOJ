@@ -7,9 +7,7 @@ export default defineConfig({
   lang: "en-AU",
   appearance: "dark",
   lastUpdated: true,
-  srcExclude: [
-    "**/public/**",
-  ],
+  srcExclude: ["**/public/**"],
   head: [
     ["link", { rel: "icon", href: "/MOJ/logo.svg", type: "image/svg+xml" }],
     ["meta", { name: "theme-color", content: "#2980b9" }],

@@ -672,7 +672,7 @@ export function commentIsAccessibleBy(
       return problemIsAccessibleBy(target.problem, viewer, options.problemAccess);
     case "solution":
       // DMOJ checks the solution only here; the "recent comments" widget also
-      // requires problem access. 
+      // requires problem access.
       if (!target.solution || !target.problem) return false;
       return solutionIsAccessibleBy(target.solution, target.problem, viewer, now);
     case "contest":

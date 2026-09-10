@@ -2,7 +2,7 @@
  *
  * These are plain string literals so Tailwind's scanner finds them here; a
  * component composes them through `cn()` and never re-invents a focus ring or a
- * disabled treatment. 
+ * disabled treatment.
  */
 
 /** One ring, everywhere: a 3px 45% royal halo plus a border recolour, no offset,

@@ -76,6 +76,12 @@ ENV NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL} \
     NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL} \
     NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
 
+# Placeholders so `next build` can collect page data without a live database;
+# the runtime stage receives the real values from the environment.
+ENV DATABASE_URL=postgres://build:build@127.0.0.1:5432/build \
+    AUTH_SECRET=build-time-placeholder-not-used-at-runtime \
+    AUTH_ISSUER=http://localhost:3000 \
+    AUTH_RP_ID=localhost
 RUN npm run build --workspace packages/content
 RUN npm run build --workspace apps/web
 
