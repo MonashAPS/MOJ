@@ -33,6 +33,9 @@ export type SubmissionListProps = {
 
 const DASH = "—";
 
+/** Stable keys for the loading skeleton's rows. */
+const SKELETON_ROWS = ["a", "b", "c", "d", "e", "f"];
+
 const RAIL: Record<string, string> = {
   good: "var(--v-good)",
   bad: "var(--v-bad)",
@@ -65,9 +68,11 @@ export function SubmissionList({
   if (status === "LoadingFirstPage") {
     return (
       <div className="overflow-hidden rounded-md border border-border bg-card">
-        {Array.from({ length: 6 }, (_, index) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: skeleton rows have no identity
-          <div key={index} className="flex h-[52px] items-center gap-3 border-b border-border px-3 last:border-b-0">
+        {SKELETON_ROWS.map((key) => (
+          <div
+            key={key}
+            className="flex h-[52px] items-center gap-3 border-b border-border px-3 last:border-b-0"
+          >
             <Skeleton className="h-4 w-16" />
             <Skeleton className="h-4 flex-1" />
             <Skeleton className="h-4 w-16" />

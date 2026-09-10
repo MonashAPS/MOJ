@@ -77,7 +77,7 @@ export const dataExportDownload = query({
       )
       .order("desc")
       .first();
-    if (!job || job.status !== "done") return null;
+    if (job?.status !== "done") return null;
 
     const storageId = job.result?.storageId as Id<"_storage"> | undefined;
     if (!storageId) return null;

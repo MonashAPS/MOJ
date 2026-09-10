@@ -14,13 +14,13 @@ import {
   Button,
   cn,
   EmptyRow,
+  ratingClass,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  ratingClass,
   toast,
 } from "@moj/ui";
 import { useMutation } from "convex/react";
@@ -105,8 +105,7 @@ function KickButton({ slug, username }: { slug: string; username: string }) {
         <AlertDialogHeader>
           <AlertDialogTitle>Kick {username}?</AlertDialogTitle>
           <AlertDialogDescription>
-            They lose their place in this organization and every class inside it, and will have to join
-            again.
+            They lose their place in this organization and every class inside it, and will have to join again.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -219,7 +218,10 @@ export function LeaderboardTable({
               >
                 <TableCell
                   numeric
-                  className={cn("sticky left-0 z-1 bg-inherit", row.rank <= 3 && "font-semibold text-foreground")}
+                  className={cn(
+                    "sticky left-0 z-1 bg-inherit",
+                    row.rank <= 3 && "font-semibold text-foreground",
+                  )}
                 >
                   {row.rank}
                 </TableCell>

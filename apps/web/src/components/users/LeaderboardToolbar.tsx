@@ -37,7 +37,10 @@ export function LeaderboardToolbar({
     const trimmed = handle.trim();
     if (!trimmed) return;
     setOpen(false);
-    router.push(`/users/find?handle=${encodeURIComponent(trimmed)}`);
+    // A full navigation, as DMOJ's GET form is: the redirect lands on
+    // `#!username`, and the router would not re-run the row highlight when the
+    // page it lands on is the one already mounted.
+    window.location.assign(`/users/find/?handle=${encodeURIComponent(trimmed)}`);
   }
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {

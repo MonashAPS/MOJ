@@ -48,7 +48,9 @@ export function RequestsTable({ rows, showActions }: { rows: RequestRow[]; showA
     try {
       if (action === "approve") await approve({ requestId: id as never });
       else await reject({ requestId: id as never });
-      toast.success(action === "approve" ? `${username} is now a member.` : `${username}'s request was rejected.`);
+      toast.success(
+        action === "approve" ? `${username} is now a member.` : `${username}'s request was rejected.`,
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "That did not work.");
     } finally {

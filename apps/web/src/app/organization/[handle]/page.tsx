@@ -111,7 +111,10 @@ export default async function OrganizationHomePage({ params }: { params: Promise
                       </Link>
                     ) : null}
                     {organization.viewer.canReviewRequests ? (
-                      <Link href={`${base}/requests/pending/`} className="text-base text-link hover:underline">
+                      <Link
+                        href={`${base}/requests/pending/`}
+                        className="text-base text-link hover:underline"
+                      >
                         View requests
                       </Link>
                     ) : null}
@@ -139,7 +142,7 @@ export default async function OrganizationHomePage({ params }: { params: Promise
             </>
           }
         >
-          <div className="grid gap-8">
+          <div className="grid min-w-0 gap-8 [&>*]:min-w-0">
             {about ? (
               <ContentDescription html={about} />
             ) : (
@@ -163,10 +166,7 @@ export default async function OrganizationHomePage({ params }: { params: Promise
                     {organization.classes.map((klass) => (
                       <TableRow key={klass._id}>
                         <TableCell>
-                          <Link
-                            href={classHref(organization, klass)}
-                            className="font-medium hover:text-link"
-                          >
+                          <Link href={classHref(organization, klass)} className="font-medium hover:text-link">
                             {klass.name}
                           </Link>
                           {klass.description ? (

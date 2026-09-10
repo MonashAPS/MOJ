@@ -1,6 +1,15 @@
 import { api } from "@convex/_generated/api";
 import { renderMarkdown } from "@moj/content";
-import { ContentDescription, Panel, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@moj/ui";
+import {
+  ContentDescription,
+  Panel,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@moj/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RatingChart } from "@/components/users/RatingChart";
@@ -52,7 +61,7 @@ export default async function UserAboutPage({ params }: { params: Promise<{ user
       isViewer={data.isViewer}
       organizationLinks={organizationLinks}
     >
-      <div className="grid gap-8">
+      <div className="grid min-w-0 gap-8 [&>*]:min-w-0">
         {about ? (
           <ContentDescription html={about} />
         ) : (

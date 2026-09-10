@@ -2,8 +2,8 @@ import { api } from "@convex/_generated/api";
 import { Badge, Button, MicroLabel, Panel, TitleRow, TwoColumn } from "@moj/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { parseUserOrder } from "@/components/users/leaderboard";
 import { LeaderboardTable } from "@/components/users/LeaderboardTable";
+import { parseUserOrder } from "@/components/users/leaderboard";
 import { UserLink } from "@/components/users/UserLink";
 import { queryAsViewer } from "@/lib/convex-server";
 import { classHref, organizationHref, slugFromHandle } from "@/lib/organizations";
@@ -101,10 +101,8 @@ export default async function ClassPage({
             </Panel>
           }
         >
-          <div className="grid gap-8">
-            {detail.description ? (
-              <p className="text-md text-subtle">{detail.description}</p>
-            ) : null}
+          <div className="grid min-w-0 gap-8 [&>*]:min-w-0">
+            {detail.description ? <p className="text-md text-subtle">{detail.description}</p> : null}
             <LeaderboardTable
               rows={members}
               state={state}

@@ -2,10 +2,12 @@
 
 import { Button, cn, MicroLabel } from "@moj/ui";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { type MouseEvent, useMemo, useState } from "react";
+import { type SyntheticEvent, useMemo, useState } from "react";
 
 const WEEKDAYS = ["Sun", "Mon", "Tues", "Wed", "Thurs", "Fri", "Sat"];
 const LEVELS = 5;
+/** The heat ramp's steps, `--heat-0` to `--heat-4`. */
+const HEAT_STEPS = [0, 1, 2, 3, 4];
 
 type Day = { key: string; date: Date; weekday: number; activity: number };
 
@@ -78,7 +80,7 @@ export function SubmissionActivity({
     return `${plural(day.activity, "submission", "submissions")} on ${LABEL_DATE.format(day.date)}`;
   }
 
-  function onCellOver(event: MouseEvent<HTMLTableSectionElement>) {
+  function onCellOver(event: SyntheticEvent<HTMLTableSectionElement>) {
     const cell = (event.target as HTMLElement).closest<HTMLElement>("[data-activity-label]");
     if (!cell) {
       setHint(null);
@@ -96,7 +98,7 @@ export function SubmissionActivity({
   }
 
   return (
-    <section aria-labelledby="submission-activity-heading">
+    <section aria-labelledby="submission-activity-heading" className="min-w-0">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h3 id="submission-activity-heading" className="font-display text-h3 font-semibold text-foreground">
           {year === currentYear
@@ -138,7 +140,12 @@ export function SubmissionActivity({
           <caption className="sr-only">
             Submissions per day, {year === currentYear ? "over the last year" : `during ${year}`}
           </caption>
-          <tbody onMouseOver={onCellOver} onMouseLeave={() => setHint(null)}>
+          <tbody
+            onMouseOver={onCellOver}
+            onFocus={onCellOver}
+            onMouseLeave={() => setHint(null)}
+            onBlur={() => setHint(null)}
+          >
             {rows.map((week, weekday) => (
               <tr key={WEEKDAYS[weekday]}>
                 <th
@@ -185,7 +192,7 @@ export function SubmissionActivity({
           <MicroLabel>{plural(total, "total submission", "total submissions")}</MicroLabel>
           <div className="flex items-center gap-1">
             <MicroLabel>Less</MicroLabel>
-            {Array.from({ length: LEVELS }, (_, level) => (
+            {HEAT_STEPS.map((level) => (
               <span
                 key={level}
                 className="size-[11px] rounded-[2px]"

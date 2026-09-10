@@ -3,12 +3,12 @@
 import { api } from "@convex/_generated/api";
 import { Pagination } from "@moj/ui";
 import { useQuery } from "convex/react";
-import { pageHref, type UserSortState } from "@/components/users/leaderboard";
 import {
   type LeaderboardRow,
   LeaderboardTable,
   type OrganizationChip,
 } from "@/components/users/LeaderboardTable";
+import { pageHref, type UserSortState } from "@/components/users/leaderboard";
 
 /** The leaderboard's live half: the server rendered the first page, and this
  *  keeps it current as points move. */

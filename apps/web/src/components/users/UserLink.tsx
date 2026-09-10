@@ -50,7 +50,6 @@ export function UserLink({
 
   const body = gravatarUrl ? (
     <span className="inline-flex items-center gap-1.5 align-middle">
-      {/* biome-ignore lint/performance/noImgElement: gravatar is a remote host with no loader configured */}
       <img
         src={gravatarUrl}
         alt=""

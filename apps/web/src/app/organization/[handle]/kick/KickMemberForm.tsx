@@ -56,8 +56,8 @@ export function KickMemberForm({
           />
         </Field>
         <p className="text-sm text-muted-foreground">
-          Kicking someone removes them from {name} and from every class inside it. They keep their
-          submissions and their points.
+          Kicking someone removes them from {name} and from every class inside it. They keep their submissions
+          and their points.
         </p>
       </Panel>
       <FormFooter>

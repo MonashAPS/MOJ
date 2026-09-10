@@ -51,12 +51,8 @@ export default async function UserProblemsPage({
       isViewer={data.isViewer}
       organizationLinks={organizationLinks}
     >
-      <div className="grid gap-8">
-        <PPBreakdown
-          username={username}
-          initial={data.ppBreakdown}
-          initialHasMore={data.ppHasMore}
-        />
+      <div className="grid min-w-0 gap-8 [&>*]:min-w-0">
+        <PPBreakdown username={username} initial={data.ppBreakdown} initialHasMore={data.ppHasMore} />
         <SolvedProblems
           username={username}
           groups={solved.groups}

@@ -1,9 +1,9 @@
 import { api } from "@convex/_generated/api";
 import { Alert, AlertTitle, TitleRow } from "@moj/ui";
 import { redirect } from "next/navigation";
-import { parseUserOrder } from "@/components/users/leaderboard";
 import type { OrganizationChip } from "@/components/users/LeaderboardTable";
 import { LeaderboardToolbar } from "@/components/users/LeaderboardToolbar";
+import { parseUserOrder } from "@/components/users/leaderboard";
 import { USER_LIST_TABS } from "@/components/users/tabs";
 import { query, queryAsViewer } from "@/lib/convex-server";
 import { UsersLive } from "./UsersLive";

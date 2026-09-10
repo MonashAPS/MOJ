@@ -1,16 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import {
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  VerdictPill,
-} from "@moj/ui";
+import { Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, VerdictPill } from "@moj/ui";
 import { useQuery } from "convex/react";
 import Link from "next/link";
 import { useState } from "react";
@@ -52,7 +43,10 @@ export function PPBreakdown({
   const [shown, setShown] = useState(PAGE);
   // The window always starts at zero, so one subscription holds every row that
   // has been asked for and nothing has to be stitched together on the client.
-  const more = useQuery(api.profiles.performancePoints, shown > PAGE ? { username, start: 0, end: shown } : "skip");
+  const more = useQuery(
+    api.profiles.performancePoints,
+    shown > PAGE ? { username, start: 0, end: shown } : "skip",
+  );
 
   const entries: PPEntry[] = more?.entries ?? initial;
   const hasMore = more ? more.hasMore : initialHasMore;
@@ -81,7 +75,10 @@ export function PPBreakdown({
                 <Link href={`/problem/${entry.problemCode}/`} className="font-medium hover:text-link">
                   {entry.problemName}
                 </Link>
-                <span className="ml-2 font-mono text-sm text-muted-foreground" title={formatDateTime(entry.submissionDate)}>
+                <span
+                  className="ml-2 font-mono text-sm text-muted-foreground"
+                  title={formatDateTime(entry.submissionDate)}
+                >
                   {formatRelative(entry.submissionDate)}
                 </span>
               </TableCell>

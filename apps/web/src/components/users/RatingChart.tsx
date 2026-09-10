@@ -70,7 +70,11 @@ export function RatingChart({ points }: { points: RatingPoint[] }) {
           data={points}
           margin={{ top: 8, right: 12, bottom: 4, left: 0 }}
           onClick={(state) => {
-            const point = (state?.activePayload?.[0] as { payload?: RatingPoint } | undefined)?.payload;
+            // `activePayload` is on the runtime object but not on Recharts'
+            // published handler type, so it is read through a narrow shape.
+            const active = (state as { activePayload?: { payload?: RatingPoint }[] } | undefined)
+              ?.activePayload;
+            const point = active?.[0]?.payload;
             if (point) router.push(`/contest/${point.contestKey}/ranking/`);
           }}
         >

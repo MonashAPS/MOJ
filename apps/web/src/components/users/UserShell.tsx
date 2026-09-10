@@ -92,20 +92,12 @@ export function UserShell({
 
   return (
     <>
-      <TitleRow
-        title={profile.displayName}
-        tabs={tabs}
-        active={tab}
-      />
-      <div
-        id="content-body"
-        className="grid gap-8 min-[960px]:grid-cols-[var(--sidebar-w)_minmax(0,1fr)]"
-      >
+      <TitleRow title={profile.displayName} tabs={tabs} active={tab} />
+      <div id="content-body" className="grid gap-8 min-[960px]:grid-cols-[var(--sidebar-w)_minmax(0,1fr)]">
         <aside className="min-w-0">
           <div className="grid gap-4 min-[960px]:sticky min-[960px]:top-(--sticky-top)">
             <Panel title="Profile" bodyClassName="p-4">
               <div className="flex flex-col items-center gap-3">
-                {/* biome-ignore lint/performance/noImgElement: gravatar is a remote host with no loader configured */}
                 <img
                   src={gravatar}
                   alt=""
@@ -117,7 +109,9 @@ export function UserShell({
                   )}
                 />
                 <p className="text-center font-mono text-mono tabular-nums text-foreground">
-                  {profile.problemCount === 1 ? "1 problem solved" : `${profile.problemCount} problems solved`}
+                  {profile.problemCount === 1
+                    ? "1 problem solved"
+                    : `${profile.problemCount} problems solved`}
                 </p>
               </div>
 

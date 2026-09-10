@@ -1,16 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import {
-  Badge,
-  EmptyRow,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@moj/ui";
+import { Badge, EmptyRow, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@moj/ui";
 import { useQuery } from "convex/react";
 import Link from "next/link";
 import { organizationHref } from "@/lib/organizations";
