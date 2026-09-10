@@ -278,7 +278,9 @@ export default defineSchema({
   problemData: defineTable({
     problemId: v.id("problems"),
     zipfile: v.optional(v.string()),
+    zipfileStorageId: v.optional(v.id("_storage")),
     generator: v.optional(v.string()),
+    generatorStorageId: v.optional(v.id("_storage")),
     outputPrefix: v.optional(v.number()),
     outputLimit: v.optional(v.number()),
     feedback: v.string(),
@@ -298,7 +300,9 @@ export default defineSchema({
     inputFile: v.string(),
     outputFile: v.string(),
     generatorArgs: v.string(),
-    points: v.number(),
+    // DMOJ's ProblemTestCase.points is nullable: a case inside a batch carries
+    // no points of its own.
+    points: v.union(v.number(), v.null()),
     isPretest: v.boolean(),
     outputPrefix: v.optional(v.number()),
     outputLimit: v.optional(v.number()),
@@ -744,5 +748,23 @@ export default defineSchema({
     storageId: v.id("_storage"),
     renderedAt: v.number(),
     sourceHash: v.string(),
-  }).index("by_problem_language", ["problemCode", "language"]),
+  })
+    .index("by_problem_language", ["problemCode", "language"])
+    .index("by_sourceHash", ["sourceHash"]),
+
+  apiKeys: defineTable({
+    keyHash: v.string(),
+    prefix: v.optional(v.string()),
+    name: v.string(),
+    profileId: v.id("profiles"),
+    scopes: v.array(v.string()),
+    enabled: v.boolean(),
+    expiresAt: v.optional(v.number()),
+    createdAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+    legacyId: v.optional(v.number()),
+  })
+    .index("by_keyHash", ["keyHash"])
+    .index("by_profile", ["profileId"])
+    .index("by_legacyId", ["legacyId"]),
 });
