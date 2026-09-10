@@ -51,6 +51,8 @@ Append dated bullets when you had to extend or deviate from docs/SPEC.md.
 - `apps/web/src/lib/simple-markdown.tsx` renders flat pages and post summaries with a very small subset of
   markdown until `@moj/content` lands. Delete it and call `renderMarkdown` when that package exists.
 
+## packages/core
+
 - 2026-09-10 (packages/core): the contest format `displayUserProblem` and `displayParticipationResult`
   return structured cell data (`state`, `points`, `pointsText`, `timeText`, `penalty`, `bonus`) instead of
   DMOJ's HTML `<td>` fragments. `packages/core` is pure domain logic and the tables are React; the fields
@@ -148,3 +150,88 @@ judge now makes; `convex/http.ts` has to match them, and `apps/judge/README.md` 
 - The judge container renders `/problems/judge.yml` on first start, which lands in `infra/problems/` for a
   compose stack using the volume from section 14. That path should be gitignored alongside the rest of the
   pulled problem data.
+
+## 2026-09-10, judging and submissions
+
+Schema (all additive, and all optional so nothing already stored has to change):
+
+- `submissions.abortRequested?: boolean`. `GET /judge/abort` is a poll, so the request to stop has to be
+  written down somewhere between `submissions.abort` setting it and the judge reading it a second later.
+- `submissions.currentBatch?: number` and `submissions.inBatch?: boolean`. DMOJ's bridge keeps the batch
+  counter on the connection handler (`JudgeHandler.batch_id` / `in_batch`), which is possible because the
+  judge holds a socket. The pull protocol has no connection, so the counter lives on the submission being
+  graded, which is the same scope: one judge, one submission at a time.
+- `submissions.by_profile_status` index (`[profileId, status]`). `DMOJ_SUBMISSION_LIMIT` counts a user's
+  submissions that are not finished; without this index that is a scan of their whole history.
+
+Decisions the wire format forced:
+
+- **`legacyId` is the integer submission id for new submissions too, not only imported ones.** The judge
+  formats the submission id into a process name with `%d` (`dmoj/judge.py:328`, on the grading path of every
+  submission), so a claim that hands back a Convex document id crashes the grader with a `TypeError`.
+  `submissions.submit` therefore allocates `legacyId = max(legacyId) + 1` from `by_legacyId`, and that number
+  is what `/judge/claim` returns and what `/submission/<id>` should use. Convex serialises the conflicting
+  mutations, so the read-then-add is safe. The judge API still accepts a document id on the way back in, as
+  the brief asks; only the claim has to be a number.
+- `meta.user` is the profile's `legacyUserId` when it has one and its username otherwise. DMOJ sends an
+  integer user id, which only problem `init.yml` files ever read, and a fresh MOJ profile has no integer id.
+- `POST /judge/event` answers `{ok: false, error: "unknown submission"}` with a 200 for an event about a
+  submission that no longer exists. The judge retries an event twelve times on any failure, and there is
+  nothing to retry into. An unknown *event type* is still a 400.
+- Events are idempotent, because the judge retries a packet whose response was lost: `grading-begin` is
+  ignored once the submission is already `G` (applying it twice would delete real case rows), `batch-begin`
+  and `batch-end` are ignored when they would not change `inBatch`, a `test-case-status` case overwrites the
+  row for that case number rather than inserting a second one, and `grading-end`, `compile-error`,
+  `internal-error` and `submission-terminated` are ignored once the submission has reached that state.
+- A `compile-message` with an empty (or whitespace-only) log is dropped rather than stored, as
+  apps/judge/README.md requires: every compiled executor sends one whether or not it has anything to say.
+- Judge liveness is `judges.lastSeen` rather than a socket. A judge counts as online for the tier
+  calculation only if it heartbeat within `JUDGE_HEARTBEAT_TIMEOUT_MS` (60 s), so a judge that vanished
+  between cron runs cannot hold the minimum tier and stall the queue.
+- `POST /judge/claim` also refreshes `lastSeen`: the judge claims every 500 ms while idle, which is a
+  stronger liveness signal than the ten-second heartbeat.
+
+Behaviour worth flagging:
+
+- The recovery cron aborts, rather than requeues, a stuck submission that has `abortRequested` set. DMOJ has
+  no equivalent because its abort is synchronous; dropping the flag on the requeue would silently ignore the
+  user.
+- `CE`, `IE` and `AB` recompute the contest participation, which DMOJ only does on `grading-end`. It matters
+  when a rejudge turns an `AC` into a `CE`: without it the participation keeps the old score.
+- `submissions.submit` charges two rate limits: the `submit` bucket `convex/lib/rateLimiter.ts` already
+  defines (a burst limit MOJ adds over DMOJ) and an inline `submitDaily` fixed window of 500 a day, which is
+  `DMOJ_SUBMISSION_RATELIMIT` over `DMOJ_SUBMISSION_RATELIMIT_TIMEFRAME`. The inline config avoids editing
+  `lib/rateLimiter.ts`, which belongs to another branch; fold it in there at integration.
+- `submissions.list` filters a page for visibility after fetching it, so a page can come back shorter than
+  it asked for. That is normal for Convex pagination and `usePaginatedQuery` copes; it does mean the page
+  size is a hint. The query over-fetches by 4x to compensate.
+- `coreProfile` derives `adminOfOrganizationIds` from the organizations the profile is a *member* of. DMOJ's
+  `Organization.admins` is a separate relation, so someone who administers an organization without being in
+  it would not be treated as its admin here. Every real row has admins as members; revisit if that changes.
+- `recomputeProfilePoints` and `recomputeProblemStats` walk a user's and a problem's submission history and
+  are capped at `RECOMPUTE_SCAN_LIMIT` (6000) rows, because a Convex transaction may read at most 16384
+  documents. At club scale nothing comes close. A site that outgrows it wants a maintained per-(user,
+  problem) best-points table rather than a bigger cap.
+- The `submissionsByProblemResult` aggregate is still unwired: `submissions.resultsForProblem` counts by
+  scanning `by_problem_date` with a cap. Wiring the aggregate means keeping it in sync on every submission
+  write and rejudge, which is worth doing once one owner holds all of those.
+- Profile point writes here do not touch the `profilesByPP` / `profilesByProblemCount` aggregates, which
+  nothing maintains yet. Whoever wires them up has to hook `recomputeProfilePoints` too.
+- `convex/crons.ts` now points "judge recovery" at `internal.judging.recoverStuckSubmissions` and "judge
+  offline marking" at `internal.judgeApi.markOfflineJudges`. The two no-op stubs they used to point at are
+  still in `convex/maintenance.ts` (not this branch's file to edit) and can be deleted.
+- `packages/protocol` is new: `@moj/protocol/judge` holds the judge API as zod schemas, so the HTTP layer and
+  any future client validate against one definition. It is the only place in the repo that depends on zod.
+- `convex/_generated/api.d.ts` was extended by hand with the new modules. `npx convex codegen` needs a
+  reachable deployment (it pulls the component definitions), which this worktree does not have; the next
+  `convex dev` regenerates the file identically.
+- Convex turns a module path with a slash into a nested API key, so the staff console mutations are
+  `api.admin.submissions.batchRejudge`, not `api["admin/submissions"]`.
+- Tests under `convex/__tests__/` use `convex-test` with `// @vitest-environment edge-runtime` per file, so
+  the root vitest config did not need changing. `fixtures.helpers.ts` has two dots in its name on purpose:
+  Convex's bundler skips any file under `convex/` whose basename does, so the fixtures never reach a
+  deployment. `.test.ts` files are skipped for the same reason.
+- `infra/problems/aplusb/init.yml` kept the build branch's version (flat `00.in`-`03.out`, matching the test
+  data files committed there and the `problemTestCases` rows `convex/seed.ts` writes) rather than the judge
+  branch's, whose `tests/*.in` paths have no files behind them. The judge branch's `config.json`, `sol.py`
+  and `statement.md` were merged in alongside; `npm run e2e:judge` submits `sol.py`.
