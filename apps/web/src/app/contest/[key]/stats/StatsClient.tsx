@@ -148,7 +148,7 @@ export function StatsClient({
           description="Nobody submitted anything during this contest."
         />
       ) : (
-        <div className="grid gap-6">
+        <div className="grid min-w-0 gap-6">
           <p className="text-base text-subtle">
             {data.totalSubmissions === 1
               ? "1 submission was made during this contest."

@@ -12,7 +12,7 @@ export function CalendarGrid({ calendar }: { calendar: NonNullable<CalendarPaylo
   const isThisMonth = calendar.year === today.getFullYear() && calendar.month === today.getMonth() + 1;
 
   return (
-    <div className="grid gap-4">
+    <div className="grid min-w-0 gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           {calendar.prevMonth ? (
@@ -36,7 +36,7 @@ export function CalendarGrid({ calendar }: { calendar: NonNullable<CalendarPaylo
         </div>
       </div>
 
-      <div className="overflow-hidden overflow-x-auto rounded-md border border-border bg-card">
+      <div className="min-w-0 overflow-hidden overflow-x-auto rounded-md border border-border bg-card">
         <table className="w-full border-collapse text-base">
           <thead>
             <tr>

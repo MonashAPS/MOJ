@@ -90,7 +90,7 @@ export function ParticipationsClient({
         }
       />
 
-      <div className="grid gap-4">
+      <div className="grid min-w-0 gap-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <p className="text-base text-subtle">
             {isOwn ? "Your runs at this contest." : `${subject}'s runs at this contest.`}

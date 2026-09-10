@@ -388,7 +388,7 @@ export function RankingClient({
           />
         ) : null
       ) : (
-        <div className="grid gap-4">
+        <div className="grid min-w-0 gap-4">
           {data.isFrozen ? (
             <Alert variant="info">
               <Snowflake size={16} aria-hidden />
@@ -417,12 +417,14 @@ export function RankingClient({
               <Switch label="Include virtual" checked={includeVirtual} onCheckedChange={setIncludeVirtual} />
               <Switch
                 label="Include spectators"
+                aria-label="Include spectators"
                 checked={includeSpectators}
                 onCheckedChange={setIncludeSpectators}
               />
               {anyOrganizations ? (
                 <Switch
                   label="Show organizations"
+                  aria-label="Show organizations"
                   checked={showOrganizations}
                   onCheckedChange={setShowOrganizations}
                 />

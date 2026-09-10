@@ -246,7 +246,7 @@ export function ContestListClient({
   };
 
   return (
-    <div className="grid gap-8">
+    <div className="grid min-w-0 gap-8">
       {data.activeParticipations.length > 0 ? (
         <section className="grid gap-2">
           <h2 className="font-display text-h2 font-semibold">Active contests</h2>

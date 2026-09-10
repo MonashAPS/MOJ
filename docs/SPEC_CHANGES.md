@@ -2,6 +2,39 @@
 
 Append dated bullets when you had to extend or deviate from docs/SPEC.md.
 
+## 2026-09-11, contest pages
+
+- New page-level Convex module `convex/pages/contests.ts`, holding what the contest routes need on top of
+  `contests.ts` and `contestRankings.ts` and nothing else:
+  - `tag({name})` — `/contests/tag/[name]`'s own header. `ContestTagDetail` renders the tag chip and its
+    description, and neither is reachable from `contests.list`'s rows when no contest carries the tag.
+    `tagTextColor` is `ContestTag.text_color`'s luma rule.
+  - `frozenCells({key})` — SPEC section 7. `contestRankings.ranking` scores a frozen board from pre-freeze
+    submissions, which is right for the ranking but leaves a post-freeze solve indistinguishable from an
+    untouched problem. This returns, per cell, the *count* of submissions the freeze is withholding (never a
+    verdict), so a frozen cell can render as `?` with its attempt count as the spec asks. Returns null whenever
+    the board is not frozen for the viewer.
+  - `deleteMossResults({key})` — `ContestMossDelete` (contests.py:880). `convex/contests.ts` has the `moss`
+    query but no delete, and `/contest/[key]/moss` needs the button.
+  Each page calls these defensively (the server probes, and the browser only subscribes when the probe
+  succeeded), so a deployment that has not taken them yet degrades instead of erroring.
+- `TitleRow`'s inner row gained `min-w-0` and `PageTabs` gained `min-w-0 max-w-full`
+  (`packages/ui/src/components/title-row.tsx`). Without them the row's grid track takes the tab strip's
+  max-content width and every page with more than three tabs scrolls sideways at 375 px, which fails DESIGN.md
+  section 24's checks 22 and 39. One line each, no visual change above 768 px.
+- `apps/web/src/proxy.ts` skips its trailing-slash redirect for `/_next`. `/_next/hmr` is a websocket upgrade
+  and the 308 to `/_next/hmr/` fails the handshake, which leaves the Turbopack dev runtime unable to hydrate
+  any page. (The dev server must also be opened on the same host the `allowedDevOrigins` check expects —
+  `localhost`, not `127.0.0.1` — or Next rejects the same socket on the Origin header.)
+- `viewer.current`'s `contestModeStale` is cleared by `ProfileBootstrap`, which already subscribes to that
+  query for the profile bootstrap; it runs `contests.clearStaleContest` once per page load when the flag is set.
+- The ContestBar takes the contest from the URL on a `/contest/[key]/...` route (`contests.navBar({key})`)
+  rather than only from the viewer's own participation, so it renders on every contest route as section 20
+  requires. It also stops counting down when the window has closed ("ended") or when the contest runs past
+  `COUNTDOWN_HORIZON` ("open"), because DMOJ's tutorial contests end in the year 9999.
+- `contestRankings.ranking` does not carry `timeLimit`, as the parity audit notes. The ranking page reads
+  `contests.get` for the contest's window and the viewer's participation end instead of duplicating the module.
+
 ## 2026-09-10, foundation
 
 - Convex's backing Postgres database is named `moj_dev`, not `convex` as section 14 says. The backend derives the

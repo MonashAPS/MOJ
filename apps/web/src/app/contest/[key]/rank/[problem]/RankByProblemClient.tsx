@@ -78,7 +78,7 @@ export function RankByProblemClient({
           description="The best solutions for this problem are only listed once the full scoreboard is visible to you."
         />
       ) : data === undefined ? null : (
-        <div className="grid gap-4">
+        <div className="grid min-w-0 gap-4">
           {languageOptions.length > 1 ? (
             <div className="grid max-w-[320px] gap-1">
               <MicroLabel>Languages</MicroLabel>
