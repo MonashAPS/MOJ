@@ -413,9 +413,12 @@ it, so a tier 1 estate means a tier 1 language list.
 
 | Tier | Runtimes | Size |
 | --- | --- | --- |
-| `tier1` | C, C++ through C++20, Java 8, Python 2 and 3, Pascal, assembly, sed, plain text | about 1.2 GB built |
+| `tier1` | C through C23, C++03 through C++23, Java 8, Python 2 and 3, PyPy 3, Pascal, Perl, x64 assembly, AWK, sed, plain text | about 2.7 GB built |
 | `tier2` | Tier 1 plus the mid-popularity runtimes | larger |
-| `tier3` | Everything the upstream judge supports | considerably larger |
+| `tier3` | Everything the upstream judge supports, including Clang, Node.js, Lean 4, ALGOL 68 and LLVM IR | about 18 GB to pull |
+
+The images come from Docker Hub (`dmoj/runtimes-tier1` and so on). DMOJ's ghcr.io mirror has not been rebuilt
+since March 2022 and its tier 1 image ships GCC 11, which fails the C++23 and C23 self-tests; do not build from it.
 
 Tier 1 is the right choice for a laptop or a small VPS, and for CI. Tier 3 is what to run in production if the
 long tail of languages should stay submittable.

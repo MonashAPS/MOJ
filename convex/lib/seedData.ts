@@ -9,7 +9,9 @@ export type SeedLanguage = {
   info: string;
   description: string;
   extension: string;
-  legacyId: number;
+  /** The `pk` of the row in DMOJ's `language_all.json`, for the runtimes that are
+   *  in it. Languages added since have none. */
+  legacyId?: number;
 };
 
 export type SeedNavItem = {
@@ -800,6 +802,145 @@ export const SEED_LANGUAGES: SeedLanguage[] = [
     description: "",
     extension: "cpp",
     legacyId: 76,
+  },
+
+  // Executors the judge ships that DMOJ's fixture predates.
+  {
+    key: "ALGL68",
+    name: "ALGOL 68",
+    shortName: "",
+    commonName: "ALGOL 68",
+    editorMode: "text",
+    shikiLang: "text",
+    template: "",
+    info: "",
+    description: "",
+    extension: "a",
+  },
+  {
+    key: "BASH",
+    name: "Bash",
+    shortName: "",
+    commonName: "Bash",
+    editorMode: "sh",
+    shikiLang: "bash",
+    template: "",
+    info: "",
+    description: "",
+    extension: "sh",
+  },
+  {
+    key: "C23",
+    name: "C23",
+    shortName: "",
+    commonName: "C",
+    editorMode: "c_cpp",
+    shikiLang: "c",
+    template: "#include <stdio.h>\r\n\r\nint main() {\r\n    return 0;\r\n}",
+    info: "",
+    description: "",
+    extension: "c",
+  },
+  {
+    key: "CLPP14",
+    name: "Clang++14",
+    shortName: "Clang++14",
+    commonName: "C++",
+    editorMode: "c_cpp",
+    shikiLang: "cpp",
+    template:
+      "#include <bits/stdc++.h>\r\n\r\nusing namespace std;\r\n\r\nint main() {\r\n    return 0;\r\n}",
+    info: "",
+    description: "",
+    extension: "cpp",
+  },
+  {
+    key: "CLPP17",
+    name: "Clang++17",
+    shortName: "Clang++17",
+    commonName: "C++",
+    editorMode: "c_cpp",
+    shikiLang: "cpp",
+    template:
+      "#include <bits/stdc++.h>\r\n\r\nusing namespace std;\r\n\r\nint main() {\r\n    return 0;\r\n}",
+    info: "",
+    description: "",
+    extension: "cpp",
+  },
+  {
+    key: "CLPP20",
+    name: "Clang++20",
+    shortName: "Clang++20",
+    commonName: "C++",
+    editorMode: "c_cpp",
+    shikiLang: "cpp",
+    template:
+      "#include <bits/stdc++.h>\r\n\r\nusing namespace std;\r\n\r\nint main() {\r\n    return 0;\r\n}",
+    info: "",
+    description: "",
+    extension: "cpp",
+  },
+  {
+    key: "CLPP23",
+    name: "Clang++23",
+    shortName: "Clang++23",
+    commonName: "C++",
+    editorMode: "c_cpp",
+    shikiLang: "cpp",
+    template:
+      "#include <bits/stdc++.h>\r\n\r\nusing namespace std;\r\n\r\nint main() {\r\n    return 0;\r\n}",
+    info: "",
+    description: "",
+    extension: "cpp",
+  },
+  {
+    key: "CPP23",
+    name: "C++23",
+    shortName: "C++23",
+    commonName: "C++",
+    editorMode: "c_cpp",
+    shikiLang: "cpp",
+    template:
+      "#include <bits/stdc++.h>\r\n\r\nusing namespace std;\r\n\r\nint main() {\r\n    return 0;\r\n}",
+    info: "",
+    description: "",
+    extension: "cpp",
+  },
+  {
+    key: "LEAN4",
+    name: "Lean 4",
+    shortName: "",
+    commonName: "Lean",
+    editorMode: "text",
+    shikiLang: "lean",
+    template: "",
+    info: "",
+    description: "",
+    extension: "lean",
+  },
+  {
+    key: "LLC",
+    name: "LLVM IR",
+    shortName: "",
+    commonName: "LLVM",
+    editorMode: "text",
+    shikiLang: "llvm",
+    template: "",
+    info: "",
+    description: "",
+    extension: "ll",
+  },
+  {
+    key: "NODEJS",
+    name: "JavaScript (Node.js)",
+    shortName: "Node.js",
+    commonName: "JavaScript",
+    editorMode: "javascript",
+    shikiLang: "javascript",
+    template: "",
+    info: "",
+    description: "",
+    extension: "js",
   },
 ];
 

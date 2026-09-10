@@ -7,7 +7,7 @@ have been pulled in early.
 
 ```
 apps/judge/
-  Dockerfile          builds FROM ghcr.io/dmoj/runtimes-${TIER}
+  Dockerfile          builds FROM dmoj/runtimes-${TIER} on Docker Hub
   entrypoint.sh       renders /problems/judge.yml, then runs the judge in pull mode
   judge.yml.template  id, key and problem_storage_globs
   judge-server/       the subtree
@@ -239,10 +239,17 @@ empty log is normal and should not be shown to the user.
 
 The base image comes from DMOJ and decides which languages exist:
 
-- `tier1`: C, C++ through C++20, Java 8, Python 2 and 3, Pascal, assembly, sed, plain text. Around 1.2 GB
-  built. This is the default, and it covers what a contest problem set normally needs.
+- `tier1`: C through C23, C++03 through C++23, Java 8, Python 2 and 3, PyPy 3, Pascal, Perl, x64 assembly,
+  AWK, sed, plain text. Around 2.7 GB built. This is the default and covers what a contest problem set
+  normally needs, C++23 (`CPP23`) and C23 (`C23`) included.
 - `tier2`: tier1 plus the mid-popularity runtimes.
-- `tier3`: everything DMOJ supports, and considerably larger.
+- `tier3`: everything DMOJ supports, and considerably larger, around 18 GB to pull. This is the tier that
+  has Clang (`CLPP14`, `CLPP17`, `CLPP20`, `CLPP23`), Node.js (`NODEJS`), Lean 4 (`LEAN4`), ALGOL 68
+  (`ALGL68`) and LLVM IR (`LLC`).
+
+The images come from Docker Hub. DMOJ's ghcr.io mirror has not been rebuilt since March 2022 and its tier 1
+image still ships GCC 11, which fails the C++23 and C23 self-tests, so a judge built on it never reports
+those languages.
 
 Pick one at build time with `--build-arg TIER=`. Judges are also assigned a tier in the staff console, which
 is a different thing: it controls which judges the site prefers when handing out submissions, so a slow
