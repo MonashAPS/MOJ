@@ -7,7 +7,15 @@ export default defineConfig({
   lang: 'en-AU',
   appearance: 'dark',
   lastUpdated: true,
-  srcExclude: ['**/SPEC.md', '**/SPEC_CHANGES.md', '**/DMOJ_RULES.md', '**/RUNBOOK.md', '**/public/**'],
+  srcExclude: [
+    '**/SPEC.md',
+    '**/SPEC_CHANGES.md',
+    '**/DMOJ_RULES.md',
+    '**/RUNBOOK.md',
+    '**/audit/**',
+    '**/design/**',
+    '**/public/**',
+  ],
   head: [
     ['link', { rel: 'icon', href: '/MOJ/logo.svg', type: 'image/svg+xml' }],
     ['meta', { name: 'theme-color', content: '#2980b9' }],
@@ -20,6 +28,7 @@ export default defineConfig({
     },
     nav: [
       { text: 'Quick start', link: '/guide/quick-start' },
+      { text: 'DMOJ', link: '/guide/compatibility' },
       { text: 'Problems', link: '/problems/format' },
       { text: 'Contests', link: '/using/contests' },
       { text: 'API', link: '/reference/api' },
@@ -31,6 +40,7 @@ export default defineConfig({
         items: [
           { text: 'Quick start', link: '/guide/quick-start' },
           { text: 'Architecture', link: '/guide/architecture' },
+          { text: 'Compatibility with DMOJ', link: '/guide/compatibility' },
         ],
       },
       {
@@ -74,7 +84,7 @@ export default defineConfig({
     },
     footer: {
       message: 'Released under the AGPL-3.0-only licence.',
-      copyright: 'MOJ is run by MAPS, Monash Algorithms and Problem Solving.',
+      copyright: 'Run your own: every page here is written for an operator, not for one site.',
     },
     docFooter: {
       prev: 'Previous page',
