@@ -326,9 +326,9 @@ export function ProblemsView({
   const data = live ?? initial;
   const loading = live === undefined;
 
+  // `pages/problems:filterOptions` answers for the site; in contest mode the
+  // list is the contest's own problems, so the panel offers what they carry.
   const options: FilterOptions = initialOptions ?? {
-    // Until the integrator deploys `pages/problems:filterOptions`, the panel
-    // still offers everything this page can see.
     types: dedupeTypes(data.items),
     groups: dedupeGroups(data.items),
     contests: [],
