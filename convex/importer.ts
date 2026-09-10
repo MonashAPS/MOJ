@@ -144,3 +144,69 @@ export const mapping = internalQuery({
     };
   },
 });
+
+/**
+ * Repairs an import made before the format data rekey.
+ *
+ * DMOJ keys `ContestParticipation.format_data` by `ContestProblem.id`, and an
+ * early import copied those numbers through verbatim, so every scoreboard cell
+ * looked up a key that no longer existed. Rewrites the numeric keys to the
+ * Convex ids of the contest problems with the matching `legacyId`. Idempotent:
+ * a participation whose keys are already ids is left alone.
+ */
+export const backfillFormatDataKeys = internalMutation({
+  args: {
+    cursor: v.union(v.string(), v.null()),
+    numItems: v.optional(v.number()),
+  },
+  returns: v.object({
+    scanned: v.number(),
+    rewritten: v.number(),
+    droppedKeys: v.number(),
+    continueCursor: v.union(v.string(), v.null()),
+    isDone: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const page = await ctx.db
+      .query("contestParticipations")
+      .paginate({ cursor: args.cursor, numItems: args.numItems ?? 200 });
+
+    let rewritten = 0;
+    let droppedKeys = 0;
+    for (const participation of page.page) {
+      const data = participation.formatData;
+      if (data === null || typeof data !== "object" || Array.isArray(data)) continue;
+
+      const entries = Object.entries(data as Record<string, unknown>);
+      const numeric = entries.filter(([key]) => /^\d+$/.test(key));
+      if (numeric.length === 0) continue;
+
+      const next: Record<string, unknown> = {};
+      for (const [key, value] of entries) {
+        if (!/^\d+$/.test(key)) {
+          next[key] = value;
+          continue;
+        }
+        const contestProblem = await ctx.db
+          .query("contestProblems")
+          .withIndex("by_legacyId", (q) => q.eq("legacyId", Number(key)))
+          .unique();
+        if (contestProblem && contestProblem.contestId === participation.contestId) {
+          next[contestProblem._id] = value;
+        } else {
+          droppedKeys++;
+        }
+      }
+      await ctx.db.patch(participation._id, { formatData: next });
+      rewritten++;
+    }
+
+    return {
+      scanned: page.page.length,
+      rewritten,
+      droppedKeys,
+      continueCursor: page.isDone ? null : page.continueCursor,
+      isDone: page.isDone,
+    };
+  },
+});
