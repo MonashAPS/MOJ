@@ -97,9 +97,10 @@ never text on a light ground:
 | `--accent-hover` / `--accent-active` | `#263FAB` / `#1F3489` | |
 | `--accent-soft` / `--accent-line` | `#E7EBFB` / `#C3CDF5` | tinted fills and their borders |
 | `--bg` | `#FFFFFF` | default content and control fill |
-| `--bg-2` | `#F7F5EF` | **page ground.** Bone, screen-tuned from `#F9F6EE` |
+| `--bg-2` | `#FFFFFF` | **page ground.** Plain white. Panels are separated from it by their hairline and their titlebar, not by a tint |
 | `--surface` | `#FFFFFF` | panels, cards, table bodies |
-| `--surface-2` | `#F0EEE6` | panel titlebars, table headers, inactive tabs |
+| `--surface-2` | `#F0EEE6` | wells, chips, segmented controls, inactive tabs |
+| `--titlebar` / `--titlebar-ink` / `--titlebar-ink-2` | `#101A3D` / `#F2F4FA` / `#A9B4D8` | **every panel titlebar and every table header band.** The chrome's own navy, so a home side box and a list page's table read as the same object |
 | `--surface-3` | `#E4E1D7` | wells, tracks, disabled fills |
 | `--ink` / `--ink-2` / `--muted` | `#191C22` / `#4B525C` / `#6C7480` | primary / secondary / tertiary text (all >= 4.8:1 on white) |
 | `--line` / `--line-strong` | `#E2DFD5` / `#C8C4B7` | hairlines / frames and input borders |
@@ -117,6 +118,7 @@ Dark mode is navy-tinted, not neutral grey — the same family as the chrome.
 | `--accent` | `#8FA6FF` (7.9:1 on `--bg-2`), `--accent-ink` `#0B1026` |
 | `--bg` / `--bg-2` | `#141A28` / `#0D111C` |
 | `--surface` / `--surface-2` / `--surface-3` | `#141A28` / `#1C2434` / `#273044` |
+| `--titlebar` / `--titlebar-ink` / `--titlebar-ink-2` | `#1E2748` / `#E6EAFA` / `#A3ADCF` (lifted off `--surface` so the band still reads as chrome) |
 | `--ink` / `--ink-2` / `--muted` | `#E6E9F0` / `#AAB3C2` / `#8590A2` |
 | `--line` / `--line-strong` | `#262F41` / `#3A4459` |
 | `--link` | `#93A9FF` |
@@ -430,10 +432,11 @@ main#content, max-width --content-max (1280px), padded --gutter-lg
 footer
 ```
 
-- `body` background is `--bg-2` (bone). The content column sits on `--surface` only where DMOJ used a box; the
-  page itself is bone, and the club's royal grid is painted on it at 5.5% opacity, 48 px pitch, on the home,
-  login/register, `/about/` and error pages only. Dense pages (`/problems/`, `/submissions/`, rankings, staff)
-  get a flat bone ground — the grid behind a table is noise.
+- `body` background is `--bg-2`, plain white. Panels, cards and tables are white too and are separated from the
+  ground by their hairline and their navy titlebar, never by a tinted ground. The club's royal grid is painted
+  on the ground at 5.5% opacity, 48 px pitch, on the home, login/register, `/about/` and error pages only.
+  Dense pages (`/problems/`, `/submissions/`, rankings, staff) get a flat ground — the grid behind a table
+  is noise.
 - The two-column split is `grid-template-columns: minmax(0,1fr) var(--sidebar-w)` with `gap: var(--space-6)`,
   collapsing to one column under 700 px (DMOJ's breakpoint), sidebar last.
 - `.info-float` is `position: sticky; top: var(--sticky-top)` (= nav height + 24 px, and + ContestBar height
@@ -760,8 +763,9 @@ disabled conventions from 11.3; they are omitted for brevity.
 
 ## 12. Tables
 
-DMOJ's tables keep their columns, their order and their sort affordances. What changes is the skin: the
-near-black header band becomes a **panel titlebar**, and the whole table becomes a framed object.
+DMOJ's tables keep their columns, their order and their sort affordances, and they keep their dark header
+band — recoloured from DMOJ's near-black to the club's navy, so a table header and a panel titlebar are the
+same object. The whole table becomes a framed object.
 
 The recipe is the author's own — radius and border on the *wrapper*, `border-collapse: collapse` inside, a
 tinted header row, zebra on even rows, and the last row losing its rule:
@@ -778,13 +782,12 @@ tinted header row, zebra on even rows, and the last row losing its rule:
 .table thead th {
   height: 32px;
   padding: 0 var(--space-3);
-  background: var(--surface-2);
-  color: var(--ink-2);
+  background: var(--titlebar);
+  color: var(--titlebar-ink);
   font: 600 var(--fs-xs)/1 var(--font-body);
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   text-align: left;
-  border-bottom: 1px solid var(--line);
   white-space: nowrap;
 }
 .table tbody td {
@@ -950,7 +953,7 @@ motif, and the single clearest place to use it:
 
 ```
 +-----------------------------------------------+
-| INPUT 1                              [ Copy ] |  titlebar 26px, --surface-2,
+| INPUT 1                              [ Copy ] |  titlebar 26px, --titlebar,
 +-----------------------------------------------+  .label at left, ghost icon-sm at right
 | 10 3                                          |  body: --code-bg, mono 13px,
 | abbabbbaab                                    |  line-height 1.5, padding --space-3
@@ -1381,8 +1384,9 @@ Run this against screenshots of a built page. Every line is pass/fail.
 11. No text is set in a weight the vendored fonts do not contain.
 
 **Colour**
-12. The page ground is bone `#F7F5EF`; panels are white; there is no grey `#f5f5f5` page.
-13. Nothing on the page is DMOJ's `#3b3b3b`, and no header band is near-black.
+12. The page ground is plain white; panels are white too, and are told apart by their hairline and their
+    navy titlebar rather than by a tinted ground.
+13. Nothing on the page is DMOJ's `#3b3b3b`: the header bands are the club's navy, not near-black.
 14. A screen of AC submissions shows green *rails*, not green blocks.
 15. Every verdict pill has its code visible; IE is dashed.
 16. Rating names use the light-mode values and are legible at 12.5 px.
@@ -1393,7 +1397,8 @@ Run this against screenshots of a built page. Every line is pass/fail.
 18. No resting card, panel or table has a `box-shadow`.
 19. Every panel has a titlebar and a 1 px border, and its corners clip its header.
 20. `--shadow-hard` appears at most once on the page.
-21. Table header is `--surface-2` with uppercase labels; even rows are `#FAF9F5`; the last row has no rule.
+21. Table header is the `--titlebar` navy band with `--titlebar-ink` uppercase labels, the same hue as every
+    panel titlebar; even rows are `#FAF9F5`; the last row has no rule.
 22. A wide table scrolls inside its wrapper — the page body does not scroll horizontally at 375 px.
 
 **Controls**
