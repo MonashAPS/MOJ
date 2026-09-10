@@ -1,9 +1,43 @@
 import { createHash } from "node:crypto";
+import { getFormatOrDefault } from "@moj/core";
 import type { ImportContext } from "../context.ts";
 import { groupM2M } from "../context.ts";
 import type { Step } from "./types.ts";
 
 const SCOREBOARD_VISIBILITY = new Set(["V", "C", "P", "H"]);
+
+/**
+ * DMOJ has no `label_scheme` column: with no `problem_label_script` the format
+ * class decides, and every format except `icpc` inherits DefaultContestFormat's
+ * `str(index + 1)`. MOJ's contest row must carry a scheme, so the import writes
+ * the one the format would have produced rather than assuming letters.
+ */
+export function labelSchemeFor(formatName: string, labelScript: string): "letters" | "numbers" | "custom" {
+  if (labelScript.trim() !== "") return "custom";
+  return getFormatOrDefault(formatName).defaultLabelScheme;
+}
+
+/**
+ * DMOJ keys `format_data` by `ContestProblem.id`, so the numbers in the dump
+ * mean nothing once the rows are in Convex. Rewrite them to the new ids;
+ * anything that no longer resolves is dropped, as its contest problem was.
+ */
+export function remapFormatData(ctx: ImportContext, formatData: unknown, rowId: number): unknown {
+  if (formatData === null || formatData === undefined) return null;
+  if (typeof formatData !== "object" || Array.isArray(formatData)) return formatData;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(formatData as Record<string, unknown>)) {
+    const legacyId = Number(key);
+    if (!Number.isInteger(legacyId)) {
+      // Not a contest problem id: keep it, whatever a future format stores.
+      out[key] = value;
+      continue;
+    }
+    const id = ctx.ref("contestProblems", legacyId, "judge_contestparticipation", "format_data", rowId);
+    if (id !== undefined) out[id] = value;
+  }
+  return out;
+}
 
 /** Django DurationField is stored as microseconds on MariaDB. */
 export function durationToSeconds(micros: number | undefined): number | undefined {
@@ -268,7 +302,7 @@ export const contestsStep: Step = {
         ),
         formatName: row.s("format_name"),
         formatConfig: row.json("format_config"),
-        labelScheme: labelScript.trim() === "" ? "letters" : "custom",
+        labelScheme: labelSchemeFor(row.s("format_name"), labelScript),
         customLabels: [],
         lockedAfter: row.tOpt("locked_after"),
         pointsPrecision: row.n("points_precision"),
@@ -354,7 +388,7 @@ export const contestParticipationsStep: Step = {
         isDisqualified: row.b("is_disqualified"),
         tiebreaker: row.n("tiebreaker"),
         virtual: row.n("virtual"),
-        formatData: row.json("format_data"),
+        formatData: remapFormatData(ctx, row.json("format_data"), row.id()),
         legacyId: row.id(),
       });
     }

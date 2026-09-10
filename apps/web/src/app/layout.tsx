@@ -7,6 +7,7 @@ import { SiteShell } from "@/components/shell/SiteShell";
 import { ThemeScript } from "@/components/shell/ThemeScript";
 import { query, queryAsViewer } from "@/lib/convex-server";
 import { gravatarUrl } from "@/lib/gravatar";
+import { viewerLanguage } from "@/lib/language.server";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,10 +31,11 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [shell, viewerState, session] = await Promise.all([
+  const [shell, viewerState, session, language] = await Promise.all([
     query(api.site.shell, {}).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
     getServerSession().catch(() => null),
+    viewerLanguage(),
   ]);
 
   const profile = viewerState?.profile ?? null;
@@ -49,7 +51,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     : null;
 
   return (
-    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html lang={language} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <ThemeScript />
       </head>
@@ -60,6 +62,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             misc={shell?.misc ?? {}}
             viewer={viewer}
             registrationOpen={shell?.settings?.registrationOpen ?? true}
+            language={language}
           >
             {children}
           </SiteShell>
