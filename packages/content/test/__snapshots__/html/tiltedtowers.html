@@ -1,0 +1,51 @@
+<h3>Tilted Towers</h3>
+<p>Your friend Nancy has made a computer simulation of the popular game Jenga, where groups of 3 planks are stacked on top of one another in a criss-cross fashion.</p>
+<p><img src="full_tower.jpg" alt="" loading="lazy" decoding="async"></p>
+<p>However, her simulation isn't the most sophisticated: the condition for the tower falling over is relatively simple. She defines a particular layer of the tower to be <em>uneven</em> if the average position of the planks is not in the center - this is a fancy way of saying that there are more blocks on one side than the other.</p>
+<p>For example, from the standard 3 wide layer, removing the centre plank would keep the layer even, while removing either the left of right plank would result in an uneven layer.</p>
+<p>Nancy's simulation determines that the tower will fall if two consecutive layers in the tower are uneven, or if any layer is empty. (This result obviously doesn't line up with reality (in both the positive and negative case), but ignore that.)</p>
+<p>You've been given a current game state, and wonder about the maximum number of planks you can remove before the tower will fall. In particular, at no point while you are removing the planks can the tower be in a falling state.</p>
+<h4>Input</h4>
+<p>Input will begin with a single integer <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.4306em;"></span><span class="mord mathnormal">n</span></span></span></span>, representing the height (number of layers) of the tower.</p>
+<p><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>3</mn><mi>n</mi></mrow><annotation encoding="application/x-tex">3n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6444em;"></span><span class="mord">3</span><span class="mord mathnormal">n</span></span></span></span> lines will then follow, with groups of 3 lines representing a pictogram of a layer of the tower, from top to bottom.</p>
+<p>Each line will contain <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>3</mn></mrow><annotation encoding="application/x-tex">3</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6444em;"></span><span class="mord">3</span></span></span></span> characters, each an <code>X</code> or a <code>.</code>, representing the presence (or lack) of a plank.</p>
+<p>The first layer will always represent horizontal lines, and then it will alternate between vertical and horizontal.</p>
+<h4>Output</h4>
+<p>Output should begin with a single integer <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi></mrow><annotation encoding="application/x-tex">p</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.625em; vertical-align: -0.1944em;"></span><span class="mord mathnormal">p</span></span></span></span> - How many planks you can remove from the tower without it falling.</p>
+<p><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi></mrow><annotation encoding="application/x-tex">p</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.625em; vertical-align: -0.1944em;"></span><span class="mord mathnormal">p</span></span></span></span> lines should follow, each containing two numbers <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6595em;"></span><span class="mord mathnormal">i</span></span></span></span> and <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>j</mi></mrow><annotation encoding="application/x-tex">j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.854em; vertical-align: -0.1944em;"></span><span class="mord mathnormal" style="margin-right: 0.0572em;">j</span></span></span></span>. <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6595em;"></span><span class="mord mathnormal">i</span></span></span></span> represents the layer the plank is being removed from (top layer is <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn></mrow><annotation encoding="application/x-tex">1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6444em;"></span><span class="mord">1</span></span></span></span>, and increases), and <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>j</mi></mrow><annotation encoding="application/x-tex">j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.854em; vertical-align: -0.1944em;"></span><span class="mord mathnormal" style="margin-right: 0.0572em;">j</span></span></span></span> represents the plank to remove in that layer (for vertical plank layers, <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo separator="true">,</mo><mn>2</mn><mo separator="true">,</mo><mn>3</mn></mrow><annotation encoding="application/x-tex">1,2,3</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8389em; vertical-align: -0.1944em;"></span><span class="mord">1</span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.1667em;"></span><span class="mord">2</span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.1667em;"></span><span class="mord">3</span></span></span></span> are the left/middle/right planks, and for horizontal plank layers, <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo separator="true">,</mo><mn>2</mn><mo separator="true">,</mo><mn>3</mn></mrow><annotation encoding="application/x-tex">1,2,3</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8389em; vertical-align: -0.1944em;"></span><span class="mord">1</span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.1667em;"></span><span class="mord">2</span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.1667em;"></span><span class="mord">3</span></span></span></span> are the top/middle/bottom planks.)</p>
+<p>If there are multiple possible ways to select planks to remove, simply print any possible order / collection.</p>
+<h4>Constraints</h4>
+<ul>
+<li><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>≤</mo><mi>n</mi><mo>≤</mo><mn>1000</mn></mrow><annotation encoding="application/x-tex">1 \leq n \leq 1000</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.7804em; vertical-align: -0.136em;"></span><span class="mord">1</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.7719em; vertical-align: -0.136em;"></span><span class="mord mathnormal">n</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.6444em;"></span><span class="mord">1000</span></span></span></span></li>
+<li>The input tower will always be safe (no two adjacent layers will start uneven)</li>
+</ul>
+<h4>Example</h4>
+<p>For the following input:</p>
+<pre><code>5
+XXX
+...
+...
+XXX
+XXX
+XXX
+...
+XXX
+XXX
+X.X
+X.X
+X.X
+XXX
+XXX
+XXX
+</code></pre>
+<p>This represents the following tower: <img src="start_example.jpg" alt="" loading="lazy" decoding="async"></p>
+<p>This can be reduced to the following tower (paper wedge used to appease real-world gravity): <img src="end_example.jpg" alt="" loading="lazy" decoding="async"></p>
+<p>By removing these planks: <img src="removed_planks.jpg" alt="" loading="lazy" decoding="async"></p>
+<p>So one possible output for the problem could be:</p>
+<pre><code>5
+3 3
+2 2
+5 3
+5 1
+4 3
+</code></pre>
