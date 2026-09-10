@@ -18,7 +18,7 @@ import {
   insertProfile,
   insertSubmission,
   joinOrganization,
-} from "./contestsFixtures";
+} from "./contests.fixtures";
 
 const modules = import.meta.glob("../**/*.ts");
 

@@ -1,23 +1,17 @@
+/// <reference types="vite/client" />
 /**
  * Fixtures for the contest tests: the smallest set of rows each table needs so
  * a contest, its problems, its participations and its submissions exist.
+ *
+ * The filename carries two dots on purpose: Convex's bundler skips any file
+ * under `convex/` whose basename has more than one, so nothing in here is ever
+ * pushed to a deployment.
  */
 
 import type { GenericDatabaseWriter } from "convex/server";
 import type { DataModel, Doc, Id } from "../_generated/dataModel";
 
 export type Writer = GenericDatabaseWriter<DataModel>;
-
-/**
- * Vite replaces `import.meta.glob` at transform time, so it has to be written
- * out literally in each test file; the Convex tsconfig does not carry Vite's
- * types, so declare the one member here.
- */
-declare global {
-  interface ImportMeta {
-    glob: (pattern: string) => Record<string, () => Promise<unknown>>;
-  }
-}
 
 export const HOUR = 3_600_000;
 export const MINUTE = 60_000;

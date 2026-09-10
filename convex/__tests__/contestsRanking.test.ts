@@ -19,7 +19,7 @@ import {
   insertSubmission,
   joinOrganization,
   MINUTE,
-} from "./contestsFixtures";
+} from "./contests.fixtures";
 
 const modules = import.meta.glob("../**/*.ts");
 

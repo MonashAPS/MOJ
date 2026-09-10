@@ -10,7 +10,7 @@ import {
   makeInit,
 } from "../problemData";
 import schema from "../schema";
-import { seedProblem, seedProfile, seedTaxonomy } from "./problemsFixtures";
+import { seedProblem, seedProfile, seedTaxonomy } from "./problems.fixtures";
 
 const modules = import.meta.glob("../**/*.ts");
 

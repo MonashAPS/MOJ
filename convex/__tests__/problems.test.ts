@@ -10,7 +10,7 @@ import {
   seedProfile,
   seedSubmission,
   seedTaxonomy,
-} from "./problemsFixtures";
+} from "./problems.fixtures";
 
 const modules = import.meta.glob("../**/*.ts");
 

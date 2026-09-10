@@ -2,7 +2,7 @@ import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 import type { Id } from "../_generated/dataModel";
 import schema from "../schema";
-import { seedProblem, seedProfile, seedTaxonomy } from "./problemsFixtures";
+import { seedProblem, seedProfile, seedTaxonomy } from "./problems.fixtures";
 
 const modules = import.meta.glob("../**/*.ts");
 

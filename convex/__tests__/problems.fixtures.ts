@@ -1,15 +1,11 @@
+/// <reference types="vite/client" />
+/**
+ * Shared seeding for the problems tests. Not a test file itself; the two dots
+ * in the filename keep it out of the deployed function set.
+ */
+
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
-
-/** Shared seeding for the problems tests. Not a test file itself. */
-
-declare global {
-  // Vite supplies `import.meta.glob`, which convex-test needs to find the
-  // function modules. The convex tsconfig does not pull in `vite/client`.
-  interface ImportMeta {
-    glob(pattern: string): Record<string, () => Promise<unknown>>;
-  }
-}
 
 export type SeedProfileOptions = {
   username: string;
