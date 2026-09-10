@@ -528,7 +528,7 @@ export function ProblemsView({
               <Button
                 variant="secondary"
                 icon={<SlidersHorizontal size={14} />}
-                className="min-[900px]:hidden"
+                className="min-[900px]:hidden max-md:h-11"
               >
                 Filters{activeFilterCount(query) > 0 ? ` (${activeFilterCount(query)})` : ""}
               </Button>

@@ -127,6 +127,7 @@ export function FilterPanel({
   pointValues,
   randomHref,
   busy,
+  bare = false,
 }: {
   query: ProblemQuery;
   options: FilterOptions;
@@ -135,6 +136,9 @@ export function FilterPanel({
   pointValues: { min: number; max: number };
   randomHref: string;
   busy?: boolean;
+  /** Inside the mobile sheet the sheet's own header is the title, so the panel
+   *  drops its titlebar rather than repeating the word. */
+  bare?: boolean;
 }) {
   const ids = useId();
   const [search, setSearch] = useState(query.search);
@@ -164,200 +168,33 @@ export function FilterPanel({
       pointEnd: hasPointRange && points[1] < pointValues.max ? points[1] : null,
     });
 
-  return (
-    <Panel
-      title="Filters"
-      bodyClassName="p-0"
-      action={
-        total > 0 ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<RotateCcw size={12} />}
-            onClick={() => onApply({ ...EMPTY_QUERY, showTypes: query.showTypes, sort: query.sort })}
-          >
-            Reset
-          </Button>
-        ) : null
-      }
-    >
-      <div className="px-3 pb-3">
-        <div className="py-3">
-          <InputGroup
-            leading={<Search size={14} aria-hidden />}
-            trailing={<Kbd>/</Kbd>}
-            className="max-md:h-11"
-          >
-            <InputGroupInput
-              id={`${ids}-search`}
-              type="search"
-              value={search}
-              placeholder="Search problems…"
-              aria-label="Search problems"
-              onChange={(event) => setSearch(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  applyText();
-                }
-              }}
-            />
-          </InputGroup>
-          <div className="mt-2">
-            <Checkbox
-              id={`${ids}-full-text`}
-              checked={query.fullText}
-              onCheckedChange={(next) => set({ fullText: next })}
-              label="Full text search"
-            />
-          </div>
-        </div>
+  const reset =
+    total > 0 ? (
+      <Button
+        variant="ghost"
+        size="sm"
+        icon={<RotateCcw size={12} />}
+        onClick={() => onApply({ ...EMPTY_QUERY, showTypes: query.showTypes, sort: query.sort })}
+      >
+        Reset
+      </Button>
+    ) : null;
 
-        <Group label="Status" count={query.status !== "all" || query.hideSolved ? 1 : 0}>
-          <RadioGroup
-            name={`${ids}-status`}
-            ariaLabel="Status"
-            value={query.hideSolved ? "unsolved" : query.status}
-            onValueChange={(value) => set({ status: value as ProblemQuery["status"], hideSolved: false })}
-            options={[
-              { value: "all", label: "All" },
-              { value: "solved", label: "Solved", disabled: !authenticated },
-              { value: "attempted", label: "Attempted", disabled: !authenticated },
-              { value: "unsolved", label: "Unsolved", disabled: !authenticated },
-            ]}
-          />
-          {authenticated ? (
-            <Checkbox
-              id={`${ids}-hide-solved`}
-              checked={query.hideSolved}
-              onCheckedChange={(next) => set({ hideSolved: next, status: "all" })}
-              label="Hide solved problems"
-            />
-          ) : null}
-        </Group>
-
-        <Group label="Category" count={query.category ? 1 : 0}>
-          <Select
-            ariaLabel="Category"
-            value={query.category || "__all__"}
-            onValueChange={(value) => set({ category: value === "__all__" ? "" : value })}
-            options={[
-              { value: "__all__", label: "All" },
-              ...withCurrent(
-                options.groups.map((group) => ({ value: group.name, label: group.fullName })),
-                query.category,
-              ),
-            ]}
-          />
-        </Group>
-
-        <Group label="Types" count={query.types.length} defaultOpen={query.types.length > 0}>
-          <div className="max-h-64 overflow-y-auto pr-1 [scrollbar-color:transparent_transparent] hover:[scrollbar-color:var(--line-strong)_transparent]">
-            {options.types.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No problem types are defined.</p>
-            ) : (
-              options.types.map((type) => (
-                <OptionRow
-                  key={type.name}
-                  id={`${ids}-type-${type.name}`}
-                  checked={query.types.includes(type.name)}
-                  count={type.count}
-                  label={type.fullName}
-                  onChange={(next) =>
-                    set({
-                      types: next
-                        ? [...query.types, type.name]
-                        : query.types.filter((name) => name !== type.name),
-                    })
-                  }
-                />
-              ))
-            )}
-          </div>
-          <Checkbox
-            id={`${ids}-show-types`}
-            checked={query.showTypes}
-            onCheckedChange={(next) => set({ showTypes: next })}
-            label="Show problem types"
-          />
-        </Group>
-
-        {hasPointRange ? (
-          <Group label="Points" count={query.pointStart !== null || query.pointEnd !== null ? 1 : 0}>
-            <div className="flex items-center gap-3">
-              <span className="w-9 shrink-0 rounded-sm border border-border bg-secondary px-1 text-center font-mono text-sm tabular-nums text-foreground">
-                {points[0]}
-              </span>
-              <Slider
-                aria-label="Point range"
-                min={pointValues.min}
-                max={pointValues.max}
-                step={1}
-                value={points}
-                onValueChange={(value) => setPoints([value[0] ?? 0, value[1] ?? 0])}
-                onValueCommit={(value) =>
-                  set({
-                    pointStart: (value[0] ?? pointValues.min) > pointValues.min ? (value[0] as number) : null,
-                    pointEnd: (value[1] ?? pointValues.max) < pointValues.max ? (value[1] as number) : null,
-                  })
-                }
-              />
-              <span className="w-9 shrink-0 rounded-sm border border-border bg-secondary px-1 text-center font-mono text-sm tabular-nums text-foreground">
-                {points[1]}
-              </span>
-            </div>
-          </Group>
-        ) : null}
-
-        <Group label="Solved by" count={query.solvedBy.length} defaultOpen={query.solvedBy.length > 0}>
-          {query.solvedBy.length > 0 ? (
-            <ul className="flex flex-wrap gap-1.5">
-              {query.solvedBy.map((username) => (
-                <li key={username}>
-                  <button
-                    type="button"
-                    className="inline-flex h-[18px] items-center gap-1 rounded-full border border-primary-line bg-primary-soft px-2 font-mono text-xs text-foreground hover:bg-secondary"
-                    onClick={() => set({ solvedBy: query.solvedBy.filter((name) => name !== username) })}
-                  >
-                    {username}
-                    <X size={10} aria-hidden />
-                    <span className="sr-only">Remove {username}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          <Input
-            id={`${ids}-solved-by`}
-            value={solvedByDraft}
-            placeholder="Add a username…"
-            aria-label="Solved by"
-            onChange={(event) => setSolvedByDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter") return;
-              event.preventDefault();
-              const username = solvedByDraft.trim();
-              if (!username || query.solvedBy.includes(username)) return;
-              setSolvedByDraft("");
-              set({ solvedBy: [...query.solvedBy, username] });
-            }}
-          />
-          <Checkbox
-            id={`${ids}-not-by-me`}
-            checked={query.notByMe}
-            disabled={!authenticated}
-            onCheckedChange={(next) => set({ notByMe: next })}
-            label="and not by me"
-          />
-        </Group>
-
-        <Group label="Author" count={query.author ? 1 : 0} defaultOpen={!!query.author}>
-          <Input
-            id={`${ids}-author`}
-            value={author}
-            placeholder="Username…"
-            aria-label="Author"
-            onChange={(event) => setAuthor(event.target.value)}
+  const body = (
+    <div className="px-3 pb-3">
+      <div className="py-3">
+        <InputGroup
+          leading={<Search size={14} aria-hidden />}
+          trailing={<Kbd>/</Kbd>}
+          className="max-md:h-11"
+        >
+          <InputGroupInput
+            id={`${ids}-search`}
+            type="search"
+            value={search}
+            placeholder="Search problems…"
+            aria-label="Search problems"
+            onChange={(event) => setSearch(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
@@ -365,61 +202,230 @@ export function FilterPanel({
               }
             }}
           />
-        </Group>
-
-        <Group label="Contest" count={query.contests.length} defaultOpen={query.contests.length > 0}>
-          <MultiSelect
-            options={withCurrent(
-              options.contests.map((contest) => ({ value: contest.key, label: contest.name })),
-              ...query.contests,
-            )}
-            values={query.contests}
-            onChange={(values) => set({ contests: values })}
-            searchPlaceholder="Find a contest…"
-            emptyText="No contests match."
-            placeholder="Any contest"
-          />
-          <Switch
-            id={`${ids}-group-by-contest`}
-            checked={query.groupByContest}
-            onCheckedChange={(next) => set({ groupByContest: next })}
-            label="Group by contest"
-          />
-        </Group>
-
-        <Group label="Editorial" count={query.hasEditorial ? 1 : 0}>
+        </InputGroup>
+        <div className="mt-2">
           <Checkbox
-            id={`${ids}-editorial`}
-            checked={query.hasEditorial}
-            onCheckedChange={(next) => set({ hasEditorial: next })}
-            label="Has editorial"
+            id={`${ids}-full-text`}
+            checked={query.fullText}
+            onCheckedChange={(next) => set({ fullText: next })}
+            label="Full text search"
           />
-        </Group>
-
-        <Group label="Sort">
-          <Select
-            ariaLabel="Sort"
-            value={query.sort}
-            onValueChange={(value) => set({ sort: value as ProblemSort })}
-            options={SORT_OPTIONS}
-          />
-          <Switch
-            id={`${ids}-descending`}
-            checked={query.descending}
-            onCheckedChange={(next) => set({ descending: next })}
-            label="Descending"
-          />
-        </Group>
-
-        <div className="flex gap-2 border-t border-border pt-3">
-          <Button onClick={applyText} busy={busy} className="flex-1 max-md:h-11">
-            Go
-          </Button>
-          <Button asChild variant="secondary" icon={<Shuffle size={14} />} className="max-md:h-11">
-            <a href={randomHref}>Random</a>
-          </Button>
         </div>
       </div>
+
+      <Group label="Status" count={query.status !== "all" || query.hideSolved ? 1 : 0}>
+        <RadioGroup
+          name={`${ids}-status`}
+          ariaLabel="Status"
+          value={query.hideSolved ? "unsolved" : query.status}
+          onValueChange={(value) => set({ status: value as ProblemQuery["status"], hideSolved: false })}
+          options={[
+            { value: "all", label: "All" },
+            { value: "solved", label: "Solved", disabled: !authenticated },
+            { value: "attempted", label: "Attempted", disabled: !authenticated },
+            { value: "unsolved", label: "Unsolved", disabled: !authenticated },
+          ]}
+        />
+        {authenticated ? (
+          <Checkbox
+            id={`${ids}-hide-solved`}
+            checked={query.hideSolved}
+            onCheckedChange={(next) => set({ hideSolved: next, status: "all" })}
+            label="Hide solved problems"
+          />
+        ) : null}
+      </Group>
+
+      <Group label="Category" count={query.category ? 1 : 0}>
+        <Select
+          ariaLabel="Category"
+          value={query.category || "__all__"}
+          onValueChange={(value) => set({ category: value === "__all__" ? "" : value })}
+          options={[
+            { value: "__all__", label: "All" },
+            ...withCurrent(
+              options.groups.map((group) => ({ value: group.name, label: group.fullName })),
+              query.category,
+            ),
+          ]}
+        />
+      </Group>
+
+      <Group label="Types" count={query.types.length} defaultOpen={query.types.length > 0}>
+        <div className="max-h-64 overflow-y-auto pr-1 [scrollbar-color:transparent_transparent] hover:[scrollbar-color:var(--line-strong)_transparent]">
+          {options.types.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No problem types are defined.</p>
+          ) : (
+            options.types.map((type) => (
+              <OptionRow
+                key={type.name}
+                id={`${ids}-type-${type.name}`}
+                checked={query.types.includes(type.name)}
+                count={type.count}
+                label={type.fullName}
+                onChange={(next) =>
+                  set({
+                    types: next
+                      ? [...query.types, type.name]
+                      : query.types.filter((name) => name !== type.name),
+                  })
+                }
+              />
+            ))
+          )}
+        </div>
+        <Checkbox
+          id={`${ids}-show-types`}
+          checked={query.showTypes}
+          onCheckedChange={(next) => set({ showTypes: next })}
+          label="Show problem types"
+        />
+      </Group>
+
+      {hasPointRange ? (
+        <Group label="Points" count={query.pointStart !== null || query.pointEnd !== null ? 1 : 0}>
+          <div className="flex items-center gap-3">
+            <span className="w-9 shrink-0 rounded-sm border border-border bg-secondary px-1 text-center font-mono text-sm tabular-nums text-foreground">
+              {points[0]}
+            </span>
+            <Slider
+              aria-label="Point range"
+              min={pointValues.min}
+              max={pointValues.max}
+              step={1}
+              value={points}
+              onValueChange={(value) => setPoints([value[0] ?? 0, value[1] ?? 0])}
+              onValueCommit={(value) =>
+                set({
+                  pointStart: (value[0] ?? pointValues.min) > pointValues.min ? (value[0] as number) : null,
+                  pointEnd: (value[1] ?? pointValues.max) < pointValues.max ? (value[1] as number) : null,
+                })
+              }
+            />
+            <span className="w-9 shrink-0 rounded-sm border border-border bg-secondary px-1 text-center font-mono text-sm tabular-nums text-foreground">
+              {points[1]}
+            </span>
+          </div>
+        </Group>
+      ) : null}
+
+      <Group label="Solved by" count={query.solvedBy.length} defaultOpen={query.solvedBy.length > 0}>
+        {query.solvedBy.length > 0 ? (
+          <ul className="flex flex-wrap gap-1.5">
+            {query.solvedBy.map((username) => (
+              <li key={username}>
+                <button
+                  type="button"
+                  className="inline-flex h-[18px] items-center gap-1 rounded-full border border-primary-line bg-primary-soft px-2 font-mono text-xs text-foreground hover:bg-secondary"
+                  onClick={() => set({ solvedBy: query.solvedBy.filter((name) => name !== username) })}
+                >
+                  {username}
+                  <X size={10} aria-hidden />
+                  <span className="sr-only">Remove {username}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <Input
+          id={`${ids}-solved-by`}
+          value={solvedByDraft}
+          placeholder="Add a username…"
+          aria-label="Solved by"
+          onChange={(event) => setSolvedByDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter") return;
+            event.preventDefault();
+            const username = solvedByDraft.trim();
+            if (!username || query.solvedBy.includes(username)) return;
+            setSolvedByDraft("");
+            set({ solvedBy: [...query.solvedBy, username] });
+          }}
+        />
+        <Checkbox
+          id={`${ids}-not-by-me`}
+          checked={query.notByMe}
+          disabled={!authenticated}
+          onCheckedChange={(next) => set({ notByMe: next })}
+          label="and not by me"
+        />
+      </Group>
+
+      <Group label="Author" count={query.author ? 1 : 0} defaultOpen={!!query.author}>
+        <Input
+          id={`${ids}-author`}
+          value={author}
+          placeholder="Username…"
+          aria-label="Author"
+          onChange={(event) => setAuthor(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              applyText();
+            }
+          }}
+        />
+      </Group>
+
+      <Group label="Contest" count={query.contests.length} defaultOpen={query.contests.length > 0}>
+        <MultiSelect
+          options={withCurrent(
+            options.contests.map((contest) => ({ value: contest.key, label: contest.name })),
+            ...query.contests,
+          )}
+          values={query.contests}
+          onChange={(values) => set({ contests: values })}
+          searchPlaceholder="Find a contest…"
+          emptyText="No contests match."
+          placeholder="Any contest"
+        />
+        <Switch
+          id={`${ids}-group-by-contest`}
+          checked={query.groupByContest}
+          onCheckedChange={(next) => set({ groupByContest: next })}
+          label="Group by contest"
+        />
+      </Group>
+
+      <Group label="Editorial" count={query.hasEditorial ? 1 : 0}>
+        <Checkbox
+          id={`${ids}-editorial`}
+          checked={query.hasEditorial}
+          onCheckedChange={(next) => set({ hasEditorial: next })}
+          label="Has editorial"
+        />
+      </Group>
+
+      <Group label="Sort">
+        <Select
+          ariaLabel="Sort"
+          value={query.sort}
+          onValueChange={(value) => set({ sort: value as ProblemSort })}
+          options={SORT_OPTIONS}
+        />
+        <Switch
+          id={`${ids}-descending`}
+          checked={query.descending}
+          onCheckedChange={(next) => set({ descending: next })}
+          label="Descending"
+        />
+      </Group>
+
+      <div className="flex gap-2 border-t border-border pt-3">
+        <Button onClick={applyText} busy={busy} className="flex-1 max-md:h-11">
+          Go
+        </Button>
+        <Button asChild variant="secondary" icon={<Shuffle size={14} />} className="max-md:h-11">
+          <a href={randomHref}>Random</a>
+        </Button>
+      </div>
+    </div>
+  );
+
+  if (bare) return body;
+  return (
+    <Panel title="Filters" bodyClassName="p-0" action={reset}>
+      {body}
     </Panel>
   );
 }

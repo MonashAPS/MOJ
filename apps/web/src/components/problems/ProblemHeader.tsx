@@ -3,6 +3,7 @@
 import { Button, type TabItem, TitleRow, TwoColumn } from "@moj/ui";
 import { CheckCircle2, CircleDashed, CircleSlash2, FileDown } from "lucide-react";
 import Link from "next/link";
+import { ProblemTabLink } from "@/components/problems/EditorialLink";
 import { type ProblemDetail, ProblemInfoBox } from "@/components/problems/ProblemInfoBox";
 import { type ProblemTabKey, problemTabs } from "@/components/problems/tabs";
 
@@ -57,7 +58,7 @@ export function ProblemPage({
         }
         tabs={tabs ?? problemTabs(problem)}
         active={active}
-        linkAs={Link}
+        linkAs={ProblemTabLink}
         action={
           <Button asChild variant="ghost" icon={<FileDown size={14} />}>
             <a href={`/problem/${problem.code}/pdf`}>View as PDF</a>

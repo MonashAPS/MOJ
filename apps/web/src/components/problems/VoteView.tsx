@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { Alert, AlertTitle, Button, Field, Input, Panel, Textarea, TwoColumn } from "@moj/ui";
+import { Alert, AlertTitle, Button, Field, Input, Panel, Textarea } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { TriangleAlert } from "lucide-react";
@@ -77,45 +77,43 @@ export function VoteView({
   const max = stats?.maxPossibleVote ?? 50;
 
   return (
-    <TwoColumn
-      side={
-        <Panel title="Voting statistics" bodyClassName="grid gap-3 p-3">
-          {stats === undefined || stats === null ? (
-            <p className="text-sm text-muted-foreground">Voting statistics are not available.</p>
-          ) : stats.votes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No votes have been cast yet.</p>
-          ) : (
-            <>
-              <Histogram stats={stats} />
-              <dl className="grid gap-1 border-t border-border pt-2 text-sm">
-                <div className="flex justify-between gap-2">
-                  <dt className="text-subtle">Median vote</dt>
-                  <dd className="font-mono tabular-nums text-foreground">
-                    {stats.median === null ? "—" : stats.median.toFixed(1)}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <dt className="text-subtle">Mean vote</dt>
-                  <dd className="font-mono tabular-nums text-foreground">
-                    {stats.mean === null ? "—" : stats.mean.toFixed(1)}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <dt className="text-subtle">Number of votes</dt>
-                  <dd className="font-mono tabular-nums text-foreground">{stats.votes.length}</dd>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <dt className="text-subtle">Current points</dt>
-                  <dd className="font-mono tabular-nums text-foreground">
-                    {formatPoints(stats.currentPoints)}
-                  </dd>
-                </div>
-              </dl>
-            </>
-          )}
-        </Panel>
-      }
-    >
+    <div className="grid gap-4">
+      <Panel title="Voting statistics" bodyClassName="grid gap-3 p-3">
+        {stats === undefined || stats === null ? (
+          <p className="text-sm text-muted-foreground">Voting statistics are not available.</p>
+        ) : stats.votes.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No votes have been cast yet.</p>
+        ) : (
+          <>
+            <Histogram stats={stats} />
+            <dl className="grid gap-1 border-t border-border pt-2 text-sm">
+              <div className="flex justify-between gap-2">
+                <dt className="text-subtle">Median vote</dt>
+                <dd className="font-mono tabular-nums text-foreground">
+                  {stats.median === null ? "—" : stats.median.toFixed(1)}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-subtle">Mean vote</dt>
+                <dd className="font-mono tabular-nums text-foreground">
+                  {stats.mean === null ? "—" : stats.mean.toFixed(1)}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-subtle">Number of votes</dt>
+                <dd className="font-mono tabular-nums text-foreground">{stats.votes.length}</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-subtle">Current points</dt>
+                <dd className="font-mono tabular-nums text-foreground">
+                  {formatPoints(stats.currentPoints)}
+                </dd>
+              </div>
+            </dl>
+          </>
+        )}
+      </Panel>
+
       {canVote ? (
         <form
           className="grid max-w-md gap-4"
@@ -196,6 +194,6 @@ export function VoteView({
           Solve this problem to vote on how many points it should be worth.
         </p>
       )}
-    </TwoColumn>
+    </div>
   );
 }
