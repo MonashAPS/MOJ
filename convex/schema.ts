@@ -26,18 +26,8 @@ export const submissionResult = v.union(
   v.literal("AB"),
 );
 export const testCaseType = v.union(v.literal("C"), v.literal("S"), v.literal("E"));
-export const sourceVisibility = v.union(
-  v.literal("A"),
-  v.literal("S"),
-  v.literal("O"),
-  v.literal("F"),
-);
-export const scoreboardVisibility = v.union(
-  v.literal("V"),
-  v.literal("C"),
-  v.literal("P"),
-  v.literal("H"),
-);
+export const sourceVisibility = v.union(v.literal("A"), v.literal("S"), v.literal("O"), v.literal("F"));
+export const scoreboardVisibility = v.union(v.literal("V"), v.literal("C"), v.literal("P"), v.literal("H"));
 export const labelScheme = v.union(v.literal("letters"), v.literal("numbers"), v.literal("custom"));
 export const requestState = v.union(v.literal("P"), v.literal("A"), v.literal("R"));
 export const commentTarget = v.union(

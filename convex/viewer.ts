@@ -33,7 +33,8 @@ export const current = query({
     }
 
     const now = Date.now();
-    const ended = participation.virtual === -1 ? now > contest.endTime : endTimeOf(contest, participation) < now;
+    const ended =
+      participation.virtual === -1 ? now > contest.endTime : endTimeOf(contest, participation) < now;
     return { profile, participation, contest, inContest: !ended };
   },
 });
@@ -60,5 +61,7 @@ function endTimeOf(contest: Doc<"contests">, participation: Doc<"contestParticip
     const windowEnd = participation.realStart + contest.timeLimit * 1000;
     return participation.virtual > 0 ? windowEnd : Math.min(windowEnd, contest.endTime);
   }
-  return participation.virtual > 0 ? contest.endTime - contest.startTime + participation.realStart : contest.endTime;
+  return participation.virtual > 0
+    ? contest.endTime - contest.startTime + participation.realStart
+    : contest.endTime;
 }

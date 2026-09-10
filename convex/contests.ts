@@ -34,6 +34,55 @@ export type ContestBarData = {
   isVirtual: boolean;
 } | null;
 
+export type HomeSidebarContest = {
+  _id: Id<"contests">;
+  key: string;
+  name: string;
+  startTime: number;
+  endTime: number;
+  userCount: number;
+  state: "ongoing" | "upcoming";
+};
+
+/** Home page side box: contests running now and the next few coming up. */
+export const homeSidebar = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, { limit }): Promise<HomeSidebarContest[]> => {
+    const take = Math.max(1, Math.min(limit ?? 5, 20));
+    const now = Date.now();
+    const rows = await ctx.db
+      .query("contests")
+      .withIndex("by_visible_start", (q) => q.eq("isVisible", true))
+      .collect();
+
+    const ongoing = rows
+      .filter(
+        (row) => !row.isPrivate && !row.isOrganizationPrivate && row.startTime <= now && row.endTime > now,
+      )
+      .sort((a, b) => a.endTime - b.endTime);
+    const upcoming = rows
+      .filter((row) => !row.isPrivate && !row.isOrganizationPrivate && row.startTime > now)
+      .sort((a, b) => a.startTime - b.startTime);
+
+    return [
+      ...ongoing.map((row) => shape(row, "ongoing")),
+      ...upcoming.map((row) => shape(row, "upcoming")),
+    ].slice(0, take);
+  },
+});
+
+function shape(row: Doc<"contests">, state: "ongoing" | "upcoming"): HomeSidebarContest {
+  return {
+    _id: row._id,
+    key: row.key,
+    name: row.name,
+    startTime: row.startTime,
+    endTime: row.endTime,
+    userCount: row.userCount,
+    state,
+  };
+}
+
 export const navBar = query({
   args: { key: v.optional(v.string()) },
   handler: async (ctx, { key }): Promise<ContestBarData> => {
@@ -50,9 +99,7 @@ export const navBar = query({
       if (contest && viewer) {
         participation = await ctx.db
           .query("contestParticipations")
-          .withIndex("by_profile_contest", (q) =>
-            q.eq("profileId", viewer._id).eq("contestId", contest!._id),
-          )
+          .withIndex("by_profile_contest", (q) => q.eq("profileId", viewer._id).eq("contestId", contest!._id))
           .order("desc")
           .first();
       }
@@ -79,9 +126,7 @@ export const navBar = query({
         name: problem.name,
         label: labelFor(contest, contestProblem.order),
         points: contestProblem.points,
-        state: participation
-          ? await stateFor(ctx, participation._id, contestProblem)
-          : "untouched",
+        state: participation ? await stateFor(ctx, participation._id, contestProblem) : "untouched",
       });
     }
 

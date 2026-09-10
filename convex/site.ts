@@ -72,6 +72,17 @@ export const shell = query({
   },
 });
 
+export const openOrganizations = query({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db.query("organizations").collect();
+    return rows
+      .filter((row) => row.isOpen)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((row) => ({ _id: row._id, name: row.name, slug: row.slug, shortName: row.shortName }));
+  },
+});
+
 function buildTree(rows: Doc<"navigationBar">[]): NavNode[] {
   const nodes = new Map<string, NavNode>();
   for (const row of rows) {

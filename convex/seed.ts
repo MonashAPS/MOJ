@@ -5,8 +5,7 @@ import { SEED_LANGUAGES, SEED_NAVIGATION } from "./lib/seedData";
 
 const MISC_CONFIG_DEFAULTS: Record<string, string> = {
   announcement: "",
-  footer:
-    'run by <a href="https://monashcoding.com/">Monash Algorithms and Problem Solving</a>',
+  footer: 'run by <a href="https://monashcoding.com/">Monash Algorithms and Problem Solving</a>',
   meta_keywords: "competitive programming, online judge, MAPS, Monash, algorithms",
   home_page_top: "",
   analytics: "",
@@ -28,6 +27,49 @@ can watch the verdict come in live.
 
 Open a ticket on a problem if something looks wrong with it, or find us in the club Discord.
 `;
+
+const ANNOUNCEMENTS: Array<{
+  slug: string;
+  title: string;
+  summary: string;
+  content: string;
+  sticky: boolean;
+  daysAgo: number;
+}> = [
+  {
+    slug: "welcome-to-moj",
+    title: "Welcome to the MAPS Online Judge",
+    summary:
+      "MOJ is where the club's problems and contests live. Here is how to get started and where to ask for help.",
+    content: `MOJ is the judge Monash Algorithms and Problem Solving runs for its members. Everything the
+club writes ends up here: weekly practice sets, the contests we run in person, and the archive of
+everything that came before.
+
+## Getting started
+
+1. Pick something from the [problem list](/problems/).
+2. Write a solution in any of the supported languages and submit it.
+3. Watch the verdict come in case by case, live.
+
+## Where to ask
+
+Open a ticket on a problem if the statement or the test data looks wrong, and find us in the club
+Discord for everything else.`,
+    sticky: true,
+    daysAgo: 7,
+  },
+  {
+    slug: "contest-season-is-open",
+    title: "Contest season is open",
+    summary: "Weekly contests start this month. Ratings, virtual participation and editorials all included.",
+    content: `Weekly contests run through the semester. Each one is rated, so your rating moves with every
+contest you take part in, and each has an editorial published once the contest ends.
+
+Missed one? Join it virtually from the [contest list](/contests/) and the clock starts when you do.`,
+    sticky: false,
+    daysAgo: 2,
+  },
+];
 
 const APLUSB_STATEMENT = `Given two integers ~A~ and ~B~, compute their sum.
 
@@ -89,8 +131,7 @@ export const run = internalMutation({
         .query("navigationBar")
         .withIndex("by_key", (q) => q.eq("key", item.key))
         .unique();
-      const parentId =
-        item.parentLegacyId === null ? undefined : navIdByLegacyId.get(item.parentLegacyId);
+      const parentId = item.parentLegacyId === null ? undefined : navIdByLegacyId.get(item.parentLegacyId);
       const row = {
         order: item.order,
         key: item.key,
@@ -192,6 +233,28 @@ export const run = internalMutation({
     } else {
       report.flatPages = 0;
     }
+
+    // Announcements --------------------------------------------------------
+    let announcementsWritten = 0;
+    for (const announcement of ANNOUNCEMENTS) {
+      const existing = await ctx.db
+        .query("blogPosts")
+        .withIndex("by_slug", (q) => q.eq("slug", announcement.slug))
+        .unique();
+      if (existing) continue;
+      await ctx.db.insert("blogPosts", {
+        title: announcement.title,
+        authorProfileIds: [],
+        slug: announcement.slug,
+        visible: true,
+        sticky: announcement.sticky,
+        publishOn: Date.now() - announcement.daysAgo * 24 * 60 * 60 * 1000,
+        content: announcement.content,
+        summary: announcement.summary,
+      });
+      announcementsWritten++;
+    }
+    report.blogPosts = announcementsWritten;
 
     // Sample problem -------------------------------------------------------
     const existingProblem = await ctx.db

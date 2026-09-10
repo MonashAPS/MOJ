@@ -113,7 +113,11 @@ async function searchContests(
   return await ctx.db
     .query("contests")
     .withSearchIndex("search_name", (q: any) =>
-      q.search("name", needle).eq("isVisible", true).eq("isPrivate", false).eq("isOrganizationPrivate", false),
+      q
+        .search("name", needle)
+        .eq("isVisible", true)
+        .eq("isPrivate", false)
+        .eq("isOrganizationPrivate", false),
     )
     .take(perKind);
 }

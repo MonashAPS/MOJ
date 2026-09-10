@@ -9,7 +9,10 @@ export type MojErrorCode =
   | "INVALID"
   | "RATE_LIMITED";
 
-export function mojError(code: MojErrorCode, message: string): ConvexError<{
+export function mojError(
+  code: MojErrorCode,
+  message: string,
+): ConvexError<{
   code: MojErrorCode;
   message: string;
 }> {
