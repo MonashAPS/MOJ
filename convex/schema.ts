@@ -391,6 +391,13 @@ export default defineSchema({
     claimedByJudgeId: v.optional(v.id("judges")),
     claimedAt: v.optional(v.number()),
     retryCount: v.number(),
+    // Set by submissions.abort while the judge already holds the submission;
+    // the judge polls GET /judge/abort and clears it by terminating.
+    abortRequested: v.optional(v.boolean()),
+    // The judge's batch counter lives on the submission because the judge API
+    // is stateless: batch-begin increments it and batch-end leaves the batch.
+    currentBatch: v.optional(v.number()),
+    inBatch: v.optional(v.boolean()),
     legacyId: v.optional(v.number()),
   })
     .index("by_date", ["date"])
@@ -402,6 +409,7 @@ export default defineSchema({
     .index("by_status_priority", ["status", "priority", "date"])
     .index("by_participation", ["participationId"])
     .index("by_problem_status", ["problemId", "status"])
+    .index("by_profile_status", ["profileId", "status"])
     .index("by_language_date", ["languageId", "date"])
     .index("by_legacyId", ["legacyId"]),
 
