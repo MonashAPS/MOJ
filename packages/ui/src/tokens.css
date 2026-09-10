@@ -1,105 +1,231 @@
-/* MOJ design tokens.
+/* MOJ design tokens — the MAPS design language expressed as CSS custom properties.
  *
- * Three blocks, in this order, so the toggle wins in both directions:
- *   :root                                        light palette (the default)
- *   @media (prefers-color-scheme: dark) guarded   system dark, unless the user
- *     by :root:not([data-theme="light"])          explicitly chose light
- *   :root[data-theme="dark"]                      explicit dark
+ * Source of the palette: monashaps.com (royal #4169E1, navy #000080, canary #FFFF8F,
+ * bone #F9F6EE, ink #2B2B2B) and advent.monashaps.com (gold #F8CA50 / #B08100,
+ * red #D04134, green #A9DC76). See docs/design/DESIGN.md for the reasoning and
+ * for the per-component specs that consume these names.
+ *
+ * Three blocks, in this order, so an explicit choice wins in both directions:
+ *   :root                                          light palette (the default)
+ *   @media (prefers-color-scheme: dark) guarded     system dark, unless the user
+ *     by :root:not([data-theme="light"])            explicitly chose light
+ *   :root[data-theme="dark"]                        explicit dark
+ *
+ * Rules for consumers:
+ *   - never hard-code a hex in a component; every colour comes from here
+ *   - --brand-* are fixed brand constants, identical in both themes; they are
+ *     only used on the navy chrome, never as text on --bg
+ *   - anything ending -ink is the foreground to use on the matching surface
  */
 
 :root {
   color-scheme: light;
 
-  /* Chrome ---------------------------------------------------------------- */
-  --nav: #3b3b3b;
-  --nav-ink: #ffffff;
-  --nav-hover: rgba(255, 255, 255, 0.25);
-  --nav-height: 44px;
-  --nav-height-compact: 36px;
+  /* Brand constants ------------------------------------------------------- *
+   * The club's literal palette. Same value in every theme.                   */
+  --brand-royal: #4169e1;   /* monashaps.com --main-colour; nav keyline, focus */
+  --brand-navy: #000080;    /* monashaps.com --dark-bg; seed for --nav         */
+  --brand-canary: #ffff8f;  /* monashaps.com --accent; nav CTA, first blood    */
+  --brand-bone: #f9f6ee;    /* monashaps.com --bg; seed for --bg               */
+  --brand-cyan: #45c3f1;    /* logo.svg gradient stop; judge/queue accents     */
+
+  /* Chrome ---------------------------------------------------------------- *
+   * The fixed top bar and the contest bar directly under it.                 */
+  --nav: #101a3d;                          /* MAPS navy, screen-tuned #000080  */
+  --nav-ink: #ffffff;                      /* nav labels, logo wordmark        */
+  --nav-ink-2: #a9b4d8;                    /* nav secondary text               */
+  --nav-hover: rgba(255, 255, 255, 0.1);   /* nav item hover wash              */
+  --nav-active-bg: rgba(65, 105, 225, 0.3);/* nav item for the current section */
+  --nav-keyline: var(--brand-royal);       /* 3px royal rule under the nav     */
+  --nav-height: 44px;                      /* DMOJ's height; unchanged         */
+  --nav-height-compact: 44px;              /* mobile: same, hamburger swaps in */
+  --contest-bar: #182448;                  /* ContestBar, one step off the nav */
+  --contest-bar-ink: #dfe4f5;
   --contest-bar-height: 36px;
 
-  /* Accent ---------------------------------------------------------------- */
-  --accent: #2980b9;
-  --accent-ink: #ffffff;
-  --accent-hover: #226d9e;
-  --accent-soft: #e3f0f9;
+  /* Accent ---------------------------------------------------------------- *
+   * A darkened royal: button fills and links need >=6:1 on white.            */
+  --accent: #2f4fd0;
+  --accent-ink: #ffffff;                   /* text on an --accent fill         */
+  --accent-hover: #263fab;
+  --accent-active: #1f3489;
+  --accent-soft: #e7ebfb;                  /* tinted fill: selected rows, chips */
+  --accent-line: #c3cdf5;                  /* border on a soft accent fill      */
 
   /* Surfaces and text ----------------------------------------------------- */
-  --bg: #ffffff;
-  --bg-2: #f5f6f7;
-  --surface: #f8f8f8;
-  --surface-2: #e9ebed;
-  --surface-3: #dfe2e5;
-  --ink: #14171a;
-  --ink-2: #4a5157;
-  --muted: #7c848b;
-  --line: #d6dade;
-  --line-strong: #b9bfc5;
-  --code-bg: #f4f6f8;
-  --shadow: rgba(0, 0, 0, 0.16);
-  --scrim: rgba(0, 0, 0, 0.45);
-  /* Text drawn on top of a saturated fill (verdict pills, contest chips, the
-     danger button). Deliberately not --bg: it must stay readable in both themes. */
-  --on-nav: #ffffff;
-  --on-fill: #ffffff;
-  --bsod-bg: #000080;
-  --bsod-ink: #ffffff;
+  --bg: #ffffff;                           /* default content + control fill   */
+  --bg-2: #f7f5ef;                         /* page ground (club bone)          */
+  --bg-grid: rgba(65, 105, 225, 0.055);    /* 48px club grid, decorative only  */
+  --surface: #ffffff;                      /* cards, panels, table body        */
+  --surface-2: #f0eee6;                    /* panel titlebars, table headers   */
+  --surface-3: #e4e1d7;                    /* wells, disabled fills, tracks    */
+  --ink: #191c22;                          /* primary text                     */
+  --ink-2: #4b525c;                        /* secondary text, table meta       */
+  --muted: #6c7480;                        /* tertiary text, placeholders      */
+  --line: #e2dfd5;                         /* hairline: table rules, dividers  */
+  --line-strong: #c8c4b7;                  /* 2px panel frames, input borders  */
+  --code-bg: #f5f3ec;                      /* code blocks and sample cases     */
+  --code-line: #e2dfd5;
+
+  /* Rows ------------------------------------------------------------------ */
+  --row-zebra: #faf9f5;                    /* every 2nd row on --surface       */
+  --row-hover: #eef1fc;                    /* royal wash, all interactive rows */
+  --row-selected: var(--accent-soft);
 
   /* Links ----------------------------------------------------------------- */
-  --link: #1958c1;
-  --link-hover: #0645ad;
-  --link-active: #c98000;
-  --link-title: #5b80b9;
+  --link: #2b4acb;                         /* body links (7.1:1 on white)      */
+  --link-hover: #1b3299;
+  --link-active: #9a6b08;                  /* :active, DMOJ's warm flash       */
+  --link-visited: #6244b0;
+
+  /* Focus ----------------------------------------------------------------- */
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--brand-royal);
+  --focus-ring-inset: inset 0 0 0 2px var(--brand-royal);
 
   /* Feedback -------------------------------------------------------------- */
-  --info-bg: #ddeefa;
-  --info-line: #b0d5ee;
-  --info-ink: #1c5b83;
-  --success-bg: #ddeee2;
-  --success-line: #a8d5b8;
-  --success-ink: #16663a;
-  --warning-bg: #fbf3d6;
-  --warning-line: #e8d492;
-  --warning-ink: #7d5f16;
-  --danger-bg: #f8e0e0;
-  --danger-line: #e5b4b4;
-  --danger-ink: #8f2d2d;
-  --announcement: #ae0000;
+  --info-bg: #e2f1f9;                      /* logo-cyan family, not the accent */
+  --info-line: #b4daec;
+  --info-ink: #0f5b80;
+  --success-bg: #e6f2e8;
+  --success-line: #b6d9be;
+  --success-ink: #186b3c;
+  --warning-bg: #fbf2dc;
+  --warning-line: #e8d08e;
+  --warning-ink: #7a5a0b;
+  --danger-bg: #fae7e4;
+  --danger-line: #edbdb5;
+  --danger-ink: #9a2c20;
+  --announcement: #b4231a;                 /* misc-config announcement box     */
 
-  /* Verdicts -------------------------------------------------------------- */
-  --v-ac: #1f9254;
-  --v-wa: #cf3b3b;
-  --v-tle: #7c848b;
-  --v-mle: #7c848b;
-  --v-ce: #7c848b;
-  --v-ab: #7c848b;
-  --v-ole: #c98000;
-  --v-ir: #c98000;
-  --v-rte: #c98000;
-  --v-sc: #1f9254;
-  --v-ie: #cf3b3b;
-  --v-qu: #7c848b;
-  --v-pending: #2980b9;
+  /* Verdict families ------------------------------------------------------ *
+   * Five families; every verdict below is an alias onto one of them, so a
+   * pill only needs --v-<x> for the text and --v-<x>-bg for the fill.        */
+  --v-good: #17804a;
+  --v-good-bg: #e6f2e8;
+  --v-bad: #c23b2e;
+  --v-bad-bg: #fae7e4;
+  --v-warn: #9a6b08;
+  --v-warn-bg: #fbf2dc;
+  --v-neutral: #6c7480;
+  --v-neutral-bg: #eeece4;
+  --v-run: #2f4fd0;                        /* queued / judging / pending       */
+  --v-run-bg: #e7ebfb;
 
-  /* Ratings --------------------------------------------------------------- */
-  --rating-none: #999999;
-  --rating-newbie: #999999;
-  --rating-amateur: #00a900;
-  --rating-expert: #2f8ecc;
-  --rating-candidate-master: #a44fbf;
-  --rating-master: #ffb100;
-  --rating-grandmaster: #ee0000;
-  --rating-target: #770000;
+  /* Verdicts (SPEC section 9 names) --------------------------------------- */
+  --v-ac: var(--v-good);                   /* Accepted                         */
+  --v-ac-bg: var(--v-good-bg);
+  --v-sc: var(--v-good);                   /* Short-circuited full score       */
+  --v-sc-bg: var(--v-good-bg);
+  --v-partial: var(--v-warn);              /* partial score, scored problem    */
+  --v-partial-bg: var(--v-warn-bg);
+  --v-wa: var(--v-bad);                    /* Wrong Answer                     */
+  --v-wa-bg: var(--v-bad-bg);
+  --v-tle: var(--v-neutral);               /* Time Limit Exceeded              */
+  --v-tle-bg: var(--v-neutral-bg);
+  --v-mle: var(--v-neutral);               /* Memory Limit Exceeded            */
+  --v-mle-bg: var(--v-neutral-bg);
+  --v-ce: var(--v-neutral);                /* Compile Error                    */
+  --v-ce-bg: var(--v-neutral-bg);
+  --v-ab: var(--v-neutral);                /* Aborted                          */
+  --v-ab-bg: var(--v-neutral-bg);
+  --v-qu: var(--v-neutral);                /* Queued                           */
+  --v-qu-bg: var(--v-neutral-bg);
+  --v-ole: var(--v-warn);                  /* Output Limit Exceeded            */
+  --v-ole-bg: var(--v-warn-bg);
+  --v-ir: var(--v-warn);                   /* Invalid Return                   */
+  --v-ir-bg: var(--v-warn-bg);
+  --v-rte: var(--v-warn);                  /* Runtime Error                    */
+  --v-rte-bg: var(--v-warn-bg);
+  --v-ie: #8e1f14;                         /* Internal Error: darker than WA,  */
+  --v-ie-bg: var(--v-bad-bg);              /* and drawn with a dashed border   */
+  --v-pending: var(--v-run);               /* live, not yet final              */
+  --v-pending-bg: var(--v-run-bg);
 
-  /* Submission heatmap ---------------------------------------------------- */
-  --heat-0: #dddddd;
-  --heat-1: #9be9a8;
-  --heat-2: #40c463;
-  --heat-3: #2f9c4c;
-  --heat-4: #216e39;
+  /* Viewer problem state (problem list icons, ContestBar chips) ------------ */
+  --state-solved: var(--v-good);
+  --state-solved-bg: var(--v-good-bg);
+  --state-partial: var(--v-warn);
+  --state-partial-bg: var(--v-warn-bg);
+  --state-attempted: var(--v-bad);
+  --state-attempted-bg: var(--v-bad-bg);
+  --state-untouched: var(--muted);
+  --state-untouched-bg: var(--surface-2);
 
-  /* Spacing, on an 8 px grid with a 4 px half step ------------------------- */
-  --space-0: 0px;
+  /* Ratings --------------------------------------------------------------- *
+   * DMOJ's hues, darkened just enough to clear 4.5:1 as text on --surface.
+   * DMOJ original in the comment; dark mode below restores the bright hue.   */
+  --rating-none: #6c7480;                  /* unrated                          */
+  --rating-newbie: #6c7480;                /* DMOJ #999999                     */
+  --rating-amateur: #0b8022;               /* DMOJ #00a900                     */
+  --rating-expert: #1f72ac;                /* DMOJ #2f8ecc                     */
+  --rating-candidate-master: #8c3ba6;      /* DMOJ #a44fbf                     */
+  --rating-master: #8a6100;                /* DMOJ #ffb100                     */
+  --rating-grandmaster: #c21a1a;           /* DMOJ #ee0000                     */
+  --rating-target: #7a0000;                /* DMOJ #700000                     */
+
+  /* Submission heatmap ---------------------------------------------------- *
+   * Built on the club green #A9DC76 rather than GitHub's green.              */
+  --heat-0: #e8e5db;
+  --heat-1: #d3ecb8;
+  --heat-2: #a9dc76;
+  --heat-3: #6bae44;
+  --heat-4: #2f6b25;
+
+  /* Scoreboard cells (contest ranking and the hall scoreboard) ------------- */
+  --cell-empty-bg: transparent;
+  --cell-empty-ink: var(--muted);
+  --cell-solved-bg: #d9efdf;
+  --cell-solved-ink: #115e33;
+  --cell-first-bg: #a9dc76;                /* first blood: club green fill     */
+  --cell-first-ink: #0e3d12;
+  --cell-first-ring: #ffb100;              /* + gold ring; gold in olympics    */
+  --cell-failed-bg: #fae0dc;
+  --cell-failed-ink: #9a2c20;
+  --cell-frozen-bg: #e7ebfb;               /* frozen: royal, "unknown yet"     */
+  --cell-frozen-ink: #2b4acb;
+  --cell-judging-bg: #fbf2dc;              /* judging: amber, pulses           */
+  --cell-judging-ink: #7a5a0b;
+
+  /* Elevation ------------------------------------------------------------- *
+   * Navy-tinted so shadows sit in the chrome's colour family.                */
+  --shadow-1: 0 1px 2px rgba(16, 26, 61, 0.07), 0 1px 1px rgba(16, 26, 61, 0.04);
+  --shadow-2: 0 4px 12px rgba(16, 26, 61, 0.1);
+  --shadow-3: 0 12px 28px rgba(16, 26, 61, 0.16);   /* dialogs, palette        */
+  --shadow-hard: 4px 4px 0 var(--line-strong);      /* the club's offset block */
+  --shadow: rgba(16, 26, 61, 0.14);                 /* raw colour for one-offs */
+
+  /* Shape ----------------------------------------------------------------- */
+  --radius-sm: 2px;                        /* verdict pills on dense rows      */
+  --radius: 4px;                           /* buttons, inputs, panels          */
+  --radius-lg: 8px;                        /* dialogs, command palette         */
+  --radius-pill: 999px;                    /* chips, badges, nav CTA           */
+  --bw: 1px;                               /* hairlines                        */
+  --bw-2: 2px;                             /* panel frames, input focus        */
+  --bw-3: 3px;                             /* nav keyline, active tab rule     */
+
+  /* Type ------------------------------------------------------------------ */
+  --font-display: "Bai Jamjuree", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, "SF Mono", Consolas,
+    "Liberation Mono", monospace;
+  --fs-xs: 11px;                           /* pill text, table micro labels    */
+  --fs-sm: 12.5px;                         /* secondary row text, captions     */
+  --fs-base: 14px;                         /* UI and table default             */
+  --fs-md: 16px;                           /* statement and blog body          */
+  --fs-h3: 16px;
+  --fs-h2: 20px;
+  --fs-h1: 26px;
+  --fs-mono: 13px;                         /* mono runs large; step it down    */
+  --lh-tight: 1.2;                         /* headings                         */
+  --lh: 1.45;                              /* UI                               */
+  --lh-prose: 1.65;                        /* statements, blog                 */
+  --tracking-tight: -0.02em;               /* h1, big display                  */
+  --tracking-label: 0.12em;                /* the club micro-label: xs/600/CAPS */
+  --tracking-rail: 0.2em;                  /* vertical rail labels, eyebrows   */
+  --font-size: var(--fs-base);             /* legacy alias                     */
+  --line-height: var(--lh);                /* legacy alias                     */
+
+  /* Spacing (4px base) ---------------------------------------------------- */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -108,167 +234,250 @@
   --space-6: 32px;
   --space-7: 48px;
   --space-8: 64px;
+  --gutter: 16px;                          /* page padding, mobile             */
+  --gutter-lg: 24px;                       /* page padding, >=760px            */
 
-  /* Controls -------------------------------------------------------------- */
-  --control-height: 36px;
-  --control-height-sm: 28px;
+  /* Density --------------------------------------------------------------- */
+  --row-h: 34px;                           /* one-line table rows              */
+  --row-h-2: 52px;                         /* two-line rows (submission list)  */
+  --row-h-dense: 28px;                     /* rankings, staff console          */
+  --control-h: 32px;                       /* buttons, inputs, selects         */
+  --control-h-sm: 26px;
+  --control-height: var(--control-h);      /* alias used by controls.css       */
+  --control-height-sm: var(--control-h-sm);
   --control-padding-x: 10px;
-  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent) 32%, transparent);
-  --shadow-1: 0 1px 2px var(--shadow);
-  --shadow-2: 0 8px 30px var(--shadow);
 
-  /* Shape and type -------------------------------------------------------- */
-  --radius: 4px;
-  --radius-pill: 999px;
-  --font-display: "Bai Jamjuree", "Segoe UI", system-ui, sans-serif;
-  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, "Liberation Mono", monospace;
-  --font-size: 14px;
-  --line-height: 1.45;
-  --content-max: 107em;
-  --sticky-top: 70px;
+  /* Motion ---------------------------------------------------------------- *
+   * The curves are the club's house curves, lifted from monashcoding-site,
+   * where easeOutQuint carries every entrance and hover and the symmetric
+   * quart is reserved for full-screen overlays.                              */
+  --dur-fast: 120ms;                       /* row/cell hover, focus, tick      */
+  --dur: 300ms;                            /* buttons, chips, menus, tabs      */
+  --dur-slow: 500ms;                       /* reveals, page enter, sheets      */
+  --dur-curtain: 620ms;                    /* the one full-screen wipe (mobile nav) */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);      /* easeOutQuint: the house curve */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);   /* easeOutExpo: cross-fades      */
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);       /* leaving                       */
+  --ease-curtain: cubic-bezier(0.76, 0, 0.24, 1); /* symmetric, overlays only   */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);    /* micro state changes        */
+  /* Deliberately absent: a hover-lift token. Nothing in MOJ moves on hover.
+     See DESIGN.md section 5.1 rule 3 and the "do not" list. */
+
+  /* Layout ---------------------------------------------------------------- */
+  --content-max: 1280px;                   /* main + sidebar                   */
+  --prose-max: 74ch;                       /* statement measure                */
+  --sidebar-w: 300px;                      /* .info-float / home side boxes    */
+  --sticky-top: calc(var(--nav-height) + var(--space-5));
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
 
-    --accent: #5fa8dc;
-    --accent-ink: #08151d;
-    --accent-hover: #7dbbe6;
-    --accent-soft: #16313f;
+    --nav: #141c33;                        /* lifted so it clears --bg         */
+    --nav-ink: #f2f4fa;
+    --nav-ink-2: #98a3c4;
+    --nav-hover: rgba(255, 255, 255, 0.08);
+    --nav-active-bg: rgba(65, 105, 225, 0.34);
+    --contest-bar: #1a2340;
+    --contest-bar-ink: #cdd5ee;
 
-    --bg: #16181c;
-    --bg-2: #0f1113;
-    --surface: #1d2025;
-    --surface-2: #272b31;
-    --surface-3: #333941;
-    --ink: #e7e9ec;
-    --ink-2: #aeb5bc;
-    --muted: #878f97;
-    --line: #333941;
-    --line-strong: #454c55;
-    --code-bg: #1a1d22;
-    --shadow: rgba(0, 0, 0, 0.55);
-    --scrim: rgba(0, 0, 0, 0.6);
+    --accent: #8fa6ff;
+    --accent-ink: #0b1026;
+    --accent-hover: #a9baff;
+    --accent-active: #c2ceff;
+    --accent-soft: #1b2447;
+    --accent-line: #2e3c6e;
 
-    --link: #6bb7f0;
-    --link-hover: #93cdf7;
-    --link-active: #dd9944;
-    --link-title: #8fc3ec;
+    --bg: #141a28;
+    --bg-2: #0d111c;
+    --bg-grid: rgba(122, 150, 255, 0.05);
+    --surface: #141a28;
+    --surface-2: #1c2434;
+    --surface-3: #273044;
+    --ink: #e6e9f0;
+    --ink-2: #aab3c2;
+    --muted: #8590a2;
+    --line: #262f41;
+    --line-strong: #3a4459;
+    --code-bg: #10151f;
+    --code-line: #262f41;
 
-    --info-bg: #10293a;
-    --info-line: #1d4a68;
-    --info-ink: #8ed0f5;
-    --success-bg: #11291d;
-    --success-line: #1f5637;
-    --success-ink: #7ede9f;
-    --warning-bg: #2e2410;
-    --warning-line: #5c4718;
-    --warning-ink: #e8c46a;
-    --danger-bg: #2e1414;
-    --danger-line: #5c2626;
-    --danger-ink: #f09a9a;
-    --announcement: #b81414;
+    --row-zebra: #121826;
+    --row-hover: #1a2238;
+    --row-selected: var(--accent-soft);
 
-    --v-ac: #4cc07d;
-    --v-wa: #ec6a6a;
-    --v-tle: #9aa2aa;
-    --v-mle: #9aa2aa;
-    --v-ce: #9aa2aa;
-    --v-ab: #9aa2aa;
-    --v-ole: #e0a53d;
-    --v-ir: #e0a53d;
-    --v-rte: #e0a53d;
-    --v-sc: #4cc07d;
-    --v-ie: #ec6a6a;
-    --v-qu: #9aa2aa;
-    --v-pending: #5fa8dc;
+    --link: #93a9ff;
+    --link-hover: #b4c4ff;
+    --link-active: #f8ca50;
+    --link-visited: #b79bf0;
 
-    --rating-none: #aaaaaa;
-    --rating-newbie: #aaaaaa;
-    --rating-amateur: #17c217;
-    --rating-expert: #6aaee6;
-    --rating-candidate-master: #bd7ed4;
+    --info-bg: #0e2836;
+    --info-line: #1c4a63;
+    --info-ink: #7ecbf0;
+    --success-bg: #10271b;
+    --success-line: #1f5333;
+    --success-ink: #6fd396;
+    --warning-bg: #2c2410;
+    --warning-line: #574518;
+    --warning-ink: #f8ca50;
+    --danger-bg: #2c1512;
+    --danger-line: #572722;
+    --danger-ink: #f0776a;
+    --announcement: #e0554a;
+
+    --v-good: #52c98a;
+    --v-good-bg: #10271b;
+    --v-bad: #f0776a;
+    --v-bad-bg: #2c1512;
+    --v-warn: #f8ca50;                     /* advent.monashaps.com highlight   */
+    --v-warn-bg: #2c2410;
+    --v-neutral: #97a0ae;
+    --v-neutral-bg: #1f2634;
+    --v-run: #8fa6ff;
+    --v-run-bg: #1b2447;
+    --v-ie: #ff9a8e;
+
+    --rating-none: #a6adb8;
+    --rating-newbie: #a6adb8;
+    --rating-amateur: #3bc957;
+    --rating-expert: #5fb3e8;
+    --rating-candidate-master: #c58bda;
     --rating-master: #ffb100;
-    --rating-grandmaster: #ff4d4d;
-    --rating-target: #ff8080;
+    --rating-grandmaster: #ff5b5b;
+    --rating-target: #ff8a8a;
 
-    --heat-0: #2a2f36;
-    --heat-1: #0e4429;
-    --heat-2: #006d32;
-    --heat-3: #26a641;
-    --heat-4: #39d353;
+    --heat-0: #1c2434;
+    --heat-1: #1e4423;
+    --heat-2: #35722f;
+    --heat-3: #63a83f;
+    --heat-4: #a9dc76;
+
+    --cell-solved-bg: #15321f;
+    --cell-solved-ink: #6fd396;
+    --cell-first-bg: #2f6b25;
+    --cell-first-ink: #d9f3b8;
+    --cell-first-ring: #ffb100;
+    --cell-failed-bg: #2c1512;
+    --cell-failed-ink: #f0776a;
+    --cell-frozen-bg: #1b2447;
+    --cell-frozen-ink: #a9baff;
+    --cell-judging-bg: #2c2410;
+    --cell-judging-ink: #f8ca50;
+
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.55);
+    --shadow-3: 0 12px 28px rgba(0, 0, 0, 0.65);
+    --shadow: rgba(0, 0, 0, 0.6);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --accent: #5fa8dc;
-  --accent-ink: #08151d;
-  --accent-hover: #7dbbe6;
-  --accent-soft: #16313f;
+  --nav: #141c33;
+  --nav-ink: #f2f4fa;
+  --nav-ink-2: #98a3c4;
+  --nav-hover: rgba(255, 255, 255, 0.08);
+  --nav-active-bg: rgba(65, 105, 225, 0.34);
+  --contest-bar: #1a2340;
+  --contest-bar-ink: #cdd5ee;
 
-  --bg: #16181c;
-  --bg-2: #0f1113;
-  --surface: #1d2025;
-  --surface-2: #272b31;
-  --surface-3: #333941;
-  --ink: #e7e9ec;
-  --ink-2: #aeb5bc;
-  --muted: #878f97;
-  --line: #333941;
-  --line-strong: #454c55;
-  --code-bg: #1a1d22;
-  --shadow: rgba(0, 0, 0, 0.55);
-  --scrim: rgba(0, 0, 0, 0.6);
+  --accent: #8fa6ff;
+  --accent-ink: #0b1026;
+  --accent-hover: #a9baff;
+  --accent-active: #c2ceff;
+  --accent-soft: #1b2447;
+  --accent-line: #2e3c6e;
 
-  --link: #6bb7f0;
-  --link-hover: #93cdf7;
-  --link-active: #dd9944;
-  --link-title: #8fc3ec;
+  --bg: #141a28;
+  --bg-2: #0d111c;
+  --bg-grid: rgba(122, 150, 255, 0.05);
+  --surface: #141a28;
+  --surface-2: #1c2434;
+  --surface-3: #273044;
+  --ink: #e6e9f0;
+  --ink-2: #aab3c2;
+  --muted: #8590a2;
+  --line: #262f41;
+  --line-strong: #3a4459;
+  --code-bg: #10151f;
+  --code-line: #262f41;
 
-  --info-bg: #10293a;
-  --info-line: #1d4a68;
-  --info-ink: #8ed0f5;
-  --success-bg: #11291d;
-  --success-line: #1f5637;
-  --success-ink: #7ede9f;
-  --warning-bg: #2e2410;
-  --warning-line: #5c4718;
-  --warning-ink: #e8c46a;
-  --danger-bg: #2e1414;
-  --danger-line: #5c2626;
-  --danger-ink: #f09a9a;
-  --announcement: #b81414;
+  --row-zebra: #121826;
+  --row-hover: #1a2238;
+  --row-selected: var(--accent-soft);
 
-  --v-ac: #4cc07d;
-  --v-wa: #ec6a6a;
-  --v-tle: #9aa2aa;
-  --v-mle: #9aa2aa;
-  --v-ce: #9aa2aa;
-  --v-ab: #9aa2aa;
-  --v-ole: #e0a53d;
-  --v-ir: #e0a53d;
-  --v-rte: #e0a53d;
-  --v-sc: #4cc07d;
-  --v-ie: #ec6a6a;
-  --v-qu: #9aa2aa;
-  --v-pending: #5fa8dc;
+  --link: #93a9ff;
+  --link-hover: #b4c4ff;
+  --link-active: #f8ca50;
+  --link-visited: #b79bf0;
 
-  --rating-none: #aaaaaa;
-  --rating-newbie: #aaaaaa;
-  --rating-amateur: #17c217;
-  --rating-expert: #6aaee6;
-  --rating-candidate-master: #bd7ed4;
+  --info-bg: #0e2836;
+  --info-line: #1c4a63;
+  --info-ink: #7ecbf0;
+  --success-bg: #10271b;
+  --success-line: #1f5333;
+  --success-ink: #6fd396;
+  --warning-bg: #2c2410;
+  --warning-line: #574518;
+  --warning-ink: #f8ca50;
+  --danger-bg: #2c1512;
+  --danger-line: #572722;
+  --danger-ink: #f0776a;
+  --announcement: #e0554a;
+
+  --v-good: #52c98a;
+  --v-good-bg: #10271b;
+  --v-bad: #f0776a;
+  --v-bad-bg: #2c1512;
+  --v-warn: #f8ca50;
+  --v-warn-bg: #2c2410;
+  --v-neutral: #97a0ae;
+  --v-neutral-bg: #1f2634;
+  --v-run: #8fa6ff;
+  --v-run-bg: #1b2447;
+  --v-ie: #ff9a8e;
+
+  --rating-none: #a6adb8;
+  --rating-newbie: #a6adb8;
+  --rating-amateur: #3bc957;
+  --rating-expert: #5fb3e8;
+  --rating-candidate-master: #c58bda;
   --rating-master: #ffb100;
-  --rating-grandmaster: #ff4d4d;
-  --rating-target: #ff8080;
+  --rating-grandmaster: #ff5b5b;
+  --rating-target: #ff8a8a;
 
-  --heat-0: #2a2f36;
-  --heat-1: #0e4429;
-  --heat-2: #006d32;
-  --heat-3: #26a641;
-  --heat-4: #39d353;
+  --heat-0: #1c2434;
+  --heat-1: #1e4423;
+  --heat-2: #35722f;
+  --heat-3: #63a83f;
+  --heat-4: #a9dc76;
+
+  --cell-solved-bg: #15321f;
+  --cell-solved-ink: #6fd396;
+  --cell-first-bg: #2f6b25;
+  --cell-first-ink: #d9f3b8;
+  --cell-first-ring: #ffb100;
+  --cell-failed-bg: #2c1512;
+  --cell-failed-ink: #f0776a;
+  --cell-frozen-bg: #1b2447;
+  --cell-frozen-ink: #a9baff;
+  --cell-judging-bg: #2c2410;
+  --cell-judging-ink: #f8ca50;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.55);
+  --shadow-3: 0 12px 28px rgba(0, 0, 0, 0.65);
+  --shadow: rgba(0, 0, 0, 0.6);
+}
+
+/* Reduced motion: no travel, no pulse. Opacity fades stay, at --dur-fast. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 1ms;
+    --dur: 1ms;
+    --dur-slow: 1ms;
+    --dur-curtain: 1ms;
+  }
 }
