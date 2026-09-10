@@ -1,0 +1,759 @@
+/* The hall scoreboard (`/scoreboard/[event]`, DESIGN.md section 16.2).
+ *
+ * A projector surface, not a page of the site: it draws its own chrome, fills
+ * the viewport and never scrolls the document. Everything here is written as
+ * plain classes against the design tokens rather than as utilities, because the
+ * grid is one dense component whose rules read better in one place — and
+ * because the file is unlayered, so nothing it declares can be undercut by a
+ * utility that happens to land on the same node.
+ *
+ * The dark palette comes from `.theme-dark` in tokens.css: the hall is dark by
+ * identity whatever the viewer's theme is.
+ */
+
+.hall {
+  --hall-row-h: 44px;
+  --hall-cell-w: 3.9rem;
+  --hall-flag-h: 1.05rem;
+  --hall-feed-w: 23rem;
+  --hall-gutter: 1.4rem;
+
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--nav);
+  background-image:
+    linear-gradient(var(--bg-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+  background-size: 48px 48px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Header                                                                  */
+/* ---------------------------------------------------------------------- */
+
+.hall-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0.7rem var(--hall-gutter);
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--nav) 86%, black);
+}
+
+.hall-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.5rem, 2.4vw, 2.2rem);
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.hall-division {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.25rem, 2vw, 1.8rem);
+  letter-spacing: var(--tracking-tight);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.hall-spacer {
+  flex: 1 1 auto;
+  min-width: var(--space-2);
+}
+
+.hall-frozen-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid var(--cell-frozen-ink);
+  border-radius: var(--radius-pill);
+  color: var(--cell-frozen-ink);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.hall-clock {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(1.25rem, 2vw, 1.8rem);
+  letter-spacing: var(--tracking-tight);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* Division tabs. The carousel's manual control, and its position indicator. */
+.hall-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.hall-tab {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--fs-base);
+  font-weight: 500;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color var(--dur-fast) var(--ease),
+    background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+.hall-tab:hover {
+  color: var(--ink);
+  background: var(--nav-hover);
+}
+
+.hall-tab[aria-selected="true"] {
+  color: var(--ink);
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.hall-tab:focus-visible {
+  outline: 2px solid var(--brand-royal);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Freeze banner                                                           */
+/* ---------------------------------------------------------------------- */
+
+.hall-banner {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem var(--hall-gutter);
+  border-bottom: 1px solid var(--info-line);
+  background: var(--info-bg);
+  color: var(--info-ink);
+  font-size: var(--fs-base);
+}
+
+.hall-banner time,
+.hall-banner .hall-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Stage and panels                                                        */
+/* ---------------------------------------------------------------------- */
+
+.hall-body {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+}
+
+.hall-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* One panel per division, stacked. The carousel cross-fades: DESIGN.md 16.2
+   asks for no movement between divisions, so nothing slides. */
+.hall-panel {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 0 var(--hall-gutter) 2rem;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--dur-slow) var(--ease-out),
+    visibility 0s linear var(--dur-slow);
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.hall-panel[data-active="true"] {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity var(--dur-slow) var(--ease-out),
+    visibility 0s;
+}
+
+/* ---------------------------------------------------------------------- */
+/* The grid                                                               */
+/* ---------------------------------------------------------------------- */
+
+.hall-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 4px;
+}
+
+.hall-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background: var(--nav);
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  padding: 0.55rem 0.4rem;
+  text-align: center;
+}
+
+.hall-table th.hall-rank {
+  width: 4rem;
+}
+
+.hall-table th.hall-team {
+  text-align: left;
+  width: 34%;
+  min-width: 16rem;
+}
+
+.hall-table th.hall-prob {
+  width: var(--hall-cell-w);
+}
+
+.hall-table tbody tr {
+  background: var(--surface);
+}
+
+.hall-table tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--surface) 92%, white);
+}
+
+.hall-table tbody td {
+  padding: 0 0.4rem;
+  height: var(--hall-row-h);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.05rem;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.hall-table tbody td.hall-rank {
+  font-weight: 700;
+  border-left: 1px solid var(--line);
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
+}
+
+.hall-table tbody td.hall-team {
+  position: relative;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hall-table tbody td.hall-solved {
+  font-weight: 700;
+}
+
+.hall-table tbody td.hall-penalty {
+  color: var(--muted);
+  border-right: 1px solid var(--line);
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+}
+
+/* Every flag is drawn at one size whatever the file is, so a column of them
+   lines up: the height is fixed, the width follows 3:2, and an image of some
+   other shape is cropped rather than stretched. */
+.hall-flag {
+  height: var(--hall-flag-h);
+  width: calc(var(--hall-flag-h) * 1.5);
+  object-fit: cover;
+  vertical-align: -0.15em;
+  margin-right: 0.5rem;
+  border-radius: 2px;
+  background: var(--line);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.hall-badge {
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Cells                                                                  */
+/* ---------------------------------------------------------------------- */
+
+.hall-cell {
+  position: relative;
+  border-radius: var(--radius);
+  line-height: 1.15;
+}
+
+.hall-cell .hall-cell-value {
+  display: block;
+  font-weight: 600;
+}
+
+.hall-cell .hall-cell-sub {
+  display: block;
+  font-size: var(--fs-xs);
+  opacity: 0.85;
+  min-height: 1em;
+}
+
+.hall-cell[data-state="empty"] {
+  color: var(--cell-empty-ink);
+}
+
+.hall-cell[data-state="solved"] {
+  background: var(--cell-solved-bg);
+  color: var(--cell-solved-ink);
+}
+
+.hall-cell[data-state="solved"][data-first="true"] {
+  background: var(--cell-first-bg);
+  color: var(--cell-first-ink);
+  box-shadow: inset 0 0 0 2px var(--cell-first-ring);
+}
+
+.hall-cell[data-state="failed"] {
+  background: var(--cell-failed-bg);
+  color: var(--cell-failed-ink);
+}
+
+.hall-cell[data-state="frozen"] {
+  background: var(--cell-frozen-bg);
+  color: var(--cell-frozen-ink);
+}
+
+.hall-cell[data-state="judging"] {
+  background: var(--cell-judging-bg);
+  color: var(--cell-judging-ink);
+}
+
+/* Judging is the only loop in the product (DESIGN.md section 5.1). */
+.hall-cell[data-state="judging"] .hall-cell-value {
+  animation: var(--animate-pulse-judging);
+}
+
+.hall-cell-icon {
+  display: inline-block;
+  vertical-align: -0.15em;
+}
+
+/* Data does not animate: a cell that changes cross-fades its contents, it does
+   not flash, scale or sweep. */
+.hall-cell[data-changed="true"] {
+  animation: hall-settle var(--dur-slow) var(--ease-out);
+}
+
+@keyframes hall-settle {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Reveal ceremony                                                         */
+/* ---------------------------------------------------------------------- */
+
+.hall-table tbody tr[data-reveal="target"] {
+  outline: 2px solid var(--cell-first-ring);
+  outline-offset: -1px;
+}
+
+.hall-table tbody tr[data-reveal="done"] {
+  opacity: 0.72;
+}
+
+.hall-cell[data-next="true"] {
+  box-shadow: inset 0 0 0 3px var(--cell-first-ring);
+}
+
+.hall-reveal-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.hall-reveal-status {
+  color: var(--cell-first-ring);
+  font-family: var(--font-mono);
+  font-size: var(--fs-base);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Event feed                                                              */
+/* ---------------------------------------------------------------------- */
+
+.hall-feed {
+  flex: none;
+  width: var(--hall-feed-w);
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--line);
+  background: color-mix(in srgb, var(--nav) 86%, black);
+  overflow: hidden;
+  transition: width var(--dur-slow) var(--ease-out);
+}
+
+.hall-feed[data-open="false"] {
+  width: 0;
+  border-left-width: 0;
+}
+
+.hall-feed-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.hall-feed-list {
+  flex: 1 1 auto;
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 0.6rem 1.5rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.hall-feed-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "time div chip"
+    "who who who";
+  gap: 0.15rem 0.5rem;
+  align-items: center;
+  padding: 0.5rem 0.6rem;
+  margin-bottom: 0.35rem;
+  border-radius: var(--radius);
+  border-left: 3px solid var(--line);
+  background: var(--surface-2);
+  font-size: var(--fs-base);
+  white-space: nowrap;
+}
+
+.hall-feed-item[data-state="correct"] {
+  border-left-color: var(--v-good);
+}
+
+.hall-feed-item[data-state="pending"] {
+  border-left-color: var(--v-run);
+}
+
+.hall-feed-item[data-state="incorrect"] {
+  border-left-color: var(--v-bad);
+}
+
+.hall-feed-time {
+  grid-area: time;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.hall-feed-division {
+  grid-area: div;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.hall-feed-line {
+  grid-area: who;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hall-feed-line b {
+  font-weight: 600;
+}
+
+.hall-feed-said {
+  color: var(--muted);
+}
+
+.hall-feed-chip {
+  grid-area: chip;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.hall-feed-item[data-state="correct"] .hall-feed-chip {
+  color: var(--v-good);
+}
+
+.hall-feed-item[data-state="pending"] .hall-feed-chip {
+  color: var(--v-run);
+}
+
+.hall-feed-item[data-state="incorrect"] .hall-feed-chip {
+  color: var(--v-bad);
+}
+
+/* A new entry fades in with no transform; the list under it is moved by the
+   FLIP in EventFeed, so nothing is animated twice. */
+.hall-feed-item[data-fresh="true"] {
+  animation: hall-fade-in var(--dur) var(--ease-out);
+}
+
+@keyframes hall-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.hall-feed-empty {
+  padding: 1.5rem 1rem;
+  color: var(--muted);
+  font-size: var(--fs-base);
+  white-space: normal;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Footer                                                                  */
+/* ---------------------------------------------------------------------- */
+
+.hall-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.45rem var(--hall-gutter);
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--nav) 86%, black);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+
+.hall-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-right: 0.8rem;
+  white-space: nowrap;
+}
+
+.hall-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+  flex: none;
+}
+
+.hall-swatch[data-state="solved"] {
+  background: var(--cell-solved-bg);
+}
+
+.hall-swatch[data-state="first"] {
+  background: var(--cell-first-bg);
+  box-shadow: inset 0 0 0 2px var(--cell-first-ring);
+}
+
+.hall-swatch[data-state="frozen"] {
+  background: var(--cell-frozen-bg);
+}
+
+.hall-swatch[data-state="judging"] {
+  background: var(--cell-judging-bg);
+}
+
+.hall-swatch[data-state="failed"] {
+  background: var(--cell-failed-bg);
+}
+
+.hall-warnings {
+  color: var(--cell-first-ring);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hall-empty {
+  padding: 3rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 1.2rem;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Tag editing                                                             */
+/* ---------------------------------------------------------------------- */
+
+/* The per-row buttons are in the DOM whether or not edit mode is on, so
+   toggling the mode is a class flip rather than a repaint of every board. */
+.hall:not([data-editing="true"]) .hall-row-edit {
+  display: none;
+}
+
+.hall[data-editing="true"] .hall-table tbody td.hall-team {
+  padding-right: 2.4rem;
+}
+
+.hall-row-edit {
+  position: absolute;
+  right: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    color var(--dur-fast) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+.hall-row-edit:hover {
+  color: var(--cell-first-ring);
+  border-color: var(--cell-first-ring);
+}
+
+.hall-row-edit:focus-visible {
+  outline: 2px solid var(--brand-royal);
+  outline-offset: 2px;
+}
+
+/* Edit mode tints the stage so nobody mistakes a staff session for the hall
+   display. */
+.hall[data-editing="true"] .hall-stage {
+  background: color-mix(in srgb, var(--cell-first-ring) 4%, transparent);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Olympics theme                                                          */
+/* ---------------------------------------------------------------------- */
+
+.hall[data-scoreboard-theme="olympics"] {
+  --hall-medal: 1.35rem;
+  --hall-pictogram: 2.05rem;
+}
+
+/* A gold medal on the first solve, in place of the ring. The brighter green
+   stays, so a first solve still reads as one from the back of the hall. */
+.hall[data-scoreboard-theme="olympics"] .hall-cell[data-first="true"] {
+  box-shadow: none;
+  /* The medal overhangs the cell, so the column beside it must not paint over
+     the half that hangs out. */
+  z-index: 1;
+}
+
+.hall[data-scoreboard-theme="olympics"] .hall-cell[data-first="true"]::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--hall-medal) / -3.4);
+  right: calc(var(--hall-medal) / -3.8);
+  width: var(--hall-medal);
+  height: var(--hall-medal);
+  background: url("/scoreboard-themes/olympics/medal-gold.svg") center / contain no-repeat;
+  /* Keeps the medal off the green it sits on, and off whatever is behind it
+     where it overhangs into the next column. */
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+  pointer-events: none;
+}
+
+.hall-pictogram {
+  display: block;
+  width: var(--hall-pictogram);
+  height: var(--hall-pictogram);
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+/* Each mapped column carries its sport's colour as `--hall-col`, spent on the
+   header and nowhere below it: green means solved and red means attempted, and
+   anything laid over those only makes them harder to read across a hall. */
+.hall-table th.hall-prob[data-sport] {
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+  background-image: linear-gradient(to bottom, var(--hall-col-wash, transparent), transparent);
+  box-shadow: inset 0 -2px 0 var(--hall-col, transparent);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Reduced motion                                                          */
+/* ---------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .hall-panel,
+  .hall-feed {
+    transition: none;
+  }
+
+  .hall-cell[data-changed="true"],
+  .hall-feed-item[data-fresh="true"] {
+    animation: none;
+  }
+
+  .hall-cell[data-state="judging"] .hall-cell-value {
+    animation: none;
+    opacity: 1;
+  }
+}
