@@ -148,8 +148,9 @@ anything here.
 last used and when it expires. The key is shown once.
 
 The page also prints the problems API base URL for this deployment and a ready-made workflow snippet, which is
-worth reading before setting up a problem repository: the problems API is served by the Convex HTTP endpoint, not
-by the site members browse, so `JUDGE_URL` in a repository's secrets is not the address you have in the browser.
+worth pasting into a problem repository as-is. The base URL is this site's own address: the problems API is a
+Convex HTTP action, but the site proxies `/api/problems/*` through to it, so `JUDGE_URL` in a repository's secrets
+is exactly the address you have in the browser.
 
 ### Navigation
 

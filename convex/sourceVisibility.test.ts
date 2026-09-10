@@ -10,7 +10,7 @@ import schema from "./schema";
 const modules = import.meta.glob("./**/*.ts");
 
 /**
- * Every problem the club imported sits on `submission_source_visibility = 'F'`,
+ * Every imported problem sits on `submission_source_visibility = 'F'`,
  * so `settings.DMOJ_SUBMISSION_SOURCE_VISIBILITY` alone decides who may read a
  * submission's source. These check that the site setting reaches
  * `Submission.can_see_detail`.

@@ -119,5 +119,5 @@ TYPST_BIN=/path/to/typst npm test --workspace @moj/content
 ```
 
 Tests that need Typst skip cleanly when the binary is missing. `test/fixtures/statements`
-holds real MAPS statements from `MonashAPS/mcpc-problems`; `test/TYPST_CORPUS.md` is the
+holds real statements taken from a problem repository; `test/TYPST_CORPUS.md` is the
 generated report of which of them compile.

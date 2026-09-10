@@ -13,7 +13,7 @@ they change behaviour our problem repos depend on.
 - Dotted problem codes map to nested directories. `get_problem_root` in `dmoj/judgeenv.py` splits the problem
   id on `.` and joins the parts, so the code `comp2823.a1.knapsack` lives at
   `/problems/comp2823/a1/knapsack/`. Upstream only ever looks for a directory named exactly like the code.
-- The compiler time limit is 60 seconds rather than 10. Some of the club's problems ship checkers built on
+- The compiler time limit is 60 seconds rather than 10. Some problems ship checkers built on
   testlib, which take well over ten seconds to compile on a cold cache.
 - `BaseExecutor.initialize` prints why an executor was skipped (no command found, or the command is not a
   file), which makes a half-populated runtime image much easier to debug.

@@ -38,7 +38,7 @@ export const overlayMotion =
 export const menuItem =
   "relative flex h-8 cursor-default select-none items-center gap-2 rounded-sm px-2 text-base text-foreground data-[inset]:pl-8 data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground";
 
-/** The club micro-label: 11px / 600 / 0.12em uppercase. The only small-caps device
+/** The micro-label: 11px / 600 / 0.12em uppercase. The only small-caps device
  *  in the product; ad-hoc `uppercase text-xs tracking-wide` is not allowed. */
 export const microLabel = "font-sans text-xs font-semibold uppercase tracking-label text-subtle";
 

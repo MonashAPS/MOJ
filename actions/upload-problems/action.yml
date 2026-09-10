@@ -3,11 +3,12 @@ description: >-
   Push a problem repository's statements, editorials, images and metadata to a
   MOJ judge through the problems API, and optionally rsync the test data to the
   judge host.
-author: MonashAPS
 
 inputs:
   judge-url:
-    description: Base URL of the judge, e.g. https://judge.monashaps.com
+    description: >-
+      Address of the judge, e.g. https://judge.example.org. The problems API is
+      published on the site's own origin, so this is the address people browse.
     required: true
   api-key:
     description: API key with the problems:write scope. Use a repository secret.

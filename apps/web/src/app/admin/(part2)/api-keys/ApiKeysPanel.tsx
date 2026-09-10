@@ -191,9 +191,8 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
       <Panel title="Using a key from a problem repository" bodyClassName="grid gap-3 p-3">
         <p className="text-sm text-subtle">
           The reusable action uploads every problem a push touched. Put the key in the repository&rsquo;s
-          secrets as <code className="font-mono">JUDGE_API_KEY</code>, and this deployment&rsquo;s problems
-          API base as <code className="font-mono">JUDGE_URL</code> — that is the Convex HTTP endpoint, not the
-          site the members browse.
+          secrets as <code className="font-mono">JUDGE_API_KEY</code>, and this site&rsquo;s address as{" "}
+          <code className="font-mono">JUDGE_URL</code> — the same address you are reading this on.
         </p>
         <pre className="overflow-x-auto rounded-md bg-code p-3 font-mono text-mono">{WORKFLOW(apiUrl)}</pre>
         <p className="text-sm text-subtle">
@@ -227,7 +226,7 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
               onChange={(event) =>
                 setDraft((current) => (current ? { ...current, name: event.target.value } : current))
               }
-              placeholder="MonashAPS/problems"
+              placeholder="problems-2026"
             />
           </Field>
           <Field label="Expires in (days)" optional=" (optional)" hint="Blank means the key never expires.">

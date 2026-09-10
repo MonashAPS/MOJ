@@ -4,7 +4,7 @@
  * Organisations and classes.
  *
  * The join rules are DMOJ's `JoinOrganization.handle` plus the access code and
- * slot checks the club asked for, and the request review flow is
+ * slot checks the fork added, and the request review flow is
  * `OrganizationRequestView.post`.
  */
 

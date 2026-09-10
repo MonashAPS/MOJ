@@ -23,9 +23,15 @@ The examples below use `judge.example.org`.
 | `web` | The Next.js app, built from `apps/web/Dockerfile`. |
 | `judge` | A judge on the same box, behind the `judge` compose profile so it is opt-in. |
 
+`apps/web/Dockerfile` builds the workspace in stages and runs Next's standalone output on Node 24 as a non-root
+user. It carries a pinned Typst release for the architecture you build on, the statement templates, and the fonts
+Typst falls back to, so `/problem/<code>/pdf` works in the container. `/api/health` is what the image's own
+healthcheck asks.
+
 ::: warning
-`apps/web/Dockerfile` is not in the repository yet, so the `web` service cannot be built as the file stands. Add
-one, or replace the service's `build:` block with an `image:` you build elsewhere, before deploying.
+The `NEXT_PUBLIC_*` values are compiled into the client bundle, so they are build arguments as well as
+environment. `compose.prod.yml` passes them from `MOJ_DOMAIN`; rebuild the image, not just restart it, after
+changing the domain.
 :::
 
 Everything is driven by one variable, `MOJ_DOMAIN`. Caddy serves four names derived from it, and the compose file
@@ -35,7 +41,7 @@ builds every origin the app and the judge need from the same value:
 | --- | --- |
 | `judge.example.org` | The web app. |
 | `convex.judge.example.org` | The Convex cloud origin, which is the websocket the browser subscribes on. |
-| `convex-site.judge.example.org` | The Convex site origin: the judge protocol and the problems API. |
+| `convex-site.judge.example.org` | The Convex site origin: the judge protocol, and the problems API that the site also proxies. |
 | `dashboard.judge.example.org` | The Convex dashboard. |
 
 Three of those have to be reachable from outside: the browser talks to the app and to the cloud origin, and judges
@@ -64,11 +70,14 @@ Restrict the dashboard hostname, or drop the service. It is full read and write 
 | `CONVEX_IMAGE_TAG` | `latest` | The Convex backend and dashboard image tag. Pin it. |
 | `AUTH_SECRET` | 32 random bytes | Signs sessions and cookies, and encrypts stored two-factor secrets. Rotating it signs everyone out and invalidates stored TOTP secrets. |
 | `LEGACY_SECRET_KEY` | | The imported site's Django `SECRET_KEY`, so API tokens minted there keep verifying. Leave blank if you did not import. |
-| `MAIL_MODE` | `console` | `console` logs mail to stdout; `ses` is the intended production transport. |
-| `MAIL_FROM`, `SES_REGION`, `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY` | | Outgoing mail. |
+| `MAIL_MODE` | `ses` | Which transport sends the site's mail: `console`, `ses` or `smtp`. See [mail](#mail). |
+| `MAIL_FROM` | `noreply@judge.example.org` | The envelope sender. On SES this address or its domain has to be verified. |
+| `SES_REGION`, `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY` | | SES credentials, read when `MAIL_MODE=ses`. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` | | SMTP relay, read when `MAIL_MODE=smtp`. |
 | `HIBP_CHECK` | | `off` skips the breached-password check, for an install with no outbound network. |
 | `BAD_MAIL_PROVIDERS`, `BAD_MAIL_PROVIDER_REGEX` | | Extra disposable-email domains and patterns to refuse at sign-up, on top of the built-in list. |
-| `TYPST_BIN` | `typst` | The Typst binary used to render problem PDFs, if it is not on `PATH`. |
+| `TYPST_BIN` | `typst` | The Typst binary used to render problem PDFs, if it is not on `PATH`. The web image ships one and sets this itself. |
+| `TYPST_TEMPLATE_DIR`, `TYPST_FONT_PATHS` | | Where the statement templates and the fonts are, if they are not beside the installed `@moj/content` and in the system font directories. The web image sets both. |
 | `MOJ_MEDIA_ROOT` | `/srv/media` | Where statement uploads imported from an old site are served from, at `/media/...`. |
 | `JUDGE_NAME`, `JUDGE_KEY` | | Only needed if you run the bundled judge service. |
 | `RUST_LOG` | `info` | The Convex backend's log level. |
@@ -78,10 +87,34 @@ The compose file sets `NEXT_PUBLIC_CONVEX_URL`, `NEXT_PUBLIC_CONVEX_SITE_URL`, `
 they are not yours to set. Set `NEXT_PUBLIC_SITE_URL` only if the feeds and the sitemap should use a different
 absolute origin from the one the app is served on.
 
-::: warning
-Mail is not sendable yet. `MAIL_MODE=ses` refuses to start the transport, so a production install currently runs
-with `MAIL_MODE=console` and activation, reset and email-change links appear in the web container's log. Until an
-SES transport is wired in, plan for that: it means account activation has to be walked through by hand.
+### Mail
+
+Every message the site sends -- account activation, password reset, email change and the two-factor notices --
+goes out through one transport, and `MAIL_MODE` picks it.
+
+| `MAIL_MODE` | What it does | What it needs |
+| --- | --- | --- |
+| `console` | Writes the message to the server's log instead of sending it. | Nothing. The default, and what development runs on. |
+| `ses` | Sends through Amazon SES. | `SES_REGION`, and either both of `SES_ACCESS_KEY_ID` and `SES_SECRET_ACCESS_KEY` or neither. |
+| `smtp` | Sends through any SMTP server. | `SMTP_HOST`, and optionally `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER` and `SMTP_PASSWORD`. |
+
+`MAIL_FROM` is the envelope sender in every mode. On SES it, or its domain, has to be a verified identity, and the
+account has to be out of the sandbox or nothing reaches an unverified recipient.
+
+With no `SES_ACCESS_KEY_ID` and no `SES_SECRET_ACCESS_KEY`, the SES client falls back to the AWS SDK's own
+credential chain, which is how an instance role or a mounted profile is meant to be picked up. Set both or
+neither; one alone is refused at start-up.
+
+For SMTP, the port defaults to 587 and 465 implies implicit TLS; anything else starts in the clear and upgrades
+with STARTTLS. `SMTP_SECURE=true` or `false` overrides that guess for a server that disagrees. Set the user and
+the password together, or leave both unset for a relay that does not authenticate.
+
+A misconfigured transport fails loudly on the first send rather than dropping the message, and the next send
+rebuilds it, so fixing the variables and restarting is enough.
+
+::: tip
+Whatever you choose, send yourself a password reset before announcing the site. Mail that does not arrive looks
+exactly like a site that does not work: nobody can activate an account.
 :::
 
 Generate the secrets on the box:

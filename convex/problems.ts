@@ -358,7 +358,7 @@ const statusFilter = v.union(
   v.literal("unsolved"),
 );
 
-/** DMOJ's `default_desc`, extended with the two sorts the club's panel adds. */
+/** DMOJ's `default_desc`, extended with the two sorts the staff panel adds. */
 const DEFAULT_DESC = new Set(["points", "acRate", "userCount", "date", "solved"]);
 
 type ListItem = {
@@ -564,7 +564,7 @@ export const list = query({
       });
     }
 
-    // "Solved by <user>", with the "and not by me" modifier the club asked for.
+    // "Solved by <user>", with the "and not by me" modifier the fork added.
     if (args.solvedBy && args.solvedBy.length > 0) {
       for (const username of args.solvedBy) {
         const profile = await profileByUsername(ctx, username);

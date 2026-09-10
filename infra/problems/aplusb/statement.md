@@ -2,7 +2,7 @@ Given two integers ~a~ and ~b~, output their sum.
 
 This problem exists so that a fresh MOJ deployment can be checked end to end: it exercises the
 problems API, the submission queue, the judge pull protocol and the batch scoring path without
-needing anything from the club's real problem set.
+needing a real problem set.
 
 ## Input Specification
 

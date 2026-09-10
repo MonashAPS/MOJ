@@ -255,15 +255,15 @@ describe("problems.list", () => {
       const beta = await seedProblem(ctx, { code: "beta", groupId });
       await seedProblem(ctx, { code: "loner", groupId });
 
-      const contest = await seedContest(ctx, { key: "mcpc25", name: "MCPC 2025" });
+      const contest = await seedContest(ctx, { key: "winter25", name: "Winter Cup 2025" });
       await seedContestProblem(ctx, { contestId: contest, problemId: alpha, order: 0 });
       await seedContestProblem(ctx, { contestId: contest, problemId: beta, order: 1 });
     });
 
-    const result = await t.query(api.problems.list, { contestKeys: ["mcpc25"] });
+    const result = await t.query(api.problems.list, { contestKeys: ["winter25"] });
     expect(result.items.map((item) => item.code).sort()).toEqual(["alpha", "beta"]);
     expect(result.groups).toHaveLength(1);
-    expect(result.groups?.[0]?.contestName).toBe("MCPC 2025");
+    expect(result.groups?.[0]?.contestName).toBe("Winter Cup 2025");
     expect(result.groups?.[0]?.items.map((item) => [item.code, item.contestLabel])).toEqual([
       ["alpha", "A"],
       ["beta", "B"],
@@ -366,7 +366,7 @@ describe("problems.get", () => {
         time: 0.2,
       });
 
-      const contest = await seedContest(ctx, { key: "mcpc24", name: "MCPC 2024" });
+      const contest = await seedContest(ctx, { key: "winter24", name: "Winter Cup 2024" });
       await seedContestProblem(ctx, { contestId: contest, problemId, order: 2 });
     });
 
@@ -384,7 +384,7 @@ describe("problems.get", () => {
     expect(problem?.stats.bestTime).toBe(0.05);
     expect(problem?.stats.fastestSolver?.username).toBe("fast");
     expect(problem?.appearedIn).toEqual([
-      expect.objectContaining({ contestKey: "mcpc24", contestName: "MCPC 2024", label: "A" }),
+      expect.objectContaining({ contestKey: "winter24", contestName: "Winter Cup 2024", label: "A" }),
     ]);
     // Two of two languages allowed, so DMOJ hides the language list.
     expect(problem?.showLanguages).toBe(false);

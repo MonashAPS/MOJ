@@ -10,7 +10,7 @@ fit in memory.
 
 ## Getting a dump
 
-On the current MAPS web box:
+On the DMOJ web box being migrated from:
 
 ```
 mysqldump --single-transaction --quick --hex-blob --default-character-set=utf8mb4 \

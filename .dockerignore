@@ -1,0 +1,41 @@
+# Everything the image builds from is source. Anything generated, secret or
+# machine-local stays out of the build context: it would only invalidate layer
+# caches, bloat the context, or leak.
+
+.git
+.github
+**/node_modules
+**/.next
+**/dist
+**/out
+**/coverage
+**/*.tsbuildinfo
+
+# Local environment and state.
+.env
+.env.*
+!.env.example
+.convex-tmp
+.local
+infra/data
+infra/media
+infra/problems/*
+!infra/problems/aplusb
+
+# Imported production data and its secrets.
+tools/import/out
+tools/import/dump*.sql.gz
+tools/import/secrets*
+
+# Test and docs artefacts.
+docs/.vitepress/dist
+docs/.vitepress/cache
+playwright-report
+test-results
+.playwright-mcp
+**/__pycache__
+**/*.log
+
+# Working notes that never belong in an image.
+INTEGRATION_NOTES.local.md
+infra/compose.override.local.yml

@@ -203,11 +203,17 @@ idempotent, so it is safe to run again at any time and it never destroys data. I
 6. pushes the Convex functions;
 7. seeds the languages, the navigation bar, the misc config defaults, the problem groups and types, and registers
    the sample problem `aplusb` that is committed under `infra/problems/`;
-8. creates a development superuser and enrols it in two-factor authentication.
+8. creates a development superuser, enrols it in two-factor authentication, and prints its credentials.
 
-The last step matters for signing in. The dev superuser is `admin` with the password `admin` and the email
-`admin@example.com`, already verified, with every DMOJ permission code. Change any of the three with
-`MOJ_ADMIN_USERNAME`, `MOJ_ADMIN_PASSWORD` and `MOJ_ADMIN_EMAIL` before running setup.
+The last step matters for signing in. The dev superuser is `admin` with the password `moj-admin-local` and the
+email `admin@example.com`, already verified, with every DMOJ permission code. Setup prints all three again when it
+finishes, along with the TOTP secret. Change any of them with `MOJ_ADMIN_USERNAME`, `MOJ_ADMIN_PASSWORD` and
+`MOJ_ADMIN_EMAIL` before running setup.
+
+The password is not `admin` for a reason worth knowing: the site checks every password typed at the login prompt
+against Have I Been Pwned, as DMOJ does, and `admin` is in that corpus tens of millions of times over, so it lands
+you on the forced-change interstitial rather than on the site. Any password you pick for a real account should
+survive the same check.
 
 Because that account is staff, and staff must hold a second factor, setup enrols it in TOTP against
 `MOJ_DEV_TOTP_SECRET`, which it writes into `.env.local` with a fixed default. A fixed secret means the codes are
@@ -256,6 +262,23 @@ Convex HTTP origin through `host.docker.internal`. Watch it come up with
 `docker compose -f infra/compose.dev.yml --project-directory . logs -f judge`; the handshake line names the site
 and the number of problems found.
 
+### Keeping the judge off some cores
+
+A judge grades against wall-clock limits, so on a machine you are also working on it is worth giving it cores of
+its own -- and some machines have cores that must not be used at all. Nothing tracked in the repository assumes a
+core count. To pin it, copy the example override and set the CPU list:
+
+```bash
+cp infra/compose.override.local.example.yml infra/compose.override.local.yml
+echo 'JUDGE_CPUSET=0-11,14-31' >> .env.local
+
+docker compose -f infra/compose.dev.yml -f infra/compose.override.local.yml \
+  --project-directory . --profile judge up -d judge
+```
+
+`infra/compose.override.local.yml` is gitignored, because what is true of your machine is not true of anyone
+else's. `MOJ_CPUSET` does the same for the child processes `npm run setup` spawns.
+
 ### When the Docker bridge cannot reach the host
 
 On a Linux host whose firewall trusts only the loopback interface, a container on the default bridge cannot reach
@@ -284,7 +307,8 @@ that and works around it; [troubleshooting](/admin/troubleshooting) explains wha
 ## Submit to `aplusb`
 
 1. Open `http://localhost:3000` and click **Log in**.
-2. Sign in as `admin` with the password `admin`, then answer the two-factor challenge with a code from the secret
+2. Sign in as `admin` with the password `moj-admin-local`, then answer the two-factor challenge with a code from
+   the secret
    setup enrolled, or with one of the scratch codes. This account is a superuser, so the **Admin** link appears in
    the user dropdown at the top right.
 3. Open `http://localhost:3000/problem/aplusb`. The statement asks for the sum of two integers.

@@ -24,7 +24,7 @@ function pad(value: number): string {
   return String(value).padStart(2, "0");
 }
 
-/** `2026-09-10 19:30`, in the viewer's own zone, which is the club's. */
+/** `2026-09-10 19:30`, in the viewer's own zone. */
 export function formatMoment(ms: number | null): string {
   if (ms === null) return "—";
   const date = new Date(ms);

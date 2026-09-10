@@ -1,6 +1,6 @@
 # Production reverse proxy for MOJ.
 #
-# Three public surfaces:
+# Three public surfaces, plus the problems API published on the first one:
 #   judge.example.com            the Next.js app
 #   convex.judge.example.com     the Convex client API (websockets)
 #   convex-site.judge.example.com the Convex HTTP actions (judge API, health)
@@ -26,7 +26,17 @@
 		-Server
 	}
 
-	reverse_proxy web:3000
+	# The problems API is a Convex HTTP action, but a problem repository should
+	# only ever need one address for the judge, so it is published on the site's
+	# own origin. The web app has the same rewrite (apps/web/next.config.ts);
+	# routing it here keeps the upload off the Next.js server entirely.
+	handle /api/problems/* {
+		reverse_proxy convex-backend:3211
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
 }
 
 convex.{$MOJ_DOMAIN:judge.example.com} {

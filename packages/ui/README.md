@@ -113,7 +113,7 @@ the table lists the everyday entry point first.
 
 | Component | Props that matter |
 | --- | --- |
-| `Panel` | the club's window motif: `title`, `icon`, `action`, `framed`, `bodyClassName`. This is the side box, the info box, the sample case and the batch block. `InfoBox` is the same component under the foundation's name |
+| `Panel` | the window motif: `title`, `icon`, `action`, `framed`, `bodyClassName`. This is the side box, the info box, the sample case and the batch block. `InfoBox` is the same component under the foundation's name |
 | `Card` | `CardHeader`, `CardTitle`, `CardDescription`, `CardAction`, `CardContent`, `CardFooter`. No shadow, ever |
 | `Table` | `striped` (default true), `scrollable` (default true, the framed wrapper), `dense`, `containerClassName`. Parts: `TableHeader`, `TableBody`, `TableFooter`, `TableRow` (`selected`), `TableHead` (`numeric`), `TableCell` (`numeric` → mono, tabular, right-aligned, nowrap), `TableCaption`, `EmptyRow` |
 | `TwoColumn` | DMOJ's `common-content`: `side` is the sticky sidebar, stacking under 960px |

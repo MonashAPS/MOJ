@@ -87,6 +87,13 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      # NEXT_PUBLIC_* is inlined into the client bundle at build time, so these
+      # have to be build arguments as well as environment. Rebuild the image
+      # after changing MOJ_DOMAIN.
+      args:
+        NEXT_PUBLIC_CONVEX_URL: https://convex.${MOJ_DOMAIN}
+        NEXT_PUBLIC_CONVEX_SITE_URL: https://convex-site.${MOJ_DOMAIN}
+        NEXT_PUBLIC_APP_URL: https://${MOJ_DOMAIN}
     restart: unless-stopped
     <<: *host-gateway
     environment:
@@ -99,11 +106,22 @@ services:
       AUTH_ISSUER: https://${MOJ_DOMAIN}
       AUTH_JWKS_URL: https://${MOJ_DOMAIN}/api/auth/jwks
       AUTH_RP_ID: ${MOJ_DOMAIN}
-      MAIL_MODE: ${MAIL_MODE:-ses}
+      LEGACY_SECRET_KEY: ${LEGACY_SECRET_KEY:-}
+      HIBP_CHECK: ${HIBP_CHECK:-}
+      BAD_MAIL_PROVIDERS: ${BAD_MAIL_PROVIDERS:-}
+      BAD_MAIL_PROVIDER_REGEX: ${BAD_MAIL_PROVIDER_REGEX:-}
+      # console, ses or smtp. The SES_* block is read for ses, the SMTP_* block
+      # for smtp; the image ships both transports.
+      MAIL_MODE: ${MAIL_MODE:-console}
       MAIL_FROM: ${MAIL_FROM:-noreply@example.com}
       SES_REGION: ${SES_REGION:-}
       SES_ACCESS_KEY_ID: ${SES_ACCESS_KEY_ID:-}
       SES_SECRET_ACCESS_KEY: ${SES_SECRET_ACCESS_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       MOJ_MEDIA_ROOT: /srv/media
     volumes:
       # Statement uploads imported from DMOJ, served at /media/... .
@@ -114,6 +132,9 @@ services:
       convex-backend:
         condition: service_healthy
 
+  # To pin the judge to a subset of the host's cores, copy
+  # infra/compose.override.local.example.yml to infra/compose.override.local.yml
+  # and layer it in with a second `-f`. Nothing here assumes a core count.
   judge:
     profiles: ["judge"]
     build:

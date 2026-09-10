@@ -139,9 +139,9 @@ revoke later, and pick the scopes it needs:
 | `read` | Reading the API v2 endpoints, limited to what you can already see. |
 | `problems:write` | Creating and updating problems, and uploading statement images, through the problems API. This is what a problem repository's CI needs. |
 
-Staff have a second place to do the same thing, `/admin/api-keys`, which also offers a `problems:read` scope and
-prints the workflow snippet and the problems API base URL to paste into a repository. Either page mints the same
-kind of key.
+Those two are the only scopes there are. Staff have a second place to do the same thing, `/admin/api-keys`, which
+offers the same pair and prints the workflow snippet and the problems API base URL to paste into a repository.
+Either page mints the same kind of key.
 
 The token is shown once. Only its hash is stored, so a lost token is replaced rather than recovered. Revoke a
 token from the same page; revocation takes effect immediately.

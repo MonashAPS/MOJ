@@ -1,12 +1,19 @@
-/** The wire scopes the console offers. `problems:write` is the one a problem
- *  repo's GitHub Action needs (SPEC sections 8 and 22). */
+import { PROBLEMS_WRITE_SCOPE, READ_SCOPE } from "@moj/protocol";
+
+/** The two scopes a key can hold, the same pair `/accounts/api/token/generate/`
+ *  offers. `problems:write` is the one a problem repository's CI needs (SPEC
+ *  sections 8 and 22). */
 export const API_KEY_SCOPES = [
   {
-    value: "problems:write",
-    label: "problems:write",
-    hint: "Create and update problems, upload statement images",
+    value: READ_SCOPE,
+    label: READ_SCOPE,
+    hint: "Read the API v2 endpoints, limited to what the owner can already see",
   },
-  { value: "problems:read", label: "problems:read", hint: "Read problem statements and metadata" },
+  {
+    value: PROBLEMS_WRITE_SCOPE,
+    label: PROBLEMS_WRITE_SCOPE,
+    hint: "Create and update problems, and upload statement images",
+  },
 ] as const;
 
 export type ConsoleKeyRow = {

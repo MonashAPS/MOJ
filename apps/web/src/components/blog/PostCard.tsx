@@ -8,7 +8,7 @@ import { formatDate, formatDateTime } from "@/lib/format";
 
 export type BlogListItem = FunctionReturnType<typeof api.blog.list>[number];
 
-/** One `section.post` from DMOJ's blog list. A sticky post keeps the club's royal
+/** One `section.post` from DMOJ's blog list. A sticky post keeps the site's royal
  *  rail rather than DMOJ's star-in-the-byline. */
 export function PostCard({
   post,

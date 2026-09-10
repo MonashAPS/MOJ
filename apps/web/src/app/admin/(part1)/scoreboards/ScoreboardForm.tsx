@@ -33,7 +33,7 @@ import {
   ReasonField,
 } from "@/components/admin";
 
-/** `scoreboardEvents`: the rows that replaced the fork's MCPC_SCOREBOARDS setting. */
+/** `scoreboardEvents`: the rows that replaced the fork's hard-coded scoreboard setting. */
 export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
   const router = useRouter();
   const existing = useQuery(api.admin.scoreboards.get, eventKey ? { key: eventKey } : "skip");
@@ -177,7 +177,7 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
               disabled={!!eventKey}
               title={eventKey ? "A scoreboard's key cannot change." : undefined}
               onChange={(event) => setKey(event.target.value.toLowerCase())}
-              placeholder="mcpc25"
+              placeholder="winter25"
             />
           </Field>
           <Field label="Name" htmlFor={ids.name} hint="Shown across the top of the hall display.">

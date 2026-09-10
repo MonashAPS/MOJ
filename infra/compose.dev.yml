@@ -91,6 +91,10 @@ services:
   #
   # Docker Desktop on macOS and Windows has no host networking. Use the
   # `judge-bridge` service below there, which keeps the published-port route.
+  #
+  # To pin the judge to a subset of the host's cores, copy
+  # infra/compose.override.local.example.yml to infra/compose.override.local.yml
+  # and layer it in with a second `-f`. Nothing here assumes a core count.
   judge:
     profiles: ["judge"]
     build:
@@ -100,7 +104,6 @@ services:
     network_mode: host
     cap_add:
       - SYS_PTRACE
-    cpuset: "0-11,14-31"
     environment:
       MOJ_URL: ${MOJ_JUDGE_URL:-http://127.0.0.1:3211}
       JUDGE_NAME: ${JUDGE_NAME:-local}
@@ -121,7 +124,6 @@ services:
     <<: *host-gateway
     cap_add:
       - SYS_PTRACE
-    cpuset: "0-11,14-31"
     environment:
       MOJ_URL: ${MOJ_JUDGE_URL:-http://host.docker.internal:3211}
       JUDGE_NAME: ${JUDGE_NAME:-local}

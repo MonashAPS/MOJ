@@ -74,8 +74,8 @@ async function seed() {
       content: "Sort it.",
     });
 
-    const contest = await makeContest(ctx, "mcpc", {
-      name: "MCPC",
+    const contest = await makeContest(ctx, "winter", {
+      name: "Winter Cup",
       formatName: "icpc",
     });
     await ctx.db.patch(contest, {
@@ -120,7 +120,7 @@ describe("pages/admin1 gating", () => {
     expect(await viewer.query(api.pages.admin1.consoleViewer, {})).toBeNull();
     expect((await viewer.query(api.pages.admin1.problemsList, { page: 1 })).items).toEqual([]);
     expect(await viewer.query(api.pages.admin1.problemEdit, { code: "alpha" })).toBeNull();
-    expect(await viewer.query(api.pages.admin1.contestEdit, { key: "mcpc" })).toBeNull();
+    expect(await viewer.query(api.pages.admin1.contestEdit, { key: "winter" })).toBeNull();
     expect(await viewer.query(api.pages.admin1.jobsList, {})).toEqual([]);
     expect((await viewer.query(api.pages.admin1.submissionsList, {})).items).toEqual([]);
   });
@@ -184,7 +184,7 @@ describe("pages/admin1 problems", () => {
     expect(problem?.translations.map((row) => row.language)).toEqual(["fr"]);
     expect(problem?.clarifications).toHaveLength(1);
     expect(problem?.editorial?.content).toBe("Sort it.");
-    expect(problem?.appearances.map((row) => row.contestKey)).toEqual(["mcpc"]);
+    expect(problem?.appearances.map((row) => row.contestKey)).toEqual(["winter"]);
     expect(problem?.submissionCount).toBe(1);
   });
 
@@ -227,7 +227,7 @@ describe("pages/admin1 problems", () => {
 describe("pages/admin1 contests", () => {
   test("the edit form resolves every profile list to usernames", async () => {
     const { t } = await seed();
-    const contest = await t.withIdentity(asRoot).query(api.pages.admin1.contestEdit, { key: "mcpc" });
+    const contest = await t.withIdentity(asRoot).query(api.pages.admin1.contestEdit, { key: "winter" });
     expect(contest?.authors).toEqual(["root"]);
     expect(contest?.testers).toEqual(["setter"]);
     expect(contest?.bannedUsers).toEqual(["member"]);

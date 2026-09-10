@@ -30,7 +30,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from mock_server import MockJudgeServer  # noqa: E402
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..'))
-CPUSET = '0-11,14-31'
+# Optional CPU pinning for the image build; set MOJ_CPUSET to a taskset-style list on a machine that
+# needs it. Unset, the build floats across every core.
+CPUSET = os.environ.get('MOJ_CPUSET', '')
 DEFAULT_IMAGE = 'moj-judge:tier1'
 # The mock listens where a self-hosted Convex deployment serves its HTTP actions; override with --port when
 # something else already has it (a local convex-backend, for instance).
@@ -351,10 +353,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.build:
-        command = [
-            'taskset',
-            '-c',
-            CPUSET,
+        command = (['taskset', '-c', CPUSET] if CPUSET else []) + [
             'docker',
             'build',
             '--build-arg',

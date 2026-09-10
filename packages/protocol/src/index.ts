@@ -13,8 +13,10 @@ export * from "./judge";
 export {
   API_ERROR_CODES,
   API_ERROR_STATUS,
+  API_SCOPES,
   type ApiError,
   type ApiErrorCode,
+  type ApiScope,
   apiError,
   CREATE_DEFAULTS,
   CREATE_ONLY_FIELDS,
@@ -22,6 +24,7 @@ export {
   editorialInput,
   type ImageUploadResponse,
   imageUploadResponse,
+  isApiScope,
   type LanguageLimitInput,
   languageLimitInput,
   languageLimitsInput,
@@ -34,4 +37,5 @@ export {
   problemSummary,
   problemUpsertInput,
   problemUpsertResponse,
+  READ_SCOPE,
 } from "./problems";

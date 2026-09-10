@@ -36,7 +36,7 @@ npm run dev
 8. seeds the 59 DMOJ languages, the navigation bar, the misc config defaults,
    the problem groups and types, two announcements and the sample problem
    `aplusb`,
-9. creates the development superuser `admin` / `admin`, enrolled in TOTP against
+9. creates the development superuser `admin` / `moj-admin-local`, enrolled in TOTP against
    `MOJ_DEV_TOTP_SECRET` so it passes the staff two-factor gate.
 
 Then:
@@ -57,12 +57,18 @@ Convex watches `convex/` and pushes on save; Next watches `apps/web`.
 `MAIL_MODE=console` writes every activation and password reset mail to the
 server console instead of sending it. The activation link is also shown on
 `/accounts/register/complete/` when `NODE_ENV` is not `production`, so a fresh
-install can be finished without a mail server.
+install can be finished without a mail server. A deployment sets `MAIL_MODE` to
+`ses` or `smtp` instead; see the deployment guide.
 
-The development superuser is `admin` / `admin`, email `admin@example.com`,
-already verified, staff and superuser, with every DMOJ permission code. Change
-the username, password or email with `MOJ_ADMIN_USERNAME`, `MOJ_ADMIN_PASSWORD`
-and `MOJ_ADMIN_EMAIL` before running setup.
+The development superuser is `admin` / `moj-admin-local`, email
+`admin@example.com`, already verified, staff and superuser, with every DMOJ
+permission code. Setup prints the credentials again when it finishes. Change the
+username, password or email with `MOJ_ADMIN_USERNAME`, `MOJ_ADMIN_PASSWORD` and
+`MOJ_ADMIN_EMAIL` before running setup.
+
+The password is deliberately not `admin`: the login prompt checks what is typed
+against Have I Been Pwned, and `admin` is in that corpus, so it would send the
+documented login to the forced-change interstitial instead of to the site.
 
 Staff accounts without a second factor are redirected to `/accounts/2fa/`
 everywhere except the account pages, matching DMOJ's `DMOJ_REQUIRE_STAFF_2FA`.
@@ -168,9 +174,13 @@ the ones only production needs.
 | `AUTH_URL` | Convex | Web app origin the problems API calls to verify an API key against Better Auth. Unset means the `apiKeys` table fallback. |
 | `LEGACY_SECRET_KEY` | web server, Convex | DMOJ's `SECRET_KEY`. API v2 tokens minted by the old site are `hmac_sha256` of it, so legacy tokens only work when it matches. Blank on a fresh install. |
 | `MOJ_DEV_TOTP_SECRET` | setup only | Fixed TOTP secret the development superuser is enrolled against, so its codes are reproducible. Development only; never set it on a deployment. |
-| `MAIL_MODE` | web server | `console` logs mail, `ses` sends through Amazon SES. |
-| `MAIL_FROM`, `SES_*` | web server | SES sender and credentials, only read when `MAIL_MODE=ses`. |
+| `MAIL_MODE` | web server | `console` logs mail, `ses` sends through Amazon SES, `smtp` through any SMTP server. |
+| `MAIL_FROM` | web server | The envelope sender, in every mode. |
+| `SES_*` | web server | SES region and credentials, only read when `MAIL_MODE=ses`. |
+| `SMTP_*` | web server | SMTP host, port, TLS and credentials, only read when `MAIL_MODE=smtp`. |
 | `JUDGE_NAME`, `JUDGE_KEY` | judge container | Credentials the judge presents to the judge API. |
+| `JUDGE_CPUSET` | judge container | Optional taskset-style CPU list to pin the judge to. Only read through `infra/compose.override.local.yml`; copy the example beside it to use it. |
+| `MOJ_CPUSET` | setup only | Optional taskset-style CPU list for the child processes `npm run setup` spawns. Unset, nothing is pinned. |
 | `INSTANCE_NAME`, `INSTANCE_SECRET` | convex-backend | Deployment identity. `INSTANCE_SECRET` is 64 hex characters; the Postgres database name is `INSTANCE_NAME` with dashes replaced by underscores. |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT` | postgres | Credentials and the host port (5433 by default). |
 | `TYPST_BIN` | web server | Path to the Typst binary used to render problem PDFs. |

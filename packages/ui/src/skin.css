@@ -3,7 +3,7 @@
  *
  * Everything a component can express in Tailwind lives in the component. What is
  * here is what cannot: bare element styling, the `.content-description` prose
- * block, the rating classes markdown emits, the club's royal grid, and the
+ * block, the rating classes markdown emits, the royal grid, and the
  * reduced-motion blanket.
  *
  * Import order: tailwindcss, fonts.css, tokens.css, theme.css, then this file.
@@ -146,7 +146,7 @@
     scrollbar-color: var(--line-strong) transparent;
   }
 
-  /* The club's royal grid, painted on the page ground. Home, auth, /about/ and
+  /* The royal grid, painted on the page ground. Home, auth, /about/ and
      the error pages only: behind a table it is noise. */
   .page-grid {
     background-image:

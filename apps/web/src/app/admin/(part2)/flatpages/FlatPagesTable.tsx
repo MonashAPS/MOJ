@@ -154,7 +154,7 @@ export function FlatPagesTable() {
           </>
         }
         emptyTitle="No flat pages"
-        emptyDescription="A flat page is somewhere to put the club's rules or a contest's information."
+        emptyDescription="A flat page is somewhere to put the site rules or a contest's information."
         emptyAction={
           <Button variant="secondary" onClick={() => open()}>
             New page

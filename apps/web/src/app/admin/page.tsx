@@ -28,7 +28,7 @@ const BLURBS: Record<string, string> = {
 
 export default function AdminOverviewPage() {
   return (
-    <AdminShell title="Staff console" description="Everything the club runs, in one place.">
+    <AdminShell title="Staff console" description="Everything this judge runs, in one place.">
       <div className="grid gap-4">
         {ADMIN_SECTIONS.map((group) => (
           <Panel key={group.label} title={group.label} bodyClassName="p-3">

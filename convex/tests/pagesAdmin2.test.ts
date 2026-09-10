@@ -217,10 +217,10 @@ describe("pages/admin2 memberships", () => {
     await asClerk.mutation(api.pages.admin2.setUserMemberships, {
       username: "member",
       organizationSlugs: ["club"],
-      reason: "Moved to the club",
+      reason: "Moved to another organisation",
     });
     const rows = await t.run(async (ctx) => await ctx.db.query("revisions").collect());
-    expect(rows.map((row) => row.reason)).toContain("Moved to the club");
+    expect(rows.map((row) => row.reason)).toContain("Moved to another organisation");
   });
 });
 
@@ -352,7 +352,7 @@ describe("branding", () => {
   test("a superuser sets the colours and the dark accent is derived from them", async () => {
     const { t } = await withSettings();
     await t.withIdentity({ subject: "user_root" }).mutation(api.pages.admin2.updateBranding, {
-      siteName: "MCPC",
+      siteName: "Winter Cup",
       accentColor: "#B3001B",
       navColor: "#1A1A2E",
       themeDefault: "dark",
@@ -361,7 +361,7 @@ describe("branding", () => {
     });
 
     const branding = await t.query(api.site.branding, {});
-    expect(branding.siteName).toBe("MCPC");
+    expect(branding.siteName).toBe("Winter Cup");
     expect(branding.accentColor).toBe("#b3001b");
     expect(branding.accentColorDark).not.toBe(branding.accentColor);
     expect(branding.titlebarColor).toBe("#1a1a2e");

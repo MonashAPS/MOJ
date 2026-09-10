@@ -29,7 +29,7 @@ problems/
 ```json
 {
   "title": "A plus B",
-  "authors": ["swofty"],
+  "authors": ["someone"],
   "points": 100,
   "timeLimit": 1,
   "pythonTimeLimit": 3,
@@ -89,10 +89,14 @@ Secrets to add under Settings, Secrets and variables, Actions:
 
 | Secret | What it is |
 | --- | --- |
-| `JUDGE_URL` | `https://judge.monashaps.com` |
+| `JUDGE_URL` | The judge's address, e.g. `https://judge.example.org` |
 | `JUDGE_API_KEY` | An API key with the `problems:write` scope, made in the judge's account settings |
 | `JUDGE_HOST` | The judge host to rsync test data to |
 | `JUDGE_SSH_KEY` | A private SSH key authorised on that host |
+
+`JUDGE_URL` is the address people browse the judge on. The problems API is a
+Convex HTTP action behind the scenes, but the judge publishes it on its own
+origin under `/api/problems/...`, so a repository never needs a second hostname.
 
 Leave `rsync-host` out to upload statements only.
 
@@ -100,7 +104,7 @@ Leave `rsync-host` out to upload statements only.
 
 | Input | Default | What it does |
 | --- | --- | --- |
-| `judge-url` | required | Base URL of the judge |
+| `judge-url` | required | The judge's address |
 | `api-key` | required | API key with the `problems:write` scope |
 | `problems-dir` | `problems` | Directory the problem directories live in |
 | `only-changed` | `true` | Upload only the problems this push touched |
@@ -145,11 +149,11 @@ file: it is what stops every push re-uploading every image. Remote references
 ## Running the uploader by hand
 
 The action is a thin wrapper around
-[`tools/upload-problem/upload-problem.mjs`](../../tools/upload-problem/upload-problem.mjs),
-which has no dependencies:
+[`tools/upload-problem`](../../tools/upload-problem/README.md), a single file
+with no dependencies:
 
 ```sh
-export JUDGE_URL=https://judge.monashaps.com
+export JUDGE_URL=https://judge.example.org
 export JUDGE_API_KEY=...
 
 # One problem

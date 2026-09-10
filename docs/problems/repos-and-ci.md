@@ -50,10 +50,10 @@ The upload needs an API key with the `problems:write` scope.
 3. Create a key with `problems:write` and copy it. Only its hash is stored, so it is shown once.
 4. Put it in the problem repository as the `JUDGE_API_KEY` secret.
 
-`JUDGE_URL` is the second secret, and it is the one people get wrong. **It is the Convex site origin, not the
-address you browse the site on.** The problems API is a Convex HTTP action, so the base URL looks like
-`https://convex-site.judge.example.org`. `/admin/api-keys` prints the right value for the deployment you are
-looking at.
+`JUDGE_URL` is the second secret, and it is simply the address you browse the judge on, e.g.
+`https://judge.example.org`. The problems API is a Convex HTTP action underneath, but the site publishes it on its
+own origin at `/api/problems/...`, so a problem repository never needs a second hostname. `/admin/api-keys` prints
+the right value for the deployment you are looking at.
 
 For the rsync half you also need an SSH key that can write to the problems directory on the judge box. Add its
 private half as `JUDGE_SSH_KEY` and the host as `JUDGE_HOST`.
@@ -74,7 +74,7 @@ summary, and then, if the rsync inputs are present, syncs the test data to the j
 
 | Input | Default | What it does |
 | --- | --- | --- |
-| `judge-url` | required | Base URL of the problems API: the Convex site origin. |
+| `judge-url` | required | The judge's address, e.g. `https://judge.example.org`. |
 | `api-key` | required | API key with the `problems:write` scope. Use a repository secret. |
 | `problems-dir` | `problems` | The directory the problem directories live in. |
 | `only-changed` | `true` | Upload only the problems this push touched, using the event's before and after SHAs. Falls back to every problem when the event carries no usable range, such as a new branch or a manual run. |
@@ -144,7 +144,7 @@ Secrets to add under Settings, Secrets and variables, Actions:
 
 | Secret | What it is |
 | --- | --- |
-| `JUDGE_URL` | The problems API base, the Convex site origin. |
+| `JUDGE_URL` | The judge's address, e.g. `https://judge.example.org`. |
 | `JUDGE_API_KEY` | An API key with the `problems:write` scope. |
 | `JUDGE_HOST` | The judge host to rsync test data to. |
 | `JUDGE_SSH_KEY` | A private SSH key authorised on that host. |
@@ -197,10 +197,10 @@ contest problem is worse than a failed build.
 ## Running the uploader by hand
 
 The action is a thin wrapper around `tools/upload-problem/upload-problem.mjs` in the MOJ repository, a single file
-with no dependencies:
+with no dependencies. Its own README lists every flag:
 
 ```bash
-export JUDGE_URL=https://convex-site.judge.example.org
+export JUDGE_URL=https://judge.example.org
 export JUDGE_API_KEY=...
 
 # One problem

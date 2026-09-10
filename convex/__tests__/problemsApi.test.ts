@@ -42,7 +42,7 @@ async function setup() {
       keyHash: await sha256Hex(WEAK_KEY),
       name: "read only",
       profileId: weak,
-      scopes: ["problems:read"],
+      scopes: ["read"],
       enabled: true,
       createdAt: Date.now(),
     });

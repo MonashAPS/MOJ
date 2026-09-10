@@ -17,6 +17,7 @@ import {
   passwordResetEmail,
   rememberLink,
   sendMail,
+  twoFactorNoticeEmail,
 } from "./mail";
 import { COMPROMISED_COOKIE } from "./password-compromised";
 
@@ -222,6 +223,27 @@ export const auth = betterAuth({
 
       if (ctx.path === "/change-password" || ctx.path === "/reset-password" || ctx.path === "/sign-out") {
         ctx.setCookie(COMPROMISED_COOKIE, "", { path: "/", maxAge: 0 });
+        return;
+      }
+
+      // Gaining or losing a second factor is the change an account takeover
+      // makes first, so the owner is told out of band. A mail failure must not
+      // turn a successful enrolment into an error.
+      if (ctx.path === "/two-factor/enable" || ctx.path === "/two-factor/disable") {
+        const returned = ctx.context.returned as { status?: number } | undefined;
+        if (returned instanceof APIError || returned?.status) return;
+        const session = await getSessionFromCtx(ctx).catch(() => null);
+        const user = session?.user as { email?: string; name?: string; username?: string } | undefined;
+        if (!user?.email) return;
+        const action = ctx.path === "/two-factor/enable" ? "enabled" : "disabled";
+        try {
+          await sendMail({
+            ...twoFactorNoticeEmail(user.username || user.name || user.email, action),
+            to: user.email,
+          });
+        } catch (error) {
+          console.error("could not send the two factor notice", error);
+        }
       }
     }),
   },
