@@ -88,7 +88,7 @@ export function UserBlock({
         <DropdownMenuContent align="end" sideOffset={6} className="min-w-[220px]">
           {viewer.isStaff ? (
             <DropdownMenuItem asChild>
-              <Link href="/admin">
+              <Link href="/admin/">
                 <Settings aria-hidden />
                 Admin
               </Link>
