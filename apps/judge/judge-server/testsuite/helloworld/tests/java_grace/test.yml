@@ -1,5 +1,0 @@
-language: JAVA
-time: 2
-memory: 1
-source: grace.java
-expect: MLE

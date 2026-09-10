@@ -1,5 +1,0 @@
-language: RUST
-time: 2
-memory: 65536
-source: empty.rs
-expect: WA
