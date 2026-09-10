@@ -134,9 +134,9 @@ pieces of information, restyled into the club's window motif.
 
 ```
 +-----------------------------+
-| ONGOING CONTESTS        [T] |  titlebar: --surface-2, 28px, 1px --line bottom,
-+-----------------------------+  label --fs-xs/600/uppercase/--tracking-label/--ink-2,
-|  body                       |  Lucide icon 14px --muted at the right
+| ONGOING CONTESTS        [T] |  titlebar: --titlebar navy, 28px,
++-----------------------------+  label --fs-xs/600/uppercase/--tracking-label/--titlebar-ink,
+|  body                       |  Lucide icon 14px --titlebar-ink-2 at the right
 +-----------------------------+
 ```
 

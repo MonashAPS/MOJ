@@ -55,10 +55,19 @@
 
   /* Surfaces and text ----------------------------------------------------- */
   --bg: #ffffff; /* default content + control fill   */
-  --bg-2: #f7f5ef; /* page ground (club bone)          */
+  --bg-2: #ffffff; /* page ground: plain white         */
   --bg-grid: rgba(65, 105, 225, 0.055); /* 48px club grid, decorative only  */
   --surface: #ffffff; /* cards, panels, table body        */
-  --surface-2: #f0eee6; /* panel titlebars, table headers   */
+  --surface-2: #f0eee6; /* wells, chips, segmented controls */
+
+  /* Titlebars ------------------------------------------------------------- *
+   * The club's window motif wears the chrome's navy: every panel titlebar and
+   * every table header band is this one colour, so a home side box and a list
+   * page's table read as the same object.                                    */
+  --titlebar: #101a3d; /* MAPS navy, the nav's own colour   */
+  --titlebar-ink: #f2f4fa; /* the micro-label on the band       */
+  --titlebar-ink-2: #a9b4d8; /* its trailing glyph                */
+  --titlebar-line: rgba(255, 255, 255, 0.12);
   --surface-3: #e4e1d7; /* wells, disabled fills, tracks    */
   --ink: #191c22; /* primary text                     */
   --ink-2: #4b525c; /* secondary text, table meta       */
@@ -296,6 +305,10 @@
     --bg-grid: rgba(122, 150, 255, 0.05);
     --surface: #141a28;
     --surface-2: #1c2434;
+    --titlebar: #1e2748;
+    --titlebar-ink: #e6eafa;
+    --titlebar-ink-2: #a3adcf;
+    --titlebar-line: rgba(255, 255, 255, 0.1);
     --surface-3: #273044;
     --ink: #e6e9f0;
     --ink-2: #aab3c2;
@@ -398,6 +411,10 @@
   --bg-grid: rgba(122, 150, 255, 0.05);
   --surface: #141a28;
   --surface-2: #1c2434;
+  --titlebar: #1e2748;
+  --titlebar-ink: #e6eafa;
+  --titlebar-ink-2: #a3adcf;
+  --titlebar-line: rgba(255, 255, 255, 0.1);
   --surface-3: #273044;
   --ink: #e6e9f0;
   --ink-2: #aab3c2;

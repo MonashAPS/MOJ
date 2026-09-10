@@ -5,7 +5,7 @@ import { SEED_LANGUAGES, SEED_NAVIGATION } from "./lib/seedData";
 
 const MISC_CONFIG_DEFAULTS: Record<string, string> = {
   announcement: "",
-  footer: 'run by <a href="https://monashcoding.com/">Monash Algorithms and Problem Solving</a>',
+  footer: 'run by <a href="https://monashaps.com/">Monash Algorithms and Problem Solving</a>',
   meta_keywords: "competitive programming, online judge, MAPS, Monash, algorithms",
   home_page_top: "",
   analytics: "",
