@@ -34,6 +34,8 @@ features:
     details: The site name, wordmark, favicon, colours, default theme and custom CSS are settings, so an operator makes the site theirs from the staff console.
 ---
 
+![The MOJ home page](/screenshots/home.png)
+
 ## Where to start
 
 If you want to run MOJ on your own machine, read the [quick start](/guide/quick-start). It installs Docker and
