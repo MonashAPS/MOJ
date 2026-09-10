@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "MOJ, the MAPS Online Judge",
-  "workspaces": ["apps/*", "packages/*", "tools/*"],
+  "workspaces": ["apps/*", "packages/*", "tools/*", "docs"],
   "engines": { "node": ">=24" },
   "scripts": {
     "dev": "echo 'defined by the foundation agent'",
