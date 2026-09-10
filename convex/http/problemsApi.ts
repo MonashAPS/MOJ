@@ -30,7 +30,13 @@ import type { HttpRouter } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { type ActionCtx, httpAction, internalMutation, internalQuery } from "../_generated/server";
+import {
+  type ActionCtx,
+  httpAction,
+  internalMutation,
+  internalQuery,
+  type MutationCtx,
+} from "../_generated/server";
 import { groupIdByName, typeIdsByName, writeRevision } from "../admin/problems";
 import { problemByCode, toCoreProblem } from "../problems";
 
@@ -351,10 +357,7 @@ export const upsertProblem = internalMutation({
         .withIndex("by_problem", (q) => q.eq("problemId", problemId))
         .collect();
       for (const [key, limit] of Object.entries(body.languageLimits)) {
-        const language = await ctx.db
-          .query("languages")
-          .withIndex("by_key", (q) => q.eq("key", key))
-          .unique();
+        const language = await languageForKey(ctx, key);
         if (!language) {
           warnings.push(`No such language: ${key}`);
           continue;
@@ -642,4 +645,51 @@ export function registerProblemsApiRoutes(http: HttpRouter): void {
   http.route({ pathPrefix: "/api/problems/", method: "POST", handler: imageUploadHandler });
   // SPEC section 8: DELETE is not supported.
   http.route({ pathPrefix: "/api/problems/", method: "DELETE", handler: methodNotAllowed });
+}
+
+/**
+ * A problem repository names a language the way SPEC section 8 documents it
+ * (`python3`, `pypy3`), while `languages.key` holds the judge executor's name
+ * (`PY3`, `PYPY3`). Match the key as written first, then the documented
+ * aliases, then case-insensitively, so a repo can write either.
+ */
+const LANGUAGE_KEY_ALIASES: Record<string, string> = {
+  python2: "PY2",
+  python3: "PY3",
+  pypy2: "PYPY",
+  pypy3: "PYPY3",
+};
+
+async function languageForKey(ctx: MutationCtx, key: string): Promise<Doc<"languages"> | null> {
+  const exact = await ctx.db
+    .query("languages")
+    .withIndex("by_key", (q) => q.eq("key", key))
+    .unique();
+  if (exact) return exact;
+
+  const alias = LANGUAGE_KEY_ALIASES[key.toLowerCase()];
+  if (alias) {
+    const aliased = await ctx.db
+      .query("languages")
+      .withIndex("by_key", (q) => q.eq("key", alias))
+      .unique();
+    if (aliased) return aliased;
+  }
+
+  const upper = key.toUpperCase();
+  if (upper !== key) {
+    const uppercased = await ctx.db
+      .query("languages")
+      .withIndex("by_key", (q) => q.eq("key", upper))
+      .unique();
+    if (uppercased) return uppercased;
+  }
+
+  const wanted = key.toLowerCase();
+  const all = await ctx.db.query("languages").collect();
+  return (
+    all.find(
+      (row) => row.commonName.toLowerCase() === wanted || row.shortName.toLowerCase() === wanted,
+    ) ?? null
+  );
 }
