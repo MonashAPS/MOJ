@@ -1029,3 +1029,39 @@ a wiring point that the page wave will import, so they are recorded here rather 
   unexercised in a browser; they are covered by the payload's `canReveal` / `canEditTags` flags and by the
   mutations, which were driven directly against the deployment. Nothing here needs changing once the accounts
   agent lands 2FA enrolment.
+## 2026-09-11, staff console part one
+
+- The console's read models live in a new `convex/pages/admin1.ts`: `consoleViewer`, `problemsList`,
+  `problemOptions`, `problemEdit`, `cloneProblem` (the one mutation, `judge.clone_problem`), `contestEdit`,
+  `contestOptions`, `resolveProfiles`, `resolveContestRefs`, `profileSearch`, `problemSearch`,
+  `submissionsList`, `jobsList`, `revisionsFor` and `scoreboardOptions`. Everything they write goes through
+  the existing `convex/admin/*` mutations; these only read, and every one of them is staff-gated and returns
+  an empty result rather than throwing, so a console page never renders an error boundary.
+- `convex/admin/*` speaks in ids where a form speaks in names, so `contestEdit` resolves the eight profile
+  arrays, the organisations, the classes and the tags to names, and `resolveProfiles` / `resolveContestRefs`
+  turn them back into ids at save time. DMOJ's admin did the same thing with select2 endpoints.
+- **A console page cannot subscribe to `pages/admin1` until it is deployed.** `useQuery` throws a missing
+  function straight through React, so the console reads those modules through
+  `apps/web/src/components/admin/useConsoleQuery.ts`, which runs the query as a promise and reports
+  `unavailable` instead. `apps/web/src/components/admin/fallbacks.ts` then serves each screen from the
+  deployed public and admin queries (`admin/problems.editable`, `problems.get`, `admin/contests.get`,
+  `submissions.list`, `jobs.recent`), and `ConsoleNotice` says what is missing. Once `pages/admin1` is on the
+  deployment `unavailable` is always false and both files collapse to a plain `useQuery`; the integrator can
+  delete them and swap the call sites back.
+- The console's title row is `--fs-h2`, not the `--fs-h1` of a public page: DESIGN 19.2 turns the density up,
+  and a 26px heading over 28px rows reads like a public page that lost its content column. The checklist's
+  "h1 is 26px" line applies to the public pages.
+- DESIGN 19.2 puts the console rail on `--surface`. With `--bg-2` now white and `--surface` white with it, a
+  white rail on a white ground is a hairline away from invisible, so the rail and the console's own bar are
+  `--surface-2`, the well tint. Everything else in 19.2 is unchanged.
+- There is no date picker in `@moj/ui` and no `react-day-picker` in the tree, so
+  `apps/web/src/components/admin/DateTimeField.tsx` is the recipe from DESIGN 11.4 built out of `Popover` plus
+  a month grid of buttons and a mono time box. No native `<input type="date">` anywhere.
+- `apps/web/src/components/markdown/MarkdownEditor.tsx` is a placeholder with the props the community wave's
+  editor is expected to take (`value`, `onChange`, `preset`, `rows`, `id`, `placeholder`, `disabled`,
+  `invalid`, `ariaLabel`); the integrator keeps theirs.
+- Test data has no console tab of its own. The public editor at `/problem/<code>/test_data/` validates the
+  archive as you go, so the console's Test data tab links to it rather than duplicating it.
+- Problem cloning had no mutation anywhere (`judge.clone_problem` was only in the permission list), so
+  `pages/admin1.cloneProblem` is new: statement, limits and taxonomy under a new code, private, with the
+  viewer as its only author and no test data or submissions, matching DMOJ's `ProblemClone`.
