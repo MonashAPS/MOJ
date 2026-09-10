@@ -11,7 +11,7 @@
  *   5. drizzle migrations for the Better Auth database
  *   6. push the Convex functions and set the deployment's env vars
  *   7. seed languages, nav bar, misc config, groups/types and the sample problem
- *   8. create the dev superuser admin/admin
+ *   8. create the dev superuser and print its credentials
  */
 
 import { spawnSync } from "node:child_process";
@@ -40,7 +40,13 @@ const DATABASE_URL = process.env.DATABASE_URL ?? "postgresql://moj:moj@127.0.0.1
  *  a re-run of setup does not lock the account out of an authenticator app. */
 const DEV_TOTP_SECRET = "mojdevtotpsecretdonotuseinprod01";
 const ADMIN_USERNAME = process.env.MOJ_ADMIN_USERNAME ?? "admin";
-const ADMIN_PASSWORD = process.env.MOJ_ADMIN_PASSWORD ?? "admin";
+/**
+ * Not `admin`: that one is in the Have I Been Pwned corpus forty million times
+ * over, and the site's own breached-password check would send the documented
+ * dev login straight to the forced-change interstitial. This one is not in the
+ * corpus, and it is still obviously a throwaway.
+ */
+const ADMIN_PASSWORD = process.env.MOJ_ADMIN_PASSWORD ?? "moj-admin-local";
 const ADMIN_EMAIL = process.env.MOJ_ADMIN_EMAIL ?? "admin@example.com";
 
 // DMOJ's permission codes, from spec section 3.
@@ -317,7 +323,7 @@ async function main() {
   const seed = pinned("npx", ["convex", "run", "seed:run", seedArgs], { env, capture: true });
   info((seed.stdout ?? "").trim().replace(/\n/g, "\n    "));
 
-  step(`Creating the development superuser ${ADMIN_USERNAME}/${ADMIN_PASSWORD}`);
+  step(`Creating the development superuser ${ADMIN_USERNAME}`);
   info("enrolling it in two factor authentication against MOJ_DEV_TOTP_SECRET");
   const created = pinned(
     "npx",
@@ -365,7 +371,20 @@ async function main() {
       "  Start the site with:   npm run dev",
       `  Web:                   ${APP_URL}`,
       "  Convex dashboard:      http://127.0.0.1:6791",
-      `  Sign in as:            ${ADMIN_USERNAME} / ${ADMIN_PASSWORD}`,
+      "",
+      "  Development superuser",
+      `    username:            ${ADMIN_USERNAME}`,
+      `    password:            ${ADMIN_PASSWORD}`,
+      `    email:               ${ADMIN_EMAIL}`,
+      `    totp secret:         ${env.MOJ_DEV_TOTP_SECRET}`,
+      ...(totpUri ? [`    totp uri:            ${totpUri}`] : []),
+      "",
+      "  Staff must hold a second factor, so the account is enrolled in TOTP",
+      "  against that fixed secret. Generate a code from the URI with any",
+      "  authenticator, or with otpauth: URI.parse(uri).generate().",
+      "",
+      "  Override the credentials with MOJ_ADMIN_USERNAME, MOJ_ADMIN_PASSWORD",
+      "  and MOJ_ADMIN_EMAIL before running setup.",
       "",
       "  Mail is written to the server console (MAIL_MODE=console); activation",
       "  links also appear on /accounts/register/complete/ outside production.",

@@ -36,7 +36,7 @@ npm run dev
 8. seeds the 59 DMOJ languages, the navigation bar, the misc config defaults,
    the problem groups and types, two announcements and the sample problem
    `aplusb`,
-9. creates the development superuser `admin` / `admin`, enrolled in TOTP against
+9. creates the development superuser `admin` / `moj-admin-local`, enrolled in TOTP against
    `MOJ_DEV_TOTP_SECRET` so it passes the staff two-factor gate.
 
 Then:
@@ -59,10 +59,15 @@ server console instead of sending it. The activation link is also shown on
 `/accounts/register/complete/` when `NODE_ENV` is not `production`, so a fresh
 install can be finished without a mail server.
 
-The development superuser is `admin` / `admin`, email `admin@example.com`,
-already verified, staff and superuser, with every DMOJ permission code. Change
-the username, password or email with `MOJ_ADMIN_USERNAME`, `MOJ_ADMIN_PASSWORD`
-and `MOJ_ADMIN_EMAIL` before running setup.
+The development superuser is `admin` / `moj-admin-local`, email
+`admin@example.com`, already verified, staff and superuser, with every DMOJ
+permission code. Setup prints the credentials again when it finishes. Change the
+username, password or email with `MOJ_ADMIN_USERNAME`, `MOJ_ADMIN_PASSWORD` and
+`MOJ_ADMIN_EMAIL` before running setup.
+
+The password is deliberately not `admin`: the login prompt checks what is typed
+against Have I Been Pwned, and `admin` is in that corpus, so it would send the
+documented login to the forced-change interstitial instead of to the site.
 
 Staff accounts without a second factor are redirected to `/accounts/2fa/`
 everywhere except the account pages, matching DMOJ's `DMOJ_REQUIRE_STAFF_2FA`.

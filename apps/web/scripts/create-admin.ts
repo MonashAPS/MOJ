@@ -21,7 +21,7 @@ import { db, schema } from "../src/auth/db";
 import { auth } from "../src/auth/server";
 
 const username = process.argv[2] ?? "admin";
-const password = process.argv[3] ?? "admin";
+const password = process.argv[3] ?? "moj-admin-local";
 const email = process.argv[4] ?? "admin@example.com";
 
 /** Five fixed scratch codes, in the plugin's `xxxxx-xxxxx` shape. */
@@ -60,8 +60,9 @@ async function main() {
   if (!userId) {
     // Sign up with a throwaway strong password so Better Auth builds the user
     // and account rows exactly as the form would, then set the real password
-    // below. The dev password "admin" is shorter than minPasswordLength on
-    // purpose, and only the sign-up endpoint enforces that.
+    // below. Sign-up is the only endpoint that enforces minPasswordLength and
+    // the breach check, and a fixed development password should not have to
+    // satisfy either.
     const result = await auth.api.signUpEmail({
       body: {
         email,
