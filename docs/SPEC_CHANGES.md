@@ -86,6 +86,15 @@ own `error.tsx` so a refused subscription shows a panel inside the console inste
     a native file input, and the kit has no replacement; the visible control is still the kit's, and there is no
     other way to open a file dialog.
 
+- Two findings outside this branch's scope, both of which break `next build` (dev and `tsc` are fine):
+  `@moj/protocol` ships raw TypeScript with `./apiV2.js`-style specifiers inside `src/index.ts`, which
+  Turbopack cannot resolve because the package has no build step; the extensions are dropped here (the repo is
+  on `moduleResolution: Bundler`), and the owner may prefer to give the package a `dist` instead. The remaining
+  error is `@moj/content`'s `new URL("../../typst/", import.meta.url)` in `render-pdf.ts`: Turbopack traces it
+  statically and fails on the directory. A `turbopackIgnore` comment does not help; either resolve the tree
+  from `process.cwd()` at runtime or add `@moj/content` to `serverExternalPackages` in `apps/web/next.config.ts`.
+  That one is left for its owner.
+
 - Staff two-factor is enforced by `apps/web/src/proxy.ts` for every page including `/admin`, so a staff account
   without a factor cannot reach the console at all. Screenshots of this branch were taken with a temporary
   local escape hatch that was reverted; whoever reviews the console needs an enrolled account, or the gate has

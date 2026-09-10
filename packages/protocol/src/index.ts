@@ -4,8 +4,8 @@
  * sides of a protocol can import the same one.
  */
 
-export * from "./apiV2.js";
-export * from "./judge.js";
+export * from "./apiV2";
+export * from "./judge";
 
 export {
   API_ERROR_CODES,
@@ -31,4 +31,4 @@ export {
   problemSummary,
   problemUpsertInput,
   problemUpsertResponse,
-} from "./problems.js";
+} from "./problems";
