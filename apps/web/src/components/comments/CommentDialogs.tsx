@@ -4,10 +4,11 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import {
   Button,
-  cn,
   ContentDescription,
+  cn,
   Dialog,
   DialogContent,
+  EmptyRow,
   RatingName,
   Skeleton,
   Table,
@@ -16,7 +17,6 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  EmptyRow,
 } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { useEffect, useState } from "react";

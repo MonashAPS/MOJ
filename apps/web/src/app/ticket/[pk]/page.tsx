@@ -31,7 +31,5 @@ export default async function TicketPage({ params }: Props) {
     ),
   );
 
-  return (
-    <TicketClient ticketId={ticket._id} initial={ticket} initialHtml={Object.fromEntries(rendered)} />
-  );
+  return <TicketClient ticketId={ticket._id} initial={ticket} initialHtml={Object.fromEntries(rendered)} />;
 }

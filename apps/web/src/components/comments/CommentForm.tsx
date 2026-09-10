@@ -13,6 +13,7 @@ export type CommentFormProps = {
   submitLabel?: string;
   placeholder?: string;
   initialValue?: string;
+  /** Omitted where the mutation imposes no limit, as on a ticket message. */
   maxLength?: number;
   preset?: string;
   rows?: number;
@@ -33,7 +34,7 @@ export function CommentForm({
   submitLabel = "Post!",
   placeholder = "Write a comment…",
   initialValue = "",
-  maxLength = 8192,
+  maxLength,
   preset = "comment",
   rows = 7,
   autoFocus = false,

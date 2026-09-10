@@ -53,7 +53,7 @@ export default async function FlatPage({ params }: Props) {
         }
       />
       <div id="content-body">
-        <ContentDescription html={html} />
+        <ContentDescription html={html} className="max-w-(--prose-max)" />
       </div>
     </>
   );

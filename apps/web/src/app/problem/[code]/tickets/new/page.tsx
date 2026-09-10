@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { NewTicketForm } from "@/components/tickets/NewTicketForm";
 import { queryAsViewer } from "@/lib/convex-server";
+import { viewerLanguage } from "@/lib/language.server";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,9 @@ type Props = { params: Promise<{ code: string }> };
 
 export async function generateMetadata({ params }: Props) {
   const { code } = await params;
-  const problem = await queryAsViewer(api.problems.get, { code }).catch(() => null);
+  const problem = await queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }).catch(
+    () => null,
+  );
   return { title: problem ? `New ticket for ${problem.name}` : "Page not found" };
 }
 
@@ -20,7 +23,7 @@ export async function generateMetadata({ params }: Props) {
 export default async function NewProblemTicketPage({ params }: Props) {
   const { code } = await params;
   const [problem, viewerState] = await Promise.all([
-    queryAsViewer(api.problems.get, { code }).catch(() => null),
+    queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
   ]);
 

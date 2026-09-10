@@ -9,8 +9,8 @@ import {
   AvatarFallback,
   AvatarImage,
   Button,
-  cn,
   ContentDescription,
+  cn,
   Dialog,
   DialogContent,
   DialogFooter,
@@ -19,6 +19,7 @@ import {
   RatingName,
   Textarea,
   TitleRow,
+  Tooltip,
   TwoColumn,
 } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
@@ -164,7 +165,10 @@ export function TicketClient({
 function Message({ message, html }: { message: TicketMessage; html: string }) {
   const author = message.author;
   return (
-    <section id={`message-${message._id}`} className="flex gap-3 border-t border-border py-4 first:border-t-0 first:pt-0">
+    <section
+      id={`message-${message._id}`}
+      className="flex gap-3 border-t border-border py-4 first:border-t-0 first:pt-0"
+    >
       <Avatar className="mt-0.5 size-7 shrink-0">
         <AvatarImage src={identiconUrl(author?.username ?? "deleted", 56)} alt="" />
         <AvatarFallback>{initials(author?.displayName ?? "?")}</AvatarFallback>
@@ -205,16 +209,17 @@ function AssigneesPanel({ ticket, ticketId }: { ticket: TicketDetail; ticketId: 
       title={title}
       action={
         ticket.canAssign ? (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Edit assignees"
-            title="Edit assignees"
-            onClick={() => setEditing(true)}
-            className="text-muted-foreground"
-          >
-            <Pencil aria-hidden />
-          </Button>
+          <Tooltip content="Edit assignees">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Edit assignees"
+              onClick={() => setEditing(true)}
+              className="text-titlebar-ink-2 hover:bg-white/10 hover:text-titlebar-ink"
+            >
+              <Pencil aria-hidden />
+            </Button>
+          </Tooltip>
         ) : null
       }
     >
@@ -339,19 +344,22 @@ function NotesPanel({ ticket, ticketId }: { ticket: TicketDetail; ticketId: Id<"
     <Panel
       title="Assignee notes"
       action={
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Edit assignee notes"
-          title="Edit assignee notes"
-          onClick={() => setEditing(true)}
-          className="text-muted-foreground"
-        >
-          <Pencil aria-hidden />
-        </Button>
+        <Tooltip content="Edit assignee notes">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Edit assignee notes"
+            onClick={() => setEditing(true)}
+            className="text-titlebar-ink-2 hover:bg-white/10 hover:text-titlebar-ink"
+          >
+            <Pencil aria-hidden />
+          </Button>
+        </Tooltip>
       }
     >
-      <p className={cn("whitespace-pre-wrap text-sm", ticket.notes ? "text-subtle" : "text-muted-foreground")}>
+      <p
+        className={cn("whitespace-pre-wrap text-sm", ticket.notes ? "text-subtle" : "text-muted-foreground")}
+      >
         {ticket.notes || "Nothing here."}
       </p>
 

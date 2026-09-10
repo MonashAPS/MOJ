@@ -28,9 +28,7 @@ export function PostCard({
       )}
     >
       <h2 className="flex items-start gap-2 text-h2">
-        {post.sticky ? (
-          <Pin className="mt-0.5 size-4 shrink-0 text-primary" aria-label="Pinned" />
-        ) : null}
+        {post.sticky ? <Pin className="mt-0.5 size-4 shrink-0 text-primary" aria-label="Pinned" /> : null}
         <Link href={post.href} className="min-w-0 text-link">
           {post.title}
         </Link>

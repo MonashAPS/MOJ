@@ -25,13 +25,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 import { formatDateTime, formatRelative } from "@/lib/format";
-import {
-  PER_PAGE,
-  scopeFromParams,
-  type TicketPage,
-  type TicketSummary,
-  ticketQueryArgs,
-} from "./filters";
+import { PER_PAGE, scopeFromParams, type TicketPage, type TicketSummary, ticketQueryArgs } from "./filters";
 
 export function TicketsClient({
   initial,

@@ -26,7 +26,8 @@ export async function Comments({ targetType, targetKey }: CommentsProps) {
 
   const rendered = await Promise.all(
     data.comments.map(
-      async (comment) => [commentHtmlKey(comment), await renderContent(comment.body, comment.bodyPreset)] as const,
+      async (comment) =>
+        [commentHtmlKey(comment), await renderContent(comment.body, comment.bodyPreset)] as const,
     ),
   );
 

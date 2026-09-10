@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Button,
-  cn,
-  ContentDescription,
-  ToggleGroup,
-  ToggleGroupItem,
-  Tooltip,
-  focusRing,
-} from "@moj/ui";
+import { Button, ContentDescription, cn, focusRing, ToggleGroup, ToggleGroupItem, Tooltip } from "@moj/ui";
 import { Bold, Code2, Italic, Link2, Sigma } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { renderUserMarkdown } from "./actions";
@@ -134,7 +126,12 @@ export function MarkdownEditor({
   return (
     <div
       data-slot="markdown-editor"
-      className={cn("overflow-hidden rounded-md border border-input bg-card", className)}
+      // The textarea has no border of its own, so the frame carries the one ring.
+      className={cn(
+        "overflow-hidden rounded-md border border-input bg-card transition-[border-color,box-shadow]",
+        "focus-within:border-royal focus-within:ring-[3px] focus-within:ring-royal/45",
+        className,
+      )}
     >
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-2 py-1.5">
         <ToggleGroup
