@@ -4,13 +4,16 @@ import { forbidden, notFound } from "next/navigation";
 import { ProblemPage } from "@/components/problems/ProblemHeader";
 import { SubmitForm } from "@/components/problems/SubmitForm";
 import { queryAsViewer } from "@/lib/convex-server";
+import { viewerLanguage } from "@/lib/language.server";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
   const { code } = await params;
-  const problem = await queryAsViewer(api.problems.get, { code }).catch(() => null);
-  return { title: problem ? `Submit to ${problem.name}` : "No such problem" };
+  const problem = await queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }).catch(
+    () => null,
+  );
+  return { title: problem ? `Submit to ${problem.statement.name}` : "No such problem" };
 }
 
 /** DMOJ's `problem_submit` with a submission id: the same form, prefilled with
@@ -19,7 +22,7 @@ export default async function ResubmitPage({ params }: { params: Promise<{ code:
   const { code, id } = await params;
   const numeric = Number(id);
   const [problem, previous] = await Promise.all([
-    queryAsViewer(api.problems.get, { code }),
+    queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }),
     queryAsViewer(api.submissions.resubmit, {
       submissionId: Number.isFinite(numeric) ? numeric : id,
     }).catch(() => null),
@@ -28,7 +31,7 @@ export default async function ResubmitPage({ params }: { params: Promise<{ code:
   if (!problem.canSubmit) forbidden();
 
   return (
-    <ProblemPage problem={problem} active="submit" title={`Submit to ${problem.name}`}>
+    <ProblemPage problem={problem} active="submit" title={`Submit to ${problem.statement.name}`}>
       <SubmitForm
         problemCode={problem.code}
         problemName={problem.name}

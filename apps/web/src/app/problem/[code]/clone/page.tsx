@@ -4,6 +4,7 @@ import { forbidden, notFound } from "next/navigation";
 import { CloneForm } from "@/components/problems/CloneForm";
 import { ProblemPage } from "@/components/problems/ProblemHeader";
 import { queryAsViewer } from "@/lib/convex-server";
+import { viewerLanguage } from "@/lib/language.server";
 
 export const metadata: Metadata = { title: "Clone problem" };
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function ClonePage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const [problem, viewerState] = await Promise.all([
-    queryAsViewer(api.problems.get, { code }),
+    queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
   ]);
   if (!problem) notFound();
@@ -19,7 +20,7 @@ export default async function ClonePage({ params }: { params: Promise<{ code: st
   if (!problem.canEdit || !username) forbidden();
 
   return (
-    <ProblemPage problem={problem} active="clone" title={`Clone ${problem.name}`}>
+    <ProblemPage problem={problem} active="clone" title={`Clone ${problem.statement.name}`}>
       <CloneForm
         username={username}
         source={{

@@ -43,7 +43,7 @@ export function ProblemPage({
           breadcrumb ??
           (active === "statement" ? undefined : (
             <Link href={`/problem/${problem.code}`} className="hover:text-link">
-              {problem.name}
+              {problem.statement.name}
             </Link>
           ))
         }
@@ -51,7 +51,7 @@ export function ProblemPage({
           title ?? (
             <span className="flex items-center gap-2">
               {state ? <state.Icon size={20} aria-label={state.label} style={{ color: state.tone }} /> : null}
-              <span>{problem.name}</span>
+              <span>{problem.statement.name}</span>
             </span>
           )
         }

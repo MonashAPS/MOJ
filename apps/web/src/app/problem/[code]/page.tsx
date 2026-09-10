@@ -10,16 +10,19 @@ import { ProblemPage } from "@/components/problems/ProblemHeader";
 import { Statement } from "@/components/problems/Statement";
 import { queryAsViewer } from "@/lib/convex-server";
 import { formatRelative } from "@/lib/format";
+import { viewerLanguage } from "@/lib/language.server";
 import { decorateStatement } from "@/lib/statement";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
   const { code } = await params;
-  const problem = await queryAsViewer(api.problems.get, { code }).catch(() => null);
+  const language = await viewerLanguage();
+  const problem = await queryAsViewer(api.problems.get, { code, language }).catch(() => null);
   if (!problem) return { title: "No such problem" };
   return {
-    title: problem.name,
+    // DMOJ titles the page with the translation when there is one.
+    title: problem.statement.name,
     description: problem.summary ?? undefined,
     openGraph: problem.ogImage ? { images: [problem.ogImage] } : undefined,
   };
@@ -27,7 +30,8 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
 
 export default async function ProblemStatementPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
-  const problem = await queryAsViewer(api.problems.get, { code });
+  const language = await viewerLanguage();
+  const problem = await queryAsViewer(api.problems.get, { code, language });
   if (!problem) notFound();
 
   const [{ html }, bar] = await Promise.all([
@@ -38,6 +42,7 @@ export default async function ProblemStatementPage({ params }: { params: Promise
 
   const siblings = bar?.problems ?? [];
   const here = siblings.findIndex((row) => row.code === problem.code);
+  const showClarifications = !!problem.contestProblem && bar?.contest.useClarifications === true;
   const previous = here > 0 ? siblings[here - 1] : undefined;
   const next = here >= 0 && here < siblings.length - 1 ? siblings[here + 1] : undefined;
 
@@ -59,6 +64,30 @@ export default async function ProblemStatementPage({ params }: { params: Promise
         ) : undefined
       }
     >
+      {/* DMOJ puts clarifications above the statement, newest first, and only
+          while the viewer is in a contest that asked for them. */}
+      {showClarifications ? (
+        <section className="mb-6">
+          <h2 className="mb-3 font-display text-h2 font-bold tracking-tight text-foreground">
+            Clarifications
+          </h2>
+          {problem.clarifications.length === 0 ? (
+            <p className="text-base text-muted-foreground">No clarifications have been made at this time.</p>
+          ) : (
+            <ul className="grid gap-3">
+              {problem.clarifications.map((clarification) => (
+                <li key={clarification.id} className="rounded-md border border-border bg-card p-3">
+                  <p className="mb-1 font-mono text-sm tabular-nums text-muted-foreground">
+                    {formatRelative(clarification.date)}
+                  </p>
+                  <p className="whitespace-pre-wrap text-base text-foreground">{clarification.description}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
+
       <Statement html={statement} />
 
       {problem.license ? (
@@ -104,29 +133,7 @@ export default async function ProblemStatementPage({ params }: { params: Promise
         </Button>
       </div>
 
-      {problem.contestProblem ? (
-        <section className="mt-8">
-          <h2 className="mb-3 font-display text-h2 font-bold tracking-tight text-foreground">
-            Clarifications
-          </h2>
-          {problem.clarifications.length === 0 ? (
-            <p className="text-base text-muted-foreground">No clarifications have been made at this time.</p>
-          ) : (
-            <ul className="grid gap-3">
-              {problem.clarifications.map((clarification) => (
-                <li key={clarification.id} className="rounded-md border border-border bg-card p-3">
-                  <p className="mb-1 font-mono text-sm tabular-nums text-muted-foreground">
-                    {formatRelative(clarification.date)}
-                  </p>
-                  <p className="whitespace-pre-wrap text-base text-foreground">{clarification.description}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      ) : (
-        <Comments targetType="problem" targetKey={problem.code} />
-      )}
+      <Comments targetType="problem" targetKey={problem.code} />
     </ProblemPage>
   );
 }

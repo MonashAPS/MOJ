@@ -1,6 +1,6 @@
 "use client";
 
-import type { api } from "@convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import {
   Badge,
   Button,
@@ -12,7 +12,18 @@ import {
   RatingName,
   Tooltip,
 } from "@moj/ui";
-import { Check, ChevronRight, Clock, Code2, Database, HardDrive, PencilLine, Trophy } from "lucide-react";
+import { useQuery } from "convex/react";
+import {
+  Check,
+  ChevronRight,
+  Clock,
+  Code2,
+  Database,
+  HardDrive,
+  LifeBuoy,
+  PencilLine,
+  Trophy,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { formatDate } from "@/lib/format";
@@ -90,6 +101,32 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+/**
+ * DMOJ's ticket row: "Manage tickets" for someone who can edit the problem,
+ * "My tickets" for everyone else, with the open count as a badge
+ * (`views/problem.py:177`). The count is the tickets the viewer may see.
+ */
+function TicketLink({ problem }: { problem: ProblemDetail }) {
+  const tickets = useQuery(api.tickets.list, { problemCode: problem.code, onlyOwn: !problem.canEdit });
+  if (!tickets || tickets.totalCount === 0) return null;
+  const open = tickets.page.filter((ticket) => ticket.isOpen).length;
+
+  return (
+    <Link
+      href={`/problem/${problem.code}/tickets/`}
+      className="flex items-center gap-2 text-subtle hover:text-link"
+    >
+      <LifeBuoy size={13} aria-hidden className="shrink-0 text-muted-foreground" />
+      <span>{problem.canEdit ? "Manage tickets" : "My tickets"}</span>
+      {open > 0 ? (
+        <Badge variant="accent" mono>
+          {open}
+        </Badge>
+      ) : null}
+    </Link>
+  );
+}
+
 export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
   const [allContests, setAllContests] = useState(false);
   const contestProblem = problem.contestProblem;
@@ -149,6 +186,7 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
         <Link href={`/problem/${problem.code}/rank/`} className="text-subtle hover:text-link">
           Best submissions
         </Link>
+        <TicketLink problem={problem} />
       </div>
 
       <div className="border-t border-border pt-1">

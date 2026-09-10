@@ -8,6 +8,7 @@ import { Comments } from "@/components/comments/Comments";
 import { ProblemPage } from "@/components/problems/ProblemHeader";
 import { Statement } from "@/components/problems/Statement";
 import { queryAsViewer } from "@/lib/convex-server";
+import { viewerLanguage } from "@/lib/language.server";
 import { decorateStatement } from "@/lib/statement";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
 export default async function EditorialPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const [problem, editorial] = await Promise.all([
-    queryAsViewer(api.problems.get, { code }),
+    queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }),
     queryAsViewer(api.problems.editorial, { code }),
   ]);
   if (!problem || !editorial) notFound();

@@ -11,7 +11,8 @@ export type ProblemTabKey =
   | "vote"
   | "test_data"
   | "manage"
-  | "clone";
+  | "clone"
+  | "tickets";
 
 /**
  * DMOJ keeps these as links inside the info box; the club asked for the page's

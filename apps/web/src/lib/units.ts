@@ -14,9 +14,11 @@ export function formatMemory(kilobytes: number | null | undefined): string {
   return `${megabytes < 10 ? megabytes.toFixed(1) : Math.round(megabytes)} MB`;
 }
 
-/** A problem's memory limit, stored in kilobytes. */
+/** A problem's memory limit, stored in kilobytes. DMOJ's `kbsimpleformat`
+ *  always prints megabytes, with a decimal only when the value is not exact. */
 export function formatMemoryLimit(kilobytes: number): string {
-  return kilobytes % 1024 === 0 ? `${kilobytes / 1024} MB` : `${kilobytes} KB`;
+  const megabytes = kilobytes / 1024;
+  return `${Number.isInteger(megabytes) ? megabytes : megabytes.toFixed(1)} MB`;
 }
 
 /** A problem's time limit, stored in seconds. */
