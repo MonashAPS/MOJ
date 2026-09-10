@@ -79,9 +79,14 @@ export default async function TwoFactorPage({
         <Panel
           title="Scratch codes"
           action={
-            <Badge variant={account.scratchCodesLeft > 0 ? "neutral" : "outline"} mono>
-              {account.totpEnabled ? `${account.scratchCodesLeft} left` : "None"}
-            </Badge>
+            // `mono` uppercases, which is right for a count and wrong for a word.
+            account.totpEnabled ? (
+              <Badge variant={account.scratchCodesLeft > 0 ? "neutral" : "outline"} mono>
+                {`${account.scratchCodesLeft} / 5`}
+              </Badge>
+            ) : (
+              <Badge variant="outline">None</Badge>
+            )
           }
         >
           <div className="grid gap-3">

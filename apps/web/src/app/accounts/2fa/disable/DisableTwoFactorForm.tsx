@@ -35,8 +35,7 @@ export function DisableTwoFactorForm({ blocked }: { blocked: boolean }) {
       const result = await authClient.twoFactor.disable({ password });
       if (result.error) {
         setError(
-          result.error.message ??
-            "Two factor authentication could not be turned off. Check your password.",
+          result.error.message ?? "Two factor authentication could not be turned off. Check your password.",
         );
         return;
       }

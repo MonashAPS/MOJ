@@ -29,9 +29,9 @@ import {
 } from "@moj/ui";
 import { AlertCircle, Fingerprint, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { authClient } from "@/auth/client";
+import { useEffect, useState } from "react";
 import type { PasskeySummary } from "@/auth/account-state";
+import { authClient } from "@/auth/client";
 import { formatDateTime } from "@/lib/format";
 
 /** DMOJ's `WebAuthnAttestationView` plus the credential list from its edit
@@ -52,7 +52,13 @@ export function PasskeyManager({
   const [pendingDelete, setPendingDelete] = useState<PasskeySummary | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const supported = typeof window !== "undefined" && typeof window.PublicKeyCredential !== "undefined";
+  // Whether the browser has WebAuthn is not knowable on the server, so the
+  // answer arrives after mount; reading it during render is a hydration
+  // mismatch. Assume yes until told otherwise, which is the common case.
+  const [supported, setSupported] = useState(true);
+  useEffect(() => {
+    setSupported(typeof window.PublicKeyCredential !== "undefined");
+  }, []);
 
   async function register(event: React.FormEvent) {
     event.preventDefault();
@@ -138,9 +144,7 @@ export function PasskeyManager({
               {busy ? "Waiting for your device…" : "Register a passkey"}
             </Button>
             {!supported ? (
-              <span className="text-sm text-muted-foreground">
-                This browser does not support passkeys.
-              </span>
+              <span className="text-sm text-muted-foreground">This browser does not support passkeys.</span>
             ) : null}
           </div>
         </form>
@@ -210,8 +214,7 @@ export function PasskeyManager({
           <AlertDialogFooter>
             <AlertDialogCancel>Keep it</AlertDialogCancel>
             <AlertDialogAction
-              variant="danger"
-              busy={deleting}
+              aria-busy={deleting || undefined}
               onClick={(event) => {
                 event.preventDefault();
                 if (pendingDelete) void remove(pendingDelete);

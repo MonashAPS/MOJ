@@ -6,10 +6,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authClient } from "@/auth/client";
-import { AuthCard } from "@/components/auth/AuthCard";
-import { OneTimeCode } from "@/components/auth/OneTimeCode";
 import { QrCode } from "@/components/accounts/QrCode";
 import { ScratchCodes } from "@/components/accounts/ScratchCodes";
+import { AuthCard } from "@/components/auth/AuthCard";
+import { OneTimeCode } from "@/components/auth/OneTimeCode";
 
 type Stage = "password" | "scan" | "codes";
 
@@ -40,7 +40,8 @@ export function EnableTotpForm({ next }: { next: string }) {
     setError(null);
     try {
       const result = await authClient.twoFactor.enable({ password, issuer: "MOJ" });
-      if (result.error || !result.data?.totpURI) {
+      const enrolment = result.data as { totpURI?: string; backupCodes?: string[] } | null;
+      if (result.error || !enrolment?.totpURI) {
         setError(
           result.error?.status === 400
             ? "That password is not right."
@@ -48,8 +49,8 @@ export function EnableTotpForm({ next }: { next: string }) {
         );
         return;
       }
-      setTotpUri(result.data.totpURI);
-      setScratchCodes(result.data.backupCodes ?? []);
+      setTotpUri(enrolment.totpURI);
+      setScratchCodes(enrolment.backupCodes ?? []);
       setStage("scan");
     } catch {
       setError("Something went wrong. Try again.");
@@ -68,8 +69,10 @@ export function EnableTotpForm({ next }: { next: string }) {
         setError("That code is not right. Wait for the next one and try again.");
         return;
       }
+      // No `router.refresh()` here: the page guard sends an account that already
+      // has two factor on back to the overview, which would take the scratch
+      // codes away before they had been read. The refresh happens on the way out.
       setStage("codes");
-      router.refresh();
     } catch {
       setError("Something went wrong. Try again.");
     } finally {
@@ -127,11 +130,7 @@ export function EnableTotpForm({ next }: { next: string }) {
       <AuthCard
         title="Scan this code"
         subtitle="Add it to your authenticator app, then type the code it shows."
-        footer={
-          <span>
-            No camera? Type the key below into the app by hand instead.
-          </span>
-        }
+        footer={<span>No camera? Type the key above into your app by hand instead.</span>}
       >
         <form
           onSubmit={(event) => {

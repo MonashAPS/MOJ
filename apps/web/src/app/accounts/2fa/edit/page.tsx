@@ -16,9 +16,6 @@ export default async function EditTwoFactorPage({
   // DMOJ's `TOTPEditView.check_skip`: nothing to edit when it is off.
   if (!account.totpEnabled) redirect("/accounts/2fa/");
   return (
-    <RegenerateScratchCodes
-      next={safeNext(next, "/accounts/2fa/")}
-      remaining={account.scratchCodesLeft}
-    />
+    <RegenerateScratchCodes next={safeNext(next, "/accounts/2fa/")} remaining={account.scratchCodesLeft} />
   );
 }
