@@ -408,3 +408,25 @@ site media directory (statement images) and the problem data directory from the 
 paths (`tools/import/dump-<date>.sql.gz`, `infra/media/`, `infra/problems/`), then `npm run import` loads them into
 the local Convex and Postgres. The Django `SECRET_KEY` needed for TOTP decryption is read from the box into
 `tools/import/secrets.env` (gitignored).
+
+## 20. Navigation and search improvements (club feedback, 2026-09-10)
+
+DMOJ's layout stays, but two things members asked for are added on top:
+
+Contest navigation. When the viewer is in contest mode, or is looking at any page that belongs to a contest
+(`/contest/[key]/...`, or `/problem/[code]` where the problem is in the viewer's current contest), a second bar
+renders directly under the main nav (`ContestBar`, 36 px, surface colour, sticky with the nav): contest name
+linking to `/contest/[key]`, then one chip per problem with its label (A, B, C ...) coloured by the viewer's state
+(solved, attempted, untouched), then links Standings, Submissions (mine), Clarifications (when enabled), and the live
+countdown. On a problem page inside a contest the title row shows a breadcrumb "Contest name / A. Problem name" and
+previous/next problem links at the end of the statement. The floater box from DMOJ remains for pages outside the
+contest (e.g. the user's profile) but is hidden when the ContestBar is visible. Everything is keyboard reachable.
+
+Search. `/problems/` gets a real filter panel (state kept in the URL query so links are shareable): text search
+(name, code, statement), Status (all / solved / attempted / unsolved, relative to the viewer), Solved by (one or more
+usernames, with the modifier "and not by me" which is the case members asked for), Types (multi), Group, Points range,
+Author, Show editorial-only, Sort (code, name, points, AC rate, users, date). The user page `/user/[user]/solved`
+gains a "Compare with me" toggle that lists problems that user solved and the viewer has not. A global command
+palette (Ctrl+K or `/`) searches problems, users, contests and organisations from any page, with recent items, and
+navigates on Enter; it uses the Convex search indexes. Users list gets a username search box that jumps to the page
+containing the user, as DMOJ's `/users/find` does.
