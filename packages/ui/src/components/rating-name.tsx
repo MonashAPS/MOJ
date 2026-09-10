@@ -34,6 +34,7 @@ export function ratingTitle(rating: number | null | undefined): string {
   return "Newbie";
 }
 
+/** Rating colour applies to the username glyphs only, at weight 500, in the mono. */
 export function RatingName({
   username,
   rating,
@@ -51,18 +52,28 @@ export function RatingName({
   className?: string;
   children?: ReactNode;
 }) {
-  const cls = cn("rating", ratingClass(rating), isAdmin && "admin", className);
+  const cls = cn("rating font-mono font-medium", ratingClass(rating), isAdmin && "admin", className);
   const text = children ?? displayName ?? username;
-  if (!href) {
-    return (
-      <span className={cls} title={ratingTitle(rating)}>
-        {text}
-      </span>
-    );
-  }
   return (
     <span className={cls} title={ratingTitle(rating)}>
-      <a href={href}>{text}</a>
+      {href ? <a href={href}>{text}</a> : text}
+    </span>
+  );
+}
+
+/** Always signed, always mono. */
+export function RatingDelta({ delta, className }: { delta: number; className?: string }) {
+  if (!Number.isFinite(delta)) return null;
+  return (
+    <span
+      className={cn(
+        "font-mono text-sm font-medium tabular-nums",
+        delta >= 0 ? "text-good" : "text-bad",
+        className,
+      )}
+    >
+      {delta >= 0 ? "+" : "−"}
+      {Math.abs(delta)}
     </span>
   );
 }

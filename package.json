@@ -26,7 +26,8 @@
     "typecheck": "tsc -p convex/tsconfig.json --noEmit && npm run typecheck --workspaces --if-present",
     "convex:codegen": "convex codegen",
     "convex:deploy": "convex deploy",
-    "seed": "convex run seed:run '{}'"
+    "seed": "convex run seed:run '{}'",
+    "prepare": "npm run build --workspace packages/content"
   },
   "dependencies": {
     "@convex-dev/aggregate": "^0.3.1",
