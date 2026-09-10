@@ -16,28 +16,34 @@ docker logs --tail 100 moj-judge
 the one serving HTTP actions, not the web app and not the cloud origin. From the judge box:
 
 ```bash
-curl -i "$MOJ_URL/judge/abort?submissionId=1"
+curl -i "$MOJ_URL/health"
 ```
 
-A JSON body, even an error one, means you have the right host. HTML means you are pointed at the web app. A
-connection refused means a firewall or the wrong port.
+A JSON body means you have the right host. HTML means you are pointed at the web app. A connection refused means
+a firewall or the wrong port.
 
 **Does the name match?** The `JUDGE_NAME` in the container has to be exactly the name of a judge in the staff
 console. There is no automatic registration; an unknown name is rejected.
 
-**Is the key right?** The site stores only a SHA-256 hash, so you cannot look the key up. Regenerate it in the
-staff console and restart the container with the new value. Compare the hashes if you want to check before
-regenerating:
+**Is the key right?** The site stores only a SHA-256 hash, so you cannot look the key up. Compare the hashes
+before regenerating:
 
 ```bash
 printf %s "$JUDGE_KEY" | sha256sum
 ```
 
-**Is the judge blocked or disabled?** Both are switches on the judge's page in the staff console, and a blocked
+If it does not match, issue a new key in the staff console and restart the container with it.
+
+**Is the judge blocked or disabled?** Both are switches on the judge's row in the staff console, and a blocked
 judge is refused at the handshake.
 
 **Two judges, one name.** Two containers using the same name will each disconnect the other, so the judge appears
 to flap online and offline every few seconds. Give the second one its own record.
+
+**A firewall between the container and the host.** In development the judge reaches the Convex port through
+`host.docker.internal`, which a host firewall that trusts only the loopback interface will block. Either allow the
+Docker bridge through, or run the container with `--network host` and point `MOJ_URL` at `http://127.0.0.1:3211`.
+See [quick start](/guide/quick-start#when-the-docker-bridge-cannot-reach-the-host).
 
 **Clock skew.** A judge whose clock is minutes out fails TLS. `timedatectl` on the judge box.
 
@@ -47,37 +53,74 @@ The submission page says Queued and stays there.
 
 **Is any judge online?** `/status/`. No judge means nothing will ever claim it.
 
-**Does a judge have this problem?** The judge's page lists the problem codes it reported at handshake. A problem
-whose data has not been rsynced to any judge queues forever. Fix the sync, then:
+**Does a judge have this problem?** The judge's row in the staff console lists the problem codes it reported at
+handshake. A problem whose data has not reached any judge queues forever. Fix the sync, then:
 
 ```bash
 docker restart moj-judge     # forces a fresh handshake and reindex
 ```
 
-**Does a judge have this language?** The same page lists the runtimes. A tier 1 judge will not claim a Rust
+**Does a judge have this language?** The same row lists the runtimes. A tier 1 judge will not claim a Rust
 submission. The submit page normally hides a language nothing can grade, so this usually means the only judge that
 had it went offline after the page was loaded.
 
-**Is the submission pinned?** A submission with `judgePin` set only goes to that judge. If that judge is offline,
-it waits. This is visible on the submission's admin page.
+**Is the submission pinned?** A submission pinned to one judge only goes to that judge. If that judge is offline,
+it waits.
 
 **Tier.** Only judges in the lowest online tier claim work. A tier 1 judge that is online but hung means tier 2
 judges will not pick up the slack. Disable the hung judge and the tier below takes over.
 
-**Is it a rejudge behind live traffic?** Priorities 2 and 3 are skipped while the tier is busy, on purpose. A large
-rejudge during a busy period progresses slowly and speeds up when things go quiet. Watch it on the jobs page.
+**Is it a rejudge behind live traffic?** Rejudge priorities are skipped while the tier is busy, on purpose. A
+large rejudge during a busy period progresses slowly and speeds up when things go quiet. Watch it on the jobs
+page.
 
 **Stuck in Processing rather than Queued** is a different thing: a judge claimed it and died. The recovery cron
 returns it to the queue after 60 seconds without a heartbeat, or 15 minutes without case progress, and after a
-second failure marks it as an internal error rather than looping.
+second failure marks it as an internal error rather than looping. A submission whose abort was requested is
+aborted rather than requeued.
+
+## Nobody appears to be signed in
+
+The site renders, but every page behaves as though you were signed out, and requests feel slow before they do it.
+
+This is the Convex backend failing to fetch the app's signing keys. Convex validates Better Auth's JWTs by
+fetching the key set from `AUTH_JWKS_URL`, which by default points back at the web app. If that fetch cannot
+succeed, every authenticated request waits for the timeout and then falls back to anonymous.
+
+In development the usual cause is a host firewall that filters the Docker bridge, so the backend container cannot
+reach the dev server on the host at all.
+
+`npm run setup` detects this. It probes whether the backend container can reach the host and, when it cannot,
+inlines the key set as a `data:` URI in `AUTH_JWKS_URL` instead of a URL, which Convex accepts. It leaves
+`AUTH_URL` unset in the same case, so the problems API verifies keys against its own key table rather than waiting
+on a fetch that cannot succeed. You will see these lines in the setup output:
+
+```
+the convex container cannot reach the host, so the JWKS is inlined as a data URI
+the convex container cannot reach the host, so AUTH_URL is left unset
+```
+
+The cost is that rotating the signing keys needs another `npm run setup`, and that a problems API key has to exist
+in the key table rather than only in Better Auth. To go back to fetching a URL, open the firewall for the Docker
+bridge subnet and re-run setup.
+
+To check what the deployment is actually using:
+
+```bash
+npx convex env get AUTH_JWKS_URL
+npx convex env list
+```
+
+In production the same symptom means the backend cannot reach `https://<your domain>/api/auth/jwks`, which is
+usually DNS inside the compose network or a proxy that is not up yet.
 
 ## Convex admin key problems
 
 **`npx convex deploy` says it cannot authenticate.** The self-hosted backend needs both variables:
 
 ```bash
-export CONVEX_SELF_HOSTED_URL=https://convex.example.org
-export CONVEX_SELF_HOSTED_ADMIN_KEY='moj|01ab...'
+export CONVEX_SELF_HOSTED_URL=https://convex.judge.example.org
+export CONVEX_SELF_HOSTED_ADMIN_KEY='moj-prod|01ab...'
 npx convex deploy
 ```
 
@@ -86,95 +129,132 @@ The key contains a `|`. Quote it, or the shell will try to run half of it as a p
 **Generating a new one:**
 
 ```bash
-docker compose -f infra/compose.prod.yml exec convex-backend ./generate_admin_key.sh
+docker compose -f infra/compose.prod.yml --project-directory . \
+  exec convex-backend ./generate_admin_key.sh
 ```
 
 Generating a key does not invalidate the old ones.
 
-**`npm run dev` cannot reach the backend.** `.env.local` is written by `npm run setup` and holds the development
-key. If the compose stack was recreated with a new `INSTANCE_SECRET`, that key is for a deployment that no longer
-exists. Rerun `npm run setup`, or delete `.env.local` and rerun it.
+**`npm run dev` cannot reach the backend**, or `No CONVEX_DEPLOYMENT set`. `.env.local` is missing, or holds a key
+for a deployment that no longer exists because the stack was recreated with a new `INSTANCE_SECRET`. Rerun
+`npm run setup`.
 
 **The instance secret changed.** Changing `INSTANCE_SECRET` on an existing deployment makes the stored data
-unreadable. If that has happened by accident, put the old value back. If it is genuinely gone, restore from a
-Convex export.
+unreadable. If that happened by accident, put the old value back. If it is genuinely gone, restore from a Convex
+export.
+
+**`Hex-decoded key was 31 bytes, not 32`** in the backend log means `INSTANCE_SECRET` is not 64 hex characters.
 
 ## Postgres
 
-**The web container will not start and the logs mention the database.** Check Postgres is healthy and both
-databases exist:
+**The backend logs that it connected to a database and then exits.** The database does not exist. Both databases
+are created by `infra/scripts/postgres-init/01-databases.sh`, which only runs the first time the Postgres volume
+is initialised. On a volume that already existed, create the missing one by hand:
 
 ```bash
-docker compose -f infra/compose.prod.yml ps
-docker compose -f infra/compose.prod.yml exec postgres psql -U moj -c '\l'
-```
-
-`convex` and `moj_auth` both have to be there. `moj_auth` is created by `initdb/01-auth-db.sql`, which only runs
-the first time the volume is initialised. On a volume that already existed, create it by hand:
-
-```bash
-docker compose -f infra/compose.prod.yml exec postgres \
+docker compose -f infra/compose.prod.yml --project-directory . exec postgres \
   psql -U moj -c 'CREATE DATABASE moj_auth OWNER moj'
-npm run db:migrate
+npm run db:migrate -w apps/web
 ```
 
-**Missing table errors from Better Auth** mean the Drizzle migrations have not run against `moj_auth`:
+Convex's own database is named after `INSTANCE_NAME` with dashes replaced by underscores, and the backend will not
+accept another name. `moj-dev` means `moj_dev`; `moj-prod` means `moj_prod`.
+
+**Missing table errors from Better Auth** mean the Drizzle migrations have not run against the auth database:
 
 ```bash
-npm run db:migrate
+npm run db:migrate -w apps/web
 ```
 
-**Port 5433 is already in use** in development. That is the host port the dev compose file publishes so it does not
-collide with a local Postgres on 5432. Something else has taken it:
+**Port 5433 is already in use** in development. That is the host port the dev compose file publishes so it does
+not collide with a local Postgres on 5432:
 
 ```bash
 ss -ltnp | grep 5433
 ```
 
-**Disk.** Convex stores its data in Postgres, so a full disk stops writes, which looks like the site being read-only
-with errors in the logs. `df -h` first, always.
+**Resetting the auth database** without touching anything else:
 
-## Fonts
+```bash
+docker compose -f infra/compose.dev.yml --project-directory . exec postgres \
+  psql -U moj -d postgres -c 'DROP DATABASE moj_auth' -c 'CREATE DATABASE moj_auth'
+npm run db:migrate -w apps/web
+```
+
+**Disk.** Convex stores its data in Postgres, so a full disk stops writes, which looks like the site being
+read-only with errors in the logs. `df -h` first, always.
+
+## Resetting a development stack
+
+Wipe everything, including both databases and all Convex data:
+
+```bash
+docker compose -f infra/compose.dev.yml --project-directory . down -v
+rm -f .env.local apps/web/.env.local
+npm run setup
+```
+
+Keep the data and only re-push the functions and the seed:
+
+```bash
+npx convex dev --once
+npx convex run seed:run '{}'
+```
+
+Re-seed over the top of existing rows, which overwrites the languages and the navigation items and leaves
+everything else alone:
+
+```bash
+npx convex run seed:run '{"force": true}'
+```
+
+## Fonts and PDFs
 
 **The site renders in a fallback font.** The fonts are self-hosted under `apps/web/public/fonts`, deliberately, so
 that no request goes to Google at page load. If they are missing, the build did not copy them or the container was
-built from an incomplete tree. Check inside the running container:
+built from an incomplete tree:
 
 ```bash
-docker compose -f infra/compose.prod.yml exec web ls public/fonts
+docker compose -f infra/compose.prod.yml --project-directory . exec web ls public/fonts
 ```
 
-Bai Jamjuree is used for headings and the wordmark, IBM Plex Sans for body text, IBM Plex Mono for code.
-
-**PDF statements come out with the wrong font, or fail.** PDF rendering is Typst, and it needs its own fonts and
-the vendored packages under `packages/content/typst/packages`. Check the binary is there:
+**PDF statements fail or come out wrong.** PDF rendering is the Typst binary, with the `cmarker` and `mitex`
+packages vendored under `packages/content/typst/packages` so a compile needs no network. Check the binary:
 
 ```bash
-docker compose -f infra/compose.prod.yml exec web typst --version
+docker compose -f infra/compose.prod.yml --project-directory . exec web typst --version
 ```
 
-If it is not on `PATH`, set `TYPST_BIN` to its location. A PDF that fails to render is recorded on the job rather
-than shown to the user, so check the jobs section of the staff console for the error.
+If it is not on `PATH`, set `TYPST_BIN` to its location. A failed render is recorded rather than shown to the
+user, so look on the jobs page for the error.
 
 **Maths does not render.** KaTeX's stylesheet has to load for maths to be laid out. If formulas appear as plain
 text with visible braces, the CSS is missing rather than the maths being wrong.
 
 ## Dark mode
 
-**The theme flickers on load.** The theme is applied from `profiles.siteTheme` on the server and from a
-`data-theme` attribute on the root element. A flash means the attribute is being set by client-side script after
-the first paint, which is a bug worth reporting with the page you saw it on.
+**The theme flickers on load.** The theme is applied from an attribute on the root element before the first paint.
+A flash means it is being set by client-side script afterwards, which is a bug worth reporting with the page you
+saw it on.
 
 **The toggle does not stick.** For a signed-in user the choice is saved to their profile, so it follows them
-between devices. Signed out, it is per-browser. A browser that blocks storage will forget it on every load.
+between devices. Signed out, it is per-browser, and a browser that blocks storage forgets it on every load. The
+operator's default theme, set on the branding page, is what a visitor with nothing stored gets.
 
 **A page is unreadable in dark mode.** Almost always a literal colour somewhere instead of a token. Colours come
 from `packages/ui/src/tokens.css`, defined for light on `:root` and overridden for dark; anything hard-coded looks
 right in one theme and wrong in the other. Report it with the page and the element.
 
-**`auto` follows the system.** `profiles.siteTheme` is `auto`, `light` or `dark`, and `auto` means
-`prefers-color-scheme`. A user who says the site "changes on its own in the evening" has a phone that switches
-theme on a schedule.
+## Lint will not run on NixOS
+
+Biome ships a prebuilt binary that is dynamically linked against a generic Linux loader, so it will not start on
+NixOS. Run it through `steam-run`:
+
+```bash
+steam-run node_modules/.bin/biome check .
+```
+
+`npm run lint` and `npm run format` are the same binary, so the same wrapper applies to both.
 
 ## Everything is slow
 
@@ -189,7 +269,6 @@ Check in this order:
 
 ## Getting help
 
-Open a ticket on the site, or an issue on
-[the repository](https://github.com/MonashAPS/MOJ/issues). Include the URL, what you did, what happened, and the
+Open a ticket on the site, or an issue on the repository. Include the URL, what you did, what happened, and the
 relevant log lines. For a judge problem, the output of `docker logs --tail 100 moj-judge` answers most questions
 before anyone has to ask.
