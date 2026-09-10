@@ -54,7 +54,7 @@ export function RequestJoinForm({
 
   return (
     <div className="grid max-w-[44rem] gap-4">
-      <Panel title={`Join ${name}`} bodyClassName="grid gap-4 p-4">
+      <Panel title="Your request" bodyClassName="grid gap-4 p-4">
         {classes.length > 0 ? (
           <Field
             label="Select your class"
@@ -86,7 +86,18 @@ export function RequestJoinForm({
         <Button variant="secondary" asChild>
           <a href={backHref}>Cancel</a>
         </Button>
-        <Button busy={busy} disabled={!reason.trim() || missingClass} onClick={submit}>
+        <Button
+          busy={busy}
+          disabled={!reason.trim() || missingClass}
+          title={
+            missingClass
+              ? "Pick a class first."
+              : reason.trim()
+                ? undefined
+                : "Say why you want to join first."
+          }
+          onClick={submit}
+        >
           Request
         </Button>
       </FormFooter>

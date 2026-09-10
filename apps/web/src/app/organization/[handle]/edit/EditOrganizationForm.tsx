@@ -144,7 +144,12 @@ export function EditOrganizationForm({
         <Button variant="secondary" asChild>
           <a href={backHref}>Cancel</a>
         </Button>
-        <Button busy={busy} disabled={admins.length === 0} onClick={save}>
+        <Button
+          busy={busy}
+          disabled={admins.length === 0}
+          title={admins.length === 0 ? "An organization needs at least one administrator." : undefined}
+          onClick={save}
+        >
           Update
         </Button>
       </FormFooter>

@@ -110,7 +110,7 @@ export function SubmissionActivity({
             variant="ghost"
             size="icon-sm"
             aria-label="Previous year"
-            title="Previous year"
+            title={year <= (minYear ?? currentYear) ? "No submissions before this year." : "Previous year"}
             disabled={year <= (minYear ?? currentYear)}
             onClick={() => setYear((value) => value - 1)}
           >
@@ -123,7 +123,7 @@ export function SubmissionActivity({
             variant="ghost"
             size="icon-sm"
             aria-label="Next year"
-            title="Next year"
+            title={year >= currentYear ? "This is the most recent year." : "Next year"}
             disabled={year >= currentYear}
             onClick={() => setYear((value) => value + 1)}
           >

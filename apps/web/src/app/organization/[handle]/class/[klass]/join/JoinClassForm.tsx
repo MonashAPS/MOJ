@@ -65,7 +65,18 @@ export function JoinClassForm({
         <Button variant="secondary" asChild>
           <a href={backHref}>Cancel</a>
         </Button>
-        <Button busy={busy} disabled={!requiresAccessCode || !code} onClick={submit}>
+        <Button
+          busy={busy}
+          disabled={!requiresAccessCode || !code}
+          title={
+            requiresAccessCode
+              ? code
+                ? undefined
+                : "Enter the access code first."
+              : `${name} does not take an access code.`
+          }
+          onClick={submit}
+        >
           Join class
         </Button>
       </FormFooter>

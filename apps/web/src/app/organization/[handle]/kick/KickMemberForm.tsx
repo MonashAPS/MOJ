@@ -66,7 +66,11 @@ export function KickMemberForm({
         </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="danger" disabled={!username}>
+            <Button
+              variant="danger"
+              disabled={!username}
+              title={username ? undefined : "Pick a member first."}
+            >
               Kick member
             </Button>
           </AlertDialogTrigger>

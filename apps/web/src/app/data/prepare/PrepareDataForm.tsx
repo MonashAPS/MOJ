@@ -166,7 +166,18 @@ export function PrepareDataForm() {
           ) : null}
           <Dialog>
             <DialogTrigger asChild>
-              <Button disabled={!status.canPrepare || nothingChosen || busy}>
+              <Button
+                disabled={!status.canPrepare || nothingChosen || busy}
+                title={
+                  nothingChosen
+                    ? "Pick at least one thing to download."
+                    : status.canPrepare
+                      ? undefined
+                      : running
+                        ? "Your data is already being prepared."
+                        : `You can prepare a new download in ${duration(status.msUntilCanPrepare)}.`
+                }
+              >
                 {status.download ? "Prepare new download" : "Prepare download"}
               </Button>
             </DialogTrigger>
