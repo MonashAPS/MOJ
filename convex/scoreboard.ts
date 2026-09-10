@@ -2,10 +2,10 @@
  * The hall scoreboard (SPEC section 7): one page per event, one division per
  * contest, always scored ICPC-style regardless of each contest's own format.
  *
- * Ported from the MAPS fork (MonashAPS/online-judge branch v2):
+ * Ported from the DMOJ fork this replaces (MonashAPS/online-judge branch v2):
  * judge/views/live_scoreboard.py for the payload, judge/utils/frozen_scoreboard.py
  * for the scoring (now `@moj/core`'s `scoreboard.ts`) and
- * judge/views/live_scoreboard_tags.py for the badge editor. `MCPC_SCOREBOARDS`
+ * judge/views/live_scoreboard_tags.py for the badge editor. The fork's setting
  * becomes the `scoreboardEvents` table.
  *
  * The page subscribes to `event`; there is no polling anywhere.

@@ -2,7 +2,7 @@ import { cn } from "@moj/ui";
 import type { ReactNode } from "react";
 import { Wordmark } from "@/components/Wordmark";
 
-/** The full-page auth frame: the club grid at full strength on the page ground, the
+/** The full-page auth frame: the royal grid at full strength on the page ground, the
  *  wordmark in the theme's ink, and the one card in the product that carries the
  *  offset block. Everything on /accounts/login/ and /accounts/register/ lives in it. */
 export function AuthCard({
@@ -20,7 +20,7 @@ export function AuthCard({
   children: ReactNode;
 }) {
   return (
-    // The shell paints the club's royal grid on the ground for every /accounts/
+    // The shell paints the royal grid on the ground for every /accounts/
     // route, so this frame does not lay one of its own over the top.
     <div className="relative flex min-h-[calc(100dvh_-_var(--nav-height)_-_var(--space-6))] flex-col items-center justify-center py-8">
       <div className="relative flex w-full flex-col items-center gap-5">

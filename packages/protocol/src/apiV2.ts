@@ -4,8 +4,9 @@
  *
  * Field names are DMOJ's verbatim (snake_case), including the ones that look
  * redundant (`rate_all` is `is_rated and rate_all`, `is_pretested` is
- * `is_pretested and run_pretests_only`). Clients written against
- * judge.monashaps.com must keep working, so nothing here is "improved".
+ * `is_pretested and run_pretests_only`). Clients written against the DMOJ site
+ * a deployment was imported from must keep working, so nothing here is
+ * "improved".
  *
  * Numeric object ids: DMOJ exposes Django primary keys. MOJ keeps them in
  * `legacyId` for imported rows and has none for rows created after the import,

@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 /**
- * Upload problems from a problem repository to MOJ.
+ * Upload problems from a problem repository to a MOJ judge.
  *
- * Replaces mcpc-problems/frontend-automation/scripts/create-problem.mjs, which
- * drove the Django admin form with Playwright. This talks to the problems API
- * (SPEC section 8) instead: one PUT per problem, one POST per statement image.
+ * One PUT per problem and one POST per statement image against the problems API
+ * (SPEC section 8), so publishing a statement never needs a browser or a login.
  *
  * No dependencies: plain `node upload-problem.mjs` on Node 24.
  *
@@ -28,7 +27,11 @@
  *   --api-key <key>         overrides JUDGE_API_KEY
  *   -h, --help
  *
- * Environment: JUDGE_URL, JUDGE_API_KEY.
+ * Environment:
+ *   JUDGE_URL      the judge's address, e.g. https://judge.example.org
+ *   JUDGE_API_KEY  an API key with the problems:write scope
+ *
+ * See README.md beside this file.
  */
 
 import crypto from "node:crypto";
@@ -38,7 +41,8 @@ import path from "node:path";
 const MARKDOWN_IMAGE_PATTERN = /!\[([^\]]*)\]\((?!https?:\/\/)(?!data:)(?!\/)([^)\s]+)([^)]*)\)/g;
 const HTML_IMAGE_PATTERN = /<img\b[^>]*\bsrc=["'](?!https?:\/\/)(?!data:)(?!\/)([^"']+)["'][^>]*>/gi;
 
-/** create-problem.mjs's DEFAULTS, kept so a config-less repo behaves the same. */
+/** What a problem gets when `config.json` says nothing, so a repository can
+ *  carry a statement and no metadata at all. */
 export const DEFAULTS = {
   points: 100,
   timeLimit: 1,
@@ -46,7 +50,7 @@ export const DEFAULTS = {
   shortCircuit: true,
 };
 
-/** One repo in the club's set spells it `statment.md`; both names are read. */
+/** Repositories in the wild spell it `statment.md`; both names are read. */
 const STATEMENT_NAMES = ["statement.md", "statment.md"];
 const EDITORIAL_NAMES = ["editorial.md"];
 
@@ -638,7 +642,9 @@ const HELP = `Upload problems from a problem repository to MOJ.
   --judge-url <url>       overrides JUDGE_URL
   --api-key <key>         overrides JUDGE_API_KEY
 
-Environment: JUDGE_URL, JUDGE_API_KEY.`;
+Environment:
+  JUDGE_URL      the judge's address, e.g. https://judge.example.org
+  JUDGE_API_KEY  an API key with the problems:write scope`;
 
 const invokedDirectly =
   process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname);

@@ -50,8 +50,8 @@ of probing on every start.
 ### The problem format
 
 A problem is a directory whose name is the problem code, holding an `init.yml` and its test data. The judge
-finds problems by globbing `problem_storage_globs` for `init.yml`. On the MAPS fork a dotted code maps to
-nested directories, so `comp2823.a1.knapsack` lives at `/problems/comp2823/a1/knapsack/`.
+finds problems by globbing `problem_storage_globs` for `init.yml`. A dotted code maps to nested directories,
+so `algo101.a1.knapsack` lives at `/problems/algo101/a1/knapsack/`.
 
 `init.yml` is DMOJ's format. The interesting keys:
 
@@ -79,8 +79,8 @@ nested directories, so `comp2823.a1.knapsack` lives at `/problems/comp2823/a1/kn
   `unbuffered`, `symlinks`, `hints`.
 
 `infra/problems/aplusb/` is a worked example: two batches, one of sample cases worth nothing and one of
-scored cases worth everything, plus a statement, a reference solution and the `config.json` the MAPS problem
-repos use.
+scored cases worth everything, plus a statement, a reference solution and the `config.json` a problem
+repository publishes with.
 
 ### Grading
 
@@ -240,7 +240,7 @@ empty log is normal and should not be shown to the user.
 The base image comes from DMOJ and decides which languages exist:
 
 - `tier1`: C, C++ through C++20, Java 8, Python 2 and 3, Pascal, assembly, sed, plain text. Around 1.2 GB
-  built. This is the default and covers everything the club's problems use.
+  built. This is the default, and it covers what a contest problem set normally needs.
 - `tier2`: tier1 plus the mid-popularity runtimes.
 - `tier3`: everything DMOJ supports, and considerably larger.
 
@@ -265,7 +265,7 @@ Run it on the same machine as the site:
 docker run --rm \
   --cap-add SYS_PTRACE \
   -v /srv/moj/problems:/problems \
-  -e MOJ_URL=https://judge.monashaps.com \
+  -e MOJ_URL=https://convex-site.judge.example.org \
   -e JUDGE_NAME=judge1 \
   -e JUDGE_KEY=... \
   moj-judge:tier1
@@ -290,7 +290,7 @@ Nothing about the judge needs to be near the site. It makes outbound HTTPS reque
 docker run -d --restart unless-stopped --name moj-judge \
   --cap-add SYS_PTRACE \
   -v /srv/moj/problems:/problems \
-  -e MOJ_URL=https://judge.monashaps.com \
+  -e MOJ_URL=https://convex-site.judge.example.org \
   -e JUDGE_NAME=judge2 \
   -e JUDGE_KEY=... \
   moj-judge:tier1
@@ -341,7 +341,7 @@ The subtree tracks `git@github.com:MonashAPS/judge-server.git` branch `v2`.
 git subtree pull --prefix apps/judge/judge-server git@github.com:MonashAPS/judge-server.git v2 --squash
 ```
 
-Our diff inside the subtree is three files, so conflicts are rare and confined: `dmoj/moj_packet.py` is
+The diff inside the subtree is three files, so conflicts are rare and confined: `dmoj/moj_packet.py` is
 entirely ours, and `dmoj/judge.py` and `dmoj/judgeenv.py` each carry a few lines. Rebuild the image and run
 `tests/e2e.py` after every pull.
 

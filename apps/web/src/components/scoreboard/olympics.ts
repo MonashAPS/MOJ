@@ -1,7 +1,7 @@
 /**
  * The `olympics` scoreboard theme's sport pictograms.
  *
- * Ported from the MAPS fork's `templates/contest/scoreboard-themes/olympics.html`,
+ * Ported from the DMOJ fork's `templates/contest/scoreboard-themes/olympics.html`,
  * whose Jinja `sports` and `problem_icons` tables become the two maps below. The
  * artwork is the fork's, copied to `public/scoreboard-themes/olympics/`.
  *
@@ -32,7 +32,7 @@ const SPORTS = Object.keys(SPORT_COLOURS);
  *
  * Keyed on the contest key and the problem's *code*, not its position, so a
  * mapping survives the contest being reordered. The fork's own table is carried
- * over as it stands; the club adds a division here when it dresses one up.
+ * over as it stands; add a division here when you dress one up.
  */
 export const PROBLEM_SPORTS: Record<string, Record<string, string>> = {
   diva: {
@@ -57,7 +57,7 @@ export type Pictogram = { sport: string; src: string; colour: string };
  *
  * A division the table does not name falls back to the sport at that column's
  * position, so every column carries a pictogram (DESIGN.md section 16.2) rather
- * than a row of gaps. The explicit table always wins, so a division the club has
+ * than a row of gaps. The explicit table always wins, so a division that has been
  * dressed reads exactly as it was written.
  */
 export function pictogramFor(divisionKey: string, code: string, index: number): Pictogram | null {

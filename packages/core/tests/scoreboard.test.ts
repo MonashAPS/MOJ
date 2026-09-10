@@ -1,5 +1,5 @@
 /**
- * The ICPC hall scoreboard, the freeze and the reveal, from the MAPS fork
+ * The ICPC hall scoreboard, the freeze and the reveal, from the DMOJ fork
  * (judge/utils/frozen_scoreboard.py, judge/views/live_scoreboard.py and the
  * reveal logic in templates/contest/live-scoreboard.html).
  */

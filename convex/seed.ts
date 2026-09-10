@@ -5,17 +5,16 @@ import { SEED_LANGUAGES, SEED_NAVIGATION } from "./lib/seedData";
 
 const MISC_CONFIG_DEFAULTS: Record<string, string> = {
   announcement: "",
-  footer: 'run by <a href="https://monashaps.com/">Monash Algorithms and Problem Solving</a>',
-  meta_keywords: "competitive programming, online judge, MAPS, Monash, algorithms",
+  footer: "",
+  meta_keywords: "competitive programming, online judge, algorithms, contests",
   home_page_top: "",
   analytics: "",
 };
 
-const ABOUT_PAGE = `# About MOJ
+const ABOUT_PAGE = `# About this judge
 
-MOJ is the MAPS Online Judge, run by Monash Algorithms and Problem Solving. It hosts the
-problems and contests we write for our members, and grades your submissions against the
-same test data the setters used.
+This is an online judge running MOJ. It hosts problems and contests, and grades
+submissions against the same test data the setters used.
 
 ## Getting started
 
@@ -25,7 +24,9 @@ can watch the verdict come in live.
 
 ## Contact
 
-Open a ticket on a problem if something looks wrong with it, or find us in the club Discord.
+Open a ticket on a problem if something looks wrong with it.
+
+_Replace this page from the staff console under Config, Flat pages._
 `;
 
 const ANNOUNCEMENTS: Array<{
@@ -37,13 +38,11 @@ const ANNOUNCEMENTS: Array<{
   daysAgo: number;
 }> = [
   {
-    slug: "welcome-to-moj",
-    title: "Welcome to the MAPS Online Judge",
-    summary:
-      "MOJ is where the club's problems and contests live. Here is how to get started and where to ask for help.",
-    content: `MOJ is the judge Monash Algorithms and Problem Solving runs for its members. Everything the
-club writes ends up here: weekly practice sets, the contests we run in person, and the archive of
-everything that came before.
+    slug: "welcome",
+    title: "Welcome",
+    summary: "This judge's problems and contests live here. How to get started, and where to ask for help.",
+    content: `Everything set on this judge ends up here: practice sets, the contests run on it, and the
+archive of everything that came before.
 
 ## Getting started
 
@@ -53,8 +52,9 @@ everything that came before.
 
 ## Where to ask
 
-Open a ticket on a problem if the statement or the test data looks wrong, and find us in the club
-Discord for everything else.`,
+Open a ticket on a problem if the statement or the test data looks wrong.
+
+_Replace this post from the staff console under Blog._`,
     sticky: true,
     daysAgo: 7,
   },

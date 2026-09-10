@@ -5,13 +5,12 @@
  *   POST /api/problems/:code/images    upload a statement image
  *   GET  /api/problems/images/:id      serve one back
  *
- * This replaces the club's Playwright uploader
- * (mcpc-problems/frontend-automation/scripts/create-problem.mjs), which drove
- * the Django admin form with a browser. The partial-update semantics are that
- * script's, with the one deviation SPEC section 8 asks for: `authors: []` means
- * "unchanged" rather than "clear the author list", because almost every
- * config.json in the club's repo carries an empty authors array and a literal
- * reading would wipe the authors on every push.
+ * This replaces driving the Django admin form with a browser, which is how a
+ * problem repository used to publish. The partial-update semantics come from
+ * that era, with the one deviation SPEC section 8 asks for: `authors: []` means
+ * "unchanged" rather than "clear the author list", because a problem
+ * repository's config.json routinely carries an empty authors array and a
+ * literal reading would wipe the authors on every push.
  *
  * Authentication: `Authorization: Bearer <key>` with the `problems:write`
  * scope. Keys are verified against Better Auth's api-key plugin when `AUTH_URL`

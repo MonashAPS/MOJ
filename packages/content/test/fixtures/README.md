@@ -1,10 +1,9 @@
 # Statement fixtures
 
-`statements/` holds real MAPS problem statements, copied verbatim from
-`MonashAPS/mcpc-problems` (`problems/<code>/statement.md`). They are club content and are kept
-here so the renderer and the Typst converter are exercised against the markdown the site
-actually has to serve, rather than against invented examples. None of them comes from a
-problem whose `config.json` sets `public: false`.
+`statements/` holds real problem statements, copied verbatim out of a problem repository
+(`problems/<code>/statement.md`). They are kept here so the renderer and the Typst converter
+are exercised against the markdown a judge actually has to serve, rather than against invented
+examples. None of them comes from a problem whose `config.json` sets `public: false`.
 
 `problems.json` carries the metadata `markdownToTypst` needs, taken from each problem's
 `config.json` where it has one (`title`, `points`, `timeLimit`, `pythonTimeLimit`,

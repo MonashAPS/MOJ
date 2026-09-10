@@ -19,7 +19,7 @@ async function highlight(source: string, lang: string): Promise<string> {
 }
 
 /**
- * DMOJ's `submission/source.html`, as the club's window motif (DESIGN.md 14.4):
+ * DMOJ's `submission/source.html`, as the site's window motif (DESIGN.md 14.4):
  * a titlebar carrying the language and the actions, over the highlighted body.
  */
 export async function SourceWindow({

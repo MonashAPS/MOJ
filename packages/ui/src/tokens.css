@@ -1,9 +1,9 @@
-/* MOJ design tokens — the MAPS design language expressed as CSS custom properties.
+/* MOJ design tokens — the house design language expressed as CSS custom properties.
  *
- * Source of the palette: monashaps.com (royal #4169E1, navy #000080, canary #FFFF8F,
- * bone #F9F6EE, ink #2B2B2B) and advent.monashaps.com (gold #F8CA50 / #B08100,
- * red #D04134, green #A9DC76). See docs/design/DESIGN.md for the reasoning and
- * for the per-component specs that consume these names.
+ * The palette: royal #4169E1, navy #000080, canary #FFFF8F, bone #F9F6EE, ink
+ * #2B2B2B, plus the seasonal accents gold #F8CA50 / #B08100, red #D04134 and
+ * green #A9DC76. See docs/design/DESIGN.md for the reasoning and for the
+ * per-component specs that consume these names.
  *
  * Three blocks, in this order, so an explicit choice wins in both directions:
  *   :root                                          light palette (the default)
@@ -22,11 +22,11 @@
   color-scheme: light;
 
   /* Brand constants ------------------------------------------------------- *
-   * The club's literal palette. Same value in every theme.                   */
-  --brand-royal: #4169e1; /* monashaps.com --main-colour; nav keyline, focus */
-  --brand-navy: #000080; /* monashaps.com --dark-bg; seed for --nav         */
-  --brand-canary: #ffff8f; /* monashaps.com --accent; nav CTA, first blood    */
-  --brand-bone: #f9f6ee; /* monashaps.com --bg; seed for --bg               */
+   * The literal palette. Same value in every theme.                          */
+  --brand-royal: #4169e1; /* the main colour; nav keyline, focus            */
+  --brand-navy: #000080; /* the dark ground; seed for --nav                */
+  --brand-canary: #ffff8f; /* the accent; nav CTA, first blood               */
+  --brand-bone: #f9f6ee; /* the page ground; seed for --bg                 */
   --brand-cyan: #45c3f1; /* logo.svg gradient stop; judge/queue accents     */
 
   /* Chrome ---------------------------------------------------------------- *
@@ -61,10 +61,10 @@
   --surface-2: #f0eee6; /* wells, chips, segmented controls */
 
   /* Titlebars ------------------------------------------------------------- *
-   * The club's window motif wears the chrome's navy: every panel titlebar and
+   * The window motif wears the chrome's navy: every panel titlebar and
    * every table header band is this one colour, so a home side box and a list
    * page's table read as the same object.                                    */
-  --titlebar: #101a3d; /* MAPS navy, the nav's own colour   */
+  --titlebar: #101a3d; /* the navy, the nav's own colour    */
   --titlebar-ink: #f2f4fa; /* the micro-label on the band       */
   --titlebar-ink-2: #a9b4d8; /* its trailing glyph                */
   --titlebar-line: rgba(255, 255, 255, 0.12);
@@ -174,7 +174,7 @@
   --rating-target: #7a0000; /* DMOJ #700000                     */
 
   /* Submission heatmap ---------------------------------------------------- *
-   * Built on the club green #A9DC76 rather than GitHub's green.              */
+   * Built on the house green #A9DC76 rather than GitHub's green.             */
   --heat-0: #e8e5db;
   --heat-1: #d3ecb8;
   --heat-2: #a9dc76;
@@ -201,7 +201,7 @@
   --shadow-1: 0 1px 2px rgba(16, 26, 61, 0.07), 0 1px 1px rgba(16, 26, 61, 0.04);
   --shadow-2: 0 4px 12px rgba(16, 26, 61, 0.1);
   --shadow-3: 0 12px 28px rgba(16, 26, 61, 0.16); /* dialogs, palette        */
-  --shadow-hard: 4px 4px 0 var(--line-strong); /* the club's offset block */
+  --shadow-hard: 4px 4px 0 var(--line-strong); /* the offset block        */
   --shadow: rgba(16, 26, 61, 0.14); /* raw colour for one-offs */
 
   /* Shape ----------------------------------------------------------------- */
@@ -230,7 +230,7 @@
   --lh: 1.45; /* UI                               */
   --lh-prose: 1.65; /* statements, blog                 */
   --tracking-tight: -0.02em; /* h1, big display                  */
-  --tracking-label: 0.12em; /* the club micro-label: xs/600/CAPS */
+  --tracking-label: 0.12em; /* the micro-label: xs/600/CAPS     */
   --tracking-rail: 0.2em; /* vertical rail labels, eyebrows   */
   --font-size: var(--fs-base); /* legacy alias                     */
   --line-height: var(--lh); /* legacy alias                     */
@@ -258,9 +258,8 @@
   --control-padding-x: 10px;
 
   /* Motion ---------------------------------------------------------------- *
-   * The curves are the club's house curves, lifted from monashcoding-site,
-   * where easeOutQuint carries every entrance and hover and the symmetric
-   * quart is reserved for full-screen overlays.                              */
+   * The house curves: easeOutQuint carries every entrance and hover, and the
+   * symmetric quart is reserved for full-screen overlays.                     */
   --dur-fast: 120ms; /* row/cell hover, focus, tick      */
   --dur: 300ms; /* buttons, chips, menus, tabs      */
   --dur-slow: 500ms; /* reveals, page enter, sheets      */
@@ -285,7 +284,7 @@
     color-scheme: dark;
 
     --nav: #141c33; /* lifted so it clears --bg         */
-    --wordmark-ink: #f9f6ee; /* the club's bone, off the chrome  */
+    --wordmark-ink: #f9f6ee; /* the bone, off the chrome         */
     --nav-ink: #f2f4fa;
     --nav-ink-2: #98a3c4;
     --nav-hover: rgba(255, 255, 255, 0.08);
@@ -345,7 +344,7 @@
     --v-good-bg: #10271b;
     --v-bad: #f0776a;
     --v-bad-bg: #2c1512;
-    --v-warn: #f8ca50; /* advent.monashaps.com highlight   */
+    --v-warn: #f8ca50; /* the seasonal highlight           */
     --v-warn-bg: #2c2410;
     --v-neutral: #97a0ae;
     --v-neutral-bg: #1f2634;

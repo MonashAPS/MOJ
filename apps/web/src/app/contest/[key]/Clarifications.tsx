@@ -11,7 +11,7 @@ import { formatDateTime } from "@/lib/format";
 /**
  * DMOJ shows a contest's clarifications as `ProblemClarification` rows on its
  * problems (judge/views/blog.py:49). Editors post from here rather than from
- * the admin, which is what the club asked for.
+ * the admin, which is what the fork does.
  */
 export function Clarifications({
   contestKey,

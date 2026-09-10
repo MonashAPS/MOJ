@@ -26,7 +26,7 @@ function isHallScoreboard(pathname: string): boolean {
   return /^\/scoreboard\/.+/.test(pathname);
 }
 
-/** The club's royal grid belongs on the pages that are mostly words. Behind a
+/** The royal grid belongs on the pages that are mostly words. Behind a
  *  table it is noise (DESIGN.md section 7). */
 function wantsGrid(pathname: string): boolean {
   return (
@@ -119,7 +119,7 @@ export function SiteShell({
           logoUrl={logoUrl}
           siteName={siteName}
         />
-        {/* The club's royal, carried across the top of every page. */}
+        {/* The royal, carried across the top of every page. */}
         <div aria-hidden className="h-[3px] bg-royal" />
         {onContestPage && contest ? (
           <ContestBar data={contest} currentCode={problemCode} viewerUsername={viewer?.username ?? null} />

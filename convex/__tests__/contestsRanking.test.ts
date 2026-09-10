@@ -472,8 +472,8 @@ describe("the hall scoreboard", () => {
       });
 
       const eventId = await ctx.db.insert("scoreboardEvents", {
-        key: "mcpc",
-        name: "MCPC",
+        key: "winter",
+        name: "Winter Cup",
         contestIds: [contestId],
         theme: "default",
         badgeOrganizationSlugs: ["onsite"],
@@ -490,8 +490,8 @@ describe("the hall scoreboard", () => {
     const t = harness();
     await scoreboardFixture(t);
 
-    const payload = await t.query(api.scoreboard.event, { key: "mcpc" });
-    expect(payload?.event.name).toBe("MCPC");
+    const payload = await t.query(api.scoreboard.event, { key: "winter" });
+    expect(payload?.event.name).toBe("Winter Cup");
     expect(payload?.badges).toEqual([{ key: "onsite", label: "onsite" }]);
     const division = payload?.divisions[0];
     expect(division?.problems.map((problem) => problem.label)).toEqual(["A", "B"]);
@@ -513,7 +513,7 @@ describe("the hall scoreboard", () => {
 
     const staffPayload = await t
       .withIdentity(identityOf("staff"))
-      .query(api.scoreboard.event, { key: "mcpc" });
+      .query(api.scoreboard.event, { key: "winter" });
     expect(staffPayload?.canReveal).toBe(true);
     const staffBob = (staffPayload?.divisions[0]?.rows ?? []).find((row) => row.username === "bob");
     expect(staffBob?.cells[1]?.reveal?.state).toBe("solved");
@@ -524,25 +524,25 @@ describe("the hall scoreboard", () => {
     await scoreboardFixture(t);
     const asStaff = t.withIdentity(identityOf("staff"));
 
-    const step = await asStaff.mutation(api.scoreboard.revealStep, { event: "mcpc" });
+    const step = await asStaff.mutation(api.scoreboard.revealStep, { event: "winter" });
     expect(step.revealed).toBe(1);
     expect(step.done).toBe(true);
 
-    const revealed = await t.query(api.scoreboard.event, { key: "mcpc" });
+    const revealed = await t.query(api.scoreboard.event, { key: "winter" });
     const bob = (revealed?.divisions[0]?.rows ?? []).find((row) => row.username === "bob");
     expect(bob?.cells[1]?.state).toBe("solved");
     expect(bob?.solved).toBe(2);
     expect(bob?.rank).toBe(1);
     expect(revealed?.divisions[0]?.isFrozen).toBe(false);
 
-    await asStaff.mutation(api.scoreboard.revealUndo, { event: "mcpc" });
-    const back = await t.query(api.scoreboard.event, { key: "mcpc" });
+    await asStaff.mutation(api.scoreboard.revealUndo, { event: "winter" });
+    const back = await t.query(api.scoreboard.event, { key: "winter" });
     const bobAgain = (back?.divisions[0]?.rows ?? []).find((row) => row.username === "bob");
     expect(bobAgain?.cells[1]?.state).toBe("frozen");
 
-    const all = await asStaff.mutation(api.scoreboard.revealAll, { event: "mcpc" });
+    const all = await asStaff.mutation(api.scoreboard.revealAll, { event: "winter" });
     expect(all.revealed).toBe(1);
-    const final = await t.query(api.scoreboard.event, { key: "mcpc" });
+    const final = await t.query(api.scoreboard.event, { key: "winter" });
     expect(final?.divisions[0]?.revealPending).toBe(0);
   });
 
@@ -550,7 +550,7 @@ describe("the hall scoreboard", () => {
     const t = harness();
     await scoreboardFixture(t);
     await expect(
-      t.withIdentity(identityOf("watcher")).mutation(api.scoreboard.revealStep, { event: "mcpc" }),
+      t.withIdentity(identityOf("watcher")).mutation(api.scoreboard.revealStep, { event: "winter" }),
     ).rejects.toThrow(/may not run the reveal/);
   });
 
@@ -560,7 +560,7 @@ describe("the hall scoreboard", () => {
     const asStaff = t.withIdentity(identityOf("staff"));
 
     const on = await asStaff.mutation(api.scoreboard.setTag, {
-      event: "mcpc",
+      event: "winter",
       username: "bob",
       slug: "onsite",
       on: true,
@@ -569,7 +569,7 @@ describe("the hall scoreboard", () => {
     expect(on.inPerson).toBe(true);
 
     const off = await asStaff.mutation(api.scoreboard.setTag, {
-      event: "mcpc",
+      event: "winter",
       username: "ada",
       slug: "onsite",
       on: false,
@@ -578,7 +578,7 @@ describe("the hall scoreboard", () => {
 
     await expect(
       asStaff.mutation(api.scoreboard.setTag, {
-        event: "mcpc",
+        event: "winter",
         username: "bob",
         slug: "elsewhere",
         on: true,
@@ -587,7 +587,7 @@ describe("the hall scoreboard", () => {
 
     await expect(
       asStaff.mutation(api.scoreboard.setTag, {
-        event: "mcpc",
+        event: "winter",
         username: "watcher",
         slug: "onsite",
         on: true,
@@ -601,7 +601,7 @@ describe("the hall scoreboard", () => {
     const t = harness();
     await scoreboardFixture(t);
     const rows = await t.query(api.scoreboard.events, {});
-    expect(rows.map((row) => row.key)).toEqual(["mcpc"]);
+    expect(rows.map((row) => row.key)).toEqual(["winter"]);
     expect(rows[0]?.contestKeys).toEqual(["divone"]);
   });
 });
@@ -726,8 +726,8 @@ describe("the staff console", () => {
 
     const asBoss = t.withIdentity(identityOf("boss"));
     await asBoss.mutation(api.admin.scoreboards.create, {
-      key: "mcpc26",
-      name: "MCPC 2026",
+      key: "winter26",
+      name: "Winter Cup 2026",
       contestKeys: ["divone", "divtwo"],
       freezeMinutes: 60,
       badgeOrganizationSlugs: ["onsite"],
@@ -738,19 +738,19 @@ describe("the staff console", () => {
     expect(listed[0]?.contestKeys).toEqual(["divone", "divtwo"]);
 
     await asBoss.mutation(api.admin.scoreboards.update, {
-      key: "mcpc26",
+      key: "winter26",
       contestKeys: ["divone"],
       isPublic: false,
     });
-    const updated = await asBoss.query(api.admin.scoreboards.get, { key: "mcpc26" });
+    const updated = await asBoss.query(api.admin.scoreboards.get, { key: "winter26" });
     expect(updated?.contestKeys).toEqual(["divone"]);
     expect(updated?.isPublic).toBe(false);
 
     // A hidden event is invisible to the public.
-    expect(await t.query(api.scoreboard.event, { key: "mcpc26" })).toBeNull();
+    expect(await t.query(api.scoreboard.event, { key: "winter26" })).toBeNull();
 
     await expect(
-      asBoss.mutation(api.admin.scoreboards.update, { key: "mcpc26", contestKeys: ["ghost"] }),
+      asBoss.mutation(api.admin.scoreboards.update, { key: "winter26", contestKeys: ["ghost"] }),
     ).rejects.toThrow(/Unknown contest/);
   });
 });

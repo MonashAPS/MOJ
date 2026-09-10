@@ -3,7 +3,7 @@
  *
  * Ports `ClassHome` and `RequestJoinClass` from judge/views/organization.py and
  * the `Class` model rules from judge/models/profile.py. Joining with an access
- * code is DMOJ's `Class.access_code` field, which the club uses instead of a
+ * code is DMOJ's `Class.access_code` field, which an organisation uses instead of a
  * request when a tutor hands the code out in a lab.
  */
 

@@ -1,7 +1,7 @@
 /**
  * Staff console: hall scoreboard events (SPEC section 8, "scoreboards").
  *
- * These rows replace the fork's `MCPC_SCOREBOARDS` setting, so editing one is
+ * These rows replace the fork's hard-coded scoreboard setting, so editing one is
  * a deploy-free change to what the hall display shows. Editing needs
  * `judge.edit_all_contest` or superuser, the same bar as the reveal.
  */

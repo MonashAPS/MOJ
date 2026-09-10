@@ -73,13 +73,13 @@ describe("dmoj rewrites", () => {
 
   it("marks external links nofollow but leaves relative ones alone", async () => {
     const { html } = await renderMarkdown(
-      "[out](https://example.com) [in](/problems/) [keep](https://judge.monashaps.com/x)",
+      "[out](https://example.com) [in](/problems/) [keep](https://judge.example.org/x)",
       "comment",
-      { nofollowExcluded: ["judge.monashaps.com"] },
+      { nofollowExcluded: ["judge.example.org"] },
     );
     expect(html).toContain('<a href="https://example.com" rel="nofollow">out</a>');
     expect(html).toContain('<a href="/problems/">in</a>');
-    expect(html).toContain('<a href="https://judge.monashaps.com/x">keep</a>');
+    expect(html).toContain('<a href="https://judge.example.org/x">keep</a>');
   });
 
   it("lazy-loads images", async () => {
@@ -112,10 +112,10 @@ describe("dmoj rewrites", () => {
 
   it("absolutifies links for the printable statement", async () => {
     const { html } = await renderMarkdown("[x](/problem/abc) ![y](/media/y.png)", "problem", {
-      baseUrl: "https://judge.monashaps.com/problem/abc/pdf",
+      baseUrl: "https://judge.example.org/problem/abc/pdf",
     });
-    expect(html).toContain('href="https://judge.monashaps.com/problem/abc"');
-    expect(html).toContain('src="https://judge.monashaps.com/media/y.png"');
+    expect(html).toContain('href="https://judge.example.org/problem/abc"');
+    expect(html).toContain('src="https://judge.example.org/media/y.png"');
   });
 });
 

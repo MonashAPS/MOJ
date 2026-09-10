@@ -98,7 +98,7 @@ export function NewContestForm() {
               maxLength={20}
               value={key}
               onChange={(event) => setKey(event.target.value.toLowerCase())}
-              placeholder="mcpc26"
+              placeholder="winter26"
             />
           </Field>
           <Field label="Name" htmlFor={ids.name}>

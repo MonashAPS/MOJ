@@ -420,7 +420,7 @@ async function requireOrganization(ctx: QueryCtx, slug: string): Promise<Doc<"or
 }
 
 /**
- * `JoinOrganization.handle`, plus the access code and slot checks the club
+ * `JoinOrganization.handle`, plus the access code and slot checks the fork
  * asked for (DMOJ only applies those when approving a join request).
  */
 export const join = mutation({

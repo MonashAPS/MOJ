@@ -1,7 +1,7 @@
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "../cn";
 
-/** The club's window motif: a 28px titlebar carrying a micro-label and an optional
+/** The window motif: a 28px titlebar carrying a micro-label and an optional
  *  trailing glyph or action, over a framed body. This is the side box, the info
  *  box, the sample case and the batch block — one component, one look. */
 export function Panel({

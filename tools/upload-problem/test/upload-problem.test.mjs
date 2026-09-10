@@ -125,8 +125,8 @@ describe("parseArgs", () => {
 
 describe("globs", () => {
   test("matches segments and stars", () => {
-    expect(globToRegExp("mcpc*").test("mcpc25")).toBe(true);
-    expect(globToRegExp("mcpc*").test("abc")).toBe(false);
+    expect(globToRegExp("winter*").test("winter25")).toBe(true);
+    expect(globToRegExp("winter*").test("abc")).toBe(false);
     expect(globToRegExp("a?c").test("abc")).toBe(true);
     expect(matchesAny("aplusb", ["x*", "a*"])).toBe(true);
     expect(matchesAny("aplusb", ["x*"])).toBe(false);
@@ -168,7 +168,7 @@ describe("buildRequest", () => {
     expect(request.body).toEqual({ statement: "Read two integers.\n", name: "A plus B" });
   });
 
-  test("maps the club's full config", async () => {
+  test("maps a full config", async () => {
     const dir = await writeProblem("mst", {
       "statement.md": "Build a tree.\n",
       "editorial.md": "Kruskal.\n",

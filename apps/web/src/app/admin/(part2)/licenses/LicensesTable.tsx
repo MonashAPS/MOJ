@@ -154,7 +154,7 @@ export function LicensesTable() {
           </Button>
         }
         emptyTitle="No licenses"
-        emptyDescription="A license is what a problem page credits when its statement is not the club's own."
+        emptyDescription="A license is what a problem page credits when its statement came from somewhere else."
         emptyAction={
           <Button variant="secondary" onClick={() => open()}>
             New license
