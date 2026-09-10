@@ -280,12 +280,13 @@ kbd {
   z-index: 510;
 }
 
-.nav-menu li {
+#navigation .nav-menu li {
   display: block;
 }
 
-.nav-menu li > a,
-.nav-menu li > button {
+#navigation .nav-menu li > a,
+#navigation .nav-menu li > button,
+#navigation .nav-menu li > .theme-toggle {
   display: flex;
   align-items: center;
   gap: var(--space-2);
