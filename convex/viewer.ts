@@ -1,6 +1,8 @@
+import { shouldLeaveContest } from "@moj/core";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { query } from "./_generated/server";
+import { toContestRow, toParticipationRow, toViewerRowInContest } from "./contestFormats";
 import { optionalViewer } from "./lib/auth";
 
 export type ViewerState = {
@@ -8,34 +10,75 @@ export type ViewerState = {
   participation: Doc<"contestParticipations"> | null;
   contest: Doc<"contests"> | null;
   inContest: boolean;
+  /**
+   * True when `currentParticipationId` points at a window that has closed, or
+   * at a contest the viewer may no longer access. `contests.clearStaleContest`
+   * (or the next mutation the viewer runs) drops it; a query cannot write.
+   */
+  contestModeStale: boolean;
 };
 
+/**
+ * `Profile.update_contest()` (judge/models/profile.py:294): contest mode ends
+ * when the participation's window closes or the contest stops being accessible.
+ * A query cannot patch the profile, so the stale participation is reported as
+ * "not in contest" and flagged for the next mutation to clear.
+ */
 export const current = query({
   args: {},
   handler: async (ctx): Promise<ViewerState> => {
     const profile = await optionalViewer(ctx);
     if (!profile) {
-      return { profile: null, participation: null, contest: null, inContest: false };
+      return {
+        profile: null,
+        participation: null,
+        contest: null,
+        inContest: false,
+        contestModeStale: false,
+      };
     }
 
     if (!profile.currentParticipationId) {
-      return { profile, participation: null, contest: null, inContest: false };
+      return {
+        profile,
+        participation: null,
+        contest: null,
+        inContest: false,
+        contestModeStale: false,
+      };
     }
 
     const participation = await ctx.db.get(profile.currentParticipationId);
     if (!participation) {
-      return { profile, participation: null, contest: null, inContest: false };
+      return {
+        profile,
+        participation: null,
+        contest: null,
+        inContest: false,
+        contestModeStale: true,
+      };
     }
 
     const contest = await ctx.db.get(participation.contestId);
     if (!contest) {
-      return { profile, participation, contest: null, inContest: false };
+      return { profile, participation, contest: null, inContest: false, contestModeStale: true };
     }
 
-    const now = Date.now();
-    const ended =
-      participation.virtual === -1 ? now > contest.endTime : endTimeOf(contest, participation) < now;
-    return { profile, participation, contest, inContest: !ended };
+    const viewer = await toViewerRowInContest(ctx, profile);
+    const stale = shouldLeaveContest(
+      toParticipationRow(participation),
+      toContestRow(contest),
+      viewer,
+      Date.now(),
+    );
+
+    return {
+      profile,
+      participation,
+      contest,
+      inContest: !stale,
+      contestModeStale: stale,
+    };
   },
 });
 
@@ -55,13 +98,3 @@ export const permissions = query({
     return out;
   },
 });
-
-function endTimeOf(contest: Doc<"contests">, participation: Doc<"contestParticipations">): number {
-  if (contest.timeLimit) {
-    const windowEnd = participation.realStart + contest.timeLimit * 1000;
-    return participation.virtual > 0 ? windowEnd : Math.min(windowEnd, contest.endTime);
-  }
-  return participation.virtual > 0
-    ? contest.endTime - contest.startTime + participation.realStart
-    : contest.endTime;
-}
