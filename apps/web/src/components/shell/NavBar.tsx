@@ -128,12 +128,15 @@ export function NavBar({
         </button>
       ) : null}
 
+      {/* The logo cell is the full height of the bar: the wordmark sits at 30px
+          (about 100px wide on its 679.88x200 viewBox), 26px under the mobile
+          breakpoint, vertically centred, with 12px either side and no plate. */}
       <Link
         href="/"
         aria-label="MOJ home"
-        className="flex shrink-0 items-center px-4 transition-opacity hover:opacity-90"
+        className="flex h-full shrink-0 items-center px-3 transition-opacity hover:opacity-90"
       >
-        <img src="/logo.svg" alt="MOJ" className="h-[22px] w-auto" />
+        <img src="/logo.svg" alt="MAPS Online Judge" className="h-[26px] w-auto min-[760px]:h-[30px]" />
       </Link>
       <span aria-hidden className="my-2 w-px shrink-0 bg-white/20" />
 

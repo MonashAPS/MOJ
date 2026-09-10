@@ -2,10 +2,10 @@
 
 import { Command as CommandPrimitive } from "cmdk";
 import { Search } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps } from "react";
 import { cn } from "../cn";
 import { disabledCmdkItem } from "../styles";
-import { Dialog, DialogDescription, DialogPortal, DialogTitle } from "./dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./dialog";
 import { Kbd } from "./kbd";
 
 export function Command({ className, ...props }: ComponentProps<typeof CommandPrimitive>) {
@@ -21,8 +21,9 @@ export function Command({ className, ...props }: ComponentProps<typeof CommandPr
   );
 }
 
-/** The command palette shell: a Dialog at 12vh with a 640px panel. Opening is a
- *  fade plus a .98 scale; under reduced motion the scale is dropped. */
+/** The command palette shell: a Radix Dialog panel at 12vh, 640px wide, so it
+ *  gets Escape, the focus trap, the scroll lock and the backdrop for free.
+ *  Opening is a fade plus a .98 scale; reduced motion drops the scale. */
 export function CommandDialog({
   title = "Search",
   description = "Search problems, contests, users and organisations.",
@@ -39,45 +40,20 @@ export function CommandDialog({
 }) {
   return (
     <Dialog {...props}>
-      <DialogPortal>
-        <CommandOverlay />
-        <CommandPanel className={className}>
-          <DialogTitle className="sr-only">{title}</DialogTitle>
-          <DialogDescription className="sr-only">{description}</DialogDescription>
-          <Command loop shouldFilter={shouldFilter}>
-            {children}
-          </Command>
-        </CommandPanel>
-      </DialogPortal>
-    </Dialog>
-  );
-}
-
-function CommandOverlay() {
-  return (
-    <div
-      aria-hidden
-      className="fixed inset-0 z-(--z-overlay) bg-[color-mix(in_srgb,var(--brand-navy)_70%,black)]/55 backdrop-blur-[2px] animate-in fade-in-0"
-    />
-  );
-}
-
-function CommandPanel({ className, children }: { className?: string; children: ReactNode }) {
-  return (
-    <div
-      role="presentation"
-      className="pointer-events-none fixed inset-0 z-(--z-palette) flex items-start justify-center px-4 pt-[12vh]"
-    >
-      <div
+      <DialogContent
+        showCloseButton={false}
         className={cn(
-          "pointer-events-auto w-full max-w-[640px] overflow-hidden rounded-lg border border-border bg-popover shadow-3",
-          "animate-in fade-in-0 zoom-in-[.98] duration-(--dur) ease-house",
+          "top-[12vh] max-w-[640px] translate-y-0 gap-0 overflow-hidden p-0 duration-(--dur)",
           className,
         )}
       >
-        {children}
-      </div>
-    </div>
+        <DialogTitle className="sr-only">{title}</DialogTitle>
+        <DialogDescription className="sr-only">{description}</DialogDescription>
+        <Command loop shouldFilter={shouldFilter}>
+          {children}
+        </Command>
+      </DialogContent>
+    </Dialog>
   );
 }
 

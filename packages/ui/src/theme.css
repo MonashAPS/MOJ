@@ -53,6 +53,7 @@
   --color-nav: var(--nav);
   --color-nav-ink: var(--nav-ink);
   --color-nav-ink-2: var(--nav-ink-2);
+  --color-wordmark: var(--wordmark-ink);
   --color-nav-hover: var(--nav-hover);
   --color-nav-active: var(--nav-active-bg);
   --color-contest-bar: var(--contest-bar);

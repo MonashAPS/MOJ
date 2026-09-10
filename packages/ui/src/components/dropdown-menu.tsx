@@ -6,8 +6,15 @@ import type { ComponentProps } from "react";
 import { cn } from "../cn";
 import { disabledItem, menuItem, overlayMotion, overlayPanel } from "../styles";
 
-export const DropdownMenu = (props: ComponentProps<typeof DropdownMenuPrimitive.Root>) => (
-  <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />
+/** Not modal by default: a nav menu should not lock the page behind it, and a
+ *  modal menu leaves `pointer-events: none` on the body long enough that a dialog
+ *  opened straight after it can come up under the menu's dismissable layer and
+ *  stop answering Escape. */
+export const DropdownMenu = ({
+  modal = false,
+  ...props
+}: ComponentProps<typeof DropdownMenuPrimitive.Root>) => (
+  <DropdownMenuPrimitive.Root data-slot="dropdown-menu" modal={modal} {...props} />
 );
 
 export const DropdownMenuTrigger = (props: ComponentProps<typeof DropdownMenuPrimitive.Trigger>) => (

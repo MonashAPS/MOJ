@@ -32,6 +32,7 @@
   /* Chrome ---------------------------------------------------------------- *
    * The fixed top bar and the contest bar directly under it.                 */
   --nav: #101a3d; /* MAPS navy, screen-tuned #000080  */
+  --wordmark-ink: #101a3d; /* the wordmark off the navy chrome */
   --nav-ink: #ffffff; /* nav labels, logo wordmark        */
   --nav-ink-2: #a9b4d8; /* nav secondary text               */
   --nav-hover: rgba(255, 255, 255, 0.1); /* nav item hover wash              */
@@ -275,6 +276,7 @@
     color-scheme: dark;
 
     --nav: #141c33; /* lifted so it clears --bg         */
+    --wordmark-ink: #f9f6ee; /* the club's bone, off the chrome  */
     --nav-ink: #f2f4fa;
     --nav-ink-2: #98a3c4;
     --nav-hover: rgba(255, 255, 255, 0.08);
@@ -376,6 +378,7 @@
   color-scheme: dark;
 
   --nav: #141c33;
+  --wordmark-ink: #f9f6ee;
   --nav-ink: #f2f4fa;
   --nav-ink-2: #98a3c4;
   --nav-hover: rgba(255, 255, 255, 0.08);

@@ -87,10 +87,13 @@ export function ThemeSegmented({
 export function ThemeToggle({
   initial = "auto",
   label = false,
+  tone = "surface",
   className,
 }: {
   initial?: ThemeChoice;
   label?: boolean;
+  /** `nav` is the ghost-on-navy treatment for the top bar. */
+  tone?: "surface" | "nav";
   className?: string;
 }) {
   const [theme, choose] = useTheme(initial);
@@ -105,9 +108,11 @@ export function ThemeToggle({
         aria-label={title}
         onClick={() => choose(next)}
         className={cn(
-          "inline-flex h-(--control-h) items-center gap-2 rounded-md border border-border-strong bg-card px-3",
-          "text-sm text-subtle transition-colors hover:bg-secondary hover:text-foreground",
-          "focus-visible:outline-none focus-visible:border-royal focus-visible:ring-[3px] focus-visible:ring-royal/45",
+          "inline-flex h-(--control-h) items-center gap-2 rounded-md px-3 text-sm transition-colors",
+          "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-royal/60",
+          tone === "nav"
+            ? "text-nav-ink/80 hover:bg-nav-hover hover:text-nav-ink"
+            : "border border-border-strong bg-card text-subtle hover:bg-secondary hover:text-foreground focus-visible:border-royal",
           !label && "w-(--control-h) justify-center px-0",
           className,
         )}

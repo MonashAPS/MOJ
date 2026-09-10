@@ -17,7 +17,7 @@ import { ChevronDown, LogOut, Settings, UserCog, UserX } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/auth/client";
-import { type ThemeChoice, ThemeSegmented } from "./ThemeToggle";
+import { type ThemeChoice, ThemeSegmented, ThemeToggle } from "./ThemeToggle";
 
 export type ViewerSummary = {
   username: string;
@@ -40,7 +40,9 @@ export function UserBlock({
 
   if (!viewer) {
     return (
-      <div className="flex shrink-0 items-center gap-2 pl-2 pr-4">
+      <div className="flex shrink-0 items-center gap-2 pl-2 pr-3">
+        {/* Signed out there is no dropdown to hold it, so the switch sits here. */}
+        <ThemeToggle tone="nav" />
         <Button
           asChild
           variant="ghost"

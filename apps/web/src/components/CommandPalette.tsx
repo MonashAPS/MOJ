@@ -124,6 +124,19 @@ export function CommandPalette({
     setDebounced("");
   }, [open]);
 
+  // A belt-and-braces Escape: the palette is the topmost overlay whenever it is
+  // open, and it must close whatever else is on the layer stack behind it.
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      onOpenChange(false);
+    };
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
+  }, [open, onOpenChange]);
+
   const results = useQuery(api.search.global, debounced.length > 0 ? { term: debounced } : "skip") as
     | Hit[]
     | undefined;
