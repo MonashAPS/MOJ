@@ -85,7 +85,7 @@ export function ContestFloater({
         className="flex h-7 cursor-grab touch-none items-center gap-2 border-b border-border bg-secondary px-2 active:cursor-grabbing"
       >
         <GripHorizontal size={14} aria-hidden className="text-muted-foreground" />
-        <span className="flex-1 truncate font-sans text-xs font-semibold uppercase tracking-[0.08em] text-subtle">
+        <span className="flex-1 truncate font-sans text-xs font-semibold uppercase tracking-label text-subtle">
           In contest
         </span>
         <button

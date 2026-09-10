@@ -28,7 +28,6 @@ export function OneTimeCode({
   autoFocus?: boolean;
 }) {
   const id = useId();
-  const labelId = `${id}-label`;
   const hintId = `${id}-hint`;
   const boxes = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -86,10 +85,8 @@ export function OneTimeCode({
   }
 
   return (
-    <div role="group" aria-labelledby={labelId} aria-describedby={hint ? hintId : undefined}>
-      <span id={labelId} className="sr-only">
-        {label}
-      </span>
+    <fieldset className="min-w-0" aria-describedby={hint ? hintId : undefined}>
+      <legend className="sr-only">{label}</legend>
       {hint ? (
         <span id={hintId} className="sr-only">
           {hint}
@@ -131,6 +128,6 @@ export function OneTimeCode({
           />
         ))}
       </div>
-    </div>
+    </fieldset>
   );
 }

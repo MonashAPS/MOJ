@@ -40,7 +40,9 @@ export function TitleRow({
           </h1>
           {tabs && tabs.length > 0 ? <PageTabs tabs={tabs} active={active} /> : null}
           {action ? (
-            <div className="flex shrink-0 items-center gap-2 max-md:*:w-full max-md:[&>*]:justify-center">
+            // A lone primary action goes full width on a phone; a pair of ghost
+            // actions stays a row and wraps rather than overflowing.
+            <div className="flex shrink-0 flex-wrap items-center gap-2 max-md:w-full max-md:[&>*:only-child]:w-full">
               {action}
             </div>
           ) : null}

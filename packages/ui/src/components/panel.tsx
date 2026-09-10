@@ -36,7 +36,7 @@ export function Panel({
           data-slot="panel-titlebar"
           className="flex h-7 shrink-0 items-center gap-2 border-b border-border bg-secondary px-3"
         >
-          <span className="min-w-0 flex-1 truncate font-sans text-xs font-semibold uppercase tracking-[0.08em] text-subtle">
+          <span className="min-w-0 flex-1 truncate font-sans text-xs font-semibold uppercase tracking-label text-subtle">
             {title}
           </span>
           {action ? <span className="flex shrink-0 items-center">{action}</span> : null}

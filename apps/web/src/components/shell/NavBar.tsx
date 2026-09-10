@@ -141,7 +141,10 @@ export function NavBar({
       <ul
         ref={measureRef}
         aria-hidden
-        className="pointer-events-none invisible absolute left-0 top-0 flex h-11"
+        // Fixed, not absolute: a fixed box does not contribute to the document's
+        // scrollable overflow, so the hidden copy can be wider than the viewport
+        // without giving the page a horizontal scrollbar.
+        className="pointer-events-none invisible fixed left-0 top-0 flex h-11 w-max"
       >
         {nav.map((node) => (
           <li key={`measure-${node._id}`} className={itemBase}>

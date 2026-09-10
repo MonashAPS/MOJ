@@ -115,7 +115,10 @@ export default async function HomePage() {
 
                 {summaries[index] ? (
                   <div
-                    className="content-description mt-3 max-w-[68ch] text-base text-subtle"
+                    // `--content-ink` is @moj/content's own knob for the prose colour;
+                    // a summary is secondary text, not body copy.
+                    style={{ "--content-ink": "var(--ink-2)" } as React.CSSProperties}
+                    className="content-description mt-3 max-w-[68ch] text-base"
                     // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitised by @moj/content
                     dangerouslySetInnerHTML={{ __html: summaries[index] }}
                   />

@@ -14,7 +14,7 @@ import {
   Trophy,
 } from "lucide-react";
 import Link from "next/link";
-import { formatDuration, useCountdown } from "@/lib/countdown";
+import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { formatDate, formatDateTime } from "@/lib/format";
 
 /** A box's footer links sit on one right-aligned row above a thin rule. */
@@ -108,6 +108,7 @@ function OngoingRow({ contest }: { contest: SidebarContest }) {
   const elapsed = Math.min(100, Math.max(0, ((Date.now() - contest.startTime) / total) * 100));
   const urgent = remaining !== null && remaining < 60_000;
   const soon = remaining !== null && remaining < 300_000;
+  const openEnded = remaining !== null && remaining > COUNTDOWN_HORIZON;
 
   return (
     <li className="grid gap-2 border-b border-border p-3 last:border-b-0">
@@ -116,18 +117,19 @@ function OngoingRow({ contest }: { contest: SidebarContest }) {
       </Link>
       <div className="grid gap-1">
         <span className="font-sans text-xs font-semibold uppercase tracking-label text-muted-foreground">
-          ends in
+          {openEnded ? "ends" : "ends in"}
         </span>
         <span
           className={cn(
             "font-mono text-base font-medium tabular-nums",
             urgent ? "text-bad" : soon ? "text-warn" : "text-foreground",
           )}
+          title={new Date(contest.endTime).toString()}
         >
-          {remaining === null ? "—" : formatDuration(remaining)}
+          {remaining === null ? "—" : openEnded ? formatDate(contest.endTime) : formatDuration(remaining)}
         </span>
       </div>
-      <Progress value={elapsed} aria-label="Contest elapsed" />
+      {openEnded ? null : <Progress value={elapsed} aria-label="Contest elapsed" />}
       <div className="flex justify-end">
         <Button asChild size="sm">
           <Link href={`/contest/${contest.key}`}>Enter</Link>
@@ -148,7 +150,9 @@ function UpcomingRow({ contest }: { contest: SidebarContest }) {
         {formatDateTime(contest.startTime)}
       </span>
       <span className="font-mono text-sm tabular-nums text-subtle">
-        starts in {remaining === null ? "—" : formatDuration(remaining)}
+        {remaining !== null && remaining <= COUNTDOWN_HORIZON
+          ? `starts in ${formatDuration(remaining)}`
+          : null}
       </span>
     </li>
   );

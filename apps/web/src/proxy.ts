@@ -57,7 +57,10 @@ export async function proxy(request: NextRequest) {
     !pathname.endsWith("/") &&
     !pathname.slice(pathname.lastIndexOf("/")).includes(".")
   ) {
-    const url = request.nextUrl.clone();
+    // A plain URL, not nextUrl.clone(): NextURL re-applies the `trailingSlash`
+    // config when it serialises, which turns the redirect target back into the
+    // path we were already on and loops.
+    const url = new URL(request.url);
     url.pathname = `${pathname}/`;
     return NextResponse.redirect(url, 308);
   }

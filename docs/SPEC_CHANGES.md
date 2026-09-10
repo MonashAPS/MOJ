@@ -169,3 +169,53 @@ judge now makes; `convex/http.ts` has to match them, and `apps/judge/README.md` 
   `customLabels`, and is listed in the import report.
 - `judge_problem.date` is nullable in DMOJ but `problems.date` is required. Null becomes 0, and every such problem
   is listed in the import report.
+
+
+## 2026-09-10, packages/ui and the shell
+
+- `packages/ui` is now the real component kit, ported from the shadcn/Radix kit in
+  `OrderRegistration` and restyled onto `tokens.css`. Three notes on the port:
+  - **Tailwind v4 does not accept DESIGN.md's `h-[--control-h]` spelling.** In v4 a bare
+    `--var` inside square brackets is emitted verbatim (`height: --control-h`), which is invalid
+    CSS and silently does nothing; the token has to be written `h-(--control-h)`. Every recipe in
+    DESIGN.md section 11.4 that uses the bracket form has been translated to the parentheses form
+    or to a theme name. Section 11.4 should be corrected when it is next edited.
+  - **Tailwind's type scale is replaced rather than extended**, in `theme.css`: `text-xs` 11,
+    `text-sm` 12.5, `text-base` 14, `text-md` 16. A ported class string therefore lands on MOJ's
+    ladder without being rewritten. The one place 16px is wanted on purpose — an input on a phone,
+    so iOS does not zoom on focus — writes `text-[16px] md:text-base`.
+  - Where shadcn's name for a primitive collided with the name the foundation exported for a
+    convenience wrapper, the wrapper kept the short name and the Radix root took a `Root` suffix:
+    `SelectRoot`, `TabsRoot`, `TooltipRoot`, `BreadcrumbRoot`, `PaginationRoot`. `Toggle` is still
+    a labelled `Switch`; shadcn's pressed-state button is `ToggleButton`. Everything the foundation
+    exported still resolves with the same call signature. `packages/ui/README.md` is the reference.
+- `tokens.css` gained one scope, `[data-chrome="dark"]`. The nav and the ContestBar are dark in
+  both themes, so rating names, problem-state chips and the countdown drawn on them always need the
+  dark values whatever the page theme is (DESIGN.md sections 8.1 and 9); marking the chrome
+  re-points `--v-*`, `--state-*`, `--rating-*` and `--accent-ink` without re-declaring a theme.
+- **DESIGN.md's reviewer checklist item 23 cannot be satisfied literally.** Radix's `Select`
+  renders an `aria-hidden`, `tabindex="-1"` native `<select>` whenever its trigger is inside a
+  `<form>`, so that the control participates in native form submission; there is no prop to turn it
+  off. No native control is visible or focusable anywhere in the product, but the check has to read
+  `document.querySelectorAll('select:not([aria-hidden]), input[type=checkbox], …')`.
+- The chrome publishes `--header-height` from a `ResizeObserver` on the fixed header (nav + keyline
+  + ContestBar) and derives `--sticky-top` from it, so a sticky table header never has to guess
+  which bars are on screen (DESIGN.md section 12).
+- `apps/web/src/proxy.ts`'s trailing-slash redirect built its target with `request.nextUrl.clone()`.
+  `NextURL` re-applies the `trailingSlash` config when it serialises, so the redirect pointed back
+  at the path it came from and any extensionless 404 (`/nope`) looped until the browser gave up.
+  It now builds a plain `URL` from `request.url`.
+- `apps/web/src/lib/simple-markdown.tsx` is gone, replaced by `apps/web/src/lib/markdown.ts`:
+  `renderContent(source, preset)` and `renderFlatPage(source)`, both `async`, both wrapped in
+  React's request `cache`, both server-only. `@moj/content/styles/content.css` and
+  `katex/dist/katex.min.css` are imported from `globals.css`, and `content.css` is the authority for
+  `.content-description`; `packages/ui/src/skin.css` deliberately does not duplicate it.
+- `@moj/content` resolves to `dist/`, which is gitignored, so the root `package.json` gained a
+  `prepare` script that builds it. `npm ci` runs `prepare`, which is what keeps CI's typecheck and
+  build green without reordering the workspace build.
+- `convex/lib/auth.ts`'s `hasPerm`/`isStaff` now delegate to `@moj/core`, with the profile document
+  handed over as a `ProfileRow` (its `_id` republished as `id`). One behaviour change comes with
+  that: DMOJ's `is_staff` is `user.is_staff` alone, where the foundation's helper also returned true
+  for a superuser. Every superuser the seed and the importer create is also staff, so nothing in the
+  product changes, but a hand-made superuser without the staff flag would now fail `requireStaff`.
+- `packages/ui/src/controls.css` is deleted; its contents live in the components.
