@@ -14,7 +14,8 @@ watch it.
 
 ## The sections
 
-The rail groups them four ways: judging, people, machinery and the site.
+The rail groups them four ways: judging, people, machines and the site. Branding is the one page not on the
+rail; it is reached from Config.
 
 ### Problems
 
@@ -163,7 +164,7 @@ text, the analytics snippet, the header above the problem list.
 
 ### Branding
 
-`/admin/config/branding` is how a site is rebranded without touching code. It sets the site name and long name,
+`/admin/config/branding`, linked from the Config page, is how a site is rebranded without touching code. It sets the site name and long name,
 the wordmark and the favicon, the accent colour and the nav colour, the default theme, and a block of custom CSS
 that is appended after everything else.
 

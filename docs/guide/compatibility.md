@@ -16,13 +16,15 @@ Every page DMOJ serves is served by MOJ at the same path, including the trailing
 The web app runs with `trailingSlash: true`, so DMOJ's canonical form is MOJ's canonical form. A request without
 the slash is redirected to the one with it.
 
-Two paths moved on purpose, and DMOJ's originals redirect to the new ones:
+Two paths moved on purpose:
 
 - the password reset confirmation is `/accounts/reset/confirm/<token>/` rather than Django's
   `/accounts/password/reset/confirm/<uidb64>-<token>/`, because the token is one opaque string with nothing to
-  split;
+  split. DMOJ's path, and the two pages either side of it, exist as redirects, so an old link in an old email
+  still lands in the right place;
 - the two-factor challenge during sign-in is `/accounts/login/2fa/`. DMOJ overloads `/accounts/2fa/` for both the
-  challenge and the settings page; MOJ keeps `/accounts/2fa/` for the settings.
+  challenge and the settings page, which it can only do because its two-factor settings live under edit profile.
+  MOJ keeps `/accounts/2fa/` for the settings, where the spec puts it.
 
 ## The same problem format
 
@@ -118,8 +120,8 @@ DMOJ's basic and list filter names, and DMOJ's capitalised `True` and `False` bo
 
 Tokens are 48 characters and are sent as `Authorization: Bearer`. A token minted by the old site keeps verifying
 as long as the deployment carries that site's `SECRET_KEY` in `LEGACY_SECRET_KEY`; new tokens come from Better
-Auth's API key plugin. Either kind carries its owner's visibility and nothing more, and neither grants staff
-access.
+Auth's API key plugin. Either kind acts as its owner, carrying that account's visibility and its permissions, so
+a token belonging to a staff member is a staff credential.
 
 One field type had to widen. DMOJ exposes Django primary keys as integers; MOJ keeps them in `legacyId` for
 imported rows and has none for rows created afterwards, so an object id is a number where there is one and a
