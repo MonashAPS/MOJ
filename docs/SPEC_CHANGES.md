@@ -126,3 +126,58 @@ Append dated bullets when you had to extend or deviate from docs/SPEC.md.
   including the two `.wasm` plugins they ship (about 600 kB together). They are a runtime
   dependency of every PDF, and vendoring them is what keeps a compile offline;
   `npm run vendor:typst` refreshes them.
+
+## 2026-09-10, contests
+
+- `contests` gained `freezeRevealed: boolean` and `revealState: any`, both optional so the rows the foundation
+  seeds stay valid. `freezeRevealed` is the "staff have lifted the freeze" flag `applyFreeze`/`isFrozenFor` take
+  as `revealed` (the core branch flagged that it had nowhere to live); `isUnfrozen` is written alongside it and
+  kept as the older alias. `revealState` holds `{ revealed: [{ participationId, cellIndex }] }`, a list of the
+  cells the ceremony has opened, rather than the whole board: the board is rebuilt from the submissions on every
+  read and the recorded reveals are replayed onto it, so a late judge result cannot be lost by a stale snapshot,
+  and undo is a pop.
+- `contests.list` returns the whole `/contests/` payload (`activeParticipations`, `current`, `future`,
+  `finishedKeys`, `past`) rather than a bare `PaginationResult`, because DMOJ's page is four lists and only the
+  past one is paginated. Contest visibility is a row-by-row rule that no index can express, so `past` and
+  `contestRankings.ranking` paginate with an offset carried in `continueCursor`; the shape is still
+  `{ page, isDone, continueCursor }`, so `usePaginatedQuery` can drive `past` once it is lifted out.
+- `contests.list`'s `search` filters the past contests only, as `ContestList.get_queryset` does. `tagName` filters
+  every section, because picking a tag is a browse action rather than a search.
+- `contests.calendar` takes `offsetMinutes` (minutes east of UTC). DMOJ buckets contests by `timezone.localtime`;
+  Convex has no notion of the viewer's timezone, so the caller passes the offset and the day keys come back as
+  `YYYY-MM-DD` strings.
+- Contest clarifications are `problemClarifications` rows on the contest's problems, which is what DMOJ shows
+  (judge/views/blog.py:49). There is no separate contest clarification table and none was added.
+- `viewer.current` gained `contestModeStale`. `Profile.update_contest()` clears contest mode on every request;
+  a Convex query cannot write, so `current` reports the stale participation as `inContest: false` and the
+  clearing happens in `contests.clearStaleContest` (called by the shell) or in the internal
+  `jobs/contests.sweepContestMode`, which is what `maintenance.cleanupContestMode` should call.
+- Contest job runners live in `convex/jobs/contests.ts` (`rescoreChunk`, `rateContestJob`,
+  `rejudgeContestProblemChunk`, `mossJob`, `sweepContestMode`) with three small private helpers that own the
+  `jobs` row, because `convex/jobs.ts` belongs to another agent. Note for the integrator: Convex cannot carry
+  both `convex/jobs.ts` and `convex/jobs/`; if the generic module lands under that name these runners move to
+  `convex/contestJobs.ts` (or the generic one moves to `convex/jobs/index.ts`).
+- `convex/contestFormats.ts` is the thin format wrapper section 5 asks for and also holds the adapters between
+  Convex documents and `@moj/core`'s plain rows (`toContestRow`, `toParticipationRow`, `toViewerRowInContest`
+  and friends), so a rule is only translated once.
+- Contest rankings live in `convex/contestRankings.ts`, not `convex/rankings.ts`: the foundation branch already
+  carries `rankings.topUsers` and the users leaderboard is another agent's.
+- `ratings.rateContestInternal` reproduces `Contest.rate()`: it deletes every rating produced by contests ending
+  in `[contest.endTime, now]` and re-rates the rated ones in end-time order. `profiles.rating` is then set from
+  each participant's most recently ended rated contest, which is DMOJ's subquery.
+- Admin gates beyond `contestIsEditableBy`, taken from `Contest.Meta.permissions`:
+  `judge.change_contest_visibility` for `isVisible`, `judge.lock_contest` for `lockedAfter`,
+  `judge.contest_access_code` for `accessCode`, `judge.override_performance_ceiling` for
+  `performanceCeilingOverride`, `judge.create_private_contest` for the two private flags, and
+  `judge.contest_rating` for rating. Contest tags and scoreboard events need `judge.edit_all_contest`.
+- `scoreboardEvents.theme` is validated against `default` and `olympics`; the fork's `template` hook has no
+  equivalent, because the page is a React route rather than a Django template.
+- MOSS is a stub, as section 12 allows: `contests.moss` answers "MOSS is not configured." unless
+  `siteSettings.mossApiKey` is set, and `jobs/contests.mossJob` fails with the same message. Running MOSS needs an
+  outbound call to moss.stanford.edu from an action, which nothing here has a key for.
+- `convex-test` and `@edge-runtime/vm` are new devDependencies; the contest tests carry
+  `// @vitest-environment edge-runtime` per file because the root vitest project runs `node`, and they declare
+  `ImportMeta.glob` themselves because `convex/tsconfig.json` does not include Vite's types. `package-lock.json`
+  is deliberately left uncommitted, as section 2 asks.
+- `convex/_generated/api.d.ts` was hand-extended with the new modules, since `convex codegen` needs a running
+  backend and the file is committed.
