@@ -159,10 +159,13 @@ export { InfoBox, Panel } from "./components/panel";
 export { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "./components/popover";
 export { RadioGroup, RadioGroupItem, type RadioGroupProps, type RadioOption } from "./components/radio-group";
 export {
+  RATING_VALUES,
   type RatingClass,
   RatingDelta,
   RatingName,
   ratingClass,
+  ratingLevel,
+  ratingProgress,
   ratingTitle,
 } from "./components/rating-name";
 export {
@@ -187,6 +190,7 @@ export {
   SheetTitle,
   SheetTrigger,
 } from "./components/sheet";
+export { Slider } from "./components/slider";
 export { Switch, type SwitchProps, Toggle } from "./components/switch";
 export {
   EmptyRow,
@@ -208,7 +212,7 @@ export {
   TabsRoot,
   TabsTrigger,
 } from "./components/tabs";
-export { PageTabs, TabBar, type TabItem, TitleRow } from "./components/title-row";
+export { PageTabs, TabBar, type TabItem, type TabLink, TitleRow } from "./components/title-row";
 export { Toaster, toast } from "./components/toast";
 export { ToggleButton, ToggleGroup, ToggleGroupItem } from "./components/toggle-group";
 export {

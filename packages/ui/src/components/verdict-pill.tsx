@@ -35,6 +35,8 @@ export function verdictTone(code: string): VerdictTone {
     case "IR":
     case "RTE":
     case "PARTIAL":
+    // `Submission.result_class_from_code`: an AC that did not take every point.
+    case "_AC":
       return "warn";
     case "QU":
     case "P":
@@ -47,6 +49,7 @@ export function verdictTone(code: string): VerdictTone {
 
 const TITLE: Record<string, string> = {
   AC: "Accepted",
+  _AC: "Partially accepted",
   SC: "Short circuited",
   WA: "Wrong Answer",
   TLE: "Time Limit Exceeded",
@@ -80,6 +83,7 @@ export function VerdictPill({
 }) {
   const code = String(verdict).toUpperCase();
   const tone = judging ? "run" : verdictTone(code);
+  const text = label ?? (code === "_AC" ? "AC" : code);
   return (
     <Badge
       variant={tone}
@@ -89,7 +93,7 @@ export function VerdictPill({
       title={TITLE[code] ?? code}
       className={cn(judging && "animate-pulse-judging", className)}
     >
-      {label ?? code}
+      {text}
     </Badge>
   );
 }

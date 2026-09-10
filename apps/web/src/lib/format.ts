@@ -40,3 +40,11 @@ export function formatRelative(ms: number, now = Date.now()): string {
   }
   return "just now";
 }
+
+/** Django's `floatformat`: round, then drop a trailing `.0` — DMOJ shows `100`,
+ *  not `100.000`, and `2.5` stays `2.5`. */
+export function formatPoints(value: number, precision = 2): string {
+  if (!Number.isFinite(value)) return "0";
+  const rounded = Number(value.toFixed(Math.max(0, precision)));
+  return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+}

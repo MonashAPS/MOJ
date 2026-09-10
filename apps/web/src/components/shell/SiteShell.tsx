@@ -12,10 +12,19 @@ import { Announcement } from "./Announcement";
 import { ContestBar } from "./ContestBar";
 import { ContestFloater } from "./ContestFloater";
 import { Footer } from "./Footer";
+import { ImpersonationBar } from "./ImpersonationBar";
 import { NavBar } from "./NavBar";
 import { RouteProgress } from "./RouteProgress";
 import { ShortcutLayer } from "./ShortcutLayer";
 import type { ViewerSummary } from "./UserBlock";
+
+/** The hall scoreboard is a projector surface, not a page of the site: it draws
+ *  its own chrome full-bleed and must not carry the nav, the footer or the
+ *  content column (DESIGN.md section 16.2). The index at `/scoreboard/` is an
+ *  ordinary page. */
+function isHallScoreboard(pathname: string): boolean {
+  return /^\/scoreboard\/.+/.test(pathname);
+}
 
 /** The club's royal grid belongs on the pages that are mostly words. Behind a
  *  table it is noise (DESIGN.md section 7). */
@@ -24,6 +33,7 @@ function wantsGrid(pathname: string): boolean {
     pathname === "/" ||
     pathname.startsWith("/accounts/") ||
     pathname.startsWith("/about") ||
+    pathname.startsWith("/blog") ||
     pathname.startsWith("/post/")
   );
 }
@@ -34,12 +44,17 @@ export function SiteShell({
   viewer,
   registrationOpen,
   language,
+  logoUrl = null,
+  siteName = "MAPS Online Judge",
   children,
 }: {
   nav: NavNode[];
   misc: Record<string, string>;
   viewer: ViewerSummary | null;
   registrationOpen: boolean;
+  /** SPEC section 24: the operator's wordmark, when one is uploaded. */
+  logoUrl?: string | null;
+  siteName?: string;
   /** The viewer's `LANGUAGE_CODE`, read from the cookie by the layout. */
   language: string;
   children: ReactNode;
@@ -48,7 +63,10 @@ export function SiteShell({
   const [paletteOpen, setPaletteOpen] = useCommandPalette();
   const headerRef = useRef<HTMLElement | null>(null);
 
-  const contest = useQuery(api.contests.navBar, {});
+  /** SPEC section 20: on a contest route the bar is the contest in the URL, not
+   *  whichever contest the viewer happens to be inside. */
+  const routeKey = /^\/contest\/([a-z0-9._-]+)/i.exec(pathname)?.[1];
+  const contest = useQuery(api.contests.navBar, routeKey ? { key: routeKey } : {});
   const problemCode = /^\/problem\/([a-z0-9._-]+)/.exec(pathname)?.[1];
   const onContestPage =
     !!contest &&
@@ -76,6 +94,16 @@ export function SiteShell({
     );
   }, []);
 
+  if (isHallScoreboard(pathname)) {
+    return (
+      <TooltipProvider>
+        <ProfileBootstrap />
+        {children}
+        <Toaster />
+      </TooltipProvider>
+    );
+  }
+
   return (
     <TooltipProvider>
       <a className="skip-link" href="#content">
@@ -88,10 +116,15 @@ export function SiteShell({
           viewer={viewer}
           registrationOpen={registrationOpen}
           onOpenSearch={() => setPaletteOpen(true)}
+          logoUrl={logoUrl}
+          siteName={siteName}
         />
         {/* The club's royal, carried across the top of every page. */}
         <div aria-hidden className="h-[3px] bg-royal" />
-        {onContestPage && contest ? <ContestBar data={contest} currentCode={problemCode} /> : null}
+        {onContestPage && contest ? (
+          <ContestBar data={contest} currentCode={problemCode} viewerUsername={viewer?.username ?? null} />
+        ) : null}
+        {viewer?.isImpersonating ? <ImpersonationBar username={viewer.displayName} /> : null}
       </header>
 
       <ProfileBootstrap />
@@ -102,9 +135,13 @@ export function SiteShell({
           wantsGrid(pathname) && "page-grid",
         )}
       >
+        {/* `overflow-x: clip` (not hidden, which would make this a scroll
+            container and break every sticky header inside it): a dense table
+            already scrolls inside its own wrapper, but a wide console page
+            still widened the document on a phone. */}
         <main
           id="content"
-          className="relative mx-auto w-full max-w-(--content-max) flex-1 px-(--gutter) py-6 min-[760px]:px-(--gutter-lg)"
+          className="relative mx-auto w-full max-w-(--content-max) flex-1 overflow-x-clip px-(--gutter) py-6 min-[760px]:px-(--gutter-lg)"
         >
           <RouteProgress />
           {/* Page enter is the content column only; the chrome must feel nailed

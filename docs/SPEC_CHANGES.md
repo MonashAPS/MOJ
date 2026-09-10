@@ -2,6 +2,240 @@
 
 Append dated bullets when you had to extend or deviate from docs/SPEC.md.
 
+## 2026-09-11, submission, judge and statistics pages
+
+- `submissions.list` truncated its page at `numItems` while returning the cursor for the end of the whole scan it
+  had walked, so every row between the cut and the cursor was unreachable: a problem with 174 submissions only
+  ever offered the first 50. The page is now the scan minus what the viewer may not see, which is what the
+  function's own docstring already promised, and `PAGE_SCAN_MULTIPLIER` is 2 so a page stays a sensible length.
+  `convex/__tests__/submissionsListPaging.test.ts` walks every page and fails without the fix.
+- `packages/protocol/src/index.ts` re-exported with `.js` specifiers. Turbopack does not rewrite a `.js` specifier
+  to the `.ts` file beside it, so `next build` could not resolve `API_VERSION` and the whole app failed to build.
+  The barrel is extensionless now. **`@moj/core` has the same problem and still has it**: its barrel and every
+  internal import carry `.js`, so `import { hasPerm } from "@moj/core"` fails inside `apps/web`. Subpaths whose
+  file has no runtime imports (`@moj/core/verdicts`, `@moj/core/util/number`) do resolve, and `apps/web` adds
+  `@moj/core` to `transpilePackages` so they compile; `apps/web/src/lib/viewerPerms.ts` carries copies of
+  `isStaff` and `hasPerm` because `@moj/core/permissions` cannot be reached at all. Dropping the extensions
+  across that package removes the workaround.
+- `apps/web` still cannot `next build`: `packages/content/dist/typst/render-pdf.js` locates its templates with
+  `new URL("../../typst/", import.meta.url)`, which Turbopack tries to resolve as a module, and
+  `/problem/[code]/pdf` pulls it in. `serverExternalPackages` does not help because the package is a workspace
+  symlink. Every other route builds; this one belongs to whoever owns the content package.
+- DESIGN.md section 15 asks the status page for a "12 / 18 cases" progress bar. A judge streams its cases as it
+  runs them and never says how many there are, so there is no honest denominator: the bar pulses at full width
+  while `P`/`G` with the case the judge is on beside it in mono, and a queued submission gets the words alone.
+- The submission row's stretched link points at the submission, not at the problem as section 12.2 says; the
+  problem name is a separate link above it. A submission list's row is about the submission, and DMOJ's own row
+  carries a "view" link for exactly that.
+- The statistics side box is left off `/submissions/user/<u>/` and the contest lists.
+  `submissions.resultsForProblem` counts globally or for one problem, and DMOJ's `_get_result_data` counts the
+  list's own queryset, so showing it there would report a total that is not the list's.
+- New page queries, for the integrator to deploy: `convex/pages/submissions.ts` exports `listContext` (the filter
+  panel's options, DMOJ's `get_searchable_status_codes`, and the `access_check` each list runs), `statusExtras`
+  (the judge a submission ran on, the language's time-limit override, the maximum single-case runtime, a contest
+  problem's output-prefix clip and the abort/rejudge/resubmit flags) and `sourceView` (the source plus the Shiki
+  grammar for the language). Until they are deployed the pages fall back to composing the same shape from
+  `viewer.current`, `languages.list`, `profiles.byUsername`, `problems.get`, `contests.get`,
+  `submissions.detail` and `submissions.source`; the fallback loses the judge name, the language time-limit
+  override and the output-prefix clip, and nothing else.
+- `verdictTone` in `@moj/ui` did not know `_AC`, the code `Submission.result_class_from_code` produces for an
+  accept that did not take every point, so a partial accept was drawn as a neutral pill. It is in the `warn`
+  family now, as section 2.3 lists it, and the pill still reads `AC`.
+## 2026-09-11, contest pages
+
+- New page-level Convex module `convex/pages/contests.ts`, holding what the contest routes need on top of
+  `contests.ts` and `contestRankings.ts` and nothing else:
+  - `tag({name})` — `/contests/tag/[name]`'s own header. `ContestTagDetail` renders the tag chip and its
+    description, and neither is reachable from `contests.list`'s rows when no contest carries the tag.
+    `tagTextColor` is `ContestTag.text_color`'s luma rule.
+  - `frozenCells({key})` — SPEC section 7. `contestRankings.ranking` scores a frozen board from pre-freeze
+    submissions, which is right for the ranking but leaves a post-freeze solve indistinguishable from an
+    untouched problem. This returns, per cell, the *count* of submissions the freeze is withholding (never a
+    verdict), so a frozen cell can render as `?` with its attempt count as the spec asks. Returns null whenever
+    the board is not frozen for the viewer.
+  - `deleteMossResults({key})` — `ContestMossDelete` (contests.py:880). `convex/contests.ts` has the `moss`
+    query but no delete, and `/contest/[key]/moss` needs the button.
+  Each page calls these defensively (the server probes, and the browser only subscribes when the probe
+  succeeded), so a deployment that has not taken them yet degrades instead of erroring.
+- `TitleRow`'s inner row gained `min-w-0` and `PageTabs` gained `min-w-0 max-w-full`
+  (`packages/ui/src/components/title-row.tsx`). Without them the row's grid track takes the tab strip's
+  max-content width and every page with more than three tabs scrolls sideways at 375 px, which fails DESIGN.md
+  section 24's checks 22 and 39. One line each, no visual change above 768 px.
+- `apps/web/src/proxy.ts` skips its trailing-slash redirect for `/_next`. `/_next/hmr` is a websocket upgrade
+  and the 308 to `/_next/hmr/` fails the handshake, which leaves the Turbopack dev runtime unable to hydrate
+  any page. (The dev server must also be opened on the same host the `allowedDevOrigins` check expects —
+  `localhost`, not `127.0.0.1` — or Next rejects the same socket on the Origin header.)
+- `viewer.current`'s `contestModeStale` is cleared by `ProfileBootstrap`, which already subscribes to that
+  query for the profile bootstrap; it runs `contests.clearStaleContest` once per page load when the flag is set.
+- The ContestBar takes the contest from the URL on a `/contest/[key]/...` route (`contests.navBar({key})`)
+  rather than only from the viewer's own participation, so it renders on every contest route as section 20
+  requires. It also stops counting down when the window has closed ("ended") or when the contest runs past
+  `COUNTDOWN_HORIZON` ("open"), because DMOJ's tutorial contests end in the year 9999.
+- `contestRankings.ranking` does not carry `timeLimit`, as the parity audit notes. The ranking page reads
+  `contests.get` for the contest's window and the viewer's participation end instead of duplicating the module.
+## 2026-09-11, staff console part 2
+
+Routes added under `/admin`: `/admin/` (the section index), `users`, `users/[username]`, `organizations`,
+`organizations/[slug]`, `classes`, `judges`, `languages`, `navigation`, `config`, `config/branding`,
+`flatpages`, `blog`, `licenses`, `tags`, `tickets`, `api-keys`. The pages live in the `(part2)` route group; the group carries its
+own `error.tsx` so a refused subscription shows a panel inside the console instead of the site's 500.
+
+- New Convex module `convex/pages/admin2.ts`, covered by `convex/tests/pagesAdmin2.test.ts`: `revisions`
+  (the generic history panel), `userExtras` and `setUserMemberships` (the profile fields `admin/users.edit`
+  does not carry — `about`, `usernameDisplayOverride`, the preferred-language foreign key and organisation
+  membership with its denormalised count), `clearLegacyApiToken`, and `myApiKeys` / `recordApiKey` /
+  `revokeApiKey` for the `apiKeys` table. `convex/_generated/api.d.ts` was hand-extended with `pages/admin2`,
+  as the other branches do. **It is not deployed on the shared dev backend**, so in this worktree the pages
+  that read it fall back (`userExtras` is fetched server-side with a catch, the API-key mirror reports a
+  warning); the integrator has to deploy it.
+- API keys: Better Auth's api-key plugin treats `permissions` as a server-only property and rejects the call
+  when request headers are present, so `createApiKey` is invoked with an explicit `userId` after the server
+  action has checked the session itself. The key is minted there, then its sha256 hex, its visible prefix
+  (the plugin's `start`, 6 characters) and its wire scopes are mirrored into the `apiKeys` Convex table, which
+  is the fallback `http/problemsApi` verifies against. The two rows are correlated by that prefix, because the
+  table has no column for Better Auth's key id. The page documents `NEXT_PUBLIC_CONVEX_SITE_URL` as the
+  problems API base: the endpoint is a Convex HTTP action, not a Next route, so `JUDGE_URL` in a problem
+  repository's workflow is the Convex site origin, not the site members browse.
+- Impersonation is `auth.api.impersonateUser` from a server action, with the returned `Set-Cookie` headers
+  copied onto Next's cookie store by hand (the `nextCookies` plugin is not installed). `/impersonate/stop/`
+  is added as a route handler because the user dropdown already links to it, and the root layout now passes
+  `isImpersonating` (from `session.impersonatedBy`) into the shell so that row appears.
+- "Reset 2FA" deletes the account's `two_factor` rows through Drizzle and clears `user.two_factor_enabled`;
+  Better Auth's admin plugin has no endpoint for removing another account's factors. Sessions are revoked with
+  it, so the member re-enrols on the next sign-in. Deactivating an account is `admin/users.deactivate` for the
+  profile plus `auth.api.banUser` for the account, in that order.
+- DMOJ lets only an organisation's own admins (or a class admin) review its join requests — `can_review_all_requests`
+  does not consult `is_superuser` — so `organizations.reviewRequests` refuses a superuser who is not an admin
+  of that organisation. The tab is wrapped in a small error boundary that says so rather than taking the page
+  down; the rule itself is left alone.
+- The users list's "Superusers" filter asks `admin/users.list` for the staff page (`perPage` 200) and refines
+  client-side, because that query has no `isSuperuser` argument. Staff are few enough that one page covers them.
+- Organisation and class administrators, and class members, are comma-separated username fields: the mutations
+  take usernames, and the kit has no combobox that searches the server as you type. A bad username comes back
+  from the backend as `User <name> not found`.
+- A blog post's publish time is a plain text field in `YYYY-MM-DD HH:MM`, because DESIGN.md forbids
+  `input[type=date]` and the kit has no date picker.
+- `packages/ui`'s `Breadcrumb items={...}` shortcut renders `BreadcrumbSeparator` (an `<li>`) inside
+  `BreadcrumbItem` (also an `<li>`), which React rejects at hydration. The console composes the parts as
+  siblings in its own `Crumbs` helper; the kit's shortcut should be fixed the same way.
+- DESIGN.md's checklist item 23 ("no native select or checkbox in the DOM") cannot pass for any page with a
+  form: Radix's `Select` and `Checkbox` render a hidden native control for form participation whenever they
+  sit inside a `<form>`. Every visible control is still the kit's.
+- At 390 px an authenticated console page's document scrolls horizontally even though the dense table itself
+  scrolls inside its own wrapper. Only `overflow-x: clip` on `main` or on `.enter-rise` in `SiteShell` contains
+  it — clipping anywhere inside the console subtree does not — so the fix belongs to the shell, and it will
+  affect part 1's tables and the public dense lists too. The console's own boxes carry `min-w-0` already.
+- The shell components (`AdminShell`, `AdminTable`, `AdminForm`, `RevisionsPanel`, `JobProgress`, plus
+  `sections.ts`) are minimal versions written here so the pages could be built; part 1 owns the canonical set.
+  The props these pages rely on are: `AdminShell({children})`; `AdminTable({columns, rows, rowKey, toolbar,
+  loading, emptyTitle, emptyDescription, emptyAction, footer, caption})` where a column is
+  `{key, header, numeric?, className?, cell(row)}`; `AdminForm({children, onSubmit, reason, onReasonChange,
+  reasonLabel?, reasonHint?, dirty, busy, submitLabel, error, saved, actions?})`;
+  `RevisionsPanel({rows, title?, emptyText?})`; `JobProgress({jobId, onDismiss?})`. `/admin/page.tsx` (the
+  section index) is also written here; drop it if part 1 has one.
+- Branding (SPEC section 24) is implemented here: `siteSettings` gains `logoStorageId`, `faviconStorageId`,
+  `accentColor`, `navColor`, `customCss` and `themeDefault`, all optional, so an unset field falls back to
+  `packages/ui/src/tokens.css`. The public query is `site.branding`; it resolves the storage URLs and computes
+  the dark-mode derivatives server-side (the accent is mixed 45% towards white, the nav is kept and the dark
+  titlebar lifted slightly, the way the token file does it) so the same pair reaches the server render and any
+  client. The mutations are `pages/admin2.updateBranding` and `generateBrandingUploadUrl`, superusers only,
+  with a revision. Replacing an upload deletes the old blob.
+  - `apps/web/src/lib/branding.ts` builds the `:root` override block (`--accent`, `--nav`, `--titlebar`,
+    `--brand-royal`, plus the `prefers-color-scheme` and `[data-theme="dark"]` variants) and appends the custom
+    CSS last; `BrandingStyle` emits it from the root layout's `<head>`. Every stored value is stripped of the
+    characters that could close the element or start a rule; `apps/web/src/lib/branding.test.ts` covers that.
+  - The nav takes an uploaded wordmark through `NavBar`'s `src`. The auth pages draw the bundled SVG from
+    `components/auth/AuthCard.tsx`, which is rendered from client components and so cannot read the branding;
+    until that component takes a prop, the emitted CSS replaces it with `content: url(...)` on
+    `svg[aria-label="MAPS Online Judge"]`.
+  - `ThemeScript` now takes the operator's default theme and applies it when the visitor has nothing stored;
+    "system" keeps the previous behaviour of leaving `data-theme` off.
+  - `generateMetadata` in the root layout reads the branding for the title template and the favicon.
+  - `seed.run` takes `siteName` / `siteLongName`, and `infra/scripts/setup.mjs` passes `MOJ_SITE_NAME` /
+    `MOJ_SITE_LONG_NAME` through when they are set. An existing settings document is only renamed under `force`.
+  - The logo and favicon pickers are a `sr-only` `input[type=file]` driven by a kit `Button`. DESIGN.md forbids
+    a native file input, and the kit has no replacement; the visible control is still the kit's, and there is no
+    other way to open a file dialog.
+
+- Two findings outside this branch's scope, both of which break `next build` (dev and `tsc` are fine):
+  `@moj/protocol` ships raw TypeScript with `./apiV2.js`-style specifiers inside `src/index.ts`, which
+  Turbopack cannot resolve because the package has no build step; the extensions are dropped here (the repo is
+  on `moduleResolution: Bundler`), and the owner may prefer to give the package a `dist` instead. The remaining
+  error is `@moj/content`'s `new URL("../../typst/", import.meta.url)` in `render-pdf.ts`: Turbopack traces it
+  statically and fails on the directory. A `turbopackIgnore` comment does not help; either resolve the tree
+  from `process.cwd()` at runtime or add `@moj/content` to `serverExternalPackages` in `apps/web/next.config.ts`.
+  That one is left for its owner.
+
+- Staff two-factor is enforced by `apps/web/src/proxy.ts` for every page including `/admin`, so a staff account
+  without a factor cannot reach the console at all. Screenshots of this branch were taken with a temporary
+  local escape hatch that was reverted; whoever reviews the console needs an enrolled account, or the gate has
+  to learn about a development flag.
+## 2026-09-11, account pages
+
+- **The reset flow uses the URLs docs/using/accounts.md already published**, `/accounts/reset/confirm/<token>/`,
+  `/accounts/reset/complete/` and `/accounts/reset/done/`, not Django's `password/reset/confirm/<uidb64>-<token>/`.
+  DMOJ's three paths exist as redirects to them, so an old link still lands in the right place. Better Auth's
+  token is one opaque string, so DMOJ's `uidb64-token` split has nothing to split.
+- **The two-factor login step is `/accounts/login/2fa/`**, not DMOJ's `/accounts/2fa/`. SPEC section 8 gives
+  `/accounts/2fa/` to the status page, and DMOJ can only overload it because its 2FA settings live under edit
+  profile. `LoginForm` pushes to it when `signIn` answers `twoFactorRedirect`, carrying `next` and the methods
+  Better Auth reported. Nothing is signed in until the challenge is answered: Better Auth holds the session
+  behind a short-lived `moj.two_factor` cookie.
+- **Enrolment asks for the password first.** Better Auth's `twoFactor.enable` will not mint a secret without it
+  for an account that has a password, so DMOJ's one-page `totp_enable` becomes password, then scan, then the
+  scratch codes. The account is not two-factor until a live code is verified, which is DMOJ's behaviour and
+  Better Auth's default (`skipVerificationOnEnable` is off).
+- **The QR code is drawn in the browser from a hand-rolled encoder**, `apps/web/src/lib/qr.ts`: byte mode at
+  error-correction level M, versions 1 to 15. DMOJ renders a PNG server-side with `qrcode`; doing it client-side
+  keeps the secret out of an image URL and adds no runtime dependency. It is verified module for module against
+  the `qrcode` package in `qr.test.ts`.
+- **Staff cannot remove their last factor, enforced in a Better Auth `before` hook** on `/two-factor/disable` and
+  `/passkey/delete-passkey` (`apps/web/src/auth/server.ts`). The pages hide the control, but the endpoints are
+  reachable without them, so the rule has to live where DMOJ's `DMOJ_REQUIRE_STAFF_2FA` check does.
+- **The pwned-password check is split.** `haveIBeenPwned` (Better Auth's own plugin, k-anonymity) rejects a
+  compromised password on `/sign-up/email`, `/change-password` and `/reset-password`. The login prompt cannot
+  reject — the password is already on the account — so an `after` hook on `/sign-in/*` checks it and sets the
+  `moj-password-compromised` cookie, which `src/proxy.ts` turns into DMOJ's forced password change. Completing a
+  change clears it. `HIBP_CHECK=off` disables the plugin for an install with no outbound network.
+- **Email change is Better Auth's `changeEmail`.** With a verified address it sends the activation link to the
+  *new* address, which is DMOJ's behaviour; `sendVerificationEmail` tells a change from a signup by the `updateTo`
+  claim in the token and routes it to `/accounts/email/change/activate/<token>/`, then mails the old address the
+  "somebody asked" warning. The password check in front of it is `auth.api.verifyPassword`, which is server-only,
+  so the page uses a server action rather than a second sign-in from the browser.
+- **Rate limits are on in every environment**, with DMOJ's numbers: ten a minute for `/sign-in/*`,
+  `/request-password-reset`, `/change-email` and `/send-verification-email`. Better Auth's default for sign-in is
+  three in ten seconds, which punishes a member who mistypes twice.
+- **API tokens are the api-key plugin.** `/accounts/api/token/generate/` lists, creates and revokes them; scopes
+  are `read` (`{api: ["read"]}`) and `problems:write` (`{problems: ["write"]}`), the wire names in
+  docs/using/accounts.md. The imported DMOJ token is reported separately and revoked through
+  `profiles.revokeLegacyApiToken`, since it does not live in Postgres.
+- **Logout is a page with a POST form** at DMOJ's `/accounts/logout/`, replacing the route handler, and the user
+  menu links to it. A `GET` no longer ends a session, which matters because Next prefetches menu links.
+- **Disposable-email blocking** is `apps/web/src/auth/disposable-email.ts`, a built-in list plus
+  `BAD_MAIL_PROVIDERS` and `BAD_MAIL_PROVIDER_REGEX` — DMOJ's setting names. It is enforced in the `before` hook
+  on `/sign-up/email` and `/change-email`, and pre-checked in the form so the message lands on the field.
+- **`npm run setup` enrols the dev superuser in TOTP** against `MOJ_DEV_TOTP_SECRET`, written into the generated
+  `.env.local` outside production. The superuser is staff, so without a second factor the staff gate locks it out
+  of the site it was just created for. The secret is fixed so a test can generate a code; five fixed scratch codes
+  come with it. `apps/web/scripts/create-admin.ts` writes the two-factor row Better Auth would have written,
+  encrypting both the secret and the codes with the auth secret (the plugin's default is
+  `storeBackupCodes: "encrypted"`).
+- **`allowedDevOrigins: ["127.0.0.1"]` in `apps/web/next.config.ts`.** Every worktree's dev server shares
+  `localhost` for cookies, so signing in on one port signs you out on another. `127.0.0.1` is a separate cookie
+  origin, but without this Next refuses the dev client's HMR handshake as cross-origin and the page never
+  hydrates. Production is unaffected.
+- **`min-w-0` on `TitleRow` and `PageTabs`.** A five-tab strip made every page carrying one scroll sideways at
+  390 px: a grid or flex child is min-content wide by default, so `overflow-x-auto` on the strip never engaged.
+- `apps/web/src/components/markdown/MarkdownEditor.tsx` is a placeholder: a textarea with a write/preview pair
+  over `renderMarkdown` through a server action. The community branch owns the real one; the props are the same,
+  so the swap is a deletion.
+- `otpauth` is a new dev dependency of `apps/web`, used by `src/auth/totp.test.ts` to check that codes from the
+  reference RFC 6238 implementation verify against Better Auth's verifier with this site's options.
+- **Not done through Better Auth:** nothing. Every account operation on these pages goes through the client or
+  server API. Two things are worth knowing: `viewBackupCodes` is server-only, so the count of remaining scratch
+  codes is read in a server component; and passkeys are a sign-in path of their own rather than a second factor
+  after a password, so "use a passkey" on the challenge page completes the sign-in instead of answering it.
+
 ## 2026-09-10, foundation
 
 - Convex's backing Postgres database is named `moj_dev`, not `convex` as section 14 says. The backend derives the
@@ -807,3 +1041,189 @@ a wiring point that the page wave will import, so they are recorded here rather 
 - `convex/_generated/api.d.ts` was hand-merged, not generated: `npx convex codegen` needs a deployment and
   there is none in this worktree. It lists exactly the modules Convex's own entry-point rules select, so
   the next `convex dev` in the main tree should produce an identical file.
+
+## 2026-09-11, problems pages
+
+- Spec section 20's spoiler rule asks for the "Show contests" toggle to be remembered as a profile
+  preference. `profiles` has no column for it and this branch cannot deploy a schema change, so the
+  preference lives in `localStorage` under `moj.show-contests`, which is still per viewer and survives a
+  reload. Wiring it to a profile field means adding `profiles.showContests?: boolean`, exposing it on
+  `viewer.current` and accepting it in `profiles.updateProfile`; nothing on the page changes but the
+  read and the write.
+- `packages/ui`'s `PageTabs` / `TitleRow` / `TabBar` take an optional `linkAs`, the component a tab's
+  `href` renders as. It defaults to a plain anchor, so every existing call is unchanged; the problem
+  pages pass `next/link` so switching tabs is a client navigation and the shell's route progress bar and
+  page-enter reveal both run. Without it a tab is a full page load and the change reads as a jump.
+- `packages/ui` gained `Slider`, a Radix slider on the tokens. `@radix-ui/react-slider` was already a
+  dependency of the package with no component using it, and DESIGN section 17.1 asks for the point range
+  to be one; the design system forbids `input[type=range]`.
+- `convex/pages/problems.ts` is new: `filterOptions` (the problem types, groups and contests the filter
+  panel offers, with facet counts over the problems the viewer may see) and `rejudgePreview` (how many
+  submissions the manage-submissions filter matches, through `jobs.matchesFilter`, so the confirmation
+  can name the number). Neither existed on `problems.ts`, and both are page reads rather than domain
+  reads. `/problems/` degrades to deriving its options from the current page while the module is
+  undeployed.
+- The statement column's 74ch measure (DESIGN 14.2) and the frame on a statement image are applied by
+  `components/problems/Statement.tsx` rather than `content.css`, which lives in `@moj/content` and is
+  not this branch's to edit.
+- `formatMemoryLimit` prints megabytes always, as DMOJ's `kbsimpleformat` does; a limit of 1 000 000 KB
+  reads "976.6 MB" rather than a six-digit kilobyte count.
+- The problem page's tab bar carries the links DMOJ keeps in the info box (submissions, editorial,
+  ranks, vote, test data, manage submissions, clone), which is what the club asked for. The info box
+  keeps "Submit solution", the submission links and the ticket row, as DESIGN section 14.1 lists them.
+  The Clone tab is gated on `canEdit`; DMOJ gates it on `judge.clone_problem`, which `problems.get`
+  does not return.
+- `/problem/[code]/clone` clones through `admin/problems.create` with the source problem's fields, the
+  cloner as its author and `isPublic: false`. DMOJ's `ProblemClone` copies the same metadata; test data
+  is not copied there either.
+- `TitleRow`'s wrapper is `grid-cols-1`, not a bare `grid`. An `auto` grid track sizes to max-content, so
+  a page whose tab strip is wider than the viewport pushed the whole title row past the right edge and
+  the body scrolled horizontally at 375 px, which section 22 forbids. The strip still scrolls inside its
+  own wrapper.
+- The editorial confirmation (spec section 20) is a kit `Dialog` opened by the Editorial tab, and its
+  "don't ask me again" flag lives in `localStorage` under `moj.editorial-confirmed`. A direct visit to
+  `/problem/<code>/editorial` is deliberately not intercepted, so a shared link still works.
+## 2026-09-11, users and organisations pages
+
+- **New Convex module `convex/pages/users.ts`**, with the two reads no backend module exposed and the
+  pages need. `organizationsFor({profileIds})` returns each ranked user's organisations, which is the
+  `organization-column` DMOJ draws beside a username on a contest ranking and which the leaderboard reuses;
+  `dataExportDownload({})` turns the storage id `profiles.dataExportStatus` reports into a URL, because a
+  storage URL can only be minted inside a function and `/data/download/` has to redirect to one. Both are
+  covered by `convex/tests/pagesUsers.test.ts` and are registered in `convex/_generated/api.d.ts` by hand,
+  as the rest of that file already is. Every page that reads them does so through a `.catch(() => null)`
+  fallback, so they degrade to a leaderboard with no organisation chips until the module is deployed.
+- `organizations.list`, `organizations.get` and `classes.get` gained `legacyId` on the rows they return.
+  DMOJ addresses an organisation as `/organization/<pk>-<slug>` and a class as `<cpk>-<cslug>` inside it,
+  and the pk was not on any payload. Next cannot put two dynamic parts in one path segment, so the routes
+  are `app/organization/[handle]` and `.../class/[klass]`, and `apps/web/src/lib/organizations.ts` splits
+  the leading digits off. A link with no pk still resolves: the slug is what the query takes.
+- **`@moj/ui`'s rating thresholds were wrong.** `ratingClass`/`ratingTitle` used 1200/1500/1800/2200/2600,
+  where `judge/ratings.py` and `@moj/core`'s `RATING_VALUES` use 1000/1300/1600/1900/2400/3000. They are
+  DMOJ's now, and `RATING_VALUES`, `ratingLevel` and `ratingProgress` are exported beside them so nothing
+  else has to restate the table.
+- **`@moj/ui`'s `Select` rendered an empty trigger.** Radix draws the trigger's label by portalling the
+  chosen item's text into the value node, which needs the item mounted; closed, nothing was shown — the
+  footer's language switcher and every filter select on the site were blank. The convenience `Select` now
+  renders the selected option's label as `SelectValue`'s children and tracks an uncontrolled value, so a
+  closed select always shows its selection.
+- **`apps/web/src/proxy.ts` no longer redirects `/_next`.** The trailing-slash redirect fired on
+  `/_next/hmr`, which is a websocket upgrade in development, and broke the handshake on every page load.
+- `apps/web` depends on `@moj/core` (and lists it in `transpilePackages`) so `UserLink` can build DMOJ's
+  `rating <rate-class> <display_rank>` string through `getUserCssClass` rather than restating it. It is
+  imported as `@moj/core/ratings`, the package's own deep entry point: importing the barrel pulls the whole
+  domain layer into the client bundle, and turbopack does not resolve its `export *` re-exports.
+- `recharts` is a new dependency of `apps/web`: the rating history chart. DESIGN.md section 20 names
+  Chart.js 4 or Recharts; Recharts is the one that takes CSS custom properties straight into its SVG
+  attributes, so the rating bands and the line are theme-aware with no JavaScript reading the tokens.
+- **The user page keeps its sidebar on the left**, which is `user/user-base.html`'s own layout, rather than
+  the right-hand `.info-float` of DESIGN.md section 7. Section 7 describes `common-content`; the user page
+  is not one, and DMOJ puts the gravatar column first.
+- The About tab shows a **Best submissions** panel — the ten highest-scoring solved problems, linking to
+  the Problems tab. `profiles.userPage` already returns `bestSubmissions` for the Problems tab and the
+  brief asked for best submissions on About; the full grouped list stays on `/user/[user]/solved`.
+- `/user/[user]/solved`'s "Compare with me" keeps its state in the URL (`?compare=1`) rather than in a
+  posted form, so a comparison is a link. DMOJ's control is a `hide_solved` checkbox that submits the form.
+- `/organization/[pk]-[slug]/kick` is a page: pick a member, confirm, kick. DMOJ hides the same mutation
+  behind a per-row button that only appears on hover, which is not reachable by touch or keyboard; the
+  member table keeps its per-row Kick for admins as well.
+- `forbidden()` needs `experimental.authInterrupts`, which the shell does not enable, so the organisation
+  pages that are admin-only render `ErrorScreen` with a 403 in place instead of raising it.
+- `apps/web/src/components/submissions/SubmissionList.tsx` is a **placeholder** with the props the brief
+  named (`username`, `problemCode`, `contestKey`, plus `pageSize` and the empty-state copy). It renders
+  `submissions.list` in DESIGN.md section 12.2's row shape so the Submissions tab is finished; the
+  submissions agent's component replaces it at integration.
+## 2026-09-11, the hall scoreboard
+
+- **The carousel cross-fades; it does not slide.** The fork translates a track between divisions;
+  DESIGN.md section 16.2 asks for a cross-fade over `--dur-slow`/`--ease-out` with no movement, and that is
+  what `/scoreboard/[event]` does. The panels are stacked and only the active one takes pointers, so each
+  division keeps its own scroll position for the auto-preview tour.
+- **The reveal is a mutation, not local state.** The fork runs its ceremony entirely in the browser: the
+  organiser's tab holds the revealed cells and nothing else on the network sees them. MOJ already had
+  `scoreboard.revealStep` / `revealUndo` / `revealAll` writing `contests.revealState`, so the page calls those
+  and lets the subscription push the new board to every screen at once — the projector, the stream and the
+  organiser's laptop turn over the same result at the same moment. Consequences: "reveal all" is one server
+  call rather than one undoable client step, and undo walks the persisted list.
+- **The ceremony's target and the server's target can differ under the attendance filter.** The page
+  highlights the bottom-most frozen cell of the *displayed* rows, as the fork does, so an in-person-only board
+  never stops on a remote competitor. `scoreboard.revealStep` picks the bottom-most frozen cell of the whole
+  division. With "In person" on, the step may therefore resolve a row that is not on screen. Either the
+  mutation grows a participation filter or the page passes the target it means; the mutation is not this
+  branch's file.
+- **The event feed is derived from the board, not from a second subscription.** `scoreboard.event` already
+  carries every solve time and every outstanding submission, so `feedEntries` in
+  `apps/web/src/components/scoreboard/hall.ts` builds the sidebar from the same payload: no extra query, and
+  the sidebar can never disagree with the grid beside it. It shows solves and pending cells; the fork's
+  per-submission entries (wrong answers, wall-clock times, a verdict chip that settles in place) need
+  submission rows, so **`convex/pages/scoreboard.ts` adds a `feed` query** that returns exactly those, covered
+  by `convex/__tests__/scoreboardFeed.test.ts`. It is not deployed on this branch — swap `feedEntries` for it
+  at integration. Its ordering rule is the freeze's: an entry from inside the freeze reads as pending and
+  carries no verdict for staff as much as for the hall, so the sidebar cannot spoil the grid or the reveal.
+  The derived list caps the outstanding block at a fifth of the sidebar, because everything the freeze is
+  holding is newer than every solve on the board and strict time order would bury them.
+- **The olympics pictograms are the fork's artwork, not Lucide.** DESIGN.md section 16.2 says the theme uses
+  Lucide's sport-adjacent glyphs; the fork ships eleven drawn pictograms and a gold medal, and they are what
+  the club has already put on a projector. They are copied to `apps/web/public/scoreboard-themes/olympics/`
+  and the Jinja `sports` / `problem_icons` tables become
+  `apps/web/src/components/scoreboard/olympics.ts`. Still no emoji. One behaviour change: the fork leaves a
+  problem the table does not name as a plain number, and MOJ falls back to the sport at that column's
+  position, so every column carries a pictogram as section 16.2 describes. The explicit table still wins.
+- **`tokens.css` gained a `.theme-dark` scope.** The hall is dark by identity whatever the viewer's theme is
+  (section 16.2), and the dark palette was only reachable through `:root[data-theme="dark"]`. The dark block's
+  selector list now also carries `.theme-dark`, which the hall's root element uses; nothing else changes.
+- **`SiteShell` renders `/scoreboard/[event]` bare.** The hall board is a projector surface with its own
+  chrome, so the nav, the ContestBar, the footer and the content column are not rendered for it. `/scoreboard/`
+  itself is an ordinary page.
+- **No countdown beside the division title.** Section 16.2 puts one there, but `scoreboard.event`'s division
+  payload carries `duration`, `freezeOffset`, `hasStarted` and `hasEnded` — no absolute start or end time — so
+  the page cannot count down without changing that query's shape. The freeze banner states the freeze as a
+  contest clock ("froze at 3:00, with the final 60 minutes withheld") rather than a wall-clock time. Add
+  `startTime`/`endTime` to the division payload when the query is next edited and the countdown is a
+  ten-line component.
+- **The badge editor saves one badge at a time.** The fork posts `{add: [], remove: []}` in one request;
+  `scoreboard.setTag` takes a single slug, so the modal diffs the boxes and sends one mutation per changed
+  badge. A partial failure therefore leaves the earlier changes applied, and the modal stays open on the
+  boxes as they were left.
+- **Staff cannot reach the page in this build.** `apps/web/src/proxy.ts` sends any staff account without a
+  second factor to `/accounts/2fa/`, and that page has no enrolment control yet, so no staff session can open
+  any page — including this one. The reveal bar, the badge editor and the `E`/`R` shortcuts are therefore
+  unexercised in a browser; they are covered by the payload's `canReveal` / `canEditTags` flags and by the
+  mutations, which were driven directly against the deployment. Nothing here needs changing once the accounts
+  agent lands 2FA enrolment.
+## 2026-09-11, staff console part one
+
+- The console's read models live in a new `convex/pages/admin1.ts`: `consoleViewer`, `problemsList`,
+  `problemOptions`, `problemEdit`, `cloneProblem` (the one mutation, `judge.clone_problem`), `contestEdit`,
+  `contestOptions`, `resolveProfiles`, `resolveContestRefs`, `profileSearch`, `problemSearch`,
+  `submissionsList`, `jobsList`, `revisionsFor` and `scoreboardOptions`. Everything they write goes through
+  the existing `convex/admin/*` mutations; these only read, and every one of them is staff-gated and returns
+  an empty result rather than throwing, so a console page never renders an error boundary.
+- `convex/admin/*` speaks in ids where a form speaks in names, so `contestEdit` resolves the eight profile
+  arrays, the organisations, the classes and the tags to names, and `resolveProfiles` / `resolveContestRefs`
+  turn them back into ids at save time. DMOJ's admin did the same thing with select2 endpoints.
+- **A console page cannot subscribe to `pages/admin1` until it is deployed.** `useQuery` throws a missing
+  function straight through React, so the console reads those modules through
+  `apps/web/src/components/admin/useConsoleQuery.ts`, which runs the query as a promise and reports
+  `unavailable` instead. `apps/web/src/components/admin/fallbacks.ts` then serves each screen from the
+  deployed public and admin queries (`admin/problems.editable`, `problems.get`, `admin/contests.get`,
+  `submissions.list`, `jobs.recent`), and `ConsoleNotice` says what is missing. Once `pages/admin1` is on the
+  deployment `unavailable` is always false and both files collapse to a plain `useQuery`; the integrator can
+  delete them and swap the call sites back.
+- The console's title row is `--fs-h2`, not the `--fs-h1` of a public page: DESIGN 19.2 turns the density up,
+  and a 26px heading over 28px rows reads like a public page that lost its content column. The checklist's
+  "h1 is 26px" line applies to the public pages.
+- DESIGN 19.2 puts the console rail on `--surface`. With `--bg-2` now white and `--surface` white with it, a
+  white rail on a white ground is a hairline away from invisible, so the rail and the console's own bar are
+  `--surface-2`, the well tint. Everything else in 19.2 is unchanged.
+- There is no date picker in `@moj/ui` and no `react-day-picker` in the tree, so
+  `apps/web/src/components/admin/DateTimeField.tsx` is the recipe from DESIGN 11.4 built out of `Popover` plus
+  a month grid of buttons and a mono time box. No native `<input type="date">` anywhere.
+- `apps/web/src/components/markdown/MarkdownEditor.tsx` is a placeholder with the props the community wave's
+  editor is expected to take (`value`, `onChange`, `preset`, `rows`, `id`, `placeholder`, `disabled`,
+  `invalid`, `ariaLabel`); the integrator keeps theirs.
+- Test data has no console tab of its own. The public editor at `/problem/<code>/test_data/` validates the
+  archive as you go, so the console's Test data tab links to it rather than duplicating it.
+- Problem cloning had no mutation anywhere (`judge.clone_problem` was only in the permission list), so
+  `pages/admin1.cloneProblem` is new: statement, limits and taxonomy under a new code, private, with the
+  viewer as its only author and no test data or submissions, matching DMOJ's `ProblemClone`.

@@ -5,7 +5,7 @@ import { cn, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTr
 import { Clock, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useRef } from "react";
-import { formatDuration, useCountdown } from "@/lib/countdown";
+import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 
 function moveBetweenChips(ref: { current: HTMLDivElement | null }) {
   return (event: React.KeyboardEvent<HTMLAnchorElement>) => {
@@ -33,23 +33,33 @@ const CHIP_STATE: Record<string, string> = {
 export function ContestBar({
   data,
   currentCode,
+  viewerUsername,
 }: {
   data: NonNullable<ContestBarData>;
   currentCode?: string;
+  viewerUsername?: string | null;
 }) {
   const remaining = useCountdown(data.isSpectating ? null : data.endsAt);
   const chipsRef = useRef<HTMLDivElement | null>(null);
   const base = `/contest/${data.contest.key}`;
 
   const links = [
-    { href: `${base}/ranking/`, label: "Standings" },
-    { href: `${base}/submissions/me/`, label: "My submissions" },
-    ...(data.contest.useClarifications ? [{ href: `${base}#clarifications`, label: "Clarifications" }] : []),
+    ...(data.links.standings ? [{ href: `${base}/ranking/`, label: "Standings" }] : []),
+    ...(data.links.submissions && viewerUsername
+      ? [{ href: `${base}/submissions/${viewerUsername}/`, label: "My submissions" }]
+      : []),
+    ...(data.links.clarifications ? [{ href: `${base}/#clarifications`, label: "Clarifications" }] : []),
   ];
 
+  // A contest whose window has closed has no countdown left to run; DMOJ stops
+  // showing one rather than pinning it at zero.
+  const ended = data.timeRemaining === null || remaining === null || remaining <= 0;
+  // DMOJ's open-ended tutorial contests run to the year 9999; "2911824d" is not
+  // a deadline, so the bar stops counting.
+  const openEnded = !ended && remaining !== null && remaining > COUNTDOWN_HORIZON;
   const urgency =
-    remaining === null
-      ? "text-nav-ink"
+    ended || openEnded
+      ? "text-contest-bar-ink"
       : remaining < 60_000
         ? "text-bad"
         : remaining < 300_000
@@ -135,7 +145,7 @@ export function ContestBar({
         )}
       >
         <Clock size={14} aria-hidden />
-        {data.isSpectating ? "spectating" : remaining === null ? "—" : formatDuration(remaining)}
+        {data.isSpectating ? "spectating" : ended ? "ended" : openEnded ? "open" : formatDuration(remaining)}
       </span>
     </nav>
   );

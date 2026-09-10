@@ -36,7 +36,8 @@ npm run dev
 8. seeds the 59 DMOJ languages, the navigation bar, the misc config defaults,
    the problem groups and types, two announcements and the sample problem
    `aplusb`,
-9. creates the development superuser `admin` / `admin`.
+9. creates the development superuser `admin` / `admin`, enrolled in TOTP against
+   `MOJ_DEV_TOTP_SECRET` so it passes the staff two-factor gate.
 
 Then:
 
@@ -65,6 +66,32 @@ and `MOJ_ADMIN_EMAIL` before running setup.
 
 Staff accounts without a second factor are redirected to `/accounts/2fa/`
 everywhere except the account pages, matching DMOJ's `DMOJ_REQUIRE_STAFF_2FA`.
+The superuser is staff, so setup enrols it in TOTP as well, against the fixed
+secret in `MOJ_DEV_TOTP_SECRET`. Fixed on purpose: the same secret always
+produces the same codes, so a script or a test can generate one instead of
+reaching for a phone.
+
+Scan the provisioning URI setup prints (`totp otpauth://…`) with any
+authenticator app, or generate a code with `otpauth`, which `apps/web` already
+depends on:
+
+```js
+import { createOTP } from "@better-auth/utils/otp";
+import { URI } from "otpauth";
+
+const uri = createOTP(process.env.MOJ_DEV_TOTP_SECRET, { digits: 6, period: 30 })
+  .url("MOJ", "admin@example.com");
+const code = URI.parse(uri).generate();
+```
+
+Setup also issues five fixed scratch codes, `mojde-vcode1` through
+`mojde-vcode5`, each good for one login in place of a code. Re-running
+`npx tsx apps/web/scripts/create-admin.ts` reissues the set and repairs the
+enrolment; it is idempotent.
+
+**None of this belongs in production.** Setup is a development script and only
+it writes `MOJ_DEV_TOTP_SECRET`; a deployment leaves the variable unset, and
+without it `create-admin.ts` enrols nothing.
 
 ## The judge
 
@@ -130,6 +157,7 @@ the ones only production needs.
 | `AUTH_RP_ID` | web server | Passkey relying party id. Bare hostname, no scheme or port. |
 | `AUTH_URL` | Convex | Web app origin the problems API calls to verify an API key against Better Auth. Unset means the `apiKeys` table fallback. |
 | `LEGACY_SECRET_KEY` | web server, Convex | DMOJ's `SECRET_KEY`. API v2 tokens minted by the old site are `hmac_sha256` of it, so legacy tokens only work when it matches. Blank on a fresh install. |
+| `MOJ_DEV_TOTP_SECRET` | setup only | Fixed TOTP secret the development superuser is enrolled against, so its codes are reproducible. Development only; never set it on a deployment. |
 | `MAIL_MODE` | web server | `console` logs mail, `ses` sends through Amazon SES. |
 | `MAIL_FROM`, `SES_*` | web server | SES sender and credentials, only read when `MAIL_MODE=ses`. |
 | `JUDGE_NAME`, `JUDGE_KEY` | judge container | Credentials the judge presents to the judge API. |
