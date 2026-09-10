@@ -13,8 +13,22 @@ export function ProfileBootstrap() {
   const { isAuthenticated } = useConvexAuth();
   const viewer = useQuery(api.viewer.current, isAuthenticated ? {} : "skip");
   const ensureProfile = useMutation(api.profiles.ensureProfile);
+  const clearStaleContest = useMutation(api.contests.clearStaleContest);
   const { data: session } = authClient.useSession();
   const attempted = useRef(false);
+  const clearedStale = useRef(false);
+
+  /** `Profile.update_contest()`: a Convex query cannot drop a contest-mode
+   *  participation whose window has closed, so `viewer.current` reports it as
+   *  stale and the shell runs the mutation once. */
+  useEffect(() => {
+    if (!isAuthenticated || clearedStale.current) return;
+    if (!viewer?.contestModeStale) return;
+    clearedStale.current = true;
+    void clearStaleContest({}).catch(() => {
+      clearedStale.current = false;
+    });
+  }, [isAuthenticated, viewer, clearStaleContest]);
 
   useEffect(() => {
     if (!isAuthenticated || attempted.current) return;

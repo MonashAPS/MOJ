@@ -45,7 +45,10 @@ export function SiteShell({
   const [paletteOpen, setPaletteOpen] = useCommandPalette();
   const headerRef = useRef<HTMLElement | null>(null);
 
-  const contest = useQuery(api.contests.navBar, {});
+  /** SPEC section 20: on a contest route the bar is the contest in the URL, not
+   *  whichever contest the viewer happens to be inside. */
+  const routeKey = /^\/contest\/([a-z0-9._-]+)/i.exec(pathname)?.[1];
+  const contest = useQuery(api.contests.navBar, routeKey ? { key: routeKey } : {});
   const problemCode = /^\/problem\/([a-z0-9._-]+)/.exec(pathname)?.[1];
   const onContestPage =
     !!contest &&
@@ -88,7 +91,9 @@ export function SiteShell({
         />
         {/* The club's royal, carried across the top of every page. */}
         <div aria-hidden className="h-[3px] bg-royal" />
-        {onContestPage && contest ? <ContestBar data={contest} currentCode={problemCode} /> : null}
+        {onContestPage && contest ? (
+          <ContestBar data={contest} currentCode={problemCode} viewerUsername={viewer?.username ?? null} />
+        ) : null}
       </header>
 
       <ProfileBootstrap />

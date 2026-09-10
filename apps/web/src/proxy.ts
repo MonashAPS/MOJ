@@ -51,8 +51,11 @@ export async function proxy(request: NextRequest) {
   // DMOJ's URLs all end in a slash and old links must keep working. Next's own
   // redirect is disabled (skipTrailingSlashRedirect) so it does not fire on the
   // auth API, which better-call matches without one.
+  // `/_next/hmr` is a websocket upgrade, and a 308 to `/_next/hmr/` fails the
+  // handshake, which leaves the dev runtime unable to hydrate the page at all.
   if (
     !pathname.startsWith("/api/") &&
+    !pathname.startsWith("/_next") &&
     pathname !== "/" &&
     !pathname.endsWith("/") &&
     !pathname.slice(pathname.lastIndexOf("/")).includes(".")

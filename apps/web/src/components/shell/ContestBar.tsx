@@ -33,18 +33,24 @@ const CHIP_STATE: Record<string, string> = {
 export function ContestBar({
   data,
   currentCode,
+  viewerUsername,
 }: {
   data: NonNullable<ContestBarData>;
   currentCode?: string;
+  viewerUsername?: string | null;
 }) {
   const remaining = useCountdown(data.isSpectating ? null : data.endsAt);
   const chipsRef = useRef<HTMLDivElement | null>(null);
   const base = `/contest/${data.contest.key}`;
 
   const links = [
-    { href: `${base}/ranking/`, label: "Standings" },
-    { href: `${base}/submissions/me/`, label: "My submissions" },
-    ...(data.contest.useClarifications ? [{ href: `${base}#clarifications`, label: "Clarifications" }] : []),
+    ...(data.links.standings ? [{ href: `${base}/ranking/`, label: "Standings" }] : []),
+    ...(data.links.submissions && viewerUsername
+      ? [{ href: `${base}/submissions/${viewerUsername}/`, label: "My submissions" }]
+      : []),
+    ...(data.links.clarifications
+      ? [{ href: `${base}/#clarifications`, label: "Clarifications" }]
+      : []),
   ];
 
   const urgency =
