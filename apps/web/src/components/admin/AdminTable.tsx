@@ -47,6 +47,9 @@ export function AdminTable<Row>({
   loading = false,
   skeletonRows = 8,
   empty,
+  emptyTitle,
+  emptyDescription,
+  emptyAction,
   selection,
   bulkActions,
   toolbar,
@@ -55,12 +58,16 @@ export function AdminTable<Row>({
   className,
 }: {
   columns: AdminColumn<Row>[];
-  rows: Row[];
+  /** Nullish while the subscription warms up, which is the loading state. */
+  rows: Row[] | undefined | null;
   rowKey: (row: Row) => string;
   href?: (row: Row) => string;
   loading?: boolean;
   skeletonRows?: number;
   empty?: { title: string; description?: string; action?: ReactNode };
+  emptyTitle?: string;
+  emptyDescription?: string;
+  emptyAction?: ReactNode;
   selection?: { selected: string[]; onChange: (next: string[]) => void };
   bulkActions?: AdminBulkAction[];
   toolbar?: ReactNode;
@@ -69,8 +76,10 @@ export function AdminTable<Row>({
   className?: string;
 }) {
   const selectable = !!selection;
+  const data = rows ?? [];
+  const pending = loading || rows == null;
   const selectedSet = new Set(selection?.selected ?? []);
-  const allKeys = rows.map(rowKey);
+  const allKeys = data.map(rowKey);
   const allSelected = allKeys.length > 0 && allKeys.every((key) => selectedSet.has(key));
   const someSelected = allKeys.some((key) => selectedSet.has(key));
   const span = columns.length + (selectable ? 1 : 0);
@@ -102,7 +111,7 @@ export function AdminTable<Row>({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading
+            {pending
               ? Array.from({ length: skeletonRows }, (_unused, index) => (
                   // biome-ignore lint/suspicious/noArrayIndexKey: placeholder rows have no identity
                   <TableRow key={`skeleton-${index}`}>
@@ -118,7 +127,7 @@ export function AdminTable<Row>({
                     ))}
                   </TableRow>
                 ))
-              : rows.map((row) => {
+              : data.map((row) => {
                   const key = rowKey(row);
                   const target = href?.(row);
                   return (
@@ -159,15 +168,15 @@ export function AdminTable<Row>({
                     </TableRow>
                   );
                 })}
-            {!loading && rows.length === 0 ? (
+            {!pending && data.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={span} className="h-auto p-0">
                   <EmptyState
                     className="m-3"
                     icon={<Inbox aria-hidden />}
-                    title={empty?.title ?? "Nothing here"}
-                    description={empty?.description}
-                    action={empty?.action}
+                    title={empty?.title ?? emptyTitle ?? "Nothing here"}
+                    description={empty?.description ?? emptyDescription}
+                    action={empty?.action ?? emptyAction}
                   />
                 </TableCell>
               </TableRow>

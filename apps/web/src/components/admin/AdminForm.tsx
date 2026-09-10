@@ -13,25 +13,101 @@ import {
   Input,
   Panel,
 } from "@moj/ui";
-import { type FormEvent, type ReactNode, useId } from "react";
+import { CheckCircle2 } from "lucide-react";
+import { type FormEvent, type ReactNode, useEffect, useId } from "react";
 
-/** A console form: sections stacked, then the reason field, then the footer. */
+/**
+ * A console form: sections stacked, then the reason field, then the footer.
+ *
+ * A page that lays out its own reason field and footer passes only `children`
+ * and `onSubmit`. Passing `reason` and `onReasonChange` makes the form draw
+ * both itself, along with the saved and error alerts, which is what most of the
+ * console's editors want.
+ */
 export function AdminForm({
   onSubmit,
   children,
   className,
+  reason,
+  onReasonChange,
+  reasonRequired = true,
+  reasonLabel = "Reason for change",
+  reasonHint = "Recorded on the revision so the next person can see why this changed.",
+  dirty = false,
+  busy = false,
+  busyLabel = "Saving\u2026",
+  submitLabel = "Save",
+  error,
+  saved,
+  actions,
 }: {
-  onSubmit: () => void;
+  onSubmit: () => void | Promise<void>;
   children: ReactNode;
   className?: string;
+  reason?: string;
+  onReasonChange?: (value: string) => void;
+  reasonRequired?: boolean;
+  reasonLabel?: string;
+  reasonHint?: string;
+  dirty?: boolean;
+  busy?: boolean;
+  busyLabel?: string;
+  submitLabel?: string;
+  error?: string | null;
+  saved?: string | null;
+  actions?: ReactNode;
 }) {
+  const reasonId = useId();
+  const managed = onReasonChange !== undefined;
+
+  useEffect(() => {
+    if (!dirty) return;
+    function warn(event: BeforeUnloadEvent) {
+      event.preventDefault();
+    }
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onSubmit();
+    void onSubmit();
   }
+
+  if (!managed) {
+    return (
+      <form noValidate onSubmit={handleSubmit} className={cn("grid gap-4", className)}>
+        {children}
+      </form>
+    );
+  }
+
   return (
-    <form noValidate onSubmit={handleSubmit} className={cn("grid gap-4", className)}>
-      {children}
+    <form noValidate onSubmit={handleSubmit} className={className}>
+      {saved ? (
+        <Alert variant="success" className="mb-4">
+          <CheckCircle2 className="size-3.5" aria-hidden />
+          <AlertTitle>{saved}</AlertTitle>
+        </Alert>
+      ) : null}
+      <AdminFormError message={error ?? null} />
+
+      <div className="grid gap-4">{children}</div>
+
+      <div className="mt-4">
+        <Field label={reasonLabel} htmlFor={reasonId} hint={reasonHint}>
+          <Input
+            id={reasonId}
+            value={reason ?? ""}
+            required={reasonRequired}
+            maxLength={200}
+            onChange={(event) => onReasonChange?.(event.target.value)}
+            placeholder="Describe the change"
+          />
+        </Field>
+      </div>
+
+      <AdminFormFooter dirty={dirty} busy={busy} busyLabel={busyLabel} submitLabel={submitLabel} secondary={actions} />
     </form>
   );
 }

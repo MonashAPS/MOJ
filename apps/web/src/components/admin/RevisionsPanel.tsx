@@ -13,6 +13,16 @@ export type Revision = {
   snapshot: unknown;
 };
 
+/** The same row straight off a Convex query, where the id is `_id` and a
+ *  section that stores no snapshot leaves it out. */
+export type RevisionRow = {
+  _id: string;
+  createdAt: number;
+  reason: string;
+  author: string | null;
+  snapshot?: unknown;
+};
+
 type Change = { field: string; before: string; after: string };
 
 function render(value: unknown): string {
@@ -80,16 +90,32 @@ function label(field: string): string {
  */
 export function RevisionsPanel({
   revisions,
+  rows: rawRows,
+  title = "History",
   loading = false,
+  emptyText,
   emptyDescription = "Every edit made here is recorded with the reason it was made.",
   className,
 }: {
-  revisions: Revision[] | undefined;
+  revisions?: Revision[] | undefined;
+  /** Convex rows, keyed by `_id`, for the sections that pass the query through. */
+  rows?: RevisionRow[] | null;
+  title?: string;
   loading?: boolean;
+  emptyText?: string;
   emptyDescription?: string;
   className?: string;
 }) {
-  const rows = revisions ?? [];
+  const pending = loading || (revisions === undefined && rawRows == null);
+  const rows: Revision[] =
+    revisions ??
+    (rawRows ?? []).map((row) => ({
+      id: row._id,
+      createdAt: row.createdAt,
+      reason: row.reason,
+      author: row.author,
+      snapshot: row.snapshot,
+    }));
   const [leftId, setLeftId] = useState<string | null>(null);
   const [rightId, setRightId] = useState<string | null>(null);
 
@@ -97,9 +123,9 @@ export function RevisionsPanel({
   const right = rows.find((row) => row.id === rightId) ?? rows[0] ?? null;
   const changes = useMemo(() => (left && right ? diff(left.snapshot, right.snapshot) : []), [left, right]);
 
-  if (loading) {
+  if (pending) {
     return (
-      <Panel title="Revisions" className={className} bodyClassName="p-4">
+      <Panel title={title} className={className} bodyClassName="p-4">
         <p className="text-sm text-muted-foreground">Loading the history…</p>
       </Panel>
     );
@@ -111,7 +137,7 @@ export function RevisionsPanel({
         className={className}
         icon={<History aria-hidden />}
         title="No revisions yet"
-        description={emptyDescription}
+        description={emptyText ?? emptyDescription}
       />
     );
   }
@@ -123,7 +149,7 @@ export function RevisionsPanel({
 
   return (
     <div className={cn("grid gap-4 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]", className)}>
-      <Panel title={`History (${rows.length})`} bodyClassName="p-0">
+      <Panel title={`${title} (${rows.length})`} bodyClassName="p-0">
         <ol className="divide-y divide-border">
           {rows.map((row) => (
             <li key={row.id}>

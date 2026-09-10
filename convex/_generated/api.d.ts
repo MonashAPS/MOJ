@@ -50,6 +50,7 @@ import type * as lib_seedData from "../lib/seedData.js";
 import type * as lib_testing from "../lib/testing.js";
 import type * as organizations from "../organizations.js";
 import type * as pages_admin1 from "../pages/admin1.js";
+import type * as pages_admin2 from "../pages/admin2.js";
 import type * as pages_contests from "../pages/contests.js";
 import type * as pages_problems from "../pages/problems.js";
 import type * as pages_scoreboard from "../pages/scoreboard.js";
@@ -119,6 +120,7 @@ declare const fullApi: ApiFromModules<{
   "lib/testing": typeof lib_testing;
   organizations: typeof organizations;
   "pages/admin1": typeof pages_admin1;
+  "pages/admin2": typeof pages_admin2;
   "pages/contests": typeof pages_contests;
   "pages/problems": typeof pages_problems;
   "pages/scoreboard": typeof pages_scoreboard;

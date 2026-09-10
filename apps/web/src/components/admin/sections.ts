@@ -50,7 +50,7 @@ export const ADMIN_SECTIONS: AdminSectionGroup[] = [
       { key: "organizations", label: "Organisations", href: "/admin/organizations/", icon: Building2 },
       { key: "classes", label: "Classes", href: "/admin/classes/", icon: Boxes },
       { key: "tickets", label: "Tickets", href: "/admin/tickets/", icon: LifeBuoy },
-      { key: "apikeys", label: "API keys", href: "/admin/apikeys/", icon: KeyRound },
+      { key: "apikeys", label: "API keys", href: "/admin/api-keys/", icon: KeyRound },
     ],
   },
   {
