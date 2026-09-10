@@ -156,3 +156,53 @@ describe("importer.backfillFormatDataKeys", () => {
     expect(second.rewritten).toBe(0);
   });
 });
+
+describe("importer.backfillLabelScheme", () => {
+  async function run(t: ReturnType<typeof setupConvexTest>) {
+    let cursor: string | null = null;
+    let rewritten = 0;
+    for (;;) {
+      const result: { rewritten: number; continueCursor: string | null; isDone: boolean } = await t.mutation(
+        internal.importer.backfillLabelScheme,
+        { cursor, numItems: 10 },
+      );
+      rewritten += result.rewritten;
+      if (result.isDone) break;
+      cursor = result.continueCursor;
+    }
+    return rewritten;
+  }
+
+  it("numbers the formats that DMOJ numbers and leaves icpc lettered", async () => {
+    const t = setupConvexTest();
+    const ids = await t.run(async (ctx) => ({
+      def: await makeContest(ctx, "a", { formatName: "default" }),
+      icpc: await makeContest(ctx, "b", { formatName: "icpc" }),
+      ioi: await makeContest(ctx, "c", { formatName: "ioi16" }),
+    }));
+
+    expect(await run(t)).toBe(2);
+
+    await t.run(async (ctx) => {
+      expect((await ctx.db.get(ids.def))?.labelScheme).toBe("numbers");
+      expect((await ctx.db.get(ids.icpc))?.labelScheme).toBe("letters");
+      expect((await ctx.db.get(ids.ioi))?.labelScheme).toBe("numbers");
+    });
+
+    expect(await run(t)).toBe(0);
+  });
+
+  it("leaves a contest that carries custom labels alone", async () => {
+    const t = setupConvexTest();
+    const id = await t.run(async (ctx) => {
+      const contestId = await makeContest(ctx, "custom", { formatName: "default" });
+      await ctx.db.patch(contestId, { customLabels: ["P1", "P2"] });
+      return contestId;
+    });
+
+    expect(await run(t)).toBe(0);
+    await t.run(async (ctx) => {
+      expect((await ctx.db.get(id))?.labelScheme).toBe("letters");
+    });
+  });
+});
