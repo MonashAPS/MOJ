@@ -1,6 +1,6 @@
 import { Slot } from "@radix-ui/react-slot";
 import { ChevronRight, MoreHorizontal } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
+import { type ComponentProps, Fragment, type ReactNode } from "react";
 import { cn } from "../cn";
 
 export function BreadcrumbRoot({ className, ...props }: ComponentProps<"nav">) {
@@ -97,15 +97,20 @@ export function Breadcrumb({
     <BreadcrumbRoot className={className}>
       <BreadcrumbList>
         {items.map((item, index) => (
+          // The separator is a sibling of the crumb, not a child: it renders an
+          // `li`, and an `li` inside an `li` is invalid HTML that React reports
+          // as a hydration mismatch.
           // biome-ignore lint/suspicious/noArrayIndexKey: crumbs are a fixed ordered list
-          <BreadcrumbItem key={`${index}-${String(item.href ?? "")}`}>
+          <Fragment key={`${index}-${String(item.href ?? "")}`}>
             {index > 0 ? <BreadcrumbSeparator /> : null}
-            {item.href ? (
-              <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
-            ) : (
-              <BreadcrumbPage>{item.label}</BreadcrumbPage>
-            )}
-          </BreadcrumbItem>
+            <BreadcrumbItem>
+              {item.href ? (
+                <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
+              ) : (
+                <BreadcrumbPage>{item.label}</BreadcrumbPage>
+              )}
+            </BreadcrumbItem>
+          </Fragment>
         ))}
       </BreadcrumbList>
     </BreadcrumbRoot>

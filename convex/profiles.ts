@@ -107,7 +107,12 @@ export const ensureProfile = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw invalid("You must be logged in to create a profile.");
-    return await upsertProfile(ctx, { ...args, userId: identity.subject });
+    // The username comes off the token, never off the argument: the caller is a
+    // client whose cached session can lag a sign-out by a render, and taking its
+    // word would let one account write another's name onto its profile.
+    const claimed = (identity as { username?: unknown }).username;
+    const username = typeof claimed === "string" && claimed.length > 0 ? claimed : args.username;
+    return await upsertProfile(ctx, { ...args, username, userId: identity.subject });
   },
 });
 

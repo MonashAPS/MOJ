@@ -15,7 +15,8 @@ export function ProfileBootstrap() {
   const ensureProfile = useMutation(api.profiles.ensureProfile);
   const clearStaleContest = useMutation(api.contests.clearStaleContest);
   const { data: session } = authClient.useSession();
-  const attempted = useRef(false);
+  /** Keyed by the account, so signing in as somebody else tries again. */
+  const attempted = useRef<string | null>(null);
   const clearedStale = useRef(false);
 
   /** `Profile.update_contest()`: a Convex query cannot drop a contest-mode
@@ -31,20 +32,22 @@ export function ProfileBootstrap() {
   }, [isAuthenticated, viewer, clearStaleContest]);
 
   useEffect(() => {
-    if (!isAuthenticated || attempted.current) return;
+    if (!isAuthenticated) return;
     if (viewer === undefined || viewer.profile !== null) return;
     const user = session?.user as
-      | { name?: string; username?: string; timezone?: string; preferredLanguage?: string }
+      | { id?: string; name?: string; username?: string; timezone?: string; preferredLanguage?: string }
       | undefined;
     if (!user) return;
+    const key = user.id ?? user.username ?? "user";
+    if (attempted.current === key) return;
 
-    attempted.current = true;
+    attempted.current = key;
     void ensureProfile({
       username: user.username ?? user.name ?? "user",
       timezone: user.timezone ?? undefined,
       languageKey: user.preferredLanguage ?? undefined,
     }).catch(() => {
-      attempted.current = false;
+      attempted.current = null;
     });
   }, [isAuthenticated, viewer, session, ensureProfile]);
 
