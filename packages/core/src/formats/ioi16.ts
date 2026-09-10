@@ -9,8 +9,7 @@
  * The raw SQL groups by `(contest problem, test case batch, submission)` and
  * takes `MIN(points)` inside a batch, so an unbatched submission collapses into
  * a single pseudo-batch keyed by `NULL` whose score is the *minimum* over all
- * of its cases. That is DMOJ's behaviour, quirk included; see
- * docs/DMOJ_RULES.md.
+ * of its cases. That is DMOJ's behaviour, quirk included.
  *
  * Only submissions with status `D` (completed) are considered: the SQL inner
  * joins the test cases onto `sub.status = 'D'`.
