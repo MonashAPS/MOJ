@@ -5,7 +5,9 @@ const config: NextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@moj/ui", "@moj/core"],
   outputFileTracingRoot: path.join(import.meta.dirname, "../.."),
-  serverExternalPackages: ["pg"],
+  // `@moj/content` spawns Typst and reads its templates off disk; bundling it
+  // drags the whole workspace into the trace and breaks the template lookup.
+  serverExternalPackages: ["pg", "@moj/content"],
   typedRoutes: false,
   agentRules: false,
   trailingSlash: true,

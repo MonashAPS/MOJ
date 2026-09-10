@@ -14,8 +14,19 @@ import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** `packages/content/typst`, whether this module is running from `src` or `dist`. */
-export const TYPST_TEMPLATE_DIR = fileURLToPath(new URL("../../typst/", import.meta.url));
+/**
+ * `packages/content/typst`, whether this module is running from `src` or `dist`.
+ *
+ * `TYPST_TEMPLATE_DIR` overrides it for a deployment that copies the templates
+ * somewhere else. The relative path is assembled rather than written as a
+ * literal on purpose: a bundler treats `new URL("literal", import.meta.url)` as
+ * an asset reference and tries to resolve the directory as a module, which is
+ * what stopped `next build` from compiling the PDF route.
+ */
+const TEMPLATE_RELATIVE = ["..", "..", "typst", ""].join("/");
+
+export const TYPST_TEMPLATE_DIR =
+  process.env.TYPST_TEMPLATE_DIR || fileURLToPath(new URL(TEMPLATE_RELATIVE, import.meta.url));
 
 /** The vendored `@preview` packages. */
 export const DEFAULT_TYPST_PACKAGE_PATH = join(TYPST_TEMPLATE_DIR, "packages");

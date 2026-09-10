@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 import { api } from "@convex/_generated/api";
-import { markdownToTypst, renderPdf } from "@moj/content";
 import type { NextRequest } from "next/server";
 import { mutateAsViewer, queryAsViewer } from "@/lib/convex-server";
 import { normaliseLanguage } from "@/lib/language";
@@ -18,6 +17,15 @@ import { viewerLanguage } from "@/lib/language.server";
 // Typst is a child process, so this route cannot run on the edge.
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/**
+ * Loaded at runtime rather than bundled: `@moj/content` copies its Typst
+ * templates out of its own package directory, and a bundler that follows that
+ * read traces the entire workspace into this route's output.
+ */
+async function content(): Promise<typeof import("@moj/content")> {
+  return await import(/* turbopackIgnore: true */ "@moj/content");
+}
 
 function notFound(): Response {
   return new Response("Page not found", {
@@ -52,6 +60,7 @@ export async function GET(
 
   // The template's own text is part of the cache key: a template change has to
   // invalidate every cached PDF.
+  const { markdownToTypst, renderPdf } = await content();
   const typstSource = markdownToTypst(source.statement, {
     ...source.meta,
     pythonTimeLimit: source.meta.pythonTimeLimit ?? undefined,
