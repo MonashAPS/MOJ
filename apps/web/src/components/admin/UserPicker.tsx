@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
+import { useQuery } from "convex/react";
 import {
   Button,
   Command,
@@ -16,7 +17,6 @@ import {
 } from "@moj/ui";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
-import { useConsoleQuery } from "./useConsoleQuery";
 
 /** DMOJ's heavy select2 on `profile_select2`: type a name, pick, get a chip. */
 export function UserPicker({
@@ -40,7 +40,7 @@ export function UserPicker({
 }) {
   const [open, setOpen] = useState(false);
   const [term, setTerm] = useState("");
-  const matches = useConsoleQuery(api.pages.admin1.profileSearch, open ? { term, limit: 10 } : "skip").data;
+  const matches = useQuery(api.pages.admin1.profileSearch, open ? { term, limit: 10 } : "skip");
   const options = (matches ?? []).filter((row) => !values.includes(row.username));
 
   return (

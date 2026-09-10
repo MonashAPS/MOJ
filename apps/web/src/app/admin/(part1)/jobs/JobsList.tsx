@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from "@convex/_generated/api";
+import { useQuery } from "convex/react";
 import { Progress, Select } from "@moj/ui";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -10,7 +12,6 @@ import {
   JobStatusBadge,
   jobTypeLabel,
 } from "@/components/admin";
-import { useAdminJobsList } from "@/components/admin/fallbacks";
 import { formatDateTime, formatRelative } from "@/lib/format";
 
 type Row = {
@@ -77,7 +78,7 @@ export function JobsList() {
   const type = params.get("type") ?? "any";
   const status = params.get("status") ?? "any";
 
-  const { data: jobs } = useAdminJobsList({
+  const jobs = useQuery(api.pages.admin1.jobsList, {
     limit: 100,
     type: type === "any" ? undefined : type,
     status: status === "any" ? undefined : status,

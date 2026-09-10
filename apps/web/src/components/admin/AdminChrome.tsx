@@ -25,7 +25,6 @@ import { PanelsTopLeft, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
-import { ConsoleNotice } from "./ConsoleNotice";
 import { ADMIN_SECTIONS } from "./sections";
 
 /** DMOJ's `/admin` had Django's sidebar; this is the same idea on the tokens:
@@ -203,7 +202,6 @@ export function AdminChrome({ children }: { children: ReactNode }) {
         </div>
 
         <div className="min-h-0 min-w-0 flex-1 px-(--gutter) py-4">
-          <ConsoleNotice />
           {children}
         </div>
       </div>

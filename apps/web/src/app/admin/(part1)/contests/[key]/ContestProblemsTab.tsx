@@ -34,11 +34,10 @@ import {
   TableRow,
   toast,
 } from "@moj/ui";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { ChevronDown, ChevronUp, GripVertical, ListChecks, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { AdminFormError, JobProgress } from "@/components/admin";
-import { useConsoleQuery } from "@/components/admin/useConsoleQuery";
 import type { ContestEdit } from "./types";
 
 type ContestProblem = ContestEdit["problems"][number];
@@ -60,10 +59,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
   const [pendingRejudge, setPendingRejudge] = useState<ContestProblem | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
 
-  const matches = useConsoleQuery(
-    api.pages.admin1.problemSearch,
-    pickerOpen ? { term, limit: 10 } : "skip",
-  ).data;
+  const matches = useQuery(api.pages.admin1.problemSearch, pickerOpen ? { term, limit: 10 } : "skip");
   const candidates = (matches ?? []).filter(
     (row) => !contest.problems.some((problem) => problem.code === row.code),
   );

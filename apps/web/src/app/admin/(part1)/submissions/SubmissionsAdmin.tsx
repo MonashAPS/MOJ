@@ -38,7 +38,6 @@ import {
   AdminToolbar,
   JobProgress,
 } from "@/components/admin";
-import { useAdminSubmissionsList } from "@/components/admin/fallbacks";
 import { formatDateTime, formatRelative } from "@/lib/format";
 
 const RESULTS = ["AC", "WA", "TLE", "MLE", "OLE", "IR", "RTE", "CE", "IE", "SC", "AB"];
@@ -111,7 +110,7 @@ export function SubmissionsAdmin() {
   const languages = useQuery(api.languages.list, {});
   const judges = useQuery(api.judges.list, {});
   const judgeNames = Array.isArray(judges) ? [] : (judges?.judges ?? []).map((judge) => judge.name);
-  const { data } = useAdminSubmissionsList({
+  const data = useQuery(api.pages.admin1.submissionsList, {
     username: username || undefined,
     problemCode: problemCode || undefined,
     contestKey: contestKey || undefined,

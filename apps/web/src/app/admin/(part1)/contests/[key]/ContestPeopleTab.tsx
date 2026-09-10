@@ -3,7 +3,7 @@
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Field, toast } from "@moj/ui";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useId, useState } from "react";
 import {
   AdminCheckField,
@@ -14,7 +14,6 @@ import {
   ReasonField,
   UserPicker,
 } from "@/components/admin";
-import { useConsoleQuery } from "@/components/admin/useConsoleQuery";
 import type { ContestEdit } from "./types";
 
 /** DMOJ's first fieldset plus the two "who may look" lists from Access. */
@@ -50,7 +49,7 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
     ...viewScoreboard,
     ...viewSubmissions,
   ];
-  const profiles = useConsoleQuery(api.pages.admin1.resolveProfiles, { usernames }).data;
+  const profiles = useQuery(api.pages.admin1.resolveProfiles, { usernames });
 
   function idsFor(list: string[]): Id<"profiles">[] {
     const map = profiles?.ids ?? {};

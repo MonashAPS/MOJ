@@ -16,7 +16,6 @@ import {
   ReasonField,
   UserPicker,
 } from "@/components/admin";
-import { useConsoleQuery } from "@/components/admin/useConsoleQuery";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import type { ContestEdit, ContestOptions } from "./types";
 
@@ -133,13 +132,13 @@ export function ContestGeneralTab({
   );
 
   const usernames = [...privateContestants, ...rateExclude, ...bannedUsers];
-  const profiles = useConsoleQuery(api.pages.admin1.resolveProfiles, { usernames }).data;
-  const refs = useConsoleQuery(api.pages.admin1.resolveContestRefs, {
+  const profiles = useQuery(api.pages.admin1.resolveProfiles, { usernames });
+  const refs = useQuery(api.pages.admin1.resolveContestRefs, {
     organizationSlugs,
     joinOrganizationSlugs,
     classNames,
     tagNames,
-  }).data;
+  });
 
   const permissions = contest.permissions;
   const configError = !parsedConfig.ok ? "That is not valid JSON." : (validation?.error ?? null);

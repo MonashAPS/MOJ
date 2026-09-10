@@ -2,7 +2,7 @@
 
 import { api } from "@convex/_generated/api";
 import { Button, Checkbox, Field, Input, MultiSelect, Select } from "@moj/ui";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
@@ -18,16 +18,14 @@ import {
   ReasonField,
   UserPicker,
 } from "@/components/admin";
-import { useAdminProblemOptions } from "@/components/admin/fallbacks";
-import { useConsoleQuery } from "@/components/admin/useConsoleQuery";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 
 /** `ProblemAdmin`'s add form. The statement, test data and the rest of the tabs
  *  open once the problem exists, exactly as DMOJ's add-then-change flow does. */
 export function NewProblemForm() {
   const router = useRouter();
-  const { data: options } = useAdminProblemOptions();
-  const viewer = useConsoleQuery(api.pages.admin1.consoleViewer, {}).data;
+  const options = useQuery(api.pages.admin1.problemOptions, {});
+  const viewer = useQuery(api.pages.admin1.consoleViewer, {});
   const create = useMutation(api.admin.problems.create);
   const ids = {
     code: useId(),

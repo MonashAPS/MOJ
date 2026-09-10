@@ -32,27 +32,12 @@ import {
   AdminShell,
   ReasonField,
 } from "@/components/admin";
-import { useConsoleQuery } from "@/components/admin/useConsoleQuery";
 
 /** `scoreboardEvents`: the rows that replaced the fork's MCPC_SCOREBOARDS setting. */
 export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
   const router = useRouter();
   const existing = useQuery(api.admin.scoreboards.get, eventKey ? { key: eventKey } : "skip");
-  const consoleOptions = useConsoleQuery(api.pages.admin1.scoreboardOptions, {});
-  const contestFallback = useQuery(
-    api.admin.contests.list,
-    consoleOptions.unavailable ? { paginationOpts: { numItems: 200, cursor: null } } : "skip",
-  );
-  const options = consoleOptions.unavailable
-    ? {
-        contests: (contestFallback?.page ?? []).map((row) => ({
-          key: row.key,
-          name: row.name,
-          startTime: row.startTime,
-        })),
-        organizations: [] as { slug: string; name: string }[],
-      }
-    : consoleOptions.data;
+  const options = useQuery(api.pages.admin1.scoreboardOptions, {});
   const create = useMutation(api.admin.scoreboards.create);
   const update = useMutation(api.admin.scoreboards.update);
   const remove = useMutation(api.admin.scoreboards.remove);

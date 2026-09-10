@@ -1,13 +1,12 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
+import { useQuery } from "convex/react";
 import { Badge, Button, EmptyState, type TabItem } from "@moj/ui";
 import { FileQuestion } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AdminShell, RevisionsPanel } from "@/components/admin";
-import { useAdminContestEdit, useAdminContestOptions } from "@/components/admin/fallbacks";
-import { useConsoleQuery } from "@/components/admin/useConsoleQuery";
 import { ContestActionsTab } from "./ContestActionsTab";
 import { ContestGeneralTab } from "./ContestGeneralTab";
 import { ContestPeopleTab } from "./ContestPeopleTab";
@@ -27,9 +26,9 @@ export function ContestEditor({ contestKey }: { contestKey: string }) {
     ? (params.get("tab") as string)
     : "general";
 
-  const { data: contest } = useAdminContestEdit(contestKey);
-  const { data: options } = useAdminContestOptions();
-  const revisions = useConsoleQuery(
+  const contest = useQuery(api.pages.admin1.contestEdit, { key: contestKey });
+  const options = useQuery(api.pages.admin1.contestOptions, {});
+  const revisions = useQuery(
     api.pages.admin1.revisionsFor,
     active === "revisions" ? { entityType: "contest" as const, key: contestKey } : "skip",
   );
@@ -97,8 +96,7 @@ export function ContestEditor({ contestKey }: { contestKey: string }) {
         <ContestActionsTab contest={contest} />
       ) : (
         <RevisionsPanel
-          revisions={revisions.data ?? (revisions.unavailable ? [] : undefined)}
-          loading={revisions.data === undefined && !revisions.unavailable}
+          revisions={revisions}
           emptyDescription="Every edit to this contest is recorded here with the reason it was made."
         />
       )}

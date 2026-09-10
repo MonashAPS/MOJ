@@ -1,13 +1,12 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
+import { useQuery } from "convex/react";
 import { Badge, Button, EmptyState, type TabItem } from "@moj/ui";
 import { FileQuestion } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AdminShell, RevisionsPanel } from "@/components/admin";
-import { useAdminProblemEdit, useAdminProblemOptions } from "@/components/admin/fallbacks";
-import { useConsoleQuery } from "@/components/admin/useConsoleQuery";
 import { ProblemActionsTab } from "./ProblemActionsTab";
 import {
   ProblemClarificationsTab,
@@ -36,9 +35,9 @@ export function ProblemEditor({ code }: { code: string }) {
     ? (params.get("tab") as string)
     : "general";
 
-  const { data: problem } = useAdminProblemEdit(code);
-  const { data: options } = useAdminProblemOptions();
-  const revisions = useConsoleQuery(
+  const problem = useQuery(api.pages.admin1.problemEdit, { code });
+  const options = useQuery(api.pages.admin1.problemOptions, {});
+  const revisions = useQuery(
     api.pages.admin1.revisionsFor,
     active === "revisions" ? { entityType: "problem" as const, key: code } : "skip",
   );
@@ -114,8 +113,7 @@ export function ProblemEditor({ code }: { code: string }) {
         <TestDataTab code={code} />
       ) : active === "revisions" ? (
         <RevisionsPanel
-          revisions={revisions.data ?? (revisions.unavailable ? [] : undefined)}
-          loading={revisions.data === undefined && !revisions.unavailable}
+          revisions={revisions}
           emptyDescription="Every edit to this problem is recorded here with the reason it was made."
         />
       ) : (
