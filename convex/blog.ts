@@ -1,7 +1,7 @@
 // DMOJ's blog: judge/views/blog.py and judge/models/interface.py.
 //
 // Post bodies are returned as markdown with the `@moj/content` preset the
-// consumer renders them with; see docs/SPEC_CHANGES.md.
+// consumer renders them with
 
 import { blogPostCanSee, blogPostIsEditableBy } from "@moj/core";
 import { paginationOptsValidator } from "convex/server";

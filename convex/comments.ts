@@ -3,7 +3,7 @@
 //
 // Bodies are returned as markdown together with the `@moj/content` preset the
 // consumer must render them with; the markdown pipeline pulls in node builtins
-// and cannot run inside a Convex query. See docs/SPEC_CHANGES.md.
+// and cannot run inside a Convex query.
 
 import { commentIsAccessibleBy, hasPerm, isStaff, problemIsAccessibleBy } from "@moj/core";
 import { v } from "convex/values";
@@ -114,7 +114,7 @@ export const list = query({
       .collect();
 
     // DMOJ filters hidden comments out of the page entirely; moderators keep
-    // them so the hide can be undone from the page. See docs/SPEC_CHANGES.md.
+    // them so the hide can be undone from the page.
     const visible = canModerate ? rows : rows.filter((row) => !row.hidden);
 
     const votes = new Map<string, number>();
@@ -188,7 +188,7 @@ export const list = query({
 /**
  * DMOJ's MPTT `order_insertion_by = ['-time']` puts the newest comment first at
  * every level. MOJ keeps that for the top level and reverses it inside a thread
- * so replies read in the order they were written; see docs/SPEC_CHANGES.md.
+ * so replies read in the order they were written
  */
 function orderTree(rows: Doc<"comments">[]): Array<{ row: Doc<"comments">; depth: number }> {
   const children = new Map<string, Doc<"comments">[]>();

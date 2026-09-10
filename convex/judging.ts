@@ -51,7 +51,7 @@ export const CLAIM_SCAN_LIMIT = 256;
 /**
  * Convex reads at most 16384 documents in one transaction. The two recomputes
  * that follow a grading-end walk a user's and a problem's whole submission
- * history, so both are capped well under that; see docs/SPEC_CHANGES.md.
+ * history, so both are capped well under that
  */
 export const RECOMPUTE_SCAN_LIMIT = 6000;
 /** `SubmissionTestCase.feedback` is a CharField(max_length=50) in DMOJ. */

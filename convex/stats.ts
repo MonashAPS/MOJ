@@ -3,7 +3,7 @@
 // DMOJ answers each chart with a `Count` aggregate straight off the database.
 // Convex has no GROUP BY, so the tallies are computed from a bounded scan and
 // kept in `statsSnapshots`; the queries serve the snapshot and fall back to
-// computing one inline when there is none. See docs/SPEC_CHANGES.md.
+// computing one inline when there is none.
 
 import { USER_DISPLAY_CODES } from "@moj/core";
 import { v } from "convex/values";

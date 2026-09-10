@@ -1,4 +1,4 @@
 - [ ] `npm run lint`, `npm run typecheck` and `npm test` pass
-- [ ] Routes and field names match `docs/SPEC.md`, or `docs/SPEC_CHANGES.md` records the deviation
+- [ ] Routes, field names and behaviour match DMOJ where DMOJ has them
 - [ ] Docs updated if behaviour changed
 - [ ] No secrets, `.env` files, `node_modules` or `package-lock.json` in the diff

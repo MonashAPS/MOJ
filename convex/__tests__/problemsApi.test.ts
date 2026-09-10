@@ -16,7 +16,7 @@ async function sha256Hex(value: string): Promise<string> {
 
 /**
  * The API-key fallback path: `AUTH_URL` is unset here, so `authenticate` looks
- * the presented key up in the `apiKeys` table. See docs/SPEC_CHANGES.md.
+ * the presented key up in the `apiKeys` table.
  */
 async function setup() {
   const t = convexTest(schema, modules);

@@ -4,7 +4,7 @@
  * `convex/pages/admin2.ts`: the reads and writes the part-2 console pages need
  * on top of `convex/admin/*`. The gates are the same Django ones the rest of
  * the section uses, and the API-key rows are the fallback `http/problemsApi`
- * verifies a presented key against (docs/SPEC_CHANGES.md).
+ * verifies a presented key against.
  */
 
 import { describe, expect, test } from "vitest";

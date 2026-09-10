@@ -14,7 +14,7 @@
  *
  * Authentication: `Authorization: Bearer <key>` with the `problems:write`
  * scope. Keys are verified against Better Auth's api-key plugin when `AUTH_URL`
- * is set, and against the `apiKeys` table otherwise. See docs/SPEC_CHANGES.md.
+ * is set, and against the `apiKeys` table otherwise.
  */
 
 import { hasPerm, problemIsEditableBy } from "@moj/core";

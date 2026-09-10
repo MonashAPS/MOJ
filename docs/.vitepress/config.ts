@@ -8,13 +8,6 @@ export default defineConfig({
   appearance: "dark",
   lastUpdated: true,
   srcExclude: [
-    "**/SPEC.md",
-    "**/SPEC_CHANGES.md",
-    "**/DMOJ_RULES.md",
-    "**/RUNBOOK.md",
-    "**/QA.md",
-    "**/audit/**",
-    "**/design/**",
     "**/public/**",
   ],
   head: [

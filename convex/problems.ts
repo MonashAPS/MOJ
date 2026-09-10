@@ -773,7 +773,7 @@ export const get = query({
       name: translation?.name ?? problem.name,
       source: translation?.description ?? problem.description,
       // The Convex runtime cannot load @moj/content (it reaches node:fs through
-      // the Typst renderer), so the caller renders. See docs/SPEC_CHANGES.md.
+      // the Typst renderer), so the caller renders.
       preset: problem.isFullMarkup ? "problem-full" : "problem",
     };
 

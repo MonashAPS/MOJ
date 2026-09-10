@@ -141,7 +141,7 @@ import everything in one run instead.
 
 ## What ends up where
 
-- Everything in section 4 of `docs/SPEC.md` that has a DMOJ counterpart, with
+- Every table that has a DMOJ counterpart, with
   `legacyId` set to the old primary key. `profiles.legacyUserId` is the old
   `auth_user.id`.
 - Better Auth `user.id` is `u<auth_user.id>`, which is also
