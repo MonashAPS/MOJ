@@ -1,0 +1,7 @@
+# Rendered to /problems/judge.yml by entrypoint.sh on first start.
+# Edit that copy, not this template, to change a running judge.
+id: __JUDGE_NAME__
+key: __JUDGE_KEY__
+
+problem_storage_globs:
+  - /problems/**/

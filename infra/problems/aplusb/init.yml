@@ -1,16 +1,15 @@
-# Test data for the sample problem "aplusb".
+# A plus B: the smoke-test problem for a MOJ deployment.
 #
-# DMOJ init.yml format: the judge reads this from $problem_storage_root/aplusb.
-# Two batches, matching the problemTestCases rows written by convex/seed.ts:
-#   batch 1 (0 points)   the two sample cases from the statement
-#   batch 2 (100 points) the real cases
-archive: null
+# Two batches: the sample cases from the statement, worth nothing, and the real tests, worth everything.
+# Within a batch a single failing case scores the whole batch zero, which is DMOJ's batch semantics.
 test_cases:
-  - points: 0
-    batched:
-      - {in: 00.in, out: 00.out}
-      - {in: 01.in, out: 01.out}
-  - points: 100
-    batched:
-      - {in: 02.in, out: 02.out}
-      - {in: 03.in, out: 03.out}
+- batched:
+  - {in: tests/sample.1.in, out: tests/sample.1.out}
+  - {in: tests/sample.2.in, out: tests/sample.2.out}
+  points: 0
+- batched:
+  - {in: tests/main.1.in, out: tests/main.1.out}
+  - {in: tests/main.2.in, out: tests/main.2.out}
+  - {in: tests/main.3.in, out: tests/main.3.out}
+  - {in: tests/main.4.in, out: tests/main.4.out}
+  points: 100
