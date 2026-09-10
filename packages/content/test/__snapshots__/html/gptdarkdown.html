@@ -1,0 +1,137 @@
+<p>Mahdieh is a developer working on a chatbot for Divar's open platform (Kenar Divar). She
+wants to use ChatGPT's API for her chatbot. This means the chatbot receives messages from
+ChatGPT and forwards them to the user. When the chatbot asks ChatGPT to generate a
+message, ChatGPT sends the message in chunks to the chatbot. So for each chunk, there is
+a time when Mahdieh's chatbot receives it, and there is a string it contains.</p>
+<p>For a smooth user experience, Mahdieh wants her chatbot to simulate continuous typing,
+outputting 1 character per millisecond. Obviously, no character can be typed before it is
+received, so Mahdieh must ensure that the current typing character is available for her
+chatbot before typing it. To make the perfect smooth user experience she wants to see in
+her chatbot, the chatbot waits for a while without typing anything, and then starts typing
+non-stop. Now Mahdieh has all the chunks' information from a hypothetical message, and
+she needs your help to tell her the first time the chatbot can start to type.</p>
+<p>However, ChatGPT (and therefore Mahdieh's chatbot) applies Darkdown formatting to the
+chunks of text, which includes bold, italic, inline code, and even emojis!</p>
+<p>So, there are formatting characters in the received message from ChatGPT that will not be
+rendered in the final text. You need to determine only the (visible) rendered content for
+smooth typing. For example, the Darkdown text <code>[Let's] (Code!) :rocket:</code> consists of 24
+characters, but its rendered text is only 13 characters long: <code>Let's Code!</code> followed by a
+single emoji character.</p>
+<p>Your task is to determine the earliest time Mahdieh can start typing the rendered output
+for a smooth experience.</p>
+<h4>Input</h4>
+<p>The input starts with a line containing a single integer <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi></mrow><annotation encoding="application/x-tex">k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6944em;"></span><span class="mord mathnormal" style="margin-right: 0.0315em;">k</span></span></span></span>, as the number of chunks
+(<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>≤</mo><mi>k</mi><mo>≤</mo><msup><mn>10</mn><mn>5</mn></msup></mrow><annotation encoding="application/x-tex">1 \le k \le 10^5</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.7804em; vertical-align: -0.136em;"></span><span class="mord">1</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.8304em; vertical-align: -0.136em;"></span><span class="mord mathnormal" style="margin-right: 0.0315em;">k</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height: 0.8141em;"><span style="top: -3.063em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span>). The next <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi></mrow><annotation encoding="application/x-tex">k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6944em;"></span><span class="mord mathnormal" style="margin-right: 0.0315em;">k</span></span></span></span> lines contain the complete input message, where every
+line represents a non-empty chunk. You can assume the ChatGPT message does not contain
+newline characters, and the chunks could start or end with spaces. It is guaranteed that
+the total number of characters in all the chunks combined will not exceed <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>10</mn><mn>5</mn></msup></mrow><annotation encoding="application/x-tex">10^5</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height: 0.8141em;"><span style="top: -3.063em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span>, and the
+final rendered message will not be empty. The last line contains <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi></mrow><annotation encoding="application/x-tex">k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6944em;"></span><span class="mord mathnormal" style="margin-right: 0.0315em;">k</span></span></span></span> space-separated
+integers, <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>1</mn></msub><mo separator="true">,</mo><msub><mi>t</mi><mn>2</mn></msub><mo separator="true">,</mo><mo>…</mo><mo separator="true">,</mo><msub><mi>t</mi><mi>k</mi></msub></mrow><annotation encoding="application/x-tex">t_1, t_2, \ldots, t_k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8095em; vertical-align: -0.1944em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.1667em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.1667em;"></span><span class="minner">…</span><span class="mspace" style="margin-right: 0.1667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.1667em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3361em;"><span style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right: 0.0315em;">k</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span></span></span></span></span></span></span></span></span></span>, where <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">t_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.7651em; vertical-align: -0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3117em;"><span style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span></span></span></span></span></span></span></span></span></span> is the time the chatbot receives the <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6595em;"></span><span class="mord mathnormal">i</span></span></span></span>th
+chunk from ChatGPT (<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>≤</mo><msub><mi>t</mi><mn>1</mn></msub><mo>&#x3C;</mo><msub><mi>t</mi><mn>2</mn></msub><mo>&#x3C;</mo><mo>⋯</mo><mo>&#x3C;</mo><msub><mi>t</mi><mi>k</mi></msub><mo>≤</mo><msup><mn>10</mn><mn>9</mn></msup></mrow><annotation encoding="application/x-tex">1 \le t_1 &#x3C; t_2 &#x3C; \cdots &#x3C; t_k \le 10^9</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.7804em; vertical-align: -0.136em;"></span><span class="mord">1</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.7651em; vertical-align: -0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">&#x3C;</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.7651em; vertical-align: -0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">&#x3C;</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.5782em; vertical-align: -0.0391em;"></span><span class="minner">⋯</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">&#x3C;</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.786em; vertical-align: -0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3361em;"><span style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right: 0.0315em;">k</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height: 0.8141em;"><span style="top: -3.063em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">9</span></span></span></span></span></span></span></span></span></span></span>).</p>
+<p>The ChatGPT message has the following Darkdown formatting:</p>
+<ul>
+<li>Inline Code Blocks:
+<ul>
+<li>Inline code is given inside a pair of backtick characters, e.g. <code>`code`</code>. The
+backtick characters themselves are not rendered in the final output. You can assume
+there are no backtick characters inside the inline code.</li>
+<li>Formatting markers inside inline code blocks (like <code>(</code> or <code>\</code>) are rendered as literal
+characters and are not parsed as formatting.</li>
+</ul>
+</li>
+<li>Special Characters:
+<ul>
+<li>In order to render the special characters <code>(</code>, <code>)</code>, <code>[</code>, <code>]</code>, <code>:</code>, <code>\</code>, <code>`</code>, it
+is sufficient to escape them by preceding them with a backslash character (e.g. <code>\(</code>,
+<code>\)</code>, <code>\[</code>, <code>\]</code>, <code>\:</code>, <code>\\</code>, <code>\`</code>).</li>
+<li>Double backslashes (<code>\\</code>) are rendered as a single literal backslash in the visible
+output.</li>
+<li>It is guaranteed that every backslash in the input is followed by a special character,
+except in inline codes and after an escaped backslash (<code>\\</code>).</li>
+</ul>
+</li>
+<li>Bold and Italic Formatting:
+<ul>
+<li>Bold formatting can be applied by enclosing the text with parentheses: <code>(bold)</code>.</li>
+<li>Italic formatting can be applied by enclosing the text with square brackets:
+<code>[italic]</code>.</li>
+<li>It is not permitted to have nested blocks of bold or italic text. Also, a block of
+text cannot be simultaneously bold and italic. For example, it is not allowed to have
+<code>[(bold and italic) italic]</code> or <code>((superbold) bold)</code>.</li>
+<li>Inline codes or emojis are allowed inside a bold or italic text.</li>
+</ul>
+</li>
+<li>Emojis:
+<ul>
+<li>An emoji is given as a non-empty string of lowercase English letters enclosed within a
+pair of colons (e.g. <code>:smile:</code>, <code>:rocket:</code>).</li>
+</ul>
+</li>
+<li>Punctuation and Spaces:
+<ul>
+<li>All standard punctuation marks (<code>.</code>, <code>,</code>, <code>!</code>, <code>?</code>, <code>'</code>, <code>-</code>, <code>/</code>) and space
+characters are rendered normally.</li>
+</ul>
+</li>
+</ul>
+<p>It is guaranteed that the input adheres strictly to the Darkdown formatting rules
+described above, and the final rendered text is unique.</p>
+<p>In order to find the answer, you have to consider only the visible (rendered) characters,
+which include:</p>
+<ul>
+<li>Plain text: All letters, numbers, spaces, escaped special characters, and standard
+punctuation marks not part of any formatting.</li>
+<li>Emojis: Represented as a single conceptual character. For example, <code>:smile:</code> is
+rendered as one character. Note that the conceptual character for an emoji is ready for
+typing when the chatbot has received its ending colon (<code>:</code>).</li>
+<li>Inline Code: The content inside backtick characters.</li>
+</ul>
+<h4>Output</h4>
+<p>Output the earliest time Mahdieh's chatbot can start typing the message such that the
+chatbot prints the whole text smoothly.</p>
+<h4>Constraints</h4>
+<ul>
+<li><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>≤</mo><mi>k</mi><mo>≤</mo><msup><mn>10</mn><mn>5</mn></msup></mrow><annotation encoding="application/x-tex">1 \le k \le 10^5</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.7804em; vertical-align: -0.136em;"></span><span class="mord">1</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.8304em; vertical-align: -0.136em;"></span><span class="mord mathnormal" style="margin-right: 0.0315em;">k</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height: 0.8141em;"><span style="top: -3.063em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span></li>
+<li>Total number of characters in all chunks <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>≤</mo><msup><mn>10</mn><mn>5</mn></msup></mrow><annotation encoding="application/x-tex">\le 10^5</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.7719em; vertical-align: -0.136em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height: 0.8141em;"><span style="top: -3.063em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span></li>
+<li><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>≤</mo><msub><mi>t</mi><mn>1</mn></msub><mo>&#x3C;</mo><msub><mi>t</mi><mn>2</mn></msub><mo>&#x3C;</mo><mo>⋯</mo><mo>&#x3C;</mo><msub><mi>t</mi><mi>k</mi></msub><mo>≤</mo><msup><mn>10</mn><mn>9</mn></msup></mrow><annotation encoding="application/x-tex">1 \le t_1 &#x3C; t_2 &#x3C; \cdots &#x3C; t_k \le 10^9</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.7804em; vertical-align: -0.136em;"></span><span class="mord">1</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.7651em; vertical-align: -0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">&#x3C;</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.7651em; vertical-align: -0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">&#x3C;</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.5782em; vertical-align: -0.0391em;"></span><span class="minner">⋯</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">&#x3C;</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.786em; vertical-align: -0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3361em;"><span style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right: 0.0315em;">k</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height: 0.8141em;"><span style="top: -3.063em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">9</span></span></span></span></span></span></span></span></span></span></span></li>
+<li>The final rendered message is non-empty</li>
+</ul>
+<h4>Example 1</h4>
+<h5>Input</h5>
+<pre><code>11
+The (International Collegiate Programming
+Contest) \(`ICPC`\) is
+ a global [competi
+tive programming contest
+]
+ focusing on algorithm
+ic problem-solving and teamwork. [Le
+t's] test `some` (more) Darkdown (elemen
+ts) here. Visit the Of
+ficial ICPC Website\: \(https\://i
+cpc.global\) for more info! :rocket:
+10 20 30 40 50 60 70 80 90 100 110
+</code></pre>
+<h5>Output</h5>
+<pre><code>10
+</code></pre>
+<h5>Explanation</h5>
+<p>The final visible rendered message is:</p>
+<p>The International Collegiate Programming Contest (ICPC) is a global competitive
+programming contest focusing on algorithmic problem-solving and teamwork. Let's test some
+more Darkdown elements here. Visit the Official ICPC Website: (<a href="https://icpc.global" rel="nofollow">https://icpc.global</a>) for
+more info!, followed by a rocket emoji.</p>
+<h4>Example 2</h4>
+<h5>Input</h5>
+<pre><code>2
+l ML5g( RsXFVBdO R)(`gwkz MV
+`)
+10 1000
+</code></pre>
+<h5>Output</h5>
+<pre><code>10
+</code></pre>
+<h5>Explanation</h5>
+<p>The final visible rendered message is:</p>
+<pre><code>l ML5g RsXFVBdO Rgwkz MV
+</code></pre>

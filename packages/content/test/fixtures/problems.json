@@ -1,0 +1,250 @@
+{
+  "5bigbooms": {
+    "authors": [
+      "swofty"
+    ],
+    "code": "5bigbooms",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "5 Big Booms",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "allblue": {
+    "authors": [],
+    "code": "allblue",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "All Blue",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "anthill": {
+    "authors": [],
+    "code": "anthill",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Anthill",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "antimissile": {
+    "authors": [],
+    "code": "antimissile",
+    "inputType": "standard input",
+    "memoryLimit": 1048576,
+    "name": "Anti-Missile",
+    "outputType": "standard output",
+    "points": 100,
+    "pythonTimeLimit": 3,
+    "timeLimit": 1
+  },
+  "attendance": {
+    "authors": [],
+    "code": "attendance",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Attendance",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "berniecake": {
+    "authors": [],
+    "code": "berniecake",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Bernie's Cake",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "cardtrick": {
+    "authors": [],
+    "code": "cardtrick",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Card Trick",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "catsanddogs": {
+    "authors": [],
+    "code": "catsanddogs",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Cats and Dogs",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "coconutpairs": {
+    "authors": [],
+    "code": "coconutpairs",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Coconut Pairs",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "doubleradars": {
+    "authors": [],
+    "code": "doubleradars",
+    "inputType": "standard input",
+    "memoryLimit": 1048576,
+    "name": "Double Radars",
+    "outputType": "standard output",
+    "points": 100,
+    "pythonTimeLimit": 3,
+    "timeLimit": 1
+  },
+  "gptdarkdown": {
+    "authors": [],
+    "code": "gptdarkdown",
+    "inputType": "standard input",
+    "memoryLimit": 1048576,
+    "name": "GPT DarkDown",
+    "outputType": "standard output",
+    "points": 100,
+    "pythonTimeLimit": 3,
+    "timeLimit": 1
+  },
+  "guessnumber": {
+    "authors": [
+      "swofty",
+      "kevin"
+    ],
+    "code": "guessnumber",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Guess The Number",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "kthsum": {
+    "authors": [],
+    "code": "kthsum",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Kth Largest Subarray Sum",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "localpeak": {
+    "authors": [],
+    "code": "localpeak",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Local Peak",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "meowmeow": {
+    "authors": [],
+    "code": "meowmeow",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Meow Meow",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "orderbookomni": {
+    "authors": [],
+    "code": "orderbookomni",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Order Book Omni",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "pickyeater": {
+    "authors": [],
+    "code": "pickyeater",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Picky Eater",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "pondotriples": {
+    "authors": [],
+    "code": "pondotriples",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Pondo Triples",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "stageoneconfusion": {
+    "authors": [],
+    "code": "stageoneconfusion",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Stage One Confusion",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "tenniscomp2": {
+    "authors": [],
+    "code": "tenniscomp2",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Tennis Competition 2",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "teque": {
+    "authors": [],
+    "code": "teque",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Teque",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "tiltedtowers": {
+    "authors": [],
+    "code": "tiltedtowers",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Tilted Towers",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "tradingcards": {
+    "authors": [],
+    "code": "tradingcards",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Trading Cards",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  },
+  "warden": {
+    "authors": [],
+    "code": "warden",
+    "inputType": "standard input",
+    "memoryLimit": 256000,
+    "name": "Warden",
+    "outputType": "standard output",
+    "points": 100,
+    "timeLimit": 1
+  }
+}
