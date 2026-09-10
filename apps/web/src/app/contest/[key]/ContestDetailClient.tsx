@@ -291,7 +291,7 @@ function Sidebar({ detail }: { detail: ContestDetail }) {
         <Panel title="Scoring" bodyClassName="p-3">
           <ul className="grid gap-2 text-sm text-subtle">
             {detail.format.shortFormDisplay.map((line) => (
-              <li key={line}>{line}</li>
+              <li key={line}>{emphasise(line)}</li>
             ))}
           </ul>
         </Panel>
@@ -449,5 +449,24 @@ export function ContestDetailClient({
         ) : null}
       </TwoColumn>
     </>
+  );
+}
+
+/** `get_short_form_display` marks the part that matters — the penalty, the
+ *  number of problems that count — in bold. The strings come out of `@moj/core`,
+ *  which is pure and has no markup, so the emphasis arrives as `**...**` and is
+ *  turned into a `strong` here rather than shown as asterisks. */
+function emphasise(line: string): React.ReactNode {
+  const parts = line.split("**");
+  if (parts.length < 3) return line;
+  return parts.map((part, index) =>
+    index % 2 === 1 ? (
+      // biome-ignore lint/suspicious/noArrayIndexKey: the split is positional
+      <strong key={index} className="font-medium text-foreground">
+        {part}
+      </strong>
+    ) : (
+      part
+    ),
   );
 }

@@ -33,16 +33,9 @@ export default async function ContestRankingPage({ params }: { params: Promise<{
     ),
   );
 
-  // SPEC section 7's pending marks. `pages.contests.frozenCells` is new, so a
-  // deployment that has not taken it yet must not have the browser subscribe to
-  // it: a missing function is a thrown error, not an empty result. The server
-  // call is the probe.
-  let frozenCellsAvailable = true;
-  try {
-    await queryAsViewer(api.pages.contests.frozenCells, { key });
-  } catch {
-    frozenCellsAvailable = false;
-  }
+  // SPEC section 7's pending marks, fetched here so a frozen board shows its
+  // question marks on the first paint rather than after the subscription warms.
+  const frozenCells = await queryAsViewer(api.pages.contests.frozenCells, { key });
 
   return (
     <RankingClient
@@ -51,7 +44,7 @@ export default async function ContestRankingPage({ params }: { params: Promise<{
       initial={ranking}
       viewerUsername={viewerState?.profile?.username ?? null}
       classOptions={classGroups.flat()}
-      frozenCellsAvailable={frozenCellsAvailable}
+      initialFrozenCells={frozenCells}
     />
   );
 }

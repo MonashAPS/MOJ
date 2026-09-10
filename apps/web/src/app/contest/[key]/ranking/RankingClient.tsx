@@ -3,6 +3,7 @@
 import { api } from "@convex/_generated/api";
 import type { RankingPayload, RankingRow } from "@convex/contestRankings";
 import type { ContestDetail } from "@convex/contests";
+import type { FrozenCells } from "@convex/pages/contests";
 import {
   Alert,
   AlertDescription,
@@ -283,14 +284,14 @@ export function RankingClient({
   initial,
   viewerUsername,
   classOptions,
-  frozenCellsAvailable,
+  initialFrozenCells,
 }: {
   contestKey: string;
   detail: ContestDetail;
   initial: RankingPayload;
   viewerUsername: string | null;
   classOptions: { _id: string; name: string }[];
-  frozenCellsAvailable: boolean;
+  initialFrozenCells: FrozenCells;
 }) {
   const [includeVirtual, setIncludeVirtual] = useState(false);
   const [includeSpectators, setIncludeSpectators] = useState(false);
@@ -311,10 +312,8 @@ export function RankingClient({
   const defaults = !includeVirtual && !includeSpectators && organizationSlug === ALL && classId === ALL;
   const data = live ?? (defaults ? initial : null);
 
-  const frozen = useQuery(
-    api.pages.contests.frozenCells,
-    frozenCellsAvailable ? { key: contestKey } : "skip",
-  );
+  const liveFrozen = useQuery(api.pages.contests.frozenCells, { key: contestKey });
+  const frozen = liveFrozen === undefined ? initialFrozenCells : liveFrozen;
   const pendingMap = new Map<string, number>();
   for (const cell of frozen?.cells ?? []) {
     pendingMap.set(`${cell.participationId}|${cell.contestProblemId}`, cell.pending);
