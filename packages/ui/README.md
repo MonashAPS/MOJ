@@ -1,7 +1,7 @@
 # `@moj/ui`
 
 MOJ's component kit. Radix primitives and `cmdk` restyled onto the tokens in
-[`docs/design/DESIGN.md`](../../docs/design/DESIGN.md), on Tailwind v4.
+the MOJ design tokens, on Tailwind v4.
 
 ```tsx
 import { Button, Panel, Table, TitleRow } from "@moj/ui";

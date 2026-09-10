@@ -130,7 +130,7 @@ export function coreParticipation(row: Doc<"contestParticipations">): ContestPar
  * The viewer as `@moj/core` wants it.
  *
  * `adminOfOrganizationIds` is derived from the organizations the profile is a
- * member of, which is how DMOJ's data always looks; see docs/SPEC_CHANGES.md.
+ * member of, which is how DMOJ's data always looks.
  */
 export async function coreProfile(
   ctx: QueryCtx,

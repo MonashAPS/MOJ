@@ -4,7 +4,7 @@
  * `admin/users.edit` does not carry (preferred language, organisation
  * membership), the cross-organisation class and join-request overviews, and
  * the `apiKeys` rows the problems API verifies a key against when Better Auth
- * is not reachable from the Convex container (docs/SPEC_CHANGES.md).
+ * is not reachable from the Convex container.
  */
 
 import { API_SCOPES, isApiScope } from "@moj/protocol";

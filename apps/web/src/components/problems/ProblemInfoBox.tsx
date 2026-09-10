@@ -103,7 +103,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 /** The viewer's "Show contests" preference (spec section 20, spoiler rule).
  *  There is no profile column for it yet, so it lives in `localStorage`, which
- *  is per viewer and survives a reload; see docs/SPEC_CHANGES.md. */
+ *  is per viewer and survives a reload. */
 const SHOW_CONTESTS_KEY = "moj.show-contests";
 
 function useShowContests(): [boolean, (next: boolean) => void] {

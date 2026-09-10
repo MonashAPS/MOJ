@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 /**
  * DMOJ's `problem_random`: pick one problem out of the list the current filters
  * describe and redirect to it. The seed travels in the query because a Convex
- * query has to be deterministic to be reactive (see docs/SPEC_CHANGES.md).
+ * query has to be deterministic to be reactive (.).
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;

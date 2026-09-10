@@ -304,7 +304,7 @@ export type RecentComment = {
  * `Comment.most_recent(user, n)` (judge/models/comment.py:46).
  *
  * Walks the newest comments and keeps the ones whose page the viewer can see.
- * Editorial pages additionally require problem access, as docs/DMOJ_RULES.md
+ * Editorial pages additionally require problem access, as DMOJ
  * notes DMOJ's widget does.
  */
 export const recent = query({

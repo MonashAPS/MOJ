@@ -9,7 +9,6 @@
  * Sources: judge/models/problem.py, judge/models/contest.py,
  * judge/models/submission.py, judge/models/comment.py,
  * judge/models/interface.py, judge/models/profile.py.
- * The prose version, with line numbers, is in docs/DMOJ_RULES.md.
  */
 
 import { participationHasEnded } from "./contestTiming";
@@ -673,7 +672,7 @@ export function commentIsAccessibleBy(
       return problemIsAccessibleBy(target.problem, viewer, options.problemAccess);
     case "solution":
       // DMOJ checks the solution only here; the "recent comments" widget also
-      // requires problem access. See docs/DMOJ_RULES.md.
+      // requires problem access. 
       if (!target.solution || !target.problem) return false;
       return solutionIsAccessibleBy(target.solution, target.problem, viewer, now);
     case "contest":

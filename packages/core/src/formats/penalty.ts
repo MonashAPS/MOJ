@@ -9,7 +9,7 @@
  * The penalty count ignores submissions with no result at all (an internal
  * error can leave `result` null) and submissions that were IE or CE. Note that
  * DMOJ does *not* ignore aborted (AB) submissions here, unlike the hall
- * scoreboard; see docs/DMOJ_RULES.md.
+ * scoreboard.
  */
 
 import type { ContestProblemRow, ContestSubmissionRow, Id } from "../types";

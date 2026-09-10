@@ -2,7 +2,7 @@
  * Plain input rows for the domain logic.
  *
  * Nothing here imports Convex. Every function in this package takes plain
- * objects shaped like the tables in docs/SPEC.md section 4, so the same rules
+ * objects shaped like the Convex tables, so the same rules
  * can be exercised from tests, from Convex queries and from the web app.
  *
  * Ids are opaque strings. Timestamps are milliseconds since the epoch.

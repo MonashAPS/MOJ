@@ -1,6 +1,6 @@
 /** The house curves, exported once so a component can never improvise a bezier.
  *  The CSS mirrors live in tokens.css as `--ease*`; these are the framer-motion
- *  array literals. See docs/design/DESIGN.md section 5. */
+ *  array literals.  */
 
 export const EASE = [0.22, 1, 0.36, 1] as const; // easeOutQuint — entrances, hovers
 export const EASE_OUT = [0.16, 1, 0.3, 1] as const; // easeOutExpo — cross-fades, routes

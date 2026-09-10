@@ -2,8 +2,8 @@
  * `@moj/core`: MOJ's pure domain logic.
  *
  * No I/O, no Convex, no React. Everything takes plain rows shaped like the
- * tables in docs/SPEC.md section 4 and returns plain data. The rules are ports
- * of DMOJ's, documented function by function in docs/DMOJ_RULES.md.
+ * Convex tables and returns plain data. The rules are ports
+ * of DMOJ's, each one a port of the corresponding DMOJ method.
  */
 
 export * from "./contestTiming";
