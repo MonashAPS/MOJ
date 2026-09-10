@@ -23,7 +23,7 @@ export function Tooltip({
           sideOffset={5}
           style={{
             background: "var(--nav)",
-            color: "#fff",
+            color: "var(--on-nav)",
             padding: "4px 8px",
             borderRadius: "var(--radius)",
             fontSize: "0.9em",

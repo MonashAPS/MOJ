@@ -37,6 +37,13 @@
   --line-strong: #b9bfc5;
   --code-bg: #f4f6f8;
   --shadow: rgba(0, 0, 0, 0.16);
+  --scrim: rgba(0, 0, 0, 0.45);
+  /* Text drawn on top of a saturated fill (verdict pills, contest chips, the
+     danger button). Deliberately not --bg: it must stay readable in both themes. */
+  --on-nav: #ffffff;
+  --on-fill: #ffffff;
+  --bsod-bg: #000080;
+  --bsod-ink: #ffffff;
 
   /* Links ----------------------------------------------------------------- */
   --link: #1958c1;
@@ -143,6 +150,7 @@
     --line-strong: #454c55;
     --code-bg: #1a1d22;
     --shadow: rgba(0, 0, 0, 0.55);
+    --scrim: rgba(0, 0, 0, 0.6);
 
     --link: #6bb7f0;
     --link-hover: #93cdf7;
@@ -214,6 +222,7 @@
   --line-strong: #454c55;
   --code-bg: #1a1d22;
   --shadow: rgba(0, 0, 0, 0.55);
+  --scrim: rgba(0, 0, 0, 0.6);
 
   --link: #6bb7f0;
   --link-hover: #93cdf7;

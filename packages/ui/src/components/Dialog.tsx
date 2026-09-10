@@ -30,7 +30,7 @@ export function DialogContent({
         style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(0, 0, 0, 0.45)",
+          background: "var(--scrim)",
           zIndex: 1000,
         }}
       />

@@ -189,7 +189,7 @@ kbd {
   align-self: center;
   width: 0;
   height: 22px;
-  border-right: 2px solid rgba(255, 255, 255, 0.18);
+  border-right: 2px solid color-mix(in srgb, var(--nav-ink) 18%, transparent);
   margin: 0 var(--space-2) 0 var(--space-1);
 }
 
@@ -258,7 +258,7 @@ kbd {
 
 #navigation a:focus-visible,
 #navigation button:focus-visible {
-  outline: 2px solid #fff;
+  outline: 2px solid var(--nav-ink);
   outline-offset: -3px;
   border-radius: 0;
 }
@@ -331,12 +331,12 @@ kbd {
   gap: 0.3em;
   padding: 0 var(--space-2);
   white-space: nowrap;
-  color: #b7b2ac;
+  color: color-mix(in srgb, var(--nav-ink) 70%, transparent);
   font-size: 13px;
 }
 
 #user-links .anon a {
-  color: #fff;
+  color: var(--nav-ink);
 }
 
 #user-links > ul {
@@ -376,7 +376,7 @@ kbd {
   flex: none;
   align-items: center;
   padding: 0 var(--space-2);
-  color: #fff;
+  color: var(--nav-ink);
   background: none;
   border: 0;
   cursor: pointer;
@@ -460,19 +460,19 @@ kbd {
 .contest-chip.solved {
   background: var(--v-ac);
   border-color: var(--v-ac);
-  color: #fff;
+  color: var(--on-fill);
 }
 
 .contest-chip.partial {
   background: var(--v-ole);
   border-color: var(--v-ole);
-  color: #fff;
+  color: var(--on-fill);
 }
 
 .contest-chip.attempted {
   background: var(--v-wa);
   border-color: var(--v-wa);
-  color: #fff;
+  color: var(--on-fill);
 }
 
 .contest-chip.current {
@@ -587,7 +587,7 @@ footer a {
 
 #announcement {
   font-size: 1.05em;
-  color: #fff;
+  color: var(--on-nav);
   font-weight: 600;
   background: var(--announcement);
   text-align: center;
@@ -607,12 +607,12 @@ footer a {
 #contest-info {
   font-size: 1.2em;
   border: 5px solid var(--accent);
-  border-left: 5px dotted #fff;
+  border-left: 5px dotted var(--nav-ink);
   border-radius: 0 var(--radius) var(--radius) 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: color-mix(in srgb, #000 80%, transparent);
   z-index: 1000;
-  padding: 10px 12px;
-  color: #fff;
+  padding: var(--space-3);
+  color: var(--nav-ink);
   cursor: move;
   position: fixed;
   left: 20px;
@@ -620,7 +620,7 @@ footer a {
 }
 
 #contest-info a {
-  color: #fff;
+  color: var(--nav-ink);
   display: block;
 }
 
@@ -869,7 +869,7 @@ input[type="submit"].button {
 
 .button.danger {
   background: var(--v-wa);
-  color: #fff;
+  color: var(--on-fill);
 }
 
 .button[disabled],
@@ -1142,7 +1142,7 @@ ul.pagination > .active-page > span {
   font-family: var(--font-mono);
   font-size: 0.85em;
   font-weight: 600;
-  color: #fff;
+  color: var(--on-fill);
   white-space: nowrap;
 }
 
@@ -1340,8 +1340,8 @@ ul.pagination > .active-page > span {
 /* Error pages ----------------------------------------------------------------- */
 
 .error-screen {
-  background: #000080;
-  color: #ffffff;
+  background: var(--bsod-bg);
+  color: var(--bsod-ink);
   font-family: var(--font-mono);
   font-size: var(--font-size);
   padding: var(--space-5) var(--space-5) var(--space-6) var(--space-6);
@@ -1352,7 +1352,7 @@ ul.pagination > .active-page > span {
 
 .error-screen h2 {
   font-family: var(--font-mono);
-  color: #fff;
+  color: var(--bsod-ink);
   font-size: 1.5em;
   margin-bottom: var(--space-3);
 }
@@ -1366,7 +1366,7 @@ ul.pagination > .active-page > span {
 .error-screen a,
 .error-screen button {
   font: inherit;
-  color: #fff;
+  color: var(--bsod-ink);
   font-weight: 700;
   text-decoration: underline;
   background: none;
