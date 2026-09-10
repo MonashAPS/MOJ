@@ -34,13 +34,13 @@ export function Panel({
       {title ? (
         <header
           data-slot="panel-titlebar"
-          className="flex h-7 shrink-0 items-center gap-2 border-b border-border bg-secondary px-3"
+          className="flex h-7 shrink-0 items-center gap-2 bg-titlebar px-3 text-titlebar-ink"
         >
-          <span className="min-w-0 flex-1 truncate font-sans text-xs font-semibold uppercase tracking-label text-subtle">
+          <span className="min-w-0 flex-1 truncate font-sans text-xs font-semibold uppercase tracking-label">
             {title}
           </span>
           {action ? <span className="flex shrink-0 items-center">{action}</span> : null}
-          {icon ? <span className="flex shrink-0 items-center text-muted-foreground">{icon}</span> : null}
+          {icon ? <span className="flex shrink-0 items-center text-titlebar-ink-2">{icon}</span> : null}
         </header>
       ) : null}
       <div data-slot="panel-body" className={cn("p-3", bodyClassName)}>

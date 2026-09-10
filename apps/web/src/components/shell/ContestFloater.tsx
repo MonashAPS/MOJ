@@ -82,10 +82,10 @@ export function ContestFloater({
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        className="flex h-7 cursor-grab touch-none items-center gap-2 border-b border-border bg-secondary px-2 active:cursor-grabbing"
+        className="flex h-7 cursor-grab touch-none items-center gap-2 bg-titlebar px-2 text-titlebar-ink active:cursor-grabbing"
       >
-        <GripHorizontal size={14} aria-hidden className="text-muted-foreground" />
-        <span className="flex-1 truncate font-sans text-xs font-semibold uppercase tracking-label text-subtle">
+        <GripHorizontal size={14} aria-hidden className="text-titlebar-ink-2" />
+        <span className="flex-1 truncate font-sans text-xs font-semibold uppercase tracking-label">
           In contest
         </span>
         <button
@@ -100,7 +100,7 @@ export function ContestFloater({
               // private mode
             }
           }}
-          className="flex size-4 items-center justify-center rounded-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+          className="flex size-4 items-center justify-center rounded-xs text-titlebar-ink-2 hover:bg-white/15 hover:text-titlebar-ink"
         >
           <X size={12} aria-hidden />
         </button>

@@ -1,0 +1,112 @@
+/*
+ * The source window and the compiler-output block.
+ *
+ * Shiki runs with `defaultColor: false`, so every token carries both themes as
+ * custom properties. One rule picks the light values; two override with the dark
+ * ones — the media query for the "system" setting, the attribute selector for an
+ * explicit choice. Same shape as @moj/content's `.codehilite` rules, scoped here
+ * because a submission's source is not prose and does not want prose typography.
+ */
+
+.code :global(pre) {
+  margin: 0;
+  padding: var(--space-3);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.55;
+  tab-size: 4;
+}
+
+.code :global(pre),
+.code :global(pre span) {
+  background-color: var(--shiki-light-bg, var(--code-bg));
+  color: var(--shiki-light, var(--ink));
+  font-style: var(--shiki-light-font-style, inherit);
+  font-weight: var(--shiki-light-font-weight, inherit);
+  text-decoration: var(--shiki-light-text-decoration, inherit);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .code :global(pre),
+  :root:not([data-theme="light"]) .code :global(pre span) {
+    background-color: var(--shiki-dark-bg, var(--code-bg));
+    color: var(--shiki-dark, var(--ink));
+    font-style: var(--shiki-dark-font-style, inherit);
+    font-weight: var(--shiki-dark-font-weight, inherit);
+    text-decoration: var(--shiki-dark-text-decoration, inherit);
+  }
+}
+
+:root[data-theme="dark"] .code :global(pre),
+:root[data-theme="dark"] .code :global(pre span) {
+  background-color: var(--shiki-dark-bg, var(--code-bg));
+  color: var(--shiki-dark, var(--ink));
+  font-style: var(--shiki-dark-font-style, inherit);
+  font-weight: var(--shiki-dark-font-weight, inherit);
+  text-decoration: var(--shiki-dark-text-decoration, inherit);
+}
+
+/* Shiki puts a `tabindex` on the block so it can be scrolled from the keyboard. */
+.code :global(pre:focus-visible) {
+  outline: 2px solid var(--brand-royal);
+  outline-offset: -2px;
+}
+
+/* DMOJ's `source-ln` column: numbers in their own gutter, unselectable, and on
+ * the same 1.55 line box as the code so the two columns stay in step. */
+.numbers {
+  padding: var(--space-3) 0 var(--space-3) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  opacity: 0.55;
+  text-align: right;
+  user-select: none;
+  background: var(--code-bg);
+}
+
+.numbers a {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.numbers a:target,
+.numbers a:hover {
+  color: var(--ink);
+  opacity: 1;
+}
+
+/* The clipped output and the checker's feedback inside a case row. */
+.output {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--code-bg);
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  max-height: 240px;
+}
+
+/* `ansi2html`: the compiler's own colours arrive as inline `color:` values that
+ * are MOJ tokens rather than hexes, so the block reads in both themes. */
+.ansi {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+}
+
+.ansi :global(b) {
+  font-weight: 700;
+}
