@@ -44,8 +44,16 @@ import { rateLimiter } from "./lib/rateLimiter";
 export const SUBMISSION_LIMIT = 2;
 /** `ProblemSubmitForm.source`: `CharField(max_length=65536)`. */
 export const MAX_SOURCE_LENGTH = 65536;
-/** How many rows a filtered page walks before giving up on filling itself. */
-const PAGE_SCAN_MULTIPLIER = 4;
+/**
+ * How many rows a filtered page walks before giving up on filling itself.
+ *
+ * The page that comes back is the whole scan minus the rows the viewer may not
+ * see, never a truncation of it: `continueCursor` describes the end of the scan,
+ * so cutting the page short at `numItems` would leave the rows in between
+ * unreachable. A page is therefore between zero and `numItems * this` rows long,
+ * which is what `usePaginatedQuery` expects.
+ */
+const PAGE_SCAN_MULTIPLIER = 2;
 
 /* -------------------------------------------------------------------------- */
 /* Row adapters for @moj/core                                                 */
@@ -520,7 +528,6 @@ export const list = query({
       if (resultFilter && !resultFilter.has(submission.result ?? "")) continue;
       if (!(await isListable(ctx, caches, submission, viewerCtx, now))) continue;
       page.push(await buildRow(ctx, caches, submission, viewerCtx, now));
-      if (page.length >= args.paginationOpts.numItems) break;
     }
 
     return { page, isDone: result.isDone, continueCursor: result.continueCursor };
