@@ -191,6 +191,17 @@ export function secondsSince(start: number, date: number): number {
   return (date - start) / 1000;
 }
 
+/**
+ * `ContestParticipation.cumtime` is a `PositiveIntegerField`, so Django's
+ * `int()` truncates the float seconds every format accumulates before the row
+ * is written. Ranking, tie breaking and the `HH:MM:SS` display all read the
+ * truncated value, so the formats truncate too rather than leaving a fraction
+ * of a second that DMOJ never had.
+ */
+export function cumtimeSeconds(seconds: number): number {
+  return Math.trunc(Math.max(seconds, 0));
+}
+
 export function groupByProblem(
   submissions: readonly ContestSubmissionRow[],
   participationId?: Id,

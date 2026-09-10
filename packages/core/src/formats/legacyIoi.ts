@@ -11,6 +11,7 @@ import {
   breakdown,
   buildParticipationResult,
   buildProblemCell,
+  cumtimeSeconds,
   groupByProblem,
   mergeConfig,
   numberLabel,
@@ -64,7 +65,7 @@ export function updateParticipationLegacyIoi(input: UpdateParticipationInput): P
   }
 
   return {
-    cumtime: Math.max(cumtime, 0),
+    cumtime: cumtimeSeconds(cumtime),
     score: pyRound(score, pointsPrecision(contest)),
     tiebreaker: 0,
     formatData,

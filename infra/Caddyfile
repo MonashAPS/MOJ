@@ -14,8 +14,9 @@
 {$MOJ_DOMAIN:judge.example.com} {
 	encode zstd gzip
 
-	# Long-lived immutable assets from Next.js.
-	@static path /_next/static/* /fonts/* /favicon.ico /icon.svg
+	# Long-lived immutable assets from Next.js, and the imported DMOJ media
+	# tree the app serves at /media/... (content addressed upload names).
+	@static path /_next/static/* /fonts/* /media/* /favicon.ico /icon.svg
 	header @static Cache-Control "public, max-age=31536000, immutable"
 
 	header {
