@@ -118,3 +118,9 @@ interfere with the site. Verified by inspection of `apps/judge/judge-server/dmoj
   remaining time needs the field added or a second query.
 - `convex/scoreboard.ts:456` deliberately ignores `scoreboardVisibility` for the
   public hall board. No private contest exists, so nothing leaks today.
+- The test-data editor (`convex/problemData.ts`) refuses a manually managed problem,
+  which is DMOJ's guard exactly (`views/problem_data.py:108`). Only
+  `multiplication` carries the flag, so for the other 312 the editor opens and a save
+  would replace the hand written `init.yml` the judge box holds. That is true of the
+  club's DMOJ as well, so it is parity rather than a regression, but it is worth
+  knowing before anyone uses the page.
