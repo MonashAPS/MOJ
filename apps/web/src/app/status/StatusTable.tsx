@@ -1,27 +1,43 @@
 "use client";
 
-import { Badge, EmptyState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@moj/ui";
+import { api } from "@convex/_generated/api";
+import type { StatusPage } from "@convex/status";
+import {
+  Badge,
+  EmptyState,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Tooltip,
+} from "@moj/ui";
+import { useQuery } from "convex/react";
 import { ServerOff } from "lucide-react";
+import { DASH } from "@/lib/submissionFormat";
 import { StatusSkeleton } from "./StatusSkeleton";
 
-/** One row of DMOJ's `/status/` table. The judging agent's Convex query fills these
- *  from the `judges` table (`name`, `online`, `ping`, `load`, `runtimeKeys`). */
-export type JudgeRow = {
-  name: string;
-  online: boolean;
-  ping?: number;
-  load?: number;
-  runtimes: string[];
-};
+/** `judge.uptime|timedelta('localized')`, compact. */
+function formatUptime(ms: number | null): string {
+  if (ms === null || ms <= 0) return DASH;
+  const seconds = Math.floor(ms / 1000);
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
 
-/** A missing value is an em-dash, never `---`. */
-const DASH = "—";
+/** `status/judge-status-table.html`, live: a judge's ping and load move while the
+ *  page is open, so the table is a subscription rather than DMOJ's 5s poll. */
+export function StatusTable({ initial }: { initial: StatusPage }) {
+  const live = useQuery(api.status.table, {});
+  const judges = live?.judges ?? initial.judges;
+  const seeAll = live?.seeAllJudges ?? initial.seeAllJudges;
 
-/** `null` means "still loading" and draws the list's own shape; `[]` is the honest
- *  "there are no judges" state. There is no judges query in `convex/` yet, so the
- *  default is the empty list — swap it for `useQuery(...) ?? null` when one lands. */
-export function StatusTable({ judges = [] }: { judges?: JudgeRow[] | null }) {
-  if (judges === null) return <StatusSkeleton />;
+  if (live === undefined && initial.judges.length === 0) return <StatusSkeleton />;
 
   if (judges.length === 0) {
     return (
@@ -34,9 +50,11 @@ export function StatusTable({ judges = [] }: { judges?: JudgeRow[] | null }) {
       <TableHeader>
         <TableRow>
           <TableHead>Judge</TableHead>
-          <TableHead>Status</TableHead>
+          {seeAll ? <TableHead>Status</TableHead> : null}
+          <TableHead numeric>Uptime</TableHead>
           <TableHead numeric>Ping</TableHead>
           <TableHead numeric>Load</TableHead>
+          <TableHead numeric>Tier</TableHead>
           <TableHead>Runtimes</TableHead>
         </TableRow>
       </TableHeader>
@@ -46,22 +64,47 @@ export function StatusTable({ judges = [] }: { judges?: JudgeRow[] | null }) {
             <TableCell className="whitespace-nowrap font-mono text-mono font-medium text-foreground">
               {judge.name}
             </TableCell>
-            <TableCell className="whitespace-nowrap">
-              <Badge variant={judge.online ? "good" : "neutral"}>{judge.online ? "Online" : "Offline"}</Badge>
-            </TableCell>
+            {seeAll ? (
+              <TableCell className="whitespace-nowrap">
+                <Badge variant={judge.online ? "good" : "neutral"}>
+                  {judge.online ? "Online" : "Offline"}
+                </Badge>
+              </TableCell>
+            ) : null}
+            <TableCell numeric>{judge.online ? formatUptime(judge.uptime) : DASH}</TableCell>
             <TableCell numeric>
-              {judge.ping === undefined ? (
-                DASH
-              ) : (
+              {judge.online && judge.pingMs !== null ? (
                 <>
-                  {judge.ping.toFixed(1)}
+                  {judge.pingMs.toFixed(3)}
                   <span className="text-muted-foreground"> ms</span>
                 </>
+              ) : (
+                DASH
               )}
             </TableCell>
-            <TableCell numeric>{judge.load === undefined ? DASH : judge.load.toFixed(2)}</TableCell>
+            <TableCell numeric>
+              {judge.online && judge.load !== null ? judge.load.toFixed(3) : DASH}
+            </TableCell>
+            <TableCell numeric>{judge.tier}</TableCell>
             <TableCell className="font-mono text-mono text-subtle">
-              {judge.runtimes.length === 0 ? DASH : judge.runtimes.join(", ")}
+              {judge.runtimes.length === 0 ? (
+                DASH
+              ) : (
+                <span className="flex flex-wrap gap-x-2 gap-y-1">
+                  {judge.runtimes.map((runtime) => (
+                    <Tooltip
+                      key={runtime.key}
+                      content={runtime.runtimes
+                        .map((entry) => `${entry.name} ${entry.version}`.trim())
+                        .join(", ")}
+                    >
+                      <span className="cursor-help underline decoration-dotted underline-offset-2">
+                        {runtime.name}
+                      </span>
+                    </Tooltip>
+                  ))}
+                </span>
+              )}
             </TableCell>
           </TableRow>
         ))}
