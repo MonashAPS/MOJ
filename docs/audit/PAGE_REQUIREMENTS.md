@@ -132,7 +132,9 @@ item already returns the field.
   club's contests) numbers its problems **1, 2, 3**; only `icpc` letters them. The
   import used to write `letters` for everything; that is fixed, so a re-imported
   deployment carries `labelScheme: "numbers"`. **Do not hard-code letters.**
-- **Test with** any contest, e.g. `2026s2w6` (five problems, must read 1–5).
+- **Test with** any contest, e.g. `2026s2w6` (five problems, must read 1–5), or
+  `tehran2024` (eleven, 1–11). If a deployment still labels them A, B, C it predates
+  the fix: run `npx convex run importer:backfillLabelScheme '{"cursor": null}'`.
 - Prefer `@moj/core`'s `getContestLabelForProblem` over re-deriving it; there are
   already two other copies of the rule in `convex/`.
 
