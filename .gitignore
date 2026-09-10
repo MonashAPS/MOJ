@@ -23,3 +23,4 @@ tools/import/secrets*
 docs/.vitepress/dist/
 docs/.vitepress/cache/
 .convex-tmp/
+*.tsbuildinfo

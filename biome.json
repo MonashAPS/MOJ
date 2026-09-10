@@ -1,16 +1,20 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.12/schema.json",
-  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
   "files": {
     "includes": [
       "**",
-      "!**/node_modules/**",
-      "!**/.next/**",
-      "!**/dist/**",
-      "!convex/_generated/**",
-      "!apps/web/drizzle/**",
-      "!apps/web/public/**",
-      "!infra/data/**",
+      "!**/node_modules",
+      "!**/.next",
+      "!**/dist",
+      "!convex/_generated",
+      "!apps/web/drizzle",
+      "!apps/web/public",
+      "!infra/data",
       "!**/*.json"
     ]
   },
@@ -24,17 +28,22 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
       "style": {
         "noNonNullAssertion": "off",
-        "useImportType": "warn"
+        "useImportType": "warn",
+        "noDescendingSpecificity": "off"
       },
       "suspicious": {
         "noExplicitAny": "off"
       },
       "complexity": {
-        "noForEach": "off"
-      }
+        "noForEach": "off",
+        "noImportantStyles": "off"
+      },
+      "performance": {
+        "noImgElement": "off"
+      },
+      "preset": "recommended"
     }
   },
   "javascript": {
@@ -47,6 +56,15 @@
   },
   "assist": {
     "enabled": true,
-    "actions": { "source": { "organizeImports": "on" } }
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
   }
 }
