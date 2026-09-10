@@ -15,5 +15,9 @@ tools/import/*.sql*
 .playwright-mcp/
 test-results/
 playwright-report/
-apps/judge/judge-server/
 __pycache__/
+infra/media/
+tools/import/dump*.sql.gz
+tools/import/secrets*
+docs/.vitepress/dist/
+docs/.vitepress/cache/

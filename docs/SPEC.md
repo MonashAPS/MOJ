@@ -374,3 +374,37 @@ urlsafe base64). Output a report of counts per table and any rows skipped.
 - An ICPC contest with a 60-minute freeze shows frozen cells and a working reveal on `/contest/[key]/ranking/`
   and `/scoreboard/[event]`.
 - `npm run typecheck`, `npm run lint`, `npm test` pass.
+
+## 17. Judge as a git subtree
+
+`apps/judge/judge-server/` is a git subtree of `git@github.com:MonashAPS/judge-server.git` branch `v2`
+(`git subtree add --prefix apps/judge/judge-server <url> v2 --squash`). Our changes live inside the subtree so they
+can be pushed back upstream with `git subtree push`. Keep the diff minimal: a new `dmoj/moj_packet.py`, a small hook in
+`dmoj/judge.py` / `dmoj/__main__.py` that selects it when `MOJ_URL` is set, and nothing else. `apps/judge/README.md`
+explains how the judge works (sandbox, executors, problem format, the pull protocol, running it on another box).
+
+## 18. Documentation site, README, CI
+
+- `docs/` is a VitePress site deployed to GitHub Pages from `main` by `.github/workflows/pages.yml`. Pages: Quick
+  start (copy-paste Docker commands per distro: Ubuntu 22.04/24.04, Debian 12/13, Fedora, Arch, NixOS, plus a
+  "judge on a second machine" section), Architecture, Problem format (DMOJ `init.yml` compatibility, statement
+  conventions, `config.json`), Problem repos and CI (the problems API and `upload-problem.mjs`), Importing from
+  DMOJ, Contests (formats, freeze, hall scoreboard, ratings), Staff console, API (v2 and problems API), Accounts and
+  2FA, Development, Deployment (compose.prod, Caddy, backups), Troubleshooting.
+- `README.md` at the root: a screenshot of the home page at the top, then a short description, a link to the docs
+  site quick start, then feature sections each with a screenshot in the manner of DMOJ's README (problem statement,
+  submit page, live submission status, submission lists, contest system and ranking, hall scoreboard with freeze,
+  staff console, accounts/2FA), then DMOJ compatibility (same URLs, same problem format, import of users, problems,
+  submissions, contests), supported languages (whatever the judge image tier provides), and how to contribute.
+  Plain prose, no em dashes, no marketing tone, no emoji. Screenshots live in `docs/public/screenshots/`.
+- `.github/workflows/ci.yml` runs on pull requests and pushes: npm ci, biome, typecheck, vitest, web build, judge
+  image build (tier1) and the judge mock end-to-end (`apps/judge/tests`), and a Playwright smoke against a compose
+  stack when `RUN_E2E` is set. `pages.yml` builds and deploys `docs/` on push to `main`.
+
+## 19. Seeding from production
+
+`infra/scripts/pull-production.sh` (not run in CI) pulls a fresh logical dump from the current MAPS web box, the
+site media directory (statement images) and the problem data directory from the judge box into gitignored local
+paths (`tools/import/dump-<date>.sql.gz`, `infra/media/`, `infra/problems/`), then `npm run import` loads them into
+the local Convex and Postgres. The Django `SECRET_KEY` needed for TOTP decryption is read from the box into
+`tools/import/secrets.env` (gitignored).
