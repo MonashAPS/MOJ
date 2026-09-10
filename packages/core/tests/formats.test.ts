@@ -108,6 +108,15 @@ describe('default format', () => {
     });
   });
 
+  it('truncates cumtime the way the integer column does', () => {
+    // 20 minutes and 640 milliseconds: DMOJ's format_data keeps the fraction
+    // but cumtime is a PositiveIntegerField, so Django's int() drops it.
+    const update = run('default', [submission(p1.id, 0, 100, { date: START + 1_200_640 })]);
+    expect(update.formatData[p1.id]).toEqual({ time: 1200.64, points: 100 });
+    expect(update.cumtime).toBe(1200);
+    expect(Number.isInteger(update.cumtime)).toBe(true);
+  });
+
   it('rejects a non-empty config', () => {
     expect(() => validateContestFormatConfig('default', {})).not.toThrow();
     expect(() => validateContestFormatConfig('default', null)).not.toThrow();

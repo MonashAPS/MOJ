@@ -32,6 +32,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, type QueryCtx, query } from "./_generated/server";
 import { allocateSubmissionNumber, queueSubmission, resolveSubmission } from "./judging";
 import { optionalViewer, requireViewer } from "./lib/auth";
+import { globalSourceVisibility, siteSettings } from "./lib/community";
 import { forbidden, invalid, mojError, notFound } from "./lib/errors";
 import { rateLimiter } from "./lib/rateLimiter";
 
@@ -323,6 +324,7 @@ async function buildRow(
       problem: coreProblem(problem),
       contest: contest ? coreContest(contest) : null,
       hasSolvedProblem: solved,
+      globalSubmissionSourceVisibility: globalSourceVisibility(await siteSettings(ctx)),
     });
   }
 

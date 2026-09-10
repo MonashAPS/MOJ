@@ -281,7 +281,8 @@ CREATE TABLE \`judge_contest\` (
 ) ENGINE=InnoDB;
 INSERT INTO \`judge_contest\` VALUES
  (1,'week1','Week 1','desc','2024-03-01 09:00:00.000000','2024-03-01 14:00:00.000000',18000000000,1,1,1,0,0,0,0,'','',2,'','','icpc','{\\"penalty\\": 20}',NULL,NULL,0,'',2,'C',NULL,0,0,1,0,1),
- (2,'week2','Week 2','','2024-04-01 09:00:00.000000','2024-04-01 14:00:00.000000',NULL,0,0,0,0,0,0,0,'','',0,'','','default',NULL,NULL,NULL,0,'return "X"',0,'Z',NULL,0,0,0,0,0);
+ (2,'week2','Week 2','','2024-04-01 09:00:00.000000','2024-04-01 14:00:00.000000',NULL,0,0,0,0,0,0,0,'','',0,'','','default',NULL,NULL,NULL,0,'return "X"',0,'Z',NULL,0,0,0,0,0),
+ (3,'week3','Week 3','','2024-05-01 09:00:00.000000','2024-05-01 14:00:00.000000',NULL,1,0,1,0,0,0,0,'','',0,'','','default',NULL,NULL,NULL,0,'',3,'V',NULL,0,0,0,0,0);
 
 CREATE TABLE \`judge_contestproblem\` (
   \`id\` int(11) NOT NULL AUTO_INCREMENT,
@@ -295,7 +296,7 @@ CREATE TABLE \`judge_contestproblem\` (
   \`problem_id\` int(11) NOT NULL,
   PRIMARY KEY (\`id\`)
 ) ENGINE=InnoDB;
-INSERT INTO \`judge_contestproblem\` VALUES (1,100,0,0,1,NULL,NULL,1,1);
+INSERT INTO \`judge_contestproblem\` VALUES (1,100,0,0,1,NULL,NULL,1,1),(4,50,1,0,2,NULL,NULL,1,2);
 
 CREATE TABLE \`judge_contestparticipation\` (
   \`id\` int(11) NOT NULL AUTO_INCREMENT,
@@ -310,7 +311,9 @@ CREATE TABLE \`judge_contestparticipation\` (
   \`tiebreaker\` double NOT NULL,
   PRIMARY KEY (\`id\`)
 ) ENGINE=InnoDB;
-INSERT INTO \`judge_contestparticipation\` VALUES (1,'2024-03-01 09:00:00.000000',100,42,0,'{\\"1\\": {\\"points\\": 100}}',1,1,0,0);
+INSERT INTO \`judge_contestparticipation\` VALUES
+ (1,'2024-03-01 09:00:00.000000',100,42,0,'{\\"1\\": {\\"points\\": 100}, \\"4\\": {\\"points\\": 50}, \\"999\\": {\\"points\\": 1}}',1,1,0,0),
+ (2,'2024-03-01 09:00:00.000000',0,0,0,NULL,1,2,0,0);
 
 CREATE TABLE \`judge_submission\` (
   \`id\` int(11) NOT NULL AUTO_INCREMENT,

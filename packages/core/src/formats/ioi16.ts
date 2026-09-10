@@ -21,6 +21,7 @@ import {
   breakdown,
   buildParticipationResult,
   buildProblemCell,
+  cumtimeSeconds,
   groupByProblem,
   numberLabel,
   orderedProblemIds,
@@ -98,7 +99,7 @@ export function updateParticipationIoi16(input: UpdateParticipationInput): Parti
   }
 
   return {
-    cumtime: Math.max(cumtime, 0),
+    cumtime: cumtimeSeconds(cumtime),
     score: pyRound(score, pointsPrecision(contest)),
     tiebreaker: 0,
     formatData,
