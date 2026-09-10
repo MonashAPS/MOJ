@@ -8,11 +8,16 @@
  * @module
  */
 
+import type * as admin_organizations from "../admin/organizations.js";
+import type * as admin_users from "../admin/users.js";
+import type * as apiV2 from "../apiV2.js";
 import type * as blog from "../blog.js";
+import type * as classes from "../classes.js";
 import type * as comments from "../comments.js";
 import type * as contests from "../contests.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
+import type * as jobs_users from "../jobs/users.js";
 import type * as languages from "../languages.js";
 import type * as lib_aggregates from "../lib/aggregates.js";
 import type * as lib_auth from "../lib/auth.js";
@@ -20,6 +25,7 @@ import type * as lib_errors from "../lib/errors.js";
 import type * as lib_rateLimiter from "../lib/rateLimiter.js";
 import type * as lib_seedData from "../lib/seedData.js";
 import type * as maintenance from "../maintenance.js";
+import type * as organizations from "../organizations.js";
 import type * as problems from "../problems.js";
 import type * as profiles from "../profiles.js";
 import type * as rankings from "../rankings.js";
@@ -35,11 +41,16 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "admin/organizations": typeof admin_organizations;
+  "admin/users": typeof admin_users;
+  apiV2: typeof apiV2;
   blog: typeof blog;
+  classes: typeof classes;
   comments: typeof comments;
   contests: typeof contests;
   crons: typeof crons;
   http: typeof http;
+  "jobs/users": typeof jobs_users;
   languages: typeof languages;
   "lib/aggregates": typeof lib_aggregates;
   "lib/auth": typeof lib_auth;
@@ -47,6 +58,7 @@ declare const fullApi: ApiFromModules<{
   "lib/rateLimiter": typeof lib_rateLimiter;
   "lib/seedData": typeof lib_seedData;
   maintenance: typeof maintenance;
+  organizations: typeof organizations;
   problems: typeof problems;
   profiles: typeof profiles;
   rankings: typeof rankings;
