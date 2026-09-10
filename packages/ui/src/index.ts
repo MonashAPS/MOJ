@@ -159,10 +159,13 @@ export { InfoBox, Panel } from "./components/panel";
 export { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "./components/popover";
 export { RadioGroup, RadioGroupItem, type RadioGroupProps, type RadioOption } from "./components/radio-group";
 export {
+  RATING_VALUES,
   type RatingClass,
   RatingDelta,
   RatingName,
   ratingClass,
+  ratingLevel,
+  ratingProgress,
   ratingTitle,
 } from "./components/rating-name";
 export {

@@ -921,3 +921,53 @@ a wiring point that the page wave will import, so they are recorded here rather 
 - The editorial confirmation (spec section 20) is a kit `Dialog` opened by the Editorial tab, and its
   "don't ask me again" flag lives in `localStorage` under `moj.editorial-confirmed`. A direct visit to
   `/problem/<code>/editorial` is deliberately not intercepted, so a shared link still works.
+## 2026-09-11, users and organisations pages
+
+- **New Convex module `convex/pages/users.ts`**, with the two reads no backend module exposed and the
+  pages need. `organizationsFor({profileIds})` returns each ranked user's organisations, which is the
+  `organization-column` DMOJ draws beside a username on a contest ranking and which the leaderboard reuses;
+  `dataExportDownload({})` turns the storage id `profiles.dataExportStatus` reports into a URL, because a
+  storage URL can only be minted inside a function and `/data/download/` has to redirect to one. Both are
+  covered by `convex/tests/pagesUsers.test.ts` and are registered in `convex/_generated/api.d.ts` by hand,
+  as the rest of that file already is. Every page that reads them does so through a `.catch(() => null)`
+  fallback, so they degrade to a leaderboard with no organisation chips until the module is deployed.
+- `organizations.list`, `organizations.get` and `classes.get` gained `legacyId` on the rows they return.
+  DMOJ addresses an organisation as `/organization/<pk>-<slug>` and a class as `<cpk>-<cslug>` inside it,
+  and the pk was not on any payload. Next cannot put two dynamic parts in one path segment, so the routes
+  are `app/organization/[handle]` and `.../class/[klass]`, and `apps/web/src/lib/organizations.ts` splits
+  the leading digits off. A link with no pk still resolves: the slug is what the query takes.
+- **`@moj/ui`'s rating thresholds were wrong.** `ratingClass`/`ratingTitle` used 1200/1500/1800/2200/2600,
+  where `judge/ratings.py` and `@moj/core`'s `RATING_VALUES` use 1000/1300/1600/1900/2400/3000. They are
+  DMOJ's now, and `RATING_VALUES`, `ratingLevel` and `ratingProgress` are exported beside them so nothing
+  else has to restate the table.
+- **`@moj/ui`'s `Select` rendered an empty trigger.** Radix draws the trigger's label by portalling the
+  chosen item's text into the value node, which needs the item mounted; closed, nothing was shown — the
+  footer's language switcher and every filter select on the site were blank. The convenience `Select` now
+  renders the selected option's label as `SelectValue`'s children and tracks an uncontrolled value, so a
+  closed select always shows its selection.
+- **`apps/web/src/proxy.ts` no longer redirects `/_next`.** The trailing-slash redirect fired on
+  `/_next/hmr`, which is a websocket upgrade in development, and broke the handshake on every page load.
+- `apps/web` depends on `@moj/core` (and lists it in `transpilePackages`) so `UserLink` can build DMOJ's
+  `rating <rate-class> <display_rank>` string through `getUserCssClass` rather than restating it. It is
+  imported as `@moj/core/ratings`, the package's own deep entry point: importing the barrel pulls the whole
+  domain layer into the client bundle, and turbopack does not resolve its `export *` re-exports.
+- `recharts` is a new dependency of `apps/web`: the rating history chart. DESIGN.md section 20 names
+  Chart.js 4 or Recharts; Recharts is the one that takes CSS custom properties straight into its SVG
+  attributes, so the rating bands and the line are theme-aware with no JavaScript reading the tokens.
+- **The user page keeps its sidebar on the left**, which is `user/user-base.html`'s own layout, rather than
+  the right-hand `.info-float` of DESIGN.md section 7. Section 7 describes `common-content`; the user page
+  is not one, and DMOJ puts the gravatar column first.
+- The About tab shows a **Best submissions** panel — the ten highest-scoring solved problems, linking to
+  the Problems tab. `profiles.userPage` already returns `bestSubmissions` for the Problems tab and the
+  brief asked for best submissions on About; the full grouped list stays on `/user/[user]/solved`.
+- `/user/[user]/solved`'s "Compare with me" keeps its state in the URL (`?compare=1`) rather than in a
+  posted form, so a comparison is a link. DMOJ's control is a `hide_solved` checkbox that submits the form.
+- `/organization/[pk]-[slug]/kick` is a page: pick a member, confirm, kick. DMOJ hides the same mutation
+  behind a per-row button that only appears on hover, which is not reachable by touch or keyboard; the
+  member table keeps its per-row Kick for admins as well.
+- `forbidden()` needs `experimental.authInterrupts`, which the shell does not enable, so the organisation
+  pages that are admin-only render `ErrorScreen` with a 403 in place instead of raising it.
+- `apps/web/src/components/submissions/SubmissionList.tsx` is a **placeholder** with the props the brief
+  named (`username`, `problemCode`, `contestKey`, plus `pageSize` and the empty-state copy). It renders
+  `submissions.list` in DESIGN.md section 12.2's row shape so the Submissions tab is finished; the
+  submissions agent's component replaces it at integration.

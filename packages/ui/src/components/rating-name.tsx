@@ -11,27 +11,54 @@ export type RatingClass =
   | "rate-grandmaster"
   | "rate-target";
 
-// DMOJ's thresholds, from judge/ratings.py.
+/** `judge/ratings.py`'s `RATING_VALUES`, which `@moj/core` also carries. The
+ *  band a rating falls into is `bisect_right(RATING_VALUES, rating)`. */
+export const RATING_VALUES: readonly number[] = [1000, 1300, 1600, 1900, 2400, 3000];
+
+const RATING_CLASSES: readonly RatingClass[] = [
+  "rate-newbie",
+  "rate-amateur",
+  "rate-expert",
+  "rate-candidate-master",
+  "rate-master",
+  "rate-grandmaster",
+  "rate-target",
+];
+
+const RATING_LEVELS: readonly string[] = [
+  "Newbie",
+  "Amateur",
+  "Expert",
+  "Candidate Master",
+  "Master",
+  "Grandmaster",
+  "Target",
+];
+
+/** `rating_level(rating)`. */
+export function ratingLevel(rating: number): number {
+  let level = 0;
+  while (level < RATING_VALUES.length && rating >= (RATING_VALUES[level] as number)) level++;
+  return level;
+}
+
 export function ratingClass(rating: number | null | undefined): RatingClass {
   if (rating === null || rating === undefined) return "rate-none";
-  if (rating >= 3000) return "rate-target";
-  if (rating >= 2600) return "rate-grandmaster";
-  if (rating >= 2200) return "rate-master";
-  if (rating >= 1800) return "rate-candidate-master";
-  if (rating >= 1500) return "rate-expert";
-  if (rating >= 1200) return "rate-amateur";
-  return "rate-newbie";
+  return RATING_CLASSES[ratingLevel(rating)] as RatingClass;
 }
 
 export function ratingTitle(rating: number | null | undefined): string {
   if (rating === null || rating === undefined) return "Unrated";
-  if (rating >= 3000) return "Target";
-  if (rating >= 2600) return "Grandmaster";
-  if (rating >= 2200) return "Master";
-  if (rating >= 1800) return "Candidate Master";
-  if (rating >= 1500) return "Expert";
-  if (rating >= 1200) return "Amateur";
-  return "Newbie";
+  return RATING_LEVELS[ratingLevel(rating)] as string;
+}
+
+/** `rating_progress(rating)`: how far through the current band, in [0, 1]. */
+export function ratingProgress(rating: number): number {
+  const level = ratingLevel(rating);
+  if (level === RATING_VALUES.length) return 1;
+  const previous = level === 0 ? 0 : (RATING_VALUES[level - 1] as number);
+  const next = RATING_VALUES[level] as number;
+  return (rating - previous) / (next - previous);
 }
 
 /** Rating colour applies to the username glyphs only, at weight 500, in the mono. */
