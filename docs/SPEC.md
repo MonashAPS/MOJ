@@ -452,3 +452,18 @@ voice ("No judges are online.", "No submissions yet.", "This contest has no prob
 paths, TODOs or "coming soon". Operational hints for staff belong only inside `/admin`. No emoji. Page titles,
 labels and buttons use DMOJ's wording where DMOJ has one. Error pages match DMOJ's (404 "Page not found", 403
 "Access denied", 500 "Internal error") without stack traces.
+
+## 22. Reusable GitHub Action for problem repos
+
+`actions/upload-problems/action.yml` in this repository is a composite action that any problem repo can use as
+`uses: MonashAPS/MOJ/actions/upload-problems@main`. Inputs: `judge-url` (required), `api-key` (required, from a
+repository secret), `problems-dir` (default `problems`), `only-changed` (default `true`: only problem directories
+touched by the push, using the workflow's before/after SHAs, falling back to all on workflow_dispatch),
+`include` / `exclude` globs, `dry-run`, and optional test-data sync inputs `rsync-host`, `rsync-user`,
+`rsync-key`, `rsync-target` (default `~/problems/<repo name>/`), `rsync-delete` (default `true`). Behaviour: sets
+up Node 24, runs `tools/upload-problem/upload-problem.mjs` from `${{ github.action_path }}` for each selected
+problem (statement, config.json, editorial, images), then if the rsync inputs are present syncs the selected
+directories' test data to the judge host exactly as the club's current workflows do. Outputs: `uploaded`,
+`skipped`, `failed` (JSON lists) and a step summary table. Fails the job on any failed upload. Documented on the
+"Problem repos and CI" page with a complete example workflow (secrets `JUDGE_URL`, `JUDGE_API_KEY`, `JUDGE_HOST`,
+`JUDGE_SSH_KEY`) and on the action's own README.
