@@ -24,6 +24,7 @@ function wantsGrid(pathname: string): boolean {
     pathname === "/" ||
     pathname.startsWith("/accounts/") ||
     pathname.startsWith("/about") ||
+    pathname.startsWith("/blog") ||
     pathname.startsWith("/post/")
   );
 }
