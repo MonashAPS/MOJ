@@ -438,3 +438,9 @@ to list their problems, grouped by contest with the contest name as a group head
 "Group by contest" view toggle. The problem page also shows a small stats strip (solvers, attempts, AC rate,
 best solve time, fastest solver) and a per-language breakdown on `/problem/[code]/rank/`. Contest pages list their
 problems with each problem's public solve count.
+
+Contest problem states. On every contest page (`/contest/[key]`, including past contests), the problem table marks
+each problem with the viewer's state: solved (full marks on any submission, in or out of the contest), partially
+solved, attempted, or untouched, using the same icons and colours as the problem list, and shows the viewer's
+best score. The same state colours drive the ContestBar chips. Past contests additionally show "solved during the
+contest" separately from "solved since", so members can see what they cleaned up afterwards.
