@@ -56,5 +56,7 @@ export const CATEGORICAL_TOKENS = [
   "--rating-target",
 ] as const;
 
-/** Axis, grid and label colours, so a chart's chrome matches the page's. */
-export const CHROME_TOKENS = ["--ink", "--muted", "--line", "--surface"] as const;
+/** Axis, grid and label colours, so a chart's chrome matches the page's, plus the
+ *  royal a bar is filled with. Module constants: `useTokenColors` keys its effect
+ *  on the array, so a literal built inside a render would loop. */
+export const CHROME_TOKENS = ["--ink", "--muted", "--line", "--surface", "--brand-royal"] as const;

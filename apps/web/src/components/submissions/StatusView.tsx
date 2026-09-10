@@ -160,8 +160,8 @@ export function StatusView({
           ) : null}
         </div>
 
-        <dl className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-          <Meta label="Problem">
+        <dl className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+          <Meta label="Problem" first>
             <Link href={`/problem/${extras.problem.code}`} className="text-link hover:text-link-hover">
               {extras.problem.name}
             </Link>
@@ -337,14 +337,22 @@ export function StatusView({
 function Meta({
   label,
   icon,
+  first = false,
   children,
 }: {
   label: string;
   icon?: React.ReactNode;
+  /** The first item has nothing to be separated from. */
+  first?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <span className="inline-flex items-center gap-1.5">
+      {first ? null : (
+        <span aria-hidden className="mr-0.5 text-border-strong">
+          ·
+        </span>
+      )}
       {icon ? <span className="text-muted-foreground">{icon}</span> : null}
       <dt className="sr-only">{label}</dt>
       <dd className="text-subtle">{children}</dd>
@@ -361,17 +369,29 @@ function Line({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-/** While `P`/`G` the total case count is not known — the judge streams cases as it
- *  runs them — so the bar runs rather than filling, and the mono label carries the
- *  case the judge is on. */
+/**
+ * A judge streams its cases as it runs them and never says how many there are,
+ * so there is no honest denominator to fill a bar against: the bar pulses at
+ * full width to say "working" rather than pretending to a percentage, and the
+ * mono label carries the case the judge is on. A queued submission has no judge
+ * yet, so it gets the words alone. Under reduced motion the pulse becomes a
+ * static bar, because `--animate-pulse-judging` collapses to `none`.
+ */
 function Progress({ currentCase, status }: { currentCase: number; status: string }) {
+  const queued = status === "QU";
   return (
     <div className="flex items-center gap-3">
-      <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-well">
-        <div className="h-full w-1/3 animate-pulse-judging rounded-full bg-royal" />
-      </div>
+      {queued ? null : (
+        <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-well">
+          <div className="h-full w-full animate-pulse-judging rounded-full bg-royal" />
+        </div>
+      )}
       <span className="shrink-0 font-mono text-sm tabular-nums text-run">
-        {status === "QU" ? "Waiting for a judge" : currentCase > 0 ? `Case #${currentCase}` : "Starting"}
+        {queued
+          ? "Waiting for a suitable judge\u2026"
+          : currentCase > 0
+            ? `Judging case #${currentCase}`
+            : "Your submission is being processed\u2026"}
       </span>
     </div>
   );

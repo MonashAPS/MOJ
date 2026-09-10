@@ -57,8 +57,9 @@ export type SubmissionListProps = {
   initialFilters: { status: string[]; language: string[] };
   /** Everything the filter panel and the row affordances need. */
   context: ListContext;
-  /** `_get_result_data` for the statistics box. */
-  results: ResultData;
+  /** `_get_result_data` for the statistics box, or `null` where the deployed
+   *  query cannot answer for this list's queryset (see the note below). */
+  results: ResultData | null;
   /** The server's clock, so relative times match before hydration. */
   now: number;
   /** Where the "my submissions" quick link points. */
@@ -193,7 +194,11 @@ export function SubmissionList({
                   : `/submissions/user/${username}/`
               }
             />
-            <ResultsChart problemCode={filters.problemCode} initial={results} />
+            {/* `submissions.resultsForProblem` counts globally or for one problem;
+                it cannot count a user's or a contest's queryset the way DMOJ's
+                `_get_result_data` does, so the box is left off rather than
+                showing a total that is not this list's. */}
+            {results ? <ResultsChart problemCode={filters.problemCode} initial={results} /> : null}
           </>
         }
       >
@@ -245,7 +250,7 @@ export function SubmissionList({
           </ul>
         )}
 
-        {dynamic && (live.status === "CanLoadMore" || live.status === "LoadingMore") ? (
+        {dynamic && rows.length > 0 && (live.status === "CanLoadMore" || live.status === "LoadingMore") ? (
           <div className="mt-4 flex justify-center">
             <Button
               variant="secondary"

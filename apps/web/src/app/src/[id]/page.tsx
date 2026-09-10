@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SourceWindow } from "@/components/submissions/SourceWindow";
 import { titlebarAction } from "@/components/submissions/titlebar";
-import { absoluteTime, verdictCode } from "@/lib/submissionFormat";
+import { absoluteTime, isGrading, verdictCode } from "@/lib/submissionFormat";
 import { loadSourceView } from "@/lib/submissionsData";
 
 export const dynamic = "force-dynamic";
@@ -54,10 +54,12 @@ export default async function SubmissionSourcePage({ params }: { params: Promise
       />
       <div id="content-body" className="grid gap-4">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-          <VerdictPill verdict={verdictCode(view)} />
-          <span className="font-mono tabular-nums">
-            {view.casePoints} <span className="text-muted-foreground">/ {view.caseTotal}</span>
-          </span>
+          <VerdictPill verdict={verdictCode(view)} judging={isGrading(view.status)} />
+          {isGrading(view.status) ? null : (
+            <span className="font-mono tabular-nums">
+              {view.casePoints} <span className="text-muted-foreground">/ {view.caseTotal}</span>
+            </span>
+          )}
           <span className="font-mono">{view.language?.name ?? "Unknown language"}</span>
           <time dateTime={new Date(view.date).toISOString()} className="font-mono tabular-nums">
             {absoluteTime(view.date)}

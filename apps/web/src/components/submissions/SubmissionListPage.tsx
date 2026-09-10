@@ -54,6 +54,10 @@ export async function SubmissionListPage({
   const status = listOf(searchParams.status);
   const language = listOf(searchParams.language);
 
+  // DMOJ's statistics box counts the list's own queryset. The deployed query
+  // counts globally or for one problem, so it is only asked for the lists it can
+  // answer honestly.
+  const wantsResults = !filters.username && !filters.contestKey;
   const [page, results] = await Promise.all([
     queryAsViewer(api.submissions.list, {
       paginationOpts: { numItems: PAGE_SIZE, cursor: null },
@@ -61,10 +65,12 @@ export async function SubmissionListPage({
       ...(status.length > 0 ? { results: status } : {}),
       ...(language.length > 0 ? { languageKeys: language } : {}),
     }),
-    queryAsViewer(
-      api.submissions.resultsForProblem,
-      filters.problemCode ? { problemCode: filters.problemCode } : {},
-    ),
+    wantsResults
+      ? queryAsViewer(
+          api.submissions.resultsForProblem,
+          filters.problemCode ? { problemCode: filters.problemCode } : {},
+        )
+      : null,
   ]);
 
   const me = context.viewer?.username ?? null;

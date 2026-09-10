@@ -20,6 +20,7 @@ import {
   problemIsAccessibleBy,
   problemIsEditableBy,
   problemIsVisibleTo,
+  resolveSubmissionSourceVisibility,
   SUBMISSION_RESULTS,
   USER_DISPLAY_CODES,
 } from "@moj/core";
@@ -27,6 +28,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
 import { resolveSubmission } from "../judging";
+import { globalSourceVisibility, siteSettings } from "../lib/community";
 import { coreContest, coreProblem, viewerContext } from "../submissions";
 
 /* -------------------------------------------------------------------------- */
@@ -280,6 +282,7 @@ export const statusExtras = query({
           problem: coreProblem(problem),
           contest: contest ? coreContest(contest) : null,
           hasSolvedProblem: viewer.id === submission.profileId ? false : solved,
+          globalSubmissionSourceVisibility: globalSourceVisibility(await siteSettings(ctx)),
         })
       : false;
 
@@ -312,7 +315,10 @@ export const statusExtras = query({
       canSeeDetail,
       solveToView:
         !canSeeDetail &&
-        problem.submissionSourceVisibility === "S" &&
+        resolveSubmissionSourceVisibility(
+          coreProblem(problem),
+          globalSourceVisibility(await siteSettings(ctx)),
+        ) === "S" &&
         problemIsAccessibleBy(coreProblem(problem), viewer),
       id: submission.legacyId ?? submission._id,
       problem: { code: problem.code, name: problem.name, points: problem.points },
@@ -425,6 +431,7 @@ export const sourceView = query({
           problem: coreProblem(problem),
           contest: contest ? coreContest(contest) : null,
           hasSolvedProblem: viewer.id === submission.profileId ? false : solved,
+          globalSubmissionSourceVisibility: globalSourceVisibility(await siteSettings(ctx)),
         })
       : false;
 
@@ -443,7 +450,10 @@ export const sourceView = query({
       canSeeSource: canSee,
       solveToView:
         !canSee &&
-        problem.submissionSourceVisibility === "S" &&
+        resolveSubmissionSourceVisibility(
+          coreProblem(problem),
+          globalSourceVisibility(await siteSettings(ctx)),
+        ) === "S" &&
         problemIsAccessibleBy(coreProblem(problem), viewer),
       id: submission.legacyId ?? submission._id,
       source: (stored?.source ?? "").replace(/\n+$/, ""),

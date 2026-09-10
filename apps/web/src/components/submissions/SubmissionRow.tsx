@@ -83,6 +83,9 @@ export function SubmissionRow({
       data-verdict={code}
       className={cn(
         "group relative isolate flex min-h-(--row-h-2) items-stretch border-b border-border last:border-b-0",
+        // Under 700px the row reflows into stacked lines instead of squeezing
+        // four columns into 390px (DESIGN.md section 22).
+        "max-[700px]:flex-wrap",
         "transition-colors duration-(--dur-fast) hover:bg-row-hover",
         isNew && "animate-in fade-in duration-(--dur) ease-house",
       )}
@@ -98,7 +101,7 @@ export function SubmissionRow({
         )}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-3 py-2">
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-3 py-2 max-[700px]:order-1 max-[700px]:basis-[calc(100%-3px)]">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <span className="shrink-0 font-mono text-sm font-medium tabular-nums text-foreground">
             {showScore ? (
@@ -129,7 +132,7 @@ export function SubmissionRow({
             )
           ) : null}
 
-          <span className="ml-auto flex shrink-0 items-center gap-2">
+          <span className="flex shrink-0 items-center gap-2 min-[700px]:ml-auto">
             <VerdictPill
               verdict={code}
               judging={grading}
@@ -175,7 +178,13 @@ export function SubmissionRow({
         </div>
       </div>
 
-      <div className="flex shrink-0 flex-col items-end justify-center gap-0.5 px-3 py-2 text-right font-mono text-sm tabular-nums">
+      <div
+        className={cn(
+          "flex shrink-0 gap-0.5 font-mono text-sm tabular-nums",
+          "min-[700px]:flex-col min-[700px]:items-end min-[700px]:justify-center min-[700px]:px-3 min-[700px]:py-2 min-[700px]:text-right",
+          "max-[700px]:order-2 max-[700px]:gap-3 max-[700px]:pb-2 max-[700px]:pl-3 max-[700px]:pr-3",
+        )}
+      >
         <span className={cn(noUsage || row.result === "TLE" ? "text-muted-foreground" : "text-foreground")}>
           {noUsage || row.result === "TLE" ? DASH : formatTime(row.time)}
         </span>
@@ -183,13 +192,13 @@ export function SubmissionRow({
       </div>
 
       {(row.canSeeDetail || canRejudge || canAbort) && (
-        <div className="flex shrink-0 items-center gap-1 pr-3">
+        <div className="flex shrink-0 items-center gap-1 pr-3 max-[700px]:order-3 max-[700px]:ml-auto max-[700px]:pb-1">
           {row.canSeeDetail ? (
             <Tooltip content="View this submission">
               <Link
                 href={`/submission/${row.id}`}
                 aria-label={`View submission ${row.id}`}
-                className="relative z-10 inline-flex size-(--control-h-sm) items-center justify-center rounded-md text-subtle hover:bg-row-hover hover:text-foreground"
+                className="relative z-10 inline-flex size-(--control-h-sm) items-center justify-center rounded-md text-subtle hover:bg-row-hover hover:text-foreground max-[700px]:size-11"
               >
                 <Eye aria-hidden className="size-3.5" />
               </Link>
@@ -198,7 +207,7 @@ export function SubmissionRow({
           {canRejudge ? (
             row.isLocked ? (
               <Tooltip content="This submission has been locked, and cannot be rejudged.">
-                <span className="relative z-10 inline-flex size-(--control-h-sm) items-center justify-center rounded-md text-muted-foreground opacity-50">
+                <span className="relative z-10 inline-flex size-(--control-h-sm) items-center justify-center rounded-md text-muted-foreground opacity-50 max-[700px]:size-11">
                   <RefreshCw aria-hidden className="size-3.5" />
                 </span>
               </Tooltip>
@@ -208,7 +217,7 @@ export function SubmissionRow({
                   type="button"
                   aria-label={`Rejudge submission ${row.id}`}
                   onClick={() => onRejudge(row.id)}
-                  className="relative z-10 inline-flex size-(--control-h-sm) items-center justify-center rounded-md text-subtle hover:bg-row-hover hover:text-foreground"
+                  className="relative z-10 inline-flex size-(--control-h-sm) items-center justify-center rounded-md text-subtle hover:bg-row-hover hover:text-foreground max-[700px]:size-11"
                 >
                   <RefreshCw aria-hidden className="size-3.5" />
                 </button>
@@ -221,7 +230,7 @@ export function SubmissionRow({
                 type="button"
                 aria-label={`Abort submission ${row.id}`}
                 onClick={() => onAbort(row.id)}
-                className="relative z-10 inline-flex size-(--control-h-sm) items-center justify-center rounded-md text-subtle hover:bg-row-hover hover:text-bad"
+                className="relative z-10 inline-flex size-(--control-h-sm) items-center justify-center rounded-md text-subtle hover:bg-row-hover hover:text-bad max-[700px]:size-11"
               >
                 <XCircle aria-hidden className="size-3.5" />
               </button>

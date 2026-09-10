@@ -117,7 +117,7 @@ export function LanguageCharts({ initial }: { initial: LanguageStats }) {
   const live = useQuery(api.stats.language, {});
   const data = live ?? initial;
   const colors = useTokenColors(CATEGORICAL_TOKENS);
-  const chrome = useTokenColors([...CHROME_TOKENS, "--brand-royal"]);
+  const chrome = useTokenColors(CHROME_TOKENS);
   const ready = colors.every((color) => color.length > 0) && chrome.every((color) => color.length > 0);
 
   if (!ready) {
