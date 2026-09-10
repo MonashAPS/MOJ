@@ -134,7 +134,7 @@ export function SubmissionActivity({
         data-activity-root
         className="relative overflow-x-auto rounded-md border border-border bg-card p-3"
       >
-        <table className="border-separate border-spacing-[3px]">
+        <table className="w-max border-separate border-spacing-[3px]">
           <caption className="sr-only">
             Submissions per day, {year === currentYear ? "over the last year" : `during ${year}`}
           </caption>

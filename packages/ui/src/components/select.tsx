@@ -2,7 +2,7 @@
 
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
+import { type ComponentProps, type ReactNode, useState } from "react";
 import { cn } from "../cn";
 import { disabledField, disabledItem, focusRing, overlayMotion, overlayPanel } from "../styles";
 
@@ -190,11 +190,21 @@ export function Select({
   size?: "sm" | "default";
   ariaLabel?: string;
 }) {
+  // Radix draws the trigger's label by portalling the chosen item's text into the
+  // value node, which needs the item mounted. Rendering the label here instead
+  // means a closed select always shows its selection, uncontrolled or not.
+  const [internal, setInternal] = useState(defaultValue);
+  const current = value ?? internal;
+  const selected = options.find((option) => option.value === current);
+
   return (
     <SelectRoot
       value={value}
       defaultValue={defaultValue}
-      onValueChange={onValueChange}
+      onValueChange={(next) => {
+        setInternal(next);
+        onValueChange?.(next);
+      }}
       name={name}
       disabled={disabled}
     >
@@ -205,7 +215,7 @@ export function Select({
         aria-invalid={invalid || undefined}
         className={className}
       >
-        <SelectValue placeholder={placeholder} />
+        <SelectValue placeholder={placeholder}>{selected ? selected.label : undefined}</SelectValue>
       </SelectTrigger>
       <SelectContent className={contentClassName}>
         {options.map((option) => (

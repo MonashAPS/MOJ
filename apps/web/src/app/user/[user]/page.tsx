@@ -83,8 +83,8 @@ export default async function UserAboutPage({ params }: { params: Promise<{ user
             bodyClassName="p-0"
             action={
               <Link
-                href={`/user/${data.profile.username}/solved`}
-                className="text-sm text-link hover:underline"
+                href={`/user/${data.profile.username}/solved/`}
+                className="text-sm text-titlebar-ink-2 hover:text-titlebar-ink"
               >
                 All solved problems
               </Link>

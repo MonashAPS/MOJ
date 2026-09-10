@@ -76,12 +76,16 @@ function SortableHead({
         href={sortHref(basePath, search, column.key, state)}
         aria-sort={active ? (state.descending ? "descending" : "ascending") : undefined}
         className={cn(
-          "flex h-8 w-full items-center justify-end gap-1 px-3 transition-colors hover:text-foreground",
-          active && "text-foreground",
+          "flex h-8 w-full items-center justify-end gap-1 px-3 transition-colors",
+          "hover:text-titlebar-ink focus-visible:outline-2 focus-visible:outline-royal focus-visible:-outline-offset-2",
+          active ? "text-titlebar-ink" : "text-titlebar-ink-2",
         )}
       >
         {column.label}
-        <Chevron className={cn("size-3", active ? "text-primary" : "text-muted-foreground")} aria-hidden />
+        <Chevron
+          className={cn("size-3", active ? "text-titlebar-ink" : "text-titlebar-ink-2 opacity-60")}
+          aria-hidden
+        />
       </Link>
     </TableHead>
   );
@@ -181,10 +185,10 @@ export function LeaderboardTable({
     <Table dense className="group/table">
       <TableHeader>
         <TableRow>
-          <TableHead numeric className="w-16">
+          <TableHead numeric className="sticky left-0 z-1 w-16 bg-titlebar">
             Rank
           </TableHead>
-          <TableHead>Username</TableHead>
+          <TableHead className="sticky left-16 z-1 bg-titlebar">Username</TableHead>
           {kickSlug ? <TableHead className="w-24" /> : null}
           {USER_SORTS.map((column) => (
             <SortableHead
@@ -209,11 +213,17 @@ export function LeaderboardTable({
                 key={row._id}
                 id={`user-${row.username}`}
                 selected={isViewer || targeted === row.username}
+                // The rank and the name stay put while the numbers scroll under
+                // them, so a narrow screen never loses the row's identity.
+                className="bg-card"
               >
-                <TableCell numeric className={cn(row.rank <= 3 && "font-semibold text-foreground")}>
+                <TableCell
+                  numeric
+                  className={cn("sticky left-0 z-1 bg-inherit", row.rank <= 3 && "font-semibold text-foreground")}
+                >
                   {row.rank}
                 </TableCell>
-                <TableCell className="max-w-[24rem]">
+                <TableCell className="sticky left-16 z-1 max-w-[24rem] bg-inherit">
                   <span className="flex min-w-0 items-center gap-2">
                     <UserLink
                       username={row.username}

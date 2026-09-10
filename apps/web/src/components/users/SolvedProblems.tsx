@@ -90,7 +90,7 @@ export function SolvedProblems({
           }
         />
       ) : (
-        <Accordion type="multiple" defaultValue={groups[0] ? [groups[0].name] : []}>
+        <Accordion type="multiple">
           {groups.map((group) => (
             <AccordionItem key={group.name} value={group.name}>
               <AccordionTrigger>

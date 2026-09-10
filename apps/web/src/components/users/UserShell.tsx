@@ -94,7 +94,15 @@ export function UserShell({
     <>
       <TitleRow
         title={
-          <span className={cn("rating", ratingClass(profile.rating), profile.displayRank === "admin" && "admin")}>
+          // A rated user's name carries their band's colour; an unrated one keeps
+          // the title row's ink rather than going grey. The display face and
+          // weight are the title row's either way, so there is one h1 recipe.
+          <span
+            className={cn(
+              profile.rating !== undefined && ratingClass(profile.rating),
+              profile.displayRank === "admin" && "admin",
+            )}
+          >
             {profile.displayName}
           </span>
         }

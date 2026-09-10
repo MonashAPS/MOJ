@@ -53,6 +53,9 @@ export async function proxy(request: NextRequest) {
   // auth API, which better-call matches without one.
   if (
     !pathname.startsWith("/api/") &&
+    // `/_next/hmr` is a websocket upgrade in dev; redirecting it breaks the
+    // handshake, and with it every client bundle the dev runtime loads after it.
+    !pathname.startsWith("/_next") &&
     pathname !== "/" &&
     !pathname.endsWith("/") &&
     !pathname.slice(pathname.lastIndexOf("/")).includes(".")
