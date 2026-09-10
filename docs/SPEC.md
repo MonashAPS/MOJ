@@ -444,3 +444,11 @@ each problem with the viewer's state: solved (full marks on any submission, in o
 solved, attempted, or untouched, using the same icons and colours as the problem list, and shows the viewer's
 best score. The same state colours drive the ContestBar chips. Past contests additionally show "solved during the
 contest" separately from "solved since", so members can see what they cleaned up afterwards.
+
+## 21. Copy rules for the product
+
+No developer, setup or placeholder text anywhere a member can see it. Empty states use product copy in DMOJ's
+voice ("No judges are online.", "No submissions yet.", "This contest has no problems."), never commands, file
+paths, TODOs or "coming soon". Operational hints for staff belong only inside `/admin`. No emoji. Page titles,
+labels and buttons use DMOJ's wording where DMOJ has one. Error pages match DMOJ's (404 "Page not found", 403
+"Access denied", 500 "Internal error") without stack traces.
