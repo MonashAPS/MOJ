@@ -494,3 +494,16 @@ for someone running their own judge: no references to the club's internal histor
 uploader, "the old site", "our fork", internal repo names), no first-person club voice. MAPS is named once as the
 maintainer in the root README and the docs home page. Where an example needs a name, use `example.org` style
 placeholders, not the club's hosts or secrets.
+
+## 24. Branding configuration
+
+Operators must be able to rebrand without touching code. `siteSettings` gains: `siteName` (short, nav and titles),
+`siteLongName` (footer and metadata), `logoStorageId` (SVG or PNG wordmark shown in the nav and on auth pages;
+default is the bundled MOJ wordmark; MAPS's logo is applied through this setting on the club's instance),
+`faviconStorageId`, `accentColor`, `navColor` (also drives the titlebar colour), `customCss` (appended last),
+and `themeDefault` (light / dark / system). The staff console gets a "Branding" page under Config with live
+preview. The shell reads `site.branding` (public query) once per request and emits the overrides as CSS variables on
+`:root` (`--accent`, `--nav`, `--titlebar` and their dark-mode derivatives computed server-side) plus the logo, so
+the token file stays the single source of defaults. Fonts stay as the design system's stack; an operator who wants
+different faces uses `customCss` with their own `@font-face` rules. `npm run setup` seeds the defaults and reads
+`MOJ_SITE_NAME` / `MOJ_SITE_LONG_NAME` from the environment when present.
