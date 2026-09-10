@@ -92,7 +92,7 @@ export default async function OrganizationHomePage({ params }: { params: Promise
                     <span className="font-mono text-mono text-foreground">{organization.shortName}</span>
                   </div>
                   <div className="flex items-baseline justify-between gap-3">
-                    <MicroLabel>Membership</MicroLabel>
+                    <MicroLabel>Access</MicroLabel>
                     <Badge variant={organization.isOpen ? "good" : "neutral"}>
                       {organization.isOpen ? "Open" : "Private"}
                     </Badge>

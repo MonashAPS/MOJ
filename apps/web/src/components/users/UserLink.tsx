@@ -1,3 +1,4 @@
+import { getUserCssClass } from "@moj/core/ratings";
 import { cn, ratingClass, ratingTitle } from "@moj/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -34,11 +35,13 @@ export function UserLink({
   className,
   children,
 }: UserLinkProps) {
+  // `Profile.get_user_css_class`: `rating <rate-class> <display_rank>`, built in
+  // one place so a username looks the same wherever it appears.
   const cls = ratingClass(rating);
   const name = children ?? displayName ?? username;
   const label = (
     <span
-      className={cn("rating", cls, displayRank === "admin" && "admin", className)}
+      className={cn(getUserCssClass(displayRank ?? "user", rating ?? null), className)}
       title={ratingTitle(rating)}
     >
       {name}
