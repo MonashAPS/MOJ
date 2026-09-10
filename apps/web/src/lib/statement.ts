@@ -1,0 +1,132 @@
+/**
+ * Turns the code blocks in a rendered statement into the club's window motif
+ * (DESIGN 14.3): a 26px titlebar carrying the block's role and a Copy button,
+ * over the code body, with an input/output pair sitting side by side above 900px.
+ *
+ * This runs on the server, on the HTML `renderMarkdown` produced, so the final
+ * height of every sample is known before the page paints — the reason it is not
+ * done by a `useEffect` after hydration.
+ */
+
+const FRAME =
+  "not-prose my-4 overflow-hidden rounded-md border border-border-strong bg-code " +
+  // The statement stylesheet loads after Tailwind's utilities layer, so the
+  // frame has to win the margin and border back explicitly.
+  "[&_pre]:m-0! [&_pre]:rounded-none! [&_pre]:border-0! [&_.codehilite]:m-0! [&_.codehilite]:rounded-none! [&_.codehilite]:border-0!";
+const BAR =
+  "flex h-[26px] items-center justify-between gap-2 border-b border-border bg-secondary pl-3 pr-1";
+const BAR_LABEL = "font-sans text-xs font-semibold uppercase tracking-label text-subtle";
+const COPY_BUTTON =
+  "inline-flex size-[22px] items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-royal";
+
+const COPY_ICON =
+  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
+const CHECK_ICON =
+  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="check"><path d="M20 6 9 17l-5-5"/></svg>';
+
+export const STATEMENT_COPY_ICONS = { copy: COPY_ICON, check: CHECK_ICON };
+
+type Block = { start: number; end: number; html: string };
+
+/** The fenced and indented code blocks, in document order, without descending
+ *  into one another: `.codehilite` already wraps its own `<pre>`. */
+function findBlocks(html: string): Block[] {
+  const blocks: Block[] = [];
+  const pattern = /<div class="codehilite">[\s\S]*?<\/div>|<pre(?:\s[^>]*)?>[\s\S]*?<\/pre>/g;
+  let match = pattern.exec(html);
+  while (match !== null) {
+    blocks.push({ start: match.index, end: match.index + match[0].length, html: match[0] });
+    match = pattern.exec(html);
+  }
+  return blocks;
+}
+
+const HEADING = /<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/g;
+
+/** The role of a block is the nearest heading above it: DMOJ's statements put a
+ *  `### Input` / `### Output` pair over each sample. */
+function roleFor(html: string, at: number): { label: string; role: "input" | "output" | "code" } {
+  let heading: string | null = null;
+  HEADING.lastIndex = 0;
+  let match = HEADING.exec(html);
+  while (match !== null && match.index < at) {
+    heading = match[1] ?? null;
+    match = HEADING.exec(html);
+  }
+  const text = (heading ?? "").replace(/<[^>]*>/g, "").trim();
+  if (/\binput\b/i.test(text)) return { label: "Input", role: "input" };
+  if (/\boutput\b/i.test(text)) return { label: "Output", role: "output" };
+  if (/\bsample\b|\bexample\b/i.test(text)) return { label: "Sample", role: "code" };
+  return { label: "Code", role: "code" };
+}
+
+function escapeAttribute(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
+function frame(inner: string, label: string, role: string, index: number): string {
+  const name = escapeAttribute(`Copy ${label.toLowerCase()} ${index}`);
+  return [
+    `<figure class="${FRAME}" data-sample-role="${role}">`,
+    `<figcaption class="${BAR}">`,
+    `<span class="${BAR_LABEL}">${label} ${index}</span>`,
+    `<button type="button" class="${COPY_BUTTON}" data-statement-copy aria-label="${name}" title="${name}">${COPY_ICON}</button>`,
+    "</figcaption>",
+    `<div class="max-h-[320px] overflow-auto bg-code" data-statement-code>${inner}</div>`,
+    "</figure>",
+  ].join("");
+}
+
+/**
+ * Rewrites `html`. An input frame immediately followed by an output frame — with
+ * nothing between them but that output's own heading — becomes one two-column
+ * grid, so a page of five samples does not double its own scroll.
+ */
+export function decorateStatement(html: string): string {
+  const blocks = findBlocks(html);
+  if (blocks.length === 0) return html;
+
+  const counters: Record<string, number> = {};
+  const frames = blocks.map((block) => {
+    const { label, role } = roleFor(html, block.start);
+    counters[label] = (counters[label] ?? 0) + 1;
+    return { role, label, html: frame(block.html, label, role, counters[label] as number) };
+  });
+
+  /** Only the paired output's own heading may sit between the two frames. */
+  function pairs(index: number): boolean {
+    const left = frames[index];
+    const right = frames[index + 1];
+    if (!left || !right || left.role !== "input" || right.role !== "output") return false;
+    const between = html.slice((blocks[index] as Block).end, (blocks[index + 1] as Block).start);
+    const text = between
+      .replace(/<[^>]*>/g, " ")
+      .replace(/output/gi, " ")
+      .replace(/[\s\d:.\u2014-]+/g, "");
+    return text === "";
+  }
+
+  const out: string[] = [];
+  let cursor = 0;
+  let index = 0;
+  while (index < frames.length) {
+    const block = blocks[index] as Block;
+    out.push(html.slice(cursor, block.start));
+    if (pairs(index)) {
+      const next = blocks[index + 1] as Block;
+      out.push(
+        `<div class="not-prose my-4 grid items-start gap-3 min-[900px]:grid-cols-2 [&>figure]:my-0">${
+          (frames[index] as { html: string }).html
+        }${(frames[index + 1] as { html: string }).html}</div>`,
+      );
+      cursor = next.end;
+      index += 2;
+    } else {
+      out.push((frames[index] as { html: string }).html);
+      cursor = block.end;
+      index += 1;
+    }
+  }
+  out.push(html.slice(cursor));
+  return out.join("");
+}
