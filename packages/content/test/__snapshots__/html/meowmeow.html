@@ -1,0 +1,57 @@
+
+<h3>Meow Meow</h3>
+<h4>Problem Statement</h4>
+<p>Digger and Rykker (pictured below, taking a break from meowing) like to make noise.</p>
+<img src="https://me.glipr.xyz/img/comp/diggerrykker.jpg" alt="cats" width="180" loading="lazy" decoding="async">
+<p>We've categorised the noises they make as follows:</p>
+<ul>
+<li><code>hiss</code>: This is represented in text as <code>hi</code>, followed by at least 2 <code>s</code>s.</li>
+<li><code>trill</code>: This is represented in text as <code>tr</code>, followed by some non-zero amount of <code>i</code>s, and at least 2 <code>l</code>s.</li>
+<li><code>burble</code>: This is represented in text as <code>b</code>, followed by some non-zero amount of <code>u</code>s, followed by some non-zero amount of <code>r</code>s, followed by a <code>b</code>, followed by some non-zero amount of <code>l</code>s, followed by an <code>e</code>.</li>
+</ul>
+<p>We want you to write a program to recognise these.</p>
+<h4>Input</h4>
+<p>Your first line of input will be a single integer <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi></mrow><annotation encoding="application/x-tex">t</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6151em;"></span><span class="mord mathnormal">t</span></span></span></span>: the number of noises made.</p>
+<p>Next, <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi></mrow><annotation encoding="application/x-tex">t</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6151em;"></span><span class="mord mathnormal">t</span></span></span></span> lines will follow, each containing a single string <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">s_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.5806em; vertical-align: -0.15em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3117em;"><span style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span></span></span></span></span></span></span></span></span></span>: the noise made by either Digger and Rykker or a human.</p>
+<h4>Output</h4>
+<p>For each <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">s_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.5806em; vertical-align: -0.15em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3117em;"><span style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span></span></span></span></span></span></span></span></span></span>, if it is a <code>hiss</code>, <code>trill</code>, or <code>burble</code> noise, output <code>hiss</code>, <code>trill</code> or <code>burble</code>, respectively, on its own line.</p>
+<p>If <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">s_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.5806em; vertical-align: -0.15em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3117em;"><span style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span></span></span></span></span></span></span></span></span></span> is none of these, output <code>human noises</code> instead.</p>
+<h4>Constraints</h4>
+<p>For all test cases...</p>
+<ul>
+<li><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>≤</mo><mi>t</mi><mo>≤</mo><mn>100</mn></mrow><annotation encoding="application/x-tex">1 \leq t \leq 100</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.7804em; vertical-align: -0.136em;"></span><span class="mord">1</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.7719em; vertical-align: -0.136em;"></span><span class="mord mathnormal">t</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.6444em;"></span><span class="mord">100</span></span></span></span></li>
+<li><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>≤</mo><mi mathvariant="normal">∣</mi><msub><mi>s</mi><mi>i</mi></msub><mi mathvariant="normal">∣</mi><mo>≤</mo><mn>100</mn></mrow><annotation encoding="application/x-tex">1 \leq |s_i| \leq 100</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.7804em; vertical-align: -0.136em;"></span><span class="mord">1</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mord">∣</span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3117em;"><span style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span></span></span></span></span></span></span><span class="mord">∣</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.6444em;"></span><span class="mord">100</span></span></span></span></li>
+<li>Each <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">s_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.5806em; vertical-align: -0.15em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3117em;"><span style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span></span></span></span></span></span></span></span></span></span> only contains English lower-case alphabet letters.</li>
+</ul>
+<h4>Example</h4>
+<h5>Input</h5>
+<pre><code>7
+hisss
+triiilll
+buuurrrbllle
+his
+trlll
+burbble
+hello
+</code></pre>
+<h5>Output</h5>
+<pre><code>hiss
+trill
+burble
+human noises
+human noises
+human noises
+human noises
+</code></pre>
+<h5>Explanation</h5>
+<p>The first <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>3</mn></mrow><annotation encoding="application/x-tex">3</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6444em;"></span><span class="mord">3</span></span></span></span> lines fit their respective definitions.</p>
+<ul>
+<li><code>his</code> does not have two <code>s</code>s.</li>
+<li><code>trlll</code> needs at least 1 <code>i</code>.</li>
+<li><code>burbble</code> repeats a <code>b</code> when it should not.</li>
+<li><code>hello</code> kind of just...does not fit into any of the specified categories.</li>
+</ul>
+<h4>Python Template</h4>
+<div class="codehilite"><pre class="shiki shiki-themes github-light github-dark" style="--shiki-light: #24292e; --shiki-dark: #e1e4e8; --shiki-light-bg: #fff; --shiki-dark-bg: #24292e;" tabindex="0"><code><span class="line"><span style="--shiki-light: #24292E; --shiki-dark: #E1E4E8;">t </span><span style="--shiki-light: #D73A49; --shiki-dark: #F97583;">=</span><span style="--shiki-light: #005CC5; --shiki-dark: #79B8FF;"> int</span><span style="--shiki-light: #24292E; --shiki-dark: #E1E4E8;">(</span><span style="--shiki-light: #005CC5; --shiki-dark: #79B8FF;">input</span><span style="--shiki-light: #24292E; --shiki-dark: #E1E4E8;">())</span></span>
+<span class="line"><span style="--shiki-light: #24292E; --shiki-dark: #E1E4E8;">a </span><span style="--shiki-light: #D73A49; --shiki-dark: #F97583;">=</span><span style="--shiki-light: #24292E; --shiki-dark: #E1E4E8;"> [</span><span style="--shiki-light: #005CC5; --shiki-dark: #79B8FF;">input</span><span style="--shiki-light: #24292E; --shiki-dark: #E1E4E8;">() </span><span style="--shiki-light: #D73A49; --shiki-dark: #F97583;">for</span><span style="--shiki-light: #24292E; --shiki-dark: #E1E4E8;"> _ </span><span style="--shiki-light: #D73A49; --shiki-dark: #F97583;">in</span><span style="--shiki-light: #005CC5; --shiki-dark: #79B8FF;"> range</span><span style="--shiki-light: #24292E; --shiki-dark: #E1E4E8;">(t)]</span></span>
+<span class="line"><span style="--shiki-light: #6A737D; --shiki-dark: #6A737D;"># Continue your code here and print your final answer!</span></span></code></pre></div>

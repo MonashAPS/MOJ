@@ -1,0 +1,35 @@
+<p>Alexandra is back at it again running a tennis tournament between friends to determine who is the best, but Alexandra thinks there is a cheater in her midst!</p>
+<p>The tournament is already concluded, and Alexandra has the log of all battles the were completed (not necessarily in order). However, this log has been tampered with.</p>
+<p>Alexandra knows that one player has marked all of their lost games as wins, and changed nothing else. They also know that this competitor did not win the competition.</p>
+<p>Can you help Alexandra figure out who the cheater is?</p>
+<h4>Input</h4>
+<p>Input will begin with a single integer <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi></mrow><annotation encoding="application/x-tex">c</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.4306em;"></span><span class="mord mathnormal">c</span></span></span></span>, the number of competitors, and is followed by <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi></mrow><annotation encoding="application/x-tex">c</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.4306em;"></span><span class="mord mathnormal">c</span></span></span></span> lines, each containing a single name.
+What follows is then <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">c-1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6667em; vertical-align: -0.0833em;"></span><span class="mord mathnormal">c</span><span class="mspace" style="margin-right: 0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right: 0.2222em;"></span></span><span class="base"><span class="strut" style="height: 0.6444em;"></span><span class="mord">1</span></span></span></span> lines detailing the games. Each game is of the form "&#x3C;name1> defeats &#x3C;name2>".</p>
+<h4>Output</h4>
+<p>Output should contain 3 or more lines.
+The first line should state the name of the cheater: "&#x3C;name> must be the cheater"
+The second line should state how many games they forged: "They cheated on &#x3C;x> games"
+And any subsequent lines should state what those games are: "&#x3C;name> defeats &#x3C;actual_winner>"</p>
+<h4>Constraints</h4>
+<ul>
+<li><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>≤</mo><mi>c</mi><mo>≤</mo><mn>1024</mn></mrow><annotation encoding="application/x-tex">1 \leq c \leq 1024</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.7804em; vertical-align: -0.136em;"></span><span class="mord">1</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.7719em; vertical-align: -0.136em;"></span><span class="mord mathnormal">c</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.6444em;"></span><span class="mord">1024</span></span></span></span>.</li>
+<li><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi></mrow><annotation encoding="application/x-tex">c</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.4306em;"></span><span class="mord mathnormal">c</span></span></span></span> is always a power of 2.</li>
+<li>Each name contains only lowercase english letters and numbers.</li>
+<li>Each name is at most 20 characters long.</li>
+</ul>
+<h4>Example Test Case</h4>
+<p>For input:</p>
+<pre><code>4
+name1
+name2
+name3
+name4
+name4 defeats name2
+name2 defeats name1
+name3 defeats name4
+</code></pre>
+<p>The program should output:</p>
+<pre><code>name3 must be the cheater
+They cheated on 1 games
+name3 defeats name4
+</code></pre>
