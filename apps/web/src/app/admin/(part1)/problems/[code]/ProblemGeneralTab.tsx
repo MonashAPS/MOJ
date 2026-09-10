@@ -86,9 +86,7 @@ export function ProblemGeneralTab({
   const allChecked = allLanguageKeys.length > 0 && languages.length === allLanguageKeys.length;
 
   const ownershipDirty =
-    !same(authors, problem.authors) ||
-    !same(curators, problem.curators) ||
-    !same(testers, problem.testers);
+    !same(authors, problem.authors) || !same(curators, problem.curators) || !same(testers, problem.testers);
   const bannedDirty = !same(banned, problem.bannedUsers);
   const dirty =
     ownershipDirty ||
@@ -150,9 +148,7 @@ export function ProblemGeneralTab({
         await setBannedUsers({ code: problem.code, usernames: banned, reason: reason.trim() });
       }
       setReason("");
-      toast.success(
-        result?.rescoreScheduled ? "Problem saved. A rescore was queued." : "Problem saved.",
-      );
+      toast.success(result?.rescoreScheduled ? "Problem saved. A rescore was queued." : "Problem saved.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The change was refused.");
     }

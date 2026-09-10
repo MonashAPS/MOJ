@@ -215,7 +215,7 @@ export function ProblemTranslationsTab({ problem }: { problem: ProblemEdit }) {
       <Panel title={`Translations (${problem.translations.length})`} bodyClassName="p-0">
         {problem.translations.length === 0 ? (
           <EmptyState
-            className="rounded-none border-0"
+            className="m-3"
             icon={<Languages aria-hidden />}
             title="No translations"
             description="A translation replaces the name and statement for readers using that language."
@@ -336,48 +336,43 @@ export function ProblemLanguageLimitsTab({
   return (
     <AdminForm onSubmit={save}>
       <AdminFormError message={error} />
-      <Panel
-        title={`Language limits (${limits.length})`}
-        bodyClassName="p-0"
-        action={
-          available.length > 0 ? (
-            <div className="flex items-center gap-2">
-              <Select
-                size="sm"
-                ariaLabel="Language to add a limit for"
-                value={adding}
-                onValueChange={setAdding}
-                options={available.map((row) => ({ value: row.key, label: row.name }))}
-                placeholder="Add a language"
-                className="h-(--control-h-sm) w-[160px]"
-              />
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={!adding}
-                title={adding ? undefined : "Choose a language first."}
-                onClick={() => {
-                  if (!adding) return;
-                  setLimits([
-                    ...limits,
-                    {
-                      languageKey: adding,
-                      timeLimit: problem.timeLimit,
-                      memoryLimit: problem.memoryLimit,
-                    },
-                  ]);
-                  setAdding("");
-                }}
-              >
-                Add
-              </Button>
-            </div>
-          ) : null
-        }
-      >
+      <Panel title={`Language limits (${limits.length})`} bodyClassName="grid gap-0 p-0">
+        {available.length > 0 ? (
+          <div className="flex items-center gap-2 border-b border-border p-3">
+            <Select
+              size="sm"
+              ariaLabel="Language to add a limit for"
+              value={adding}
+              onValueChange={setAdding}
+              options={available.map((row) => ({ value: row.key, label: row.name }))}
+              placeholder="Add a language"
+              className="h-(--control-h-sm) w-[180px]"
+            />
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={!adding}
+              title={adding ? undefined : "Choose a language first."}
+              onClick={() => {
+                if (!adding) return;
+                setLimits([
+                  ...limits,
+                  {
+                    languageKey: adding,
+                    timeLimit: problem.timeLimit,
+                    memoryLimit: problem.memoryLimit,
+                  },
+                ]);
+                setAdding("");
+              }}
+            >
+              Add
+            </Button>
+          </div>
+        ) : null}
         {limits.length === 0 ? (
           <EmptyState
-            className="rounded-none border-0"
+            className="m-3"
             icon={<Languages aria-hidden />}
             title="No language limits"
             description={`Every language runs at ${problem.timeLimit}s and ${problem.memoryLimit} KB. Add a row to give one language more room.`}
@@ -481,7 +476,7 @@ export function ProblemClarificationsTab({ problem }: { problem: ProblemEdit }) 
       <Panel title={`Clarifications (${problem.clarifications.length})`} bodyClassName="p-0">
         {problem.clarifications.length === 0 ? (
           <EmptyState
-            className="rounded-none border-0"
+            className="m-3"
             icon={<MessageSquare aria-hidden />}
             title="No clarifications"
             description="A clarification appears above the statement for everyone reading the problem."

@@ -73,11 +73,7 @@ export function ProblemStatementTab({ problem }: { problem: ProblemEdit }) {
         </Field>
       </Panel>
       <ReasonField value={reason} onChange={setReason} error={reasonError} entity="statement" />
-      <AdminFormFooter
-        dirty={description !== problem.description}
-        busy={busy}
-        submitLabel="Save statement"
-      />
+      <AdminFormFooter dirty={description !== problem.description} busy={busy} submitLabel="Save statement" />
     </AdminForm>
   );
 }

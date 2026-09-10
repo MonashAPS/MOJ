@@ -17,18 +17,13 @@ import {
   Select,
   toast,
 } from "@moj/ui";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  type AdminColumn,
-  AdminPager,
-  AdminShell,
-  AdminTable,
-  AdminToolbar,
-} from "@/components/admin";
+import { type AdminColumn, AdminPager, AdminShell, AdminTable, AdminToolbar } from "@/components/admin";
+import { useAdminProblemOptions, useAdminProblemsList } from "@/components/admin/fallbacks";
 import { formatDate } from "@/lib/format";
 
 type Row = {
@@ -67,8 +62,8 @@ export function ProblemsList() {
   const [selected, setSelected] = useState<string[]>([]);
   const [pendingVisibility, setPendingVisibility] = useState<boolean | null>(null);
 
-  const options = useQuery(api.pages.admin1.problemOptions, {});
-  const data = useQuery(api.pages.admin1.problemsList, {
+  const { data: options, degraded } = useAdminProblemOptions();
+  const { data } = useAdminProblemsList({
     search: search || undefined,
     isPublic: visibility === "any" ? undefined : visibility === "public",
     group: group || undefined,
@@ -217,11 +212,7 @@ export function ProblemsList() {
             ? "No problems match these filters."
             : "Problems appear here once one is created or uploaded by a problem repo.",
           action: filtered ? (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => router.replace(pathname, { scroll: false })}
-            >
+            <Button variant="secondary" size="sm" onClick={() => router.replace(pathname, { scroll: false })}>
               Clear filters
             </Button>
           ) : undefined,
@@ -258,6 +249,8 @@ export function ProblemsList() {
             <Select
               size="sm"
               ariaLabel="Group"
+              disabled={degraded}
+              placeholder="Any group"
               value={group || "all"}
               onValueChange={(value) => go({ group: value === "all" ? null : value })}
               options={[
@@ -269,6 +262,7 @@ export function ProblemsList() {
             <Select
               size="sm"
               ariaLabel="Type"
+              disabled={degraded}
               value={type || "all"}
               onValueChange={(value) => go({ type: value === "all" ? null : value })}
               options={[
@@ -278,6 +272,7 @@ export function ProblemsList() {
               className="w-[170px]"
             />
             <Combobox
+              disabled={degraded}
               value={author}
               onValueChange={(value) => go({ author: value === author ? null : value })}
               options={(options?.authors ?? []).map((name) => ({ value: name, label: name }))}

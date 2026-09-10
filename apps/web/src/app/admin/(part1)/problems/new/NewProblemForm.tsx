@@ -2,7 +2,7 @@
 
 import { api } from "@convex/_generated/api";
 import { Button, Checkbox, Field, Input, MultiSelect, Select } from "@moj/ui";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
@@ -18,14 +18,16 @@ import {
   ReasonField,
   UserPicker,
 } from "@/components/admin";
+import { useAdminProblemOptions } from "@/components/admin/fallbacks";
+import { useConsoleQuery } from "@/components/admin/useConsoleQuery";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 
 /** `ProblemAdmin`'s add form. The statement, test data and the rest of the tabs
  *  open once the problem exists, exactly as DMOJ's add-then-change flow does. */
 export function NewProblemForm() {
   const router = useRouter();
-  const options = useQuery(api.pages.admin1.problemOptions, {});
-  const viewer = useQuery(api.pages.admin1.consoleViewer, {});
+  const { data: options } = useAdminProblemOptions();
+  const viewer = useConsoleQuery(api.pages.admin1.consoleViewer, {}).data;
   const create = useMutation(api.admin.problems.create);
   const ids = {
     code: useId(),
@@ -154,7 +156,11 @@ export function NewProblemForm() {
               onChange={(event) => setPoints(event.target.value)}
             />
           </Field>
-          <Field label="Publish on" htmlFor={ids.date} hint="The problem stays hidden from the list until then.">
+          <Field
+            label="Publish on"
+            htmlFor={ids.date}
+            hint="The problem stays hidden from the list until then."
+          >
             <DateTimeField id={ids.date} value={date} onChange={setDate} ariaLabel="Publish on" />
           </Field>
           <AdminWideField>
@@ -178,6 +184,14 @@ export function NewProblemForm() {
                 onCheckedChange={setIsPublic}
                 disabled={permissions ? !permissions.changePublicVisibility : false}
                 disabledReason="You do not have judge.change_public_visibility."
+              />
+              <AdminCheckField
+                label="Manually managed"
+                hint="The judge will not grade it."
+                checked={isManuallyManaged}
+                onCheckedChange={setIsManuallyManaged}
+                disabled={permissions ? !permissions.changeManuallyManaged : false}
+                disabledReason="You do not have judge.change_manually_managed."
               />
             </div>
           </AdminWideField>

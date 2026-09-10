@@ -56,9 +56,7 @@ export function ProblemActionsTab({
   const [cloneCode, setCloneCode] = useState("");
 
   const range =
-    idFrom.trim() && idTo.trim()
-      ? { start: Number(idFrom) || 0, end: Number(idTo) || 0 }
-      : undefined;
+    idFrom.trim() && idTo.trim() ? { start: Number(idFrom) || 0, end: Number(idTo) || 0 } : undefined;
   const preview = useQuery(
     api.admin.problems.rejudgePreview,
     problem.permissions.rejudgeSubmission
@@ -197,9 +195,7 @@ export function ProblemActionsTab({
             className="w-fit"
             disabled={!problem.permissions.rejudgeSubmission}
             title={
-              problem.permissions.rejudgeSubmission
-                ? undefined
-                : "You do not have judge.rejudge_submission."
+              problem.permissions.rejudgeSubmission ? undefined : "You do not have judge.rejudge_submission."
             }
             onClick={() => setConfirm("rescore")}
           >
@@ -275,10 +271,7 @@ export function ProblemActionsTab({
       </Panel>
 
       <Panel title="History" bodyClassName="p-4">
-        <Field
-          label="Reason for change"
-          hint="Kept with the revision every action above writes."
-        >
+        <Field label="Reason for change" hint="Kept with the revision every action above writes.">
           <Input
             value={reason}
             onChange={(event) => setReason(event.target.value)}
