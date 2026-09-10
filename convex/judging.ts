@@ -255,7 +255,7 @@ export async function claimNext(
       priority: submission.priority,
       date: submission.date,
       status: submission.status,
-      judgePin: submission.judgePin ? (judgeNames.get(submission.judgePin) ?? " ") : null,
+      judgePin: submission.judgePin ? (judgeNames.get(submission.judgePin) ?? "\u0000") : null,
     });
   }
 
