@@ -11,6 +11,7 @@
 import type * as admin_submissions from "../admin/submissions.js";
 import type * as admin_contests from "../admin/contests.js";
 import type * as admin_scoreboards from "../admin/scoreboards.js";
+import type * as admin_problems from "../admin/problems.js";
 import type * as blog from "../blog.js";
 import type * as comments from "../comments.js";
 import type * as contestFormats from "../contestFormats.js";
@@ -23,6 +24,7 @@ import type * as jobs from "../jobs.js";
 import type * as judgeApi from "../judgeApi.js";
 import type * as judging from "../judging.js";
 import type * as jobs_contests from "../jobs/contests.js";
+import type * as http_problemsApi from "../http/problemsApi.js";
 import type * as languages from "../languages.js";
 import type * as lib_aggregates from "../lib/aggregates.js";
 import type * as lib_auth from "../lib/auth.js";
@@ -30,6 +32,7 @@ import type * as lib_errors from "../lib/errors.js";
 import type * as lib_rateLimiter from "../lib/rateLimiter.js";
 import type * as lib_seedData from "../lib/seedData.js";
 import type * as maintenance from "../maintenance.js";
+import type * as problemData from "../problemData.js";
 import type * as problems from "../problems.js";
 import type * as profiles from "../profiles.js";
 import type * as rankings from "../rankings.js";
@@ -51,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   "admin/submissions": typeof admin_submissions;
   "admin/contests": typeof admin_contests;
   "admin/scoreboards": typeof admin_scoreboards;
+  "admin/problems": typeof admin_problems;
   blog: typeof blog;
   comments: typeof comments;
   contestFormats: typeof contestFormats;
@@ -63,6 +67,7 @@ declare const fullApi: ApiFromModules<{
   judgeApi: typeof judgeApi;
   judging: typeof judging;
   "jobs/contests": typeof jobs_contests;
+  "http/problemsApi": typeof http_problemsApi;
   languages: typeof languages;
   "lib/aggregates": typeof lib_aggregates;
   "lib/auth": typeof lib_auth;
@@ -70,6 +75,7 @@ declare const fullApi: ApiFromModules<{
   "lib/rateLimiter": typeof lib_rateLimiter;
   "lib/seedData": typeof lib_seedData;
   maintenance: typeof maintenance;
+  problemData: typeof problemData;
   problems: typeof problems;
   profiles: typeof profiles;
   rankings: typeof rankings;

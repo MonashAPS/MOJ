@@ -308,3 +308,60 @@ Behaviour worth flagging:
   is deliberately left uncommitted, as section 2 asks.
 - `convex/_generated/api.d.ts` was hand-extended with the new modules, since `convex codegen` needs a running
   backend and the file is committed.
+## 2026-09-10, problems backend
+
+- Problems API authentication: the endpoint tries Better Auth's api-key plugin first, posting the presented key
+  to `${AUTH_URL}/api/auth/api-key/verify` and mapping the returned Better Auth user id onto a profile through
+  `profiles.by_userId`. Better Auth models scopes as `{resource: [action]}`, so the wire scope `problems:write`
+  is `{problems: ["write"]}`. When `AUTH_URL` is unset, or the web app is not reachable from the Convex
+  container (which is the case under `convex-test` and in a split deployment), it falls back to a new `apiKeys`
+  table looked up by the sha256 hex of the key. Both paths require `enabled`, an unexpired `expiresAt` and the
+  `problems:write` scope. The fallback is what the tests exercise.
+- Schema additions, all additive: `apiKeys` (keyHash, prefix?, name, profileId, scopes[], enabled, expiresAt?,
+  createdAt, lastUsedAt?, legacyId?; indexes by_keyHash, by_profile, by_legacyId);
+  `problemData.zipfileStorageId` and `problemData.generatorStorageId`, because DMOJ's `zipfile` and `generator`
+  are filesystem paths and MOJ keeps the blobs in Convex storage; `pdfCache.by_sourceHash`.
+- `problemTestCases.points` widened from `v.number()` to `v.union(v.number(), v.null())`. DMOJ's
+  `ProblemTestCase.points` is nullable and `ProblemDataCompiler.make_init` depends on it: a case inside a batch
+  has its points cleared, and a null on a non-batch case is the "Points must be defined" error.
+- `problems.get` returns the statement *source* plus the preset name (`problem`, or `problem-full` when
+  `isFullMarkup`), not rendered HTML. Convex's V8 runtime cannot load `@moj/content`: its entry point re-exports
+  the Typst renderer, which imports `node:fs` and `node:child_process`. The caller renders with
+  `renderMarkdown(source, preset)`. Spec section 8's wording asks for the query to render; this is the same
+  contract with the render moved one hop out.
+- `problems.random` takes a `seed`. A Convex query has to be deterministic to be reactive, so DMOJ's
+  `randrange(count)` becomes `seed % count` with the caller supplying the seed (the page passes a fresh one on
+  each navigation).
+- `problems.list` collects and filters in memory behind the most selective index it can use, with a 20 000 row
+  scan cap. DMOJ's list is a single SQL query with joins Convex has no equivalent for (solved-by, has-editorial,
+  type membership), and the deployment has a few hundred problems. If the corpus grows past the cap the filters
+  need denormalising onto `problems`.
+- Text search unions three sources: the `search_name_desc` index on the name, the `search_description` index on
+  the statement, and a substring scan for the code, which is DMOJ's `code__icontains` and which no Convex search
+  index can express.
+- `problems.ts` exports plain helpers (`loadViewerContext`, `toCoreProblem`, `problemByCode`, `solveSetsFor`,
+  `canAccessProblem`, `labelFor`, `solutionFor`) that `admin/problems.ts`, `http/problemsApi.ts`,
+  `problemData.ts` and `languages.ts` import. Section 5 gives no home for shared per-area helpers and the
+  problems module is the one that owns these rules.
+- `admin/problems.rejudgeAll` and `rescoreAll` insert a `jobs` row and schedule `jobs:run` by name through
+  `makeFunctionReference`, because `convex/jobs.ts` is another agent's file and may not exist yet. Once it lands,
+  `jobs.run` reads the row's `type` (`rejudge`, `rescore`) and its `args`. Nothing else needs changing.
+- `PUT /api/problems/:code` treats `authors: []` as "unchanged", per spec section 8. The club's
+  `create-problem.mjs` cleared the author list in that case; almost every config.json in mcpc-problems carries
+  an empty `authors` array, so the literal reading wiped the authors on every push. A non-empty list still
+  replaces. The same rule applies to `testers` and `curators`.
+- Statement images are served back by the API itself at `GET /api/problems/images/:storageId` rather than
+  through a raw Convex storage URL, so a statement's image links stay stable across storage backends. Uploads
+  are deduplicated by the sha256 of the bytes through `uploads.cacheKey`.
+- The images endpoint accepts the field name `file` (spec section 8) and DMOJ's martor name
+  `markdown-image-upload`, so the club's old tooling keeps working during the migration.
+- `problemData.zipContents` is an action, not a query: only an action may read a stored blob
+  (`ctx.storage.get`), and the zip's central directory has to be parsed out of the bytes.
+- `problemData` stores `zipfile` as the plain archive file name. DMOJ stores `<code>/<name>.zip` and
+  `ProblemDataCompiler` splits the first path segment off to produce `archive:`; there is no such prefix here,
+  so the stored name is used as it stands.
+- `tools/upload-problem/upload-problem.mjs` also reads `statment.md`, which is how one directory in
+  mcpc-problems spells it.
+- The root `vitest.config.mts` gained `tools/*/vitest.config.ts` to its `projects` list so `npm test` runs the
+  uploader's tests.
+- `apps/web` gained a `@moj/content` dependency for the PDF route.

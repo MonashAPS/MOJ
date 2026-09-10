@@ -2,7 +2,7 @@
   "name": "@moj/protocol",
   "version": "0.1.0",
   "private": true,
-  "description": "Wire formats MOJ speaks to things that are not the web app: the judge API, first of all",
+  "description": "Wire formats MOJ speaks to things that are not the web app: the judge API, the problems API and API v2",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -13,12 +13,14 @@
   "files": ["src"],
   "sideEffects": false,
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "zod": "^4.6.1"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
   }
 }

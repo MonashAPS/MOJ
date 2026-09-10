@@ -3,7 +3,7 @@
   "compilerOptions": {
     "lib": ["ES2023"],
     "noEmit": true,
-    "types": []
+    "types": ["node"]
   },
-  "include": ["src"]
+  "include": ["src/**/*.ts", "test/**/*.ts"]
 }
