@@ -232,7 +232,7 @@ export function CommentRow({
           )}
 
           {replying ? (
-            <div className="mt-4 rounded-md border border-border bg-ground p-3">
+            <div className="mt-4 rounded-md border border-border p-3">
               <CommentForm
                 heading="Replying to comment"
                 maxLength={maxLength}

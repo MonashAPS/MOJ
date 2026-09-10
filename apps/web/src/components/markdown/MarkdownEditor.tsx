@@ -136,7 +136,7 @@ export function MarkdownEditor({
       data-slot="markdown-editor"
       className={cn("overflow-hidden rounded-md border border-input bg-card", className)}
     >
-      <div className="flex flex-wrap items-center gap-2 border-b border-border bg-secondary px-2 py-1.5">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-2 py-1.5">
         <ToggleGroup
           type="single"
           value={mode}

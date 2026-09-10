@@ -172,9 +172,29 @@
 
 /* ------------------------------------------------------------------------ lists ----- */
 
+/* Tailwind's preflight sets `list-style: none` on every list and this stylesheet
+ * is imported after it, so the markers have to be restored explicitly; without
+ * this every statement, editorial, blog post, comment and ticket loses them. */
 .content-description ul,
 .content-description ol {
   padding: 0 0 0 2em;
+  list-style-position: outside;
+}
+
+.content-description ul {
+  list-style-type: disc;
+}
+
+.content-description ul ul {
+  list-style-type: circle;
+}
+
+.content-description ul ul ul {
+  list-style-type: square;
+}
+
+.content-description ol {
+  list-style-type: decimal;
 }
 
 .content-description li p:last-child {

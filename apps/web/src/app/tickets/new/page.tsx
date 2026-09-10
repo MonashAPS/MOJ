@@ -15,7 +15,7 @@ export default async function NewTicketPage() {
   return (
     <>
       <TitleRow title="New ticket" />
-      <div id="content-body" className="max-w-(--prose-max)">
+      <div id="content-body" className="max-w-[760px]">
         <NewTicketForm />
       </div>
     </>

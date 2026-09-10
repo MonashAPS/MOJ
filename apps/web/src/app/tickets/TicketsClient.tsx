@@ -19,40 +19,19 @@ import {
   ToggleGroupItem,
   Tooltip,
 } from "@moj/ui";
-import type { FunctionReturnType } from "convex/server";
 import { useQuery } from "convex/react";
 import { CircleAlert, CircleCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 import { formatDateTime, formatRelative } from "@/lib/format";
-
-export type TicketPage = FunctionReturnType<typeof api.tickets.list>;
-export type TicketSummary = TicketPage["page"][number];
-export type TicketScope = "all" | "mine" | "assigned";
-
-/** `TicketList.paginate_by` (judge/views/ticket.py:212). */
-export const PER_PAGE = 50;
-
-/** `filter_visible_tickets` already narrows the table to what the viewer may see,
- *  and it collects the whole table to do it, so the assignee narrowing costs the
- *  backend nothing extra when it is done over a wide page here. */
-const WIDE_PAGE = 200;
-
-export function scopeFromParams(value: string | undefined): TicketScope {
-  return value === "mine" || value === "assigned" ? value : "all";
-}
-
-export function ticketQueryArgs(scope: TicketScope, onlyOpen: boolean, page: number, problemCode?: string) {
-  const wide = scope === "assigned";
-  const numItems = wide ? WIDE_PAGE : PER_PAGE;
-  return {
-    paginationOpts: { numItems, cursor: wide ? "0" : String((page - 1) * PER_PAGE) },
-    onlyOpen: onlyOpen || undefined,
-    onlyOwn: scope !== "all" || undefined,
-    problemCode,
-  };
-}
+import {
+  PER_PAGE,
+  scopeFromParams,
+  type TicketPage,
+  type TicketSummary,
+  ticketQueryArgs,
+} from "./filters";
 
 export function TicketsClient({
   initial,
@@ -152,9 +131,7 @@ export function TicketsClient({
           </TableHeader>
           <TableBody>
             {rows.length === 0 ? (
-              <EmptyRow colSpan={5}>
-                {onlyOpen ? "No open tickets." : "No tickets have been filed here yet."}
-              </EmptyRow>
+              <EmptyRow colSpan={5}>{emptyMessage(scope, onlyOpen, Boolean(problemCode))}</EmptyRow>
             ) : (
               rows.map((ticket) => <TicketRow key={ticket._id} ticket={ticket} />)
             )}
@@ -177,6 +154,20 @@ export function TicketsClient({
       ) : null}
     </div>
   );
+}
+
+/** Empty states name what would fill the space, per DESIGN.md section 20.1. */
+function emptyMessage(scope: string, onlyOpen: boolean, onProblem: boolean): string {
+  if (scope === "assigned") {
+    return onlyOpen ? "Nothing open is assigned to you." : "Nothing is assigned to you.";
+  }
+  if (scope === "mine") {
+    return onlyOpen
+      ? "None of your tickets are open."
+      : "You have not filed a ticket, and none are assigned to you.";
+  }
+  if (onlyOpen) return "No open tickets.";
+  return onProblem ? "Nobody has reported an issue with this problem." : "No tickets have been filed yet.";
 }
 
 function TicketRow({ ticket }: { ticket: TicketSummary }) {
@@ -249,7 +240,7 @@ function TicketRow({ ticket }: { ticket: TicketSummary }) {
 function TicketsSkeleton() {
   return (
     <div className="overflow-hidden rounded-md border border-border bg-card">
-      <div className="h-8 border-b border-border bg-secondary" />
+      <div className="h-8 bg-titlebar" />
       {Array.from({ length: 8 }, (_, index) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: placeholder rows have no identity
         <div key={index} className="flex h-(--row-h) items-center gap-3 border-b border-border px-3">

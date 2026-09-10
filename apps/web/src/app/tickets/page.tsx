@@ -3,7 +3,8 @@ import { Button, TitleRow } from "@moj/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { queryAsViewer } from "@/lib/convex-server";
-import { scopeFromParams, TicketsClient, ticketQueryArgs } from "./TicketsClient";
+import { scopeFromParams, ticketQueryArgs } from "./filters";
+import { TicketsClient } from "./TicketsClient";
 
 export const dynamic = "force-dynamic";
 
