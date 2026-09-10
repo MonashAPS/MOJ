@@ -18,7 +18,7 @@ export function RecentJobs({ limit = 5 }: { limit?: number }) {
       action={
         <Link
           href="/admin/jobs/"
-          className="text-sm text-link hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-royal/45"
+          className="text-sm text-titlebar-ink hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-royal/45"
         >
           All jobs
         </Link>
@@ -29,7 +29,7 @@ export function RecentJobs({ limit = 5 }: { limit?: number }) {
         <p className="p-3 text-sm text-muted-foreground">Loading…</p>
       ) : jobs.length === 0 ? (
         <EmptyState
-          className="rounded-none border-0"
+          className="m-3"
           icon={<LayoutList aria-hidden />}
           title="No jobs yet"
           description="Rejudges, rescores and ratings appear here while they run."
