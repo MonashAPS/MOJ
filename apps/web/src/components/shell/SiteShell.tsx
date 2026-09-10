@@ -13,6 +13,7 @@ import { ContestBar } from "./ContestBar";
 import { ContestFloater } from "./ContestFloater";
 import { Footer } from "./Footer";
 import { NavBar } from "./NavBar";
+import { ShortcutLayer } from "./ShortcutLayer";
 import type { ViewerSummary } from "./UserBlock";
 
 /** The club's royal grid belongs on the pages that are mostly words. Behind a
@@ -101,7 +102,11 @@ export function SiteShell({
           id="content"
           className="mx-auto w-full max-w-(--content-max) flex-1 px-(--gutter) py-6 min-[760px]:px-(--gutter-lg)"
         >
-          {children}
+          {/* Page enter is the content column only; the chrome must feel nailed
+              down, so it never animates on navigation. */}
+          <div key={pathname} className="enter-rise">
+            {children}
+          </div>
         </main>
         <Footer footerHtml={misc.footer} />
       </div>
@@ -117,6 +122,7 @@ export function SiteShell({
 
       <Announcement html={misc.announcement} />
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      <ShortcutLayer />
       <Toaster />
     </TooltipProvider>
   );
