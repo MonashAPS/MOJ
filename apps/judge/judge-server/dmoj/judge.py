@@ -559,6 +559,15 @@ class ClassicJudge(Judge):
         super().__init__(packet.PacketManager(host, port, self, env['id'], env['key'], **kwargs))
 
 
+class MojJudge(Judge):
+    """A judge that pulls submissions from MOJ over HTTP instead of waiting on a DMOJ bridge."""
+
+    def __init__(self, url: str) -> None:
+        from dmoj.moj_packet import MojPacketManager
+
+        super().__init__(MojPacketManager(url, self, env['id'], env['key']))
+
+
 def sanity_check():
     if os.name == 'nt':
         print('cannot run judge on Windows', file=sys.stderr)
@@ -636,15 +645,20 @@ def main():  # pragma: no cover
         format='%(levelname)s %(asctime)s %(process)d %(module)s %(message)s',
     )
 
-    setproctitle('DMOJ Judge %s on %s' % (env['id'], make_host_port(judgeenv)))
+    moj_url = os.environ.get('MOJ_URL')
+    setproctitle('DMOJ Judge %s on %s' % (env['id'], moj_url or make_host_port(judgeenv)))
 
-    judge = ClassicJudge(
-        judgeenv.server_host,
-        judgeenv.server_port,
-        secure=judgeenv.secure,
-        no_cert_check=judgeenv.no_cert_check,
-        cert_store=judgeenv.cert_store,
-    )
+    judge: Judge
+    if moj_url:
+        judge = MojJudge(moj_url)
+    else:
+        judge = ClassicJudge(
+            judgeenv.server_host,
+            judgeenv.server_port,
+            secure=judgeenv.secure,
+            no_cert_check=judgeenv.no_cert_check,
+            cert_store=judgeenv.cert_store,
+        )
     monitor = Monitor()
     monitor.callback = judge.update_problems
 
