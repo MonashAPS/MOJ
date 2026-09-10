@@ -100,8 +100,14 @@ Output a single integer, the value of ~A + B~.
 `;
 
 export const run = internalMutation({
-  args: { force: v.optional(v.boolean()) },
-  handler: async (ctx, { force }) => {
+  args: {
+    force: v.optional(v.boolean()),
+    /** `npm run setup` passes MOJ_SITE_NAME / MOJ_SITE_LONG_NAME through so a
+     *  fresh instance is named for its club rather than for MOJ. */
+    siteName: v.optional(v.string()),
+    siteLongName: v.optional(v.string()),
+  },
+  handler: async (ctx, { force, siteName, siteLongName }) => {
     const report: Record<string, number> = {};
 
     // Languages ------------------------------------------------------------
@@ -176,8 +182,8 @@ export const run = internalMutation({
     if (!settings) {
       await ctx.db.insert("siteSettings", {
         singleton: "site",
-        siteName: "MOJ",
-        siteLongName: "MAPS Online Judge",
+        siteName: siteName?.trim() || "MOJ",
+        siteLongName: siteLongName?.trim() || "MAPS Online Judge",
         siteAdminEmail: "admin@example.com",
         registrationOpen: true,
         defaultUserTimezone: "Australia/Melbourne",
@@ -193,7 +199,13 @@ export const run = internalMutation({
       });
       report.siteSettings = 1;
     } else {
-      report.siteSettings = 0;
+      // Renaming an existing instance is the console's job, except when setup
+      // is re-run with an explicit name and `force`.
+      const rename: Partial<typeof settings> = {};
+      if (force && siteName?.trim()) rename.siteName = siteName.trim();
+      if (force && siteLongName?.trim()) rename.siteLongName = siteLongName.trim();
+      if (Object.keys(rename).length > 0) await ctx.db.patch(settings._id, rename);
+      report.siteSettings = Object.keys(rename).length > 0 ? 1 : 0;
     }
 
     // Problem groups and types --------------------------------------------

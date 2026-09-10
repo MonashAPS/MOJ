@@ -73,6 +73,103 @@ Append dated bullets when you had to extend or deviate from docs/SPEC.md.
   `COUNTDOWN_HORIZON` ("open"), because DMOJ's tutorial contests end in the year 9999.
 - `contestRankings.ranking` does not carry `timeLimit`, as the parity audit notes. The ranking page reads
   `contests.get` for the contest's window and the viewer's participation end instead of duplicating the module.
+## 2026-09-11, staff console part 2
+
+Routes added under `/admin`: `/admin/` (the section index), `users`, `users/[username]`, `organizations`,
+`organizations/[slug]`, `classes`, `judges`, `languages`, `navigation`, `config`, `config/branding`,
+`flatpages`, `blog`, `licenses`, `tags`, `tickets`, `api-keys`. The pages live in the `(part2)` route group; the group carries its
+own `error.tsx` so a refused subscription shows a panel inside the console instead of the site's 500.
+
+- New Convex module `convex/pages/admin2.ts`, covered by `convex/tests/pagesAdmin2.test.ts`: `revisions`
+  (the generic history panel), `userExtras` and `setUserMemberships` (the profile fields `admin/users.edit`
+  does not carry — `about`, `usernameDisplayOverride`, the preferred-language foreign key and organisation
+  membership with its denormalised count), `clearLegacyApiToken`, and `myApiKeys` / `recordApiKey` /
+  `revokeApiKey` for the `apiKeys` table. `convex/_generated/api.d.ts` was hand-extended with `pages/admin2`,
+  as the other branches do. **It is not deployed on the shared dev backend**, so in this worktree the pages
+  that read it fall back (`userExtras` is fetched server-side with a catch, the API-key mirror reports a
+  warning); the integrator has to deploy it.
+- API keys: Better Auth's api-key plugin treats `permissions` as a server-only property and rejects the call
+  when request headers are present, so `createApiKey` is invoked with an explicit `userId` after the server
+  action has checked the session itself. The key is minted there, then its sha256 hex, its visible prefix
+  (the plugin's `start`, 6 characters) and its wire scopes are mirrored into the `apiKeys` Convex table, which
+  is the fallback `http/problemsApi` verifies against. The two rows are correlated by that prefix, because the
+  table has no column for Better Auth's key id. The page documents `NEXT_PUBLIC_CONVEX_SITE_URL` as the
+  problems API base: the endpoint is a Convex HTTP action, not a Next route, so `JUDGE_URL` in a problem
+  repository's workflow is the Convex site origin, not the site members browse.
+- Impersonation is `auth.api.impersonateUser` from a server action, with the returned `Set-Cookie` headers
+  copied onto Next's cookie store by hand (the `nextCookies` plugin is not installed). `/impersonate/stop/`
+  is added as a route handler because the user dropdown already links to it, and the root layout now passes
+  `isImpersonating` (from `session.impersonatedBy`) into the shell so that row appears.
+- "Reset 2FA" deletes the account's `two_factor` rows through Drizzle and clears `user.two_factor_enabled`;
+  Better Auth's admin plugin has no endpoint for removing another account's factors. Sessions are revoked with
+  it, so the member re-enrols on the next sign-in. Deactivating an account is `admin/users.deactivate` for the
+  profile plus `auth.api.banUser` for the account, in that order.
+- DMOJ lets only an organisation's own admins (or a class admin) review its join requests — `can_review_all_requests`
+  does not consult `is_superuser` — so `organizations.reviewRequests` refuses a superuser who is not an admin
+  of that organisation. The tab is wrapped in a small error boundary that says so rather than taking the page
+  down; the rule itself is left alone.
+- The users list's "Superusers" filter asks `admin/users.list` for the staff page (`perPage` 200) and refines
+  client-side, because that query has no `isSuperuser` argument. Staff are few enough that one page covers them.
+- Organisation and class administrators, and class members, are comma-separated username fields: the mutations
+  take usernames, and the kit has no combobox that searches the server as you type. A bad username comes back
+  from the backend as `User <name> not found`.
+- A blog post's publish time is a plain text field in `YYYY-MM-DD HH:MM`, because DESIGN.md forbids
+  `input[type=date]` and the kit has no date picker.
+- `packages/ui`'s `Breadcrumb items={...}` shortcut renders `BreadcrumbSeparator` (an `<li>`) inside
+  `BreadcrumbItem` (also an `<li>`), which React rejects at hydration. The console composes the parts as
+  siblings in its own `Crumbs` helper; the kit's shortcut should be fixed the same way.
+- DESIGN.md's checklist item 23 ("no native select or checkbox in the DOM") cannot pass for any page with a
+  form: Radix's `Select` and `Checkbox` render a hidden native control for form participation whenever they
+  sit inside a `<form>`. Every visible control is still the kit's.
+- At 390 px an authenticated console page's document scrolls horizontally even though the dense table itself
+  scrolls inside its own wrapper. Only `overflow-x: clip` on `main` or on `.enter-rise` in `SiteShell` contains
+  it — clipping anywhere inside the console subtree does not — so the fix belongs to the shell, and it will
+  affect part 1's tables and the public dense lists too. The console's own boxes carry `min-w-0` already.
+- The shell components (`AdminShell`, `AdminTable`, `AdminForm`, `RevisionsPanel`, `JobProgress`, plus
+  `sections.ts`) are minimal versions written here so the pages could be built; part 1 owns the canonical set.
+  The props these pages rely on are: `AdminShell({children})`; `AdminTable({columns, rows, rowKey, toolbar,
+  loading, emptyTitle, emptyDescription, emptyAction, footer, caption})` where a column is
+  `{key, header, numeric?, className?, cell(row)}`; `AdminForm({children, onSubmit, reason, onReasonChange,
+  reasonLabel?, reasonHint?, dirty, busy, submitLabel, error, saved, actions?})`;
+  `RevisionsPanel({rows, title?, emptyText?})`; `JobProgress({jobId, onDismiss?})`. `/admin/page.tsx` (the
+  section index) is also written here; drop it if part 1 has one.
+- Branding (SPEC section 24) is implemented here: `siteSettings` gains `logoStorageId`, `faviconStorageId`,
+  `accentColor`, `navColor`, `customCss` and `themeDefault`, all optional, so an unset field falls back to
+  `packages/ui/src/tokens.css`. The public query is `site.branding`; it resolves the storage URLs and computes
+  the dark-mode derivatives server-side (the accent is mixed 45% towards white, the nav is kept and the dark
+  titlebar lifted slightly, the way the token file does it) so the same pair reaches the server render and any
+  client. The mutations are `pages/admin2.updateBranding` and `generateBrandingUploadUrl`, superusers only,
+  with a revision. Replacing an upload deletes the old blob.
+  - `apps/web/src/lib/branding.ts` builds the `:root` override block (`--accent`, `--nav`, `--titlebar`,
+    `--brand-royal`, plus the `prefers-color-scheme` and `[data-theme="dark"]` variants) and appends the custom
+    CSS last; `BrandingStyle` emits it from the root layout's `<head>`. Every stored value is stripped of the
+    characters that could close the element or start a rule; `apps/web/src/lib/branding.test.ts` covers that.
+  - The nav takes an uploaded wordmark through `NavBar`'s `src`. The auth pages draw the bundled SVG from
+    `components/auth/AuthCard.tsx`, which is rendered from client components and so cannot read the branding;
+    until that component takes a prop, the emitted CSS replaces it with `content: url(...)` on
+    `svg[aria-label="MAPS Online Judge"]`.
+  - `ThemeScript` now takes the operator's default theme and applies it when the visitor has nothing stored;
+    "system" keeps the previous behaviour of leaving `data-theme` off.
+  - `generateMetadata` in the root layout reads the branding for the title template and the favicon.
+  - `seed.run` takes `siteName` / `siteLongName`, and `infra/scripts/setup.mjs` passes `MOJ_SITE_NAME` /
+    `MOJ_SITE_LONG_NAME` through when they are set. An existing settings document is only renamed under `force`.
+  - The logo and favicon pickers are a `sr-only` `input[type=file]` driven by a kit `Button`. DESIGN.md forbids
+    a native file input, and the kit has no replacement; the visible control is still the kit's, and there is no
+    other way to open a file dialog.
+
+- Two findings outside this branch's scope, both of which break `next build` (dev and `tsc` are fine):
+  `@moj/protocol` ships raw TypeScript with `./apiV2.js`-style specifiers inside `src/index.ts`, which
+  Turbopack cannot resolve because the package has no build step; the extensions are dropped here (the repo is
+  on `moduleResolution: Bundler`), and the owner may prefer to give the package a `dist` instead. The remaining
+  error is `@moj/content`'s `new URL("../../typst/", import.meta.url)` in `render-pdf.ts`: Turbopack traces it
+  statically and fails on the directory. A `turbopackIgnore` comment does not help; either resolve the tree
+  from `process.cwd()` at runtime or add `@moj/content` to `serverExternalPackages` in `apps/web/next.config.ts`.
+  That one is left for its owner.
+
+- Staff two-factor is enforced by `apps/web/src/proxy.ts` for every page including `/admin`, so a staff account
+  without a factor cannot reach the console at all. Screenshots of this branch were taken with a temporary
+  local escape hatch that was reverted; whoever reviews the console needs an enrolled account, or the gate has
+  to learn about a development flag.
 
 ## 2026-09-10, foundation
 
