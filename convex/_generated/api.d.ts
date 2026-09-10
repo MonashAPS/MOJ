@@ -49,6 +49,7 @@ import type * as lib_rateLimiter from "../lib/rateLimiter.js";
 import type * as lib_seedData from "../lib/seedData.js";
 import type * as lib_testing from "../lib/testing.js";
 import type * as organizations from "../organizations.js";
+import type * as pages_contests from "../pages/contests.js";
 import type * as pages_problems from "../pages/problems.js";
 import type * as pages_submissions from "../pages/submissions.js";
 import type * as problemData from "../problemData.js";
@@ -114,6 +115,7 @@ declare const fullApi: ApiFromModules<{
   "lib/seedData": typeof lib_seedData;
   "lib/testing": typeof lib_testing;
   organizations: typeof organizations;
+  "pages/contests": typeof pages_contests;
   "pages/problems": typeof pages_problems;
   "pages/submissions": typeof pages_submissions;
   problemData: typeof problemData;
