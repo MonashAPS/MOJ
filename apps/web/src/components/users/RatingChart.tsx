@@ -1,124 +1,209 @@
 "use client";
 
 import { cn, ratingClass, ratingTitle } from "@moj/ui";
-import { useRouter } from "next/navigation";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ReferenceArea,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { useEffect, useRef, useState } from "react";
 import { formatDate } from "@/lib/format";
+import {
+  buildRatingChart,
+  CHART_HEIGHT,
+  CHART_MIN_WIDTH,
+  CHART_WIDTH,
+  type ChartDot,
+  type RatingPoint,
+} from "./rating-chart";
 
-export type RatingPoint = {
-  label: string;
-  contestKey: string;
-  rating: number;
-  ranking: number;
-  timestamp: number;
-};
+export type { RatingPoint } from "./rating-chart";
 
-/** `user-about.html`'s `yHighlight`: DMOJ's bands, drawn from the tokens so both
- *  themes get the right value without a second table. */
-const BANDS: { from: number; to: number; token: string }[] = [
-  { from: 0, to: 1000, token: "--rating-newbie" },
-  { from: 1000, to: 1300, token: "--rating-amateur" },
-  { from: 1300, to: 1600, token: "--rating-expert" },
-  { from: 1600, to: 1900, token: "--rating-candidate-master" },
-  { from: 1900, to: 2400, token: "--rating-master" },
-  { from: 2400, to: 3000, token: "--rating-grandmaster" },
-  { from: 3000, to: 4000, token: "--rating-target" },
-];
+const AXIS_FONT = { fontFamily: "var(--font-mono)", fontSize: 11 };
+/** How far the pointer may sit from a point and still pick it up. */
+const HIT_RADIUS = 11;
+/** Above this the tooltip would leave the panel, so it hangs below the point. */
+const TOOLTIP_FLIP = 92;
+const TOOLTIP_EDGE = 90;
 
-type Payload = { payload?: RatingPoint }[];
+function signed(delta: number) {
+  return delta > 0 ? `+${delta}` : `${delta}`;
+}
 
-function RatingTooltip({ active, payload }: { active?: boolean; payload?: Payload }) {
-  const point = active ? payload?.[0]?.payload : undefined;
-  if (!point) return null;
+function describe(dot: ChartDot) {
+  const move = dot.delta === null ? "" : ` (${signed(dot.delta)})`;
+  return `${dot.point.label}: rating ${dot.point.rating}${move}, rank #${dot.point.ranking} on ${formatDate(dot.point.timestamp)}`;
+}
+
+function RatingValue({ rating }: { rating: number }) {
   return (
-    <div className="rounded-md border border-border bg-popover p-3 shadow-2">
-      <p className="text-base font-medium text-foreground">{point.label}</p>
-      <p className="font-mono text-sm tabular-nums text-muted-foreground">{formatDate(point.timestamp)}</p>
+    <span className={cn("rating", ratingClass(rating))} title={ratingTitle(rating)}>
+      {rating}
+    </span>
+  );
+}
+
+function Tooltip({ dot, width }: { dot: ChartDot; width: number }) {
+  // A point near the top has no room for a card above it, and one near an edge
+  // would hang out of the panel, so both are nudged back inside.
+  const below = dot.y < TOOLTIP_FLIP;
+  const left = Math.min(Math.max(dot.x, TOOLTIP_EDGE), Math.max(TOOLTIP_EDGE, width - TOOLTIP_EDGE));
+  return (
+    <div
+      role="status"
+      className={cn(
+        "pointer-events-none absolute z-(--z-tooltip) w-max max-w-64 -translate-x-1/2",
+        below ? "translate-y-0" : "-translate-y-full",
+        "rounded-md border border-border bg-popover p-2 shadow-2",
+      )}
+      style={{ left, top: below ? dot.y + 12 : dot.y - 10 }}
+    >
+      <p className="truncate text-base font-medium text-foreground">{dot.point.label}</p>
+      <p className="font-mono text-xs tabular-nums text-muted-foreground">
+        {formatDate(dot.point.timestamp)}
+      </p>
       <p className="mt-1 font-mono text-mono tabular-nums">
-        <span className={cn("rating", ratingClass(point.rating))} title={ratingTitle(point.rating)}>
-          {point.rating}
-        </span>
-        <span className="text-muted-foreground">, #{point.ranking}</span>
+        <RatingValue rating={dot.point.rating} />
+        {dot.delta === null ? null : (
+          <span className={dot.delta < 0 ? "text-danger-ink" : "text-success-ink"}> {signed(dot.delta)}</span>
+        )}
+        <span className="text-muted-foreground"> · rank #{dot.point.ranking}</span>
       </p>
     </div>
   );
 }
 
-/** The rating history scatter DMOJ draws with Chart.js, as one Recharts line with
- *  the rating bands behind it. A point links to that contest's ranking. */
+/**
+ * The rating history DMOJ draws with Chart.js, as one SVG: the rating bands as
+ * background stripes, a line through every rated contest, and a point per
+ * contest that links to that contest's ranking. The panel is drawn even with no
+ * history — bands, axis and an empty state — so the About tab keeps its shape.
+ */
 export function RatingChart({ points }: { points: RatingPoint[] }) {
-  const router = useRouter();
-  if (points.length === 0) return null;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(CHART_WIDTH);
+  const [active, setActive] = useState<string | null>(null);
 
-  const ratings = points.map((point) => point.rating);
-  const low = Math.max(0, Math.min(...ratings) - 50);
-  const high = Math.max(...ratings) + 50;
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const measured = entry?.contentRect.width ?? 0;
+      if (measured > 0) setWidth(Math.max(CHART_MIN_WIDTH, Math.round(measured)));
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  const chart = buildRatingChart(points, width, CHART_HEIGHT);
+  const activeDot = chart.dots.find((dot) => dot.key === active) ?? null;
 
   return (
-    <div className="h-[260px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={points}
-          margin={{ top: 8, right: 12, bottom: 4, left: 0 }}
-          onClick={(state) => {
-            // `activePayload` is on the runtime object but not on Recharts'
-            // published handler type, so it is read through a narrow shape.
-            const active = (state as { activePayload?: { payload?: RatingPoint }[] } | undefined)
-              ?.activePayload;
-            const point = active?.[0]?.payload;
-            if (point) router.push(`/contest/${point.contestKey}/ranking/`);
-          }}
-        >
-          {BANDS.map((band) => (
-            <ReferenceArea
+    <div ref={containerRef} className="relative w-full" style={{ height: CHART_HEIGHT }}>
+      <svg
+        width={chart.width}
+        height={chart.height}
+        viewBox={`0 0 ${chart.width} ${chart.height}`}
+        className="block"
+      >
+        <title>Rating history</title>
+        {/* biome-ignore lint/a11y/noAriaHiddenOnFocusable: the bands, grid and axis hold nothing focusable — the links sit outside this group */}
+        <g aria-hidden="true">
+          {chart.bands.map((band) => (
+            <rect
               key={band.token}
-              y1={band.from}
-              y2={band.to}
+              x={chart.plot.x}
+              y={band.y}
+              width={chart.plot.width}
+              height={band.height}
               fill={`var(${band.token})`}
               fillOpacity={0.16}
-              ifOverflow="hidden"
-              strokeOpacity={0}
             />
           ))}
-          <CartesianGrid stroke="var(--line)" vertical={false} />
-          <XAxis
-            dataKey="timestamp"
-            type="number"
-            scale="time"
-            domain={["dataMin", "dataMax"]}
-            tickFormatter={(value: number) => formatDate(value)}
-            tick={{ fill: "var(--muted)", fontSize: 11, fontFamily: "var(--font-mono)" }}
+
+          {chart.yTicks.map((tick) => (
+            <g key={tick.value}>
+              <line
+                x1={chart.plot.x}
+                x2={chart.plot.x + chart.plot.width}
+                y1={tick.y}
+                y2={tick.y}
+                stroke="var(--line)"
+              />
+              <text
+                x={chart.plot.x - 8}
+                y={tick.y}
+                textAnchor="end"
+                dominantBaseline="middle"
+                fill="var(--muted)"
+                style={AXIS_FONT}
+              >
+                {tick.value}
+              </text>
+            </g>
+          ))}
+
+          {chart.xTicks.map((tick) => (
+            <text
+              key={tick.value}
+              x={tick.x}
+              y={chart.plot.y + chart.plot.height + 16}
+              textAnchor={tick.anchor}
+              dominantBaseline="hanging"
+              fill="var(--muted)"
+              style={AXIS_FONT}
+            >
+              {formatDate(tick.value)}
+            </text>
+          ))}
+
+          <line
+            x1={chart.plot.x}
+            x2={chart.plot.x}
+            y1={chart.plot.y}
+            y2={chart.plot.y + chart.plot.height}
             stroke="var(--line-strong)"
-            minTickGap={40}
           />
-          <YAxis
-            domain={[low, high]}
-            allowDecimals={false}
-            width={44}
-            tick={{ fill: "var(--muted)", fontSize: 11, fontFamily: "var(--font-mono)" }}
+          <line
+            x1={chart.plot.x}
+            x2={chart.plot.x + chart.plot.width}
+            y1={chart.plot.y + chart.plot.height}
+            y2={chart.plot.y + chart.plot.height}
             stroke="var(--line-strong)"
           />
-          <Tooltip content={<RatingTooltip />} cursor={{ stroke: "var(--line-strong)" }} />
-          <Line
-            type="linear"
-            dataKey="rating"
-            stroke="var(--accent)"
-            strokeWidth={2}
-            isAnimationActive={false}
-            dot={{ r: 4, fill: "var(--surface)", stroke: "var(--accent)", strokeWidth: 2 }}
-            activeDot={{ r: 5, fill: "var(--accent)", stroke: "var(--surface)", strokeWidth: 2 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+
+          {chart.line ? (
+            <path d={chart.line} fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinejoin="round" />
+          ) : null}
+        </g>
+
+        {chart.dots.map((dot) => (
+          <a
+            key={dot.key}
+            href={`/contest/${dot.point.contestKey}/ranking/`}
+            aria-label={describe(dot)}
+            onMouseEnter={() => setActive(dot.key)}
+            onMouseLeave={() => setActive(null)}
+            onFocus={() => setActive(dot.key)}
+            onBlur={() => setActive(null)}
+          >
+            {/* The reachable target, wider than the point it sits on. */}
+            <circle cx={dot.x} cy={dot.y} r={HIT_RADIUS} fill="transparent" />
+            <circle
+              cx={dot.x}
+              cy={dot.y}
+              r={dot.key === active ? 5.5 : 4}
+              fill="var(--surface)"
+              stroke="var(--accent)"
+              strokeWidth={2}
+              className="cursor-pointer"
+            />
+          </a>
+        ))}
+      </svg>
+
+      {activeDot ? <Tooltip dot={activeDot} width={chart.width} /> : null}
+
+      {chart.dots.length === 0 ? (
+        <p className="absolute inset-0 flex items-center justify-center text-base text-muted-foreground">
+          No rated contests yet.
+        </p>
+      ) : null}
     </div>
   );
 }
