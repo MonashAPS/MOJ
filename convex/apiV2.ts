@@ -48,6 +48,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { type QueryCtx, query } from "./_generated/server";
 import { optionalViewer } from "./lib/auth";
+import { globalSourceVisibility, siteSettings } from "./lib/community";
 import { forbidden, notFound } from "./lib/errors";
 
 /**
@@ -1036,6 +1037,7 @@ export const submission = query({
       problem: problemRow(problemDoc),
       contest: contestDoc ? contestRow(contestDoc) : null,
       hasSolvedProblem: viewerSolved,
+      globalSubmissionSourceVisibility: globalSourceVisibility(await siteSettings(ctx)),
     });
     if (!allowed) throw forbidden("permission denied");
 

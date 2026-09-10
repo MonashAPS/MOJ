@@ -3,10 +3,13 @@
  * judge/utils/problem_data.py.
  *
  * MAPS does not use this page: its problem repos ship a hand written init.yml
- * and rsync it to the judge, so `problems.isManuallyManaged` is set and DMOJ
- * would 404 the editor anyway. It exists because the spec asks for feature
- * parity with DMOJ, and because `initYaml` is a useful read-only view of what
- * the compiler would produce for an imported problem.
+ * and rsync it to the judge. Only one imported problem carries
+ * `isManuallyManaged` (`multiplication`), so for the other 312 the editor opens
+ * exactly as it does on DMOJ, and saving would replace the hand written file the
+ * next time the judge reads the problem. That is DMOJ's behaviour too, and the
+ * guard below is DMOJ's guard. It exists because the spec asks for feature
+ * parity, and because `initYaml` is a useful read-only view of what the compiler
+ * would produce for an imported problem.
  */
 
 import { problemIsEditableBy } from "@moj/core";

@@ -3,6 +3,8 @@ import { api } from "@convex/_generated/api";
 import { markdownToTypst, renderPdf } from "@moj/content";
 import type { NextRequest } from "next/server";
 import { mutateAsViewer, queryAsViewer } from "@/lib/convex-server";
+import { normaliseLanguage } from "@/lib/language";
+import { viewerLanguage } from "@/lib/language.server";
 
 /**
  * `/problem/[code]/pdf` (SPEC section 8), DMOJ's `ProblemPdfView`.
@@ -38,7 +40,10 @@ export async function GET(
   { params }: { params: Promise<{ code: string }> },
 ): Promise<Response> {
   const { code } = await params;
-  const language = request.nextUrl.searchParams.get("language") ?? "en";
+  // DMOJ's ProblemPdfView takes the language from the URL when the path names
+  // one and falls back to request.LANGUAGE_CODE (views/problem.py:304).
+  const requested = request.nextUrl.searchParams.get("language");
+  const language = requested ? normaliseLanguage(requested) : await viewerLanguage();
 
   const source = await queryAsViewer(api.problems.pdfSource, { code, language });
   // `problems.pdfSource` returns null for a problem the viewer may not see, so
