@@ -5,6 +5,7 @@ export default defineConfig({
     projects: [
       "packages/*/vitest.config.ts",
       "apps/web/vitest.config.ts",
+      "tools/*/vitest.config.ts",
       {
         test: {
           name: "root",
