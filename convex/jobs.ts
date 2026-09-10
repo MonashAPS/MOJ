@@ -29,7 +29,16 @@ export const JOB_CHUNK_SIZE = 100;
  */
 export const JOB_COUNT_LIMIT = 20_000;
 
-export type JobType = "rejudge" | "rescore" | "rateContest" | "moss" | "userExport" | "pdf" | "sitemap";
+export type JobType =
+  | "rejudge"
+  | "rescore"
+  | "rescoreContest"
+  | "rateContest"
+  | "rejudgeContestProblem"
+  | "moss"
+  | "userExport"
+  | "pdf"
+  | "sitemap";
 
 export interface RejudgeFilter {
   problemId?: Id<"problems">;
@@ -433,4 +442,222 @@ export async function problemByCode(ctx: QueryCtx, code: string): Promise<Doc<"p
     .unique();
   if (!problem) throw notFound("Problem");
   return problem;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Dispatch                                                                   */
+/* -------------------------------------------------------------------------- */
+
+type JobArgs = Record<string, unknown>;
+
+function jobArgs(job: Doc<"jobs">): JobArgs {
+  return (job.args ?? {}) as JobArgs;
+}
+
+async function resolveProblemId(ctx: MutationCtx, args: JobArgs): Promise<Id<"problems"> | null> {
+  if (typeof args.problemId === "string") return args.problemId as Id<"problems">;
+  if (typeof args.problemCode === "string") {
+    const problem = await ctx.db
+      .query("problems")
+      .withIndex("by_code", (q) => q.eq("code", args.problemCode as string))
+      .unique();
+    return problem?._id ?? null;
+  }
+  return null;
+}
+
+async function resolveLanguageIds(ctx: MutationCtx, args: JobArgs): Promise<Id<"languages">[]> {
+  if (Array.isArray(args.languageIds)) return args.languageIds as Id<"languages">[];
+  const keys = Array.isArray(args.languages) ? (args.languages as string[]) : [];
+  const ids: Id<"languages">[] = [];
+  for (const key of keys) {
+    const row = await ctx.db
+      .query("languages")
+      .withIndex("by_key", (q) => q.eq("key", key))
+      .unique();
+    if (row) ids.push(row._id);
+  }
+  return ids;
+}
+
+function resolveIdRange(args: JobArgs): [number, number] | undefined {
+  const raw = args.idRange;
+  if (!raw) return undefined;
+  if (Array.isArray(raw) && raw.length === 2) return [Number(raw[0]), Number(raw[1])];
+  const range = raw as { start?: number; end?: number };
+  if (typeof range.start === "number" && typeof range.end === "number") return [range.start, range.end];
+  return undefined;
+}
+
+/**
+ * The one entry point a queued `jobs` row is started through. Modules that
+ * cannot import a runner (`admin/problems.ts` schedules `"jobs:run"` by name)
+ * insert the row and schedule this; it reads `type` off the document and hands
+ * the work to the chunk runner that owns it.
+ */
+export const run = internalMutation({
+  args: {
+    jobId: v.id("jobs"),
+    type: v.optional(v.string()),
+    args: v.optional(v.any()),
+  },
+  handler: async (ctx, params): Promise<null> => {
+    const job = await ctx.db.get(params.jobId);
+    if (!job) return null;
+    if (job.status === "done" || job.status === "failed") return null;
+
+    const jobId = job._id;
+    const type = params.type ?? job.type;
+    const args: JobArgs = { ...jobArgs(job), ...((params.args ?? {}) as JobArgs) };
+    const contestId = typeof args.contestId === "string" ? (args.contestId as Id<"contests">) : null;
+
+    switch (type) {
+      case "rejudge": {
+        if (contestId && typeof args.contestProblemId === "string") {
+          await ctx.scheduler.runAfter(0, internal.jobsContests.rejudgeContestProblemChunk, {
+            jobId,
+            contestId,
+            contestProblemId: args.contestProblemId as Id<"contestProblems">,
+            cursor: 0,
+          });
+          return null;
+        }
+        const problemId = await resolveProblemId(ctx, args);
+        if (!problemId) {
+          await failJob(ctx, jobId, "The problem no longer exists.");
+          return null;
+        }
+        const filter: RejudgeFilter = {
+          problemId,
+          idRange: resolveIdRange(args),
+          languageIds: await resolveLanguageIds(ctx, args),
+          results: Array.isArray(args.results) ? (args.results as string[]) : [],
+          archiveLocked: args.archiveLocked === true,
+        };
+        const total = await countMatching(ctx, problemId, filter, Date.now());
+        await ctx.db.patch(jobId, {
+          status: "running",
+          progress: { done: 0, total, stage: "Rejudging submissions" },
+        });
+        await ctx.scheduler.runAfter(0, internal.jobs.rejudgeChunk, {
+          jobId,
+          problemId,
+          filter: {
+            problemId,
+            idRange: filter.idRange,
+            languageIds: filter.languageIds,
+            results: filter.results,
+            archiveLocked: filter.archiveLocked,
+          },
+          cursor: null,
+          done: 0,
+          rejudged: 0,
+          archived: 0,
+        });
+        return null;
+      }
+
+      case "rescore": {
+        if (contestId) return await runContestRescore(ctx, jobId, contestId);
+        const problemId = await resolveProblemId(ctx, args);
+        if (!problemId) {
+          await failJob(ctx, jobId, "The problem no longer exists.");
+          return null;
+        }
+        const rows = await ctx.db
+          .query("submissions")
+          .withIndex("by_problem_date", (q) => q.eq("problemId", problemId))
+          .take(JOB_COUNT_LIMIT);
+        await ctx.db.patch(jobId, {
+          status: "running",
+          progress: { done: 0, total: rows.length, stage: "Modifying submissions" },
+        });
+        await ctx.scheduler.runAfter(0, internal.jobs.rescoreChunk, {
+          jobId,
+          problemId,
+          cursor: null,
+          done: 0,
+          profileIds: [],
+        });
+        return null;
+      }
+
+      case "rescoreContest":
+        return await runContestRescore(ctx, jobId, contestId);
+
+      case "rateContest": {
+        if (!contestId) {
+          await failJob(ctx, jobId, "The contest no longer exists.");
+          return null;
+        }
+        await ctx.scheduler.runAfter(0, internal.jobsContests.rateContestJob, { jobId, contestId });
+        return null;
+      }
+
+      case "rejudgeContestProblem": {
+        if (!contestId || typeof args.contestProblemId !== "string") {
+          await failJob(ctx, jobId, "The contest problem no longer exists.");
+          return null;
+        }
+        await ctx.scheduler.runAfter(0, internal.jobsContests.rejudgeContestProblemChunk, {
+          jobId,
+          contestId,
+          contestProblemId: args.contestProblemId as Id<"contestProblems">,
+          cursor: 0,
+        });
+        return null;
+      }
+
+      case "moss": {
+        if (!contestId) {
+          await failJob(ctx, jobId, "The contest no longer exists.");
+          return null;
+        }
+        await ctx.scheduler.runAfter(0, internal.jobsContests.mossJob, { jobId, contestId });
+        return null;
+      }
+
+      case "userExport": {
+        await ctx.scheduler.runAfter(0, internal.jobsUsers.run, { jobId });
+        return null;
+      }
+
+      // `pdf` and `sitemap` are rendered by the web app, not by Convex: the job
+      // row exists so the console can show that one was asked for.
+      case "pdf":
+      case "sitemap": {
+        await ctx.db.patch(jobId, {
+          status: "running",
+          progress: { ...job.progress, stage: type === "pdf" ? "Rendering PDF" : "Building sitemap" },
+        });
+        await finishJob(ctx, jobId, { skipped: true, reason: `${type} is rendered by the web app` });
+        return null;
+      }
+
+      default:
+        await failJob(ctx, jobId, `Unknown job type "${type}".`);
+        return null;
+    }
+  },
+});
+
+async function runContestRescore(
+  ctx: MutationCtx,
+  jobId: Id<"jobs">,
+  contestId: Id<"contests"> | null,
+): Promise<null> {
+  if (!contestId) {
+    await failJob(ctx, jobId, "The contest no longer exists.");
+    return null;
+  }
+  const participations = await ctx.db
+    .query("contestParticipations")
+    .withIndex("by_contest_virtual_score", (q) => q.eq("contestId", contestId))
+    .collect();
+  await ctx.db.patch(jobId, {
+    status: "running",
+    progress: { done: 0, total: participations.length, stage: "Recalculating contest scores" },
+  });
+  await ctx.scheduler.runAfter(0, internal.jobsContests.rescoreChunk, { jobId, contestId, cursor: 0 });
+  return null;
 }
