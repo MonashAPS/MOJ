@@ -4,27 +4,18 @@ MOJ is a TypeScript rewrite of DMOJ. It is not a fork: no Django, no Celery, no 
 everything that faces outward, so that a site, its problem repositories, its scripts and its bookmarks can move
 across without being rewritten.
 
-This page is the honest list: what is the same, what is imported, and what is deliberately different.
+This page lists what is the same, what the importer brings across, and what is deliberately different.
 
 ## The same URLs
 
-Every page DMOJ serves is served by MOJ at the same path, including the trailing slash. `/problems/`,
-`/problem/aplusb`, `/problem/aplusb/submit`, `/submissions/user/alice/`, `/submission/12345`,
-`/contest/spring26/ranking/`, `/user/alice/solved`, `/organization/3-example`, `/accounts/login/`,
-`/feed/blog/atom/`, `/api/v2/problems`. Old links, old bookmarks and old scripts keep working.
+All DMOJ URLs work. Every path DMOJ serves is served here, including the trailing slash, or redirects to the page
+that replaces it: `/problems/`, `/problem/aplusb`, `/problem/aplusb/submit`, `/submissions/user/alice/`,
+`/submission/12345`, `/contest/spring26/ranking/`, `/user/alice/solved`, `/organization/3-example`,
+`/accounts/login/`, `/accounts/password/reset/confirm/<token>/`, `/feed/blog/atom/`, `/api/v2/problems`. Old
+links, old bookmarks and old scripts keep working.
 
 The web app runs with `trailingSlash: true`, so DMOJ's canonical form is MOJ's canonical form. A request without
 the slash is redirected to the one with it.
-
-Two paths moved on purpose:
-
-- the password reset confirmation is `/accounts/reset/confirm/<token>/` rather than Django's
-  `/accounts/password/reset/confirm/<uidb64>-<token>/`, because the token is one opaque string with nothing to
-  split. DMOJ's path, and the two pages either side of it, exist as redirects, so an old link in an old email
-  still lands in the right place;
-- the two-factor challenge during sign-in is `/accounts/login/2fa/`. DMOJ overloads `/accounts/2fa/` for both the
-  challenge and the settings page, which it can only do because its two-factor settings live under edit profile.
-  MOJ keeps `/accounts/2fa/` for the settings, where the spec puts it.
 
 ## The same problem format
 

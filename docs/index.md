@@ -4,7 +4,7 @@ layout: home
 hero:
   name: MOJ
   text: the MAPS Online Judge
-  tagline: A TypeScript rewrite of DMOJ. Same URLs, same problem format, same accounts, the DMOJ judge-server as the grader.
+  tagline: An online judge and contest platform written in TypeScript, compatible with DMOJ. All DMOJ URLs work, the problem format is unchanged, and an existing site imports.
   image:
     src: /logo.svg
     alt: MOJ
@@ -41,8 +41,8 @@ features:
 If you want to run MOJ on your own machine, read the [quick start](/guide/quick-start). It installs Docker and
 Node, brings up the site and connects a judge.
 
-If you are coming from DMOJ, [compatibility with DMOJ](/guide/compatibility) is the list of what is the same,
-what the importer brings across, and what is deliberately different.
+If you are coming from DMOJ, [compatibility with DMOJ](/guide/compatibility) lists what is the same, what the
+importer brings across, and what is deliberately different.
 
 If you are writing problems, read the [problem format](/problems/format) and
 [problem repos and CI](/problems/repos-and-ci).
