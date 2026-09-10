@@ -165,7 +165,7 @@ export function RecentCommentsBox() {
     <Panel title="Recent comments" icon={<MessageSquare size={14} />}>
       <ul className="grid min-w-0">
         {comments.map((comment) => (
-          <li key={comment._id} className="flex min-w-0 items-start gap-1.5 py-2 text-sm leading-[1.35]">
+          <li key={comment._id} className="flex min-w-0 items-start gap-1.5 py-1 text-list leading-[1.35]">
             <RatingName username={comment.author} rating={comment.authorRating} className="shrink-0" />
             <ChevronRight size={12} aria-hidden className="mt-0.5 shrink-0 text-muted-foreground" />
             <Link href={comment.href} className="line-clamp-2 min-w-0 flex-1 text-link">
@@ -190,16 +190,16 @@ export function NewProblemsBox({ states }: { states?: Record<string, "solved" | 
         {problems.map((problem) => {
           const state = states?.[problem.code];
           return (
-            <li key={problem._id} className="flex min-w-0 items-center gap-2 py-1">
+            <li key={problem._id} className="flex min-w-0 items-center gap-2 py-0.5">
               {state === "solved" ? (
                 <CheckCircle2 size={14} aria-label="Solved" className="shrink-0 text-good" />
               ) : state ? (
                 <CircleDashed size={14} aria-label="Attempted" className="shrink-0 text-muted-foreground" />
               ) : null}
-              <Link href={`/problem/${problem.code}`} className="min-w-0 flex-1 truncate text-base text-link">
+              <Link href={`/problem/${problem.code}`} className="min-w-0 flex-1 truncate text-list text-link">
                 {problem.name}
               </Link>
-              <span className="shrink-0 font-mono text-sm tabular-nums text-muted-foreground">
+              <span className="shrink-0 font-mono text-list tabular-nums text-muted-foreground">
                 {problem.points}p
               </span>
             </li>
@@ -225,11 +225,11 @@ export function TopUsersBox({ viewerUsername }: { viewerUsername?: string }) {
             <li
               key={user._id}
               className={cn(
-                "flex h-(--row-h-dense) min-w-0 items-center gap-2 rounded-xs px-1 text-base",
+                "flex h-6 min-w-0 items-center gap-2 rounded-xs px-1 text-list",
                 isViewer && "bg-row-selected",
               )}
             >
-              <span className="w-[2ch] shrink-0 text-right font-mono text-sm tabular-nums text-muted-foreground">
+              <span className="w-[2ch] shrink-0 text-right font-mono text-list tabular-nums text-muted-foreground">
                 {index + 1}
               </span>
               <RatingName
@@ -239,7 +239,7 @@ export function TopUsersBox({ viewerUsername }: { viewerUsername?: string }) {
                 isAdmin={user.displayRank === "admin"}
                 className={cn("min-w-0 flex-1 truncate", isViewer && "font-bold")}
               />
-              <span className="shrink-0 font-mono text-sm tabular-nums text-subtle">
+              <span className="shrink-0 font-mono text-list tabular-nums text-subtle">
                 {user.performancePoints.toFixed(0)}
               </span>
             </li>
