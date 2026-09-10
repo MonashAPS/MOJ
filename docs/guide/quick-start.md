@@ -262,6 +262,23 @@ Convex HTTP origin through `host.docker.internal`. Watch it come up with
 `docker compose -f infra/compose.dev.yml --project-directory . logs -f judge`; the handshake line names the site
 and the number of problems found.
 
+### Keeping the judge off some cores
+
+A judge grades against wall-clock limits, so on a machine you are also working on it is worth giving it cores of
+its own -- and some machines have cores that must not be used at all. Nothing tracked in the repository assumes a
+core count. To pin it, copy the example override and set the CPU list:
+
+```bash
+cp infra/compose.override.local.example.yml infra/compose.override.local.yml
+echo 'JUDGE_CPUSET=0-11,14-31' >> .env.local
+
+docker compose -f infra/compose.dev.yml -f infra/compose.override.local.yml \
+  --project-directory . --profile judge up -d judge
+```
+
+`infra/compose.override.local.yml` is gitignored, because what is true of your machine is not true of anyone
+else's. `MOJ_CPUSET` does the same for the child processes `npm run setup` spawns.
+
 ### When the Docker bridge cannot reach the host
 
 On a Linux host whose firewall trusts only the loopback interface, a container on the default bridge cannot reach

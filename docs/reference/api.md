@@ -6,9 +6,9 @@ MOJ has two HTTP APIs.
 against a DMOJ site keep working. It is served by the web app, at `https://judge.example.org/api/v2/...`.
 
 The **problems API** is a write API used by problem repositories to publish statements and metadata. It is served
-by the Convex backend's HTTP origin, not by the web app, so its base URL is the value of
-`NEXT_PUBLIC_CONVEX_SITE_URL`, something like `https://convex-site.judge.example.org`. This catches people out;
-`/admin/api-keys` prints the right base URL for the deployment you are looking at.
+by the Convex backend's HTTP origin, but the site publishes it on its own origin under `/api/problems/`, so its
+base URL is just the address of the judge: `https://judge.example.org`. `/admin/api-keys` prints the right base URL
+for the deployment you are looking at.
 
 Both authenticate with an API token. See [accounts and 2FA](/using/accounts#api-tokens) for how to make one.
 
@@ -34,7 +34,8 @@ Two kinds of token verify. A token minted by this site is checked against Better
 minted by a DMOJ site you imported from is checked against `LEGACY_SECRET_KEY`, the old site's Django
 `SECRET_KEY`; without that variable set, legacy tokens are rejected and new ones still work.
 
-API v2 does not check scopes. The problems API does, and requires `problems:write`.
+A token carries one or both of exactly two scopes, `read` and `problems:write`. API v2 does not check them; the
+problems API does, and requires `problems:write`.
 
 There is no rate limiting on either API. Be polite anyway.
 
@@ -335,7 +336,8 @@ Online judges only.
 ## The problems API
 
 The write API used by [problem repositories](/problems/repos-and-ci). It needs a key with the `problems:write`
-scope, and the key's owner needs permission to edit the problem. Its base URL is the Convex site origin.
+scope, and the key's owner needs permission to edit the problem. Its base URL is the address of the judge: the
+Convex backend serves it, and the site proxies `/api/problems/*` through to it.
 
 Errors are `{"error": {"code": "<name>", "message": "..."}}`, where the name maps to a status:
 `unauthenticated` 401, `forbidden` 403, `not_found` 404, `invalid` **422**, `conflict` 409, `payload_too_large`

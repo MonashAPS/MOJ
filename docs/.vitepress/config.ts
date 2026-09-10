@@ -12,6 +12,7 @@ export default defineConfig({
     "**/SPEC_CHANGES.md",
     "**/DMOJ_RULES.md",
     "**/RUNBOOK.md",
+    "**/QA.md",
     "**/audit/**",
     "**/design/**",
     "**/public/**",
