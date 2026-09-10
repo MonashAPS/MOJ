@@ -18,6 +18,8 @@ export type MarkdownEditorProps = {
   /** Rows the write pane opens at. */
   rows?: number;
   disabled?: boolean;
+  /** Why the control is disabled, shown on hover. */
+  disabledReason?: string;
   autoFocus?: boolean;
   className?: string;
   /** DMOJ's Martor flow asks for a preview before the post button works. The
@@ -49,6 +51,7 @@ export function MarkdownEditor({
   maxLength,
   rows = 8,
   disabled = false,
+  disabledReason,
   autoFocus = false,
   className,
   onPreviewedChange,
@@ -126,6 +129,7 @@ export function MarkdownEditor({
   return (
     <div
       data-slot="markdown-editor"
+      title={disabled ? disabledReason : undefined}
       // The textarea has no border of its own, so the frame carries the one ring.
       className={cn(
         "overflow-hidden rounded-md border border-input bg-card transition-[border-color,box-shadow]",
