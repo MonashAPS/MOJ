@@ -3,6 +3,10 @@ import type { NextConfig } from "next";
 
 const config: NextConfig = {
   reactStrictMode: true,
+  // Everything the server needs, traced into `.next/standalone`, is what
+  // apps/web/Dockerfile ships. Without it the image would have to carry the
+  // whole workspace `node_modules`.
+  output: "standalone",
   transpilePackages: ["@moj/ui", "@moj/core"],
   outputFileTracingRoot: path.join(import.meta.dirname, "../.."),
   // `@moj/content` spawns Typst and reads its templates off disk; bundling it
