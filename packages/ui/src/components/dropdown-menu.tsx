@@ -70,7 +70,9 @@ export function DropdownMenuItem({
       className={cn(
         menuItem,
         "outline-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        "data-[variant=destructive]:text-danger-ink data-[variant=destructive]:data-[highlighted]:bg-danger-bg data-[variant=destructive]:data-[highlighted]:text-danger-ink",
+        // Destructive reads as ordinary until it is highlighted, so a menu of
+        // links is not one red row (DESIGN.md section 8.3).
+        "data-[variant=destructive]:data-[highlighted]:bg-danger-bg data-[variant=destructive]:data-[highlighted]:text-danger-ink data-[variant=destructive]:data-[highlighted]:[&_svg]:text-danger-ink",
         disabledItem,
         className,
       )}

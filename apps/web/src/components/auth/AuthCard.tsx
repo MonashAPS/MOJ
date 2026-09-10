@@ -20,9 +20,9 @@ export function AuthCard({
   children: ReactNode;
 }) {
   return (
-    <div className="relative isolate flex min-h-[calc(100dvh_-_var(--nav-height)_-_var(--space-6))] flex-col items-center justify-center px-4 py-8">
-      <div aria-hidden className="page-grid pointer-events-none fixed inset-0 bg-ground" />
-
+    // The shell paints the club's royal grid on the ground for every /accounts/
+    // route, so this frame does not lay one of its own over the top.
+    <div className="relative flex min-h-[calc(100dvh_-_var(--nav-height)_-_var(--space-6))] flex-col items-center justify-center py-8">
       <div className="absolute right-0 top-0">
         <ThemeToggle label={false} />
       </div>

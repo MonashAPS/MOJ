@@ -1,7 +1,18 @@
-import { TitleRow } from "@moj/ui";
+import {
+  Alert,
+  AlertTitle,
+  Button,
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  TitleRow,
+} from "@moj/ui";
+import { AlertCircle, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
-export const metadata = { title: "Two Factor Authentication" };
+export const metadata = { title: "Two factor authentication" };
 
 export default async function TwoFactorPage({
   searchParams,
@@ -11,22 +22,35 @@ export default async function TwoFactorPage({
   const { required } = await searchParams;
   return (
     <>
-      <TitleRow title="Two Factor Authentication" />
-      <div id="content-body">
-        <div className="content-description" style={{ maxWidth: "45em" }}>
-          {required ? (
-            <div className="alert alert-warning">
-              Staff accounts must have two factor authentication enabled.
-            </div>
-          ) : null}
-          <p>
-            Two factor authentication adds a second step to logging in: your password, then a six digit code
-            from an authenticator app on your phone. Scratch codes let you back in if you lose the phone.
-          </p>
-          <p>
-            <Link href="/edit/profile/">Back to your profile</Link>
-          </p>
-        </div>
+      <TitleRow title="Two factor authentication" />
+      <div id="content-body" className="grid max-w-(--prose-max) gap-4">
+        {required ? (
+          <Alert variant="warning">
+            <AlertCircle className="size-3.5" aria-hidden />
+            <AlertTitle>Staff accounts must have two factor authentication enabled.</AlertTitle>
+          </Alert>
+        ) : null}
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck className="size-4 text-subtle" aria-hidden />
+              How it works
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 text-base text-subtle">
+            <p>
+              Two factor authentication adds a second step to logging in: your password, then a six digit code
+              from an authenticator app on your phone.
+            </p>
+            <p>Scratch codes let you back in if you lose the phone. Keep them somewhere safe.</p>
+          </CardContent>
+          <CardFooter className="border-t">
+            <Button asChild variant="secondary">
+              <Link href="/edit/profile/">Back to your profile</Link>
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     </>
   );

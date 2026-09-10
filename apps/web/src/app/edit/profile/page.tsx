@@ -1,5 +1,7 @@
 import { api } from "@convex/_generated/api";
-import { TitleRow } from "@moj/ui";
+import { Alert, AlertDescription, AlertTitle, TitleRow } from "@moj/ui";
+import { AlertCircle } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "@/auth/session";
 import { query, queryAsViewer } from "@/lib/convex-server";
@@ -26,12 +28,15 @@ export default async function EditProfilePage() {
   return (
     <>
       <TitleRow title="Edit profile" />
-      <div id="content-body">
+      <div id="content-body" className="grid gap-4">
         {needsTwoFactor ? (
-          <div className="alert alert-warning" style={{ maxWidth: 620 }}>
-            Staff accounts must have two factor authentication enabled.{" "}
-            <a href="/accounts/2fa/">Set it up now</a>.
-          </div>
+          <Alert variant="warning" className="max-w-[44rem]">
+            <AlertCircle className="size-3.5" aria-hidden />
+            <AlertTitle>Staff accounts must have two factor authentication enabled.</AlertTitle>
+            <AlertDescription>
+              <Link href="/accounts/2fa/">Set it up now</Link>
+            </AlertDescription>
+          </Alert>
         ) : null}
         <EditProfileForm
           username={profile?.username ?? session.user.name}

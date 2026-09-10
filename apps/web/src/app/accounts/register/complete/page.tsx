@@ -1,4 +1,14 @@
-import { TitleRow } from "@moj/ui";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  TitleRow,
+} from "@moj/ui";
+import { Info, MailCheck } from "lucide-react";
 import Link from "next/link";
 import { recallLink } from "@/auth/mail";
 
@@ -18,27 +28,41 @@ export default async function RegistrationCompletePage({
   return (
     <>
       <TitleRow title="Registration complete" />
-      <div id="content-body">
-        <div className="content-description" style={{ maxWidth: "45em" }}>
-          <p>
-            Your account has been created. We have sent an activation link to
-            {email ? <strong> {email}</strong> : " your email address"}; follow it to finish signing up. The
-            link is good for seven days.
-          </p>
-          <p>
-            Nothing arrived? Check your spam folder, then <Link href="/accounts/register/">try again</Link>.
-          </p>
+      <div id="content-body" className="grid max-w-(--prose-max) gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MailCheck className="size-4 text-subtle" aria-hidden />
+              Check your email
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 text-base text-subtle">
+            <p>
+              Your account has been created. We have sent an activation link to
+              {email ? (
+                <strong className="font-medium text-foreground"> {email}</strong>
+              ) : (
+                " your email address"
+              )}
+              ; follow it to finish signing up. The link is good for seven days.
+            </p>
+            <p>
+              Nothing arrived? Check your spam folder, then <Link href="/accounts/register/">try again</Link>.
+            </p>
+          </CardContent>
+        </Card>
 
-          {link ? (
-            <div className="alert alert-info">
-              Mail is not configured on this install, so the activation link is shown here:
-              <br />
-              <a href={link.url} style={{ wordBreak: "break-all" }}>
+        {link ? (
+          <Alert variant="info">
+            <Info className="size-3.5" aria-hidden />
+            <AlertTitle>Mail is not configured on this install</AlertTitle>
+            <AlertDescription>
+              <a href={link.url} className="break-all font-mono text-mono">
                 {link.url}
               </a>
-            </div>
-          ) : null}
-        </div>
+            </AlertDescription>
+          </Alert>
+        ) : null}
       </div>
     </>
   );

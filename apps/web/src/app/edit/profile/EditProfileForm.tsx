@@ -1,10 +1,23 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { Button, Field, Input, Select, Textarea } from "@moj/ui";
+import {
+  Alert,
+  AlertTitle,
+  Button,
+  Card,
+  CardContent,
+  Field,
+  FieldGroup,
+  FormFooter,
+  Input,
+  Select,
+  Textarea,
+} from "@moj/ui";
 import { useMutation } from "convex/react";
-import { useState } from "react";
-import { type ThemeChoice, ThemeToggle } from "@/components/shell/ThemeToggle";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import type { ThemeChoice } from "@/components/shell/ThemeToggle";
 
 const EDITOR_THEMES = [
   { value: "github", label: "GitHub" },
@@ -20,6 +33,14 @@ const SITE_THEMES = [
   { value: "light", label: "Light" },
   { value: "dark", label: "Dark" },
 ];
+
+type FormState = {
+  about: string;
+  timezone: string;
+  languageKey: string;
+  siteTheme: ThemeChoice;
+  editorTheme: string;
+};
 
 export function EditProfileForm({
   username,
@@ -41,9 +62,32 @@ export function EditProfileForm({
   languages: Array<{ key: string; name: string }>;
 }) {
   const update = useMutation(api.profiles.updatePreferences);
-  const [form, setForm] = useState({ about, timezone, languageKey, siteTheme, editorTheme });
+  const [baseline, setBaseline] = useState<FormState>({
+    about,
+    timezone,
+    languageKey,
+    siteTheme,
+    editorTheme,
+  });
+  const [form, setForm] = useState<FormState>(baseline);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState("");
+
+  const dirty = (Object.keys(baseline) as Array<keyof FormState>).some((key) => form[key] !== baseline[key]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    function warn(event: BeforeUnloadEvent) {
+      event.preventDefault();
+    }
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
+  function change<K extends keyof FormState>(key: K, value: FormState[K]) {
+    setForm((current) => ({ ...current, [key]: value }));
+    setStatus((current) => (current === "saved" ? "idle" : current));
+  }
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -56,6 +100,7 @@ export function EditProfileForm({
         siteTheme: form.siteTheme,
         editorTheme: form.editorTheme,
       });
+      setBaseline(form);
       setStatus("saved");
       setMessage("Your profile has been updated.");
     } catch (error) {
@@ -65,7 +110,7 @@ export function EditProfileForm({
   }
 
   function applyTheme(value: ThemeChoice) {
-    setForm({ ...form, siteTheme: value });
+    change("siteTheme", value);
     const root = document.documentElement;
     try {
       if (value === "auto") {
@@ -81,73 +126,94 @@ export function EditProfileForm({
   }
 
   return (
-    <div className="card" style={{ maxWidth: "44rem" }}>
-      <form onSubmit={onSubmit}>
-        {status === "saved" ? <div className="alert alert-success">{message}</div> : null}
-        {status === "error" ? <div className="alert alert-danger">{message}</div> : null}
+    <Card className="max-w-[44rem]">
+      <CardContent>
+        <form onSubmit={onSubmit}>
+          {status === "saved" ? (
+            <Alert variant="success" className="mb-4">
+              <CheckCircle2 className="size-3.5" aria-hidden />
+              <AlertTitle>{message}</AlertTitle>
+            </Alert>
+          ) : null}
+          {status === "error" ? (
+            <Alert variant="danger" className="mb-4">
+              <AlertCircle className="size-3.5" aria-hidden />
+              <AlertTitle>{message}</AlertTitle>
+            </Alert>
+          ) : null}
 
-        <div className="form-grid two-column">
-          <Field label="Username" htmlFor="profile-username" className="span-2">
-            <Input id="profile-username" type="text" value={username} readOnly aria-readonly />
-          </Field>
+          <FieldGroup columns={2} className="items-start">
+            <Field
+              label="Username"
+              htmlFor="profile-username"
+              hint="Your username cannot be changed."
+              className="sm:col-span-2"
+            >
+              <Input id="profile-username" type="text" value={username} readOnly aria-readonly />
+            </Field>
 
-          <Field label="Self-description" htmlFor="profile-about" className="span-2">
-            <Textarea
-              id="profile-about"
-              rows={6}
-              value={form.about}
-              onChange={(event) => setForm({ ...form, about: event.target.value })}
-            />
-          </Field>
+            <Field
+              label="Self-description"
+              htmlFor="profile-about"
+              hint="Shown on your profile. Markdown is allowed."
+              className="sm:col-span-2"
+            >
+              <Textarea
+                id="profile-about"
+                rows={6}
+                value={form.about}
+                onChange={(event) => change("about", event.target.value)}
+              />
+            </Field>
 
-          <Field label="Timezone" htmlFor="profile-timezone">
-            <Select
-              id="profile-timezone"
-              ariaLabel="Timezone"
-              value={form.timezone}
-              onValueChange={(value) => setForm({ ...form, timezone: value })}
-              options={timezones.map((zone) => ({ value: zone, label: zone }))}
-            />
-          </Field>
+            <Field label="Timezone" htmlFor="profile-timezone">
+              <Select
+                id="profile-timezone"
+                ariaLabel="Timezone"
+                value={form.timezone}
+                onValueChange={(value) => change("timezone", value)}
+                options={timezones.map((zone) => ({ value: zone, label: zone }))}
+              />
+            </Field>
 
-          <Field label="Preferred language" htmlFor="profile-language">
-            <Select
-              id="profile-language"
-              ariaLabel="Preferred language"
-              value={form.languageKey}
-              onValueChange={(value) => setForm({ ...form, languageKey: value })}
-              options={languages.map((language) => ({ value: language.key, label: language.name }))}
-            />
-          </Field>
+            <Field label="Preferred language" htmlFor="profile-language">
+              <Select
+                id="profile-language"
+                ariaLabel="Preferred language"
+                value={form.languageKey}
+                onValueChange={(value) => change("languageKey", value)}
+                options={languages.map((language) => ({ value: language.key, label: language.name }))}
+              />
+            </Field>
 
-          <Field label="Site theme" htmlFor="profile-theme">
-            <Select
-              id="profile-theme"
-              ariaLabel="Site theme"
-              value={form.siteTheme}
-              onValueChange={(value) => applyTheme(value as ThemeChoice)}
-              options={SITE_THEMES}
-            />
-          </Field>
+            <Field label="Site theme" htmlFor="profile-theme">
+              <Select
+                id="profile-theme"
+                ariaLabel="Site theme"
+                value={form.siteTheme}
+                onValueChange={(value) => applyTheme(value as ThemeChoice)}
+                options={SITE_THEMES}
+              />
+            </Field>
 
-          <Field label="Editor theme" htmlFor="profile-editor-theme">
-            <Select
-              id="profile-editor-theme"
-              ariaLabel="Editor theme"
-              value={form.editorTheme}
-              onValueChange={(value) => setForm({ ...form, editorTheme: value })}
-              options={EDITOR_THEMES}
-            />
-          </Field>
-        </div>
+            <Field label="Editor theme" htmlFor="profile-editor-theme">
+              <Select
+                id="profile-editor-theme"
+                ariaLabel="Editor theme"
+                value={form.editorTheme}
+                onValueChange={(value) => change("editorTheme", value)}
+                options={EDITOR_THEMES}
+              />
+            </Field>
+          </FieldGroup>
 
-        <div className="auth-footer-row">
-          <ThemeToggle initial={form.siteTheme} />
-          <Button type="submit" disabled={status === "saving"}>
-            {status === "saving" ? "Saving..." : "Update profile"}
-          </Button>
-        </div>
-      </form>
-    </div>
+          <FormFooter note={dirty ? "Unsaved changes" : undefined}>
+            <Button type="submit" busy={status === "saving"}>
+              {status === "saving" ? "Saving…" : "Update profile"}
+            </Button>
+          </FormFooter>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

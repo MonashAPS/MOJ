@@ -13,6 +13,7 @@ import { ContestBar } from "./ContestBar";
 import { ContestFloater } from "./ContestFloater";
 import { Footer } from "./Footer";
 import { NavBar } from "./NavBar";
+import { RouteProgress } from "./RouteProgress";
 import { ShortcutLayer } from "./ShortcutLayer";
 import type { ViewerSummary } from "./UserBlock";
 
@@ -100,8 +101,9 @@ export function SiteShell({
       >
         <main
           id="content"
-          className="mx-auto w-full max-w-(--content-max) flex-1 px-(--gutter) py-6 min-[760px]:px-(--gutter-lg)"
+          className="relative mx-auto w-full max-w-(--content-max) flex-1 px-(--gutter) py-6 min-[760px]:px-(--gutter-lg)"
         >
+          <RouteProgress />
           {/* Page enter is the content column only; the chrome must feel nailed
               down, so it never animates on navigation. */}
           <div key={pathname} className="enter-rise">

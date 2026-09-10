@@ -30,6 +30,10 @@ export function OneTimeCode({
   const id = useId();
   const hintId = `${id}-hint`;
   const boxes = useRef<Array<HTMLInputElement | null>>([]);
+  // Typing is faster than React re-renders, and the focus we move ourselves
+  // arrives before the new props do, so every handler reads the code from here.
+  const latest = useRef(value);
+  latest.current = value;
 
   function focusSlot(slot: number) {
     boxes.current[Math.max(0, Math.min(slot, LENGTH - 1))]?.focus();
@@ -37,6 +41,7 @@ export function OneTimeCode({
 
   function commit(next: string) {
     const code = next.slice(0, LENGTH);
+    latest.current = code;
     onChange(code);
     if (code.length === LENGTH) onComplete?.(code);
     return code;
@@ -45,24 +50,24 @@ export function OneTimeCode({
   function handleInput(slot: number, raw: string) {
     const digits = raw.replace(/\D/g, "");
     if (!digits) return;
+    const code = latest.current;
     // A password manager or iOS autofill drops the whole code into one box.
     const next = commit(
-      digits.length > 1
-        ? value.slice(0, slot) + digits
-        : value.slice(0, slot) + digits + value.slice(slot + 1),
+      digits.length > 1 ? code.slice(0, slot) + digits : code.slice(0, slot) + digits + code.slice(slot + 1),
     );
     focusSlot(digits.length > 1 ? next.length : slot + 1);
   }
 
   function handleKeyDown(slot: number, event: KeyboardEvent<HTMLInputElement>) {
+    const code = latest.current;
     if (event.key === "Backspace") {
       event.preventDefault();
-      if (value[slot]) {
-        commit(value.slice(0, slot) + value.slice(slot + 1));
+      if (code[slot]) {
+        commit(code.slice(0, slot) + code.slice(slot + 1));
         return;
       }
       if (slot > 0) {
-        commit(value.slice(0, slot - 1) + value.slice(slot));
+        commit(code.slice(0, slot - 1) + code.slice(slot));
         focusSlot(slot - 1);
       }
       return;
@@ -73,7 +78,7 @@ export function OneTimeCode({
     }
     if (event.key === "ArrowRight") {
       event.preventDefault();
-      focusSlot(Math.min(slot + 1, value.length));
+      focusSlot(Math.min(slot + 1, code.length));
     }
   }
 
@@ -115,7 +120,7 @@ export function OneTimeCode({
             onKeyDown={(event) => handleKeyDown(slot, event)}
             onPaste={handlePaste}
             onFocus={(event) => {
-              if (slot > value.length) focusSlot(value.length);
+              if (slot > latest.current.length) focusSlot(latest.current.length);
               else event.currentTarget.select();
             }}
             className={cn(

@@ -17,17 +17,15 @@ export default async function RegisterPage() {
   if (settings && !settings.registrationOpen) redirect("/accounts/login/");
 
   return (
-    <div id="content-body">
-      <RegisterForm
-        timezones={timezoneList()}
-        defaultTimezone={settings?.defaultUserTimezone ?? "Australia/Melbourne"}
-        defaultLanguageKey={settings?.defaultUserLanguageKey ?? "PY3"}
-        languages={languages.map((language) => ({ key: language.key, name: language.name }))}
-        organizations={organizations.map((organization) => ({
-          slug: organization.slug,
-          name: organization.name,
-        }))}
-      />
-    </div>
+    <RegisterForm
+      timezones={timezoneList()}
+      defaultTimezone={settings?.defaultUserTimezone ?? "Australia/Melbourne"}
+      defaultLanguageKey={settings?.defaultUserLanguageKey ?? "PY3"}
+      languages={languages.map((language) => ({ key: language.key, name: language.name }))}
+      organizations={organizations.map((organization) => ({
+        slug: organization.slug,
+        name: organization.name,
+      }))}
+    />
   );
 }

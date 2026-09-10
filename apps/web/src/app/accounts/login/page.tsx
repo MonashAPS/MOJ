@@ -8,9 +8,5 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
   const params = await searchParams;
-  return (
-    <div id="content-body">
-      <LoginForm next={params.next ?? "/"} initialError={params.error} />
-    </div>
-  );
+  return <LoginForm next={params.next ?? "/"} initialError={params.error} />;
 }

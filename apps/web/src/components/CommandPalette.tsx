@@ -50,7 +50,7 @@ const GROUPS: Array<{ kind: Hit["kind"]; label: string }> = [
   { kind: "problem", label: "Problems" },
   { kind: "contest", label: "Contests" },
   { kind: "user", label: "Users" },
-  { kind: "organization", label: "Organisations" },
+  { kind: "organization", label: "Organizations" },
 ];
 
 const PAGES = [
@@ -157,7 +157,7 @@ export function CommandPalette({
       <CommandInput
         value={term}
         onValueChange={setTerm}
-        placeholder="Problems, contests, users, organisations…"
+        placeholder="Problems, contests, users, organizations…"
         autoFocus
       />
       <CommandList className="scroll-quiet">

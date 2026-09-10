@@ -325,6 +325,15 @@
   }
 }
 
+@keyframes route-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(400%);
+  }
+}
+
 @keyframes enter-rise {
   from {
     opacity: 0;

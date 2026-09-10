@@ -5,7 +5,7 @@ import { cn } from "../cn";
 /** A strip, not a toast and not a dialog. Form errors belong on the field; this is
  *  for something about the page as a whole. */
 export const alertVariants = cva(
-  "grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-md border px-4 py-3 text-base has-[>svg]:grid-cols-[16px_1fr] has-[>svg]:gap-x-3 [&>svg]:size-4 [&>svg]:translate-y-0.5",
+  "grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-md border px-4 py-3 text-base has-[>svg]:grid-cols-[16px_1fr] has-[>svg]:gap-x-3 [&>svg:not([class*='size-'])]:size-4 [&>svg]:translate-y-0.5",
   {
     variants: {
       variant: {
