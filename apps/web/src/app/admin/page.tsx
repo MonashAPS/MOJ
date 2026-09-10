@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { Panel } from "@moj/ui";
-import { AdminShell, ADMIN_SECTIONS } from "@/components/admin";
+import Link from "next/link";
+import { ADMIN_SECTIONS, AdminShell } from "@/components/admin";
 import { RecentJobs } from "./(part1)/jobs/RecentJobs";
 
 export const metadata = { title: "Overview" };

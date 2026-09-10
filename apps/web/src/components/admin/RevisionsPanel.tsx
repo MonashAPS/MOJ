@@ -95,10 +95,7 @@ export function RevisionsPanel({
 
   const left = rows.find((row) => row.id === leftId) ?? rows[1] ?? null;
   const right = rows.find((row) => row.id === rightId) ?? rows[0] ?? null;
-  const changes = useMemo(
-    () => (left && right ? diff(left.snapshot, right.snapshot) : []),
-    [left, right],
-  );
+  const changes = useMemo(() => (left && right ? diff(left.snapshot, right.snapshot) : []), [left, right]);
 
   if (loading) {
     return (
@@ -138,7 +135,13 @@ export function RevisionsPanel({
               >
                 <span className="truncate text-base text-foreground">{row.reason}</span>
                 <span className="font-mono text-sm tabular-nums text-muted-foreground">
-                  {row.author ?? "system"} · <time dateTime={new Date(row.createdAt).toISOString()} title={formatDateTime(row.createdAt)}>{formatRelative(row.createdAt)}</time>
+                  {row.author ?? "system"} ·{" "}
+                  <time
+                    dateTime={new Date(row.createdAt).toISOString()}
+                    title={formatDateTime(row.createdAt)}
+                  >
+                    {formatRelative(row.createdAt)}
+                  </time>
                 </span>
               </div>
             </li>

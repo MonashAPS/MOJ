@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  Breadcrumb,
-  cn,
-  PageTabs,
-  type TabItem,
-} from "@moj/ui";
+import { Breadcrumb, cn, PageTabs, type TabItem } from "@moj/ui";
 import type { ReactNode } from "react";
 
 export type AdminBreadcrumbItem = { label: string; href?: string };
@@ -47,9 +42,7 @@ export function AdminShell({
             <h1 className="truncate font-display text-h2 font-bold tracking-tight text-foreground">
               {title}
             </h1>
-            {description ? (
-              <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-            ) : null}
+            {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
           </div>
           {tabs && tabs.length > 0 ? <PageTabs tabs={tabs} active={activeTab} /> : null}
           {action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}

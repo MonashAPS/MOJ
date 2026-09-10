@@ -47,9 +47,7 @@ function monthGrid(month: Date): Date[] {
 }
 
 function sameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
-  );
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
 /**
@@ -102,9 +100,7 @@ export function DateTimeField({
     const hours = Math.min(23, Number(match[1]));
     const minutes = Math.min(59, Number(match[2]));
     const base = selected ?? new Date();
-    onChange(
-      new Date(base.getFullYear(), base.getMonth(), base.getDate(), hours, minutes, 0, 0).getTime(),
-    );
+    onChange(new Date(base.getFullYear(), base.getMonth(), base.getDate(), hours, minutes, 0, 0).getTime());
   }
 
   return (
@@ -147,7 +143,7 @@ export function DateTimeField({
               <ChevronRight aria-hidden />
             </Button>
           </div>
-          <div className="grid grid-cols-7 gap-0.5" role="grid">
+          <div className="grid grid-cols-7 gap-0.5">
             {WEEKDAYS.map((weekday) => (
               <span
                 key={weekday}

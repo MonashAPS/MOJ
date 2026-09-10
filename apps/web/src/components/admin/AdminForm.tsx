@@ -53,7 +53,12 @@ export function AdminSection({
   className?: string;
 }) {
   return (
-    <Panel title={title} action={action} className={className} bodyClassName="p-4">
+    <Panel
+      title={title}
+      action={action ? <span className="text-titlebar-ink">{action}</span> : null}
+      className={className}
+      bodyClassName="p-4"
+    >
       {description ? <p className="mb-4 text-sm text-muted-foreground">{description}</p> : null}
       <FieldGroup columns={columns}>{children}</FieldGroup>
     </Panel>

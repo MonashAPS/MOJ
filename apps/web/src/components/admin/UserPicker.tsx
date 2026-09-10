@@ -3,20 +3,20 @@
 import { api } from "@convex/_generated/api";
 import {
   Button,
-  cn,
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
+  cn,
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@moj/ui";
-import { useQuery } from "convex/react";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
+import { useConsoleQuery } from "./useConsoleQuery";
 
 /** DMOJ's heavy select2 on `profile_select2`: type a name, pick, get a chip. */
 export function UserPicker({
@@ -40,10 +40,7 @@ export function UserPicker({
 }) {
   const [open, setOpen] = useState(false);
   const [term, setTerm] = useState("");
-  const matches = useQuery(
-    api.pages.admin1.profileSearch,
-    open ? { term, limit: 10 } : "skip",
-  );
+  const matches = useConsoleQuery(api.pages.admin1.profileSearch, open ? { term, limit: 10 } : "skip").data;
   const options = (matches ?? []).filter((row) => !values.includes(row.username));
 
   return (
@@ -85,12 +82,7 @@ export function UserPicker({
         </PopoverTrigger>
         <PopoverContent align="start" className="w-[260px] p-0">
           <Command shouldFilter={false}>
-            <CommandInput
-              value={term}
-              onValueChange={setTerm}
-              placeholder="Username"
-              showEscHint={false}
-            />
+            <CommandInput value={term} onValueChange={setTerm} placeholder="Username" showEscHint={false} />
             <CommandList>
               <CommandEmpty>
                 {term.trim() ? `No user matches ${term.trim()}.` : "Type to search users."}

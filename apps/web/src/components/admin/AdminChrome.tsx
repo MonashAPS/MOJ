@@ -3,13 +3,13 @@
 import { api } from "@convex/_generated/api";
 import {
   Button,
-  cn,
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
+  cn,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -25,6 +25,7 @@ import { PanelsTopLeft, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
+import { ConsoleNotice } from "./ConsoleNotice";
 import { ADMIN_SECTIONS } from "./sections";
 
 /** DMOJ's `/admin` had Django's sidebar; this is the same idea on the tokens:
@@ -123,7 +124,9 @@ function ConsoleSearch() {
           />
           <CommandList>
             <CommandEmpty>
-              {term.trim() ? `No matches for ${term.trim()}.` : "Type to search problems, contests and users."}
+              {term.trim()
+                ? `No matches for ${term.trim()}.`
+                : "Type to search problems, contests and users."}
             </CommandEmpty>
             {targets.length > 0 ? (
               <CommandGroup>
@@ -157,7 +160,7 @@ export function AdminChrome({ children }: { children: ReactNode }) {
 
   return (
     <div className="-mx-(--gutter) -my-6 flex min-h-[calc(100dvh-var(--header-height,47px))] min-w-0 min-[760px]:-mx-(--gutter-lg)">
-      <aside className="shrink-0 border-r border-border bg-card max-[900px]:hidden">
+      <aside className="shrink-0 border-r border-border bg-secondary max-[900px]:hidden">
         <div className="sticky top-(--header-height,47px) w-[220px] max-[1100px]:w-[52px]">
           <div className="max-[1100px]:hidden">
             <RailLinks />
@@ -169,7 +172,7 @@ export function AdminChrome({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border bg-card px-(--gutter)">
+        <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border bg-secondary px-(--gutter)">
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
               <Button
@@ -199,7 +202,10 @@ export function AdminChrome({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        <div className="min-h-0 min-w-0 flex-1 px-(--gutter) py-4">{children}</div>
+        <div className="min-h-0 min-w-0 flex-1 px-(--gutter) py-4">
+          <ConsoleNotice />
+          {children}
+        </div>
       </div>
     </div>
   );

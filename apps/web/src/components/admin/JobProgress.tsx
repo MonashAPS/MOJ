@@ -87,7 +87,8 @@ export function JobProgress({
 
   const total = job.progress?.total ?? 0;
   const done = job.progress?.done ?? 0;
-  const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : job.status === "done" ? 100 : 0;
+  const percent =
+    total > 0 ? Math.min(100, Math.round((done / total) * 100)) : job.status === "done" ? 100 : 0;
   const finishedAt = job.finishedAt ?? now;
 
   return (
@@ -115,9 +116,7 @@ export function JobProgress({
           </Button>
         ) : null}
       </div>
-      {job.error ? (
-        <p className={cn("text-sm text-danger-ink")}>{job.error}</p>
-      ) : null}
+      {job.error ? <p className={cn("text-sm text-danger-ink")}>{job.error}</p> : null}
     </Panel>
   );
 }

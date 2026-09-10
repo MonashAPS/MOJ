@@ -90,9 +90,7 @@ export function AdminTable<Row>({
                     id="admin-table-select-all"
                     aria-label="Select every row on this page"
                     checked={allSelected ? true : someSelected ? "indeterminate" : false}
-                    onCheckedChange={(checked) =>
-                      selection?.onChange(checked ? allKeys : [])
-                    }
+                    onCheckedChange={(checked) => selection?.onChange(checked ? allKeys : [])}
                   />
                 </TableHead>
               ) : null}
@@ -165,7 +163,7 @@ export function AdminTable<Row>({
               <TableRow>
                 <TableCell colSpan={span} className="h-auto p-0">
                   <EmptyState
-                    className="rounded-none border-0"
+                    className="m-3"
                     icon={<Inbox aria-hidden />}
                     title={empty?.title ?? "Nothing here"}
                     description={empty?.description}
@@ -247,9 +245,7 @@ export function AdminPager({
   return (
     <div className="flex flex-wrap items-center gap-3">
       <span className="font-mono text-sm tabular-nums text-muted-foreground">
-        {total === 0
-          ? `No ${plural}`
-          : `${first} to ${last} of ${total} ${total === 1 ? noun : plural}`}
+        {total === 0 ? `No ${plural}` : `${first} to ${last} of ${total} ${total === 1 ? noun : plural}`}
       </span>
       <div className="ml-auto">
         <Pagination page={page} totalPages={totalPages} hrefFor={hrefFor} />
