@@ -26,7 +26,7 @@ import { useMemo, useState, useTransition } from "react";
 import { AdminForm } from "@/components/admin/AdminForm";
 import { RevisionsPanel } from "@/components/admin/RevisionsPanel";
 import { formatDate, formatDateTime } from "@/lib/format";
-import { ConfirmAction, DASH, Flag, StatusLine } from "../../_components/console";
+import { ConfirmAction, DASH, Flags, StatusLine } from "../../_components/console";
 import {
   impersonateAction,
   removePasskeyAction,
@@ -171,7 +171,11 @@ export function UserEditor({
       key: "permissions",
       label: "Permissions",
       content: (
-        <PermissionsForm user={user} permissionCodes={permissionCodes} viewerIsSuperuser={viewerIsSuperuser} />
+        <PermissionsForm
+          user={user}
+          permissionCodes={permissionCodes}
+          viewerIsSuperuser={viewerIsSuperuser}
+        />
       ),
     },
     {
@@ -220,14 +224,16 @@ function Summary({ user, account }: { user: UserRow; account: Account }) {
         <span className="font-sans text-xs font-semibold uppercase tracking-label text-muted-foreground">
           State
         </span>
-        <span className="flex flex-wrap gap-1">
-          <Flag on={user.isSuperuser} label="Superuser" tone="accent" />
-          <Flag on={user.isStaff && !user.isSuperuser} label="Staff" tone="accent" />
-          <Flag on={user.isUnlisted} label="Unlisted" tone="warn" />
-          <Flag on={user.mute} label="Muted" tone="warn" />
-          <Flag on={!user.isActive} label="Deactivated" tone="bad" />
-          <Flag on={account.account?.banned ?? false} label="Banned" tone="bad" />
-        </span>
+        <Flags
+          flags={[
+            { on: user.isSuperuser, label: "Superuser", tone: "accent" },
+            { on: user.isStaff && !user.isSuperuser, label: "Staff", tone: "accent" },
+            { on: user.isUnlisted, label: "Unlisted", tone: "warn" },
+            { on: user.mute, label: "Muted", tone: "warn" },
+            { on: !user.isActive, label: "Deactivated", tone: "bad" },
+            { on: account.account?.banned ?? false, label: "Banned", tone: "bad" },
+          ]}
+        />
       </div>
     </Panel>
   );
@@ -239,7 +245,9 @@ function Stat({ label, value, mono = false }: { label: string; value: string; mo
       <span className="font-sans text-xs font-semibold uppercase tracking-label text-muted-foreground">
         {label}
       </span>
-      <span className={mono ? "truncate font-mono text-mono tabular-nums" : "font-mono text-mono tabular-nums"}>
+      <span
+        className={mono ? "truncate font-mono text-mono tabular-nums" : "font-mono text-mono tabular-nums"}
+      >
         {value}
       </span>
     </div>
@@ -443,7 +451,11 @@ function PermissionsForm({
   const router = useRouter();
 
   const initial = useMemo(
-    () => ({ isStaff: user.isStaff, isSuperuser: user.isSuperuser, permissions: [...user.permissions].sort() }),
+    () => ({
+      isStaff: user.isStaff,
+      isSuperuser: user.isSuperuser,
+      permissions: [...user.permissions].sort(),
+    }),
     [user],
   );
   const [form, setForm] = useState(initial);
@@ -532,7 +544,11 @@ function PermissionsForm({
         <Checkbox
           checked={form.isSuperuser}
           onCheckedChange={(value) =>
-            setForm((current) => ({ ...current, isSuperuser: value === true, isStaff: value === true || current.isStaff }))
+            setForm((current) => ({
+              ...current,
+              isSuperuser: value === true,
+              isStaff: value === true || current.isStaff,
+            }))
           }
           label="Superuser — every permission, whatever the checklist says"
         />
@@ -654,9 +670,7 @@ function AccountPanel({
 
       <Panel title="Passkeys" bodyClassName="p-0">
         {account.passkeys.length === 0 ? (
-          <p className="p-3 text-sm text-muted-foreground">
-            {user.username} has not registered a passkey.
-          </p>
+          <p className="p-3 text-sm text-muted-foreground">{user.username} has not registered a passkey.</p>
         ) : (
           <Table dense scrollable={false}>
             <TableHeader>

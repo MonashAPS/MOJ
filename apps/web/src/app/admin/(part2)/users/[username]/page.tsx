@@ -1,9 +1,10 @@
 import { api } from "@convex/_generated/api";
-import { Breadcrumb, EmptyState, TitleRow } from "@moj/ui";
+import { EmptyState, TitleRow } from "@moj/ui";
 import { UserX } from "lucide-react";
 import { notFound } from "next/navigation";
 import { queryAsViewer } from "@/lib/convex-server";
 import { timezoneList } from "@/lib/timezones";
+import { Crumbs } from "../../_components/Crumbs";
 import { consoleViewer } from "../../_lib/guard";
 import { accountForUserAction } from "../actions";
 import { UserEditor } from "./UserEditor";
@@ -31,7 +32,10 @@ export default async function AdminUserPage({ params }: { params: Promise<{ user
   if (!user) {
     return (
       <>
-        <TitleRow title={username} breadcrumb={<Breadcrumb items={[{ label: "Users", href: "/admin/users/" }]} />} />
+        <TitleRow
+          title={username}
+          breadcrumb={<Crumbs items={[{ label: "Users", href: "/admin/users/" }, { label: username }]} />}
+        />
         <EmptyState
           icon={<UserX aria-hidden />}
           title="No such user"
@@ -47,7 +51,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ user
     <>
       <TitleRow
         title={user.displayName}
-        breadcrumb={<Breadcrumb items={[{ label: "Users", href: "/admin/users/" }, { label: user.username }]} />}
+        breadcrumb={<Crumbs items={[{ label: "Users", href: "/admin/users/" }, { label: user.username }]} />}
       />
       <UserEditor
         user={user}

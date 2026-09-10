@@ -19,9 +19,9 @@ import { Mail } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { AdminTable, type AdminColumn } from "@/components/admin/AdminTable";
+import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { formatDate } from "@/lib/format";
-import { DASH, Flag, SearchBox, StatusLine } from "../_components/console";
+import { DASH, Flags, SearchBox, StatusLine } from "../_components/console";
 import { type AccountRow, searchAccountsAction } from "./actions";
 
 const PER_PAGE = 50;
@@ -170,14 +170,13 @@ export function UsersTable() {
       key: "flags",
       header: "Flags",
       cell: (row) => (
-        <span className="flex flex-wrap gap-1">
-          <Flag on={row.isUnlisted} label="Unlisted" tone="warn" />
-          <Flag on={row.mute} label="Muted" tone="warn" />
-          <Flag on={!row.isActive} label="Deactivated" tone="bad" />
-          {!row.isUnlisted && !row.mute && row.isActive ? (
-            <span className="text-muted-foreground">{DASH}</span>
-          ) : null}
-        </span>
+        <Flags
+          flags={[
+            { on: row.isUnlisted, label: "Unlisted", tone: "warn" },
+            { on: row.mute, label: "Muted", tone: "warn" },
+            { on: !row.isActive, label: "Deactivated", tone: "bad" },
+          ]}
+        />
       ),
     },
     {
@@ -212,6 +211,7 @@ export function UsersTable() {
               onValueChange={(value) => setParam({ by: value === "username" ? null : value })}
               ariaLabel="Search by"
               size="sm"
+              className="w-[124px]"
             />
             <SearchBox
               value={search}
@@ -225,6 +225,7 @@ export function UsersTable() {
               onValueChange={(value) => setParam({ role: value })}
               ariaLabel="Role"
               size="sm"
+              className="w-[150px]"
             />
             <Select
               options={RANK_OPTIONS}
@@ -232,6 +233,7 @@ export function UsersTable() {
               onValueChange={(value) => setParam({ rank: value })}
               ariaLabel="Display rank"
               size="sm"
+              className="w-[176px]"
             />
             <Select
               options={STATE_OPTIONS}
@@ -239,6 +241,7 @@ export function UsersTable() {
               onValueChange={(value) => setParam({ state: value })}
               ariaLabel="Account state"
               size="sm"
+              className="w-[150px]"
             />
             <span className="ml-auto font-mono text-mono tabular-nums text-muted-foreground">
               {result ? `${total.toLocaleString()} ${total === 1 ? "user" : "users"}` : ""}
@@ -248,14 +251,17 @@ export function UsersTable() {
         emptyTitle="No users match"
         emptyDescription="No account matches these filters. Widen the search or clear a filter."
         emptyAction={
-          <Button variant="secondary" onClick={() => setParam({ q: null, role: null, rank: null, state: null })}>
+          <Button
+            variant="secondary"
+            onClick={() => setParam({ q: null, role: null, rank: null, state: null })}
+          >
             Clear filters
           </Button>
         }
         footer={
           totalPages > 1 ? (
             <>
-              <span className="font-mono text-mono tabular-nums text-muted-foreground">
+              <span className="whitespace-nowrap font-mono text-mono tabular-nums text-muted-foreground">
                 Page {page} of {totalPages}
               </span>
               <Pagination
@@ -338,14 +344,13 @@ function EmailResults({ term }: { term: string }) {
             <TableCell className="font-medium">{row.username || DASH}</TableCell>
             <TableCell className="font-mono text-mono">{row.email}</TableCell>
             <TableCell>
-              <span className="flex flex-wrap gap-1">
-                <Flag on={row.banned} label="Banned" tone="bad" />
-                <Flag on={!row.emailVerified} label="Unverified" tone="warn" />
-                <Flag on={row.twoFactorEnabled} label="2FA" />
-                {!row.banned && row.emailVerified && !row.twoFactorEnabled ? (
-                  <span className="text-muted-foreground">{DASH}</span>
-                ) : null}
-              </span>
+              <Flags
+                flags={[
+                  { on: row.banned, label: "Banned", tone: "bad" },
+                  { on: !row.emailVerified, label: "Unverified", tone: "warn" },
+                  { on: row.twoFactorEnabled, label: "2FA", tone: "good" },
+                ]}
+              />
             </TableCell>
             <TableCell>
               {row.username ? (

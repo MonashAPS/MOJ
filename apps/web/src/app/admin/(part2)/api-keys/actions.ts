@@ -1,8 +1,8 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { createHash } from "node:crypto";
 import { auth } from "@/auth/server";
 import { mutateAsViewer, queryAsViewer } from "@/lib/convex-server";
 import { type ActionResult, authHeaders, failed, requireConsoleViewer } from "../_lib/guard";
@@ -15,7 +15,9 @@ function toPermissions(scopes: string[]): Record<string, string[]> {
   for (const scope of scopes) {
     const [resource, action] = scope.split(":");
     if (!resource || !action) continue;
-    (out[resource] ??= []).push(action);
+    const bucket = out[resource];
+    if (bucket) bucket.push(action);
+    else out[resource] = [action];
   }
   return out;
 }
@@ -43,9 +45,7 @@ export async function listKeysAction(): Promise<ActionResult<ConsoleKeyRow[]>> {
   try {
     await requireConsoleViewer();
     const listed = await auth.api.listApiKeys({ headers: await authHeaders() });
-    const keys = Array.isArray(listed)
-      ? listed
-      : ((listed as { apiKeys?: unknown[] }).apiKeys ?? []);
+    const keys = Array.isArray(listed) ? listed : ((listed as { apiKeys?: unknown[] }).apiKeys ?? []);
     const mirrored = await queryAsViewer(api.pages.admin2.myApiKeys, {}).catch(() => []);
     const byPrefix = new Map(mirrored.map((row) => [row.prefix ?? "", row]));
 

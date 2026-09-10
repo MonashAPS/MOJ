@@ -37,7 +37,10 @@ export function SearchBox({
   className?: string;
 }) {
   return (
-    <InputGroup className={cn("h-(--control-h-sm) w-[240px]", className)} leading={<Search className="size-3.5" aria-hidden />}>
+    <InputGroup
+      className={cn("h-(--control-h-sm) w-[240px]", className)}
+      leading={<Search className="size-3.5" aria-hidden />}
+    >
       <InputGroupInput
         type="search"
         value={value}
@@ -104,13 +107,41 @@ export function ConfirmAction({
   );
 }
 
-/** A yes/no cell that never relies on colour alone. */
-export function Flag({ on, label, tone = "accent" }: { on: boolean; label: string; tone?: "accent" | "bad" | "warn" }) {
-  if (!on) return <span className="text-muted-foreground">{DASH}</span>;
+/** A yes/no chip that never relies on colour alone. Off renders nothing, so a
+ *  row of flags shows one em-dash rather than one per flag. */
+export function Flag({
+  on,
+  label,
+  tone = "accent",
+}: {
+  on: boolean;
+  label: string;
+  tone?: "accent" | "bad" | "warn" | "good";
+}) {
+  if (!on) return null;
   return (
     <Badge variant={tone} shape="square">
       {label}
     </Badge>
+  );
+}
+
+/** The flags cell: whatever is on, or one em-dash when nothing is. */
+export function Flags({
+  flags,
+}: {
+  flags: Array<{ on: boolean; label: string; tone?: "accent" | "bad" | "warn" | "good" }>;
+}) {
+  const on = flags.filter((flag) => flag.on);
+  if (on.length === 0) return <span className="text-muted-foreground">{DASH}</span>;
+  return (
+    <span className="flex flex-wrap gap-1">
+      {on.map((flag) => (
+        <Badge key={flag.label} variant={flag.tone ?? "accent"} shape="square">
+          {flag.label}
+        </Badge>
+      ))}
+    </span>
   );
 }
 

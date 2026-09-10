@@ -32,9 +32,7 @@ function Rail({ pathname, onNavigate }: { pathname: string; onNavigate?: () => v
                   "flex h-[30px] items-center gap-2 border-l-2 px-3 text-base text-subtle",
                   "hover:bg-row-hover hover:text-foreground",
                   focusRing,
-                  active
-                    ? "border-royal bg-row-selected font-medium text-foreground"
-                    : "border-transparent",
+                  active ? "border-royal bg-row-selected font-medium text-foreground" : "border-transparent",
                 )}
               >
                 <Icon className="size-4 shrink-0" aria-hidden />
@@ -58,14 +56,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
-    <div className="flex min-h-0 items-stretch gap-0 text-base">
+    <div className="flex min-h-0 min-w-0 items-stretch gap-0 text-base">
       <aside className="min-h-0 w-[220px] shrink-0 self-stretch border-r border-border bg-card max-[900px]:hidden">
         <div className="sticky top-(--sticky-top)">
           <Rail pathname={pathname} />
         </div>
       </aside>
 
-      <div className="flex min-w-0 min-h-0 flex-1 flex-col gap-4 px-(--gutter) py-3">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 px-(--gutter) py-3">
         <div className="shrink-0 min-[900px]:hidden">
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>

@@ -104,10 +104,7 @@ export async function accountForUserAction(
 
     if (!row) return { ok: true, data: { account: null, passkeys: [], sessions: 0 } };
 
-    const passkeys = await db
-      .select()
-      .from(schema.passkey)
-      .where(eq(schema.passkey.userId, userId));
+    const passkeys = await db.select().from(schema.passkey).where(eq(schema.passkey.userId, userId));
     const sessions = await db
       .select({ id: schema.session.id })
       .from(schema.session)
@@ -209,10 +206,7 @@ export async function resetTwoFactorAction(userId: string): Promise<ActionResult
   try {
     await requireSuperuser();
     await db.delete(schema.twoFactor).where(eq(schema.twoFactor.userId, userId));
-    await db
-      .update(schema.user)
-      .set({ twoFactorEnabled: false })
-      .where(eq(schema.user.id, userId));
+    await db.update(schema.user).set({ twoFactorEnabled: false }).where(eq(schema.user.id, userId));
     await auth.api.revokeUserSessions({ body: { userId }, headers: await authHeaders() });
     return { ok: true, data: undefined };
   } catch (error) {

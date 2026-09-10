@@ -17,13 +17,7 @@ function elapsed(from: number, to: number): string {
  * out. The submission page uses the same component. Part 1 owns the canonical
  * version of this file.
  */
-export function JobProgress({
-  jobId,
-  onDismiss,
-}: {
-  jobId: Id<"jobs">;
-  onDismiss?: () => void;
-}) {
+export function JobProgress({ jobId, onDismiss }: { jobId: Id<"jobs">; onDismiss?: () => void }) {
   const job = useQuery(api.jobs.status, { jobId });
   const [now, setNow] = useState(() => Date.now());
 
@@ -55,8 +49,7 @@ export function JobProgress({
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
         <span className="text-muted-foreground">{job.error ?? stage}</span>
         <span className="font-mono text-mono tabular-nums text-subtle">
-          {done.toLocaleString()} / {total.toLocaleString()} ·{" "}
-          {elapsed(job.createdAt, job.finishedAt ?? now)}
+          {done.toLocaleString()} / {total.toLocaleString()} · {elapsed(job.createdAt, job.finishedAt ?? now)}
         </span>
       </div>
     </Panel>

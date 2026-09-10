@@ -1,7 +1,11 @@
 /** The wire scopes the console offers. `problems:write` is the one a problem
  *  repo's GitHub Action needs (SPEC sections 8 and 22). */
 export const API_KEY_SCOPES = [
-  { value: "problems:write", label: "problems:write", hint: "Create and update problems, upload statement images" },
+  {
+    value: "problems:write",
+    label: "problems:write",
+    hint: "Create and update problems, upload statement images",
+  },
   { value: "problems:read", label: "problems:read", hint: "Read problem statements and metadata" },
 ] as const;
 

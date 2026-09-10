@@ -41,9 +41,7 @@ export const revisions = query({
     await requireStaff(ctx);
     const rows = await ctx.db
       .query("revisions")
-      .withIndex("by_entity", (q) =>
-        q.eq("entityType", args.entityType).eq("entityId", args.entityId),
-      )
+      .withIndex("by_entity", (q) => q.eq("entityType", args.entityType).eq("entityId", args.entityId))
       .collect();
     rows.sort((a, b) => b.createdAt - a.createdAt);
 

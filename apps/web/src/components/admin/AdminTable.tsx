@@ -54,7 +54,7 @@ export function AdminTable<Row>({
   const pending = loading || rows === null || rows === undefined;
 
   return (
-    <div className="flex min-h-0 flex-col gap-3">
+    <div className="flex min-h-0 min-w-0 flex-col gap-3">
       {toolbar ? (
         <div className="flex shrink-0 flex-wrap items-center gap-2 [&_[data-slot=select-trigger]]:h-(--control-h-sm)">
           {toolbar}
@@ -101,24 +101,29 @@ export function AdminTable<Row>({
   );
 }
 
+/** Stable keys for placeholders that have no identity of their own. */
+function cells(count: number, prefix: string): string[] {
+  return Array.from({ length: count }, (_, index) => `${prefix}-${index}`);
+}
+
 function TableSkeleton({ columns, rows = 8 }: { columns: number; rows?: number }) {
   return (
     <div className="overflow-hidden rounded-md border border-border bg-card" aria-busy>
-      <div className="flex h-7 items-center gap-4 border-b border-border bg-secondary px-3">
-        {Array.from({ length: columns }, (_, index) => (
-          <Skeleton key={index} className="h-2.5 w-16" />
+      <div className="flex h-8 items-center gap-4 bg-titlebar px-3">
+        {cells(columns, "head").map((cell) => (
+          <Skeleton key={cell} className="h-2.5 w-16 bg-titlebar-ink/25" />
         ))}
       </div>
-      {Array.from({ length: rows }, (_, rowIndex) => (
+      {cells(rows, "row").map((row, rowIndex) => (
         <div
-          key={rowIndex}
+          key={row}
           className={cn(
             "flex h-(--row-h-dense) items-center gap-4 border-b border-border px-3 last:border-b-0",
             rowIndex % 2 === 1 && "bg-zebra",
           )}
         >
-          {Array.from({ length: columns }, (_, index) => (
-            <Skeleton key={index} className="h-2.5 w-24" />
+          {cells(columns, row).map((cell) => (
+            <Skeleton key={cell} className="h-2.5 w-24" />
           ))}
         </div>
       ))}
