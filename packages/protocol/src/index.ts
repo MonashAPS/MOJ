@@ -1,9 +1,10 @@
 /**
- * `@moj/protocol`: the wire formats MOJ speaks to things that are not the web
- * app. Pure zod, no Convex and no I/O, so both sides of a protocol can import
- * the same schema.
+ * `@moj/protocol`: zod schemas shared by the judge API, the problems API and
+ * API v2. Nothing here does I/O; the schemas are the wire contract, so both
+ * sides of a protocol can import the same one.
  */
 
+export * from "./apiV2.js";
 export * from "./judge.js";
 
 export {

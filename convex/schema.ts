@@ -80,6 +80,7 @@ export default defineSchema({
     permissions: v.array(v.string()),
     groups: v.array(v.string()),
     joinDate: v.number(),
+    isActive: v.optional(v.boolean()),
     legacyId: v.optional(v.number()),
   })
     .index("by_userId", ["userId"])
@@ -87,6 +88,7 @@ export default defineSchema({
     .index("by_legacyUserId", ["legacyUserId"])
     .index("by_legacyId", ["legacyId"])
     .index("by_listed_pp", ["isUnlisted", "performancePoints"])
+    .index("by_listed_points", ["isUnlisted", "points"])
     .index("by_listed_rating", ["isUnlisted", "rating"])
     .index("by_listed_problemCount", ["isUnlisted", "problemCount"])
     .searchIndex("search_username", {
@@ -129,6 +131,7 @@ export default defineSchema({
     organizationId: v.id("organizations"),
     name: v.string(),
     slug: v.string(),
+    description: v.optional(v.string()),
     isActive: v.boolean(),
     accessCode: v.optional(v.string()),
     adminProfileIds: v.array(v.id("profiles")),
@@ -136,6 +139,7 @@ export default defineSchema({
     legacyId: v.optional(v.number()),
   })
     .index("by_organization", ["organizationId"])
+    .index("by_organization_slug", ["organizationId", "slug"])
     .index("by_legacyId", ["legacyId"]),
 
   organizationRequests: defineTable({
@@ -149,6 +153,7 @@ export default defineSchema({
   })
     .index("by_organization_state", ["organizationId", "state"])
     .index("by_profile", ["profileId"])
+    .index("by_profile_state", ["profileId", "state"])
     .index("by_legacyId", ["legacyId"]),
 
   problemTypes: defineTable({
@@ -724,7 +729,8 @@ export default defineSchema({
     finishedAt: v.optional(v.number()),
   })
     .index("by_status_createdAt", ["status", "createdAt"])
-    .index("by_type_createdAt", ["type", "createdAt"]),
+    .index("by_type_createdAt", ["type", "createdAt"])
+    .index("by_creator_type_createdAt", ["createdByProfileId", "type", "createdAt"]),
 
   scoreboardEvents: defineTable({
     key: v.string(),
