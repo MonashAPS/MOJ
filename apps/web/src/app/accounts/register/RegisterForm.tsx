@@ -1,23 +1,13 @@
 "use client";
 
-import {
-  Alert,
-  AlertTitle,
-  Button,
-  cn,
-  Field,
-  FieldGroup,
-  Input,
-  MicroLabel,
-  MultiSelect,
-  Progress,
-  Select,
-} from "@moj/ui";
-import { AlertCircle, AtSign, KeyRound, User } from "lucide-react";
+import { Alert, AlertTitle, Button, Field, FieldGroup, Input, MultiSelect, Select } from "@moj/ui";
+import { AlertCircle, AtSign, Check, KeyRound, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { authClient } from "@/auth/client";
+import { DISPOSABLE_EMAIL_MESSAGE, isDisposableEmail } from "@/auth/disposable-email";
+import { PasswordStrength } from "@/components/accounts/PasswordStrength";
 import { AuthCard } from "@/components/auth/AuthCard";
 
 const MAX_ORGANIZATIONS = 3;
@@ -30,23 +20,6 @@ const PASSWORD_RULES = [
 ];
 
 type FieldErrors = Partial<Record<"username" | "email" | "password1" | "password2" | "form", string>>;
-
-type Strength = { value: number; word: string; tone: "bad" | "warn" | "good" };
-
-/** A word, never a score: the meter says Weak / Fair / Strong and nothing else. */
-function strengthOf(password: string): Strength {
-  if (!password) return { value: 0, word: "", tone: "bad" };
-  let points = 0;
-  if (password.length >= 8) points += 1;
-  if (password.length >= 12) points += 1;
-  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) points += 1;
-  if (/\d/.test(password)) points += 1;
-  if (/[^\w]/.test(password)) points += 1;
-  if (/^\d+$/.test(password)) points = Math.min(points, 1);
-  if (points <= 2) return { value: 33, word: "Weak", tone: "bad" };
-  if (points <= 4) return { value: 66, word: "Fair", tone: "warn" };
-  return { value: 100, word: "Strong", tone: "good" };
-}
 
 export function RegisterForm({
   timezones,
@@ -70,6 +43,7 @@ export function RegisterForm({
   const [language, setLanguage] = useState(defaultLanguageKey);
   const [selectedOrganizations, setSelectedOrganizations] = useState<string[]>([]);
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [available, setAvailable] = useState<"unknown" | "checking" | "free" | "taken">("unknown");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -81,12 +55,34 @@ export function RegisterForm({
     }
   }, [timezones]);
 
+  // DMOJ only tells you a username is taken after a round trip. Better Auth has
+  // an availability endpoint, so the answer arrives while you are still typing.
+  useEffect(() => {
+    const candidate = username.trim();
+    if (!candidate || !/^\w{1,30}$/.test(candidate)) {
+      setAvailable("unknown");
+      return;
+    }
+    setAvailable("checking");
+    const timer = window.setTimeout(async () => {
+      try {
+        const result = await authClient.isUsernameAvailable({ username: candidate });
+        setAvailable(result.data?.available ? "free" : "taken");
+      } catch {
+        setAvailable("unknown");
+      }
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [username]);
+
   function validate(): FieldErrors {
     const next: FieldErrors = {};
     if (!/^\w+$/.test(username))
       next.username = "Usernames may only contain letters, digits and underscores.";
     else if (username.length > 30) next.username = "Usernames are at most 30 characters.";
+    else if (available === "taken") next.username = "That username is already taken.";
     if (!email.includes("@")) next.email = "Enter a valid email address.";
+    else if (isDisposableEmail(email)) next.email = DISPOSABLE_EMAIL_MESSAGE;
     if (password1.length < 8) next.password1 = "Passwords must be at least 8 characters.";
     else if (/^\d+$/.test(password1)) next.password1 = "Passwords cannot be entirely numeric.";
     if (password1 !== password2) next.password2 = "The two password fields did not match.";
@@ -111,7 +107,12 @@ export function RegisterForm({
         organizationSlugs: selectedOrganizations.join(","),
       });
       if (result.error) {
-        setErrors({ form: result.error.message ?? "That account could not be created." });
+        const message = result.error.message ?? "That account could not be created.";
+        if (message === DISPOSABLE_EMAIL_MESSAGE) setErrors({ email: message });
+        else if (/username/i.test(message)) setErrors({ username: message });
+        else if (/breach|compromised|password/i.test(message)) setErrors({ password1: message });
+        else if (/email/i.test(message)) setErrors({ email: message });
+        else setErrors({ form: message });
         return;
       }
       router.push(`/accounts/register/complete/?email=${encodeURIComponent(email)}`);
@@ -121,8 +122,6 @@ export function RegisterForm({
       setBusy(false);
     }
   }
-
-  const strength = strengthOf(password1);
 
   return (
     <AuthCard
@@ -147,8 +146,14 @@ export function RegisterForm({
           <Field
             label="Username"
             htmlFor="register-username"
-            error={errors.username}
-            hint="Letters, digits and underscores, at most 30."
+            error={errors.username ?? (available === "taken" ? "That username is already taken." : undefined)}
+            hint={
+              available === "free"
+                ? "That one is free."
+                : available === "checking"
+                  ? "Checking…"
+                  : "Letters, digits and underscores, at most 30."
+            }
           >
             <Input
               id="register-username"
@@ -156,8 +161,11 @@ export function RegisterForm({
               type="text"
               autoComplete="username"
               required
-              invalid={!!errors.username}
+              invalid={!!errors.username || available === "taken"}
               icon={<User size={15} aria-hidden />}
+              trailing={
+                available === "free" ? <Check size={15} className="text-good" aria-hidden /> : undefined
+              }
               value={username}
               onChange={(event) => setUsername(event.target.value)}
             />
@@ -220,24 +228,7 @@ export function RegisterForm({
             />
           </Field>
 
-          <div className="grid gap-1.5 sm:col-span-2">
-            <div className="flex items-baseline justify-between gap-2">
-              <MicroLabel>Password strength</MicroLabel>
-              {strength.word ? (
-                <span
-                  className={cn(
-                    "text-sm font-medium",
-                    strength.tone === "bad" && "text-bad",
-                    strength.tone === "warn" && "text-warn",
-                    strength.tone === "good" && "text-good",
-                  )}
-                >
-                  {strength.word}
-                </span>
-              ) : null}
-            </div>
-            <Progress value={strength.value} tone={strength.tone} aria-label="Password strength" />
-          </div>
+          <PasswordStrength password={password1} className="sm:col-span-2" />
 
           <Field label="Timezone" htmlFor="register-timezone" hint="Pick your closest major city.">
             <Select
