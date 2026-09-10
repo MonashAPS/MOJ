@@ -23,6 +23,7 @@ interface Options {
   resume: boolean;
   clear: boolean;
   forceExtract: boolean;
+  fresh: boolean;
   skipAuth: boolean;
   skipConvex: boolean;
 }
@@ -38,6 +39,7 @@ const USAGE = `Usage: npm run import -w tools/import -- --dump <file> [options]
   --resume                   skip tables already recorded as finished in <out>/state.json
   --clear                    clear each Convex table before inserting into it
   --force-extract            re-parse the dump even if <out>/raw looks current
+  --fresh                    forget <out>/state.json and treat every table as unloaded
   --skip-auth                do not write the Better Auth tables
   --skip-convex              only write the Better Auth tables
   --help                     this message
@@ -53,6 +55,7 @@ function parseArgs(argv: string[]): Options {
     resume: false,
     clear: false,
     forceExtract: false,
+    fresh: false,
     skipAuth: false,
     skipConvex: false,
   };
@@ -96,6 +99,9 @@ function parseArgs(argv: string[]): Options {
         break;
       case "--force-extract":
         options.forceExtract = true;
+        break;
+      case "--fresh":
+        options.fresh = true;
         break;
       case "--skip-auth":
         options.skipAuth = true;
@@ -163,14 +169,22 @@ async function main(): Promise<void> {
     clear: options.clear,
   });
 
-  const previous = options.resume ? await readState(options.out) : null;
+  // The state file is always carried forward, whether or not this run resumes,
+  // so that a later --resume knows which tables are already in the deployment.
+  // --resume decides whether finished tables are skipped, --fresh forgets them.
+  const previous = options.fresh ? null : await readState(options.out);
   const mode = options.dryRun ? "dry-run" : "load";
-  if (previous && previous.mode !== mode) {
+  if (previous && options.resume && previous.mode !== mode) {
     throw new Error(
       `--resume found a ${previous.mode} state file in ${options.out}; start a fresh run or use a different --out`,
     );
   }
-  const state: StateFile = previous ?? {
+  const carried =
+    previous && previous.mode === mode && previous.dump === manifest.dump.path ? previous : null;
+  if (previous && !carried) {
+    log(`ignoring the state file in ${options.out}: it is for a different dump or mode`);
+  }
+  const state: StateFile = carried ?? {
     mode,
     dump: manifest.dump.path,
     startedAt: new Date().toISOString(),

@@ -27,6 +27,11 @@ export const submissionResult = v.union(
 );
 export const testCaseType = v.union(v.literal("C"), v.literal("S"), v.literal("E"));
 export const sourceVisibility = v.union(v.literal("A"), v.literal("S"), v.literal("O"), v.literal("F"));
+export const globalSourceVisibility = v.union(
+  v.literal("all"),
+  v.literal("all-solved"),
+  v.literal("only-own"),
+);
 export const scoreboardVisibility = v.union(v.literal("V"), v.literal("C"), v.literal("P"), v.literal("H"));
 export const labelScheme = v.union(v.literal("letters"), v.literal("numbers"), v.literal("custom"));
 export const requestState = v.union(v.literal("P"), v.literal("A"), v.literal("R"));
@@ -80,6 +85,7 @@ export default defineSchema({
     permissions: v.array(v.string()),
     groups: v.array(v.string()),
     joinDate: v.number(),
+    isActive: v.optional(v.boolean()),
     legacyId: v.optional(v.number()),
   })
     .index("by_userId", ["userId"])
@@ -87,6 +93,7 @@ export default defineSchema({
     .index("by_legacyUserId", ["legacyUserId"])
     .index("by_legacyId", ["legacyId"])
     .index("by_listed_pp", ["isUnlisted", "performancePoints"])
+    .index("by_listed_points", ["isUnlisted", "points"])
     .index("by_listed_rating", ["isUnlisted", "rating"])
     .index("by_listed_problemCount", ["isUnlisted", "problemCount"])
     .searchIndex("search_username", {
@@ -129,6 +136,7 @@ export default defineSchema({
     organizationId: v.id("organizations"),
     name: v.string(),
     slug: v.string(),
+    description: v.optional(v.string()),
     isActive: v.boolean(),
     accessCode: v.optional(v.string()),
     adminProfileIds: v.array(v.id("profiles")),
@@ -136,6 +144,7 @@ export default defineSchema({
     legacyId: v.optional(v.number()),
   })
     .index("by_organization", ["organizationId"])
+    .index("by_organization_slug", ["organizationId", "slug"])
     .index("by_legacyId", ["legacyId"]),
 
   organizationRequests: defineTable({
@@ -149,6 +158,7 @@ export default defineSchema({
   })
     .index("by_organization_state", ["organizationId", "state"])
     .index("by_profile", ["profileId"])
+    .index("by_profile_state", ["profileId", "state"])
     .index("by_legacyId", ["legacyId"]),
 
   problemTypes: defineTable({
@@ -278,7 +288,9 @@ export default defineSchema({
   problemData: defineTable({
     problemId: v.id("problems"),
     zipfile: v.optional(v.string()),
+    zipfileStorageId: v.optional(v.id("_storage")),
     generator: v.optional(v.string()),
+    generatorStorageId: v.optional(v.id("_storage")),
     outputPrefix: v.optional(v.number()),
     outputLimit: v.optional(v.number()),
     feedback: v.string(),
@@ -298,7 +310,9 @@ export default defineSchema({
     inputFile: v.string(),
     outputFile: v.string(),
     generatorArgs: v.string(),
-    points: v.number(),
+    // DMOJ's ProblemTestCase.points is nullable: a case inside a batch carries
+    // no points of its own.
+    points: v.union(v.number(), v.null()),
     isPretest: v.boolean(),
     outputPrefix: v.optional(v.number()),
     outputLimit: v.optional(v.number()),
@@ -342,6 +356,9 @@ export default defineSchema({
     runtimeKeys: v.array(v.string()),
     lastSeen: v.optional(v.number()),
     currentSubmissionId: v.optional(v.id("submissions")),
+    createdAt: v.optional(v.number()),
+    disconnectRequestedAt: v.optional(v.number()),
+    disconnectForce: v.optional(v.boolean()),
     legacyId: v.optional(v.number()),
   })
     .index("by_name", ["name"])
@@ -391,6 +408,13 @@ export default defineSchema({
     claimedByJudgeId: v.optional(v.id("judges")),
     claimedAt: v.optional(v.number()),
     retryCount: v.number(),
+    // Set by submissions.abort while the judge already holds the submission;
+    // the judge polls GET /judge/abort and clears it by terminating.
+    abortRequested: v.optional(v.boolean()),
+    // The judge's batch counter lives on the submission because the judge API
+    // is stateless: batch-begin increments it and batch-end leaves the batch.
+    currentBatch: v.optional(v.number()),
+    inBatch: v.optional(v.boolean()),
     legacyId: v.optional(v.number()),
   })
     .index("by_date", ["date"])
@@ -402,6 +426,7 @@ export default defineSchema({
     .index("by_status_priority", ["status", "priority", "date"])
     .index("by_participation", ["participationId"])
     .index("by_problem_status", ["problemId", "status"])
+    .index("by_profile_status", ["profileId", "status"])
     .index("by_language_date", ["languageId", "date"])
     .index("by_legacyId", ["legacyId"]),
 
@@ -482,6 +507,8 @@ export default defineSchema({
     blindDuringFreeze: v.boolean(),
     revealedUntilRank: v.optional(v.number()),
     isUnfrozen: v.optional(v.boolean()),
+    freezeRevealed: v.optional(v.boolean()),
+    revealState: v.optional(v.any()),
     legacyId: v.optional(v.number()),
   })
     .index("by_key", ["key"])
@@ -609,6 +636,7 @@ export default defineSchema({
   })
     .index("by_slug", ["slug"])
     .index("by_visible_publishOn", ["visible", "publishOn"])
+    .index("by_visible_sticky_publishOn", ["visible", "sticky", "publishOn"])
     .index("by_legacyId", ["legacyId"]),
 
   tickets: defineTable({
@@ -625,6 +653,7 @@ export default defineSchema({
     .index("by_open_time", ["isOpen", "time"])
     .index("by_linked", ["linkedType", "linkedKey"])
     .index("by_profile", ["profileId"])
+    .index("by_time", ["time"])
     .index("by_legacyId", ["legacyId"]),
 
   ticketMessages: defineTable({
@@ -687,7 +716,25 @@ export default defineSchema({
     pdfEnabled: v.boolean(),
     mossApiKey: v.optional(v.string()),
     analytics: v.optional(v.string()),
+    ticketsPerPage: v.optional(v.number()),
+    enableComments: v.optional(v.boolean()),
+    commentVoteHideThreshold: v.optional(v.number()),
+    commentReplyTimeframeDays: v.optional(v.number()),
+    commentMaxBodyLength: v.optional(v.number()),
+    blogNewProblemCount: v.optional(v.number()),
+    statsLanguageThreshold: v.optional(v.number()),
+    submissionSourceVisibility: v.optional(globalSourceVisibility),
+    submissionLimitPerMinute: v.optional(v.number()),
+    maxSubmissionsPerProblem: v.optional(v.number()),
+    ppStep: v.optional(v.number()),
+    ppEntries: v.optional(v.number()),
   }).index("by_singleton", ["singleton"]),
+
+  statsSnapshots: defineTable({
+    key: v.string(),
+    computedAt: v.number(),
+    data: v.any(),
+  }).index("by_key", ["key"]),
 
   revisions: defineTable({
     entityType: v.string(),
@@ -710,7 +757,8 @@ export default defineSchema({
     finishedAt: v.optional(v.number()),
   })
     .index("by_status_createdAt", ["status", "createdAt"])
-    .index("by_type_createdAt", ["type", "createdAt"]),
+    .index("by_type_createdAt", ["type", "createdAt"])
+    .index("by_creator_type_createdAt", ["createdByProfileId", "type", "createdAt"]),
 
   scoreboardEvents: defineTable({
     key: v.string(),
@@ -744,5 +792,23 @@ export default defineSchema({
     storageId: v.id("_storage"),
     renderedAt: v.number(),
     sourceHash: v.string(),
-  }).index("by_problem_language", ["problemCode", "language"]),
+  })
+    .index("by_problem_language", ["problemCode", "language"])
+    .index("by_sourceHash", ["sourceHash"]),
+
+  apiKeys: defineTable({
+    keyHash: v.string(),
+    prefix: v.optional(v.string()),
+    name: v.string(),
+    profileId: v.id("profiles"),
+    scopes: v.array(v.string()),
+    enabled: v.boolean(),
+    expiresAt: v.optional(v.number()),
+    createdAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+    legacyId: v.optional(v.number()),
+  })
+    .index("by_keyHash", ["keyHash"])
+    .index("by_profile", ["profileId"])
+    .index("by_legacyId", ["legacyId"]),
 });
