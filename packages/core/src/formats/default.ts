@@ -9,10 +9,11 @@
 
 import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from './base.js';
 import {
-  FormatConfigError,
   breakdown,
   buildParticipationResult,
   buildProblemCell,
+  cumtimeSeconds,
+  FormatConfigError,
   groupByProblem,
   numberLabel,
   orderedProblemIds,
@@ -54,7 +55,7 @@ export function updateParticipationDefault(input: UpdateParticipationInput): Par
   }
 
   return {
-    cumtime: Math.max(cumtime, 0),
+    cumtime: cumtimeSeconds(cumtime),
     score: pyRound(points, pointsPrecision(contest)),
     tiebreaker: 0,
     formatData,

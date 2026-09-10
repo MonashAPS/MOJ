@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@moj/core": "*",
     "@noble/ciphers": "^2.4.0",
     "convex": "^1.45.0",
     "pg": "^8.23.0"
