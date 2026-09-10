@@ -7,7 +7,7 @@ import { SiteShell } from "@/components/shell/SiteShell";
 import { ThemeScript } from "@/components/shell/ThemeScript";
 import { query, queryAsViewer } from "@/lib/convex-server";
 import { gravatarUrl } from "@/lib/gravatar";
-import { viewerLanguage } from "@/lib/language";
+import { viewerLanguage } from "@/lib/language.server";
 import "./globals.css";
 
 export const metadata: Metadata = {

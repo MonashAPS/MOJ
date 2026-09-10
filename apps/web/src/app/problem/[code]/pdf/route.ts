@@ -3,7 +3,8 @@ import { api } from "@convex/_generated/api";
 import { markdownToTypst, renderPdf } from "@moj/content";
 import type { NextRequest } from "next/server";
 import { mutateAsViewer, queryAsViewer } from "@/lib/convex-server";
-import { normaliseLanguage, viewerLanguage } from "@/lib/language";
+import { normaliseLanguage } from "@/lib/language";
+import { viewerLanguage } from "@/lib/language.server";
 
 /**
  * `/problem/[code]/pdf` (SPEC section 8), DMOJ's `ProblemPdfView`.

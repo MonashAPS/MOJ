@@ -1,5 +1,3 @@
-import { cookies } from "next/headers";
-
 /**
  * The viewer's display language, DMOJ's `request.LANGUAGE_CODE`.
  *
@@ -45,10 +43,4 @@ export function normaliseLanguage(value: string | null | undefined): string {
   if (!value) return DEFAULT_LANGUAGE;
   const trimmed = value.trim().toLowerCase();
   return CODES.has(trimmed) ? trimmed : DEFAULT_LANGUAGE;
-}
-
-/** Server side `request.LANGUAGE_CODE`. */
-export async function viewerLanguage(): Promise<string> {
-  const jar = await cookies();
-  return normaliseLanguage(jar.get(LANGUAGE_COOKIE)?.value);
 }
