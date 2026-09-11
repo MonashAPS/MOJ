@@ -82,10 +82,15 @@ export type Branding = {
   accentColor: string;
   accentColorDark: string;
   navColor: string;
+  navColorDark: string;
   titlebarColor: string;
   titlebarColorDark: string;
+  contestBarColor: string;
+  contestBarColorDark: string;
   customCss: string;
   themeDefault: "system" | "light" | "dark";
+  /** The operator's colours differ from the ones they would have had anyway. */
+  colorsCustomised: boolean;
   isCustomised: boolean;
 };
 
@@ -104,14 +109,145 @@ function toHex([r, g, b]: [number, number, number]): string {
   return `#${part(r)}${part(g)}${part(b)}`;
 }
 
-/** Dark mode needs the accent lifted off a navy ground, the way `tokens.css`
- *  lifts the default one; mixing towards white by a fixed ratio is enough. */
-function lighten(rgb: [number, number, number], ratio: number): [number, number, number] {
-  return [rgb[0] + (255 - rgb[0]) * ratio, rgb[1] + (255 - rgb[1]) * ratio, rgb[2] + (255 - rgb[2]) * ratio];
+/* The light-to-dark relation ---------------------------------------------- *
+ * `tokens.css` does not wash a colour towards white to get its dark
+ * counterpart; it raises the lightness and keeps the hue and the chroma, which
+ * is why #2f4fd0 becomes #8fa6ff rather than a grey-blue. Doing the same to an
+ * operator's colours, in OKLab, gives a branded instance a dark palette built
+ * the way the design system builds its own.
+ *
+ * Two rules, measured off the token file itself. The chrome keeps a little more
+ * chroma as it lightens, because a dark ground eats saturation and a navy that
+ * only gains lightness stops reading as navy; the accent gives some up, because
+ * a light accent on a dark ground is a paler thing than its light-mode self.
+ * The unit tests feed this function the token file's light values and check
+ * that the token file's own dark values come back:
+ *
+ *   accent       #2f4fd0 -> #8fa6ff   L +0.259, chroma x0.65
+ *   nav          #101a3d -> #16234a   L +0.029, chroma x1.1
+ *   titlebar     #16234a -> #243766   L +0.081, chroma x1.1, off the dark nav
+ *   contest bar  #101a3d -> #182448   L +0.039, and on dark it sits halfway
+ *                between the dark nav and the dark titlebar
+ */
+type Rgb = [number, number, number];
+type Lab = [number, number, number];
+
+const ACCENT_DARK_LIFT = 0.259;
+const ACCENT_DARK_CHROMA = 0.65;
+const NAV_DARK_LIFT = 0.029;
+const TITLEBAR_DARK_LIFT = 0.081;
+const CONTEST_BAR_LIFT = 0.039;
+const CHROME_CHROMA = 1.1;
+
+function toLinear(value: number): number {
+  const c = value / 255;
+  return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
 }
 
-function darken(rgb: [number, number, number], ratio: number): [number, number, number] {
-  return [rgb[0] * (1 - ratio), rgb[1] * (1 - ratio), rgb[2] * (1 - ratio)];
+function fromLinear(value: number): number {
+  return (value <= 0.0031308 ? value * 12.92 : 1.055 * value ** (1 / 2.4) - 0.055) * 255;
+}
+
+function toOklab([r, g, b]: Rgb): Lab {
+  const lr = toLinear(r);
+  const lg = toLinear(g);
+  const lb = toLinear(b);
+  const l = Math.cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb);
+  const m = Math.cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb);
+  const s = Math.cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb);
+  return [
+    0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+    1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+    0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+  ];
+}
+
+function toLinearRgb([L, a, b]: Lab): Rgb {
+  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+  return [
+    4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+    -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+  ];
+}
+
+/** OKLab back to sRGB, pulling the chroma in until the colour fits the gamut
+ *  the way a browser maps `oklch()`. A lifted blue clipped channel by channel
+ *  would come back a different hue. */
+function fromOklab([L, a, b]: Lab): Rgb {
+  const fits = (lab: Lab) => toLinearRgb(lab).every((c) => c >= -0.0005 && c <= 1.0005);
+  let scale = 1;
+  if (!fits([L, a, b])) {
+    let low = 0;
+    let high = 1;
+    for (let i = 0; i < 24; i += 1) {
+      const mid = (low + high) / 2;
+      if (fits([L, a * mid, b * mid])) low = mid;
+      else high = mid;
+    }
+    scale = low;
+  }
+  const [r, g, bl] = toLinearRgb([L, a * scale, b * scale]);
+  return [fromLinear(r), fromLinear(g), fromLinear(bl)];
+}
+
+/** Raise a colour's lightness, hold its hue, and scale its chroma. */
+function lift(rgb: Rgb, amount: number, chroma: number): Rgb {
+  const [L, a, b] = toOklab(rgb);
+  return fromOklab([Math.min(1, L + amount), a * chroma, b * chroma]);
+}
+
+/** Halfway between two colours, in OKLab, so the midpoint is the one the eye
+ *  expects rather than the one the channels average to. */
+function halfway(from: Rgb, to: Rgb): Rgb {
+  const a = toOklab(from);
+  const b = toOklab(to);
+  return fromOklab([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2]);
+}
+
+export type BrandingPalette = {
+  accent: string;
+  accentDark: string;
+  nav: string;
+  navDark: string;
+  titlebar: string;
+  titlebarDark: string;
+  contestBar: string;
+  contestBarDark: string;
+};
+
+/**
+ * The operator picks two colours and the other six follow. Pure, so the tests
+ * can hand it `tokens.css`'s light values and hold what comes back against
+ * `tokens.css`'s dark ones.
+ */
+export function brandingPalette(accentColor: string, navColor: string): BrandingPalette {
+  const accent = parseHex(accentColor) ?? (parseHex(DEFAULT_ACCENT) as Rgb);
+  const nav = parseHex(navColor) ?? (parseHex(DEFAULT_NAV) as Rgb);
+  const navDark = lift(nav, NAV_DARK_LIFT, CHROME_CHROMA);
+  const titlebarDark = lift(navDark, TITLEBAR_DARK_LIFT, CHROME_CHROMA);
+  return {
+    accent: toHex(accent),
+    accentDark: toHex(lift(accent, ACCENT_DARK_LIFT, ACCENT_DARK_CHROMA)),
+    nav: toHex(nav),
+    navDark: toHex(navDark),
+    // In light the band wears the bar's own navy, as the token file has it.
+    titlebar: toHex(nav),
+    titlebarDark: toHex(titlebarDark),
+    contestBar: toHex(lift(nav, CONTEST_BAR_LIFT, CHROME_CHROMA)),
+    contestBarDark: toHex(halfway(navDark, titlebarDark)),
+  };
+}
+
+/** A saved colour is an override only when it is not the value the instance
+ *  would have had anyway: the branding form offers the defaults, and saving it
+ *  unchanged must not start overriding the token file. */
+function isOverride(value: string | undefined, fallback: string): boolean {
+  if (!value) return false;
+  const rgb = parseHex(value);
+  return rgb !== null && toHex(rgb) !== fallback;
 }
 
 /** WCAG relative luminance, so the console can warn about an unreadable accent. */
@@ -143,31 +279,32 @@ export const branding = query({
       .withIndex("by_singleton", (q) => q.eq("singleton", "site"))
       .unique();
 
-    const accent = (settings?.accentColor && parseHex(settings.accentColor)) || parseHex(DEFAULT_ACCENT);
-    const nav = (settings?.navColor && parseHex(settings.navColor)) || parseHex(DEFAULT_NAV);
-    const accentRgb = accent as [number, number, number];
-    const navRgb = nav as [number, number, number];
+    const palette = brandingPalette(
+      settings?.accentColor ?? DEFAULT_ACCENT,
+      settings?.navColor ?? DEFAULT_NAV,
+    );
+    const colorsCustomised =
+      isOverride(settings?.accentColor, DEFAULT_ACCENT) || isOverride(settings?.navColor, DEFAULT_NAV);
 
     return {
       siteName: settings?.siteName ?? "MOJ",
       siteLongName: settings?.siteLongName ?? "MAPS Online Judge",
       logoUrl: settings?.logoStorageId ? await ctx.storage.getUrl(settings.logoStorageId) : null,
       faviconUrl: settings?.faviconStorageId ? await ctx.storage.getUrl(settings.faviconStorageId) : null,
-      accentColor: toHex(accentRgb),
-      accentColorDark: toHex(lighten(accentRgb, 0.45)),
-      navColor: toHex(navRgb),
-      titlebarColor: toHex(navRgb),
-      // The dark titlebar has to lift off the dark surface, as `--titlebar` does.
-      titlebarColorDark: toHex(lighten(darken(navRgb, 0.1), 0.12)),
+      accentColor: palette.accent,
+      accentColorDark: palette.accentDark,
+      navColor: palette.nav,
+      navColorDark: palette.navDark,
+      titlebarColor: palette.titlebar,
+      titlebarColorDark: palette.titlebarDark,
+      contestBarColor: palette.contestBar,
+      contestBarColorDark: palette.contestBarDark,
       customCss: settings?.customCss ?? "",
       themeDefault: settings?.themeDefault ?? "system",
-      isCustomised: Boolean(
-        settings?.logoStorageId ||
-          settings?.faviconStorageId ||
-          settings?.accentColor ||
-          settings?.navColor ||
-          settings?.customCss,
-      ),
+      colorsCustomised,
+      isCustomised:
+        colorsCustomised ||
+        Boolean(settings?.logoStorageId || settings?.faviconStorageId || settings?.customCss),
     };
   },
 });

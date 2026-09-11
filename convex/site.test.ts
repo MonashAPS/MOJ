@@ -5,6 +5,7 @@ import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
 import { profileRow, siteSettingsRow } from "./lib/testing";
 import schema from "./schema";
+import { brandingPalette } from "./site";
 
 const modules = import.meta.glob("./**/*.ts");
 
@@ -288,5 +289,93 @@ describe("site settings", () => {
     const list = await t.query(api.comments.list, { targetType: "problem", targetKey: "alpha" });
     expect(list?.voteHideThreshold).toBe(-2);
     expect(list?.comments[0]?.belowThreshold).toBe(true);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* The branding palette                                                       */
+/* -------------------------------------------------------------------------- */
+
+/** The derivation is a relation, not a lookup, so it lands near the token file
+ *  rather than on it. Eight steps of 255 is under half a percent of the ramp —
+ *  a difference no one can see, and small enough that a regression in the
+ *  relation itself would blow straight through it. */
+const TOLERANCE = 8;
+
+function channels(hex: string): [number, number, number] {
+  const int = Number.parseInt(hex.replace("#", ""), 16);
+  return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
+}
+
+/** The widest any one channel is off, so a near miss reads as a number rather
+ *  than as a hex nobody can subtract in their head. */
+function distance(got: string, want: string): number {
+  const a = channels(got);
+  const b = channels(want);
+  return Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]));
+}
+
+function expectNear(got: string, want: string): void {
+  expect(`${got} is ${distance(got, want)} off ${want}`).toBe(
+    `${got} is ${Math.min(distance(got, want), TOLERANCE)} off ${want}`,
+  );
+}
+
+describe("brandingPalette", () => {
+  // packages/ui/src/tokens.css, the light block and the two dark blocks.
+  const TOKENS = {
+    accent: "#2f4fd0",
+    accentDark: "#8fa6ff",
+    nav: "#101a3d",
+    navDark: "#16234a",
+    titlebarDark: "#243766",
+    contestBar: "#182448",
+    contestBarDark: "#1c2c58",
+  };
+
+  test("the design system's own light values give back its own dark values", () => {
+    const palette = brandingPalette(TOKENS.accent, TOKENS.nav);
+
+    expectNear(palette.accentDark, TOKENS.accentDark);
+    expectNear(palette.navDark, TOKENS.navDark);
+    expectNear(palette.titlebarDark, TOKENS.titlebarDark);
+    expectNear(palette.contestBar, TOKENS.contestBar);
+    expectNear(palette.contestBarDark, TOKENS.contestBarDark);
+  });
+
+  test("the light values are the operator's own, untouched", () => {
+    const palette = brandingPalette("#B3001B", "#1A1A2E");
+    expect(palette.accent).toBe("#b3001b");
+    expect(palette.nav).toBe("#1a1a2e");
+    // In light the panel band wears the bar's colour, as tokens.css has it.
+    expect(palette.titlebar).toBe("#1a1a2e");
+  });
+
+  test("the dark chrome separates, in order, whatever the operator picked", () => {
+    for (const nav of ["#101a3d", "#1a1a2e", "#0f3b2a", "#4a1020", "#2b2b2b"]) {
+      const { navDark, titlebarDark, contestBarDark } = brandingPalette("#2f4fd0", nav);
+      const lightness = (hex: string) => {
+        const [r, g, b] = channels(hex);
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      };
+      expect(lightness(navDark)).toBeGreaterThanOrEqual(lightness(nav));
+      expect(lightness(contestBarDark)).toBeGreaterThan(lightness(navDark));
+      expect(lightness(titlebarDark)).toBeGreaterThan(lightness(contestBarDark));
+    }
+  });
+
+  test("the lift keeps the hue rather than washing towards white", () => {
+    // A red accent must come back a lighter red, not a pink-grey: the blue
+    // channel may not overtake the red one.
+    const { accentDark } = brandingPalette("#b3001b", "#101a3d");
+    const [r, g, b] = channels(accentDark);
+    expect(r).toBeGreaterThan(g);
+    expect(r).toBeGreaterThan(b);
+  });
+
+  test("a colour it cannot read falls back to the default rather than throwing", () => {
+    const palette = brandingPalette("not a colour", "");
+    expect(palette.accent).toBe("#2941a5");
+    expect(palette.nav).toBe("#101a3d");
   });
 });

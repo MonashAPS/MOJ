@@ -368,6 +368,39 @@ describe("branding", () => {
     expect(branding.themeDefault).toBe("dark");
     expect(branding.customCss).toContain("--radius");
     expect(branding.isCustomised).toBe(true);
+    expect(branding.colorsCustomised).toBe(true);
+    // The whole dark chrome is derived, not the light values handed back.
+    expect(branding.navColorDark).not.toBe(branding.navColor);
+    expect(branding.titlebarColorDark).not.toBe(branding.titlebarColor);
+    expect(branding.contestBarColorDark).not.toBe(branding.contestBarColor);
+  });
+
+  test("saving the branding form's own defaults is not a customisation", async () => {
+    const { t } = await withSettings();
+    // The form offers these two; saving it unchanged stores them, and that must
+    // not start overriding the token file.
+    await t.withIdentity({ subject: "user_root" }).mutation(api.pages.admin2.updateBranding, {
+      accentColor: "#2941a5",
+      navColor: "#101a3d",
+      reason: "Opened the page and saved it",
+    });
+
+    const branding = await t.query(api.site.branding, {});
+    expect(branding.colorsCustomised).toBe(false);
+    expect(branding.isCustomised).toBe(false);
+  });
+
+  test("custom CSS is a customisation on its own, without making the colours one", async () => {
+    const { t } = await withSettings();
+    await t.withIdentity({ subject: "user_root" }).mutation(api.pages.admin2.updateBranding, {
+      accentColor: "#2941A5",
+      customCss: ":root { --radius: 2px; }",
+      reason: "A tweak, not a repaint",
+    });
+
+    const branding = await t.query(api.site.branding, {});
+    expect(branding.isCustomised).toBe(true);
+    expect(branding.colorsCustomised).toBe(false);
   });
 
   test("an empty colour puts the default back", async () => {
