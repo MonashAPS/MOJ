@@ -347,7 +347,9 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
             {rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={12} className="py-8 text-center text-sm text-muted-foreground">
-                  This problem has no test cases yet.
+                  {data.judgesWithProblem > 0
+                    ? "No test data has been uploaded here. This problem is graded from data held on the judge, published from a problem repository."
+                    : "This problem has no test cases yet."}
                 </TableCell>
               </TableRow>
             ) : (
@@ -615,7 +617,10 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
               </p>
             ) : null}
             <pre className="overflow-x-auto bg-code p-3 font-mono text-mono text-foreground">
-              {preview.yaml || "# This problem has no generated configuration yet."}
+              {preview.yaml ||
+                (data.judgesWithProblem > 0
+                  ? "# Nothing is generated here: the judge grades this problem from the\n# init.yml published beside its test data."
+                  : "# This problem has no generated configuration yet.")}
             </pre>
           </>
         )}

@@ -519,9 +519,21 @@ export const get = query({
     const { problem } = await requireDataManager(ctx, code);
     const row = await dataRow(ctx, problem._id);
     const cases = await casesFor(ctx, problem._id);
+    // Whether any online judge reports holding this problem code. Data published
+    // from a problem repository never reaches these tables, so an empty editor
+    // beside a judge that has the problem is normal rather than a missing upload.
+    const judges = await ctx.db
+      .query("judges")
+      .withIndex("by_online_tier", (q) => q.eq("online", true))
+      .collect();
+    const judgesWithProblem = judges.filter((judge) =>
+      judge.problemCodes.includes(problem.code),
+    ).length;
+
     return {
       problemCode: problem.code,
       problemName: problem.name,
+      judgesWithProblem,
       data: row
         ? {
             zipfile: row.zipfile ?? null,
