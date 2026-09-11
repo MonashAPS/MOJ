@@ -28,7 +28,9 @@ export function Switch({ className, label, ...props }: SwitchProps) {
         data-slot="switch-thumb"
         className={cn(
           "pointer-events-none block size-3.5 rounded-full bg-white shadow-1 ring-0",
-          "transition-transform data-[state=unchecked]:translate-x-0.5 data-[state=checked]:translate-x-[calc(100%-2px)]",
+          // The track is 32px wide with a 1px border, so the thumb travels between 2px and
+          // 30px - 14px - 2px = 14px, leaving the same 2px either end.
+          "transition-transform data-[state=unchecked]:translate-x-0.5 data-[state=checked]:translate-x-[14px]",
         )}
       />
     </SwitchPrimitive.Root>
