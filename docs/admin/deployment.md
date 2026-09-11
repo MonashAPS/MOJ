@@ -3,8 +3,9 @@
 A production MOJ is the same pieces as a development one, with Caddy in front of them for TLS. The site, the
 Convex backend and Postgres run together on one box; judges run on their own boxes and reach the site over HTTPS.
 
-Sizing, for a club-sized site: two cores and 4 GB of RAM is enough for the web box, and the disk is dominated by
-the submissions table and the statement media. Judges want the fastest single-core performance you can get, since
+Sizing, for a small site: two cores and 4 GB of RAM is enough for the web box, and the disk is dominated by the
+submissions table, the statement media and the test data the site now stores for each problem. Budget for your
+problem repositories compressed, with room to spare while a replacement archive is written. Judges want the fastest single-core performance you can get, since
 a submission is graded by one process at a time, and enough RAM to hold the largest memory limit you allow plus
 the sandbox.
 
@@ -268,7 +269,25 @@ npx convex run rankings:rebuildAggregates '{}'
 
 Test a restore into a scratch environment at least once a term. An untested backup is a hope.
 
-Judges need no backup. Their state is the problem data, which comes from the problem repositories, and rebuilding
+### Test data
+
+The site stores the test data for every problem a repository has published it for: one zip in Convex file storage,
+and one row naming its sha256, its size, its file count, who published it and when. Judges download that archive
+rather than reading a local disk, so a problem's data is now the site's state as much as the repository's.
+
+The script above already covers it. The blobs live in Convex storage, which this stack backs with Postgres, so the
+`convex export` carries the archives and the `pg_dumpall` carries what sits underneath. Two consequences:
+
+- the export grows by about the total size of every problem's data. On a large problem set, time the nightly run
+  and check the disk it writes to before assuming the defaults still fit;
+- the archives are reproducible. The uploader builds them deterministically, so re-running a repository's publish
+  workflow puts back byte-identical data, and losing them costs a CI run rather than a problem set.
+
+Publishing replaces rather than accumulates: the previous archive is deleted once the new one is recorded, so the
+storage holds one per problem and not a history. If you want a history, that is what the repository's git log is.
+
+Judges still need no backup. A judge holds a cache of archives it has downloaded, which refills itself on the next
+submission, plus whatever problem data was put on the box directly, which comes from the repositories. Rebuilding
 one is a `docker run` away.
 
 ## Updating
@@ -305,8 +324,10 @@ problem directory, and on a large problem set that is a minute where that judge 
 Judges hold no state worth keeping, so a migration is a new judge rather than a move.
 
 1. Build the new box and install Docker.
-2. Copy the problem data to it: `rsync -avz --delete old-judge:~/problems/ /srv/problems/`. Better still, point
-   the problem repositories at it and let CI populate it, so the new box is in the deploy path permanently.
+2. There is nothing to copy for a problem whose data the site holds: the new judge downloads it the first time it
+   grades that problem. For data that lives only on the old box, either copy it across with
+   `rsync -avz --delete old-judge:~/problems/ /srv/problems/`, or publish it from its repository and let the site
+   hand it out, which takes the new box out of the deploy path for good.
 3. Create a **new** judge in the staff console with its own name and key, rather than reusing the old one. Two
    judges with the same name will fight.
 4. Start the container on the new box and check it appears on `/status/`.
