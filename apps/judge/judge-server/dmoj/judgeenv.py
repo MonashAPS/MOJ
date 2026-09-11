@@ -266,7 +266,7 @@ def get_problem_roots(warnings: bool = False) -> List[str]:
     for dir_glob in problem_globs:
         config_glob = os.path.join(dir_glob, 'init.yml')
         root_dirs = {os.path.dirname(os.path.dirname(x)) for x in glob.iglob(config_glob, recursive=True)}
-        for root_dir in root_dirs:
+        for root_dir in sorted(root_dirs):
             if root_dir not in dirs_set:
                 dirs.append(root_dir)
                 dirs_set.add(root_dir)
@@ -302,7 +302,7 @@ def get_supported_problems_and_mtimes(warnings: bool = True) -> List[Tuple[str, 
     problems = []
     problem_dirs: Dict[str, str] = {}
     for dir_glob in problem_globs:
-        for problem_config in glob.iglob(os.path.join(dir_glob, 'init.yml'), recursive=True):
+        for problem_config in sorted(glob.iglob(os.path.join(dir_glob, 'init.yml'), recursive=True)):
             if os.access(problem_config, os.R_OK):
                 problem_dir = os.path.dirname(problem_config)
                 problem = utf8text(os.path.basename(problem_dir))
