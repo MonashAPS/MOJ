@@ -48,7 +48,10 @@ export function TitleRow({
         {/* `min-w-0`: without it this row's grid track takes the tab strip's
             max-content width and the page scrolls sideways on a phone. */}
         <div className="flex min-w-0 flex-wrap items-end gap-x-4 gap-y-3 max-md:flex-col max-md:items-stretch">
-          <h1 className="min-w-0 flex-1 text-balance font-display text-h1 font-bold tracking-tight text-foreground">
+          {/* The title keeps a readable width rather than shrinking to fit: when the
+              tabs no longer fit beside it they wrap to their own row, which is what a
+              staff view of a problem does with its eight tabs. */}
+          <h1 className="min-w-0 flex-1 text-balance font-display text-h1 font-bold tracking-tight text-foreground md:min-w-64">
             {title}
           </h1>
           {tabs && tabs.length > 0 ? <PageTabs tabs={tabs} active={active} linkAs={linkAs} /> : null}
@@ -86,6 +89,9 @@ export function PageTabs({
         // `min-w-0` so a long tab strip scrolls inside itself instead of
         // widening the page: a grid or flex child is min-content wide by default.
         "-mb-px flex min-w-0 max-w-full shrink-0 items-end gap-1 overflow-x-auto max-md:w-full max-md:pb-px",
+        // Wrapped onto its own row it takes the full width and reads left to right,
+        // the way a tab bar under a title does.
+        "[&:not(:first-child)]:grow",
         className,
       )}
     >
