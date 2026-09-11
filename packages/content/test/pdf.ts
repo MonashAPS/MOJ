@@ -13,7 +13,9 @@ let extract: Extract | undefined;
 
 async function legacy(): Promise<Extract | undefined> {
   try {
-    const module = await import(/* @vite-ignore */ "pdf-parse/lib/pdf-parse.js");
+    // Built at run time so no bundler resolves it statically: the path only exists in version 1.
+    const specifier = ["pdf-parse", "lib", "pdf-parse.js"].join("/");
+    const module = (await import(/* @vite-ignore */ specifier)) as Record<string, unknown>;
     const parse = (module.default ?? module) as unknown as Extract;
     return typeof parse === "function" ? parse : undefined;
   } catch {
