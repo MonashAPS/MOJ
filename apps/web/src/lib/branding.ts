@@ -3,9 +3,13 @@ export type BrandingValues = {
   accentColor: string;
   accentColorDark: string;
   navColor: string;
+  navColorDark: string;
   titlebarColor: string;
   titlebarColorDark: string;
+  contestBarColor: string;
+  contestBarColorDark: string;
   customCss: string;
+  colorsCustomised: boolean;
   isCustomised: boolean;
 };
 
@@ -19,31 +23,59 @@ function safeValue(value: string): string {
 /**
  * SPEC section 24: the operator's colours and logo are emitted as overrides on
  * `:root` so `packages/ui/src/tokens.css` stays the single source of the
- * defaults. Custom CSS is appended last, after the overrides, so it wins.
+ * defaults. Each part is emitted only when there is something to say — colours
+ * the operator actually chose, a logo they actually uploaded — so an instance
+ * that has merely saved the branding form leaves the token file alone. Custom
+ * CSS goes last, after the light and the dark overrides both, so it wins.
  *
  * The dark derivatives are computed in `site.branding`, not here, so the same
- * pair reaches the server render and any client that reads them.
+ * palette reaches the server render and any client that reads it.
  */
 export function brandingCss(branding: BrandingValues | null): string | null {
-  if (!branding || (!branding.isCustomised && !branding.customCss)) return null;
+  if (!branding) return null;
 
-  const accent = safeValue(branding.accentColor);
-  const accentDark = safeValue(branding.accentColorDark);
-  const nav = safeValue(branding.navColor);
-  const titlebar = safeValue(branding.titlebarColor);
-  const titlebarDark = safeValue(branding.titlebarColorDark);
-  const logo = branding.logoUrl ? safeValue(branding.logoUrl) : null;
+  const blocks: string[] = [];
 
-  const css = [
-    `:root{--accent:${accent};--nav:${nav};--titlebar:${titlebar};--brand-royal:${accent};}`,
-    `@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--accent:${accentDark};--nav:${nav};--titlebar:${titlebarDark};--brand-royal:${accentDark};}}`,
-    `:root[data-theme="dark"]{--accent:${accentDark};--nav:${nav};--titlebar:${titlebarDark};--brand-royal:${accentDark};}`,
-    // The nav takes the uploaded wordmark through its own `src`; the auth pages
-    // draw the bundled SVG from a client component that cannot read the
-    // branding, so it is replaced here until that component takes a prop.
-    logo ? `svg[aria-label="MAPS Online Judge"]{content:url("${logo}");}` : "",
-    branding.customCss ? `\n${branding.customCss}` : "",
-  ].join("");
+  if (branding.colorsCustomised) {
+    const vars = (accent: string, nav: string, titlebar: string, contestBar: string) =>
+      [
+        `--accent:${safeValue(accent)}`,
+        `--nav:${safeValue(nav)}`,
+        `--titlebar:${safeValue(titlebar)}`,
+        `--contest-bar:${safeValue(contestBar)}`,
+        `--brand-royal:${safeValue(accent)}`,
+      ].join(";");
+    const light = vars(
+      branding.accentColor,
+      branding.navColor,
+      branding.titlebarColor,
+      branding.contestBarColor,
+    );
+    // The dark chrome is its own set of values, derived from the operator's the
+    // way tokens.css derives its dark chrome from its light chrome. `.theme-dark`
+    // comes with the explicit selector so the hall scoreboard, which is dark
+    // whatever the viewer's theme is, is branded too.
+    const dark = vars(
+      branding.accentColorDark,
+      branding.navColorDark,
+      branding.titlebarColorDark,
+      branding.contestBarColorDark,
+    );
+    blocks.push(
+      `:root{${light};}`,
+      `@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${dark};}}`,
+      `:root[data-theme="dark"],.theme-dark{${dark};}`,
+    );
+  }
 
-  return css;
+  // The nav takes the uploaded wordmark through its own `src`; the auth pages
+  // draw the bundled SVG from a client component that cannot read the branding,
+  // so it is replaced here until that component takes a prop.
+  if (branding.logoUrl) {
+    blocks.push(`svg[aria-label="MAPS Online Judge"]{content:url("${safeValue(branding.logoUrl)}");}`);
+  }
+
+  if (branding.customCss) blocks.push(`\n${branding.customCss}`);
+
+  return blocks.length === 0 ? null : blocks.join("");
 }
