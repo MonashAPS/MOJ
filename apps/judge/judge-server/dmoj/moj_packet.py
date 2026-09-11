@@ -13,6 +13,9 @@ surface `dmoj.judge.Judge` uses, implemented against the HTTP judge API:
     GET  /judge/abort       ask whether the current submission should be terminated, every second
     POST /judge/disconnect  announce a clean shutdown
 
+A claim whose `problemDataHash` is non-null means the site owns that problem's test data; `dmoj.moj_data`
+fetches it from `GET /judge/data` and the submission is graded from that cache instead of from local disk.
+
 Only the standard library is used, so the judge image needs no extra Python packages.
 """
 
@@ -26,6 +29,7 @@ import urllib.parse
 import urllib.request
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple
 
+from dmoj import moj_data
 from dmoj.judgeenv import get_runtime_versions, get_supported_problems_and_mtimes
 from dmoj.result import Result
 
@@ -273,6 +277,9 @@ class MojPacketManager:
         )
 
         try:
+            if not self._ensure_problem_data(data):
+                return
+
             self.judge.begin_grading(
                 Submission(
                     id=submission_id,
@@ -292,6 +299,34 @@ class MojPacketManager:
         finally:
             self._flush_testcase_queue()
             self._current_submission_id = None
+
+    def _ensure_problem_data(self, data: dict) -> bool:
+        """Make sure the site's test data is on disk. False means the submission must not be graded.
+
+        A claim without `problemDataHash` grades from whatever the judge holds locally, exactly as before.
+        With one, the judge grades the site's copy at that hash or nothing at all: an internal error naming
+        the problem and the hash is a great deal better than a verdict from stale or corrupt data.
+        """
+        expected_hash = data.get('problemDataHash')
+        if not expected_hash:
+            return True
+
+        code = data['problemCode']
+        try:
+            directory = moj_data.ensure_problem_data(
+                code, expected_hash, url=self.url, judge_name=self.name, judge_key=self.key
+            )
+        except Exception as e:
+            log.exception('Could not get test data for %s at %s', code, expected_hash)
+            self._send_event(
+                'internal-error',
+                {'message': 'Could not get the test data for problem %s at %s: %s' % (code, expected_hash, e)},
+                submission_id=data['submissionId'],
+            )
+            return False
+
+        log.debug('Grading %s from the test data the site owns, in %s', code, directory)
+        return True
 
     # -- event reporting -------------------------------------------------------------------------------------
 

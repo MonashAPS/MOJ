@@ -9,6 +9,7 @@ from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 import yaml
 
+from dmoj import moj_data
 from dmoj.config import ConfigNode
 from dmoj.utils import pyyaml_patch  # noqa: F401, imported for side effect
 from dmoj.utils.ansi import print_ansi
@@ -207,6 +208,13 @@ def load_env(cli: bool = False, testsuite: bool = False) -> None:  # pragma: no 
 
         problem_watches = problem_globs
 
+    # MOJ: test data fetched from the site is graded from a cache that wins over anything on local disk, so
+    # its glob goes in front. `problem_watches` keeps pointing at the local tree alone: the cache changes
+    # only when this judge writes to it, and it tells the site itself when it does.
+    if problem_globs and not testsuite:
+        problem_globs = [moj_data.problem_glob()] + list(problem_globs)
+        clear_problem_dirs_cache()
+
     if problem_globs is None and not testsuite:
         raise SystemExit(f'`problem_storage_globs` not specified in "{model_file}"; no problems available to grade')
 
@@ -234,6 +242,12 @@ _problem_root_cache: Dict[str, str] = {}
 
 
 def get_problem_root(problem_id) -> Optional[str]:
+    # MOJ: a problem whose data the site owns is cached under its full code, dots and all, and outranks
+    # whatever the local tree holds for that code, so that every judge grades the same bytes.
+    from_site = moj_data.cached_problem_root(problem_id)
+    if from_site is not None:
+        return from_site
+
     cached_root = _problem_root_cache.get(problem_id)
     if cached_root is None or not os.path.isfile(os.path.join(cached_root, 'init.yml')):
         for root_dir in get_problem_roots():
