@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@import "@moj/ui/fonts.css";
+@import "@moj/ui/tokens.css";
+@import "@moj/ui/theme.css";
+@import "@moj/ui/skin.css";
+@import "@moj/content/styles/content.css";
+@import "katex/dist/katex.min.css";
+
+@source "../../src";
+@source "../../../../packages/ui/src";

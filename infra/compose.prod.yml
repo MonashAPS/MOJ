@@ -1,0 +1,157 @@
+# Production stack skeleton for MOJ. Deploy from the repository root:
+#   docker compose -f infra/compose.prod.yml --project-directory . --env-file .env.prod up -d
+#
+# Differences from compose.dev.yml: Caddy terminates TLS in front of everything,
+# the web app runs as a built image instead of `next dev`, the Convex origins are
+# public hostnames, and nothing binds to a host port except Caddy.
+
+name: moj-prod
+
+x-host-gateway: &host-gateway
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      MOJ_DOMAIN: ${MOJ_DOMAIN:?set MOJ_DOMAIN}
+      CADDY_EMAIL: ${CADDY_EMAIL:-admin@example.com}
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - web
+      - convex-backend
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+      CONVEX_DATABASE: ${CONVEX_DATABASE:-moj_prod}
+      AUTH_DATABASE: ${AUTH_DATABASE:-moj_auth}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/scripts/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  convex-backend:
+    image: ghcr.io/get-convex/convex-backend:${CONVEX_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    environment:
+      INSTANCE_NAME: ${INSTANCE_NAME:-moj-prod}
+      INSTANCE_SECRET: ${INSTANCE_SECRET:?set INSTANCE_SECRET}
+      CONVEX_CLOUD_ORIGIN: https://convex.${MOJ_DOMAIN}
+      CONVEX_SITE_ORIGIN: https://convex-site.${MOJ_DOMAIN}
+      POSTGRES_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432
+      DO_NOT_REQUIRE_SSL: "1"
+      DISABLE_BEACON: "1"
+      RUST_LOG: ${RUST_LOG:-info}
+    volumes:
+      - convex-data:/convex/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3210/version || exit 1"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 30
+
+  convex-dashboard:
+    image: ghcr.io/get-convex/convex-dashboard:${CONVEX_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_DEPLOYMENT_URL: https://convex.${MOJ_DOMAIN}
+    depends_on:
+      convex-backend:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      # NEXT_PUBLIC_* is inlined into the client bundle at build time, so these
+      # have to be build arguments as well as environment. Rebuild the image
+      # after changing MOJ_DOMAIN.
+      args:
+        NEXT_PUBLIC_CONVEX_URL: https://convex.${MOJ_DOMAIN}
+        NEXT_PUBLIC_CONVEX_SITE_URL: https://convex-site.${MOJ_DOMAIN}
+        NEXT_PUBLIC_APP_URL: https://${MOJ_DOMAIN}
+    restart: unless-stopped
+    <<: *host-gateway
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AUTH_DATABASE:-moj_auth}
+      NEXT_PUBLIC_CONVEX_URL: https://convex.${MOJ_DOMAIN}
+      NEXT_PUBLIC_CONVEX_SITE_URL: https://convex-site.${MOJ_DOMAIN}
+      NEXT_PUBLIC_APP_URL: https://${MOJ_DOMAIN}
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET}
+      AUTH_ISSUER: https://${MOJ_DOMAIN}
+      AUTH_JWKS_URL: https://${MOJ_DOMAIN}/api/auth/jwks
+      AUTH_RP_ID: ${MOJ_DOMAIN}
+      LEGACY_SECRET_KEY: ${LEGACY_SECRET_KEY:-}
+      HIBP_CHECK: ${HIBP_CHECK:-}
+      BAD_MAIL_PROVIDERS: ${BAD_MAIL_PROVIDERS:-}
+      BAD_MAIL_PROVIDER_REGEX: ${BAD_MAIL_PROVIDER_REGEX:-}
+      # console, ses or smtp. The SES_* block is read for ses, the SMTP_* block
+      # for smtp; the image ships both transports.
+      MAIL_MODE: ${MAIL_MODE:-console}
+      MAIL_FROM: ${MAIL_FROM:-noreply@example.com}
+      SES_REGION: ${SES_REGION:-}
+      SES_ACCESS_KEY_ID: ${SES_ACCESS_KEY_ID:-}
+      SES_SECRET_ACCESS_KEY: ${SES_SECRET_ACCESS_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MOJ_MEDIA_ROOT: /srv/media
+    volumes:
+      # Statement uploads imported from DMOJ, served at /media/... .
+      - ./infra/media:/srv/media:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      convex-backend:
+        condition: service_healthy
+
+  # To pin the judge to a subset of the host's cores, copy
+  # infra/compose.override.local.example.yml to infra/compose.override.local.yml
+  # and layer it in with a second `-f`. Nothing here assumes a core count.
+  judge:
+    profiles: ["judge"]
+    build:
+      context: ./apps/judge
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
+    environment:
+      MOJ_URL: https://convex-site.${MOJ_DOMAIN}
+      JUDGE_NAME: ${JUDGE_NAME:?set JUDGE_NAME}
+      JUDGE_KEY: ${JUDGE_KEY:?set JUDGE_KEY}
+    volumes:
+      - ./infra/problems:/problems
+
+volumes:
+  postgres-data:
+  convex-data:
+  caddy-data:
+  caddy-config:

@@ -1,0 +1,266 @@
+name: Upload problems to MOJ
+description: >-
+  Push a problem repository's statements, editorials, images and metadata to a
+  MOJ judge through the problems API, and optionally rsync the test data to the
+  judge host.
+
+inputs:
+  judge-url:
+    description: >-
+      Address of the judge, e.g. https://judge.example.org. The problems API is
+      published on the site's own origin, so this is the address people browse.
+    required: true
+  api-key:
+    description: API key with the problems:write scope. Use a repository secret.
+    required: true
+  problems-dir:
+    description: Directory the problem directories live in.
+    required: false
+    default: problems
+  only-changed:
+    description: >-
+      Upload only the problem directories this push touched, using the event's
+      before and after SHAs. Falls back to every problem when the event carries
+      no usable range (a new branch, or workflow_dispatch).
+    required: false
+    default: "true"
+  include:
+    description: Newline separated globs; only matching problem codes are uploaded.
+    required: false
+    default: ""
+  exclude:
+    description: Newline separated globs; matching problem codes are skipped.
+    required: false
+    default: ""
+  dry-run:
+    description: Resolve and report without sending anything.
+    required: false
+    default: "false"
+  registry:
+    description: >-
+      Path to the image cache. Defaults to <problems-dir>/.image-registry.json,
+      which the repository should commit so images are uploaded once.
+    required: false
+    default: ""
+  rsync-host:
+    description: Judge host to sync test data to. Leave empty to skip the sync.
+    required: false
+    default: ""
+  rsync-user:
+    description: SSH user on the judge host.
+    required: false
+    default: ""
+  rsync-key:
+    description: Private SSH key for the judge host. Use a repository secret.
+    required: false
+    default: ""
+  rsync-target:
+    description: Directory on the judge host. Defaults to ~/problems/<repo name>/.
+    required: false
+    default: ""
+  rsync-delete:
+    description: Pass --delete to rsync, so removed test data disappears.
+    required: false
+    default: "true"
+  node-version:
+    description: Node version to run the uploader with.
+    required: false
+    default: "24"
+
+outputs:
+  uploaded:
+    description: JSON list of the problems that were uploaded.
+    value: ${{ steps.upload.outputs.uploaded }}
+  skipped:
+    description: JSON list of the problems that were skipped.
+    value: ${{ steps.upload.outputs.skipped }}
+  failed:
+    description: JSON list of the problems that failed, with the error text.
+    value: ${{ steps.upload.outputs.failed }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Select problems
+      id: select
+      shell: bash
+      run: |
+        set -euo pipefail
+        root="${{ inputs.problems-dir }}"
+        if [ ! -d "$root" ]; then
+          echo "::error::No such problems directory: $root"
+          exit 1
+        fi
+
+        changed=""
+        if [ "${{ inputs.only-changed }}" = "true" ]; then
+          before="${{ github.event.before }}"
+          after="${{ github.sha }}"
+          if [ -n "$before" ] && [ "$before" != "0000000000000000000000000000000000000000" ] \
+             && git cat-file -e "$before^{commit}" 2>/dev/null; then
+            changed="$(git diff --name-only "$before" "$after" -- "$root" || true)"
+            echo "Comparing $before..$after"
+          else
+            echo "No usable before SHA; uploading every problem."
+          fi
+        fi
+
+        {
+          echo "changed<<CHANGED_EOF"
+          echo "$changed"
+          echo "CHANGED_EOF"
+        } >> "$GITHUB_OUTPUT"
+
+        if [ "${{ inputs.only-changed }}" = "true" ] && [ -z "$changed" ] \
+           && [ -n "${{ github.event.before }}" ] \
+           && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+          echo "empty=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "empty=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Upload problems
+      id: upload
+      if: steps.select.outputs.empty != 'true'
+      shell: bash
+      env:
+        JUDGE_URL: ${{ inputs.judge-url }}
+        JUDGE_API_KEY: ${{ inputs.api-key }}
+        CHANGED: ${{ steps.select.outputs.changed }}
+        INCLUDE_GLOBS: ${{ inputs.include }}
+        EXCLUDE_GLOBS: ${{ inputs.exclude }}
+      run: |
+        set -uo pipefail
+        script="${{ github.action_path }}/../../tools/upload-problem/upload-problem.mjs"
+        if [ ! -f "$script" ]; then
+          echo "::error::Uploader not found at $script"
+          exit 1
+        fi
+
+        args=(--problems-root "${{ inputs.problems-dir }}" --json)
+        if [ -n "$CHANGED" ]; then
+          args+=(--changed "$CHANGED")
+        fi
+        while IFS= read -r glob; do
+          [ -n "$glob" ] && args+=(--include "$glob")
+        done <<< "$INCLUDE_GLOBS"
+        while IFS= read -r glob; do
+          [ -n "$glob" ] && args+=(--exclude "$glob")
+        done <<< "$EXCLUDE_GLOBS"
+        if [ "${{ inputs.dry-run }}" = "true" ]; then
+          args+=(--dry-run)
+        fi
+        if [ -n "${{ inputs.registry }}" ]; then
+          args+=(--registry "${{ inputs.registry }}")
+        fi
+
+        set +e
+        node "$script" "${args[@]}" | tee /tmp/upload-problems.log
+        status=${PIPESTATUS[0]}
+        set -e
+
+        summary="$(grep -E '^\{"uploaded":' /tmp/upload-problems.log | tail -n 1 || true)"
+        if [ -z "$summary" ]; then
+          summary='{"uploaded":[],"skipped":[],"failed":[]}'
+        fi
+        node -e '
+          const summary = JSON.parse(process.argv[1]);
+          const out = process.env.GITHUB_OUTPUT;
+          const fs = require("node:fs");
+          for (const key of ["uploaded", "skipped", "failed"]) {
+            fs.appendFileSync(out, `${key}=${JSON.stringify(summary[key] ?? [])}\n`);
+          }
+        ' "$summary"
+
+        exit $status
+
+    - name: Step summary
+      if: always() && steps.select.outputs.empty != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        node -e '
+          const fs = require("node:fs");
+          const read = (value) => { try { return JSON.parse(value || "[]"); } catch { return []; } };
+          const uploaded = read(process.env.UPLOADED);
+          const skipped = read(process.env.SKIPPED);
+          const failed = read(process.env.FAILED);
+          const rows = [
+            ...uploaded.map((item) => [item.code, item.created ? "created" : "updated", item.name ?? ""]),
+            ...skipped.map((item) => [item.code, "skipped", item.reason ?? ""]),
+            ...failed.map((item) => [item.code, "failed", item.error ?? ""]),
+          ];
+          const escape = (value) => String(value).replace(/\|/g, "\\|");
+          const lines = [
+            "## Problem upload",
+            "",
+            `${uploaded.length} uploaded, ${skipped.length} skipped, ${failed.length} failed.`,
+            "",
+            "| Problem | Result | Detail |",
+            "| --- | --- | --- |",
+            ...rows.map((row) => `| ${row.map(escape).join(" | ")} |`),
+          ];
+          if (rows.length === 0) lines.push("| _none_ | | |");
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join("\n")}\n`);
+        '
+      env:
+        UPLOADED: ${{ steps.upload.outputs.uploaded }}
+        SKIPPED: ${{ steps.upload.outputs.skipped }}
+        FAILED: ${{ steps.upload.outputs.failed }}
+
+    - name: Nothing to upload
+      if: steps.select.outputs.empty == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "No problem directories changed in this push."
+        echo "## Problem upload" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "No problem directories changed in this push." >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Sync test data
+      if: >-
+        always() && inputs.rsync-host != '' && inputs.dry-run != 'true'
+        && steps.select.outputs.empty != 'true'
+      shell: bash
+      env:
+        RSYNC_KEY: ${{ inputs.rsync-key }}
+      run: |
+        set -euo pipefail
+        if [ -z "${{ inputs.rsync-user }}" ] || [ -z "$RSYNC_KEY" ]; then
+          echo "::error::rsync-host was given without rsync-user and rsync-key."
+          exit 1
+        fi
+
+        target="${{ inputs.rsync-target }}"
+        if [ -z "$target" ]; then
+          target="~/problems/${GITHUB_REPOSITORY##*/}/"
+        fi
+
+        keyfile="$(mktemp)"
+        chmod 600 "$keyfile"
+        printf '%s\n' "$RSYNC_KEY" > "$keyfile"
+        trap 'rm -f "$keyfile"' EXIT
+
+        mkdir -p ~/.ssh
+        ssh-keyscan -H "${{ inputs.rsync-host }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+        flags=(-az --exclude '.git' --exclude '.image-registry.json')
+        if [ "${{ inputs.rsync-delete }}" = "true" ]; then
+          flags+=(--delete)
+        fi
+
+        rsync "${flags[@]}" \
+          -e "ssh -i $keyfile -o StrictHostKeyChecking=accept-new" \
+          "${{ inputs.problems-dir }}/" \
+          "${{ inputs.rsync-user }}@${{ inputs.rsync-host }}:$target"
+        echo "Synced ${{ inputs.problems-dir }}/ to ${{ inputs.rsync-host }}:$target"
+
+branding:
+  icon: upload-cloud
+  color: blue

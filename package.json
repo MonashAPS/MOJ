@@ -3,14 +3,52 @@
   "private": true,
   "version": "0.1.0",
   "description": "MOJ, the MAPS Online Judge",
-  "workspaces": ["apps/*", "packages/*", "tools/*"],
-  "engines": { "node": ">=24" },
+  "license": "AGPL-3.0-only",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "tools/*",
+    "docs"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
-    "dev": "echo 'defined by the foundation agent'",
+    "setup": "node infra/scripts/setup.mjs",
+    "dev": "concurrently -k -n convex,web -c blue,green \"npm:dev:convex\" \"npm:dev:web\"",
+    "dev:convex": "convex dev",
+    "dev:web": "npm run dev --workspace apps/web",
     "build": "npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "test": "vitest run",
+    "e2e:judge": "node infra/scripts/e2e-judge.mjs",
+    "test:watch": "vitest",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "tsc -p convex/tsconfig.json --noEmit && npm run typecheck --workspaces --if-present",
+    "convex:codegen": "convex codegen",
+    "convex:deploy": "convex deploy",
+    "seed": "convex run seed:run '{}'",
+    "prepare": "npm run build --workspace packages/content"
+  },
+  "dependencies": {
+    "@convex-dev/aggregate": "^0.3.1",
+    "@convex-dev/rate-limiter": "^0.3.2",
+    "@moj/core": "*",
+    "fflate": "^0.8.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.12",
+    "@edge-runtime/vm": "^5.0.0",
+    "@types/node": "^24.10.1",
+    "concurrently": "^10.0.5",
+    "convex": "^1.45.0",
+    "convex-test": "^0.0.57",
+    "fast-xml-parser": "^5.11.1",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
+  },
+  "allowScripts": {
+    "esbuild": true
   }
 }

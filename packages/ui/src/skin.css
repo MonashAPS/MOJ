@@ -1,0 +1,369 @@
+/* The global skin: element defaults, prose, and the handful of class names that
+ * come out of the content pipeline rather than out of a React component.
+ *
+ * Everything a component can express in Tailwind lives in the component. What is
+ * here is what cannot: bare element styling, the `.content-description` prose
+ * block, the rating classes markdown emits, the royal grid, and the
+ * reduced-motion blanket.
+ *
+ * Import order: tailwindcss, fonts.css, tokens.css, theme.css, then this file.
+ */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    /* A sticky header must not bob when content loads above the fold. */
+    overflow-anchor: none;
+    scroll-behavior: smooth;
+    scroll-padding-top: calc(var(--nav-height) + var(--space-5));
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--bg-2);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: var(--fs-base);
+    line-height: var(--lh);
+    letter-spacing: -0.005em;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    color: var(--ink);
+    line-height: var(--lh-tight);
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  h1 {
+    font-size: var(--fs-h1);
+    font-weight: 700;
+    letter-spacing: var(--tracking-tight);
+  }
+
+  h2 {
+    font-size: var(--fs-h2);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  h3 {
+    font-size: var(--fs-h3);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  h4,
+  h5,
+  h6 {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: var(--fs-base);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+
+  p {
+    margin: 0;
+    text-wrap: pretty;
+  }
+
+  a {
+    color: var(--link);
+    text-decoration: none;
+    transition: color var(--dur-fast) var(--ease);
+  }
+
+  a:hover {
+    color: var(--link-hover);
+  }
+
+  a:active {
+    color: var(--link-active);
+  }
+
+  /* One ring, everywhere, with no offset so it is never clipped. */
+  :where(a, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+    outline: 2px solid var(--brand-royal);
+    outline-offset: 1px;
+    border-radius: var(--radius-sm);
+  }
+
+  hr {
+    border: 0;
+    border-top: 1px solid var(--line);
+    margin: var(--space-3) 0 var(--space-5);
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+  }
+
+  svg {
+    display: inline-block;
+    vertical-align: middle;
+    flex: none;
+  }
+
+  pre,
+  code,
+  kbd,
+  samp {
+    font-family: var(--font-mono);
+    font-size: var(--fs-mono);
+  }
+
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--ink);
+  }
+}
+
+@layer components {
+  /* An invisible scrollbar that arrives on hover, on any panel that opts in. */
+  .scroll-quiet {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 200ms var(--ease);
+  }
+
+  .scroll-quiet:hover {
+    scrollbar-color: var(--line-strong) transparent;
+  }
+
+  /* The royal grid, painted on the page ground. Home, auth, /about/ and
+     the error pages only: behind a table it is noise. */
+  .page-grid {
+    background-image:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-position: center top;
+  }
+
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: var(--z-toast);
+    padding: var(--space-2) var(--space-4);
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+  }
+
+  .skip-link:focus {
+    left: var(--space-4);
+    top: var(--space-2);
+  }
+
+  /* The one small-caps device in the product. */
+  .label {
+    font-family: var(--font-body);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+
+  .label.rail {
+    writing-mode: vertical-rl;
+    letter-spacing: var(--tracking-rail);
+  }
+
+  .label.tight {
+    letter-spacing: 0.08em;
+  }
+
+  .label.on-dark {
+    color: var(--contest-bar-ink);
+  }
+
+  /* Rating names. Markdown's `[user:name]` emits these, so they cannot live in a
+     component; the RatingName component uses the same class names. */
+  .rating {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rating a {
+    color: inherit;
+  }
+
+  .rate-none,
+  .rate-none a {
+    color: var(--rating-none);
+  }
+  .rate-newbie,
+  .rate-newbie a {
+    color: var(--rating-newbie);
+  }
+  .rate-amateur,
+  .rate-amateur a {
+    color: var(--rating-amateur);
+  }
+  .rate-expert,
+  .rate-expert a {
+    color: var(--rating-expert);
+  }
+  .rate-candidate-master,
+  .rate-candidate-master a {
+    color: var(--rating-candidate-master);
+  }
+  .rate-master,
+  .rate-master a {
+    color: var(--rating-master);
+  }
+  .rate-grandmaster,
+  .rate-grandmaster a {
+    color: var(--rating-grandmaster);
+  }
+  .rate-target,
+  .rate-target a {
+    color: var(--rating-target);
+  }
+
+  .admin,
+  .admin a {
+    color: var(--rating-grandmaster);
+    font-weight: 600;
+  }
+
+  /* DMOJ's table skin, for markup that is not the Table component: statement
+     tables and imported flat pages. Section 12 of DESIGN.md. */
+  .h-scrollable-table {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+
+  .h-scrollable-table > table,
+  table.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--fs-base);
+  }
+
+  .h-scrollable-table > table th,
+  table.table th {
+    height: 32px;
+    padding: 0 var(--space-3);
+    background: var(--titlebar);
+    color: var(--titlebar-ink);
+    font: 600 var(--fs-xs) / 1 var(--font-body);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .h-scrollable-table > table td,
+  table.table td {
+    height: var(--row-h);
+    padding: 0 var(--space-3);
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+
+  .h-scrollable-table > table tbody tr:nth-child(even),
+  table.table.striped tbody tr:nth-child(even) {
+    background: var(--row-zebra);
+  }
+
+  .h-scrollable-table > table tbody tr:hover,
+  table.table tbody tr:hover {
+    background: var(--row-hover);
+  }
+
+  .h-scrollable-table > table tbody tr:last-child td,
+  table.table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  /* Prose is owned by @moj/content's styles/content.css, which is the translation
+     of DMOJ's base-description.scss onto these tokens. Nothing here duplicates it;
+     the app imports both. */
+
+  /* First-paint reveal: fade and rise, one-way, and it cannot strand content
+     invisible because it is a CSS animation with `both` fill rather than an
+     IntersectionObserver a fast flick can miss. Stagger is applied inline and
+     capped at 300ms. */
+  .enter-rise {
+    animation: enter-rise var(--dur-slow) var(--ease-out) both;
+  }
+
+  /* Display maths gets its own scrolling row and never scrollbars the page. */
+  .display-math,
+  .katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: var(--space-1) 0;
+  }
+
+  .katex {
+    color: inherit;
+  }
+}
+
+@keyframes route-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(400%);
+  }
+}
+
+@keyframes enter-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Reduced motion calms rather than kills, so state changes stay legible, and
+   nothing may be stranded blurred or invisible. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.15s !important;
+    filter: none !important;
+  }
+
+  /* The reveal keeps its fade branch, so progressive disclosure survives; only
+     the travel goes. */
+  .enter-rise {
+    animation-delay: 0ms !important;
+    transform: none !important;
+  }
+}

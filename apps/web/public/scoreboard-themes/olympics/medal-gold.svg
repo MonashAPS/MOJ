@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" role="img" aria-label="First to solve">
+  <defs>
+    <linearGradient id="disc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe89b"/>
+      <stop offset="0.45" stop-color="#f2c14a"/>
+      <stop offset="1" stop-color="#bf8a11"/>
+    </linearGradient>
+  </defs>
+  <!-- ribbon -->
+  <path d="M11 2h9l9 19-8 5z" fill="#c0392b"/>
+  <path d="M37 2h-9l-9 19 8 5z" fill="#8f2b21"/>
+  <!-- disc -->
+  <circle cx="24" cy="32" r="14.5" fill="#5c4306" opacity="0.55"/>
+  <circle cx="24" cy="32" r="13" fill="url(#disc)" stroke="#8a6508" stroke-width="1.4"/>
+  <circle cx="24" cy="32" r="9.4" fill="none" stroke="#a97c0d" stroke-width="1.1" opacity="0.8"/>
+  <path d="M24.00,25.80L25.59,29.82L29.90,30.08L26.57,32.83L27.64,37.02L24.00,34.70L20.36,37.02L21.43,32.83L18.10,30.08L22.41,29.82Z" fill="#8a6508"/>
+</svg>

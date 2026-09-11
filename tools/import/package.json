@@ -1,0 +1,25 @@
+{
+  "name": "@moj/import",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Import a DMOJ MariaDB dump into Convex, Postgres and Better Auth",
+  "scripts": {
+    "import": "tsx src/cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@moj/core": "*",
+    "@noble/ciphers": "^2.4.0",
+    "convex": "^1.45.0",
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.0"
+  }
+}

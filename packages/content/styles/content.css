@@ -1,0 +1,465 @@
+/*
+ * @moj/content statement typography.
+ *
+ * A translation of DMOJ's resources/base-description.scss onto the MOJ design tokens from
+ * packages/ui/src/tokens.css. Every token is read with a fallback, so this file also works on
+ * its own (in the printable statement page, for instance, which does not load the app shell).
+ *
+ * Import order in the web app:
+ *
+ *   import "katex/dist/katex.min.css";        // KaTeX ships its own fonts; load it first
+ *   import "@moj/content/styles/content.css";
+ *
+ * KaTeX's stylesheet is not bundled here: it pulls in the KaTeX web fonts with URLs relative
+ * to itself, so it has to be imported from the package that owns the font files. Self-host it
+ * by copying `node_modules/katex/dist/fonts` next to the stylesheet; do not load it from a CDN,
+ * for the same reason the rest of the fonts are self-hosted.
+ *
+ * Markup this file styles, all of it produced by `renderMarkdown`:
+ *
+ *   .content-description        the wrapper the page puts around the rendered HTML
+ *   .h-scrollable-table > table.table
+ *   .codehilite > pre > code    Shiki output, dual-themed through --shiki-* custom properties
+ *   .katex, .katex-display      KaTeX output
+ *   a.user-link[data-username]  [user:name] and [ruser:name] references
+ */
+
+.content-description {
+  --content-ink: var(--ink, #16191d);
+  --content-ink-2: var(--ink-2, #3d474f);
+  --content-muted: var(--muted, #5f6b76);
+  --content-line: var(--line, #d5dbe1);
+  --content-code-bg: var(--code-bg, #f4f6f8);
+  --content-surface: var(--surface, #ffffff);
+  --content-accent: var(--accent, #2980b9);
+  --content-radius: var(--radius, 4px);
+  --content-quote-rule: var(--line, #d5dbe1);
+  --content-mark-bg: #fff3a3;
+  --content-ins-bg: #fff9c2;
+
+  color: var(--content-ink);
+  font-family: var(--font-sans, "IBM Plex Sans", "Segoe UI", "Lucida Grande", Arial, sans-serif);
+  font-size: 1em;
+  line-height: 1.5em;
+  overflow-wrap: break-word;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .content-description {
+    --content-mark-bg: #6b5b12;
+    --content-ins-bg: #4d4713;
+  }
+}
+
+:root[data-theme="dark"] .content-description {
+  --content-mark-bg: #6b5b12;
+  --content-ins-bg: #4d4713;
+}
+
+/* ------------------------------------------------------------------ block rhythm ----- */
+
+.content-description p {
+  margin: 1em 0;
+  padding: 0;
+}
+
+.content-description > :first-child {
+  margin-top: 0;
+}
+
+.content-description > :last-child {
+  margin-bottom: 0;
+}
+
+/* --------------------------------------------------------------------- headings ----- */
+
+.content-description h1,
+.content-description h2,
+.content-description h3,
+.content-description h4,
+.content-description h5,
+.content-description h6 {
+  background: 0;
+  color: var(--content-ink);
+  font-family: var(--font-display, "Bai Jamjuree", "IBM Plex Sans", sans-serif);
+  font-weight: 600;
+  margin-bottom: 0.75em;
+  padding: 0;
+}
+
+.content-description h1 {
+  font-size: 2.5em;
+}
+
+.content-description h2 {
+  font-size: 2em;
+}
+
+/*
+ * `renderMarkdown` demotes headings by two, so a statement's `##` arrives as `h4`: that is the
+ * section heading, and it keeps DMOJ's hairline underneath it.
+ */
+.content-description h3 {
+  font-size: 1.6em;
+  font-weight: 700;
+  margin: 0;
+  padding: 0;
+}
+
+.content-description h4 {
+  border-bottom: 1px solid var(--content-line);
+  font-size: 1.4em;
+  font-weight: 700;
+  line-height: 1.225;
+  padding-bottom: 0.3em;
+  padding-top: 0.5em;
+}
+
+.content-description h5 {
+  font-size: 1.15em;
+  font-weight: 700;
+  margin-top: 0;
+}
+
+.content-description h6 {
+  font-size: 0.9em;
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------------ inline marks ----- */
+
+.content-description b,
+.content-description strong {
+  font-weight: 700;
+}
+
+.content-description dfn {
+  font-style: italic;
+}
+
+.content-description ins {
+  background: var(--content-ins-bg);
+  color: var(--content-ink);
+  text-decoration: none;
+}
+
+.content-description mark {
+  background: var(--content-mark-bg);
+  color: var(--content-ink);
+  font-style: italic;
+  font-weight: 700;
+}
+
+.content-description sub,
+.content-description sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+.content-description sup {
+  top: -0.5em;
+}
+
+.content-description sub {
+  bottom: -0.25em;
+}
+
+.content-description a {
+  color: var(--content-accent);
+}
+
+/* ------------------------------------------------------------------------ lists ----- */
+
+/* Tailwind's preflight sets `list-style: none` on every list and this stylesheet
+ * is imported after it, so the markers have to be restored explicitly; without
+ * this every statement, editorial, blog post, comment and ticket loses them. */
+.content-description ul,
+.content-description ol {
+  padding: 0 0 0 2em;
+  list-style-position: outside;
+}
+
+.content-description ul {
+  list-style-type: disc;
+}
+
+.content-description ul ul {
+  list-style-type: circle;
+}
+
+.content-description ul ul ul {
+  list-style-type: square;
+}
+
+.content-description ol {
+  list-style-type: decimal;
+}
+
+.content-description li p:last-child {
+  margin: 0;
+}
+
+.content-description dd {
+  margin: 0 0 0 2em;
+}
+
+/* ------------------------------------------------------------------- quotes, hr ----- */
+
+.content-description blockquote {
+  border-left: 0.5em solid var(--content-quote-rule);
+  color: var(--content-ink-2);
+  margin: 0;
+  padding-left: 1.5em;
+}
+
+.content-description hr {
+  border: 0;
+  border-bottom: 1px solid var(--content-line);
+  display: block;
+  font-style: italic;
+  height: 0;
+  margin: 25px 0 20px 0;
+  padding: 0;
+}
+
+/* ------------------------------------------------------------------------- code ----- */
+
+.content-description pre,
+.content-description code,
+.content-description kbd,
+.content-description samp,
+.content-description span.code {
+  color: var(--content-ink);
+  font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, "DejaVu Sans Mono", monospace);
+  font-size: 0.98em;
+  page-break-inside: avoid;
+}
+
+.content-description code,
+.content-description span.code {
+  background-color: var(--content-code-bg);
+  border: 1px solid var(--content-line);
+  border-radius: var(--content-radius);
+  color: var(--content-ink-2);
+  font-size: 0.95em;
+  margin: 0 2px;
+  padding: 0 5px;
+}
+
+.content-description pre {
+  background-color: var(--content-code-bg);
+  border: 1px solid var(--content-line);
+  border-radius: var(--content-radius);
+  color: var(--content-ink);
+  margin: 1.5em 0;
+  overflow-x: auto;
+  padding: 1em;
+  white-space: pre;
+}
+
+.content-description pre code,
+.content-description pre div.code {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font-size: 1em;
+  line-height: 1.45;
+  margin: 0;
+  padding: 0;
+}
+
+/* -------------------------------------------------------- codehilite (Shiki) ----- */
+
+/*
+ * Shiki runs with `defaultColor: false`, so every token carries both themes as custom
+ * properties (`--shiki-light`, `--shiki-dark` and the `-bg`, `-font-style`, `-font-weight` and
+ * `-text-decoration` variants). One rule picks the light values, two override with the dark
+ * ones: the media query for the "system" setting, the attribute selector for an explicit
+ * choice.
+ */
+
+.content-description .codehilite {
+  margin: 1.5em 0;
+}
+
+.content-description .codehilite pre {
+  margin: 0;
+}
+
+.content-description .codehilite pre,
+.content-description .codehilite pre span {
+  background-color: var(--shiki-light-bg, var(--content-code-bg));
+  color: var(--shiki-light, var(--content-ink));
+  font-style: var(--shiki-light-font-style, inherit);
+  font-weight: var(--shiki-light-font-weight, inherit);
+  text-decoration: var(--shiki-light-text-decoration, inherit);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .content-description .codehilite pre,
+  :root:not([data-theme="light"]) .content-description .codehilite pre span {
+    background-color: var(--shiki-dark-bg, var(--content-code-bg));
+    color: var(--shiki-dark, var(--content-ink));
+    font-style: var(--shiki-dark-font-style, inherit);
+    font-weight: var(--shiki-dark-font-weight, inherit);
+    text-decoration: var(--shiki-dark-text-decoration, inherit);
+  }
+}
+
+:root[data-theme="dark"] .content-description .codehilite pre,
+:root[data-theme="dark"] .content-description .codehilite pre span {
+  background-color: var(--shiki-dark-bg, var(--content-code-bg));
+  color: var(--shiki-dark, var(--content-ink));
+  font-style: var(--shiki-dark-font-style, inherit);
+  font-weight: var(--shiki-dark-font-weight, inherit);
+  text-decoration: var(--shiki-dark-text-decoration, inherit);
+}
+
+/* Shiki puts a `tabindex` on the block so it can be scrolled from the keyboard. */
+.content-description .codehilite pre:focus-visible {
+  outline: 2px solid var(--content-accent);
+  outline-offset: 2px;
+}
+
+/* ----------------------------------------------------------------------- tables ----- */
+
+.content-description .h-scrollable-table {
+  overflow-x: auto;
+  margin: 1.5em 0;
+}
+
+.content-description table.table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.content-description table.table th,
+.content-description table.table td {
+  border: 1px solid var(--content-line);
+  padding: 0.4em 0.7em;
+  text-align: left;
+  vertical-align: top;
+}
+
+.content-description table.table thead th {
+  background: var(--surface-2, var(--content-code-bg));
+  color: var(--content-ink);
+  font-weight: 600;
+}
+
+.content-description table.table tbody tr:nth-child(even) {
+  background: var(--content-code-bg);
+}
+
+/* ----------------------------------------------------------------------- images ----- */
+
+.content-description img {
+  border: 0;
+  height: auto;
+  -ms-interpolation-mode: bicubic;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.content-description img.tex-full,
+.content-description img.tex-image,
+.content-description img.inline-math,
+.content-description img.display-math {
+  background: #ffffff;
+  border-radius: var(--content-radius);
+}
+
+/* ------------------------------------------------------------------------ maths ----- */
+
+/* A long equation scrolls inside its own box rather than widening the page. */
+.content-description .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.2em 0;
+}
+
+.content-description .katex {
+  font-size: 1.05em;
+}
+
+.content-description .katex-error {
+  font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+  font-size: 0.95em;
+}
+
+/* -------------------------------------------------------------- user references ----- */
+
+/*
+ * `[user:name]` renders as `<a class="user-link" data-username="name">`. The web app looks the
+ * username up and adds the rating class; until then the link is simply the accent colour.
+ */
+.content-description a.user-link {
+  color: var(--content-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.content-description a.user-link:hover {
+  text-decoration: underline;
+}
+
+.content-description a.user-link.rating-newbie {
+  color: var(--rating-newbie, #999999);
+}
+
+.content-description a.user-link.rating-amateur {
+  color: var(--rating-amateur, #00a900);
+}
+
+.content-description a.user-link.rating-expert {
+  color: var(--rating-expert, #2f8ecc);
+}
+
+.content-description a.user-link.rating-candidate-master {
+  color: var(--rating-candidate-master, #a44fbf);
+}
+
+.content-description a.user-link.rating-master {
+  color: var(--rating-master, #ffb100);
+}
+
+.content-description a.user-link.rating-grandmaster {
+  color: var(--rating-grandmaster, #ee0000);
+}
+
+.content-description a.user-link.rating-target {
+  color: var(--rating-target, #770000);
+}
+
+/* --------------------------------------------------------------------- printing ----- */
+
+/*
+ * `.printing` is the class DMOJ's raw statement page puts on the description when it is being
+ * turned into a PDF by a headless browser. MOJ renders its PDFs with Typst instead, but the
+ * class is kept so the browser print stylesheet has something to hang off.
+ */
+.content-description.printing pre,
+.content-description.printing .codehilite pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+@media print {
+  .content-description pre,
+  .content-description .codehilite pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .content-description tr,
+  .content-description pre,
+  .content-description .codehilite {
+    page-break-inside: avoid;
+  }
+
+  .content-description a.user-link {
+    color: inherit;
+  }
+}
