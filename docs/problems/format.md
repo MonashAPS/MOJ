@@ -1,8 +1,9 @@
 # Problem format
 
-A problem in MOJ is two things kept in different places. The **test data** lives on the judge boxes as a directory
-of files with an `init.yml` in it, and is exactly DMOJ's format. The **statement and metadata** live on the site and
-are pushed there from a problem repository by `config.json` and `statement.md`.
+A problem in MOJ is two halves that travel separately. The **test data** is a directory of files with an
+`init.yml` in it, in exactly DMOJ's format, published to the site as one archive and fetched from there by the
+judges. The **statement and metadata** are `statement.md` and `config.json`, stored as fields on the problem. Both
+halves live in the same problem repository and are published with the same API key.
 
 If you have written problems for DMOJ before, nothing on this page is new except `config.json`. Data written for
 a DMOJ site grades unchanged on MOJ, including batches, dependencies, checkers, custom graders, generators and
@@ -10,8 +11,8 @@ pretests, because the grader is the DMOJ judge-server and MOJ never parses `init
 
 ## The problem directory
 
-The judge reads problems from the directories named in its `problem_storage_globs`, which in the container is
-`/problems/**/`. One directory per problem, named after the problem code:
+One directory per problem, named after the problem code. That directory is what the repository holds, what the
+published archive carries, and what a judge grades from:
 
 ```
 /problems/
@@ -31,8 +32,14 @@ The judge reads problems from the directories named in its `problem_storage_glob
       ...
 ```
 
-The judge reports the directory names it finds during its handshake, and the site only offers a submission to a
-judge that has that problem code. A problem whose data has not reached any judge sits in the queue.
+The site keeps the latest archive for each problem and tells a judge which hash to grade at. The judge downloads
+that archive once, checks its hash, extracts it into its cache and grades from there; later submissions at the
+same hash need no download.
+
+A judge can also hold problems on its own disk, which is how a site with no stored data for a problem still
+grades. It reads the directories named in its `problem_storage_globs`, which in the container is `/problems/**/`,
+and reports what it found during its handshake. Where both exist the site's copy wins, so every judge grades the
+same bytes. A problem the site holds no data for, and that has reached no judge, sits in the queue.
 
 ## Problem codes
 
@@ -457,15 +464,17 @@ problems-2026/
       statement.md               statement for the site
       editorial.md               optional editorial for the site
       images/archery.jpg         referenced by the statement
-      init.yml                   read by the judge
-      tests/                     test data, read by the judge
+      init.yml                   the test data, published to the site
+      tests/                     test data, published with it
         1.in
         1.out
       gen.py                     optional, generates tests/
-      sol.cpp                    reference solution, not uploaded
+      sol.cpp                    reference solution; rides along in the archive
   README.md
 ```
 
-The directory name is the problem code. The site half (`config.json`, `statement.md`, `editorial.md`, images) goes
-through the problems API. The judge half (`init.yml`, `tests/`, checkers, generators) is copied to the judge boxes
-with rsync. [Problem repos and CI](/problems/repos-and-ci) has the reusable action that does both.
+The directory name is the problem code. One action with one key publishes all of it: the statement half
+(`config.json`, `statement.md`, `editorial.md`, images) as fields on the problem, and everything else
+(`init.yml`, `tests/`, checkers, generators) as the test data archive the judges fetch.
+[Problem repos and CI](/problems/repos-and-ci) has the action, what goes in the archive, and the hash that decides
+whether anything is uploaded.
