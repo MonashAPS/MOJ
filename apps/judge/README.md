@@ -2,8 +2,7 @@
 
 The grader. It is the judge-server, vendored as a git subtree of
 <https://github.com/dmoj/judge-server.git> branch `master` under `judge-server/`, with a pull-mode packet manager
-added so it fetches work from MOJ over HTTPS instead of waiting on a bridge socket. A judge needs no inbound port
-and no static address, so one behind a home connection works the same as one beside the site.
+added so it fetches work from MOJ over HTTPS.
 
 ```
 apps/judge/
@@ -27,11 +26,10 @@ The base image decides which languages exist. Pick one at build time with `--bui
 | `tier2` | Tier 1 plus the mid-popularity runtimes | larger |
 | `tier3` | Everything, including Clang, Node.js, Lean 4, ALGOL 68 and LLVM IR | about 18 GB to pull |
 
-Take the images from Docker Hub, not from the `ghcr.io` mirror: the mirror has not been rebuilt since March 2022
-and its tier 1 image ships GCC 11, which fails the C++23 and C23 self-tests.
+Use the Docker Hub images, not the `ghcr.io` mirror, which still ships GCC 11 and fails the C++23 and C23
+self-tests.
 
-Judges are also given a tier in the staff console, which is a different thing. Work only goes to judges in the
-lowest online tier, so a spare laptop on tier 2 stays idle until the dedicated box is gone.
+The tier set in the staff console is separate: work goes to judges in the lowest online tier first.
 
 ## Building
 
@@ -56,11 +54,11 @@ docker run -d --restart unless-stopped --name moj-judge \
   moj-judge:tier1
 ```
 
-`CAP_SYS_PTRACE` is what the sandbox needs to trace the processes it runs. The judge appears in Admin, Judges once
-its executor self-tests finish, usually under a minute.
+`CAP_SYS_PTRACE` is required by the sandbox. The judge shows up in Admin, Judges once its self-tests finish,
+usually under a minute.
 
-Add `-v /srv/moj/problems:/problems` if this judge also grades problems whose test data it holds itself, and
-`--cpuset-cpus` to keep the sandbox off cores you need for something else.
+Add `-v /srv/moj/problems:/problems` for problems whose test data this judge holds itself, and `--cpuset-cpus` to
+pin it to particular cores.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
@@ -73,22 +71,19 @@ Add `-v /srv/moj/problems:/problems` if this judge also grades problems whose te
 
 ## Test data
 
-A problem's test data lives either on the judge or on the site.
+Test data comes from one of two places.
 
-On the judge, as it always has: a directory per problem code under `/problems` holding `init.yml` and its test
-files, put there by whatever copies your problem repository around.
+**The site.** The claim names the sha256 of the archive the site holds. The judge downloads it once, checks the
+bytes against that hash and keeps it in `MOJ_DATA_CACHE`; later submissions at the same hash use the cached copy.
+Mount an empty `/problems` and the judge fills its own cache as it goes.
 
-On the site, which is the normal case now: the claim names the sha256 of the archive the site holds, and the judge
-downloads it once, checks the bytes against that hash, and keeps it in `MOJ_DATA_CACHE`. Later submissions for the
-same hash use the cached copy; a new hash is downloaded again. A judge that grades only these needs no problem
-tree at all, so mount an empty `/problems` and it fills its own cache as it goes.
+**The judge.** A directory per problem code under `/problems`, each holding `init.yml` and its test files.
 
-Where a problem exists in both, the site's copy wins, so every judge in an estate grades the same bytes. Nothing on
-local disk is written to or deleted.
+Where both exist the site's copy is used. Local files are only ever read.
 
-The judge refuses to grade rather than grade the wrong thing: bytes that do not match the promised hash, an archive
-with no `init.yml` at its root, or a member that would write outside the problem directory all end the submission
-with an internal error naming the problem. A download that fails part way leaves the cached copy untouched.
+The judge reports an internal error instead of grading when the bytes do not match the hash, the archive has no
+`init.yml` at its root, or a member would write outside the problem directory. A download that fails part way
+leaves the cached copy alone.
 
 ## Tests
 
@@ -101,11 +96,10 @@ python3 apps/judge/tests/e2e.py --port 3311 --network host
 ```
 
 `e2e.py` runs the real image against `tests/mock_server.py` and grades ten submissions: accepted, wrong, timed out
-and aborted from a local problem, then six covering site-owned data, including a first fetch, a cache hit, a
-re-fetch after the hash changes, and an archive whose bytes do not match its hash.
+and aborted from a local problem, then six for site-owned data covering a first fetch, a cache hit, a re-fetch
+after the hash changes, and an archive whose bytes do not match its hash.
 
-It prefers `host.docker.internal` and falls back to host networking when the container cannot reach the host, which
-is what happens where the firewall does not trust the docker bridge.
+It falls back to host networking when the container cannot reach `host.docker.internal`.
 
 ## Updating from upstream
 
@@ -114,5 +108,5 @@ git subtree pull --prefix apps/judge/judge-server https://github.com/dmoj/judge-
 ```
 
 MOJ's changes are commits inside the subtree touching four files: `dmoj/moj_packet.py` and `dmoj/moj_data.py` are
-ours outright, and `dmoj/judge.py` and `dmoj/judgeenv.py` carry a few lines each, so those are the only places a
-pull can conflict. Rebuild the image and run `tests/e2e.py` afterwards.
+ours outright, `dmoj/judge.py` and `dmoj/judgeenv.py` carry a few lines each. Rebuild the image and run
+`tests/e2e.py` afterwards.
