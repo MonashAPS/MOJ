@@ -53,9 +53,9 @@
     "@types/hast": "^3.0.4",
     "@types/katex": "^0.16.7",
     "@types/mdast": "^4.0.4",
-    "@types/node": "^24.0.0",
-    "pdf-parse": "^1.1.1",
-    "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "@types/node": "^26.5.0",
+    "pdf-parse": "^2.4.5",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0"
   }
 }
