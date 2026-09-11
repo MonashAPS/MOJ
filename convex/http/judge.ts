@@ -4,25 +4,30 @@
  * `apps/judge/judge-server/dmoj/moj_packet.py` is the only client and
  * `apps/judge/README.md` documents the format; both are authoritative. Every
  * request carries `judgeName` and `judgeKey`, in the JSON body for the POSTs and
- * in the query string for the one GET. The site stores only `sha256(key)`, so
+ * in the query string for the two GETs. The site stores only `sha256(key)`, so
  * that is what is hashed here and compared in the mutation.
  *
  * Nothing in this file touches the database: each route validates, hashes and
  * hands over to an internal mutation in convex/judging.ts, so one request is one
- * transaction.
+ * transaction. `GET /judge/data` is the exception that reads a blob, which only
+ * an action may do, and it streams the archive straight back.
  */
 
 import {
   abortQuerySchema,
   claimRequestSchema,
+  DATA_HASH_HEADER,
+  DATA_SIZE_HEADER,
   disconnectRequestSchema,
   eventRequestSchema,
   handshakeRequestSchema,
   heartbeatRequestSchema,
+  judgeDataQuerySchema,
 } from "@moj/protocol/judge";
 import type { HttpRouter } from "convex/server";
 import { ConvexError } from "convex/values";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import { httpAction } from "../_generated/server";
 
 function json(body: unknown, status = 200): Response {
@@ -66,6 +71,18 @@ function errorResponse(error: unknown): Response {
   }
   const message = error instanceof Error ? error.message : String(error);
   return json({ error: message }, 400);
+}
+
+/** `GET /judge/data` answers `{ok: false, error}` rather than a bare `{error}`. */
+function dataErrorResponse(error: unknown): Response {
+  if (error instanceof ConvexError) {
+    const data = error.data as { code?: string; message?: string } | undefined;
+    return json(
+      { ok: false, error: data?.message ?? "request failed" },
+      data?.code === "FORBIDDEN" ? 403 : 400,
+    );
+  }
+  return json({ ok: false, error: error instanceof Error ? error.message : String(error) }, 400);
 }
 
 export function registerJudgeRoutes(http: HttpRouter): void {
@@ -172,6 +189,54 @@ export function registerJudgeRoutes(http: HttpRouter): void {
       } catch (error) {
         return errorResponse(error);
       }
+    }),
+  });
+
+  /**
+   * The test data archive for one problem, for a judge whose claim carried a
+   * `problemDataHash`. The judge verifies the bytes against `X-Moj-Data-Hash`
+   * before it extracts them, so a truncated download fails loudly.
+   */
+  http.route({
+    path: "/judge/data",
+    method: "GET",
+    handler: httpAction(async (ctx, request) => {
+      const query = Object.fromEntries(new URL(request.url).searchParams.entries());
+      const parsed = judgeDataQuerySchema.safeParse(query);
+      if (!parsed.success) return json({ ok: false, error: "malformed request" }, 400);
+
+      let archive: { storageId: Id<"_storage">; hash: string; size: number } | null;
+      try {
+        archive = await ctx.runQuery(internal.problemTestData.judgeArchive, {
+          judgeName: parsed.data.judgeName,
+          authKeyHash: await sha256Hex(parsed.data.judgeKey),
+          code: parsed.data.code,
+        });
+      } catch (error) {
+        return dataErrorResponse(error);
+      }
+
+      if (!archive) return json({ ok: false, error: "no data" }, 404);
+      // The judge names the hash its claim carried; a newer archive means that
+      // claim is stale, and grading the bytes it asked for would be wrong.
+      if (parsed.data.hash && parsed.data.hash !== archive.hash) {
+        return json({ ok: false, error: "hash mismatch" }, 409);
+      }
+
+      const blob = await ctx.storage.get(archive.storageId);
+      if (!blob) return json({ ok: false, error: "no data" }, 404);
+
+      // Streamed rather than handed over as a Blob: an archive is megabytes,
+      // and the response should not be buffered again on its way out.
+      return new Response(blob.stream(), {
+        status: 200,
+        headers: {
+          "content-type": "application/zip",
+          [DATA_HASH_HEADER]: archive.hash,
+          [DATA_SIZE_HEADER]: String(archive.size),
+          "cache-control": "no-store",
+        },
+      });
     }),
   });
 

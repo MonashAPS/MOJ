@@ -100,6 +100,13 @@ export const claimedSubmissionSchema = z.object({
   /** Kilobytes, likewise resolved. */
   memoryLimit: z.number(),
   shortCircuit: z.boolean(),
+  /**
+   * sha256 of the archive the site holds for this problem, or null. Non-null
+   * means the judge grades from the site's copy at that hash, fetched with
+   * `GET /judge/data`; null means it grades from its own disk. A server that
+   * predates site-owned data omits the field, which reads as null.
+   */
+  problemDataHash: z.string().nullable().default(null),
   meta: submissionMetaSchema,
 });
 
@@ -108,6 +115,25 @@ export type ClaimedSubmission = z.infer<typeof claimedSubmissionSchema>;
 export const claimResponseSchema = z.object({
   submission: claimedSubmissionSchema.nullable(),
 });
+
+/* -------------------------------------------------------------------------- */
+/* Test data                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/** `GET /judge/data`: the archive for one problem, optionally pinned to a hash. */
+export const judgeDataQuerySchema = judgeAuthSchema.extend({
+  code: z.string().min(1).max(200),
+  hash: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/)
+    .optional(),
+});
+
+export type JudgeDataQuery = z.infer<typeof judgeDataQuerySchema>;
+
+/** Headers `GET /judge/data` answers with, so the judge can verify what it got. */
+export const DATA_HASH_HEADER = "X-Moj-Data-Hash";
+export const DATA_SIZE_HEADER = "X-Moj-Data-Size";
 
 /* -------------------------------------------------------------------------- */
 /* Events                                                                     */

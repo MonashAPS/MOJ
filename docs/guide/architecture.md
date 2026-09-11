@@ -105,15 +105,27 @@ Every call carries `{judgeName, judgeKey}`; the server hashes the key with SHA-2
 | `POST /judge/handshake` | judge to site | Reports the problem codes it has and the executors it found. Marks the judge online. |
 | `POST /judge/heartbeat` | judge to site | Every 10 seconds, with the current load. Keeps the judge online. |
 | `POST /judge/claim` | judge to site | Asks for one submission. Returns `null` when there is nothing to do. |
+| `GET /judge/data` | judge to site | The test data archive for one problem, when the claim named a hash. |
 | `POST /judge/event` | judge to site | Grading progress: `grading-begin`, `batch-begin`, `test-case-status`, `batch-end`, `grading-end`, `compile-error`, `compile-message`, `internal-error`, `submission-terminated`. |
 | `GET /judge/abort` | judge to site | Polled once a second while grading, so an aborted submission stops quickly. |
 | `POST /judge/disconnect` | judge to site | Clean shutdown. |
 
 Claiming is deliberate rather than first-come-first-served. Candidates are submissions with status `QU` ordered by
 priority then date, where priority is 0 for contest submissions, 1 for normal ones, 2 for rejudges and 3 for batch
-rejudges. A judge only claims a submission whose problem code and language it reported, only judges in the lowest
-online tier claim at all, a submission pinned with `judgePin` goes only to that judge, and when the tier is busy the
-rejudge priorities are skipped so that a large rejudge cannot starve live submissions.
+rejudges. A judge only claims a submission whose language it reported and whose problem it either reported or the
+site holds data for, only judges in the lowest online tier claim at all, a submission pinned with `judgePin` goes
+only to that judge, and when the tier is busy the rejudge priorities are skipped so that a large rejudge cannot
+starve live submissions.
+
+The claim hands over the submission id, the problem code, the language key, the source, the resolved time and
+memory limits, `shortCircuit`, a `meta` object (`pretestsOnly`, `inContest`, `attemptNo`, `user`, `userNotes`) and
+`problemDataHash`. That last field is the sha256 of the archive the site holds for the problem, or `null`. Non-null
+means the judge grades from the site's copy at that hash, fetching it with
+`GET /judge/data?judgeName=&judgeKey=&code=[&hash=]` and caching it on disk; the response carries the archive with
+`X-Moj-Data-Hash` and `X-Moj-Data-Size`, and answers 404 when the site holds nothing, 409 when the named hash is no
+longer current, and 403 to a judge that cannot authenticate. The site's copy wins wherever both exist, so every
+judge grades the same bytes; `null` means the judge grades from its own disk, as it always did. Publishing an
+archive is [the problems API's test data endpoints](/reference/api).
 
 If a judge dies mid-grade, a cron notices: submissions stuck in `P` or `G` whose judge has not sent a heartbeat for
 60 seconds, or which have made no case progress for 15 minutes, go back to the queue once. A second failure marks

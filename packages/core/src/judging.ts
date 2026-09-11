@@ -208,6 +208,11 @@ export interface ClaimableSubmission {
   readonly status: SubmissionStatus;
   /** Only this judge (by name) may take the submission. */
   readonly judgePin?: string | null;
+  /**
+   * The site holds a test data archive for this problem, so a judge that never
+   * reported the code may grade it anyway: it fetches the archive first.
+   */
+  readonly siteHasData?: boolean;
 }
 
 /** A judge is working when it holds a submission. */
@@ -247,14 +252,20 @@ export function shouldReserveJudge(judges: readonly JudgeRow[], minTier: number 
   return free <= 1;
 }
 
-/** `JudgeHandler.can_judge(problem, executor, judge_id)` (judge_handler.py:181). */
+/**
+ * `JudgeHandler.can_judge(problem, executor, judge_id)` (judge_handler.py:181),
+ * with one addition: a judge that never reported the problem code still
+ * qualifies when the site holds the data, because the claim carries the hash
+ * and the judge downloads the archive before grading.
+ */
 export function judgeCanJudge(
   judge: JudgeRow,
   problemCode: string,
   languageKey: string,
   judgePin?: string | null,
+  siteHasData = false,
 ): boolean {
-  if (!judge.problemCodes.includes(problemCode)) return false;
+  if (!siteHasData && !judge.problemCodes.includes(problemCode)) return false;
   if (!judge.runtimeKeys.includes(languageKey)) return false;
   if (judgePin) return judge.name === judgePin;
   return !judge.isDisabled;
@@ -291,7 +302,15 @@ export function selectClaim(
 
   for (const submission of candidates) {
     if (submission.priority >= REJUDGE_PRIORITY && reserve) return null;
-    if (!judgeCanJudge(judge, submission.problemCode, submission.languageKey, submission.judgePin)) {
+    if (
+      !judgeCanJudge(
+        judge,
+        submission.problemCode,
+        submission.languageKey,
+        submission.judgePin,
+        submission.siteHasData ?? false,
+      )
+    ) {
       continue;
     }
     return submission;

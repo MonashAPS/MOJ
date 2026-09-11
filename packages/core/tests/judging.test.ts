@@ -242,6 +242,16 @@ describe("claiming", () => {
     expect(selectClaim(j, [queued("s", { languageKey: "CPP17" })], [j])).toBeNull();
   });
 
+  it("takes a problem it never reported when the site holds the data", () => {
+    const j = judge("j");
+    expect(judgeCanJudge(j, "other", "PY3", null, true)).toBe(true);
+    expect(selectClaim(j, [queued("s", { problemCode: "other", siteHasData: true })], [j])?.id).toBe("s");
+    // The executor is still the judge's own business.
+    expect(
+      selectClaim(j, [queued("s", { problemCode: "other", languageKey: "CPP17", siteHasData: true })], [j]),
+    ).toBeNull();
+  });
+
   it("honours a judge pin, even for a disabled judge", () => {
     const pinned = judge("pinned", { isDisabled: true });
     const other = judge("other");

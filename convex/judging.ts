@@ -40,6 +40,7 @@ import {
   JUDGE_HEARTBEAT_TIMEOUT_MS,
 } from "./judgeApi";
 import { invalid } from "./lib/errors";
+import { testDataRow } from "./lib/testData";
 import { patchProfile } from "./rankings";
 
 /* -------------------------------------------------------------------------- */
@@ -137,6 +138,12 @@ export interface ClaimedSubmissionPayload {
   timeLimit: number;
   memoryLimit: number;
   shortCircuit: boolean;
+  /**
+   * sha256 of the archive the site holds for this problem, or null when it
+   * holds none and the judge grades from its own disk. The site's copy wins
+   * wherever both exist, so every judge grades the same bytes.
+   */
+  problemDataHash: string | null;
   meta: {
     pretestsOnly: boolean;
     inContest: number | null;
@@ -233,6 +240,11 @@ export async function claimNext(
 
   const problems = new Map<Id<"problems">, Doc<"problems"> | null>();
   const languages = new Map<Id<"languages">, Doc<"languages"> | null>();
+  // The hash of the archive the site holds for each problem in the queue, or
+  // null for one it holds nothing for. A problem the site owns may go to a
+  // judge that never reported the code: the claim names the hash and the judge
+  // fetches the archive before it grades.
+  const dataHashes = new Map<Id<"problems">, string | null>();
   const judgeNames = new Map<Id<"judges">, string>(judgeDocs.map((row) => [row._id, row.name]));
 
   const candidates: ClaimableSubmission[] = [];
@@ -243,6 +255,10 @@ export async function claimNext(
     }
     if (!languages.has(submission.languageId)) {
       languages.set(submission.languageId, await ctx.db.get(submission.languageId));
+    }
+    if (!dataHashes.has(submission.problemId)) {
+      const data = await testDataRow(ctx, submission.problemId);
+      dataHashes.set(submission.problemId, data?.hash ?? null);
     }
     const problem = problems.get(submission.problemId);
     const language = languages.get(submission.languageId);
@@ -257,6 +273,7 @@ export async function claimNext(
       date: submission.date,
       status: submission.status,
       judgePin: submission.judgePin ? (judgeNames.get(submission.judgePin) ?? "\u0000") : null,
+      siteHasData: dataHashes.get(submission.problemId) !== null,
     });
   }
 
@@ -302,6 +319,7 @@ export async function claimNext(
     timeLimit: limits.timeLimit,
     memoryLimit: limits.memoryLimit,
     shortCircuit: problem.shortCircuit,
+    problemDataHash: dataHashes.get(submission.problemId) ?? null,
     meta: {
       pretestsOnly: submission.isPretested,
       inContest,
