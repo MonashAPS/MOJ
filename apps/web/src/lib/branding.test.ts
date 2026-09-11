@@ -7,6 +7,9 @@ const DEFAULTS: BrandingValues = {
   logoUrl: null,
   accentColor: "#2941a5",
   accentColorDark: "#7c96db",
+  accentFillDark: "#314cb1",
+  accentFillHoverDark: "#3e5bc1",
+  accentFillActiveDark: "#263ca0",
   navColor: "#101a3d",
   navColorDark: "#152148",
   titlebarColor: "#101a3d",
@@ -22,6 +25,9 @@ const BRANDED: BrandingValues = {
   ...DEFAULTS,
   accentColor: "#b3001b",
   accentColorDark: "#f18a82",
+  accentFillDark: "#bf1b26",
+  accentFillHoverDark: "#d13235",
+  accentFillActiveDark: "#ac0019",
   navColor: "#1a1a2e",
   navColorDark: "#212137",
   titlebarColor: "#1a1a2e",
@@ -66,6 +72,16 @@ describe("brandingCss", () => {
     expect(dark).toContain("--titlebar:#34344f");
     expect(dark).toContain("--contest-bar:#2a2a43");
     expect(dark).not.toContain("--nav:#1a1a2e");
+  });
+
+  test("the filled primary follows the brand on dark, not the token royal", () => {
+    const css = brandingCss(BRANDED) as string;
+    const dark = css.slice(css.indexOf("@media"));
+    expect(dark).toContain("--accent-fill:#bf1b26");
+    expect(dark).toContain("--accent-fill-hover:#d13235");
+    expect(dark).toContain("--accent-fill-active:#ac0019");
+    // Light has no fill of its own; the accent is the fill there.
+    expect(css.slice(0, css.indexOf("@media"))).not.toContain("--accent-fill");
   });
 
   test("the nav colour drives the band and the bar under it", () => {

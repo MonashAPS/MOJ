@@ -2,6 +2,9 @@ export type BrandingValues = {
   logoUrl: string | null;
   accentColor: string;
   accentColorDark: string;
+  accentFillDark: string;
+  accentFillHoverDark: string;
+  accentFillActiveDark: string;
   navColor: string;
   navColorDark: string;
   titlebarColor: string;
@@ -55,12 +58,20 @@ export function brandingCss(branding: BrandingValues | null): string | null {
     // way tokens.css derives its dark chrome from its light chrome. `.theme-dark`
     // comes with the explicit selector so the hall scoreboard, which is dark
     // whatever the viewer's theme is, is branded too.
-    const dark = vars(
-      branding.accentColorDark,
-      branding.navColorDark,
-      branding.titlebarColorDark,
-      branding.contestBarColorDark,
-    );
+    const dark = [
+      vars(
+        branding.accentColorDark,
+        branding.navColorDark,
+        branding.titlebarColorDark,
+        branding.contestBarColorDark,
+      ),
+      // The filled primary keeps its own royal on dark, because a fill light
+      // enough to read as text cannot carry white text; theme.css hands it to
+      // the elements that wear it.
+      `--accent-fill:${safeValue(branding.accentFillDark)}`,
+      `--accent-fill-hover:${safeValue(branding.accentFillHoverDark)}`,
+      `--accent-fill-active:${safeValue(branding.accentFillActiveDark)}`,
+    ].join(";");
     blocks.push(
       `:root{${light};}`,
       `@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${dark};}}`,

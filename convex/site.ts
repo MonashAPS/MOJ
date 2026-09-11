@@ -81,6 +81,9 @@ export type Branding = {
   faviconUrl: string | null;
   accentColor: string;
   accentColorDark: string;
+  accentFillDark: string;
+  accentFillHoverDark: string;
+  accentFillActiveDark: string;
   navColor: string;
   navColorDark: string;
   titlebarColor: string;
@@ -128,6 +131,11 @@ function toHex([r, g, b]: [number, number, number]): string {
  *   titlebar     #16234a -> #243766   L +0.081, chroma x1.1, off the dark nav
  *   contest bar  #101a3d -> #182448   L +0.039, and on dark it sits halfway
  *                between the dark nav and the dark titlebar
+ *
+ * The filled primary is the one thing on dark that does not take the lifted
+ * accent: a fill light enough to read as text is too light to carry white text,
+ * so it takes the light accent barely lifted, #2f4fd0 -> #3b5bdb, and its hover
+ * and pressed states step off that.
  */
 type Rgb = [number, number, number];
 type Lab = [number, number, number];
@@ -138,6 +146,9 @@ const NAV_DARK_LIFT = 0.029;
 const TITLEBAR_DARK_LIFT = 0.081;
 const CONTEST_BAR_LIFT = 0.039;
 const CHROME_CHROMA = 1.1;
+const ACCENT_FILL_LIFT = 0.035;
+const ACCENT_FILL_HOVER_LIFT = 0.05;
+const ACCENT_FILL_ACTIVE_DROP = -0.05;
 
 function toLinear(value: number): number {
   const c = value / 255;
@@ -210,6 +221,9 @@ function halfway(from: Rgb, to: Rgb): Rgb {
 export type BrandingPalette = {
   accent: string;
   accentDark: string;
+  accentFillDark: string;
+  accentFillHoverDark: string;
+  accentFillActiveDark: string;
   nav: string;
   navDark: string;
   titlebar: string;
@@ -228,9 +242,13 @@ export function brandingPalette(accentColor: string, navColor: string): Branding
   const nav = parseHex(navColor) ?? (parseHex(DEFAULT_NAV) as Rgb);
   const navDark = lift(nav, NAV_DARK_LIFT, CHROME_CHROMA);
   const titlebarDark = lift(navDark, TITLEBAR_DARK_LIFT, CHROME_CHROMA);
+  const fillDark = lift(accent, ACCENT_FILL_LIFT, 1);
   return {
     accent: toHex(accent),
     accentDark: toHex(lift(accent, ACCENT_DARK_LIFT, ACCENT_DARK_CHROMA)),
+    accentFillDark: toHex(fillDark),
+    accentFillHoverDark: toHex(lift(fillDark, ACCENT_FILL_HOVER_LIFT, 1)),
+    accentFillActiveDark: toHex(lift(fillDark, ACCENT_FILL_ACTIVE_DROP, 1)),
     nav: toHex(nav),
     navDark: toHex(navDark),
     // In light the band wears the bar's own navy, as the token file has it.
@@ -293,6 +311,9 @@ export const branding = query({
       faviconUrl: settings?.faviconStorageId ? await ctx.storage.getUrl(settings.faviconStorageId) : null,
       accentColor: palette.accent,
       accentColorDark: palette.accentDark,
+      accentFillDark: palette.accentFillDark,
+      accentFillHoverDark: palette.accentFillHoverDark,
+      accentFillActiveDark: palette.accentFillActiveDark,
       navColor: palette.nav,
       navColorDark: palette.navDark,
       titlebarColor: palette.titlebar,

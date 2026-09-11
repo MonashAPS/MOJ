@@ -326,6 +326,7 @@ describe("brandingPalette", () => {
   const TOKENS = {
     accent: "#2f4fd0",
     accentDark: "#8fa6ff",
+    accentFillDark: "#3b5bdb",
     nav: "#101a3d",
     navDark: "#16234a",
     titlebarDark: "#243766",
@@ -337,6 +338,7 @@ describe("brandingPalette", () => {
     const palette = brandingPalette(TOKENS.accent, TOKENS.nav);
 
     expectNear(palette.accentDark, TOKENS.accentDark);
+    expectNear(palette.accentFillDark, TOKENS.accentFillDark);
     expectNear(palette.navDark, TOKENS.navDark);
     expectNear(palette.titlebarDark, TOKENS.titlebarDark);
     expectNear(palette.contestBar, TOKENS.contestBar);
@@ -361,6 +363,29 @@ describe("brandingPalette", () => {
       expect(lightness(navDark)).toBeGreaterThanOrEqual(lightness(nav));
       expect(lightness(contestBarDark)).toBeGreaterThan(lightness(navDark));
       expect(lightness(titlebarDark)).toBeGreaterThan(lightness(contestBarDark));
+    }
+  });
+
+  test("the filled primary stays dark enough on dark to carry white text", () => {
+    const luminance = (hex: string) => {
+      const channel = (value: number) => {
+        const c = value / 255;
+        return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      };
+      const [r, g, b] = channels(hex);
+      return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+    };
+    const onWhite = (hex: string) => 1.05 / (luminance(hex) + 0.05);
+
+    for (const accent of ["#2f4fd0", "#2941a5", "#b3001b", "#0f6b3f", "#7a4b00"]) {
+      const { accentFillDark, accentFillHoverDark, accentFillActiveDark } = brandingPalette(
+        accent,
+        "#101a3d",
+      );
+      expect(onWhite(accentFillDark)).toBeGreaterThanOrEqual(4.5);
+      // Hover lifts off the fill and pressed drops below it, as tokens.css has it.
+      expect(luminance(accentFillHoverDark)).toBeGreaterThan(luminance(accentFillDark));
+      expect(luminance(accentFillActiveDark)).toBeLessThan(luminance(accentFillDark));
     }
   });
 
