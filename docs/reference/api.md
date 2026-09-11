@@ -446,6 +446,63 @@ that for you.
 through the API rather than through a raw storage URL is what keeps a statement's image links stable across
 storage backends.
 
+### Test data
+
+The site is the source of truth for grading data. A repository publishes one zip archive per problem, judges
+fetch it over HTTPS and cache it, and the claim names the hash that graded a submission. A problem the site
+holds nothing for still works exactly as before: the judge grades from its own disk.
+
+The archive is a plain zip whose root holds `init.yml` and everything it references — `tests/`, checkers,
+graders, generators. Statements, editorials and `config.json` are not in it; they go through `PUT
+/api/problems/<code>` above.
+
+All three endpoints need the `problems:write` scope and a key whose owner may edit the problem.
+
+#### `GET /api/problems/<code>/data`
+
+What the site holds, so a publisher can skip an upload it does not need.
+
+```json
+{ "ok": true, "hash": "3f786850e387550fdab836ed7e6dc881de23001b", "size": 918273, "fileCount": 42,
+  "uploadedAt": 1789036959000 }
+```
+
+`{"ok": true, "hash": null}` means the site holds nothing for the problem.
+
+#### `POST /api/problems/<code>/data/upload-url`
+
+```json
+{ "ok": true, "uploadUrl": "https://<deployment>.convex.cloud/api/storage/upload?token=..." }
+```
+
+PUT the zip bytes to that URL, which answers `{"storageId": "..."}`. This is how an archive of any size avoids
+the limit on an HTTP action's request body — the endpoints themselves never carry the archive.
+
+#### `POST /api/problems/<code>/data`
+
+```bash
+curl -X POST "$JUDGE_URL/api/problems/aplusb/data" \
+  -H "Authorization: Bearer $JUDGE_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"storageId": "kg2b8...", "hash": "3f7868...", "size": 918273, "fileCount": 42}'
+```
+
+```json
+{ "ok": true, "hash": "3f7868...", "changed": true }
+```
+
+- `hash` is the sha256 of the archive bytes, 64 lowercase hex digits. The site stores what the publisher says;
+  the judge verifies the bytes it downloads against it, so a wrong hash is a loud grading error rather than
+  silent corruption.
+- `changed: false` means the stored archive already had that hash: nothing is replaced, no revision is written,
+  and the blob that was just uploaded is deleted.
+- Otherwise the archive replaces whatever the problem held, the previous blob is deleted, and the problem gets a
+  revision naming the hash and who published it.
+- An archive of 64 MB or less is parsed first: an invalid zip, or a member whose path escapes the extraction
+  root, is a 422 rather than a broken grade later. Larger archives are taken on the publisher's word, and the
+  judge validates them on extraction either way.
+- An upload the site cannot find, or a body that is not the shape above, is a 422.
+
 ## Notes for clients
 
 - Times are ISO 8601 in UTC on API v2, and epoch milliseconds on the problems API. Durations are seconds. Memory

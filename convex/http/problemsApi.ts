@@ -1,9 +1,12 @@
 /**
  * The problems API (SPEC section 8).
  *
- *   PUT  /api/problems/:code           create or update a problem
- *   POST /api/problems/:code/images    upload a statement image
- *   GET  /api/problems/images/:id      serve one back
+ *   PUT  /api/problems/:code                create or update a problem
+ *   POST /api/problems/:code/images         upload a statement image
+ *   GET  /api/problems/images/:id           serve one back
+ *   GET  /api/problems/:code/data           what archive the site holds, if any
+ *   POST /api/problems/:code/data/upload-url  a URL to PUT a large archive to
+ *   POST /api/problems/:code/data           record the uploaded archive
  *
  * This replaces driving the Django admin form with a browser, which is how a
  * problem repository used to publish. The partial-update semantics come from
@@ -23,6 +26,7 @@ import {
   type ApiErrorCode,
   MAX_IMAGE_BYTES,
   PROBLEMS_WRITE_SCOPE,
+  problemTestDataInput,
   problemUpsertInput,
 } from "@moj/protocol";
 import type { HttpRouter } from "convex/server";
@@ -37,7 +41,9 @@ import {
   type MutationCtx,
 } from "../_generated/server";
 import { groupIdByName, typeIdsByName, writeRevision } from "../admin/problems";
+import { inspectArchive } from "../problemData";
 import { problemByCode, toCoreProblem } from "../problems";
+import { MAX_VALIDATED_ARCHIVE_BYTES } from "../problemTestData";
 
 /* -------------------------------------------------------------------------- */
 /* Responses                                                                  */
@@ -524,6 +530,8 @@ function imageLink(storageId: string): string {
 const UPSERT_PATH = /^\/api\/problems\/([a-z.0-9]+)\/?$/;
 const IMAGES_PATH = /^\/api\/problems\/([a-z.0-9]+)\/images\/?$/;
 const IMAGE_FETCH_PATH = /^\/api\/problems\/images\/([^/]+)\/?$/;
+const DATA_PATH = /^\/api\/problems\/([a-z.0-9]+)\/data\/?$/;
+const DATA_UPLOAD_URL_PATH = /^\/api\/problems\/([a-z.0-9]+)\/data\/upload-url\/?$/;
 
 const upsertHandler = httpAction(async (ctx, request) => {
   const match = UPSERT_PATH.exec(new URL(request.url).pathname);
@@ -570,7 +578,7 @@ const upsertHandler = httpAction(async (ctx, request) => {
   });
 });
 
-const imageUploadHandler = httpAction(async (ctx, request) => {
+async function uploadImage(ctx: ActionCtx, request: Request): Promise<Response> {
   const match = IMAGES_PATH.exec(new URL(request.url).pathname);
   if (!match) return errorResponse("not_found", "No such endpoint.");
   const code = match[1] as string;
@@ -618,7 +626,152 @@ const imageUploadHandler = httpAction(async (ctx, request) => {
   }
 
   return jsonResponse({ status: 200, link: imageLink(recorded.storageId) });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Test data                                                                  */
+/* -------------------------------------------------------------------------- */
+
+type Publisher =
+  | { ok: true; identity: ApiKeyIdentity; problemId: Id<"problems">; published: PublishedState }
+  | { ok: false; response: Response };
+
+type PublishedState = {
+  hash: string;
+  size: number;
+  fileCount: number;
+  uploadedAt: number;
+  uploadedByUsername: string | null;
+} | null;
+
+/**
+ * The data endpoints' guard: a key with the write scope whose owner may edit
+ * this problem, exactly what `PUT /api/problems/:code` demands of an update.
+ */
+async function publisherFor(ctx: ActionCtx, request: Request, code: string): Promise<Publisher> {
+  const identity = await authenticate(ctx, request);
+  if (!identity) {
+    return { ok: false, response: errorResponse("unauthenticated", "A valid API key is required.") };
+  }
+  if (!identity.scopes.includes(PROBLEMS_WRITE_SCOPE)) {
+    return {
+      ok: false,
+      response: errorResponse("forbidden", `This API key lacks the ${PROBLEMS_WRITE_SCOPE} scope.`),
+    };
+  }
+  const context = await ctx.runQuery(internal.problemTestData.publisherContext, {
+    code,
+    actorProfileId: identity.profileId,
+  });
+  if (context.status === "not_found") {
+    return {
+      ok: false,
+      response: errorResponse("not_found", `Could not find a problem with the code "${code}".`),
+    };
+  }
+  if (context.status === "forbidden") {
+    return { ok: false, response: errorResponse("forbidden", "You may not edit this problem.") };
+  }
+  return { ok: true, identity, problemId: context.problemId, published: context.published };
+}
+
+async function dataStatus(ctx: ActionCtx, request: Request): Promise<Response> {
+  const match = DATA_PATH.exec(new URL(request.url).pathname);
+  if (!match) return errorResponse("not_found", "No such endpoint.");
+
+  const publisher = await publisherFor(ctx, request, match[1] as string);
+  if (!publisher.ok) return publisher.response;
+
+  const published = publisher.published;
+  if (!published) return jsonResponse({ ok: true, hash: null });
+  return jsonResponse({
+    ok: true,
+    hash: published.hash,
+    size: published.size,
+    fileCount: published.fileCount,
+    uploadedAt: published.uploadedAt,
+  });
+}
+
+/**
+ * A test data archive is far larger than an HTTP action may accept as a body,
+ * so the publisher PUTs it straight to Convex storage and then tells us the
+ * storage id it got back.
+ */
+async function dataUploadUrl(ctx: ActionCtx, request: Request): Promise<Response> {
+  const match = DATA_UPLOAD_URL_PATH.exec(new URL(request.url).pathname);
+  if (!match) return errorResponse("not_found", "No such endpoint.");
+
+  const publisher = await publisherFor(ctx, request, match[1] as string);
+  if (!publisher.ok) return publisher.response;
+
+  return jsonResponse({ ok: true, uploadUrl: await ctx.storage.generateUploadUrl() });
+}
+
+async function dataPublish(ctx: ActionCtx, request: Request): Promise<Response> {
+  const match = DATA_PATH.exec(new URL(request.url).pathname);
+  if (!match) return errorResponse("not_found", "No such endpoint.");
+
+  const publisher = await publisherFor(ctx, request, match[1] as string);
+  if (!publisher.ok) return publisher.response;
+
+  let raw: unknown;
+  try {
+    raw = await request.json();
+  } catch {
+    return errorResponse("invalid", "The request body must be JSON.");
+  }
+  const parsed = problemTestDataInput.safeParse(raw);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const where = issue?.path.join(".");
+    return errorResponse(
+      "invalid",
+      where ? `${where}: ${issue?.message}` : (issue?.message ?? "The request body is invalid."),
+    );
+  }
+
+  let blob: Blob | null = null;
+  try {
+    blob = await ctx.storage.get(parsed.data.storageId as Id<"_storage">);
+  } catch {
+    blob = null;
+  }
+  if (!blob) return errorResponse("invalid", "That upload could not be found.");
+
+  // Small enough to read back: reject an invalid zip or a traversal member now
+  // rather than leaving every judge to fail on it.
+  if (blob.size <= MAX_VALIDATED_ARCHIVE_BYTES) {
+    const inspected = inspectArchive(await blob.arrayBuffer());
+    if (inspected.error) return errorResponse("invalid", inspected.error);
+  }
+
+  const result = await ctx.runMutation(internal.problemTestData.record, {
+    problemId: publisher.problemId,
+    storageId: parsed.data.storageId as Id<"_storage">,
+    hash: parsed.data.hash,
+    size: parsed.data.size,
+    fileCount: parsed.data.fileCount,
+    actorProfileId: publisher.identity.profileId,
+    source: "api",
+  });
+
+  return jsonResponse({ ok: true, hash: result.hash, changed: result.changed });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Dispatch                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/** One POST prefix route serves the images and both data endpoints. */
+const postHandler = httpAction(async (ctx, request) => {
+  const path = new URL(request.url).pathname;
+  if (DATA_UPLOAD_URL_PATH.test(path)) return await dataUploadUrl(ctx, request);
+  if (DATA_PATH.test(path)) return await dataPublish(ctx, request);
+  return await uploadImage(ctx, request);
 });
+
+const dataStatusHandler = httpAction(dataStatus);
 
 const imageFetchHandler = httpAction(async (ctx, request) => {
   const match = IMAGE_FETCH_PATH.exec(new URL(request.url).pathname);
@@ -639,9 +792,11 @@ const methodNotAllowed = httpAction(async () =>
 );
 
 export function registerProblemsApiRoutes(http: HttpRouter): void {
+  // The longest matching prefix wins, so images keep their own GET route.
   http.route({ pathPrefix: "/api/problems/images/", method: "GET", handler: imageFetchHandler });
+  http.route({ pathPrefix: "/api/problems/", method: "GET", handler: dataStatusHandler });
   http.route({ pathPrefix: "/api/problems/", method: "PUT", handler: upsertHandler });
-  http.route({ pathPrefix: "/api/problems/", method: "POST", handler: imageUploadHandler });
+  http.route({ pathPrefix: "/api/problems/", method: "POST", handler: postHandler });
   // SPEC section 8: DELETE is not supported.
   http.route({ pathPrefix: "/api/problems/", method: "DELETE", handler: methodNotAllowed });
 }
