@@ -169,3 +169,49 @@ export function isApiScope(value: string): value is ApiScope {
 
 /** Largest statement image the endpoint accepts, matching DMOJ's martor limit. */
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+/* -------------------------------------------------------------------------- */
+/* Test data                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/** sha256 of an archive's bytes, lowercase hex. */
+export const sha256Hash = z.string().regex(/^[0-9a-f]{64}$/, "A hash must be 64 lowercase hex digits.");
+
+/**
+ * The body of `POST /api/problems/:code/data`, sent after the archive itself
+ * has been PUT to the URL `POST /api/problems/:code/data/upload-url` handed
+ * out. The hash is the publisher's; the judge verifies the bytes it downloads
+ * against it, so a wrong one is a loud grading error rather than silent
+ * corruption.
+ */
+export const problemTestDataInput = z
+  .object({
+    storageId: z.string().min(1).max(200),
+    hash: sha256Hash,
+    size: z.number().int().nonnegative(),
+    fileCount: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export type ProblemTestDataInput = z.infer<typeof problemTestDataInput>;
+
+/** `GET /api/problems/:code/data`: `hash` is null when the site holds nothing. */
+export const problemTestDataStatus = z.object({
+  ok: z.literal(true),
+  hash: sha256Hash.nullable(),
+  size: z.number().optional(),
+  fileCount: z.number().optional(),
+  uploadedAt: z.number().optional(),
+});
+
+export type ProblemTestDataStatus = z.infer<typeof problemTestDataStatus>;
+
+export const problemTestDataUploadUrl = z.object({ ok: z.literal(true), uploadUrl: z.string() });
+
+export const problemTestDataPublished = z.object({
+  ok: z.literal(true),
+  hash: sha256Hash,
+  changed: z.boolean(),
+});
+
+export type ProblemTestDataPublished = z.infer<typeof problemTestDataPublished>;

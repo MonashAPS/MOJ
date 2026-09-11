@@ -2,8 +2,14 @@
  * DMOJ's test data editor, ported from judge/views/problem_data.py and
  * judge/utils/problem_data.py.
  *
- * MAPS does not use this page: its problem repos ship a hand written init.yml
- * and rsync it to the judge. Only one imported problem carries
+ * A zip uploaded here is published as the site's own copy of the problem's
+ * grading data, the same `problemTestData` row a problem repository writes
+ * through the problems API, so the editor and a repository are two ways to do
+ * one thing. The case rows and the generated init.yml below are DMOJ's editor,
+ * unchanged.
+ *
+ * MAPS' own problem repos ship a hand written init.yml. Only one imported
+ * problem carries
  * `isManuallyManaged` (`multiplication`), so for the other 312 the editor opens
  * exactly as it does on DMOJ, and saving would replace the hand written file the
  * next time the judge reads the problem. That is DMOJ's behaviour too, and the
@@ -14,11 +20,20 @@
 
 import { problemIsEditableBy } from "@moj/core";
 import { v } from "convex/values";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { action, type MutationCtx, mutation, type QueryCtx, query } from "./_generated/server";
+import {
+  action,
+  internalMutation,
+  internalQuery,
+  type MutationCtx,
+  mutation,
+  type QueryCtx,
+  query,
+} from "./_generated/server";
 import { requireViewer } from "./lib/auth";
 import { forbidden, invalid, notFound } from "./lib/errors";
+import { publishedTestData, sha256OfBytes, testDataRow, unsafeArchiveMember } from "./lib/testData";
 import { loadViewerContext, problemByCode, toCoreProblem } from "./problems";
 
 /* -------------------------------------------------------------------------- */
@@ -429,6 +444,29 @@ export function listZipNames(buffer: ArrayBuffer): ZipEntry[] {
   return entries;
 }
 
+/**
+ * What an archive holds, or the complaint its publisher should see: an invalid
+ * zip, or a member whose path escapes the extraction root. The judge refuses
+ * both as well, so this is a loud failure at publish time rather than a broken
+ * grade later.
+ */
+export function inspectArchive(buffer: ArrayBuffer): { files: string[]; error: string | null } {
+  let entries: ZipEntry[];
+  try {
+    entries = listZipNames(buffer);
+  } catch (error) {
+    return {
+      files: [],
+      error: error instanceof ProblemDataError ? error.message : "Your zip file is invalid!",
+    };
+  }
+  const unsafe = unsafeArchiveMember(entries.map((entry) => entry.name));
+  if (unsafe) {
+    return { files: [], error: `The archive member "${unsafe}" escapes the extraction root.` };
+  }
+  return { files: entries.filter((entry) => !entry.isDirectory).map((entry) => entry.name), error: null };
+}
+
 /* -------------------------------------------------------------------------- */
 /* Access                                                                     */
 /* -------------------------------------------------------------------------- */
@@ -526,14 +564,15 @@ export const get = query({
       .query("judges")
       .withIndex("by_online_tier", (q) => q.eq("online", true))
       .collect();
-    const judgesWithProblem = judges.filter((judge) =>
-      judge.problemCodes.includes(problem.code),
-    ).length;
+    const judgesWithProblem = judges.filter((judge) => judge.problemCodes.includes(problem.code)).length;
 
     return {
       problemCode: problem.code,
       problemName: problem.name,
       judgesWithProblem,
+      // The archive the site holds, published here or from a problem
+      // repository. Null means grading data lives on the judge, if anywhere.
+      published: await publishedTestData(ctx, problem._id),
       data: row
         ? {
             zipfile: row.zipfile ?? null,
@@ -845,6 +884,88 @@ export const zipStorageId = query({
   handler: async (ctx, { code }) => {
     const { problem } = await requireDataManager(ctx, code);
     const row = await dataRow(ctx, problem._id);
-    return { storageId: row?.zipfileStorageId ?? null };
+    // An archive published from a problem repository never touched the editor's
+    // own fields, so fall back to the site-owned copy.
+    const published = await testDataRow(ctx, problem._id);
+    return { storageId: row?.zipfileStorageId ?? published?.storageId ?? null };
+  },
+});
+
+/* -------------------------------------------------------------------------- */
+/* Publishing from the editor                                                 */
+/* -------------------------------------------------------------------------- */
+
+export const editorContext = internalQuery({
+  args: { code: v.string() },
+  handler: async (ctx, { code }) => {
+    const { problem, profileId } = await requireDataManager(ctx, code);
+    return { problemId: problem._id, profileId };
+  },
+});
+
+/** Point the editor's own zip fields at the archive the site kept. */
+export const setEditorArchive = internalMutation({
+  args: { code: v.string(), zipfile: v.string(), storageId: v.id("_storage") },
+  handler: async (ctx, args) => {
+    const { problem } = await requireDataManager(ctx, args.code);
+    const row = await ensureDataRow(ctx, problem._id);
+    await ctx.db.patch(row._id, { zipfile: args.zipfile, zipfileStorageId: args.storageId });
+  },
+});
+
+/**
+ * A zip chosen in the editor becomes the site's copy of the problem's data, the
+ * same row a problem repository publishes to. Only an action can read the
+ * stored blob, which is what the sha256 and the file count need.
+ */
+export const publishArchive = action({
+  args: { code: v.string(), zipfile: v.string(), storageId: v.id("_storage") },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    hash: string;
+    changed: boolean;
+    files: string[];
+    fileCount: number;
+    size: number;
+  }> => {
+    const context: { problemId: Id<"problems">; profileId: Id<"profiles"> } = await ctx.runQuery(
+      internal.problemData.editorContext,
+      { code: args.code },
+    );
+
+    const blob = await ctx.storage.get(args.storageId);
+    if (!blob) throw invalid("That upload could not be found.");
+    const bytes = await blob.arrayBuffer();
+
+    const inspected = inspectArchive(bytes);
+    if (inspected.error) {
+      await ctx.storage.delete(args.storageId);
+      throw invalid(inspected.error);
+    }
+
+    const recorded = await ctx.runMutation(internal.problemTestData.record, {
+      problemId: context.problemId,
+      storageId: args.storageId,
+      hash: await sha256OfBytes(bytes),
+      size: blob.size,
+      fileCount: inspected.files.length,
+      actorProfileId: context.profileId,
+      source: "editor" as const,
+    });
+    await ctx.runMutation(internal.problemData.setEditorArchive, {
+      code: args.code,
+      zipfile: args.zipfile,
+      storageId: recorded.storageId,
+    });
+
+    return {
+      hash: recorded.hash,
+      changed: recorded.changed,
+      files: inspected.files,
+      fileCount: inspected.files.length,
+      size: blob.size,
+    };
   },
 });

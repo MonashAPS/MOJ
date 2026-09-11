@@ -305,6 +305,24 @@ export default defineSchema({
     .index("by_problem", ["problemId"])
     .index("by_legacyId", ["legacyId"]),
 
+  /**
+   * Site-owned grading data: one zip archive per problem, published by a
+   * problem repository or uploaded in the test data editor, fetched by judges
+   * over `GET /judge/data`. The archive's root holds `init.yml` and everything
+   * it references; statements and metadata travel through the problems API
+   * instead.
+   */
+  problemTestData: defineTable({
+    problemId: v.id("problems"),
+    storageId: v.id("_storage"),
+    /** sha256 of the archive bytes, lowercase hex, as the publisher reported it. */
+    hash: v.string(),
+    size: v.number(),
+    fileCount: v.number(),
+    uploadedByProfileId: v.optional(v.id("profiles")),
+    uploadedAt: v.number(),
+  }).index("by_problem", ["problemId"]),
+
   problemTestCases: defineTable({
     problemId: v.id("problems"),
     order: v.number(),
