@@ -1,15 +1,20 @@
+import { execFileSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import {
+  buildDataArchive,
   buildRequest,
+  collectDataFiles,
   collectLocalImageRefs,
   globToRegExp,
   matchesAny,
   parseArgs,
   problemCodeFromDir,
   problemCodesFromChanged,
+  publishPlan,
   run,
 } from "../upload-problem.mjs";
 
@@ -27,21 +32,106 @@ async function writeProblem(code, files) {
   const dir = path.join(workdir, "problems", code);
   await fs.mkdir(dir, { recursive: true });
   for (const [name, content] of Object.entries(files)) {
-    await fs.writeFile(path.join(dir, name), content);
+    const target = path.join(dir, name);
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.writeFile(target, content);
   }
   return dir;
+}
+
+const INIT_YML = "test_cases:\n- {in: tests/1.in, out: tests/1.out, points: 100}\n";
+
+/** A problem with test data in it, as a repository would hold one. */
+async function writeDataProblem(code, files = {}) {
+  return await writeProblem(code, {
+    "statement.md": "Read two integers.\n",
+    "config.json": JSON.stringify({ title: "A plus B" }),
+    "init.yml": INIT_YML,
+    "tests/1.in": "1 2\n",
+    "tests/1.out": "3\n",
+    ...files,
+  });
+}
+
+function sha256Hex(buffer) {
+  return crypto.createHash("sha256").update(buffer).digest("hex");
+}
+
+function haveCommand(command) {
+  try {
+    execFileSync(command, ["-v"], { stdio: "ignore" });
+    return true;
+  } catch (error) {
+    return error.code !== "ENOENT";
+  }
 }
 
 /**
  * A local stand-in for the problems API: the same routes, the same response
  * shapes, and a record of every request so the tests can assert on the bodies.
+ *
+ * The data endpoints are here too, including the storage host the upload URL
+ * points at, so a test can watch an archive go up once and stay up.
  */
-function mockJudge({ existing = new Set(), failFor = new Set() } = {}) {
-  const calls = { puts: [], images: [] };
+function mockJudge({ existing = new Set(), failFor = new Set(), data = new Map() } = {}) {
+  const calls = { puts: [], images: [], dataReads: [], uploadUrls: [], blobs: [], dataWrites: [] };
+  const blobs = new Map();
   let imageCounter = 0;
+  let storageCounter = 0;
 
-  const fetchImpl = async (url, init) => {
-    const { pathname } = new URL(url);
+  const fetchImpl = async (url, init = {}) => {
+    const { host, pathname } = new URL(url);
+    const method = init.method ?? "GET";
+
+    // The storage host the upload URL points at, which answers with a storage id.
+    if (host === "storage.test") {
+      if (method !== "PUT" && method !== "POST") {
+        return jsonResponse(405, { error: { code: "invalid", message: "Method not allowed." } });
+      }
+      storageCounter += 1;
+      const storageId = `kg${storageCounter}`;
+      const bytes = Buffer.from(init.body);
+      blobs.set(storageId, bytes);
+      calls.blobs.push({
+        storageId,
+        method,
+        size: bytes.length,
+        contentType: init.headers?.["content-type"],
+      });
+      return jsonResponse(200, { storageId });
+    }
+
+    const uploadUrlMatch = /^\/api\/problems\/([a-z.0-9]+)\/data\/upload-url$/.exec(pathname);
+    if (uploadUrlMatch && method === "POST") {
+      calls.uploadUrls.push({ code: uploadUrlMatch[1] });
+      return jsonResponse(200, { ok: true, uploadUrl: "https://storage.test/upload" });
+    }
+
+    const dataMatch = /^\/api\/problems\/([a-z.0-9]+)\/data$/.exec(pathname);
+    if (dataMatch) {
+      const code = dataMatch[1];
+      if (!existing.has(code)) {
+        return jsonResponse(404, { error: { code: "not_found", message: "No such problem." } });
+      }
+      if (method === "GET") {
+        calls.dataReads.push({ code });
+        const row = data.get(code);
+        return jsonResponse(200, row ? { ok: true, ...row } : { ok: true, hash: null });
+      }
+      if (method === "POST") {
+        const body = JSON.parse(init.body);
+        calls.dataWrites.push({ code, body, authorization: init.headers.authorization });
+        const changed = data.get(code)?.hash !== body.hash;
+        data.set(code, {
+          hash: body.hash,
+          size: body.size,
+          fileCount: body.fileCount,
+          uploadedAt: 1_700_000_000_000,
+        });
+        return jsonResponse(200, { ok: true, hash: body.hash, changed });
+      }
+    }
+
     const imageMatch = /^\/api\/problems\/([a-z.0-9]+)\/images$/.exec(pathname);
     if (imageMatch) {
       const form = init.body;
@@ -55,7 +145,7 @@ function mockJudge({ existing = new Set(), failFor = new Set() } = {}) {
     }
 
     const putMatch = /^\/api\/problems\/([a-z.0-9]+)$/.exec(pathname);
-    if (putMatch && init.method === "PUT") {
+    if (putMatch && method === "PUT") {
       const code = putMatch[1];
       const body = JSON.parse(init.body);
       calls.puts.push({ code, body, authorization: init.headers.authorization });
@@ -77,7 +167,7 @@ function mockJudge({ existing = new Set(), failFor = new Set() } = {}) {
     return jsonResponse(404, { error: { code: "not_found", message: "No such endpoint." } });
   };
 
-  return { calls, fetchImpl };
+  return { calls, fetchImpl, data, blobs };
 }
 
 function jsonResponse(status, body) {
@@ -442,7 +532,7 @@ describe("run", () => {
     });
 
     expect(result.uploaded).toHaveLength(0);
-    expect(result.skipped).toEqual([{ code: "aplusb", reason: "dry-run" }]);
+    expect(result.skipped).toEqual([{ code: "aplusb", reason: "dry-run", data: null }]);
     expect(judge.calls.puts).toHaveLength(0);
     expect(out.lines.join("\n")).toContain("would upload");
   });
@@ -478,7 +568,9 @@ describe("run", () => {
     });
 
     const summary = JSON.parse(out.lines.at(-1));
-    expect(summary.uploaded).toEqual([{ code: "aplusb", created: true, name: "A" }]);
+    expect(summary.uploaded).toEqual([
+      { code: "aplusb", created: true, name: "A", statement: true, data: null },
+    ]);
     expect(summary.failed).toEqual([]);
   });
 
@@ -504,5 +596,406 @@ describe("run", () => {
     });
     expect(result.uploaded).toHaveLength(0);
     expect(out.lines.join("\n")).toContain("No problems selected.");
+  });
+});
+
+describe("publishPlan", () => {
+  test("publishes both halves by default and one half on request", () => {
+    expect(publishPlan(parseArgs(["--problem-dir", "a"]))).toEqual({ statement: true, data: true });
+    expect(publishPlan(parseArgs(["--problem-dir", "a", "--skip-data"]))).toEqual({
+      statement: true,
+      data: false,
+    });
+    expect(publishPlan(parseArgs(["--problem-dir", "a", "--data-only"]))).toEqual({
+      statement: false,
+      data: true,
+    });
+    expect(publishPlan(parseArgs(["--problem-dir", "a", "--statement-only"]))).toEqual({
+      statement: true,
+      data: false,
+    });
+  });
+
+  test("refuses the contradictory pairs", () => {
+    expect(() => parseArgs(["--problem-dir", "a", "--data-only", "--skip-data"])).toThrow(/contradict/);
+    expect(() => parseArgs(["--problem-dir", "a", "--data-only", "--statement-only"])).toThrow(/contradict/);
+  });
+});
+
+describe("collectDataFiles", () => {
+  test("takes the data and leaves the statement half behind", async () => {
+    const dir = await writeDataProblem("aplusb", {
+      "editorial.md": "Add them.\n",
+      "checker.py": "def check(*args, **kwargs):\n    return True\n",
+      "tests/2.in": "3 4\n",
+      "tests/2.out": "7\n",
+      "images/diagram.png": "png",
+      "__pycache__/checker.cpython-312.pyc": "bytecode",
+      ".gitattributes": "* -text\n",
+      ".hidden/secret.txt": "shh",
+    });
+
+    expect((await collectDataFiles(dir)).map((file) => file.archivePath)).toEqual([
+      "checker.py",
+      "images/diagram.png",
+      "init.yml",
+      "tests/1.in",
+      "tests/1.out",
+      "tests/2.in",
+      "tests/2.out",
+    ]);
+  });
+
+  test("sorts by path so the filesystem's order does not leak in", async () => {
+    const dir = await writeProblem("sorted", {
+      "init.yml": INIT_YML,
+      "zeta.txt": "z",
+      "alpha.txt": "a",
+      "tests/b.in": "b",
+      "tests/a.in": "a",
+    });
+    const paths = (await collectDataFiles(dir)).map((file) => file.archivePath);
+    expect(paths).toEqual([...paths].sort());
+    expect(paths).toEqual(["alpha.txt", "init.yml", "tests/a.in", "tests/b.in", "zeta.txt"]);
+  });
+});
+
+describe("buildDataArchive", () => {
+  test("writes a zip real unzippers accept", async () => {
+    const dir = await writeDataProblem("aplusb", { "sol.py": "print(sum(map(int, input().split())))\n" });
+    const archive = await buildDataArchive(dir);
+    const zipPath = path.join(workdir, "aplusb.zip");
+    await fs.writeFile(zipPath, archive.bytes);
+
+    expect(archive.fileCount).toBe(4);
+    expect(archive.size).toBe(archive.bytes.length);
+    expect(archive.hash).toBe(sha256Hex(archive.bytes));
+
+    if (haveCommand("unzip")) {
+      const report = execFileSync("unzip", ["-t", zipPath], { encoding: "utf8" });
+      expect(report).toContain("No errors detected");
+    }
+
+    const listing = execFileSync(
+      "python3",
+      [
+        "-c",
+        [
+          "import json, sys, zipfile",
+          "z = zipfile.ZipFile(sys.argv[1])",
+          "assert z.testzip() is None",
+          "print(json.dumps({n: z.read(n).decode() for n in z.namelist()}))",
+        ].join("\n"),
+        zipPath,
+      ],
+      { encoding: "utf8" },
+    );
+    expect(JSON.parse(listing)).toEqual({
+      "init.yml": INIT_YML,
+      "sol.py": "print(sum(map(int, input().split())))\n",
+      "tests/1.in": "1 2\n",
+      "tests/1.out": "3\n",
+    });
+  });
+
+  test("a case big enough to compress round-trips through the deflate path", async () => {
+    const body = "1 2\n".repeat(20_000);
+    const dir = await writeProblem("big", { "init.yml": INIT_YML, "tests/1.in": body });
+    const archive = await buildDataArchive(dir);
+    expect(archive.size).toBeLessThan(body.length / 10);
+
+    const zipPath = path.join(workdir, "big.zip");
+    await fs.writeFile(zipPath, archive.bytes);
+    const output = execFileSync(
+      "python3",
+      [
+        "-c",
+        "import sys, zipfile; sys.stdout.write(zipfile.ZipFile(sys.argv[1]).read('tests/1.in').decode())",
+        zipPath,
+      ],
+      { encoding: "utf8" },
+    );
+    expect(output).toBe(body);
+  });
+
+  test("the same data hashes the same however the files were touched", async () => {
+    const dir = await writeDataProblem("stable", { "tests/2.in": "5 7\n", "tests/2.out": "12\n" });
+    const first = await buildDataArchive(dir);
+
+    // Two checkouts of one commit differ in mtime and in nothing else.
+    const stamp = new Date("2001-02-03T04:05:06Z");
+    for (const name of ["init.yml", "tests/1.in", "tests/1.out", "tests/2.in", "tests/2.out"]) {
+      await fs.utimes(path.join(dir, name), stamp, stamp);
+    }
+    const second = await buildDataArchive(dir);
+
+    expect(second.hash).toBe(first.hash);
+    expect(second.bytes.equals(first.bytes)).toBe(true);
+  });
+
+  test("the same data in another directory hashes the same, different data does not", async () => {
+    const dir = await writeDataProblem("here");
+    const elsewhere = path.join(workdir, "elsewhere", "there");
+    await fs.cp(dir, elsewhere, { recursive: true });
+
+    const original = await buildDataArchive(dir);
+    expect((await buildDataArchive(elsewhere)).hash).toBe(original.hash);
+
+    await fs.writeFile(path.join(elsewhere, "tests", "1.out"), "4\n");
+    expect((await buildDataArchive(elsewhere)).hash).not.toBe(original.hash);
+  });
+
+  test("the statement half never changes the hash", async () => {
+    const dir = await writeDataProblem("independent");
+    const before = await buildDataArchive(dir);
+    await fs.writeFile(path.join(dir, "statement.md"), "A completely different statement.\n");
+    await fs.writeFile(path.join(dir, "config.json"), JSON.stringify({ title: "Renamed", points: 50 }));
+    expect((await buildDataArchive(dir)).hash).toBe(before.hash);
+  });
+
+  test("refuses a file too big for a zip with no zip64 records", async () => {
+    const dir = await writeProblem("huge", { "init.yml": INIT_YML });
+    const target = path.join(dir, "tests.zip");
+    const fourGiB = 4 * 1024 ** 3;
+    try {
+      const handle = await fs.open(target, "w");
+      await handle.truncate(fourGiB);
+      await handle.close();
+    } catch {
+      return; // no sparse files here, and writing four real gigabytes is not a unit test
+    }
+    if ((await fs.stat(target)).size !== fourGiB) return;
+
+    await expect(buildDataArchive(dir)).rejects.toThrow(/4 GB/);
+  });
+});
+
+describe("run, publishing test data", () => {
+  test("publishes the archive after the statement", async () => {
+    await writeDataProblem("aplusb");
+    const judge = mockJudge();
+    const out = silent();
+    const result = await run(["--problems-root", path.join(workdir, "problems")], {
+      ...out,
+      env: ENV,
+      fetchImpl: judge.fetchImpl,
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(judge.calls.puts.map((call) => call.code)).toEqual(["aplusb"]);
+    expect(judge.calls.uploadUrls).toEqual([{ code: "aplusb" }]);
+    expect(judge.calls.blobs).toHaveLength(1);
+    expect(judge.calls.blobs[0].contentType).toBe("application/zip");
+
+    const [write] = judge.calls.dataWrites;
+    const bytes = judge.blobs.get(write.body.storageId);
+    expect(write.authorization).toBe("Bearer test-key");
+    expect(write.body.hash).toBe(sha256Hex(bytes));
+    expect(write.body.size).toBe(bytes.length);
+    expect(write.body.fileCount).toBe(3);
+    expect(result.uploaded[0].data).toEqual({
+      hash: write.body.hash,
+      size: write.body.size,
+      fileCount: 3,
+      status: "published",
+    });
+    expect(out.lines.join("\n")).toContain("data: published (3 files,");
+  });
+
+  test("asks first and sends nothing when the site already holds the bytes", async () => {
+    await writeDataProblem("aplusb");
+    const judge = mockJudge();
+    const options = { ...silent(), env: ENV, fetchImpl: judge.fetchImpl };
+    const args = ["--problems-root", path.join(workdir, "problems")];
+
+    await run(args, options);
+    const second = await run(args, { ...silent(), env: ENV, fetchImpl: judge.fetchImpl });
+
+    expect(judge.calls.blobs).toHaveLength(1);
+    expect(judge.calls.uploadUrls).toHaveLength(1);
+    expect(judge.calls.dataWrites).toHaveLength(1);
+    expect(judge.calls.dataReads).toHaveLength(2);
+    expect(second.uploaded[0].data.status).toBe("unchanged");
+  });
+
+  test("uploads again once the data changes", async () => {
+    const dir = await writeDataProblem("aplusb");
+    const judge = mockJudge();
+    const args = ["--problem-dir", dir];
+    await run(args, { ...silent(), env: ENV, fetchImpl: judge.fetchImpl });
+
+    await fs.writeFile(path.join(dir, "tests", "2.in"), "5 7\n");
+    await fs.writeFile(path.join(dir, "tests", "2.out"), "12\n");
+    const second = await run(args, { ...silent(), env: ENV, fetchImpl: judge.fetchImpl });
+
+    expect(judge.calls.blobs).toHaveLength(2);
+    expect(second.uploaded[0].data.status).toBe("published");
+    expect(second.uploaded[0].data.fileCount).toBe(5);
+  });
+
+  test("falls back to POST when the storage host refuses PUT", async () => {
+    await writeDataProblem("aplusb");
+    const judge = mockJudge();
+    const fetchImpl = async (url, init = {}) => {
+      if (new URL(url).host === "storage.test" && (init.method ?? "GET") === "PUT") {
+        return jsonResponse(405, { error: { code: "invalid", message: "Method not allowed." } });
+      }
+      return await judge.fetchImpl(url, init);
+    };
+
+    const result = await run(["--problems-root", path.join(workdir, "problems")], {
+      ...silent(),
+      env: ENV,
+      fetchImpl,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(judge.calls.blobs.map((blob) => blob.method)).toEqual(["POST"]);
+  });
+
+  test("--skip-data publishes the statement and nothing else", async () => {
+    await writeDataProblem("aplusb");
+    const judge = mockJudge();
+    const result = await run(["--problems-root", path.join(workdir, "problems"), "--skip-data"], {
+      ...silent(),
+      env: ENV,
+      fetchImpl: judge.fetchImpl,
+    });
+
+    expect(judge.calls.puts).toHaveLength(1);
+    expect(judge.calls.dataReads).toHaveLength(0);
+    expect(judge.calls.blobs).toHaveLength(0);
+    expect(result.uploaded[0].data).toBe(null);
+  });
+
+  test("--statement-only publishes no data either", async () => {
+    await writeDataProblem("aplusb");
+    const judge = mockJudge();
+    await run(["--problems-root", path.join(workdir, "problems"), "--statement-only"], {
+      ...silent(),
+      env: ENV,
+      fetchImpl: judge.fetchImpl,
+    });
+    expect(judge.calls.blobs).toHaveLength(0);
+  });
+
+  test("--data-only leaves the statement alone", async () => {
+    await writeDataProblem("aplusb");
+    const judge = mockJudge({ existing: new Set(["aplusb"]) });
+    const out = silent();
+    const result = await run(["--problems-root", path.join(workdir, "problems"), "--data-only"], {
+      ...out,
+      env: ENV,
+      fetchImpl: judge.fetchImpl,
+    });
+
+    expect(judge.calls.puts).toHaveLength(0);
+    expect(judge.calls.images).toHaveLength(0);
+    expect(judge.calls.blobs).toHaveLength(1);
+    expect(result.uploaded[0].statement).toBe(false);
+    expect(result.uploaded[0].data.status).toBe("published");
+    expect(out.lines.join("\n")).toContain("test data published");
+  });
+
+  test("--data-only fails on a problem the site does not have", async () => {
+    await writeDataProblem("aplusb");
+    const judge = mockJudge();
+    const out = silent();
+    const result = await run(["--problems-root", path.join(workdir, "problems"), "--data-only"], {
+      ...out,
+      env: ENV,
+      fetchImpl: judge.fetchImpl,
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.failed[0].error).toContain("no such problem");
+    expect(judge.calls.blobs).toHaveLength(0);
+  });
+
+  test("a problem with no init.yml publishes its statement and no data", async () => {
+    await writeProblem("textonly", {
+      "statement.md": "Words only.\n",
+      "config.json": '{"title":"Text only"}',
+      "sol.cpp": "int main() {}\n",
+    });
+    const judge = mockJudge();
+    const out = silent();
+    const result = await run(["--problems-root", path.join(workdir, "problems")], {
+      ...out,
+      env: ENV,
+      fetchImpl: judge.fetchImpl,
+    });
+
+    expect(result.uploaded[0].data).toBe(null);
+    expect(judge.calls.dataReads).toHaveLength(0);
+    expect(judge.calls.blobs).toHaveLength(0);
+    expect(out.lines.join("\n")).toContain("data: not published, the directory has no init.yml");
+  });
+
+  test("--data-only refuses a problem with no init.yml", async () => {
+    await writeProblem("textonly", {
+      "statement.md": "Words only.\n",
+      "config.json": '{"title":"Text only"}',
+    });
+    const judge = mockJudge({ existing: new Set(["textonly"]) });
+    const result = await run(["--problems-root", path.join(workdir, "problems"), "--data-only"], {
+      ...silent(),
+      env: ENV,
+      fetchImpl: judge.fetchImpl,
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.failed[0].error).toContain("no test data to publish");
+  });
+
+  test("--dry-run reports the hash and uploads nothing", async () => {
+    const dir = await writeDataProblem("aplusb");
+    const judge = mockJudge({ existing: new Set(["aplusb"]) });
+    const out = silent();
+    const result = await run(["--problem-dir", dir, "--dry-run"], {
+      ...out,
+      env: ENV,
+      fetchImpl: judge.fetchImpl,
+    });
+
+    const archive = await buildDataArchive(dir);
+    expect(result.skipped[0].data).toEqual({
+      hash: archive.hash,
+      size: archive.size,
+      fileCount: 3,
+      status: "pending",
+    });
+    expect(out.lines.join("\n")).toContain(`would upload 3 files,`);
+    expect(out.lines.join("\n")).toContain(archive.hash.slice(0, 12));
+    expect(judge.calls.puts).toHaveLength(0);
+    expect(judge.calls.uploadUrls).toHaveLength(0);
+    expect(judge.calls.blobs).toHaveLength(0);
+    expect(judge.calls.dataWrites).toHaveLength(0);
+    expect(judge.calls.dataReads).toHaveLength(1);
+  });
+
+  test("--dry-run says so when the site already holds the data", async () => {
+    const dir = await writeDataProblem("aplusb");
+    const judge = mockJudge({ existing: new Set(["aplusb"]) });
+    await run(["--problem-dir", dir], { ...silent(), env: ENV, fetchImpl: judge.fetchImpl });
+
+    const out = silent();
+    const result = await run(["--problem-dir", dir, "--dry-run"], {
+      ...out,
+      env: ENV,
+      fetchImpl: judge.fetchImpl,
+    });
+    expect(result.skipped[0].data.status).toBe("unchanged");
+    expect(out.lines.join("\n")).toContain("data: unchanged");
+  });
+
+  test("--dry-run still reports the hash with no credentials at all", async () => {
+    const dir = await writeDataProblem("aplusb");
+    const out = silent();
+    const result = await run(["--problem-dir", dir, "--dry-run"], { ...out, env: {} });
+
+    const archive = await buildDataArchive(dir);
+    expect(result.exitCode).toBe(0);
+    expect(result.skipped[0].data.hash).toBe(archive.hash);
+    expect(out.lines.join("\n")).toContain("would upload 3 files,");
   });
 });
