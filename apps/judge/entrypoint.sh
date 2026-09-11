@@ -8,6 +8,9 @@
 #   JUDGE_NAME      judge name as created in the staff console (MOJ_JUDGE_NAME is also accepted)
 #   JUDGE_KEY       judge key as created in the staff console (MOJ_JUDGE_KEY is also accepted)
 #   JUDGE_CONFIG    path to the judge config file, default /problems/judge.yml
+#   MOJ_DATA_CACHE  where test data the site owns is cached, default /judge-data-cache
+#   MOJ_DATA_MAX_GB ceiling for that cache in GB, default 20, past which the least recently used problems
+#                   are evicted
 set -euo pipefail
 
 export DMOJ_IN_DOCKER=1
@@ -37,6 +40,13 @@ if [ ! -f "$JUDGE_CONFIG" ]; then
 		/judge.yml.template > "$JUDGE_CONFIG"
 	chmod 0644 "$JUDGE_CONFIG"
 fi
+
+# Test data the site owns is fetched into this cache at grading time, so the judge has to be able to write
+# to it. A mounted volume arrives owned by root.
+MOJ_DATA_CACHE="${MOJ_DATA_CACHE:-/judge-data-cache}"
+export MOJ_DATA_CACHE
+mkdir -p "$MOJ_DATA_CACHE"
+chown -R judge:judge "$MOJ_DATA_CACHE" 2>/dev/null || true
 
 # Problem data is owned by whoever mounted it; the judge only ever reads it.
 chown -R judge:judge /judge 2>/dev/null || true

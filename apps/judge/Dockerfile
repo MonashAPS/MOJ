@@ -16,7 +16,7 @@ FROM dmoj/runtimes-${TIER}
 
 COPY judge-server /judge
 
-RUN mkdir -p /problems && cd /judge && \
+RUN mkdir -p /problems /judge-data-cache && chown judge:judge /judge-data-cache && cd /judge && \
 	# Current runtimes images ship a Python with ensurepip, so `venv` bootstraps itself. Older
 	# ones ship pip without ensurepip, and are not marked externally managed, so virtualenv --
 	# which carries its own pip and setuptools wheels -- fills in there.
@@ -36,6 +36,13 @@ RUN chmod +x /entrypoint.sh
 ENV DMOJ_IN_DOCKER=1 \
 	PYTHONUNBUFFERED=1 \
 	LANG=C.UTF-8 \
-	PYTHONIOENCODING=utf8
+	PYTHONIOENCODING=utf8 \
+	MOJ_DATA_CACHE=/judge-data-cache
+
+# Test data the site owns is downloaded once and kept here, one directory per problem code. Declaring it a
+# volume means a restarted container still has everything it has already fetched instead of downloading it
+# all again; mount a named volume over it to keep the cache across `docker run --rm` as well. The ceiling is
+# MOJ_DATA_MAX_GB, 20 GB by default, past which least-recently-used problems are deleted.
+VOLUME ["/judge-data-cache"]
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]
