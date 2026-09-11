@@ -24,7 +24,7 @@ async function legacy(): Promise<Extract | undefined> {
 async function load(): Promise<Extract> {
   if (extract) return extract;
 
-  const module: Record<string, unknown> = await import("pdf-parse");
+  const module = (await import("pdf-parse")) as unknown as Record<string, unknown>;
   const PDFParse = module.PDFParse as
     | (new (options: { data: Buffer }) => {
         getText(): Promise<{ text: string; pages?: unknown[]; total?: number }>;
