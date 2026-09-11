@@ -1,10 +1,9 @@
 # The MOJ judge
 
 This directory builds the grader. It is the judge-server, vendored as a git subtree of
-`git@github.com:MonashAPS/judge-server.git` branch `v2` under `judge-server/`, with one file added so it can
-talk to MOJ instead of to a bridge: a pull-mode packet manager. Everything else in the subtree is upstream;
-see `UPSTREAM.md` for exactly what has been changed and which upstream pull requests have been pulled in
-early.
+`https://github.com/dmoj/judge-server.git` branch `master` under `judge-server/`, with one file added so it
+can talk to MOJ instead of to a bridge: a pull-mode packet manager. Everything else in the subtree is
+upstream, and what MOJ changes on top is a handful of commits described under "Updating from upstream".
 
 ```
 apps/judge/
@@ -13,7 +12,6 @@ apps/judge/
   judge.yml.template  id, key and problem_storage_globs
   judge-server/       the subtree
   tests/              a mock of MOJ's judge API and an end to end test against a real container
-  UPSTREAM.md         subtree provenance
 ```
 
 ## How the judge works
@@ -97,8 +95,8 @@ and WA together, because the checker is skipped once a case is known to have fai
 Upstream, the judge connects out to a bridge on TCP 9999 and waits for the site to push submissions down that
 socket. MOJ has no bridge. The site is a Convex deployment reachable only over HTTPS, so the judge asks for
 work instead. `judge-server/dmoj/moj_packet.py` is a drop-in replacement for `dmoj.packet.PacketManager`
-that implements this; `dmoj/judge.py` selects it when `MOJ_URL` is set and is otherwise untouched, so the
-same image can still run against an upstream bridge.
+that implements this; `dmoj/judge.py` selects it when `MOJ_URL` is set and the bridge path is otherwise
+untouched, so the same image can still run against an upstream bridge.
 
 Every request carries `judgeName` and `judgeKey`, in the JSON body for POSTs and in the query string for the
 one GET. The site checks `sha256(judgeKey)` against the judge record and refuses blocked judges.
@@ -343,21 +341,12 @@ host, which is what happens on a box whose firewall does not trust the docker br
 
 ## Updating from upstream
 
-The subtree tracks `git@github.com:MonashAPS/judge-server.git` branch `v2`.
+The subtree tracks `https://github.com/dmoj/judge-server.git` branch `master`.
 
 ```
-git subtree pull --prefix apps/judge/judge-server git@github.com:MonashAPS/judge-server.git v2 --squash
+git subtree pull --prefix apps/judge/judge-server https://github.com/dmoj/judge-server.git master --squash
 ```
 
-The diff inside the subtree is three files, so conflicts are rare and confined: `dmoj/moj_packet.py` is
-entirely ours, and `dmoj/judge.py` and `dmoj/judgeenv.py` each carry a few lines. Rebuild the image and run
-`tests/e2e.py` after every pull.
-
-To send changes back to the fork:
-
-```
-git subtree push --prefix apps/judge/judge-server git@github.com:MonashAPS/judge-server.git some-branch
-```
-
-`UPSTREAM.md` lists the upstream pull requests already carried here. When one of them merges upstream, drop
-its row and let the next subtree pull bring it in.
+MOJ's own changes are commits inside the subtree, and they touch three files: `dmoj/moj_packet.py`, which is
+entirely ours, and `dmoj/judge.py` and `dmoj/judgeenv.py`, which each carry a few lines, so those are the
+only places a pull can conflict. Rebuild the image and run `tests/e2e.py` after every pull.

@@ -76,31 +76,25 @@ Auth's format, so nobody is asked to reset a password. See [importing from DMOJ]
 
 ## The judge, as a subtree
 
-`apps/judge/judge-server/` is a git subtree of the judge-server repository, so the grader is upstream code with
-its history intact rather than a vendored copy.
+`apps/judge/judge-server/` is a git subtree of DMOJ's judge-server repository, tracking `master`, so the grader
+is upstream code rather than a vendored copy or a fork.
 
 The diff inside the subtree is three files: `dmoj/moj_packet.py`, which is entirely new and implements the pull
-protocol; a `MojJudge` subclass and four lines in `dmoj/judge.py` that select it when `MOJ_URL` is set; and one
-line in `dmoj/judgeenv.py` that stops the bridge host being a required positional argument in that mode.
-Everything else, including the sandbox and every executor, is upstream.
+protocol; a `MojJudge` subclass and four lines in `dmoj/judge.py` that select it when `MOJ_URL` is set; and
+`dmoj/judgeenv.py`, which drops the bridge host positional in that mode, maps dotted problem codes onto nested
+directories, and raises the compiler time limit to 60 seconds. Everything else, including the sandbox and every
+executor, is upstream.
 
 Because the selection is conditional on `MOJ_URL`, the same image still runs against a DMOJ bridge.
 
 Updating:
 
 ```bash
-git subtree pull --prefix apps/judge/judge-server <judge-server remote> <branch> --squash
-```
-
-and to send a change back upstream:
-
-```bash
-git subtree push --prefix apps/judge/judge-server <judge-server remote> <branch>
+git subtree pull --prefix apps/judge/judge-server https://github.com/dmoj/judge-server.git master --squash
 ```
 
 Conflicts can only be in `dmoj/judge.py` and `dmoj/judgeenv.py`. Rebuild the image and run
-`python3 apps/judge/tests/e2e.py` after every pull. `apps/judge/UPSTREAM.md` records which upstream pull requests
-the subtree carries early and why, so a row can be dropped when one merges upstream.
+`python3 apps/judge/tests/e2e.py` after every pull.
 
 ## API v2 parity
 
