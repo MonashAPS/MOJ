@@ -353,19 +353,25 @@ In the staff console, open **Judges**, create a judge and fill in:
 - **Tier**: the runtime tier the box provides. Work is only handed to judges in the lowest online tier, so a fast
   dedicated box on tier 1 takes precedence over a spare laptop on tier 2.
 
-### 2. Copy the problem data
+### 2. Decide where the test data comes from
 
-The judge grades from files on its own disk. Give it the same problem directories the site's problem repositories
-publish, one directory per problem code:
+A judge grades from files on its own disk, and it fills that disk itself. When a problem's test data has been
+published to the site, the judge downloads the archive the first time it is asked to grade that problem, checks it
+against the hash the site gave it, and keeps it in a cache directory, so a brand new judge needs nothing but its
+name and key. See [apps/judge/README.md](https://github.com/MonashAPS/MOJ/blob/main/apps/judge/README.md) for the
+cache settings.
+
+If you distribute test data yourself instead, put one directory per problem code on the judge, each holding an
+`init.yml` and its test files, and mount that directory into the container:
 
 ```bash
 sudo mkdir -p /srv/problems
 sudo rsync -avz --delete you@problems-host:~/problems/ /srv/problems/
 ```
 
-Each directory is named after the problem code and contains an `init.yml` plus its test data. See
-[problem format](/problems/format) for the layout and [problem repos and CI](/problems/repos-and-ci) for the
-workflow that keeps this directory up to date.
+A judge can do both. Data published to the site takes precedence over a local copy of the same problem, so the
+whole estate grades the same bytes. See [problem format](/problems/format) for the layout and
+[problem repos and CI](/problems/repos-and-ci) for publishing.
 
 ### 3. Build and run the judge container
 
