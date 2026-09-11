@@ -112,14 +112,18 @@ The sequence:
 3. **Claim.** `POST /judge/claim` every 500 milliseconds while idle. The site returns the next queued
    submission this judge is able to grade, or null. Errors back off exponentially to five seconds. After a
    submission finishes the judge claims again immediately rather than waiting out the poll interval.
-4. **Grade.** The judge grades exactly as it would have with a pushed submission, and every packet the
+4. **Test data.** A claim carrying a `problemDataHash` is telling the judge that the site owns that
+   problem's test data and that this is the version to grade. `GET /judge/data` downloads it, unless the
+   cache already holds that exact hash. A claim with a null hash grades from local disk and asks for
+   nothing. See "Test data the site owns" below.
+5. **Grade.** The judge grades exactly as it would have with a pushed submission, and every packet the
    grader produces becomes a `POST /judge/event`. Test case results are queued and flushed every 250
    milliseconds, and forcibly at batch boundaries and at the end of grading, so one event usually carries
    several cases.
-5. **Abort.** While a submission is in flight, `GET /judge/abort?submissionId=` once a second. When it comes
+6. **Abort.** While a submission is in flight, `GET /judge/abort?submissionId=` once a second. When it comes
    back true the judge kills the running process, the case in progress is discarded, and the submission ends
    with `submission-terminated`.
-6. **Disconnect.** `POST /judge/disconnect` on a clean shutdown.
+7. **Disconnect.** `POST /judge/disconnect` on a clean shutdown.
 
 If the site is unreachable the judge does not exit. Claims back off and retry, events retry with backoff and
 are eventually dropped with an error in the log rather than wedging the grading thread, and a submission
@@ -170,14 +174,17 @@ returns either `{"submission": null}` or
     "timeLimit": 1.0,
     "memoryLimit": 262144,
     "shortCircuit": false,
+    "problemDataHash": null,
     "meta": {"pretestsOnly": false, "inContest": null, "attemptNo": 1, "user": 1, "userNotes": ""}
   }
 }
 ```
 
 `timeLimit` is seconds and `memoryLimit` is kilobytes, both already resolved against any per-language
-override. `meta` is translated into the dashed keys a problem config expects (`pretests-only`,
-`in-contest`, `attempt-no`, `user`, `user-notes`), so a problem's dynamic `init.yml` keys keep working.
+override. `problemDataHash` is the sha256 of the archive the site holds for the problem, lowercase hex, or
+null when the site holds none: non-null means grade the site's copy at that hash and nothing else. `meta` is
+translated into the dashed keys a problem config expects (`pretests-only`, `in-contest`, `attempt-no`,
+`user`, `user-notes`), so a problem's dynamic `init.yml` keys keep working.
 
 `POST /judge/event`
 
@@ -232,7 +239,66 @@ empty log is normal and should not be shown to the user.
 `GET /judge/abort?judgeName=local&judgeKey=...&submissionId=1` returns `{"abort": true}` or
 `{"abort": false}`.
 
+`GET /judge/data?judgeName=local&judgeKey=...&code=aplusb&hash=<sha256>` returns `200 application/zip`, the
+archive bytes, with `X-Moj-Data-Hash` and `X-Moj-Data-Size` headers. `hash` is optional and names the version
+the judge was told to grade: the site answers `409 {"ok": false, "error": "hash mismatch"}` when that is no
+longer the current one, `404 {"ok": false, "error": "no data"}` when it holds nothing for the problem, and
+`403` on a bad judge name or key. The archive is a plain zip whose root holds `init.yml` and everything it
+references.
+
 `POST /judge/disconnect` takes `{"judgeName": "...", "judgeKey": "..."}` and returns `{"ok": true}`.
+
+## Test data the site owns
+
+A problem's test data can live in two places. It has always been able to live on the judge: a problem
+repository copies `init.yml` and the test files onto every judge box, and `problem_storage_globs` finds them.
+That still works and nothing about it has changed. It can also live on the site, and then it is the judge
+that goes and gets it, with the credentials it already has and over the same HTTPS it pulls submissions
+over. A judge that grades only problems whose data the site owns needs no problem tree, no copy job and no
+SSH key.
+
+On a claim carrying a `problemDataHash` the judge:
+
+1. grades from `<cache>/<code>` when `<cache>/<code>/.moj-hash` already holds that hash, touching the
+   directory so the cache knows it was used;
+2. otherwise downloads `GET /judge/data`, hashes the bytes it received, unpacks the archive into a staging
+   directory beside the cache, writes `.moj-hash`, and moves the result into place over whatever was there;
+3. refuses to grade, reporting an `internal-error` naming the problem and the hash, when the bytes do not
+   hash to what was promised, when the archive has no `init.yml` at its root, or when any member of it would
+   write outside the problem directory -- a path containing `..`, an absolute path, or a symlink.
+
+Refusing is the point of the third case. A judge that cannot get exactly the data the site asked for says so
+and grades nothing; it never falls back to an older copy or to whatever is on local disk, because two judges
+disagreeing about what a problem's tests are is far worse than one submission failing loudly. A download
+that fails part way through leaves the copy already in the cache exactly as it was, so a site that goes away
+mid-fetch costs a submission rather than a problem.
+
+### Configuration
+
+| variable | default | meaning |
+| --- | --- | --- |
+| `MOJ_DATA_CACHE` | `/judge-data-cache` | where archives are unpacked, one directory per problem code |
+| `MOJ_DATA_MAX_GB` | `20` | ceiling for that directory, past which least-recently-used problems are deleted; `0` turns eviction off |
+
+The image creates the cache and declares it a volume, so a container that restarts still has everything it
+had already downloaded. Mount a named volume over it, `-v moj-judge-data:/judge-data-cache`, to keep it
+across `docker run --rm` as well. Losing the cache costs downloads and nothing else.
+
+### Precedence
+
+The cache is registered as a problem root in front of `problem_storage_globs`, which decides the three cases:
+
+- a problem only in the cache grades from the cache. This is how a judge with an empty `/problems` works: it
+  reports no problems at the handshake, the site hands it work anyway because it holds the data itself, and
+  the judge fetches each problem the first time it has to grade one.
+- a problem only on local disk grades from local disk, exactly as before.
+- a problem in both grades from the cache, so every judge grades the same bytes whatever its local tree
+  happens to hold. Nothing on local disk is ever written to or deleted.
+
+A dotted code is a single directory in the cache, dots and all: `algo101.a1.knapsack` caches as
+`/judge-data-cache/algo101.a1.knapsack`, not as the nested path the local tree uses for the same code.
+Problems in the cache are reported to the site alongside local ones, so a judge's problem count grows as it
+grades.
 
 ## Tiers
 
@@ -271,6 +337,7 @@ Run it on the same machine as the site:
 docker run --rm \
   --cap-add SYS_PTRACE \
   -v /srv/moj/problems:/problems \
+  -v moj-judge-data:/judge-data-cache \
   -e MOJ_URL=https://convex-site.judge.example.org \
   -e JUDGE_NAME=judge1 \
   -e JUDGE_KEY=... \
@@ -287,9 +354,10 @@ The judge's control API listens on `127.0.0.1:9998` inside the container; set `J
 Nothing about the judge needs to be near the site. It makes outbound HTTPS requests and nothing listens.
 
 1. Install Docker on the machine and make sure it can reach the site over HTTPS.
-2. Get the problem data onto it. The judge needs the same `/problems` tree the site's problem repos produce;
-   an rsync from the primary judge or a checkout of the problems repository both work. It only ever reads
-   the tree.
+2. Get the problem data onto it, for any problem whose data the site does not hold. For problems the site
+   owns there is nothing to do: mount an empty `/problems` and the judge downloads what it needs. For the
+   rest the judge needs the same `/problems` tree the site's problem repos produce; an rsync from the
+   primary judge or a checkout of the problems repository both work. It only ever reads that tree.
 3. Create a second judge in the staff console with its own name and key.
 4. Run the container:
 
@@ -297,6 +365,7 @@ Nothing about the judge needs to be near the site. It makes outbound HTTPS reque
 docker run -d --restart unless-stopped --name moj-judge \
   --cap-add SYS_PTRACE \
   -v /srv/moj/problems:/problems \
+  -v moj-judge-data:/judge-data-cache \
   -e MOJ_URL=https://convex-site.judge.example.org \
   -e JUDGE_NAME=judge2 \
   -e JUDGE_KEY=... \
@@ -321,15 +390,31 @@ either allow the bridge to reach the backend's port (on NixOS, add `docker0` to
 
 ## Tests
 
-`tests/mock_server.py` implements the judge API over `http.server`, backed by an in-memory queue and an event
-log. It can be run standalone (`python3 apps/judge/tests/mock_server.py --port 3211`) to poke at a judge by
-hand.
+`tests/mock_server.py` implements the judge API over `http.server`, backed by an in-memory queue, an event
+log and a dictionary of test data archives. It can be run standalone
+(`python3 apps/judge/tests/mock_server.py --port 3211`) to poke at a judge by hand.
 
-`tests/e2e.py` starts that mock, runs the real image against it, and feeds it four submissions for `aplusb`:
-one that is accepted, one that is wrong, one that times out, and one that is aborted from the site part way
-through. It asserts the exact event sequence and per-case verdicts for each, that test case events only ever
-arrive inside a batch, that case positions are sequential, and that an aborted submission reports
-`submission-terminated` and never `grading-end`.
+`tests/e2e.py` starts that mock, runs the real image against it, and feeds it ten submissions. Four grade
+`aplusb`, which the container has on local disk: one that is accepted, one that is wrong, one that times
+out, and one that is aborted from the site part way through. It asserts the exact event sequence and
+per-case verdicts for each, that test case events only ever arrive inside a batch, that case positions are
+sequential, and that an aborted submission reports `submission-terminated` and never `grading-end`.
+
+The other six grade a problem that exists nowhere on disk, so they can only be grading data the judge
+fetched. They assert that a problem the judge has never seen is downloaded and graded, that a second
+submission at the same hash grades without asking the site again, that a new hash is downloaded again and
+that the case the new archive added is graded, that an archive whose bytes do not match the hash the site
+advertised produces an internal error naming the problem rather than a verdict, that the copy already
+cached survives that failed download, and that a claim with a null hash still grades from local disk without
+asking the site for anything.
+
+`tests/test_moj_data.py` covers the cache on its own: the traversal, absolute path and symlink guards, an
+archive with no `init.yml`, a hash that does not verify leaving the cached copy intact, and least-recently-
+used eviction. It needs neither Docker nor a site.
+
+```
+python3 -m unittest discover -s apps/judge/tests
+```
 
 ```
 python3 apps/judge/tests/e2e.py            # against an already built moj-judge:tier1
@@ -348,6 +433,7 @@ The subtree tracks `https://github.com/dmoj/judge-server.git` branch `master`.
 git subtree pull --prefix apps/judge/judge-server https://github.com/dmoj/judge-server.git master --squash
 ```
 
-MOJ's own changes are commits inside the subtree, and they touch three files: `dmoj/moj_packet.py`, which is
-entirely ours, and `dmoj/judge.py` and `dmoj/judgeenv.py`, which each carry a few lines, so those are the
-only places a pull can conflict. Rebuild the image and run `tests/e2e.py` after every pull.
+MOJ's own changes are commits inside the subtree, and they touch four files: `dmoj/moj_packet.py` and
+`dmoj/moj_data.py`, which are entirely ours, and `dmoj/judge.py` and `dmoj/judgeenv.py`, which each carry a
+few lines, so those are the only places a pull can conflict. Rebuild the image and run `tests/e2e.py` after
+every pull.
