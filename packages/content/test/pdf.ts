@@ -7,6 +7,13 @@
  */
 
 type PdfText = { text: string; numpages: number };
+
+type PdfParseInstance = {
+  getText(): Promise<{ text: string; pages?: unknown[]; total?: number }>;
+  destroy(): Promise<void>;
+};
+
+type PdfParseCtor = new (options: { data: Buffer }) => PdfParseInstance;
 type Extract = (data: Buffer) => Promise<PdfText>;
 
 let extract: Extract | undefined;
@@ -27,12 +34,7 @@ async function load(): Promise<Extract> {
   if (extract) return extract;
 
   const module = (await import("pdf-parse")) as unknown as Record<string, unknown>;
-  const PDFParse = module.PDFParse as
-    | (new (options: { data: Buffer }) => {
-        getText(): Promise<{ text: string; pages?: unknown[]; total?: number }>;
-        destroy(): Promise<void>;
-      })
-    | undefined;
+  const PDFParse = module.PDFParse as PdfParseCtor | undefined;
 
   if (PDFParse) {
     extract = async (data: Buffer) => {
