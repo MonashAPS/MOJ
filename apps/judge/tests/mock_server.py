@@ -1,9 +1,10 @@
 """
 A stand-in for the MOJ site's judge API.
 
-It implements exactly the endpoints `dmoj/moj_packet.py` calls, backed by an in-memory queue and an event
-log, so the judge container can be exercised without a Convex deployment. The Convex implementation must
-accept and return the same shapes; see apps/judge/README.md for the wire format.
+It implements exactly the endpoints `dmoj/moj_packet.py` calls, backed by an in-memory queue, an event log
+and a dictionary of test data archives, so the judge container can be exercised without a Convex deployment.
+The Convex implementation must accept and return the same shapes; see apps/judge/README.md for the wire
+format.
 
 Run it standalone with:
 
@@ -11,13 +12,16 @@ Run it standalone with:
 """
 
 import argparse
+import hashlib
+import io
 import json
 import threading
 import time
 import urllib.parse
+import zipfile
 from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Callable, Deque, Dict, List, Optional
+from typing import Any, Callable, Deque, Dict, List, Optional, Union
 
 EVENT_TYPES = {
     'grading-begin',
@@ -52,6 +56,10 @@ class MockJudgeServer:
         self.events: List[dict] = []
         self.aborts: Dict[int, bool] = {}
         self.requests: List[str] = []
+        # Test data the site owns, by problem code: the archive bytes and the hash the site advertises for
+        # them, which is deliberately allowed to disagree with the bytes so corruption can be tested.
+        self.problem_data: Dict[str, Dict[str, Any]] = {}
+        self.data_requests: List[str] = []
         self.verbose = False
 
         self._server: Optional[ThreadingHTTPServer] = None
@@ -118,6 +126,8 @@ class MockJudgeServer:
                     outer.requests.append('GET ' + parsed.path)
                 if not self._authorized(query):
                     return self._reply({'error': 'unauthorized'}, 403)
+                if parsed.path == '/judge/data':
+                    return outer._data(self, query)
                 if parsed.path != '/judge/abort':
                     return self._reply({'error': 'not found'}, 404)
                 return self._reply(outer._abort(query))
@@ -178,6 +188,28 @@ class MockJudgeServer:
             return {'ok': False, 'error': 'unknown event type %r' % (record['type'],)}
         return {'ok': True}
 
+    def _data(self, handler: BaseHTTPRequestHandler, query: dict) -> None:
+        code = query.get('code', '')
+        with self.condition:
+            self.data_requests.append(code)
+            entry = self.problem_data.get(code)
+            self.condition.notify_all()
+
+        if entry is None:
+            return handler._reply({'ok': False, 'error': 'no data'}, 404)  # type: ignore[attr-defined]
+        wanted = query.get('hash')
+        if wanted and wanted != entry['hash']:
+            return handler._reply({'ok': False, 'error': 'hash mismatch'}, 409)  # type: ignore[attr-defined]
+
+        body = entry['body']
+        handler.send_response(200)
+        handler.send_header('Content-Type', 'application/zip')
+        handler.send_header('Content-Length', str(len(body)))
+        handler.send_header('X-Moj-Data-Hash', entry['hash'])
+        handler.send_header('X-Moj-Data-Size', str(len(body)))
+        handler.end_headers()
+        handler.wfile.write(body)
+
     def _abort(self, query: dict) -> dict:
         try:
             submission_id = int(query.get('submissionId', ''))
@@ -204,6 +236,7 @@ class MockJudgeServer:
         memory_limit: int = 262144,
         short_circuit: bool = False,
         meta: Optional[dict] = None,
+        problem_data_hash: Optional[str] = None,
     ) -> int:
         submission = {
             'submissionId': submission_id,
@@ -213,6 +246,7 @@ class MockJudgeServer:
             'timeLimit': time_limit,
             'memoryLimit': memory_limit,
             'shortCircuit': short_circuit,
+            'problemDataHash': problem_data_hash,
             'meta': (
                 meta
                 if meta is not None
@@ -223,6 +257,22 @@ class MockJudgeServer:
             self.queue.append(submission)
             self.condition.notify_all()
         return submission_id
+
+    def set_problem_data(self, code: str, body: bytes, advertised_hash: Optional[str] = None) -> str:
+        """Hold `body` as the site's archive for `code` and return the hash a claim should carry.
+
+        `advertised_hash` defaults to the real sha256 of the bytes. Passing a different one is how a
+        corrupted download is tested: the site promises one archive and the judge receives another.
+        """
+        digest = advertised_hash or hashlib.sha256(body).hexdigest()
+        with self.condition:
+            self.problem_data[code] = {'hash': digest, 'body': body}
+            self.condition.notify_all()
+        return digest
+
+    def data_requests_for(self, code: str) -> int:
+        with self.lock:
+            return sum(1 for requested in self.data_requests if requested == code)
 
     def set_abort(self, submission_id: int, value: bool = True) -> None:
         with self.lock:
@@ -241,6 +291,15 @@ class MockJudgeServer:
                     return False
                 self.condition.wait(min(remaining, 0.25))
             return True
+
+
+def build_archive(files: Dict[str, Union[str, bytes]]) -> bytes:
+    """A problem archive in the shape the site stores: a zip whose root holds init.yml and its test data."""
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as archive:
+        for name, content in sorted(files.items()):
+            archive.writestr(name, content if isinstance(content, bytes) else content.encode('utf-8'))
+    return buffer.getvalue()
 
 
 def main() -> None:

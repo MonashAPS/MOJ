@@ -1,13 +1,25 @@
 """
 End-to-end test for the MOJ judge image.
 
-Starts the mock judge API, runs the judge container against it, then feeds it four submissions for the
-`aplusb` problem in infra/problems and asserts the exact event stream each one produces:
+Starts the mock judge API, runs the judge container against it, then feeds it submissions and asserts the
+exact event stream each one produces.
+
+Four of them grade the `aplusb` problem in infra/problems, which the container has on local disk:
 
   1. an accepted Python solution
   2. a wrong solution that fails the first case of the scored batch
   3. a solution that loops forever and times out
   4. a solution that loops forever and is aborted from the site
+
+The rest grade a problem that exists nowhere on disk, to prove the judge can work from test data the site
+owns and nothing else:
+
+  5. a claim carrying a hash fetches the archive and grades it
+  6. a second claim at the same hash grades from the cache without asking the site again
+  7. a claim at a new hash fetches the new archive, and grades the case the new one added
+  8. a claim whose archive does not match its hash is an internal error, not a verdict
+  9. the copy the cache already held survives that failed fetch
+ 10. a claim with a null hash still grades from local disk
 
 Run from the repository root:
 
@@ -17,17 +29,18 @@ Pass --build to build the image first, or --image to point at a different tag.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
 import sys
 import threading
 import time
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from mock_server import MockJudgeServer  # noqa: E402
+from mock_server import MockJudgeServer, build_archive  # noqa: E402
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..'))
 # Optional CPU pinning for the image build; set MOJ_CPUSET to a taskset-style list on a machine that
@@ -54,6 +67,12 @@ GRADE_TIMEOUT = 120.0
 AC_SOURCE = 'a, b = map(int, input().split())\nprint(a + b)\n'
 WA_SOURCE = 'a, b = map(int, input().split())\nprint(a + b + (1 if a + b > 1000 else 0))\n'
 LOOP_SOURCE = 'while True:\n    pass\n'
+MUL_SOURCE = 'a, b = map(int, input().split())\nprint(a * b)\n'
+
+# Nothing under infra/problems provides this code, so every case below that grades it can only be grading
+# test data the judge fetched. It multiplies rather than adds, so grading it against another problem's data
+# would fail rather than quietly pass.
+SITE_PROBLEM = 'sitemul'
 
 # Bitmask decode order, from SPEC.md section 6.
 STATUS_BITS: List[Tuple[int, str]] = [
@@ -76,6 +95,25 @@ def decode_status(status: int) -> str:
 
 class Failure(Exception):
     pass
+
+
+def site_archive(cases: List[Tuple[str, str]]) -> bytes:
+    """An archive for a one-batch problem, a case per (input, expected output) pair."""
+    files: Dict[str, Union[str, bytes]] = {}
+    entries = []
+    for position, (stdin, stdout) in enumerate(cases, start=1):
+        files['tests/%d.in' % position] = stdin + '\n'
+        files['tests/%d.out' % position] = stdout + '\n'
+        entries.append('  - {in: tests/%d.in, out: tests/%d.out}' % (position, position))
+    files['init.yml'] = 'test_cases:\n- batched:\n%s\n  points: 100\n' % '\n'.join(entries)
+    return build_archive(files)
+
+
+def internal_error_message(server: MockJudgeServer, submission_id: int) -> str:
+    for record in server.events_for(submission_id):
+        if record['type'] == 'internal-error':
+            return str(record['event'].get('message', ''))
+    return ''
 
 
 def check(condition: bool, message: str) -> None:
@@ -242,6 +280,8 @@ def expect(
 
 
 BATCHED = ['grading-begin', 'batch-begin', 'batch-end', 'batch-begin', 'batch-end', 'grading-end']
+ONE_BATCH = ['grading-begin', 'batch-begin', 'batch-end', 'grading-end']
+FINALS = ('grading-end', 'internal-error', 'compile-error')
 
 
 def run(image: str, port: int, network: str, dump: Optional[str] = None) -> None:
@@ -304,6 +344,76 @@ def run(image: str, port: int, network: str, dump: Optional[str] = None) -> None
         check('grading-end' not in types, 'terminate: an aborted submission must not report grading-end')
         print('  terminate: %s' % types, flush=True)
 
+        print('\n=== 5. test data fetched from the site ===', flush=True)
+        first = site_archive([('2 3', '6'), ('7 8', '56')])
+        first_hash = server.set_problem_data(SITE_PROBLEM, first)
+        server.enqueue(5, SITE_PROBLEM, 'PY3', MUL_SOURCE, problem_data_hash=first_hash)
+        wait_for_final(server, 5, FINALS)
+        expect(server, 5, 'fetched', ONE_BATCH, [(1, 'AC'), (2, 'AC')])
+        check(
+            server.data_requests_for(SITE_PROBLEM) == 1,
+            'expected one data request for %s, saw %d' % (SITE_PROBLEM, server.data_requests_for(SITE_PROBLEM)),
+        )
+
+        print('\n=== 6. cached, not downloaded again ===', flush=True)
+        server.enqueue(6, SITE_PROBLEM, 'PY3', MUL_SOURCE, problem_data_hash=first_hash)
+        wait_for_final(server, 6, FINALS)
+        expect(server, 6, 'cached', ONE_BATCH, [(1, 'AC'), (2, 'AC')])
+        check(
+            server.data_requests_for(SITE_PROBLEM) == 1,
+            'a second submission at the same hash downloaded the data again (%d requests)'
+            % server.data_requests_for(SITE_PROBLEM),
+        )
+
+        print('\n=== 7. a new hash is fetched again ===', flush=True)
+        second = site_archive([('2 3', '6'), ('7 8', '56'), ('10 11', '110')])
+        second_hash = server.set_problem_data(SITE_PROBLEM, second)
+        check(second_hash != first_hash, 'the two archives hash the same, so the test proves nothing')
+        server.enqueue(7, SITE_PROBLEM, 'PY3', MUL_SOURCE, problem_data_hash=second_hash)
+        wait_for_final(server, 7, FINALS)
+        # The third case only exists in the new archive: seeing it graded is what proves the refetch landed.
+        expect(server, 7, 'refetched', ONE_BATCH, [(1, 'AC'), (2, 'AC'), (3, 'AC')])
+        check(
+            server.data_requests_for(SITE_PROBLEM) == 2,
+            'expected a second data request after the hash changed, saw %d'
+            % server.data_requests_for(SITE_PROBLEM),
+        )
+
+        print('\n=== 8. a corrupted archive is an internal error ===', flush=True)
+        third = site_archive([('2 3', '6'), ('7 8', '56'), ('10 11', '110'), ('12 12', '144')])
+        third_hash = hashlib.sha256(third).hexdigest()
+        # The site promises the four-case archive and serves the two-case one instead.
+        server.set_problem_data(SITE_PROBLEM, first, advertised_hash=third_hash)
+        server.enqueue(8, SITE_PROBLEM, 'PY3', MUL_SOURCE, problem_data_hash=third_hash)
+        wait_for_final(server, 8, ('internal-error', 'grading-end', 'compile-error'))
+        types, cases = collect(server, 8)
+        check(types == ['internal-error'], 'corrupt: expected only an internal error, got %s' % types)
+        check(not cases, 'corrupt: a submission with unusable data must not report any case')
+        message = internal_error_message(server, 8)
+        check(SITE_PROBLEM in message, 'corrupt: the internal error does not name the problem: %r' % message)
+        check(third_hash in message, 'corrupt: the internal error does not name the hash: %r' % message)
+        print('  corrupt: %s' % message.strip().splitlines()[-1][:160], flush=True)
+
+        print('\n=== 9. the failed fetch left the cache alone ===', flush=True)
+        server.set_problem_data(SITE_PROBLEM, second)
+        server.enqueue(9, SITE_PROBLEM, 'PY3', MUL_SOURCE, problem_data_hash=second_hash)
+        wait_for_final(server, 9, FINALS)
+        expect(server, 9, 'survived', ONE_BATCH, [(1, 'AC'), (2, 'AC'), (3, 'AC')])
+        check(
+            server.data_requests_for(SITE_PROBLEM) == 3,
+            'the good copy was not still cached after the corrupt fetch (%d requests)'
+            % server.data_requests_for(SITE_PROBLEM),
+        )
+
+        print('\n=== 10. a null hash grades from local disk ===', flush=True)
+        server.enqueue(10, 'aplusb', 'PY3', AC_SOURCE, problem_data_hash=None)
+        wait_for_final(server, 10, FINALS)
+        expect(server, 10, 'local', BATCHED, [(1, 'AC'), (2, 'AC'), (3, 'AC'), (4, 'AC'), (5, 'AC'), (6, 'AC')])
+        check(
+            server.data_requests_for('aplusb') == 0,
+            'a claim with no hash asked the site for test data anyway',
+        )
+
         print('\n=== heartbeats ===', flush=True)
         # Grading four submissions takes under ten seconds, so wait for the cadence rather than assume it.
         # The site's recovery cron requeues work from judges that stop heartbeating, so this matters.
@@ -333,6 +443,7 @@ def run(image: str, port: int, network: str, dump: Optional[str] = None) -> None
                         'heartbeats': server.heartbeats,
                         'events': server.events,
                         'claimed': list(server.claimed.values()),
+                        'dataRequests': server.data_requests,
                     },
                     f,
                     indent=2,
