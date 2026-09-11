@@ -29,9 +29,9 @@
     "vendor:typst": "node scripts/vendor-typst-packages.mjs"
   },
   "dependencies": {
-    "@shikijs/rehype": "^3.13.0",
+    "@shikijs/rehype": "^4.4.3",
     "hast-util-to-string": "^3.0.1",
-    "katex": "^0.16.25",
+    "katex": "^0.18.7",
     "mdast-util-to-string": "^4.0.0",
     "micromark-util-character": "^2.1.1",
     "rehype-katex": "^7.0.1",
@@ -43,7 +43,7 @@
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
     "remark-stringify": "^11.0.0",
-    "shiki": "^3.13.0",
+    "shiki": "^4.4.3",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.0.0",
     "unist-util-visit-parents": "^6.0.1",
