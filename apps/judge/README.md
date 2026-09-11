@@ -280,6 +280,7 @@ docker run --rm \
 On first start the container writes `/problems/judge.yml` from the template, containing the name, the key
 and `problem_storage_globs: [/problems/**/]`. Edit that file to change a running judge's configuration; it
 is not overwritten once it exists. Set `JUDGE_CONFIG` to keep it somewhere other than the problems volume.
+The judge's control API listens on `127.0.0.1:9998` inside the container; set `JUDGE_API_HOST` and `JUDGE_API_PORT` to change that, for example when two judges share host networking.
 
 ### Running a judge on a second machine
 

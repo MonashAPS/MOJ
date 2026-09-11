@@ -46,4 +46,4 @@ export HOME=~judge
 . ~judge/.profile
 
 exec setpriv --reuid judge --regid judge --clear-groups \
-	/env/bin/dmoj -c "$JUDGE_CONFIG" "$@"
+	/env/bin/dmoj -c "$JUDGE_CONFIG" -A "${JUDGE_API_HOST:-127.0.0.1}" -a "${JUDGE_API_PORT:-9998}" "$@"

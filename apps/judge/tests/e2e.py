@@ -33,6 +33,16 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file_
 # Optional CPU pinning for the image build; set MOJ_CPUSET to a taskset-style list on a machine that
 # needs it. Unset, the build floats across every core.
 CPUSET = os.environ.get('MOJ_CPUSET', '')
+CPUSET_FLAGS = ['--cpuset-cpus', CPUSET] if CPUSET else []
+
+
+def free_port() -> int:
+    import socket
+
+    with socket.socket() as sock:
+        sock.bind(('127.0.0.1', 0))
+        return sock.getsockname()[1]
+
 DEFAULT_IMAGE = 'moj-judge:tier1'
 # The mock listens where a self-hosted Convex deployment serves its HTTP actions; override with --port when
 # something else already has it (a local convex-backend, for instance).
@@ -86,7 +96,7 @@ def host_is_reachable(image: str, network: str, port: int) -> bool:
     host = url.split('//', 1)[1].rsplit(':', 1)[0]
     probe = 'import socket; socket.create_connection((%r, %d), 5).close()' % (host, port)
     result = subprocess.run(
-        ['docker', 'run', '--rm', '--cpuset-cpus', CPUSET, '--entrypoint', '/env/bin/python3']
+        ['docker', 'run', '--rm', *CPUSET_FLAGS, '--entrypoint', '/env/bin/python3']
         + flags
         + [image, '-c', probe],
         capture_output=True,
@@ -117,8 +127,9 @@ class JudgeContainer:
                 self.name,
                 '--cap-add',
                 'SYS_PTRACE',
-                '--cpuset-cpus',
-                CPUSET,
+                *CPUSET_FLAGS,
+                '-e',
+                'JUDGE_API_PORT=%d' % free_port(),
                 '-v',
                 '%s/infra/problems:/problems' % REPO_ROOT,
                 '-e',
