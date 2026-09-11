@@ -1,13 +1,12 @@
 name: Upload problems to MOJ
 description: >-
-  Push a problem repository's statements, editorials, images and metadata to a
-  MOJ judge through the problems API, and optionally rsync the test data to the
-  judge host.
+  Publish a problem repository to a MOJ site: statements, editorials, images,
+  metadata and test data, over the problems API with one URL and one API key.
 
 inputs:
   judge-url:
     description: >-
-      Address of the judge, e.g. https://judge.example.org. The problems API is
+      Address of the site, e.g. https://judge.example.org. The problems API is
       published on the site's own origin, so this is the address people browse.
     required: true
   api-key:
@@ -24,6 +23,12 @@ inputs:
       no usable range (a new branch, or workflow_dispatch).
     required: false
     default: "true"
+  skip-data:
+    description: >-
+      Publish the statements and metadata only, leaving the test data on the
+      site as it is. Set this if the judges get their data some other way.
+    required: false
+    default: "false"
   include:
     description: Newline separated globs; only matching problem codes are uploaded.
     required: false
@@ -43,7 +48,9 @@ inputs:
     required: false
     default: ""
   rsync-host:
-    description: Judge host to sync test data to. Leave empty to skip the sync.
+    description: >-
+      Judge host to copy the problem directory to over SSH, for repositories
+      that distribute their own data. Leave empty, which is the default.
     required: false
     default: ""
   rsync-user:
@@ -69,7 +76,9 @@ inputs:
 
 outputs:
   uploaded:
-    description: JSON list of the problems that were uploaded.
+    description: >-
+      JSON list of the problems that were uploaded, each with `code`, `created`,
+      `name`, `statement` and `data`.
     value: ${{ steps.upload.outputs.uploaded }}
   skipped:
     description: JSON list of the problems that were skipped.
@@ -77,6 +86,11 @@ outputs:
   failed:
     description: JSON list of the problems that failed, with the error text.
     value: ${{ steps.upload.outputs.failed }}
+  data:
+    description: >-
+      JSON list of the test data published, each with `code`, `status`, `hash`,
+      `size` and `fileCount`. `status` is published, unchanged or pending.
+    value: ${{ steps.upload.outputs.data }}
 
 runs:
   using: composite
@@ -152,6 +166,9 @@ runs:
         while IFS= read -r glob; do
           [ -n "$glob" ] && args+=(--exclude "$glob")
         done <<< "$EXCLUDE_GLOBS"
+        if [ "${{ inputs.skip-data }}" = "true" ]; then
+          args+=(--skip-data)
+        fi
         if [ "${{ inputs.dry-run }}" = "true" ]; then
           args+=(--dry-run)
         fi
@@ -175,6 +192,10 @@ runs:
           for (const key of ["uploaded", "skipped", "failed"]) {
             fs.appendFileSync(out, `${key}=${JSON.stringify(summary[key] ?? [])}\n`);
           }
+          const data = [...(summary.uploaded ?? []), ...(summary.skipped ?? [])]
+            .filter((item) => item.data)
+            .map((item) => ({ code: item.code, ...item.data }));
+          fs.appendFileSync(out, `data=${JSON.stringify(data)}\n`);
         ' "$summary"
 
         exit $status
@@ -190,22 +211,51 @@ runs:
           const uploaded = read(process.env.UPLOADED);
           const skipped = read(process.env.SKIPPED);
           const failed = read(process.env.FAILED);
+
+          const bytes = (size) => {
+            if (typeof size !== "number") return "";
+            if (size < 1024) return `${size} B`;
+            const units = ["KB", "MB", "GB", "TB"];
+            let value = size / 1024;
+            let unit = 0;
+            while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit += 1; }
+            return `${value >= 10 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
+          };
+          const words = { published: "published", unchanged: "unchanged", pending: "would publish" };
+          const dataCell = (item) => {
+            if (!item.data) return "not published";
+            const files = `${item.data.fileCount} ${item.data.fileCount === 1 ? "file" : "files"}`;
+            return `${words[item.data.status] ?? item.data.status}, ${files}`;
+          };
+          const hashCell = (item) => (item.data ? item.data.hash.slice(0, 12) : "");
+          const sizeCell = (item) => (item.data ? bytes(item.data.size) : "");
+
           const rows = [
-            ...uploaded.map((item) => [item.code, item.created ? "created" : "updated", item.name ?? ""]),
-            ...skipped.map((item) => [item.code, "skipped", item.reason ?? ""]),
-            ...failed.map((item) => [item.code, "failed", item.error ?? ""]),
+            ...uploaded.map((item) => [
+              item.code,
+              item.statement === false ? "statement left alone" : `${item.created ? "created" : "updated"} ${item.name ?? ""}`.trim(),
+              dataCell(item),
+              sizeCell(item),
+              hashCell(item),
+            ]),
+            ...skipped.map((item) => [item.code, `skipped: ${item.reason ?? ""}`, dataCell(item), sizeCell(item), hashCell(item)]),
+            ...failed.map((item) => [item.code, `failed: ${item.error ?? ""}`, "", "", ""]),
           ];
-          const escape = (value) => String(value).replace(/\|/g, "\\|");
+
+          const counts = (status) => [...uploaded, ...skipped].filter((item) => item.data?.status === status).length;
+          const escape = (value) => String(value).replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
           const lines = [
             "## Problem upload",
             "",
             `${uploaded.length} uploaded, ${skipped.length} skipped, ${failed.length} failed.`,
             "",
-            "| Problem | Result | Detail |",
-            "| --- | --- | --- |",
+            `Test data: ${counts("published")} published, ${counts("unchanged")} unchanged, ${counts("pending")} pending.`,
+            "",
+            "| Problem | Statement | Test data | Size | Hash |",
+            "| --- | --- | --- | --- | --- |",
             ...rows.map((row) => `| ${row.map(escape).join(" | ")} |`),
           ];
-          if (rows.length === 0) lines.push("| _none_ | | |");
+          if (rows.length === 0) lines.push("| _none_ | | | | |");
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join("\n")}\n`);
         '
       env:
@@ -223,7 +273,7 @@ runs:
         echo "" >> "$GITHUB_STEP_SUMMARY"
         echo "No problem directories changed in this push." >> "$GITHUB_STEP_SUMMARY"
 
-    - name: Sync test data
+    - name: Sync test data over SSH
       if: >-
         always() && inputs.rsync-host != '' && inputs.dry-run != 'true'
         && steps.select.outputs.empty != 'true'
