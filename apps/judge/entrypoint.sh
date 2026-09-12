@@ -52,8 +52,14 @@ chown -R judge:judge "$MOJ_DATA_CACHE" 2>/dev/null || true
 chown -R judge:judge /judge 2>/dev/null || true
 
 export HOME=~judge
+# The runtime images put every toolchain's setup in the judge's profile, and some
+# of those scripts read variables they never set and return non-zero. Sourcing it
+# under `set -eu` would end the container before the judge ever starts, so the
+# strict flags come off for exactly this line.
+set +eu
 # shellcheck disable=SC1090
 . ~judge/.profile
+set -eu
 
 exec setpriv --reuid judge --regid judge --clear-groups \
 	/env/bin/dmoj -c "$JUDGE_CONFIG" -A "${JUDGE_API_HOST:-127.0.0.1}" -a "${JUDGE_API_PORT:-9998}" "$@"
