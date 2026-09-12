@@ -225,22 +225,27 @@ matched by their natural key; everything else is inserted as before. Running the
 likewise a no-op, because the seed upserts by the same keys.
 
 An older importer inserted these blindly. A site that was seeded and then imported by it ends up with two rows for
-every key, and because a language lookup by key was no longer unique the judge handshake failed with an HTTP 400.
-Lookups take the first match now, so nothing user-facing breaks, but the duplicates are still there. Repair them
-once:
+every key: a language lookup by key was no longer unique, so the judge handshake failed with an HTTP 400, and the
+header renders every navigation item twice. Lookups take the first match now, so nothing is broken beyond the
+duplicates themselves, but the duplicates are still there. Repair them once, in either order:
 
 ```bash
 npx convex run admin/languages:dedupeByKeyStep '{}'
+npx convex run admin/dedupe:dedupeNaturalKeysStep '{}'
 ```
 
-`admin/languages:dedupeByKey` is the same repair for a signed-in superuser; the command line has no signed-in
-user, so it calls the internal entry point instead, which takes the same defaults.
+The first repairs `languages`; the second repairs the other six tables in one run. `admin/languages:dedupeByKey`
+and `admin/dedupe:dedupeNaturalKeys` are the same repairs for a signed-in superuser; the command line has no
+signed-in user, so it calls the internal entry points instead, which take the same defaults.
 
-It keeps the row carrying a `legacyId` for each duplicated key, and the oldest row otherwise, repoints
-`problems.allowedLanguageIds`, `languageLimits`, `submissions`, `profiles` and `runtimeVersions` at it, deletes
-the rest, and reports the keys it repaired, the rows it deleted and the references it rewrote. It is bounded, so
-on a large site it schedules itself until it is finished; `isDone: false` means a follow-up pass is running.
-Running it again once it is done does nothing.
+Both keep the row carrying a `legacyId` for a duplicated key, because that is the row the imported data points at;
+`languages` keeps the oldest row where the legacy ids do not decide it and the other six keep the newest. They
+repoint every reference before deleting anything: `problems.allowedLanguageIds`, `languageLimits`, `submissions`,
+`profiles` and `runtimeVersions` for a language, and `problems.typeIds`, `problems.groupId`, `problems.licenseId`
+and `navigationBar.parentId` for the rest. Nothing names a `miscConfig` or a `flatPages` row, so those two only
+lose their duplicates. Each reports the keys it repaired, the rows it deleted and the references it rewrote, and
+each is bounded, so on a large site it schedules itself until it is finished; `isDone: false` means a follow-up
+pass is running. Running either again once it is done does nothing.
 
 ## Re-running it
 
