@@ -43,7 +43,12 @@
   if type(value) == str { return value }
   let kb = float(value)
   let mb = kb / 1024.0
-  if mb >= 1.0 and mb == calc.round(mb) {
+  let gb = mb / 1024.0
+  if gb >= 1.0 and gb == calc.round(gb) {
+    str(int(gb)) + " " + plural(int(gb), "gigabyte")
+  } else if gb >= 1.0 {
+    str(calc.round(gb, digits: 1)) + " gigabytes"
+  } else if mb >= 1.0 and mb == calc.round(mb) {
     str(int(mb)) + " " + plural(int(mb), "megabyte")
   } else if mb >= 1.0 {
     str(calc.round(mb, digits: 1)) + " megabytes"
