@@ -2,9 +2,10 @@
 // `copy_language` management command.
 
 import { v } from "convex/values";
+import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { mutation, query } from "../_generated/server";
-import { requirePerm } from "../lib/auth";
+import { internalMutation, type MutationCtx, mutation, query } from "../_generated/server";
+import { requirePerm, requireSuperuser } from "../lib/auth";
 import { writeRevision } from "../lib/community";
 import { invalid, notFound } from "../lib/errors";
 
@@ -58,7 +59,7 @@ export const create = mutation({
     const clash = await ctx.db
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", key))
-      .unique();
+      .first();
     if (clash) throw invalid(`A language with the identifier ${key} already exists.`);
 
     const id = await ctx.db.insert("languages", {
@@ -113,7 +114,7 @@ export const update = mutation({
         const clash = await ctx.db
           .query("languages")
           .withIndex("by_key", (q) => q.eq("key", key))
-          .unique();
+          .first();
         if (clash) throw invalid(`A language with the identifier ${key} already exists.`);
       }
       patch.key = key;
@@ -181,12 +182,12 @@ export const copyLanguage = mutation({
     const source = await ctx.db
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", sourceKey))
-      .unique();
+      .first();
     if (!source) throw invalid(`Invalid source language: ${sourceKey}`);
     const target = await ctx.db
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", targetKey))
-      .unique();
+      .first();
     if (!target) throw invalid(`Invalid target language: ${targetKey}`);
     if (source._id === target._id) throw invalid("Pick two different languages.");
 
@@ -234,5 +235,379 @@ export const copyLanguage = mutation({
       reason ?? `Copied ${source.key} to ${target.key}`,
     );
     return { problems: allowed, limits: copied };
+  },
+});
+
+/* -------------------------------------------------------------------------- */
+/* Duplicate repair                                                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `npm run setup` seeds the language table and an older `npm run import`
+ * inserted the dump's languages on top of it, so a deployment that was seeded
+ * and then imported holds two rows for every key. A lookup by key stopped being
+ * unique, which is what failed the judge handshake with a 400. The importer
+ * upserts by key now; this repairs the deployments loaded before it did.
+ *
+ * The survivor is the row carrying a `legacyId`, because that is the one the
+ * imported submissions point at, and the oldest row otherwise. Every reference
+ * to the losers is repointed before they are deleted.
+ *
+ * The work is bounded: one pass rewrites up to `DEDUPE_WRITE_BUDGET` rows and
+ * reads up to `DEDUPE_READ_BUDGET` documents, then schedules the next pass, the
+ * way convex/jobs.ts chains a job. Re-running it once it is done is a no-op.
+ */
+
+/** Documents one page reads from a table. */
+const DEDUPE_PAGE = 200;
+/** Rows one pass rewrites before handing over to the next scheduled pass. */
+const DEDUPE_WRITE_BUDGET = 500;
+/** Documents one pass reads, for the tables it has to scan to find references. */
+const DEDUPE_READ_BUDGET = 2000;
+
+/**
+ * Every table in convex/schema.ts with a field that names a language, in the
+ * order the repair walks them: `submissions.languageId`,
+ * `runtimeVersions.languageId`, `languageLimits.languageId`,
+ * `profiles.languageId` and `problems.allowedLanguageIds`.
+ */
+const DEDUPE_TABLES = ["submissions", "runtimeVersions", "languageLimits", "profiles", "problems"] as const;
+
+type DedupeTable = (typeof DEDUPE_TABLES)[number];
+
+const dedupeTableValidator = v.union(
+  v.literal("submissions"),
+  v.literal("runtimeVersions"),
+  v.literal("languageLimits"),
+  v.literal("profiles"),
+  v.literal("problems"),
+);
+
+/**
+ * Where a pass got to: the table it was walking and, for the tables it has to
+ * scan, the `_creationTime` it had reached. Convex allows only one `.paginate()`
+ * per function execution, so the scans walk the built in `by_creation_time`
+ * index instead, which also survives a patch: repointing a row does not move it.
+ */
+interface DedupeState {
+  table: DedupeTable;
+  cursor: number | null;
+}
+
+interface Budget {
+  reads: number;
+  writes: number;
+}
+
+type SurvivorMap = Map<Id<"languages">, Id<"languages">>;
+
+/**
+ * Picks a survivor per duplicated key. Deterministic, so every pass of a
+ * chained repair agrees on which row is being kept.
+ */
+function planDuplicates(rows: Doc<"languages">[]): { keys: string[]; survivorOf: SurvivorMap } {
+  const byKey = new Map<string, Doc<"languages">[]>();
+  for (const row of rows) {
+    const group = byKey.get(row.key);
+    if (group) group.push(row);
+    else byKey.set(row.key, [row]);
+  }
+
+  const keys: string[] = [];
+  const survivorOf: SurvivorMap = new Map();
+  for (const [key, group] of byKey) {
+    if (group.length < 2) continue;
+    keys.push(key);
+    const ranked = [...group].sort((a, b) => {
+      // The imported row wins: the submissions point at it.
+      const aImported = a.legacyId === undefined ? 1 : 0;
+      const bImported = b.legacyId === undefined ? 1 : 0;
+      if (aImported !== bImported) return aImported - bImported;
+      if (a._creationTime !== b._creationTime) return a._creationTime - b._creationTime;
+      return a._id < b._id ? -1 : a._id > b._id ? 1 : 0;
+    });
+    const survivor = ranked[0] as Doc<"languages">;
+    for (const loser of ranked.slice(1)) survivorOf.set(loser._id, survivor._id);
+  }
+  keys.sort();
+  return { keys, survivorOf };
+}
+
+/**
+ * One page of a table that has no index on its language reference, walked by
+ * `_creationTime`, which Convex keeps unique within a table.
+ */
+async function scanPage(
+  ctx: MutationCtx,
+  table: "languageLimits",
+  cursor: number | null,
+): Promise<Doc<"languageLimits">[]>;
+async function scanPage(
+  ctx: MutationCtx,
+  table: "profiles",
+  cursor: number | null,
+): Promise<Doc<"profiles">[]>;
+async function scanPage(
+  ctx: MutationCtx,
+  table: "problems",
+  cursor: number | null,
+): Promise<Doc<"problems">[]>;
+async function scanPage(
+  ctx: MutationCtx,
+  table: "languageLimits" | "profiles" | "problems",
+  cursor: number | null,
+): Promise<{ _creationTime: number }[]> {
+  const query = ctx.db.query(table);
+  return await (cursor === null
+    ? query.withIndex("by_creation_time")
+    : query.withIndex("by_creation_time", (q) => q.gt("_creationTime", cursor))
+  ).take(DEDUPE_PAGE);
+}
+
+/** Where the next page of a scan starts, and whether there is one. */
+function advance(rows: { _creationTime: number }[]): { cursor: number | null; isDone: boolean } {
+  const last = rows[rows.length - 1];
+  if (rows.length < DEDUPE_PAGE || last === undefined) return { cursor: null, isDone: true };
+  return { cursor: last._creationTime, isDone: false };
+}
+
+/**
+ * One page of one table. `submissions` and `runtimeVersions` are drained
+ * through their index on `languageId`, so a repointed row leaves the range and
+ * the next page is the remainder; the three tables with no such index are
+ * scanned with a cursor.
+ */
+async function rewriteTablePage(
+  ctx: MutationCtx,
+  table: DedupeTable,
+  survivorOf: SurvivorMap,
+  cursor: number | null,
+  budget: Budget,
+): Promise<{ rewritten: number; cursor: number | null; isDone: boolean }> {
+  if (table === "submissions" || table === "runtimeVersions") {
+    for (const [loser, survivor] of survivorOf) {
+      const rows =
+        table === "submissions"
+          ? await ctx.db
+              .query("submissions")
+              .withIndex("by_language_date", (q) => q.eq("languageId", loser))
+              .take(DEDUPE_PAGE)
+          : await ctx.db
+              .query("runtimeVersions")
+              .withIndex("by_language", (q) => q.eq("languageId", loser))
+              .take(DEDUPE_PAGE);
+      budget.reads -= Math.max(rows.length, 1);
+      if (rows.length === 0) continue;
+      for (const row of rows) await ctx.db.patch(row._id, { languageId: survivor });
+      budget.writes -= rows.length;
+      return { rewritten: rows.length, cursor: null, isDone: false };
+    }
+    return { rewritten: 0, cursor: null, isDone: true };
+  }
+
+  if (table === "languageLimits") {
+    const rows = await scanPage(ctx, "languageLimits", cursor);
+    budget.reads -= Math.max(rows.length, 1);
+    let rewritten = 0;
+    for (const row of rows) {
+      const survivor = survivorOf.get(row.languageId);
+      if (!survivor) continue;
+      // Repointing must not leave a problem with two limits for one language.
+      const siblings = await ctx.db
+        .query("languageLimits")
+        .withIndex("by_problem", (q) => q.eq("problemId", row.problemId))
+        .collect();
+      budget.reads -= Math.max(siblings.length, 1);
+      const clash = siblings.some((other) => other._id !== row._id && other.languageId === survivor);
+      if (clash) await ctx.db.delete(row._id);
+      else await ctx.db.patch(row._id, { languageId: survivor });
+      rewritten += 1;
+    }
+    budget.writes -= rewritten;
+    return { rewritten, ...advance(rows) };
+  }
+
+  if (table === "profiles") {
+    const rows = await scanPage(ctx, "profiles", cursor);
+    budget.reads -= Math.max(rows.length, 1);
+    let rewritten = 0;
+    for (const row of rows) {
+      if (row.languageId === undefined) continue;
+      const survivor = survivorOf.get(row.languageId);
+      if (!survivor) continue;
+      await ctx.db.patch(row._id, { languageId: survivor });
+      rewritten += 1;
+    }
+    budget.writes -= rewritten;
+    return { rewritten, ...advance(rows) };
+  }
+
+  const rows = await scanPage(ctx, "problems", cursor);
+  budget.reads -= Math.max(rows.length, 1);
+  let rewritten = 0;
+  for (const row of rows) {
+    if (!row.allowedLanguageIds.some((id) => survivorOf.has(id))) continue;
+    const next: Id<"languages">[] = [];
+    for (const id of row.allowedLanguageIds) {
+      const mapped = survivorOf.get(id) ?? id;
+      if (!next.includes(mapped)) next.push(mapped);
+    }
+    await ctx.db.patch(row._id, { allowedLanguageIds: next });
+    rewritten += 1;
+  }
+  budget.writes -= rewritten;
+  return { rewritten, ...advance(rows) };
+}
+
+/** Walks the reference tables from `from` until the budget runs out. */
+async function rewriteReferences(
+  ctx: MutationCtx,
+  survivorOf: SurvivorMap,
+  from: DedupeState,
+  budget: Budget,
+): Promise<{ rewritten: number; next: DedupeState | null }> {
+  const start = Math.max(DEDUPE_TABLES.indexOf(from.table), 0);
+  let rewritten = 0;
+  for (let i = start; i < DEDUPE_TABLES.length; i++) {
+    const table = DEDUPE_TABLES[i] as DedupeTable;
+    let cursor = i === start ? from.cursor : null;
+    for (;;) {
+      if (budget.reads <= 0 || budget.writes <= 0) return { rewritten, next: { table, cursor } };
+      const step = await rewriteTablePage(ctx, table, survivorOf, cursor, budget);
+      rewritten += step.rewritten;
+      if (step.isDone) break;
+      cursor = step.cursor;
+    }
+  }
+  return { rewritten, next: null };
+}
+
+export interface DedupeReport {
+  keys: string[];
+  keysRepaired: number;
+  rowsDeleted: number;
+  referencesRewritten: number;
+  isDone: boolean;
+}
+
+const dedupeReportValidator = v.object({
+  keys: v.array(v.string()),
+  keysRepaired: v.number(),
+  rowsDeleted: v.number(),
+  referencesRewritten: v.number(),
+  isDone: v.boolean(),
+});
+
+/**
+ * One bounded pass. Recomputes the plan from the table every time, which is
+ * what makes a resumed or repeated run safe: the losers are only deleted once
+ * nothing points at them any more.
+ */
+async function dedupePass(
+  ctx: MutationCtx,
+  from: DedupeState,
+  editorProfileId: Id<"profiles"> | undefined,
+  reason: string,
+): Promise<{ report: DedupeReport; next: DedupeState | null }> {
+  const rows = await ctx.db.query("languages").collect();
+  const { keys, survivorOf } = planDuplicates(rows);
+  if (keys.length === 0) {
+    return {
+      report: { keys: [], keysRepaired: 0, rowsDeleted: 0, referencesRewritten: 0, isDone: true },
+      next: null,
+    };
+  }
+
+  const budget: Budget = { reads: DEDUPE_READ_BUDGET, writes: DEDUPE_WRITE_BUDGET };
+  const { rewritten, next } = await rewriteReferences(ctx, survivorOf, from, budget);
+  if (next) {
+    return {
+      report: { keys, keysRepaired: 0, rowsDeleted: 0, referencesRewritten: rewritten, isDone: false },
+      next,
+    };
+  }
+
+  const byId = new Map(rows.map((row) => [row._id, row]));
+  let deleted = 0;
+  for (const [loser, survivor] of survivorOf) {
+    const row = byId.get(loser);
+    if (!row) continue;
+    await writeRevision(ctx, "language", survivor, { mergedFrom: row }, editorProfileId, reason);
+    await ctx.db.delete(loser);
+    deleted += 1;
+  }
+
+  return {
+    report: {
+      keys,
+      keysRepaired: keys.length,
+      rowsDeleted: deleted,
+      referencesRewritten: rewritten,
+      isDone: true,
+    },
+    next: null,
+  };
+}
+
+/**
+ * Merges the duplicate language rows a pre-upsert import left behind.
+ *
+ * Superuser only: it rewrites submissions and deletes rows, which is more than
+ * `judge.change_language` is meant to buy. Safe to run twice; `isDone` false
+ * means a follow-up pass has been scheduled and is finishing the job.
+ */
+export const dedupeByKey = mutation({
+  args: { reason: v.optional(v.string()) },
+  returns: dedupeReportValidator,
+  handler: async (ctx, { reason }): Promise<DedupeReport> => {
+    const editor = await requireSuperuser(ctx);
+    const why = reason ?? "Merged duplicate languages by key";
+    const { report, next } = await dedupePass(
+      ctx,
+      { table: DEDUPE_TABLES[0], cursor: null },
+      editor._id,
+      why,
+    );
+    if (next) {
+      await ctx.scheduler.runAfter(0, internal.admin.languages.dedupeByKeyStep, {
+        table: next.table,
+        cursor: next.cursor,
+        rewritten: report.referencesRewritten,
+        editorProfileId: editor._id,
+        reason: why,
+      });
+    }
+    return report;
+  },
+});
+
+/** The scheduled continuation of `dedupeByKey`, one bounded pass per step. */
+export const dedupeByKeyStep = internalMutation({
+  args: {
+    table: dedupeTableValidator,
+    cursor: v.union(v.number(), v.null()),
+    rewritten: v.number(),
+    editorProfileId: v.optional(v.id("profiles")),
+    reason: v.string(),
+  },
+  returns: dedupeReportValidator,
+  handler: async (ctx, args): Promise<DedupeReport> => {
+    const { report, next } = await dedupePass(
+      ctx,
+      { table: args.table, cursor: args.cursor },
+      args.editorProfileId,
+      args.reason,
+    );
+    const total = args.rewritten + report.referencesRewritten;
+    if (next) {
+      await ctx.scheduler.runAfter(0, internal.admin.languages.dedupeByKeyStep, {
+        table: next.table,
+        cursor: next.cursor,
+        rewritten: total,
+        editorProfileId: args.editorProfileId,
+        reason: args.reason,
+      });
+    }
+    return { ...report, referencesRewritten: total };
   },
 });
