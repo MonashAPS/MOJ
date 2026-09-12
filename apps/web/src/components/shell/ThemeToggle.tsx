@@ -43,14 +43,31 @@ function useTheme(initial: ThemeChoice) {
   const persist = useMutation(api.profiles.setTheme);
 
   useEffect(() => {
-    const stored = storedTheme();
     // The profile's theme is a starting point for a viewer who has never picked
     // one here, never a correction to one they have. The prop is whatever the
     // server rendered, which on a page the browser replays from its cache can be
     // older than the choice sitting in storage.
-    if (stored) setTheme(stored);
-    else if (initial !== "auto") applyTheme(initial);
+    const choice = storedTheme() ?? (initial === "auto" ? null : initial);
+    if (!choice) return;
+    // Applied, not just recorded: whatever the page arrived carrying, the stored
+    // choice is the truth, and updating only this component's state is how the
+    // control ends up reporting a theme the page is not actually wearing.
+    setTheme(choice);
+    applyTheme(choice);
   }, [initial]);
+
+  // A choice made in one tab belongs to the browser, not to that tab.
+  useEffect(() => {
+    function sync(event: StorageEvent) {
+      if (event.key !== null && event.key !== THEME_STORAGE_KEY) return;
+      const choice = storedTheme();
+      if (!choice) return;
+      setTheme(choice);
+      applyTheme(choice);
+    }
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, []);
 
   const choose = useCallback(
     (next: ThemeChoice) => {
