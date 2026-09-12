@@ -184,7 +184,7 @@ export function LeaderboardTable({
     <Table dense className="group/table">
       <TableHeader>
         <TableRow>
-          <TableHead numeric className="sticky left-0 z-1 w-16 bg-titlebar">
+          <TableHead numeric className="sticky left-0 z-1 w-16 min-w-16 bg-titlebar">
             Rank
           </TableHead>
           <TableHead className="sticky left-16 z-1 bg-titlebar">Username</TableHead>
@@ -219,7 +219,10 @@ export function LeaderboardTable({
                 <TableCell
                   numeric
                   className={cn(
-                    "sticky left-0 z-1 bg-inherit",
+                    // The width has to be a floor, not a suggestion: the name
+                    // column is pinned at a fixed 64px and a column that shrank
+                    // to its digits would leave a gap between the two.
+                    "sticky left-0 z-1 min-w-16 bg-inherit",
                     row.rank <= 3 && "font-semibold text-foreground",
                   )}
                 >

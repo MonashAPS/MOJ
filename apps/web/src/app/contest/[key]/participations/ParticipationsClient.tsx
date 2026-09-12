@@ -144,7 +144,7 @@ export function ParticipationsClient({
           />
         ) : (
           <div className="overflow-hidden overflow-x-auto rounded-md border border-border bg-card">
-            <table className="w-full border-collapse text-base [&_tbody_tr:nth-child(even)]:bg-zebra [&_tbody_tr:last-child_td]:border-b-0">
+            <table className="w-full border-collapse text-base [&_tbody_tr:nth-child(even):not(:hover):not([data-selected])]:bg-zebra [&_tbody_tr:last-child_td]:border-b-0">
               <thead>
                 <tr>
                   <th className="h-8 whitespace-nowrap bg-titlebar px-3 text-left align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">

@@ -182,7 +182,11 @@ function Row({
         row.isDisqualified && "text-muted-foreground line-through decoration-1",
       )}
     >
-      <td className="sticky left-0 z-1 h-(--row-h-dense) w-12 border-b border-border bg-inherit px-3 text-right align-middle font-mono text-sm tabular-nums text-muted-foreground">
+      {/* `min-w-12` is what actually holds this column at 48px. Auto table
+          layout treats a width as a suggestion and shrinks the column to its
+          digits, which would leave the frozen name column, pinned at `left-12`,
+          floating a few pixels clear of it with the page showing through. */}
+      <td className="sticky left-0 z-1 h-(--row-h-dense) w-12 min-w-12 border-b border-border bg-inherit px-3 text-right align-middle font-mono text-sm tabular-nums text-muted-foreground">
         {row.rankLabel}
       </td>
       <td className="sticky left-12 z-1 h-(--row-h-dense) min-w-[180px] whitespace-nowrap border-b border-r border-r-(--line-strong) border-border bg-inherit px-3 align-middle">
@@ -479,10 +483,12 @@ export function RankingClient({
             />
           ) : (
             <div className="overflow-hidden overflow-x-auto rounded-md border border-border bg-card">
-              <table className="w-full border-collapse text-base [&_tbody_tr:nth-child(even)]:bg-zebra [&_tbody_tr:last-child_td]:border-b-0">
+              <table className="w-full border-collapse text-base [&_tbody_tr:nth-child(even):not(:hover):not([data-selected])]:bg-zebra [&_tbody_tr:last-child_td]:border-b-0">
                 <thead>
-                  <tr>
-                    <th className="sticky left-0 z-2 h-8 w-12 whitespace-nowrap bg-titlebar px-3 text-right align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">
+                  {/* The band carries the navy itself so the seam between the two
+                      frozen cells stays navy rather than flashing the card. */}
+                  <tr className="bg-titlebar">
+                    <th className="sticky left-0 z-2 h-8 w-12 min-w-12 whitespace-nowrap bg-titlebar px-3 text-right align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">
                       #
                     </th>
                     <th className="sticky left-12 z-2 h-8 min-w-[180px] whitespace-nowrap border-r border-r-(--line-strong) bg-titlebar px-3 text-left align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">

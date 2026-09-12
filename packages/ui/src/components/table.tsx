@@ -29,7 +29,11 @@ export function Table({
       className={cn(
         "w-full border-collapse text-base",
         "[&_tbody_tr:last-child_td]:border-b-0",
-        striped && "[&_tbody_tr:nth-child(even)]:bg-zebra",
+        // The zebra selector carries a pseudo-class and two element names, so it
+        // outranks the plain `hover:` and `data-[selected]:` utilities that sit
+        // on the row itself, and an even row would never light up. Holding the
+        // tint off those two states lets the row's own colour through.
+        striped && "[&_tbody_tr:nth-child(even):not(:hover):not([data-selected])]:bg-zebra",
         className,
       )}
       {...props}
