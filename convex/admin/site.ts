@@ -56,7 +56,7 @@ export const createNavItem = mutation({
     const clash = await ctx.db
       .query("navigationBar")
       .withIndex("by_key", (q) => q.eq("key", key))
-      .unique();
+      .first();
     if (clash) throw invalid(`A navigation item with the identifier ${key} already exists.`);
 
     const id = await ctx.db.insert("navigationBar", {
@@ -198,7 +198,7 @@ export const setConfig = mutation({
     const existing = await ctx.db
       .query("miscConfig")
       .withIndex("by_key", (q) => q.eq("key", trimmed))
-      .unique();
+      .first();
 
     if (existing) {
       await writeRevision(
@@ -232,7 +232,7 @@ export const deleteConfig = mutation({
     const existing = await ctx.db
       .query("miscConfig")
       .withIndex("by_key", (q) => q.eq("key", key))
-      .unique();
+      .first();
     if (!existing) throw notFound("Configuration item");
     await writeRevision(
       ctx,
@@ -280,7 +280,7 @@ export const createFlatPage = mutation({
     const clash = await ctx.db
       .query("flatPages")
       .withIndex("by_url", (q) => q.eq("url", url))
-      .unique();
+      .first();
     if (clash) throw invalid(`A flat page already lives at ${url}.`);
 
     const id = await ctx.db.insert("flatPages", {
@@ -322,7 +322,7 @@ export const updateFlatPage = mutation({
         const clash = await ctx.db
           .query("flatPages")
           .withIndex("by_url", (q) => q.eq("url", url))
-          .unique();
+          .first();
         if (clash) throw invalid(`A flat page already lives at ${url}.`);
       }
       patch.url = url;

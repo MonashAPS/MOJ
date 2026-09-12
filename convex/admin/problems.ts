@@ -226,7 +226,7 @@ export async function groupIdByName(
   const existing = await ctx.db
     .query("problemGroups")
     .withIndex("by_name", (q) => q.eq("name", name))
-    .unique();
+    .first();
   if (existing) return existing._id;
   if (!createMissing) throw invalid(`No such problem group: ${name}`);
   return await ctx.db.insert("problemGroups", { name, fullName: name });
@@ -242,7 +242,7 @@ export async function typeIdsByName(
     const existing = await ctx.db
       .query("problemTypes")
       .withIndex("by_name", (q) => q.eq("name", name))
-      .unique();
+      .first();
     if (existing) {
       ids.push(existing._id);
       continue;
@@ -259,7 +259,7 @@ async function languageIdsByKey(ctx: QueryCtx, keys: readonly string[]): Promise
     const row = await ctx.db
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", key))
-      .unique();
+      .first();
     if (!row) throw invalid(`No such language: ${key}`);
     ids.push(row._id);
   }
@@ -331,7 +331,7 @@ export const create = mutation({
       ? await ctx.db
           .query("licenses")
           .withIndex("by_key", (q) => q.eq("key", args.licenseKey as string))
-          .unique()
+          .first()
       : null;
 
     const authors = await profileIdsFor(ctx, args.authors ?? []);
@@ -465,7 +465,7 @@ export const update = mutation({
         const license = await ctx.db
           .query("licenses")
           .withIndex("by_key", (q) => q.eq("key", licenseKey))
-          .unique();
+          .first();
         if (!license) throw invalid(`No such license: ${licenseKey}`);
         patch.licenseId = license._id;
       }
@@ -746,7 +746,7 @@ export const createType = mutation({
     const existing = await ctx.db
       .query("problemTypes")
       .withIndex("by_name", (q) => q.eq("name", args.name))
-      .unique();
+      .first();
     if (existing) throw invalid(`A problem type named "${args.name}" already exists.`);
     return { id: await ctx.db.insert("problemTypes", args) };
   },
@@ -782,7 +782,7 @@ export const createGroup = mutation({
     const existing = await ctx.db
       .query("problemGroups")
       .withIndex("by_name", (q) => q.eq("name", args.name))
-      .unique();
+      .first();
     if (existing) throw invalid(`A problem group named "${args.name}" already exists.`);
     return { id: await ctx.db.insert("problemGroups", args) };
   },
@@ -832,7 +832,7 @@ export const createLicense = mutation({
     const existing = await ctx.db
       .query("licenses")
       .withIndex("by_key", (q) => q.eq("key", args.key))
-      .unique();
+      .first();
     if (existing) throw invalid(`A license with the key "${args.key}" already exists.`);
     return {
       id: await ctx.db.insert("licenses", {
@@ -990,7 +990,7 @@ export const rejudgePreview = query({
       const row = await ctx.db
         .query("languages")
         .withIndex("by_key", (q) => q.eq("key", key))
-        .unique();
+        .first();
       if (row) languageIds.add(row._id);
     }
     const results = new Set(args.results ?? []);

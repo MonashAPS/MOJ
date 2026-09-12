@@ -132,13 +132,13 @@ export const problemsList = query({
       ? await ctx.db
           .query("problemGroups")
           .withIndex("by_name", (q) => q.eq("name", args.group as string))
-          .unique()
+          .first()
       : null;
     const typeRow = args.type
       ? await ctx.db
           .query("problemTypes")
           .withIndex("by_name", (q) => q.eq("name", args.type as string))
-          .unique()
+          .first()
       : null;
     const authorRow = args.author
       ? await ctx.db
@@ -781,7 +781,7 @@ export const submissionsList = query({
       const row = await ctx.db
         .query("languages")
         .withIndex("by_key", (q) => q.eq("key", key))
-        .unique();
+        .first();
       if (row) languageIds.add(row._id as string);
     }
     if ((args.languageKeys?.length ?? 0) > 0 && languageIds.size === 0) {

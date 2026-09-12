@@ -45,7 +45,7 @@ export const flatPage = query({
     const row = await ctx.db
       .query("flatPages")
       .withIndex("by_url", (q) => q.eq("url", url))
-      .unique();
+      .first();
     return row === null ? null : { ...row, contentPreset: FLATPAGE_PRESET };
   },
 });
@@ -394,7 +394,7 @@ export const license = query({
     const row = await ctx.db
       .query("licenses")
       .withIndex("by_key", (q) => q.eq("key", key))
-      .unique();
+      .first();
     return row === null ? null : { ...row, textPreset: LICENSE_PRESET };
   },
 });
@@ -425,7 +425,7 @@ export const miscConfigValue = query({
     const row = await ctx.db
       .query("miscConfig")
       .withIndex("by_key", (q) => q.eq("key", key))
-      .unique();
+      .first();
     return row?.value ?? null;
   },
 });

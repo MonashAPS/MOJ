@@ -515,7 +515,7 @@ export const list = query({
       const group = await ctx.db
         .query("problemGroups")
         .withIndex("by_name", (q) => q.eq("name", groupName))
-        .unique();
+        .first();
       candidates = group ? candidates.filter((row) => row.groupId === group._id) : [];
     }
 
@@ -525,7 +525,7 @@ export const list = query({
         const row = await ctx.db
           .query("problemTypes")
           .withIndex("by_name", (q) => q.eq("name", name))
-          .unique();
+          .first();
         if (row) wanted.add(row._id);
       }
       candidates = candidates.filter((row) => row.typeIds.some((id) => wanted.has(id)));
@@ -1049,7 +1049,7 @@ export const random = query({
       const group = await ctx.db
         .query("problemGroups")
         .withIndex("by_name", (q) => q.eq("name", groupName))
-        .unique();
+        .first();
       candidates = group ? candidates.filter((row) => row.groupId === group._id) : [];
     }
     if (args.types && args.types.length > 0) {
@@ -1058,7 +1058,7 @@ export const random = query({
         const row = await ctx.db
           .query("problemTypes")
           .withIndex("by_name", (q) => q.eq("name", name))
-          .unique();
+          .first();
         if (row) wanted.add(row._id);
       }
       candidates = candidates.filter((row) => row.typeIds.some((id) => wanted.has(id)));
@@ -1180,7 +1180,7 @@ export const ranks = query({
       const lang = await ctx.db
         .query("languages")
         .withIndex("by_key", (q) => q.eq("key", key))
-        .unique();
+        .first();
       if (lang) wantedLanguageIds.add(lang._id);
     }
 
@@ -1495,7 +1495,7 @@ export const languageTemplate = query({
     const language = await ctx.db
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", languageKey))
-      .unique();
+      .first();
     if (!language) return null;
     return {
       key: language.key,

@@ -82,10 +82,14 @@ async function replaceRuntimeVersions(
   for (const row of existing) await ctx.db.delete(row._id);
 
   for (const [key, runtimes] of Object.entries(executors)) {
+    // First match rather than `unique`: a deployment that was seeded and then
+    // imported by a pre-upsert importer holds two rows for a key, and throwing
+    // here failed the whole handshake with a 400 instead of losing one
+    // executor. `admin/languages.dedupeByKey` is the repair.
     const language = await ctx.db
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", key))
-      .unique();
+      .first();
     // A judge may run an executor the site has no Language row for; DMOJ's
     // `judge.runtimes.set(...)` silently drops those too.
     if (!language) continue;

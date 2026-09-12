@@ -474,7 +474,7 @@ async function resolveLanguageIds(ctx: MutationCtx, args: JobArgs): Promise<Id<"
     const row = await ctx.db
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", key))
-      .unique();
+      .first();
     if (row) ids.push(row._id);
   }
   return ids;

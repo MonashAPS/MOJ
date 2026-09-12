@@ -818,7 +818,7 @@ async function languageForKey(ctx: MutationCtx, key: string): Promise<Doc<"langu
   const exact = await ctx.db
     .query("languages")
     .withIndex("by_key", (q) => q.eq("key", key))
-    .unique();
+    .first();
   if (exact) return exact;
 
   const alias = LANGUAGE_KEY_ALIASES[key.toLowerCase()];
@@ -826,7 +826,7 @@ async function languageForKey(ctx: MutationCtx, key: string): Promise<Doc<"langu
     const aliased = await ctx.db
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", alias))
-      .unique();
+      .first();
     if (aliased) return aliased;
   }
 
@@ -835,7 +835,7 @@ async function languageForKey(ctx: MutationCtx, key: string): Promise<Doc<"langu
     const uppercased = await ctx.db
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", upper))
-      .unique();
+      .first();
     if (uppercased) return uppercased;
   }
 

@@ -86,7 +86,7 @@ export const batchRejudge = mutation({
       const language = await ctx.db
         .query("languages")
         .withIndex("by_key", (q) => q.eq("key", key))
-        .unique();
+        .first();
       if (language) languageIds.push(language._id);
     }
 

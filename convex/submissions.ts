@@ -471,7 +471,7 @@ export const list = query({
         const language = await ctx.db
           .query("languages")
           .withIndex("by_key", (q) => q.eq("key", key))
-          .unique();
+          .first();
         if (language) languageIds.add(language._id);
       }
       if (languageIds.size === 0) return { page: [], isDone: true, continueCursor: "" };
@@ -773,7 +773,7 @@ export const submit = mutation({
     const language = await ctx.db
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", args.languageKey))
-      .unique();
+      .first();
     if (!language) throw notFound("Language");
 
     // Contest mode first: a contest problem is accessible even when the problem

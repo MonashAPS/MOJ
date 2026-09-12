@@ -128,7 +128,7 @@ export const rejudgePreview = query({
       const language = await ctx.db
         .query("languages")
         .withIndex("by_key", (q) => q.eq("key", key))
-        .unique();
+        .first();
       if (language) languageIds.push(language._id);
     }
 

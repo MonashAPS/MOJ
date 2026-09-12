@@ -162,7 +162,7 @@ export const setUserMemberships = mutation({
         const language = await ctx.db
           .query("languages")
           .withIndex("by_key", (q) => q.eq("key", args.languageKey as string))
-          .unique();
+          .first();
         if (!language) throw invalid(`There is no language with the identifier ${args.languageKey}.`);
         await ctx.db.patch(profile._id, { languageId: language._id });
       }

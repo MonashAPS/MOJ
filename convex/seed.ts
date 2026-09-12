@@ -116,7 +116,7 @@ export const run = internalMutation({
       const existing = await ctx.db
         .query("languages")
         .withIndex("by_key", (q) => q.eq("key", language.key))
-        .unique();
+        .first();
       if (existing) {
         if (force) {
           await ctx.db.patch(existing._id, language);
@@ -136,7 +136,7 @@ export const run = internalMutation({
       const existing = await ctx.db
         .query("navigationBar")
         .withIndex("by_key", (q) => q.eq("key", item.key))
-        .unique();
+        .first();
       const parentId = item.parentLegacyId === null ? undefined : navIdByLegacyId.get(item.parentLegacyId);
       const row = {
         order: item.order,
@@ -167,7 +167,7 @@ export const run = internalMutation({
       const existing = await ctx.db
         .query("miscConfig")
         .withIndex("by_key", (q) => q.eq("key", key))
-        .unique();
+        .first();
       if (existing) continue;
       await ctx.db.insert("miscConfig", { key, value });
       miscWritten++;
@@ -233,7 +233,7 @@ export const run = internalMutation({
     const about = await ctx.db
       .query("flatPages")
       .withIndex("by_url", (q) => q.eq("url", "/about/"))
-      .unique();
+      .first();
     if (!about) {
       await ctx.db.insert("flatPages", {
         url: "/about/",
@@ -355,7 +355,7 @@ async function ensureGroup(ctx: any, name: string, fullName: string): Promise<Id
   const existing = await ctx.db
     .query("problemGroups")
     .withIndex("by_name", (q: any) => q.eq("name", name))
-    .unique();
+    .first();
   if (existing) return existing._id;
   return await ctx.db.insert("problemGroups", { name, fullName });
 }
@@ -364,7 +364,7 @@ async function ensureType(ctx: any, name: string, fullName: string): Promise<Id<
   const existing = await ctx.db
     .query("problemTypes")
     .withIndex("by_name", (q: any) => q.eq("name", name))
-    .unique();
+    .first();
   if (existing) return existing._id;
   return await ctx.db.insert("problemTypes", { name, fullName });
 }

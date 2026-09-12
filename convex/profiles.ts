@@ -71,7 +71,7 @@ async function languageIdForKey(
   const language = await ctx.db
     .query("languages")
     .withIndex("by_key", (q) => q.eq("key", key))
-    .unique();
+    .first();
   return language?._id;
 }
 

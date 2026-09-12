@@ -54,7 +54,7 @@ export const create = mutation({
     const clash = await ctx.db
       .query("licenses")
       .withIndex("by_key", (q) => q.eq("key", key))
-      .unique();
+      .first();
     if (clash) throw invalid(`A license with the key ${key} already exists.`);
 
     const id = await ctx.db.insert("licenses", {
@@ -101,7 +101,7 @@ export const update = mutation({
         const clash = await ctx.db
           .query("licenses")
           .withIndex("by_key", (q) => q.eq("key", key))
-          .unique();
+          .first();
         if (clash) throw invalid(`A license with the key ${key} already exists.`);
       }
       patch.key = key;
