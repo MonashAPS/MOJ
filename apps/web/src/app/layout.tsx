@@ -1,6 +1,7 @@
 import { api } from "@convex/_generated/api";
 import { ratingClass } from "@moj/ui";
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { ConvexClientProvider } from "@/auth/convex-client";
 import { getServerSession } from "@/auth/session";
 import { BrandingStyle } from "@/components/BrandingStyle";
@@ -9,6 +10,7 @@ import { ThemeScript } from "@/components/shell/ThemeScript";
 import { query, queryAsViewer } from "@/lib/convex-server";
 import { gravatarUrl } from "@/lib/gravatar";
 import { viewerLanguage } from "@/lib/language.server";
+import { resolveTheme, THEME_COOKIE } from "@/lib/theme";
 import "./globals.css";
 
 /** SPEC section 24: an operator renames and re-skins the site from the console,
@@ -40,13 +42,20 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [shell, viewerState, session, language, branding] = await Promise.all([
+  const [shell, viewerState, session, language, branding, jar] = await Promise.all([
     query(api.site.shell, {}).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
     getServerSession().catch(() => null),
     viewerLanguage(),
     query(api.site.branding, {}).catch(() => null),
+    cookies(),
   ]);
+
+  // Rendering the attribute here rather than leaving it to the inline script
+  // means the theme is in the markup a hard refresh receives, and it matches
+  // what the client would have set, so hydration has nothing to correct.
+  const themeDefault = branding?.themeDefault ?? "system";
+  const theme = resolveTheme(jar.get(THEME_COOKIE)?.value, themeDefault);
 
   const profile = viewerState?.profile ?? null;
   const viewer = profile
@@ -67,9 +76,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     : null;
 
   return (
-    <html lang={language} data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html
+      lang={language}
+      data-theme={theme ?? undefined}
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
       <head>
-        <ThemeScript defaultTheme={branding?.themeDefault ?? "system"} />
+        <ThemeScript defaultTheme={themeDefault} />
         <BrandingStyle branding={branding} />
       </head>
       <body>

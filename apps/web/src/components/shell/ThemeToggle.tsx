@@ -5,7 +5,7 @@ import { cn, ToggleGroup, ToggleGroupItem, Tooltip } from "@moj/ui";
 import { useMutation } from "convex/react";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { THEME_STORAGE_KEY, THEME_SYSTEM } from "@/lib/theme";
+import { THEME_STORAGE_KEY, THEME_SYSTEM, writeThemeCookie } from "@/lib/theme";
 
 export type ThemeChoice = "auto" | "light" | "dark";
 
@@ -27,8 +27,12 @@ export function applyTheme(theme: ThemeChoice) {
   const root = document.documentElement;
   if (theme === "auto") root.removeAttribute("data-theme");
   else root.setAttribute("data-theme", theme);
+  const value = theme === "auto" ? THEME_SYSTEM : theme;
+  // The cookie is what the next page load is rendered from, so it is written
+  // first: it is the half that works when storage is unavailable.
+  writeThemeCookie(value);
   try {
-    localStorage.setItem(THEME_STORAGE_KEY, theme === "auto" ? THEME_SYSTEM : theme);
+    localStorage.setItem(THEME_STORAGE_KEY, value);
   } catch {
     // private mode, nothing to do
   }
