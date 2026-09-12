@@ -10,6 +10,7 @@
 
 import type * as admin_blog from "../admin/blog.js";
 import type * as admin_contests from "../admin/contests.js";
+import type * as admin_dedupe from "../admin/dedupe.js";
 import type * as admin_judges from "../admin/judges.js";
 import type * as admin_languages from "../admin/languages.js";
 import type * as admin_licenses from "../admin/licenses.js";
@@ -82,6 +83,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   "admin/blog": typeof admin_blog;
   "admin/contests": typeof admin_contests;
+  "admin/dedupe": typeof admin_dedupe;
   "admin/judges": typeof admin_judges;
   "admin/languages": typeof admin_languages;
   "admin/licenses": typeof admin_licenses;

@@ -63,8 +63,9 @@ const NATURAL_KEYS: Record<string, { field: string; index: string }> = {
 /**
  * The row this document belongs to, if the table has a natural key and a row
  * already carries it. First match, not `unique`: a deployment duplicated by an
- * earlier import must still be importable, and `admin/languages.dedupeByKey`
- * is what clears the duplicates up afterwards.
+ * earlier import must still be importable; `admin/languages.dedupeByKey` and
+ * `admin/dedupe.dedupeNaturalKeys` are what clear the duplicates up
+ * afterwards.
  */
 async function existingByNaturalKey(
   db: GenericDatabaseWriter<GenericDataModel>,
