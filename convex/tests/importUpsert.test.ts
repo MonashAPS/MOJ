@@ -357,6 +357,20 @@ describe("admin/languages.dedupeByKey", () => {
     });
   });
 
+  test("runs from the command line, where there is no signed in superuser", async () => {
+    const t = setupConvexTest();
+    const ids = await seedDuplicates(t);
+
+    const report = await t.mutation(internal.admin.languages.dedupeByKeyStep, {});
+    expect(report.isDone).toBe(true);
+    expect(report.rowsDeleted).toBe(1);
+
+    await t.run(async (ctx) => {
+      expect(await ctx.db.get(ids.loser)).toBeNull();
+      expect((await ctx.db.get(ids.submissionIds[0] as Id<"submissions">))?.languageId).toBe(ids.survivor);
+    });
+  });
+
   test("refuses anyone who is not a superuser", async () => {
     const t = setupConvexTest();
     await seedDuplicates(t);

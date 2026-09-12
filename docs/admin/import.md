@@ -227,17 +227,20 @@ likewise a no-op, because the seed upserts by the same keys.
 An older importer inserted these blindly. A site that was seeded and then imported by it ends up with two rows for
 every key, and because a language lookup by key was no longer unique the judge handshake failed with an HTTP 400.
 Lookups take the first match now, so nothing user-facing breaks, but the duplicates are still there. Repair them
-once, as a superuser:
+once:
 
 ```bash
-npx convex run admin/languages:dedupeByKey '{}'
+npx convex run admin/languages:dedupeByKeyStep '{}'
 ```
 
-It keeps the imported row of each duplicated key, because that is the one the imported submissions point at,
-repoints `problems.allowedLanguageIds`, `languageLimits`, `submissions`, `profiles` and `runtimeVersions` at it,
-deletes the rest, and reports the keys it repaired, the rows it deleted and the references it rewrote. It is
-bounded, so on a large site it schedules itself until it is finished; `isDone: false` means a follow-up pass is
-running. Running it again once it is done does nothing.
+`admin/languages:dedupeByKey` is the same repair for a signed-in superuser; the command line has no signed-in
+user, so it calls the internal entry point instead, which takes the same defaults.
+
+It keeps the row carrying a `legacyId` for each duplicated key, and the oldest row otherwise, repoints
+`problems.allowedLanguageIds`, `languageLimits`, `submissions`, `profiles` and `runtimeVersions` at it, deletes
+the rest, and reports the keys it repaired, the rows it deleted and the references it rewrote. It is bounded, so
+on a large site it schedules itself until it is finished; `isDone: false` means a follow-up pass is running.
+Running it again once it is done does nothing.
 
 ## Re-running it
 

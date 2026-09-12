@@ -258,6 +258,8 @@ export const copyLanguage = mutation({
  * way convex/jobs.ts chains a job. Re-running it once it is done is a no-op.
  */
 
+/** What the revisions read when nobody said why. */
+const DEDUPE_REASON = "Merged duplicate languages by key";
 /** Documents one page reads from a table. */
 const DEDUPE_PAGE = 200;
 /** Rows one pass rewrites before handing over to the next scheduled pass. */
@@ -561,7 +563,7 @@ export const dedupeByKey = mutation({
   returns: dedupeReportValidator,
   handler: async (ctx, { reason }): Promise<DedupeReport> => {
     const editor = await requireSuperuser(ctx);
-    const why = reason ?? "Merged duplicate languages by key";
+    const why = reason ?? DEDUPE_REASON;
     const { report, next } = await dedupePass(
       ctx,
       { table: DEDUPE_TABLES[0], cursor: null },
@@ -581,31 +583,38 @@ export const dedupeByKey = mutation({
   },
 });
 
-/** The scheduled continuation of `dedupeByKey`, one bounded pass per step. */
+/**
+ * The scheduled continuation of `dedupeByKey`, one bounded pass per step.
+ *
+ * Also the way to start the repair from the command line, where there is no
+ * signed in superuser for `dedupeByKey` to check: every argument defaults, so
+ * `npx convex run admin/languages:dedupeByKeyStep '{}'` runs the whole thing.
+ */
 export const dedupeByKeyStep = internalMutation({
   args: {
-    table: dedupeTableValidator,
-    cursor: v.union(v.number(), v.null()),
-    rewritten: v.number(),
+    table: v.optional(dedupeTableValidator),
+    cursor: v.optional(v.union(v.number(), v.null())),
+    rewritten: v.optional(v.number()),
     editorProfileId: v.optional(v.id("profiles")),
-    reason: v.string(),
+    reason: v.optional(v.string()),
   },
   returns: dedupeReportValidator,
   handler: async (ctx, args): Promise<DedupeReport> => {
+    const reason = args.reason ?? DEDUPE_REASON;
     const { report, next } = await dedupePass(
       ctx,
-      { table: args.table, cursor: args.cursor },
+      { table: args.table ?? DEDUPE_TABLES[0], cursor: args.cursor ?? null },
       args.editorProfileId,
-      args.reason,
+      reason,
     );
-    const total = args.rewritten + report.referencesRewritten;
+    const total = (args.rewritten ?? 0) + report.referencesRewritten;
     if (next) {
       await ctx.scheduler.runAfter(0, internal.admin.languages.dedupeByKeyStep, {
         table: next.table,
         cursor: next.cursor,
         rewritten: total,
         editorProfileId: args.editorProfileId,
-        reason: args.reason,
+        reason,
       });
     }
     return { ...report, referencesRewritten: total };
