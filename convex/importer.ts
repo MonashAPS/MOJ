@@ -39,6 +39,48 @@ const idResult = v.object({
   id: v.string(),
 });
 
+/**
+ * The reference tables `seed.ts` also writes, and the field that identifies a
+ * row in each. `npm run setup` seeds them and an import fills them from the
+ * dump, so inserting blindly left a seeded site with two rows for every key:
+ * the judge handshake then failed because a lookup by key was no longer
+ * unique. A row whose key is already there is patched instead, and its id is
+ * what the legacy id maps to, so every later table resolves to the same row.
+ *
+ * Extending this is one line: add the table, the field that names a row and the
+ * index that covers it.
+ */
+const NATURAL_KEYS: Record<string, { field: string; index: string }> = {
+  languages: { field: "key", index: "by_key" },
+  problemTypes: { field: "name", index: "by_name" },
+  problemGroups: { field: "name", index: "by_name" },
+  licenses: { field: "key", index: "by_key" },
+  navigationBar: { field: "key", index: "by_key" },
+  miscConfig: { field: "key", index: "by_key" },
+  flatPages: { field: "url", index: "by_url" },
+};
+
+/**
+ * The row this document belongs to, if the table has a natural key and a row
+ * already carries it. First match, not `unique`: a deployment duplicated by an
+ * earlier import must still be importable, and `admin/languages.dedupeByKey`
+ * is what clears the duplicates up afterwards.
+ */
+async function existingByNaturalKey(
+  db: GenericDatabaseWriter<GenericDataModel>,
+  table: string,
+  doc: unknown,
+): Promise<GenericDocument | null> {
+  const natural = NATURAL_KEYS[table];
+  if (!natural) return null;
+  const key = (doc as Record<string, unknown>)[natural.field];
+  if (typeof key !== "string") return null;
+  return await db
+    .query(table)
+    .withIndex(natural.index, (q) => q.eq(natural.field, key))
+    .first();
+}
+
 function legacyIdOf(doc: unknown): number | null {
   const value = (doc as { legacyId?: unknown }).legacyId;
   return typeof value === "number" ? value : null;
@@ -50,9 +92,13 @@ function asDocument(doc: unknown): Record<string, Value> {
 }
 
 /**
- * Inserts a batch of imported documents and returns the legacy id to Convex id
+ * Writes a batch of imported documents and returns the legacy id to Convex id
  * pairs, so tools/import can resolve foreign keys for the tables it imports
  * next.
+ *
+ * A table in `NATURAL_KEYS` is upserted: the row that already carries the key
+ * is patched and its id is the mapping for the legacy id. Every other table is
+ * inserted, as before.
  */
 export const insertBatch = internalMutation({
   args: {
@@ -65,13 +111,20 @@ export const insertBatch = internalMutation({
     const db = writer(ctx.db);
     const out: { legacyId: number | null; id: string }[] = [];
     for (const doc of args.docs) {
-      const id = await db.insert(table, asDocument(doc));
-      // The leaderboard aggregates have no triggers, so a straight insert has
-      // to add the profile itself. `rankings.rebuildAggregates` repairs the
-      // tree if an import is interrupted part way through.
-      if (table === "profiles") {
-        const inserted = await ctx.db.get(id as unknown as Doc<"profiles">["_id"]);
-        if (inserted) await insertProfileAggregates(ctx, inserted as Doc<"profiles">);
+      const existing = await existingByNaturalKey(db, table, doc);
+      let id: string;
+      if (existing) {
+        await db.patch(existing._id as GenericId<string>, asDocument(doc));
+        id = existing._id as string;
+      } else {
+        id = await db.insert(table, asDocument(doc));
+        // The leaderboard aggregates have no triggers, so a straight insert has
+        // to add the profile itself. `rankings.rebuildAggregates` repairs the
+        // tree if an import is interrupted part way through.
+        if (table === "profiles") {
+          const inserted = await ctx.db.get(id as unknown as Doc<"profiles">["_id"]);
+          if (inserted) await insertProfileAggregates(ctx, inserted as Doc<"profiles">);
+        }
       }
       out.push({ legacyId: legacyIdOf(doc), id });
     }
