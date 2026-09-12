@@ -5,18 +5,30 @@ import { cn, ToggleGroup, ToggleGroupItem, Tooltip } from "@moj/ui";
 import { useMutation } from "convex/react";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { THEME_STORAGE_KEY, THEME_SYSTEM } from "@/lib/theme";
 
 export type ThemeChoice = "auto" | "light" | "dark";
 
-const STORAGE_KEY = "moj-theme";
+/** Reads the choice the viewer has made on this browser, or null if they never
+ *  have. Following the system is a stored value, not an empty slot: the two have
+ *  to stay distinguishable, because only an empty slot lets the profile's theme
+ *  be imposed. */
+export function storedTheme(): ThemeChoice | null {
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored === "dark" || stored === "light") return stored;
+    return stored === THEME_SYSTEM ? "auto" : null;
+  } catch {
+    return null;
+  }
+}
 
-function apply(theme: ThemeChoice) {
+export function applyTheme(theme: ThemeChoice) {
   const root = document.documentElement;
   if (theme === "auto") root.removeAttribute("data-theme");
   else root.setAttribute("data-theme", theme);
   try {
-    if (theme === "auto") localStorage.removeItem(STORAGE_KEY);
-    else localStorage.setItem(STORAGE_KEY, theme);
+    localStorage.setItem(THEME_STORAGE_KEY, theme === "auto" ? THEME_SYSTEM : theme);
   } catch {
     // private mode, nothing to do
   }
@@ -27,19 +39,19 @@ function useTheme(initial: ThemeChoice) {
   const persist = useMutation(api.profiles.setTheme);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored === "dark" || stored === "light") setTheme(stored);
-      else if (initial !== "auto") apply(initial);
-    } catch {
-      // ignore
-    }
+    const stored = storedTheme();
+    // The profile's theme is a starting point for a viewer who has never picked
+    // one here, never a correction to one they have. The prop is whatever the
+    // server rendered, which on a page the browser replays from its cache can be
+    // older than the choice sitting in storage.
+    if (stored) setTheme(stored);
+    else if (initial !== "auto") applyTheme(initial);
   }, [initial]);
 
   const choose = useCallback(
     (next: ThemeChoice) => {
       setTheme(next);
-      apply(next);
+      applyTheme(next);
       // Anonymous viewers have no profile to write to; the local choice stands.
       void persist({ siteTheme: next }).catch(() => undefined);
     },

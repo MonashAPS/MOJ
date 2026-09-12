@@ -16,7 +16,7 @@ import { useMutation } from "convex/react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
-import type { ThemeChoice } from "@/components/shell/ThemeToggle";
+import { applyTheme, type ThemeChoice } from "@/components/shell/ThemeToggle";
 
 const MAX_ORGANIZATIONS = 3;
 
@@ -103,20 +103,11 @@ export function EditProfileForm({
     setStatus((current) => (current === "saved" ? "idle" : current));
   }
 
-  function applyTheme(value: ThemeChoice) {
+  function chooseTheme(value: ThemeChoice) {
     change("siteTheme", value);
-    const root = document.documentElement;
-    try {
-      if (value === "auto") {
-        root.removeAttribute("data-theme");
-        localStorage.removeItem("moj-theme");
-      } else {
-        root.setAttribute("data-theme", value);
-        localStorage.setItem("moj-theme", value);
-      }
-    } catch {
-      // private mode: the preference still saves server side
-    }
+    // Shared with the header control so the two cannot drift apart on how a
+    // choice is stored; the preference still saves server side on submit.
+    applyTheme(value);
   }
 
   async function onSubmit(event: React.FormEvent) {
@@ -207,7 +198,7 @@ export function EditProfileForm({
               id="profile-site-theme"
               ariaLabel="Site theme"
               value={form.siteTheme}
-              onValueChange={(value) => applyTheme(value as ThemeChoice)}
+              onValueChange={(value) => chooseTheme(value as ThemeChoice)}
               options={SITE_THEMES}
             />
           </Field>

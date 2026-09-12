@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { applyTheme } from "@/components/shell/ThemeToggle";
 
 const RECENTS_KEY = "moj-palette-recents";
 const MAX_RECENTS = 6;
@@ -88,14 +89,13 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 function toggleTheme() {
   const root = document.documentElement;
-  const current = root.getAttribute("data-theme");
+  // No attribute means the system is deciding, so the flip has to read what the
+  // system is actually showing or the first press appears to do nothing.
+  const current =
+    root.getAttribute("data-theme") ??
+    (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
   const next = current === "dark" ? "light" : "dark";
-  root.setAttribute("data-theme", next);
-  try {
-    localStorage.setItem("moj-theme", next);
-  } catch {
-    // private mode
-  }
+  applyTheme(next);
 }
 
 export function CommandPalette({
