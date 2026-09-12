@@ -116,7 +116,8 @@ What it does, in order:
    hex. Re-running reuses this unless the dump changed or `--force-extract` is given.
 2. **Transform and load.** Tables are processed in dependency order. Each writes `out/docs/<table>.jsonl` and
    pushes batches of 200 documents into Convex, and the ids that come back fill a legacy-id map that the next
-   table resolves its foreign keys against.
+   table resolves its foreign keys against. The reference tables the seed also writes are matched on their
+   natural key rather than inserted blindly; see [importing into a seeded deployment](#importing-into-a-seeded-deployment).
 3. **Better Auth.** The user, account, two-factor and passkey rows are upserted into Postgres. Skipped by
    `--dry-run`, which still builds and counts them so the report is complete.
 4. **Report.** `out/report.json` and a summary on stdout.
@@ -201,9 +202,47 @@ Things the report will tell you about, and which are worth knowing before you re
 Accounts whose password hash starts with `!` were unusable on the old site as well, which is Django's marker for
 an account with no password. They import, but those users need a reset.
 
+## Importing into a seeded deployment
+
+Importing on top of `npm run setup` is supported, and is the normal case: setup gives you a usable site, and the
+import fills it from the dump.
+
+The seed and the dump both write the small reference tables, and each of those tables has a natural key:
+
+| Table | Key |
+| --- | --- |
+| `languages` | `key` |
+| `problemTypes` | `name` |
+| `problemGroups` | `name` |
+| `licenses` | `key` |
+| `navigationBar` | `key` |
+| `miscConfig` | `key` |
+| `flatPages` | `url` |
+
+A row from the dump whose key is already in the table **patches that row** instead of inserting a second one, and
+the imported legacy id maps to it, so every table imported afterwards points at the same row. Reference rows are
+matched by their natural key; everything else is inserted as before. Running the seed again after an import is
+likewise a no-op, because the seed upserts by the same keys.
+
+An older importer inserted these blindly. A site that was seeded and then imported by it ends up with two rows for
+every key, and because a language lookup by key was no longer unique the judge handshake failed with an HTTP 400.
+Lookups take the first match now, so nothing user-facing breaks, but the duplicates are still there. Repair them
+once, as a superuser:
+
+```bash
+npx convex run admin/languages:dedupeByKey '{}'
+```
+
+It keeps the imported row of each duplicated key, because that is the one the imported submissions point at,
+repoints `problems.allowedLanguageIds`, `languageLimits`, `submissions`, `profiles` and `runtimeVersions` at it,
+deletes the rest, and reports the keys it repaired, the rows it deleted and the references it rewrote. It is
+bounded, so on a large site it schedules itself until it is finished; `isDone: false` means a follow-up pass is
+running. Running it again once it is done does nothing.
+
 ## Re-running it
 
-The importer only inserts. It never deletes, so importing a table that is already loaded **duplicates it**.
+Apart from the reference tables above, the importer only inserts. It never deletes, so importing a table that is
+already loaded **duplicates it**.
 
 The safe ways to repeat work:
 

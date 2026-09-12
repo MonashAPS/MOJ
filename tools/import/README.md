@@ -133,7 +133,14 @@ their id maps come from whatever is already in Convex. So importing a single
 table later works as long as everything it points at is already loaded.
 
 A run only inserts, it never deletes, so importing a table that is already
-loaded duplicates it. Use `--clear` together with `--tables` to reload one
+loaded duplicates it. The exception is the reference tables `npm run setup`
+also seeds: `languages`, `problemTypes`, `problemGroups`, `licenses`,
+`navigationBar`, `miscConfig` and `flatPages`. `insertBatch` matches those on
+their natural key (`key`, `name`, or `url`) and patches the row that is already
+there, so importing into a seeded deployment is supported and leaves one row
+per key.
+
+Use `--clear` together with `--tables` to reload one
 table, and keep in mind that clearing a table other rows point at, `profiles`
 above all, leaves those references dangling, because the ids change when the
 rows come back. If the thing you need to reload is referenced widely, clear and
