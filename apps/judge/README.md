@@ -99,19 +99,17 @@ stage and carries only the result into the judge.
 docker build -f apps/judge/Dockerfile.splashkit --build-arg TIER=tier1 -t moj-judge:splashkit apps/judge
 ```
 
-Then add the two languages to the site, once, after that judge is online:
+Then add the two languages in the staff console, under Admin, Languages, as you would any other. The key has to
+match the executor exactly, because that is what the judge reports in its handshake and what a claim names.
 
-```bash
-npx convex run admin/splashkit:addLanguages '{}'
-```
+| Key | Name | Common name | Editor mode | Highlighter | Extension |
+| --- | --- | --- | --- | --- | --- |
+| `SKCPP` | C++ (SplashKit) | C++ | `c_cpp` | `cpp` | `cpp` |
+| `SKPY3` | Python 3 (SplashKit) | Python | `python` | `python` | `py` |
 
-They are not seeded, because a language no judge reports is a language whose submissions sit in the queue.
-Running it again refreshes the rows rather than adding more.
-
-| Language key | What it is |
-| --- | --- |
-| `SKCPP` | C++17 linked against SplashKit |
-| `SKPY3` | Python 3 with the SplashKit module on the path |
+Nothing here is special-cased. A judge reporting an executor the site has no language for is ignored, and a
+language no judge reports takes submissions that then wait for a judge that can grade them. That is true of every
+language, which is why these are added the same way as the rest rather than shipped in the seed.
 
 Python needs its own entry rather than reusing `PY3` because submissions run with `-S`, which is what keeps the
 interpreter off site-packages, so a module installed there is invisible to the plain Python entry.
