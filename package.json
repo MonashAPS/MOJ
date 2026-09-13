@@ -1,7 +1,7 @@
 {
   "name": "moj",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MOJ, the MAPS Online Judge",
   "license": "AGPL-3.0-only",
   "workspaces": [
