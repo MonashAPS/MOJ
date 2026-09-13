@@ -85,6 +85,43 @@ The judge reports an internal error instead of grading when the bytes do not mat
 `init.yml` at its root, or a member would write outside the problem directory. A download that fails part way
 leaves the cached copy alone.
 
+## SplashKit
+
+SplashKit is the teaching library used in introductory units. Only its console half can be graded: `read_line`
+and `write_line` are standard input and output, so a console program grades like any other submission, while a
+program that opens a window draws pixels that no output comparison can check.
+
+It is a separate image, because the library pulls in SDL2 and libcurl and an ordinary C++ submission should not
+be paying for either. SplashKit ships no Linux binaries, so the image builds the library from source in a first
+stage and carries only the result into the judge.
+
+```bash
+docker build -f apps/judge/Dockerfile.splashkit --build-arg TIER=tier1 -t moj-judge:splashkit apps/judge
+```
+
+Then add the two languages to the site, once, after that judge is online:
+
+```bash
+npx convex run admin/splashkit:addLanguages '{}'
+```
+
+They are not seeded, because a language no judge reports is a language whose submissions sit in the queue.
+Running it again refreshes the rows rather than adding more.
+
+| Language key | What it is |
+| --- | --- |
+| `SKCPP` | C++17 linked against SplashKit |
+| `SKPY3` | Python 3 with the SplashKit module on the path |
+
+Python needs its own entry rather than reusing `PY3` because submissions run with `-S`, which is what keeps the
+interpreter off site-packages, so a module installed there is invisible to the plain Python entry.
+
+A SplashKit program uses about 22 MB before it does anything, against roughly 3 MB for plain C++, because SDL
+loads whether or not the program draws. Problems that allow it want a memory limit that accounts for that.
+
+Neither executor widens the sandbox: same syscall policy, same readable and writable paths, same limits as the
+executor it derives from. `tests/sandbox_policy.py` asserts exactly that, and fails if it ever stops being true.
+
 ## Tests
 
 ```bash
@@ -100,6 +137,26 @@ and aborted from a local problem, then six for site-owned data covering a first 
 after the hash changes, and an archive whose bytes do not match its hash.
 
 It falls back to host networking when the container cannot reach `host.docker.internal`.
+
+For SplashKit, against an already built `moj-judge:splashkit`:
+
+```bash
+python3 apps/judge/tests/splashkit_e2e.py
+```
+
+It grades a console program in each language, then feeds the judge the hostile programs in
+`tests/splashkit_programs.py`: SplashKit's own `http_get`, a raw socket, `/etc/shadow`, the judge's test data and
+its cache, writes outside the sandbox, executing a shell, attaching to init, reading the judge's credentials out
+of the environment or `/proc`, opening a window, a fork bomb and an infinite loop. Each prints `ESCAPED` when
+what it tried worked, and is graded against a problem expecting `BLOCKED`, so an escape is a wrong answer rather
+than something to interpret.
+
+Two more run inside the image, as the judge user:
+
+```bash
+runuser -u judge -w PATH,HOME -- /env/bin/python3 /judge/tests/sandbox_policy.py   # the policies still match
+runuser -u judge -w PATH,HOME -- /env/bin/python3 /judge/tests/sandbox_probe.py SKCPP
+```
 
 ## Updating from upstream
 
