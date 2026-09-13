@@ -1,0 +1,94 @@
+# MOJ judge image with SplashKit.
+#
+# SplashKit ships no Linux binaries, so the library is built from source here and
+# only the result is carried into the judge image. The build pulls SDL2, libcurl
+# and llama.cpp and takes a while; the judge image gains the shared library, the
+# headers and the SDL2 runtime, not the toolchain.
+#
+# Build from the repository root so the judge-server subtree is in the context:
+#   DOCKER_BUILDKIT=0 docker build --cpuset-cpus=0-11,14-31 \
+#     -f apps/judge/Dockerfile.splashkit --build-arg TIER=tier1 -t moj-judge:splashkit apps/judge
+ARG TIER=tier1
+
+FROM dmoj/runtimes-${TIER} AS splashkit
+
+# SplashKit's own dependency list, less the packages Debian has renamed or
+# dropped and the ones only its interactive tooling wants.
+#
+# The runtimes image carries a bullseye list beside sid for its older toolchains.
+# Leaving it enabled makes apt resolve half of these against Debian 11 and give up,
+# so it is set aside for the install.
+RUN mv /etc/apt/sources.list.d/bullseye.list /etc/apt/sources.list.d/experimental.list /tmp/ && \
+	apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+	build-essential clang cmake git ca-certificates \
+	libpng-dev libcurl4-openssl-dev libsdl2-dev libsdl2-mixer-dev libsdl2-gfx-dev \
+	libsdl2-image-dev libsdl2-net-dev libsdl2-ttf-dev libmikmod-dev libncurses-dev \
+	libbz2-dev libflac-dev libvorbis-dev libwebp-dev libfreetype6-dev \
+	&& rm -rf /var/lib/apt/lists/*
+
+ARG SKM_REF=master
+RUN git clone --depth 1 --branch ${SKM_REF} https://github.com/splashkit/skm.git /skm
+
+# The upstream installer is interactive and edits shell profiles, so the two
+# steps that matter are run directly: build the library, then place it.
+ENV SKM_PATH=/skm
+RUN cd /skm/source && mkdir -p llama.cpp && cd llama.cpp && git init -q && \
+	git remote add origin https://github.com/ggml-org/llama.cpp && \
+	git fetch -q --depth 1 origin 8ea958d4d9d5bd43f9f244950bf057b5227ce8d9 && \
+	git reset -q --hard FETCH_HEAD
+
+RUN cd /skm/source && mkdir -p bin && cd bin && \
+	CC=$(which clang) CXX=$(which clang++) cmake -S .. && \
+	make -j"$(nproc)" && make install
+
+
+FROM dmoj/runtimes-${TIER}
+
+# Only the runtime halves of what libSplashKit.so links against. The bullseye
+# list goes back afterwards: the older runtimes in this image install from it.
+RUN mv /etc/apt/sources.list.d/bullseye.list /etc/apt/sources.list.d/experimental.list /tmp/ && \
+	apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+	libsdl2-2.0-0 libsdl2-mixer-2.0-0 libsdl2-gfx-1.0-0 libsdl2-image-2.0-0 \
+	libsdl2-net-2.0-0 libsdl2-ttf-2.0-0 libmikmod3 libpng16-16t64 libcurl4 \
+	libflac14 libvorbis0a libvorbisfile3 libwebp7 libfreetype6 && \
+	mv /tmp/bullseye.list /tmp/experimental.list /etc/apt/sources.list.d/ && \
+	rm -rf /var/lib/apt/lists/*
+
+# `make install` leaves the library inside the skm tree; placing it under
+# /usr/local is what the upstream `skm global install` step does, by hand here.
+COPY --from=splashkit /skm/lib/linux/libSplashKit.so /usr/local/lib/libSplashKit.so
+COPY --from=splashkit /skm/clang++/include/ /usr/local/include/splashkit/
+COPY --from=splashkit /skm/global/install/splashkit.h /usr/local/include/splashkit.h
+COPY --from=splashkit /skm/global/install/splashkit-arrays.h /usr/local/include/splashkit-arrays.h
+COPY --from=splashkit /skm/python3/splashkit.py /usr/local/lib/splashkit.py
+RUN echo /usr/local/lib > /etc/ld.so.conf.d/splashkit.conf && ldconfig && \
+	# The Python binding is a single module that loads the same shared library
+	# through ctypes, so it needs no executor of its own: put it where the image's
+	# python3 already looks and `import splashkit` works in the existing entry.
+	python3 -c "import shutil, site; shutil.copy('/usr/local/lib/splashkit.py', site.getsitepackages()[0])"
+
+COPY judge-server /judge
+
+RUN mkdir -p /problems /judge-data-cache && chown judge:judge /judge-data-cache && cd /judge && \
+	{ python3 -m venv /env || { python3 -m pip install --no-cache-dir virtualenv && \
+		python3 -m virtualenv --prompt=DMOJ /env; }; } && \
+	/env/bin/pip3 install --no-cache-dir cython setuptools && \
+	/env/bin/pip3 install --no-cache-dir -e . && \
+	/env/bin/python3 setup.py develop && \
+	HOME=~judge . ~judge/.profile && \
+	runuser -u judge -w PATH -- /env/bin/dmoj-autoconf -V > /judge-runtime-paths.yml && \
+	echo '  crt_x86_in_lib32: true' >> /judge-runtime-paths.yml
+
+COPY judge.yml.template /judge.yml.template
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENV DMOJ_IN_DOCKER=1 \
+	PYTHONUNBUFFERED=1 \
+	LANG=C.UTF-8 \
+	PYTHONIOENCODING=utf8 \
+	MOJ_DATA_CACHE=/judge-data-cache
+
+VOLUME ["/judge-data-cache"]
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]
