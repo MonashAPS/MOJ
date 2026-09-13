@@ -18,6 +18,7 @@ import type * as admin_organizations from "../admin/organizations.js";
 import type * as admin_problems from "../admin/problems.js";
 import type * as admin_scoreboards from "../admin/scoreboards.js";
 import type * as admin_site from "../admin/site.js";
+import type * as admin_splashkit from "../admin/splashkit.js";
 import type * as admin_submissions from "../admin/submissions.js";
 import type * as admin_tags from "../admin/tags.js";
 import type * as admin_tickets from "../admin/tickets.js";
@@ -91,6 +92,7 @@ declare const fullApi: ApiFromModules<{
   "admin/problems": typeof admin_problems;
   "admin/scoreboards": typeof admin_scoreboards;
   "admin/site": typeof admin_site;
+  "admin/splashkit": typeof admin_splashkit;
   "admin/submissions": typeof admin_submissions;
   "admin/tags": typeof admin_tags;
   "admin/tickets": typeof admin_tickets;
