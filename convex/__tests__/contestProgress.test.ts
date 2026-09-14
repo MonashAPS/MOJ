@@ -2,9 +2,9 @@
 /**
  * What the contest list tells you about your way through a contest.
  *
- * The interesting rule is what it withholds: which problems a contest holds
- * back is itself information, so somebody who never took part must not be able
- * to count them — not from the squares, and not from the total beside them.
+ * Every problem counts, public or not: the contest's own page already names
+ * them all, so holding them back here would hide nothing and make the total a
+ * lie.
  */
 
 import { describe, expect, it } from "vitest";
@@ -48,16 +48,12 @@ async function progressFor(f: Fixture) {
 }
 
 describe("a contest the viewer never joined", () => {
-  it("shows only the public problems and does not say how many are hidden", async () => {
+  it("counts every problem, including the ones that are not public", async () => {
     const f = await fixture();
     const progress = await progressFor(f);
 
-    expect(progress?.problems.map((row) => row.code)).toEqual(["open1", "open2"]);
-    expect(progress?.hasHidden).toBe(true);
-    // The total counts what is shown, not what exists: a total of three here
-    // would give the hidden problem away just as surely as a third square.
-    expect(progress?.total).toBe(2);
-    expect(JSON.stringify(progress)).not.toContain("secret");
+    expect(progress?.problems.map((row) => row.code)).toEqual(["open1", "open2", "secret"]);
+    expect(progress?.total).toBe(3);
   });
 
   it("marks a problem solved once they have solved it", async () => {
@@ -79,13 +75,12 @@ describe("a contest the viewer never joined", () => {
 });
 
 describe("a contest the viewer took part in", () => {
-  it("shows everything, including what is not public", async () => {
+  it("looks the same, because nothing was being withheld", async () => {
     const f = await fixture();
     await f.t.run(async (ctx) => insertParticipation(ctx.db, f.contestId, f.member.profileId));
 
     const progress = await progressFor(f);
     expect(progress?.problems.map((row) => row.code)).toEqual(["open1", "open2", "secret"]);
-    expect(progress?.hasHidden).toBe(false);
     expect(progress?.total).toBe(3);
   });
 });
@@ -97,5 +92,40 @@ describe("signed out", () => {
       paginationOpts: { numItems: 20, cursor: null },
     });
     expect(payload.past.page[0]?.progress).toBeNull();
+  });
+});
+
+describe("a contest that has not finished", () => {
+  /** The same fixture, but running rather than over. */
+  async function ongoing() {
+    const f = await fixture();
+    const now = Date.now();
+    await f.t.run(async (ctx) =>
+      ctx.db.patch(f.contestId, { startTime: now - 60_000, endTime: now + 3_600_000 }),
+    );
+    return f;
+  }
+
+  it("tells an ordinary viewer nothing, because the names would come with it", async () => {
+    const f = await ongoing();
+    const payload = await f.t
+      .withIdentity({ subject: f.member.userId })
+      .query(api.contests.list, { paginationOpts: { numItems: 20, cursor: null } });
+
+    const row = payload.current[0] ?? payload.past.page[0];
+    expect(row?.progress).toBeNull();
+    // Not merely absent from the squares: nowhere in what was sent.
+    expect(JSON.stringify(payload.current)).not.toContain("secret");
+  });
+
+  it("shows it to somebody running the contest", async () => {
+    const f = await ongoing();
+    const author = await makeProfile(f.t, { username: "author" });
+    await f.t.run(async (ctx) => ctx.db.patch(f.contestId, { authorProfileIds: [author.profileId] }));
+
+    const payload = await f.t
+      .withIdentity({ subject: author.userId })
+      .query(api.contests.list, { paginationOpts: { numItems: 20, cursor: null } });
+    expect(payload.current[0]?.progress?.total).toBe(3);
   });
 });

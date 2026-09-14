@@ -518,7 +518,6 @@
   },
   "progress": {
     "solvedCount": "{solved}/{total} resueltos",
-    "solvedOne": "resuelto",
-    "hiddenExplained": "Este concurso tiene problemas que no son públicos. Participa en el concurso para verlos."
+    "solvedOne": "resuelto"
   }
 }

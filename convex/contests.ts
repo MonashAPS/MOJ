@@ -143,20 +143,16 @@ export type ContestListRow = {
 };
 
 /**
- * How far the viewer has got, and how much of that they are allowed to know.
+ * How far the viewer has got through a contest.
  *
- * A contest's problems are not all public, and which ones exist is itself
- * information: somebody who never took part should not be able to count the
- * hidden problems, so `hasHidden` is a flag and never a number, and `total`
- * counts only what they can see. Joining the contest, or being able to edit it,
- * makes the lot visible.
+ * Only ever for a contest that has finished, or for the people running it.
+ * Naming a problem before or during a contest hands it to anybody who looks,
+ * and these squares carry the names in their tooltips; DMOJ gates its problem
+ * table the same way (`contest.ended or is_editor or is_tester`).
  */
 export type ContestProgress = {
   solved: number;
-  /** Out of the problems this viewer may see, not out of the contest. */
   total: number;
-  /** Some problems are not being shown. Deliberately not how many. */
-  hasHidden: boolean;
   problems: { code: string; name: string; label: string; solved: boolean }[];
 };
 
@@ -488,10 +484,10 @@ async function progressFor(
   ctx: QueryCtx,
   contest: Doc<"contests">,
   solved: Set<string> | null,
-  joined: boolean,
   editorOrTester: boolean,
 ): Promise<ContestProgress | null> {
   if (!solved) return null;
+  if (contest.endTime > Date.now() && !editorOrTester) return null;
 
   const links = await ctx.db
     .query("contestProblems")
@@ -499,16 +495,9 @@ async function progressFor(
     .collect();
 
   const problems: ContestProgress["problems"] = [];
-  let hidden = 0;
   for (const [index, link] of links.entries()) {
     const problem = await ctx.db.get(link.problemId);
     if (!problem) continue;
-    // Everything is visible to somebody who took part or who runs the contest;
-    // to everybody else, only the problems that are public in their own right.
-    if (!problem.isPublic && !joined && !editorOrTester) {
-      hidden += 1;
-      continue;
-    }
     problems.push({
       code: problem.code,
       name: problem.name,
@@ -520,7 +509,6 @@ async function progressFor(
   return {
     solved: problems.filter((row) => row.solved).length,
     total: problems.length,
-    hasHidden: hidden > 0,
     problems,
   };
 }
@@ -531,7 +519,6 @@ async function listRow(
   editorOrTester: boolean,
   hasCompleted: boolean,
   solved: Set<string> | null = null,
-  joined = false,
 ): Promise<ContestListRow> {
   return {
     _id: contest._id,
@@ -552,7 +539,7 @@ async function listRow(
     isEditorOrTester: editorOrTester,
     hasCompleted,
     proctorRequired: contest.proctorRequired ?? false,
-    progress: await progressFor(ctx, contest, solved, joined, editorOrTester),
+    progress: await progressFor(ctx, contest, solved, editorOrTester),
   };
 }
 
@@ -611,11 +598,9 @@ export const list = query({
         contest.curatorProfileIds.includes(profile._id) ||
         contest.testerProfileIds.includes(profile._id));
 
-    // Gathered once for the whole page rather than per contest: the solved set
-    // is one pass over the viewer's submissions, and which contests they have
-    // joined decides what each row is allowed to show them.
+    // One pass over the viewer's submissions for the whole page, rather than
+    // one per contest row.
     let solvedIds: Set<string> | null = null;
-    const joinedContests = new Set<string>();
     if (profile) {
       const submissions = await ctx.db
         .query("submissions")
@@ -624,14 +609,7 @@ export const list = query({
       solvedIds = new Set(
         submissions.filter((row) => row.result === "AC").map((row) => row.problemId as string),
       );
-      for (const row of await ctx.db
-        .query("contestParticipations")
-        .withIndex("by_profile_contest", (q) => q.eq("profileId", profile._id))
-        .collect()) {
-        joinedContests.add(row.contestId as string);
-      }
     }
-    const joined = (contest: Doc<"contests">): boolean => joinedContests.has(contest._id as string);
 
     const running: Doc<"contests">[] = [];
     const future: Doc<"contests">[] = [];
@@ -658,7 +636,7 @@ export const list = query({
       const endsAt = endTimeOf(contest, participation);
       activeParticipations.push({
         participationId: participation._id,
-        contest: await listRow(ctx, contest, editorOrTester(contest), false, solvedIds, joined(contest)),
+        contest: await listRow(ctx, contest, editorOrTester(contest), false, solvedIds),
         virtual: participation.virtual,
         endsAt,
         timeRemaining: endsAt >= now ? endsAt - now : null,
@@ -689,29 +667,18 @@ export const list = query({
     const pastRows: ContestListRow[] = [];
     for (const contest of slice) {
       const participation = profile ? await liveParticipationOf(ctx, contest._id, profile._id) : null;
-      pastRows.push(
-        await listRow(ctx, contest, editorOrTester(contest), !!participation, solvedIds, joined(contest)),
-      );
+      pastRows.push(await listRow(ctx, contest, editorOrTester(contest), !!participation, solvedIds));
     }
 
     const currentRows: ContestListRow[] = [];
     for (const contest of current) {
       currentRows.push(
-        await listRow(
-          ctx,
-          contest,
-          editorOrTester(contest),
-          finishedKeys.includes(contest.key),
-          solvedIds,
-          joined(contest),
-        ),
+        await listRow(ctx, contest, editorOrTester(contest), finishedKeys.includes(contest.key), solvedIds),
       );
     }
     const futureRows: ContestListRow[] = [];
     for (const contest of future) {
-      futureRows.push(
-        await listRow(ctx, contest, editorOrTester(contest), false, solvedIds, joined(contest)),
-      );
+      futureRows.push(await listRow(ctx, contest, editorOrTester(contest), false, solvedIds));
     }
 
     return {

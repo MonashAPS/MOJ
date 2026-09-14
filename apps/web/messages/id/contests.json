@@ -518,7 +518,6 @@
   },
   "progress": {
     "solvedCount": "{solved}/{total} terselesaikan",
-    "solvedOne": "terselesaikan",
-    "hiddenExplained": "Kontes ini punya soal yang tidak publik. Ikuti kontesnya untuk melihatnya."
+    "solvedOne": "terselesaikan"
   }
 }

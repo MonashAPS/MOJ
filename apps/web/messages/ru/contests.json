@@ -518,7 +518,6 @@
   },
   "progress": {
     "solvedCount": "решено {solved} из {total}",
-    "solvedOne": "решена",
-    "hiddenExplained": "В этом контесте есть непубличные задачи. Примите участие, чтобы их увидеть."
+    "solvedOne": "решена"
   }
 }
