@@ -126,7 +126,10 @@ export function LanguagePicker({
           ) : (
             <div className="grid grid-cols-2 gap-2.5 pr-2 min-[640px]:grid-cols-3 min-[900px]:grid-cols-4 min-[1180px]:grid-cols-5">
               {families.map((family) => (
-                <div key={family.name} className="rounded-md border border-border p-3">
+                <div
+                  key={family.name}
+                  className="rounded-md border border-border p-3 transition-colors hover:border-accent-line"
+                >
                   <div className="mb-2 flex items-center gap-2.5">
                     <Mark commonName={family.name} />
                     <span className="truncate text-base font-semibold">{family.name}</span>
@@ -144,10 +147,13 @@ export function LanguagePicker({
                           setOpen(false);
                         }}
                         title={item.runnable ? item.name : t("noJudgeFor", { name: item.name })}
-                        className={`flex items-center gap-1 rounded px-2 py-1 text-[13px] transition-colors ${
+                        // A chip that does not change under the pointer does
+                        // not read as something you can press, which is what
+                        // the first person to use this said about it.
+                        className={`flex cursor-pointer items-center gap-1 rounded border px-2 py-1 text-[13px] transition-[background-color,border-color,box-shadow] ${
                           item.key === value
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary hover:bg-surface-3"
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-secondary hover:border-accent-line hover:bg-accent-soft hover:shadow-xs"
                         } ${item.runnable ? "" : "opacity-55"}`}
                       >
                         {item.key === value ? <Check size={12} aria-hidden /> : null}
