@@ -1,6 +1,7 @@
 "use client";
 
 import { Breadcrumb, cn, PageTabs, type TabItem } from "@moj/ui";
+import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 
 export type AdminBreadcrumbItem = { label: string; href?: string };
@@ -29,6 +30,13 @@ export function AdminShell({
   children?: ReactNode;
   className?: string;
 }) {
+  // Only the body moves. The rail, the breadcrumb, the title and the tab strip
+  // are usually the same on the other side of a navigation, and animating
+  // something that did not change reads as the page lurching rather than as it
+  // arriving. The search is in the key so switching tabs animates the panel.
+  const pathname = usePathname() ?? "";
+  const search = useSearchParams()?.toString() ?? "";
+
   return (
     <div className={cn("flex min-h-0 min-w-0 flex-col", className)}>
       <div className="shrink-0">
@@ -49,7 +57,9 @@ export function AdminShell({
         </div>
         <hr className="page-rule mb-4 mt-2" />
       </div>
-      <div className="min-h-0 min-w-0 flex-1">{children}</div>
+      <div key={`${pathname}?${search}`} className="enter-rise min-h-0 min-w-0 flex-1">
+        {children}
+      </div>
     </div>
   );
 }

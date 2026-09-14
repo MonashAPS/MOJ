@@ -21,7 +21,7 @@ function Mark({ commonName }: { commonName: string }) {
     return (
       <span
         aria-hidden
-        className="flex size-7 shrink-0 items-center justify-center rounded text-[11px] font-bold text-white"
+        className="flex size-8 shrink-0 items-center justify-center rounded text-xs font-bold text-white"
         style={{ backgroundColor: `#${hex}` }}
       >
         {monogramFor(commonName)}
@@ -103,7 +103,7 @@ export function LanguagePicker({
         </Button>
       </DialogTrigger>
 
-      <DialogContent title={t("language")} className="max-w-3xl">
+      <DialogContent title={t("language")} className="max-w-[68rem]">
         <div className="relative">
           <Search
             size={15}
@@ -120,16 +120,16 @@ export function LanguagePicker({
           />
         </div>
 
-        <ScrollArea className="max-h-[60dvh]">
+        <ScrollArea className="max-h-[68dvh]">
           {families.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">{t("noLanguages")}</p>
           ) : (
-            <div className="grid gap-2 pr-2 [grid-template-columns:repeat(auto-fill,minmax(13rem,1fr))]">
+            <div className="grid grid-cols-2 gap-2.5 pr-2 min-[640px]:grid-cols-3 min-[900px]:grid-cols-4 min-[1180px]:grid-cols-5">
               {families.map((family) => (
-                <div key={family.name} className="rounded-md border border-border p-2">
-                  <div className="mb-1.5 flex items-center gap-2">
+                <div key={family.name} className="rounded-md border border-border p-3">
+                  <div className="mb-2 flex items-center gap-2.5">
                     <Mark commonName={family.name} />
-                    <span className="truncate text-sm font-semibold">{family.name}</span>
+                    <span className="truncate text-base font-semibold">{family.name}</span>
                   </div>
                   {/* Versions sit beside the language rather than under it, so
                       picking "Python" and picking "Python 3" are plainly
@@ -144,7 +144,7 @@ export function LanguagePicker({
                           setOpen(false);
                         }}
                         title={item.runnable ? item.name : t("noJudgeFor", { name: item.name })}
-                        className={`flex items-center gap-1 rounded px-1.5 py-1 text-xs transition-colors ${
+                        className={`flex items-center gap-1 rounded px-2 py-1 text-[13px] transition-colors ${
                           item.key === value
                             ? "bg-primary text-primary-foreground"
                             : "bg-secondary hover:bg-surface-3"

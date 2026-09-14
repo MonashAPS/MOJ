@@ -160,7 +160,6 @@ function ConsoleSearch() {
 /** The console frame: rail, a bar carrying the search, and the page column. */
 export function AdminChrome({ children }: { children: ReactNode }) {
   const t = useTranslations("admin.components.chrome");
-  const pathname = usePathname() ?? "";
   const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
@@ -207,14 +206,7 @@ export function AdminChrome({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        <div className="min-h-0 min-w-0 flex-1 px-(--gutter) py-4">
-          {/* The console navigates as much as the site does and had none of its
-              transition, so every page snapped into place. Keyed on the path so
-              it plays per navigation; the chrome around it never moves. */}
-          <div key={pathname} className="enter-rise">
-            {children}
-          </div>
-        </div>
+        <div className="min-h-0 min-w-0 flex-1 px-(--gutter) py-4">{children}</div>
       </div>
     </div>
   );
