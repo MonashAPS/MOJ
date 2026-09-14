@@ -42,7 +42,6 @@ export function ContestProctorTab({ contest }: { contest: ContestEdit }) {
       <Panel title={t("title")} bodyClassName="grid gap-3 p-4">
         <p className="text-sm text-muted-foreground">{t("intro")}</p>
         <Checkbox checked={required} onCheckedChange={setRequired} label={t("required")} />
-        <p className="text-sm text-muted-foreground">{t("hint")}</p>
       </Panel>
 
       <div>

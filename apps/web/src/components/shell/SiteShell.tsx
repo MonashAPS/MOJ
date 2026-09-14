@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { Toaster, TooltipProvider } from "@moj/ui";
+import { cn, Toaster, TooltipProvider } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -153,9 +153,15 @@ export function SiteShell({
             container and break every sticky header inside it): a dense table
             already scrolls inside its own wrapper, but a wide console page
             still widened the document on a phone. */}
+        {/* The home page keeps the club's ground; everywhere else the reading
+            column washes the grid almost out, because behind a statement or a
+            dense table it competes with the content. */}
         <main
           id="content"
-          className="relative mx-auto w-full max-w-(--content-max) flex-1 overflow-x-clip px-(--gutter) py-6 min-[760px]:px-(--gutter-lg)"
+          className={cn(
+            "relative mx-auto w-full max-w-(--content-max) flex-1 overflow-x-clip px-(--gutter) py-6 min-[760px]:px-(--gutter-lg)",
+            !isHome && "page-canvas",
+          )}
         >
           <RouteProgress />
           {/* Page enter is the content column only; the chrome must feel nailed

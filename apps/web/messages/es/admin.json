@@ -12,6 +12,7 @@
         "submissions": "Busca un envío, rejúzgalo, o rejuzga un lote.",
         "scoreboards": "Los marcadores de sede y qué muestra cada uno.",
         "jobs": "Rejuzgados, recálculos de puntuación y ratings, con su progreso.",
+        "proctor": "Sesiones de pantalla compartida, en directo y grabadas.",
         "users": "Cuentas, permisos y puntos.",
         "organizations": "Organizaciones, sus administradores y sus miembros.",
         "classes": "Clases dentro de una organización.",
@@ -680,9 +681,8 @@
     },
     "proctoring": {
       "title": "Supervisión",
-      "intro": "Un concurso supervisado abre sus problemas solo mientras la persona comparte toda su pantalla en /proctor/.",
+      "intro": "Un concurso supervisado abre sus problemas solo mientras la persona comparte toda su pantalla",
       "required": "Requerir compartir pantalla",
-      "hint": "Unirse nunca se bloquea. Leer un problema y enviar sí. Solo navegadores Chromium.",
       "saved": "Ajustes de supervisión guardados",
       "refused": "El juez rechazó el cambio."
     }
@@ -2065,10 +2065,6 @@
     "breadcrumbConsole": "Consola",
     "user": "Usuario",
     "contest": "Concurso",
-    "started": "Inicio",
-    "lastSeen": "Visto por última vez",
-    "recording": "Grabación",
-    "status": "Estado",
     "live": "En directo",
     "lapsed": "Caducada",
     "noContest": "Ninguno",
@@ -2076,13 +2072,20 @@
     "emptyBody": "Aparecerá una sesión en cuanto alguien comparta su pantalla en /proctor/.",
     "slices": "{count, plural, =0 {nada} one {# fragmento} other {# fragmentos}}",
     "missingSlices": "{count, plural, one {# fragmento nunca llegó} other {# fragmentos nunca llegaron}}",
-    "details": "Sesión",
-    "replay": "Reproducción",
-    "startedAt": "Inicio {at}",
-    "lastSeenAt": "visto por última vez {at}",
     "missing": "No existe esa sesión.",
     "follow": "Seguir en directo",
     "gap": "Hueco en la grabación",
-    "noRecording": "Todavía no hay nada grabado."
+    "noRecording": "Todavía no hay nada grabado.",
+    "everyone": "Todos",
+    "anyContest": "Cualquier concurso",
+    "searchUser": "Buscar personas",
+    "searchContest": "Buscar concursos",
+    "panBack": "Antes",
+    "panForward": "Después",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "now": "Ahora",
+    "followingNow": "Siguiendo",
+    "close": "Cerrar"
   }
 }

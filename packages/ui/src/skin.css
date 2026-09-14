@@ -181,6 +181,31 @@
     will-change: transform;
   }
 
+  /* The reading column, laid over the grid.
+
+     The grid is the club's, and it is the right ground for a landing page and
+     for a list. Behind a problem statement it is one more thing competing with
+     the words, so the column washes it almost out: still there at the edges,
+     effectively white where the text is. The wash fades in from the top so the
+     column is not a card with a hard lip. */
+  .page-canvas {
+    position: relative;
+  }
+
+  .page-canvas::before {
+    content: "";
+    position: absolute;
+    /* Wider than the text so the wash does not end where the words do. */
+    inset: -1rem calc(var(--gutter) * -1) 0;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--bg-2) 70%, transparent) 0,
+      color-mix(in oklab, var(--bg-2) 94%, transparent) 6rem
+    );
+  }
+
   /* A divider that fades out at both ends. A hard rule drawn edge to edge cuts
      the constellation behind it and makes the backdrop read as two pieces. */
   .page-rule {

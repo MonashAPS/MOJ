@@ -12,6 +12,7 @@
         "submissions": "Cari pengiriman, judge ulang satu per satu, atau judge ulang sekaligus.",
         "scoreboards": "Papan skor hall dan apa yang ditampilkan masing-masing.",
         "jobs": "Judge ulang, nilai ulang, dan rating, beserta progresnya.",
+        "proctor": "Sesi berbagi layar, langsung maupun rekaman.",
         "users": "Akun, izin, dan poin.",
         "organizations": "Organisasi, admin, dan anggotanya.",
         "classes": "Kelas di dalam organisasi.",
@@ -680,9 +681,8 @@
     },
     "proctoring": {
       "title": "Pengawasan",
-      "intro": "Kontes yang diawasi hanya membuka soalnya selama peserta membagikan seluruh layarnya di /proctor/.",
+      "intro": "Kontes yang diawasi hanya membuka soalnya selama peserta membagikan seluruh layarnya",
       "required": "Wajibkan berbagi layar",
-      "hint": "Bergabung tidak pernah diblokir. Membaca soal dan mengirim jawaban iya. Hanya peramban Chromium.",
       "saved": "Pengaturan pengawasan tersimpan",
       "refused": "Juri menolak perubahan ini."
     }
@@ -2065,10 +2065,6 @@
     "breadcrumbConsole": "Konsol",
     "user": "Pengguna",
     "contest": "Kontes",
-    "started": "Mulai",
-    "lastSeen": "Terakhir terlihat",
-    "recording": "Rekaman",
-    "status": "Status",
     "live": "Langsung",
     "lapsed": "Kedaluwarsa",
     "noContest": "Tidak ada",
@@ -2076,13 +2072,20 @@
     "emptyBody": "Sesi muncul di sini begitu ada yang membagikan layarnya di /proctor/.",
     "slices": "{count, plural, =0 {tidak ada} other {# bagian}}",
     "missingSlices": "{count, plural, other {# bagian tidak pernah sampai}}",
-    "details": "Sesi",
-    "replay": "Pemutaran",
-    "startedAt": "Mulai {at}",
-    "lastSeenAt": "terakhir terlihat {at}",
     "missing": "Sesi tidak ditemukan.",
     "follow": "Ikuti langsung",
     "gap": "Ada jeda pada rekaman",
-    "noRecording": "Belum ada yang terekam."
+    "noRecording": "Belum ada yang terekam.",
+    "everyone": "Semua orang",
+    "anyContest": "Kontes apa pun",
+    "searchUser": "Cari orang",
+    "searchContest": "Cari kontes",
+    "panBack": "Lebih awal",
+    "panForward": "Lebih akhir",
+    "zoomIn": "Perbesar",
+    "zoomOut": "Perkecil",
+    "now": "Sekarang",
+    "followingNow": "Mengikuti",
+    "close": "Tutup"
   }
 }

@@ -12,6 +12,7 @@
         "submissions": "查找提交、重新评测单条或批量重新评测。",
         "scoreboards": "现场排行榜及其展示内容。",
         "jobs": "重新评测、重新评分与定级任务及其进度。",
+        "proctor": "屏幕共享会话，实时与录制。",
         "users": "账号、权限与积分。",
         "organizations": "组织及其管理员与成员。",
         "classes": "组织内的班级。",
@@ -680,9 +681,8 @@
     },
     "proctoring": {
       "title": "监考",
-      "intro": "有监考的比赛只在参赛者于 /proctor/ 共享整个屏幕期间开放题目。",
+      "intro": "有监考的比赛只在参赛者共享整个屏幕期间开放题目",
       "required": "要求共享屏幕",
-      "hint": "参加永远不会被拦截，查看题目和提交才会。仅限 Chromium 浏览器。",
       "saved": "监考设置已保存",
       "refused": "评测机拒绝了本次修改。"
     }
@@ -2065,10 +2065,6 @@
     "breadcrumbConsole": "控制台",
     "user": "用户",
     "contest": "比赛",
-    "started": "开始",
-    "lastSeen": "最后活动",
-    "recording": "录制",
-    "status": "状态",
     "live": "进行中",
     "lapsed": "已失效",
     "noContest": "无",
@@ -2076,13 +2072,20 @@
     "emptyBody": "只要有人在 /proctor/ 共享屏幕，会话就会出现在这里。",
     "slices": "{count, plural, =0 {无} other {# 段}}",
     "missingSlices": "{count, plural, other {有 # 段始终未送达}}",
-    "details": "会话",
-    "replay": "回放",
-    "startedAt": "开始于 {at}",
-    "lastSeenAt": "最后活动于 {at}",
     "missing": "找不到该会话。",
     "follow": "跟随实时",
     "gap": "录制中有缺口",
-    "noRecording": "尚未录制任何内容。"
+    "noRecording": "尚未录制任何内容。",
+    "everyone": "所有人",
+    "anyContest": "任意比赛",
+    "searchUser": "搜索用户",
+    "searchContest": "搜索比赛",
+    "panBack": "更早",
+    "panForward": "更晚",
+    "zoomIn": "放大",
+    "zoomOut": "缩小",
+    "now": "现在",
+    "followingNow": "跟随中",
+    "close": "关闭"
   }
 }

@@ -100,12 +100,10 @@ export function ProctorClient() {
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [uploaded, setUploaded] = useState(0);
 
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const sessionRef = useRef<Id<"proctorSessions"> | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const indexRef = useRef(0);
 
   const [browser, setBrowser] = useState<BrowserCheck | null>(null);
@@ -159,7 +157,6 @@ export function ProctorClient() {
           bytes: blob.size,
           mimeType: blob.type || "video/webm",
         });
-        setUploaded((n) => n + 1);
       } catch {
         // A dropped slice leaves a hole in the index, which the timeline shows
         // as a gap rather than pretending the recording was continuous.
@@ -208,8 +205,6 @@ export function ProctorClient() {
     streamRef.current = stream;
     sessionRef.current = sessionId;
     indexRef.current = 0;
-    setUploaded(0);
-    if (videoRef.current) videoRef.current.srcObject = stream;
 
     // Stopping from the browser's own sharing bar has to end the session too.
     track?.addEventListener("ended", () => void finish("sharing stopped"));
@@ -271,7 +266,26 @@ export function ProctorClient() {
   useEffect(() => teardown, [teardown]);
 
   const live = phase === "sharing" || state?.active === true;
-  const step = !browser ? 0 : !browser.ok ? 1 : live ? 3 : 2;
+  const step = !browser ? 0 : !browser.ok ? 1 : 2;
+
+  // Once it is running there is nothing left to do and nothing worth reading.
+  // The one thing that matters is not closing the tab, so that is all it says.
+  if (live) {
+    return (
+      <div className="grid gap-5 py-2 text-center">
+        <ShieldCheck size={44} aria-hidden className="mx-auto text-success-ink" />
+        <div>
+          <p className="font-display text-h2 font-semibold tracking-tight">{t("liveTitle")}</p>
+          <p className="mt-2 text-base font-medium text-warning-ink">{t("liveKeepOpen")}</p>
+        </div>
+        <div>
+          <Button variant="secondary" size="sm" onClick={() => void finish("stopped")}>
+            {t("stop")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-5">
@@ -307,54 +321,26 @@ export function ProctorClient() {
         )}
       </Step>
 
-      <Step index={2} current={step} title={t("stepShare")} done={live}>
+      <Step index={2} current={step} title={t("stepShare")} done={false}>
         <div className="grid gap-3">
           <p className="text-sm text-muted-foreground">{t("stepShareBody")}</p>
 
           {phase === "wrongSurface" ? <Note tone="warning" text={t("wholeScreenBody")} /> : null}
           {phase === "denied" ? <Note tone="warning" text={t("deniedBody")} /> : null}
-          {phase === "stopped" && !live ? <Note tone="warning" text={t("stoppedBody")} /> : null}
+          {phase === "stopped" ? <Note tone="warning" text={t("stoppedBody")} /> : null}
           {error ? <Note tone="danger" text={error} /> : null}
 
-          {live ? null : (
-            <div>
-              <Button onClick={() => void begin()} busy={phase === "starting"} disabled={!browser?.ok}>
-                <MonitorPlay size={16} aria-hidden />
-                {t("share")}
-              </Button>
-            </div>
-          )}
+          <div>
+            <Button onClick={() => void begin()} busy={phase === "starting"} disabled={!browser?.ok}>
+              <MonitorPlay size={16} aria-hidden />
+              {t("share")}
+            </Button>
+          </div>
         </div>
       </Step>
 
       <Step index={3} current={step} title={t("stepKeep")} done={false}>
-        {live ? (
-          <div className="grid gap-3">
-            <p className="text-sm text-muted-foreground">{t("watchingBody")}</p>
-            <p className="flex items-center gap-2 text-sm">
-              <ShieldCheck size={16} aria-hidden className="text-success-ink" />
-              <span>{t("uploaded", { count: uploaded })}</span>
-            </p>
-            {/* Their own view of what is being sent. Seeing it is what stops
-                "is this actually recording?" being a question. */}
-            <video
-              ref={videoRef}
-              autoPlay
-              muted
-              playsInline
-              className="w-full rounded-md border border-border bg-black"
-            >
-              <track kind="captions" />
-            </video>
-            <div>
-              <Button variant="secondary" size="sm" onClick={() => void finish("stopped")}>
-                {t("stop")}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">{t("stepKeepBody")}</p>
-        )}
+        <p className="text-sm text-muted-foreground">{t("stepKeepBody")}</p>
       </Step>
     </div>
   );

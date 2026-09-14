@@ -11,7 +11,7 @@
 
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
-import { mutation, query } from "./_generated/server";
+import { mutation, type QueryCtx, query } from "./_generated/server";
 import { optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, invalid } from "./lib/errors";
 import { activeProctorSession, PROCTOR_LIVE_WINDOW_MS, PROCTOR_REQUIRED_SURFACE } from "./lib/proctor";
@@ -181,6 +181,13 @@ export const addChunk = mutation({
     const session = await ctx.db.get(args.sessionId);
     if (!session || session.profileId !== profile._id) throw forbidden();
 
+    // Which contest they are in is read here rather than taken from the page,
+    // because it changes during a session and the server is the only side that
+    // knows it honestly.
+    const participation = profile.currentParticipationId
+      ? await ctx.db.get(profile.currentParticipationId)
+      : null;
+
     await ctx.db.insert("proctorChunks", {
       sessionId: session._id,
       profileId: profile._id,
@@ -190,6 +197,7 @@ export const addChunk = mutation({
       bytes: args.bytes,
       mimeType: args.mimeType,
       storageId: args.storageId,
+      ...(participation ? { contestId: participation.contestId } : {}),
     });
     // A slice arriving is as good a sign of life as a heartbeat.
     if (session.endedAt === undefined) await ctx.db.patch(session._id, { lastSeenAt: Date.now() });
@@ -238,12 +246,153 @@ async function toRow(
   };
 }
 
+/**
+ * Staff, or nothing.
+ *
+ * These are reactive queries, and a query that throws takes the page down with
+ * it. The viewer is momentarily absent every time the auth token refreshes, so
+ * throwing there turned a routine refresh into a crash that only a reload
+ * cleared. An empty answer re-renders as soon as the token is back.
+ */
+async function staffOnly(ctx: QueryCtx): Promise<Doc<"profiles"> | null> {
+  const profile = await optionalViewer(ctx);
+  if (!profile) return null;
+  return profile.isStaff || profile.isSuperuser ? profile : null;
+}
+
+export type TimelineSlice = {
+  index: number;
+  startedAt: number;
+  durationMs: number;
+  contestKey: string | null;
+};
+
+export type TimelineRow = {
+  sessionId: Id<"proctorSessions">;
+  username: string;
+  displayName: string;
+  startedAt: number;
+  lastSeenAt: number;
+  live: boolean;
+  endedReason: string | null;
+  bytes: number;
+  slices: TimelineSlice[];
+};
+
+export type Timeline = {
+  from: number;
+  to: number;
+  rows: TimelineRow[];
+  /** Every contest anything was recorded during, for the filter. */
+  contests: { key: string; name: string }[];
+};
+
+/**
+ * Who was being watched, when, and what they were doing at the time.
+ *
+ * Keyed on time rather than on contest, because proctoring is not a contest's
+ * to own: one session can span several contests and the gaps between them. The
+ * contest lives on the slice, so "show me what happened during that contest"
+ * is a filter over moments rather than a property of the session.
+ */
+export const timeline = query({
+  args: {
+    /**
+     * The window, as a width and a distance back from now, rather than two
+     * timestamps. Absolute bounds computed in the browser would change on every
+     * render, and a query whose arguments never settle never resolves.
+     */
+    spanMs: v.optional(v.number()),
+    endOffsetMs: v.optional(v.number()),
+    username: v.optional(v.string()),
+    contestKey: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<Timeline> => {
+    const now = Date.now();
+    const to = now - (args.endOffsetMs ?? 0);
+    const from = to - (args.spanMs ?? 24 * 60 * 60 * 1000);
+    if (!(await staffOnly(ctx))) return { from, to, rows: [], contests: [] };
+
+    const wanted = args.contestKey
+      ? await ctx.db
+          .query("contests")
+          .withIndex("by_key", (q) => q.eq("key", args.contestKey as string))
+          .unique()
+      : null;
+
+    const chunks = await ctx.db
+      .query("proctorChunks")
+      .withIndex("by_started", (q) => q.gte("startedAt", from).lte("startedAt", to))
+      .take(20_000);
+
+    const contestNames = new Map<string, { key: string; name: string }>();
+    const bySession = new Map<string, TimelineSlice[]>();
+    const bytes = new Map<string, number>();
+
+    for (const chunk of chunks) {
+      let contestKey: string | null = null;
+      if (chunk.contestId) {
+        const cached = contestNames.get(chunk.contestId);
+        if (cached) {
+          contestKey = cached.key;
+        } else {
+          const contest = await ctx.db.get(chunk.contestId);
+          if (contest) {
+            contestNames.set(chunk.contestId, { key: contest.key, name: contest.name });
+            contestKey = contest.key;
+          }
+        }
+      }
+      if (wanted && chunk.contestId !== wanted._id) continue;
+
+      const key = chunk.sessionId as string;
+      const slices = bySession.get(key) ?? [];
+      slices.push({
+        index: chunk.index,
+        startedAt: chunk.startedAt,
+        durationMs: chunk.durationMs,
+        contestKey,
+      });
+      bySession.set(key, slices);
+      bytes.set(key, (bytes.get(key) ?? 0) + chunk.bytes);
+    }
+
+    const rows: TimelineRow[] = [];
+    for (const [sessionId, slices] of bySession) {
+      const session = await ctx.db.get(sessionId as Id<"proctorSessions">);
+      if (!session) continue;
+      const person = await ctx.db.get(session.profileId);
+      if (args.username && person?.username !== args.username) continue;
+
+      slices.sort((a, b) => a.startedAt - b.startedAt);
+      rows.push({
+        sessionId: session._id,
+        username: person?.username ?? "?",
+        displayName: person?.usernameDisplayOverride || (person?.username ?? "?"),
+        startedAt: session.startedAt,
+        lastSeenAt: session.lastSeenAt,
+        live: session.endedAt === undefined && session.lastSeenAt + PROCTOR_LIVE_WINDOW_MS > now,
+        endedReason: session.endedAt === undefined ? null : (session.endedReason ?? "ended"),
+        bytes: bytes.get(sessionId) ?? 0,
+        slices,
+      });
+    }
+    rows.sort((a, b) => b.startedAt - a.startedAt);
+
+    return {
+      from,
+      to,
+      rows,
+      contests: [...contestNames.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    };
+  },
+});
+
 /** Every session, newest first, for the staff console. */
 export const sessions = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args): Promise<ProctorSessionRow[]> => {
-    const profile = await requireViewer(ctx);
-    if (!profile.isStaff && !profile.isSuperuser) throw forbidden();
+    if (!(await staffOnly(ctx))) return [];
 
     const now = Date.now();
     const rows = await ctx.db
@@ -252,6 +401,25 @@ export const sessions = query({
       .order("desc")
       .take(Math.min(args.limit ?? 50, 200));
     return await Promise.all(rows.map((session) => toRow(ctx, session, now)));
+  },
+});
+
+/**
+ * One slice's URL, for the hover preview on the chart.
+ *
+ * Fetched a slice at a time rather than returned with the timeline, because a
+ * busy window is thousands of slices and signing a URL for every one of them to
+ * show at most one would be work nobody asked for.
+ */
+export const sliceUrl = query({
+  args: { sessionId: v.id("proctorSessions"), index: v.number() },
+  handler: async (ctx, args): Promise<string | null> => {
+    if (!(await staffOnly(ctx))) return null;
+    const chunk = await ctx.db
+      .query("proctorChunks")
+      .withIndex("by_session_index", (q) => q.eq("sessionId", args.sessionId).eq("index", args.index))
+      .unique();
+    return chunk ? await ctx.storage.getUrl(chunk.storageId) : null;
   },
 });
 
@@ -265,8 +433,7 @@ export const replay = query({
     session: ProctorSessionRow;
     chunks: { index: number; startedAt: number; durationMs: number; url: string | null }[];
   } | null> => {
-    const profile = await requireViewer(ctx);
-    if (!profile.isStaff && !profile.isSuperuser) throw forbidden();
+    if (!(await staffOnly(ctx))) return null;
 
     const session = await ctx.db.get(args.sessionId);
     if (!session) return null;

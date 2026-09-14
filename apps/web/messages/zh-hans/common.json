@@ -184,10 +184,8 @@
   },
   "proctor": {
     "title": "监考",
-    "watchingBody": "请保持此标签页打开。关闭它或停止共享，比赛题目会关闭，直到你重新开始。",
     "share": "共享我的屏幕",
     "stop": "停止共享",
-    "uploaded": "{count, plural, =0 {尚未发送录制内容} other {已发送 # 段录制内容}}",
     "wholeScreenBody": "你选择了窗口或标签页。请选择「整个屏幕」，这样你在浏览器之外的操作也会被涵盖。",
     "deniedBody": "浏览器拒绝了，或者你关闭了提示。在 macOS 上，你可能还需要在系统设置中允许浏览器录制屏幕。",
     "stoppedBody": "在你重新共享之前，有监考的比赛题目将保持关闭。",
@@ -201,6 +199,8 @@
     "stepShare": "共享你的整个屏幕",
     "stepShareBody": "你必须选择「整个屏幕」，而不是窗口或标签页",
     "stepKeep": "请保持此标签页打开",
-    "stepKeepBody": "关闭此标签页会让你退出比赛"
+    "stepKeepBody": "关闭此标签页会让你退出比赛",
+    "liveTitle": "一切正常",
+    "liveKeepOpen": "请勿关闭此标签页"
   }
 }
