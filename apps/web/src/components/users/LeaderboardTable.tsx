@@ -26,6 +26,7 @@ import {
 import { useMutation } from "convex/react";
 import { ChevronDown, ChevronUp, UserMinus } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { sortHref, USER_SORTS, type UserSortKey, type UserSortState } from "./leaderboard";
 import { UserLink } from "./UserLink";
@@ -92,24 +93,24 @@ function SortableHead({
 }
 
 function KickButton({ slug, username }: { slug: string; username: string }) {
+  const t = useTranslations("users.table");
+  const actions = useTranslations("common.actions");
   const kick = useMutation(api.organizations.kick);
   const [busy, setBusy] = useState(false);
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button variant="ghost" size="sm" icon={<UserMinus aria-hidden />}>
-          Kick
+          {t("kick")}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Kick {username}?</AlertDialogTitle>
-          <AlertDialogDescription>
-            They lose their place in this organization and every class inside it, and will have to join again.
-          </AlertDialogDescription>
+          <AlertDialogTitle>{t("kickTitle", { username })}</AlertDialogTitle>
+          <AlertDialogDescription>{t("kickBody")}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{actions("cancel")}</AlertDialogCancel>
           <AlertDialogAction
             disabled={busy}
             onClick={async (event) => {
@@ -117,15 +118,15 @@ function KickButton({ slug, username }: { slug: string; username: string }) {
               setBusy(true);
               try {
                 await kick({ slug, username });
-                toast.success(`${username} is no longer a member.`);
+                toast.success(t("kicked", { username }));
               } catch (error) {
-                toast.error(error instanceof Error ? error.message : "That did not work.");
+                toast.error(error instanceof Error ? error.message : t("failed"));
               } finally {
                 setBusy(false);
               }
             }}
           >
-            {busy ? "Kicking\u2026" : "Kick"}
+            {busy ? t("kicking") : t("kick")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -146,7 +147,7 @@ export function LeaderboardTable({
   viewerUsername,
   organizations,
   kickSlug,
-  emptyMessage = "No users match this filter.",
+  emptyMessage,
 }: {
   rows: LeaderboardRow[];
   state: UserSortState;
@@ -157,6 +158,7 @@ export function LeaderboardTable({
   kickSlug?: string;
   emptyMessage?: string;
 }) {
+  const t = useTranslations("users.table");
   const [targeted, setTargeted] = useState<string | null>(null);
 
   // `base-users.html`'s hashchange handler: `#!username` highlights that row and
@@ -185,14 +187,14 @@ export function LeaderboardTable({
       <TableHeader>
         <TableRow>
           <TableHead numeric className="sticky left-0 z-1 w-16 min-w-16 bg-titlebar">
-            Rank
+            {t("rank")}
           </TableHead>
-          <TableHead className="sticky left-16 z-1 bg-titlebar">Username</TableHead>
+          <TableHead className="sticky left-16 z-1 bg-titlebar">{t("username")}</TableHead>
           {kickSlug ? <TableHead className="w-24" /> : null}
           {USER_SORTS.map((column) => (
             <SortableHead
               key={column.key}
-              column={column}
+              column={{ key: column.key, label: t(column.message) }}
               state={state}
               basePath={basePath}
               params={params}
@@ -202,7 +204,7 @@ export function LeaderboardTable({
       </TableHeader>
       <TableBody>
         {rows.length === 0 ? (
-          <EmptyRow colSpan={columnCount}>{emptyMessage}</EmptyRow>
+          <EmptyRow colSpan={columnCount}>{emptyMessage ?? t("empty")}</EmptyRow>
         ) : (
           rows.map((row) => {
             const chips = organizations?.[row._id] ?? [];

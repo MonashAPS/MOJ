@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Field, toast } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import {
   AdminCheckField,
@@ -18,6 +19,7 @@ import type { ContestEdit } from "./types";
 
 /** DMOJ's first fieldset plus the two "who may look" lists from Access. */
 export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
+  const t = useTranslations("admin.contests.people");
   const update = useMutation(api.admin.contests.update);
   const ids = {
     authors: useId(),
@@ -59,11 +61,11 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
   async function save() {
     setError(null);
     if (!reason.trim()) {
-      setReasonError("Say what you changed so the revision is worth reading.");
+      setReasonError(t("reasonRequired"));
       return;
     }
     if (authors.length === 0) {
-      setError("A contest needs at least one author.");
+      setError(t("errorNoAuthor"));
       return;
     }
     setReasonError(undefined);
@@ -82,9 +84,9 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
         reason: reason.trim(),
       });
       setReason("");
-      toast.success("People saved.");
+      toast.success(t("saved"));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The change was refused.");
+      setError(caught instanceof Error ? caught.message : t("refused"));
     }
     setBusy(false);
   }
@@ -93,76 +95,60 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
     <AdminForm onSubmit={save}>
       <AdminFormError message={error} />
 
-      <AdminSection title="Staff">
-        <Field label="Authors" htmlFor={ids.authors} hint="They may edit the contest and see everything.">
-          <UserPicker id={ids.authors} values={authors} onChange={setAuthors} ariaLabel="Authors" />
+      <AdminSection title={t("sectionStaff")}>
+        <Field label={t("authors")} htmlFor={ids.authors} hint={t("authorsHint")}>
+          <UserPicker id={ids.authors} values={authors} onChange={setAuthors} ariaLabel={t("authors")} />
         </Field>
-        <Field label="Curators" htmlFor={ids.curators} hint="The same powers as an author.">
-          <UserPicker id={ids.curators} values={curators} onChange={setCurators} ariaLabel="Curators" />
+        <Field label={t("curators")} htmlFor={ids.curators} hint={t("curatorsHint")}>
+          <UserPicker id={ids.curators} values={curators} onChange={setCurators} ariaLabel={t("curators")} />
         </Field>
-        <Field
-          label="Testers"
-          htmlFor={ids.testers}
-          hint="They may enter before it starts, but cannot edit it."
-        >
-          <UserPicker id={ids.testers} values={testers} onChange={setTesters} ariaLabel="Testers" />
+        <Field label={t("testers")} htmlFor={ids.testers} hint={t("testersHint")}>
+          <UserPicker id={ids.testers} values={testers} onChange={setTesters} ariaLabel={t("testers")} />
         </Field>
-        <Field
-          label="Spectators"
-          htmlFor={ids.spectators}
-          hint="They watch the contest without a participation of their own."
-        >
+        <Field label={t("spectators")} htmlFor={ids.spectators} hint={t("spectatorsHint")}>
           <UserPicker
             id={ids.spectators}
             values={spectators}
             onChange={setSpectators}
-            ariaLabel="Spectators"
+            ariaLabel={t("spectators")}
           />
         </Field>
       </AdminSection>
 
-      <AdminSection title="What testers see">
+      <AdminSection title={t("sectionTesters")}>
         <AdminCheckField
-          label="Testers see the scoreboard"
+          label={t("testerSeeScoreboard")}
           checked={testerSeeScoreboard}
           onCheckedChange={setTesterSeeScoreboard}
         />
         <AdminCheckField
-          label="Testers see submissions"
+          label={t("testerSeeSubmissions")}
           checked={testerSeeSubmissions}
           onCheckedChange={setTesterSeeSubmissions}
         />
       </AdminSection>
 
-      <AdminSection title="Extra viewers">
-        <Field
-          label="May see the scoreboard"
-          htmlFor={ids.scoreboard}
-          hint="These users see the full board even while it is hidden or frozen."
-        >
+      <AdminSection title={t("sectionViewers")}>
+        <Field label={t("viewScoreboard")} htmlFor={ids.scoreboard} hint={t("viewScoreboardHint")}>
           <UserPicker
             id={ids.scoreboard}
             values={viewScoreboard}
             onChange={setViewScoreboard}
-            ariaLabel="May see the scoreboard"
+            ariaLabel={t("viewScoreboard")}
           />
         </Field>
-        <Field
-          label="May see submissions"
-          htmlFor={ids.submissions}
-          hint="These users see everyone's submissions during the contest."
-        >
+        <Field label={t("viewSubmissions")} htmlFor={ids.submissions} hint={t("viewSubmissionsHint")}>
           <UserPicker
             id={ids.submissions}
             values={viewSubmissions}
             onChange={setViewSubmissions}
-            ariaLabel="May see submissions"
+            ariaLabel={t("viewSubmissions")}
           />
         </Field>
       </AdminSection>
 
-      <ReasonField value={reason} onChange={setReason} error={reasonError} entity="contest" />
-      <AdminFormFooter busy={busy} submitLabel="Save people" />
+      <ReasonField value={reason} onChange={setReason} error={reasonError} hint={t("reasonHint")} />
+      <AdminFormFooter busy={busy} submitLabel={t("submit")} />
     </AdminForm>
   );
 }

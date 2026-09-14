@@ -1,6 +1,7 @@
 import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
 import { cookies, headers } from "next/headers";
+import { getTranslations } from "next-intl/server";
 import { getServerSession } from "@/auth/session";
 import { queryAsViewer } from "@/lib/convex-server";
 
@@ -36,13 +37,19 @@ export async function consoleViewer(): Promise<ConsoleViewer | null> {
 
 export async function requireConsoleViewer(): Promise<ConsoleViewer> {
   const viewer = await consoleViewer();
-  if (!viewer) throw new Error("Access denied.");
+  if (!viewer) {
+    const t = await getTranslations("admin.shell.errors");
+    throw new Error(t("accessDenied"));
+  }
   return viewer;
 }
 
 export async function requireSuperuser(): Promise<ConsoleViewer> {
   const viewer = await requireConsoleViewer();
-  if (!viewer.isSuperuser) throw new Error("Only superusers may do that.");
+  if (!viewer.isSuperuser) {
+    const t = await getTranslations("admin.shell.errors");
+    throw new Error(t("superuserOnly"));
+  }
   return viewer;
 }
 
@@ -52,7 +59,10 @@ export function can(viewer: ConsoleViewer, code: string): boolean {
 
 export async function requirePermission(code: string): Promise<ConsoleViewer> {
   const viewer = await requireConsoleViewer();
-  if (!can(viewer, code)) throw new Error(`Missing permission ${code}.`);
+  if (!can(viewer, code)) {
+    const t = await getTranslations("admin.shell.errors");
+    throw new Error(t("missingPermission", { code }));
+  }
   return viewer;
 }
 

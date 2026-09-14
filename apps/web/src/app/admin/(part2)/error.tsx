@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, Panel } from "@moj/ui";
+import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 
 /**
@@ -15,22 +16,23 @@ export default function ConsoleSectionError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations("admin.shell.sectionError");
+
   useEffect(() => {
     console.error(error);
   }, [error]);
 
   return (
-    <Panel title="This section could not be loaded" bodyClassName="grid gap-3 p-3">
-      <p className="text-base text-subtle">
-        The data behind it did not come back. That usually means your account is missing the permission this
-        section needs, or the site lost its connection to the judge database.
-      </p>
+    <Panel title={t("title")} bodyClassName="grid gap-3 p-3">
+      <p className="text-base text-subtle">{t("description")}</p>
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="secondary" size="sm" onClick={reset}>
-          Try again
+          {t("retry")}
         </Button>
         {error.digest ? (
-          <span className="font-mono text-mono text-muted-foreground">Reference {error.digest}</span>
+          <span className="font-mono text-mono text-muted-foreground">
+            {t("reference", { digest: error.digest })}
+          </span>
         ) : null}
       </div>
     </Panel>

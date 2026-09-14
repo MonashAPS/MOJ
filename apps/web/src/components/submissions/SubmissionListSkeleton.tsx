@@ -1,12 +1,14 @@
 import { Skeleton } from "@moj/ui";
+import { useTranslations } from "next-intl";
 
 /** A list whose shape is known loads as a skeleton in that shape: rows at
  *  `--row-h-2` with bars at the real column widths, never a centred spinner. */
 export function SubmissionListSkeleton({ rows = 8 }: { rows?: number }) {
+  const t = useTranslations("submissions.list");
   return (
     <div
       role="status"
-      aria-label="Loading submissions"
+      aria-label={t("loading")}
       className="overflow-hidden rounded-md border border-border bg-card"
     >
       {Array.from({ length: rows }, (_, index) => (

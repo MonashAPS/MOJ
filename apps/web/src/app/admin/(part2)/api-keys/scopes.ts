@@ -4,16 +4,8 @@ import { PROBLEMS_WRITE_SCOPE, READ_SCOPE } from "@moj/protocol";
  *  offers. `problems:write` is the one a problem repository's CI needs (SPEC
  *  sections 8 and 22). */
 export const API_KEY_SCOPES = [
-  {
-    value: READ_SCOPE,
-    label: READ_SCOPE,
-    hint: "Read the API v2 endpoints, limited to what the owner can already see",
-  },
-  {
-    value: PROBLEMS_WRITE_SCOPE,
-    label: PROBLEMS_WRITE_SCOPE,
-    hint: "Create and update problems, and upload statement images",
-  },
+  { value: READ_SCOPE, label: READ_SCOPE, hintKey: "scopeRead" },
+  { value: PROBLEMS_WRITE_SCOPE, label: PROBLEMS_WRITE_SCOPE, hintKey: "scopeProblemsWrite" },
 ] as const;
 
 export type ConsoleKeyRow = {

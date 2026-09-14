@@ -2,6 +2,7 @@ import { api } from "@convex/_generated/api";
 import { Button, TitleRow } from "@moj/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { queryAsViewer } from "@/lib/convex-server";
 import { scopeFromParams, ticketQueryArgs } from "./filters";
 import { TicketsClient } from "./TicketsClient";
@@ -16,10 +17,12 @@ function one(value: string | string[] | undefined): string | undefined {
 
 export async function generateMetadata({ searchParams }: Props) {
   const page = Number(one((await searchParams).page) ?? 1) || 1;
-  return { title: page === 1 ? "Tickets" : `Tickets - Page ${page}` };
+  const t = await getTranslations("blog.meta");
+  return { title: page === 1 ? t("tickets") : t("ticketsPage", { page }) };
 }
 
 export default async function TicketsPage({ searchParams }: Props) {
+  const t = await getTranslations("blog.tickets");
   const params = await searchParams;
   const viewerState = await queryAsViewer(api.viewer.current, {}).catch(() => null);
   // `TicketList` is `LoginRequiredMixin` (judge/views/ticket.py:207).
@@ -39,10 +42,10 @@ export default async function TicketsPage({ searchParams }: Props) {
   return (
     <>
       <TitleRow
-        title="Tickets"
+        title={t("title")}
         action={
           <Button asChild>
-            <Link href="/tickets/new/">New ticket</Link>
+            <Link href="/tickets/new/">{t("new")}</Link>
           </Button>
         }
       />

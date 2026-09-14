@@ -2,12 +2,14 @@ import type { CalendarPayload } from "@convex/contests";
 import { Button, cn } from "@moj/ui";
 import { ChevronLeft, ChevronRight, Play, StepBack, StepForward } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
-const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
 /** `contest/calendar.html`: a month grid where each day lists the contests that
  *  start, run within, or end on it. */
 export function CalendarGrid({ calendar }: { calendar: NonNullable<CalendarPayload> }) {
+  const t = useTranslations("contests.calendar");
   const today = new Date(calendar.now);
   const isThisMonth = calendar.year === today.getFullYear() && calendar.month === today.getMonth() + 1;
 
@@ -17,18 +19,20 @@ export function CalendarGrid({ calendar }: { calendar: NonNullable<CalendarPaylo
         <div className="flex items-center gap-2">
           {calendar.prevMonth ? (
             <Button asChild variant="secondary" size="sm" icon={<ChevronLeft aria-hidden />}>
-              <Link href={`/contests/${calendar.prevMonth.year}/${calendar.prevMonth.month}/`}>Prev</Link>
+              <Link href={`/contests/${calendar.prevMonth.year}/${calendar.prevMonth.month}/`}>
+                {t("prev")}
+              </Link>
             </Button>
           ) : null}
           {!isThisMonth ? (
             <Button asChild variant="ghost" size="sm">
-              <Link href={`/contests/${today.getFullYear()}/${today.getMonth() + 1}/`}>Today</Link>
+              <Link href={`/contests/${today.getFullYear()}/${today.getMonth() + 1}/`}>{t("today")}</Link>
             </Button>
           ) : null}
           {calendar.nextMonth ? (
             <Button asChild variant="secondary" size="sm">
               <Link href={`/contests/${calendar.nextMonth.year}/${calendar.nextMonth.month}/`}>
-                Next
+                {t("next")}
                 <ChevronRight size={14} aria-hidden />
               </Link>
             </Button>
@@ -45,8 +49,8 @@ export function CalendarGrid({ calendar }: { calendar: NonNullable<CalendarPaylo
                   key={day}
                   className="h-8 w-[14.28%] whitespace-nowrap bg-titlebar px-3 text-left align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink"
                 >
-                  <span className="hidden min-[760px]:inline">{day}</span>
-                  <span className="min-[760px]:hidden">{day.slice(0, 3)}</span>
+                  <span className="hidden min-[760px]:inline">{t(`weekdays.${day}`)}</span>
+                  <span className="min-[760px]:hidden">{t(`weekdaysShort.${day}`)}</span>
                 </th>
               ))}
             </tr>
@@ -100,13 +104,14 @@ function CalendarEntry({
   contest: { _id: string; key: string; name: string };
   kind: "start" | "oneday" | "end";
 }) {
+  const t = useTranslations("contests.calendar");
   const Icon = kind === "start" ? StepForward : kind === "end" ? StepBack : Play;
-  const label = kind === "start" ? "Starts" : kind === "end" ? "Ends" : "Runs";
+  const label = kind === "start" ? t("entryStart") : kind === "end" ? t("entryEnd") : t("entryOneday");
   return (
     <li className="flex items-start gap-1.5 text-sm leading-tight">
       <Icon size={12} className="mt-0.5 shrink-0 text-muted-foreground" aria-hidden />
       <Link href={`/contest/${contest.key}/`} className="min-w-0">
-        <span className="sr-only">{`${label}: `}</span>
+        <span className="sr-only">{`${label} `}</span>
         {contest.name}
       </Link>
     </li>

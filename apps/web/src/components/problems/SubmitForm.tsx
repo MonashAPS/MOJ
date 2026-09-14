@@ -21,9 +21,9 @@ import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CodeEditor } from "@/components/problems/CodeEditor";
-import { plural } from "@/lib/units";
 
 const MAX_SOURCE_LENGTH = 65_536;
 
@@ -65,6 +65,7 @@ export function SubmitForm({
   canPinJudge: boolean;
   submissionsLeft: number | null;
 }) {
+  const t = useTranslations("problems.submit");
   const router = useRouter();
   const usable = useQuery(api.languages.usableForProblem, { code: problemCode });
   const judges = useQuery(api.judges.list, canPinJudge ? {} : "skip");
@@ -127,13 +128,11 @@ export function SubmitForm({
     if (busy) return;
     setError(null);
     if (source.trim().length === 0) {
-      setError("A submission needs some source.");
+      setError(t("emptySource"));
       return;
     }
     if (source.length > MAX_SOURCE_LENGTH) {
-      setError(
-        `Your source code must contain at most ${MAX_SOURCE_LENGTH.toLocaleString("en-AU")} characters.`,
-      );
+      setError(t("tooLong", { count: MAX_SOURCE_LENGTH }));
       return;
     }
     setBusy(true);
@@ -154,11 +153,11 @@ export function SubmitForm({
       setBusy(false);
       setError(
         thrown instanceof ConvexError && typeof thrown.data === "object" && thrown.data !== null
-          ? String((thrown.data as { message?: string }).message ?? "Your submission was not accepted.")
-          : "Your submission was not accepted.",
+          ? String((thrown.data as { message?: string }).message ?? t("failed"))
+          : t("failed"),
       );
     }
-  }, [busy, judgePin, languageKey, problemCode, router, source, submit]);
+  }, [busy, judgePin, languageKey, problemCode, router, source, submit, t]);
 
   const lines = source.length === 0 ? 0 : source.split("\n").length;
   const groups = groupLanguages(languages);
@@ -169,19 +168,15 @@ export function SubmitForm({
       {noJudges ? (
         <Alert variant="danger">
           <TriangleAlert size={16} aria-hidden />
-          <AlertTitle>No judge is available for this problem.</AlertTitle>
-          <AlertDescription>Your submission would sit in the queue until one comes online.</AlertDescription>
+          <AlertTitle>{t("noJudgeTitle")}</AlertTitle>
+          <AlertDescription>{t("noJudgeBody")}</AlertDescription>
         </Alert>
       ) : null}
 
       {submissionsLeft !== null ? (
         <Alert variant={exhausted ? "danger" : "warning"}>
           <TriangleAlert size={16} aria-hidden />
-          <AlertTitle>
-            {exhausted
-              ? "You have 0 submissions left"
-              : `You have ${plural(submissionsLeft, "submission")} left`}
-          </AlertTitle>
+          <AlertTitle>{t("submissionsLeft", { count: Math.max(0, submissionsLeft) })}</AlertTitle>
         </Alert>
       ) : null}
 
@@ -195,8 +190,8 @@ export function SubmitForm({
       <div className="flex min-h-[60dvh] flex-col overflow-hidden rounded-md border border-border bg-card">
         <div className="flex h-9 shrink-0 items-center gap-3 border-b border-border bg-secondary px-2">
           <SelectRoot value={languageKey} onValueChange={setLanguageKey}>
-            <SelectTrigger size="sm" aria-label="Language" className="w-56 bg-card">
-              <SelectValue placeholder="Language" />
+            <SelectTrigger size="sm" aria-label={t("language")} className="w-56 bg-card">
+              <SelectValue placeholder={t("language")} />
             </SelectTrigger>
             <SelectContent>
               {groups.map((group) => (
@@ -225,7 +220,7 @@ export function SubmitForm({
             }}
             onSubmit={() => void send()}
             editorMode={language?.editorMode ?? "text"}
-            ariaLabel={`Source code for ${problemName}`}
+            ariaLabel={t("sourceLabel", { name: problemName })}
             className="h-full"
           />
         </div>
@@ -233,27 +228,30 @@ export function SubmitForm({
         <div className="flex h-12 shrink-0 items-center gap-3 border-t border-border bg-secondary px-3">
           {canPinJudge ? (
             <Select
-              ariaLabel="Judge"
+              ariaLabel={t("judge")}
               size="sm"
               className="w-40 bg-card"
-              placeholder="Any judge"
+              placeholder={t("anyJudge")}
               value={judgePin || "__any__"}
               onValueChange={(value) => setJudgePin(value === "__any__" ? "" : value)}
               options={[
-                { value: "__any__", label: "Any judge" },
+                { value: "__any__", label: t("anyJudge") },
                 ...onlineJudges.map((judge) => ({ value: judge.name, label: judge.name })),
               ]}
             />
           ) : null}
           <span className="ml-auto flex items-center gap-2 text-sm text-muted-foreground max-sm:hidden">
-            <KbdGroup>
-              <Kbd>Ctrl</Kbd>
-              <Kbd>Enter</Kbd>
-            </KbdGroup>
-            to submit
+            {t.rich("hint", {
+              keys: () => (
+                <KbdGroup>
+                  <Kbd>Ctrl</Kbd>
+                  <Kbd>Enter</Kbd>
+                </KbdGroup>
+              ),
+            })}
           </span>
           <Button onClick={() => void send()} busy={busy} disabled={exhausted || !languageKey}>
-            Submit!
+            {t("submit")}
           </Button>
         </div>
       </div>

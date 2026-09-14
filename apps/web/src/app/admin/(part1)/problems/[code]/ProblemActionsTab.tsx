@@ -20,6 +20,7 @@ import {
 } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import { AdminCheckField, AdminFormError, JobProgress } from "@/components/admin";
 import type { ProblemEdit, ProblemOptions } from "./types";
@@ -37,6 +38,9 @@ export function ProblemActionsTab({
   problem: ProblemEdit;
   options: ProblemOptions | undefined;
 }) {
+  const t = useTranslations("admin.problems.actions");
+  const shared = useTranslations("admin.problems.shared");
+  const commonActions = useTranslations("common.actions");
   const router = useRouter();
   const rejudgeAll = useMutation(api.admin.problems.rejudgeAll);
   const rescoreAll = useMutation(api.admin.problems.rescoreAll);
@@ -84,21 +88,21 @@ export function ProblemActionsTab({
           reason: reason.trim() || undefined,
         });
         setJobId(result.jobId);
-        toast.success("Rejudge queued");
+        toast.success(t("rejudgeQueued"));
       } else if (action === "rescore") {
         const result = await rescoreAll({ code: problem.code, reason: reason.trim() || undefined });
         setJobId(result.jobId);
-        toast.success("Rescore queued");
+        toast.success(t("rescoreQueued"));
       } else {
         await setVisibility({
           codes: [problem.code],
           isPublic: !problem.isPublic,
           reason: reason.trim() || undefined,
         });
-        toast.success(problem.isPublic ? "Problem is now private." : "Problem is now public.");
+        toast.success(problem.isPublic ? t("nowPrivate") : t("nowPublic"));
       }
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The action was refused.");
+      setError(caught instanceof Error ? caught.message : t("actionRefused"));
     }
   }
 
@@ -109,14 +113,12 @@ export function ProblemActionsTab({
       <AdminFormError message={error} />
       {jobId ? <JobProgress jobId={jobId} title={problem.code} onDismiss={() => setJobId(null)} /> : null}
 
-      <Panel title="Rejudge submissions" bodyClassName="grid gap-4 p-4">
+      <Panel title={t("rejudgePanel")} bodyClassName="grid gap-4 p-4">
         <p className="text-sm text-muted-foreground">
-          Every submission matching the filter goes back in the queue at batch-rejudge priority. Leave a
-          filter empty to match everything. This problem has {problem.submissionCount.toLocaleString("en-AU")}{" "}
-          {problem.submissionCount === 1 ? "submission" : "submissions"}.
+          {t("rejudgeIntro", { count: problem.submissionCount })}
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="From submission id" htmlFor={ids.idFrom} optional=" (optional)">
+          <Field label={t("idFrom")} htmlFor={ids.idFrom} optional={shared("optional")}>
             <Input
               id={ids.idFrom}
               mono
@@ -126,7 +128,7 @@ export function ProblemActionsTab({
               placeholder="1"
             />
           </Field>
-          <Field label="To submission id" htmlFor={ids.idTo} optional=" (optional)">
+          <Field label={t("idTo")} htmlFor={ids.idTo} optional={shared("optional")}>
             <Input
               id={ids.idTo}
               mono
@@ -136,78 +138,75 @@ export function ProblemActionsTab({
               placeholder="99999"
             />
           </Field>
-          <Field label="Languages" htmlFor={ids.languages} optional=" (optional)">
+          <Field label={t("languages")} htmlFor={ids.languages} optional={shared("optional")}>
             <MultiSelect
               id={ids.languages}
               values={languages}
               onChange={setLanguages}
               options={(options?.languages ?? []).map((row) => ({ value: row.key, label: row.name }))}
-              placeholder="Every language"
+              placeholder={shared("field.everyLanguage")}
             />
           </Field>
-          <Field label="Results" htmlFor={ids.results} optional=" (optional)">
+          <Field label={t("results")} htmlFor={ids.results} optional={shared("optional")}>
             <MultiSelect
               id={ids.results}
               values={results}
               onChange={setResults}
               options={RESULTS.map((code) => ({ value: code, label: code }))}
-              placeholder="Every result"
+              placeholder={t("everyResult")}
             />
           </Field>
         </div>
         <AdminCheckField
-          label="Include locked submissions"
-          hint="Submissions locked after a contest are skipped unless this is ticked."
+          label={t("includeLocked")}
+          hint={t("includeLockedHint")}
           checked={archiveLocked}
           onCheckedChange={setArchiveLocked}
         />
         <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
           <span className="font-mono text-sm tabular-nums text-subtle">
             {preview === undefined
-              ? "Counting…"
-              : `${preview.count.toLocaleString("en-AU")} of ${preview.total.toLocaleString("en-AU")} would be rejudged`}
+              ? t("counting")
+              : t("previewCount", { count: preview.count, total: preview.total })}
           </span>
           <Button
             className="ml-auto"
             disabled={!canRejudge || (preview?.count ?? 0) === 0}
             title={
               !canRejudge
-                ? "You do not have judge.rejudge_submission_lot."
+                ? shared("missingPermission", { permission: "judge.rejudge_submission_lot" })
                 : (preview?.count ?? 0) === 0
-                  ? "Nothing matches this filter."
+                  ? t("nothingMatches")
                   : undefined
             }
             onClick={() => setConfirm("rejudge")}
           >
-            Rejudge these
+            {t("rejudgeButton")}
           </Button>
         </div>
       </Panel>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Rescore" bodyClassName="grid gap-3 p-4">
-          <p className="text-sm text-muted-foreground">
-            Recalculates every submission's points from the case points already on record, then the users'
-            totals. Nothing is regraded, so it is quick and safe after a points change.
-          </p>
+        <Panel title={t("rescorePanel")} bodyClassName="grid gap-3 p-4">
+          <p className="text-sm text-muted-foreground">{t("rescoreDescription")}</p>
           <Button
             variant="secondary"
             className="w-fit"
             disabled={!problem.permissions.rejudgeSubmission}
             title={
-              problem.permissions.rejudgeSubmission ? undefined : "You do not have judge.rejudge_submission."
+              problem.permissions.rejudgeSubmission
+                ? undefined
+                : shared("missingPermission", { permission: "judge.rejudge_submission" })
             }
             onClick={() => setConfirm("rescore")}
           >
-            Rescore every submission
+            {t("rescoreButton")}
           </Button>
         </Panel>
 
-        <Panel title="Visibility" bodyClassName="grid gap-3 p-4">
+        <Panel title={t("visibilityPanel")} bodyClassName="grid gap-3 p-4">
           <p className="text-sm text-muted-foreground">
-            {problem.isPublic
-              ? "This problem is listed on /problems/ and counts towards points."
-              : "This problem is hidden from the problem list. Its staff can still open it."}
+            {problem.isPublic ? t("visibilityPublic") : t("visibilityPrivate")}
           </p>
           <Button
             variant="secondary"
@@ -216,22 +215,19 @@ export function ProblemActionsTab({
             title={
               problem.permissions.changePublicVisibility
                 ? undefined
-                : "You do not have judge.change_public_visibility."
+                : shared("missingPermission", { permission: "judge.change_public_visibility" })
             }
             onClick={() => setConfirm("visibility")}
           >
-            {problem.isPublic ? "Make private" : "Make public"}
+            {problem.isPublic ? t("makePrivate") : t("makePublic")}
           </Button>
         </Panel>
       </div>
 
-      <Panel title="Clone" bodyClassName="grid gap-3 p-4">
-        <p className="text-sm text-muted-foreground">
-          Copies the statement, limits and taxonomy under a new code. The copy is private, has you as its only
-          author, and carries no test data or submissions.
-        </p>
+      <Panel title={t("clonePanel")} bodyClassName="grid gap-3 p-4">
+        <p className="text-sm text-muted-foreground">{t("cloneDescription")}</p>
         <div className="flex flex-wrap items-end gap-3">
-          <Field label="New problem code" htmlFor={ids.clone} className="w-[220px]">
+          <Field label={t("cloneCode")} htmlFor={ids.clone} className="w-[220px]">
             <Input
               id={ids.clone}
               mono
@@ -248,8 +244,8 @@ export function ProblemActionsTab({
               problem.permissions.cloneProblem
                 ? cloneCode.trim()
                   ? undefined
-                  : "Give the copy a code first."
-                : "You do not have judge.clone_problem."
+                  : t("cloneCodeRequired")
+                : shared("missingPermission", { permission: "judge.clone_problem" })
             }
             onClick={async () => {
               setError(null);
@@ -261,21 +257,21 @@ export function ProblemActionsTab({
                 });
                 router.push(`/admin/problems/${result.code}/`);
               } catch (caught) {
-                setError(caught instanceof Error ? caught.message : "The clone was refused.");
+                setError(caught instanceof Error ? caught.message : t("cloneRefused"));
               }
             }}
           >
-            Clone problem
+            {t("cloneButton")}
           </Button>
         </div>
       </Panel>
 
-      <Panel title="History" bodyClassName="p-4">
-        <Field label="Reason for change" hint="Kept with the revision every action above writes.">
+      <Panel title={t("historyPanel")} bodyClassName="p-4">
+        <Field label={t("reasonLabel")} hint={t("reasonHint")}>
           <Input
             value={reason}
             onChange={(event) => setReason(event.target.value)}
-            placeholder="Describe the change"
+            placeholder={t("reasonPlaceholder")}
           />
         </Field>
       </Panel>
@@ -285,27 +281,31 @@ export function ProblemActionsTab({
           <AlertDialogHeader>
             <AlertDialogTitle>
               {confirm === "rejudge"
-                ? `Rejudge ${preview?.count ?? 0} ${preview?.count === 1 ? "submission" : "submissions"}?`
+                ? t("confirmRejudgeTitle", { count: preview?.count ?? 0 })
                 : confirm === "rescore"
-                  ? `Rescore every submission to ${problem.name}?`
+                  ? t("confirmRescoreTitle", { name: problem.name })
                   : problem.isPublic
-                    ? `Make ${problem.name} private?`
-                    : `Make ${problem.name} public?`}
+                    ? t("confirmPrivateTitle", { name: problem.name })
+                    : t("confirmPublicTitle", { name: problem.name })}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirm === "rejudge"
-                ? "They queue behind everything else, so contests are unaffected. The old verdicts are replaced as each one finishes."
+                ? t("confirmRejudgeBody")
                 : confirm === "rescore"
-                  ? "Points are recalculated from the stored case points, and every affected user's total is recomputed."
+                  ? t("confirmRescoreBody")
                   : problem.isPublic
-                    ? "It disappears from the problem list and stops counting towards points. Submissions are kept."
-                    : "It appears in the problem list and starts counting towards points."}
+                    ? t("confirmPrivateBody")
+                    : t("confirmPublicBody")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{commonActions("cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={() => confirm && run(confirm)}>
-              {confirm === "rejudge" ? "Rejudge" : confirm === "rescore" ? "Rescore" : "Change visibility"}
+              {confirm === "rejudge"
+                ? t("confirmRejudgeAction")
+                : confirm === "rescore"
+                  ? t("confirmRescoreAction")
+                  : t("confirmVisibilityAction")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

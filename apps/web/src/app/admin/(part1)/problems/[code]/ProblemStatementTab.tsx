@@ -4,12 +4,15 @@ import { api } from "@convex/_generated/api";
 import { Alert, AlertDescription, AlertTitle, Field, Panel, toast } from "@moj/ui";
 import { useMutation } from "convex/react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { AdminForm, AdminFormError, AdminFormFooter, ReasonField } from "@/components/admin";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import type { ProblemEdit } from "./types";
 
 export function ProblemStatementTab({ problem }: { problem: ProblemEdit }) {
+  const t = useTranslations("admin.problems.statement");
+  const shared = useTranslations("admin.problems.shared");
   const update = useMutation(api.admin.problems.update);
   const [description, setDescription] = useState(problem.description);
   const [reason, setReason] = useState("");
@@ -22,7 +25,7 @@ export function ProblemStatementTab({ problem }: { problem: ProblemEdit }) {
   async function save() {
     setError(null);
     if (!reason.trim()) {
-      setReasonError("Say what you changed so the revision is worth reading.");
+      setReasonError(shared("reasonRequired"));
       return;
     }
     setReasonError(undefined);
@@ -30,9 +33,9 @@ export function ProblemStatementTab({ problem }: { problem: ProblemEdit }) {
     try {
       await update({ code: problem.code, description, reason: reason.trim() });
       setReason("");
-      toast.success("Statement saved.");
+      toast.success(t("saved"));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The change was refused.");
+      setError(caught instanceof Error ? caught.message : shared("changeRefused"));
     }
     setBusy(false);
   }
@@ -40,9 +43,9 @@ export function ProblemStatementTab({ problem }: { problem: ProblemEdit }) {
   if (locked) {
     return (
       <Alert variant="warning">
-        <AlertTitle>This statement uses full markup</AlertTitle>
+        <AlertTitle>{t("lockedTitle")}</AlertTitle>
         <AlertDescription>
-          Editing it needs judge.problem_full_markup, which this account does not have.
+          {t("lockedDescription", { permission: "judge.problem_full_markup" })}
         </AlertDescription>
       </Alert>
     );
@@ -51,18 +54,16 @@ export function ProblemStatementTab({ problem }: { problem: ProblemEdit }) {
   return (
     <AdminForm onSubmit={save}>
       <AdminFormError message={error} />
-      <Panel title="Statement" bodyClassName="p-4">
+      <Panel title={shared("panel.statement")} bodyClassName="p-4">
         <Field
-          label="Statement"
-          hint={
-            <>
-              Markdown, with ~math~ and $math$ both accepted. It renders on{" "}
+          label={shared("field.statement")}
+          hint={t.rich("hint", {
+            link: (chunks) => (
               <Link className="text-link hover:underline" href={`/problem/${problem.code}/`}>
-                the problem page
+                {chunks}
               </Link>
-              .
-            </>
-          }
+            ),
+          })}
         >
           <MarkdownEditor
             value={description}
@@ -72,8 +73,8 @@ export function ProblemStatementTab({ problem }: { problem: ProblemEdit }) {
           />
         </Field>
       </Panel>
-      <ReasonField value={reason} onChange={setReason} error={reasonError} entity="statement" />
-      <AdminFormFooter dirty={description !== problem.description} busy={busy} submitLabel="Save statement" />
+      <ReasonField value={reason} onChange={setReason} error={reasonError} hint={t("reasonHint")} />
+      <AdminFormFooter dirty={description !== problem.description} busy={busy} submitLabel={t("submit")} />
     </AdminForm>
   );
 }

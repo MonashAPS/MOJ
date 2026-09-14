@@ -1,7 +1,11 @@
+import { getTranslations } from "next-intl/server";
 import { safeNext } from "@/lib/next-path";
 import { TwoFactorChallenge } from "./TwoFactorChallenge";
 
-export const metadata = { title: "Two factor authentication" };
+export async function generateMetadata() {
+  const t = await getTranslations("auth.twoFactor.challenge");
+  return { title: t("metaTitle") };
+}
 
 export default async function LoginTwoFactorPage({
   searchParams,

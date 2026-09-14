@@ -2,11 +2,26 @@
 
 import { Button, cn, MicroLabel } from "@moj/ui";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { type SyntheticEvent, useMemo, useState } from "react";
 
-const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** The grid's rows and columns are named in the catalogue, so the keys rather
+ *  than the names are what the layout is indexed by. */
+const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
+const MONTHS = [
+  "january",
+  "february",
+  "march",
+  "april",
+  "may",
+  "june",
+  "july",
+  "august",
+  "september",
+  "october",
+  "november",
+  "december",
+] as const;
 const LEVELS = 5;
 /** The heat ramp's steps, `--heat-0` to `--heat-4`. */
 const HEAT_STEPS = [0, 1, 2, 3, 4];
@@ -79,7 +94,7 @@ function buildWeeks(days: Day[]): (Day | null)[][] {
 /** GitHub labels a month over the first column that *starts* in it, and skips a
  *  label with no room before the next one. The header is a row of spans so the
  *  label sits exactly over its column. */
-function buildMonths(weeks: (Day | null)[][]) {
+function buildMonths(weeks: (Day | null)[][], names: string[]) {
   const labels: { key: string; column: number; label: string }[] = [];
   let previousMonth = -1;
   for (const [column, week] of weeks.entries()) {
@@ -93,7 +108,7 @@ function buildMonths(weeks: (Day | null)[][]) {
     labels.push({
       key: `${day.date.getFullYear()}-${month}`,
       column,
-      label: MONTHS[month] as string,
+      label: names[month] as string,
     });
   }
 
@@ -111,10 +126,6 @@ function buildMonths(weeks: (Day | null)[][]) {
   return spans;
 }
 
-function plural(count: number, one: string, many: string) {
-  return count === 1 ? `${count} ${one}` : `${count.toLocaleString("en-AU")} ${many}`;
-}
-
 /**
  * DMOJ's submission heatmap, on the design system's green rather than GitHub's,
  * laid out on GitHub's proportions: fixed 11px squares that never stretch, month
@@ -130,22 +141,23 @@ export function SubmissionActivity({
   counts: Record<string, number>;
   minYear: number | null;
 }) {
+  const t = useTranslations("users.activity");
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [hint, setHint] = useState<{ text: string; x: number; y: number } | null>(null);
 
   const days = useMemo(() => buildDays(year, currentYear, counts), [year, currentYear, counts]);
   const weeks = useMemo(() => buildWeeks(days), [days]);
-  const months = useMemo(() => buildMonths(weeks), [weeks]);
+  const monthNames = useMemo(() => MONTHS.map((month) => t(`months.${month}`)), [t]);
+  const months = useMemo(() => buildMonths(weeks, monthNames), [weeks, monthNames]);
   const total = days.reduce((sum, day) => sum + day.activity, 0);
   const max = Math.max(1, ...days.map((day) => day.activity));
 
-  const period = year === currentYear ? "over the last year" : `during ${year}`;
   // `border-spacing` sits between the columns and around the outside of them.
   const tableWidth = LABEL_WIDTH + weeks.length * CELL + (weeks.length + 2) * GAP;
 
   function describe(day: Day) {
-    return `${plural(day.activity, "submission", "submissions")} on ${LABEL_DATE.format(day.date)}`;
+    return t("cell", { count: day.activity, date: LABEL_DATE.format(day.date) });
   }
 
   function onCellOver(event: SyntheticEvent<HTMLTableSectionElement>) {
@@ -170,28 +182,28 @@ export function SubmissionActivity({
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h3 id="submission-activity-heading" className="font-display text-h3 font-semibold text-foreground">
           {year === currentYear
-            ? `${plural(total, "submission", "submissions")} in the last year`
-            : `${plural(total, "submission", "submissions")} in ${year}`}
+            ? t("totalLastYear", { count: total })
+            : t("totalInYear", { count: total, year: String(year) })}
         </h3>
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Previous year"
-            title={year <= (minYear ?? currentYear) ? "No submissions before this year." : "Previous year"}
+            aria-label={t("previousYear")}
+            title={year <= (minYear ?? currentYear) ? t("noEarlierYear") : t("previousYear")}
             disabled={year <= (minYear ?? currentYear)}
             onClick={() => setYear((value) => value - 1)}
           >
             <ChevronLeft aria-hidden />
           </Button>
           <span className="min-w-16 text-center font-mono text-mono tabular-nums text-subtle">
-            {year === currentYear ? "past year" : year}
+            {year === currentYear ? t("pastYear") : year}
           </span>
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Next year"
-            title={year >= currentYear ? "This is the most recent year." : "Next year"}
+            aria-label={t("nextYear")}
+            title={year >= currentYear ? t("noLaterYear") : t("nextYear")}
             disabled={year >= currentYear}
             onClick={() => setYear((value) => value + 1)}
           >
@@ -205,7 +217,9 @@ export function SubmissionActivity({
         className="relative overflow-x-auto rounded-md border border-border bg-card p-3"
       >
         <table className="table-fixed border-separate" style={{ width: tableWidth, borderSpacing: GAP }}>
-          <caption className="sr-only">Submissions per day, {period}</caption>
+          <caption className="sr-only">
+            {year === currentYear ? t("captionLastYear") : t("captionYear", { year: String(year) })}
+          </caption>
           <colgroup>
             <col style={{ width: LABEL_WIDTH }} />
             {weeks.map((_week, column) => (
@@ -234,15 +248,15 @@ export function SubmissionActivity({
             onMouseLeave={() => setHint(null)}
             onBlur={() => setHint(null)}
           >
-            {WEEKDAYS.map((weekdayName, weekday) => (
-              <tr key={weekdayName}>
+            {WEEKDAYS.map((weekdayKey, weekday) => (
+              <tr key={weekdayKey}>
                 <th
                   scope="row"
                   className="p-0 pr-1 text-right align-middle font-sans text-[10px] font-normal text-muted-foreground"
                   style={{ height: CELL, lineHeight: `${CELL}px` }}
                 >
-                  <span className="sr-only">{weekdayName}</span>
-                  <span aria-hidden="true">{weekday % 2 === 1 ? WEEKDAY_SHORT[weekday] : ""}</span>
+                  <span className="sr-only">{t(`weekdays.${weekdayKey}`)}</span>
+                  <span aria-hidden="true">{weekday % 2 === 1 ? t(`weekdaysShort.${weekdayKey}`) : ""}</span>
                 </th>
                 {weeks.map((week, column) => {
                   const day = week[weekday];
@@ -291,9 +305,9 @@ export function SubmissionActivity({
         ) : null}
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
-          <MicroLabel>{plural(total, "total submission", "total submissions")}</MicroLabel>
+          <MicroLabel>{t("total", { count: total })}</MicroLabel>
           <div className="flex items-center gap-1">
-            <MicroLabel>Less</MicroLabel>
+            <MicroLabel>{t("less")}</MicroLabel>
             {HEAT_STEPS.map((level) => (
               <span
                 key={level}
@@ -301,7 +315,7 @@ export function SubmissionActivity({
                 style={{ ...CELL_BOX, background: `var(--heat-${level})` }}
               />
             ))}
-            <MicroLabel>More</MicroLabel>
+            <MicroLabel>{t("more")}</MicroLabel>
           </div>
         </div>
       </div>

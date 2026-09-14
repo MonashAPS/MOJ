@@ -17,7 +17,7 @@ export {
   AdminToolbar,
 } from "./AdminTable";
 export { DateTimeField, formatMoment } from "./DateTimeField";
-export { JOB_TYPE_LABELS, JobProgress, JobStatusBadge, jobTypeLabel } from "./JobProgress";
+export { JobProgress, JobStatusBadge } from "./JobProgress";
 export { type Revision, RevisionsPanel } from "./RevisionsPanel";
 export { ADMIN_SECTION_INDEX, ADMIN_SECTIONS, type AdminSection as AdminSectionEntry } from "./sections";
 export { UserPicker } from "./UserPicker";

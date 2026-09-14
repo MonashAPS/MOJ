@@ -1,6 +1,7 @@
 "use client";
 
 import { ContentDescription, cn } from "@moj/ui";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { STATEMENT_COPY_ICONS } from "@/lib/statement";
 
@@ -10,6 +11,7 @@ import { STATEMENT_COPY_ICONS } from "@/lib/statement";
  * which announce through a polite live region and never raise a toast.
  */
 export function Statement({ html, className }: { html: string; className?: string }) {
+  const t = useTranslations("problems.statement");
   const root = useRef<HTMLDivElement>(null);
   const [announcement, setAnnouncement] = useState("");
 
@@ -29,12 +31,12 @@ export function Statement({ html, className }: { html: string; className?: strin
       try {
         await navigator.clipboard.writeText((body.textContent ?? "").replace(/\n$/, ""));
       } catch {
-        setAnnouncement("Copying is not available in this browser.");
+        setAnnouncement(t("copyUnavailable"));
         return;
       }
       button.innerHTML = STATEMENT_COPY_ICONS.check;
       button.style.color = "var(--v-good)";
-      setAnnouncement("Copied to clipboard.");
+      setAnnouncement(t("copied"));
       const timer = setTimeout(() => {
         button.innerHTML = STATEMENT_COPY_ICONS.copy;
         button.style.removeProperty("color");
@@ -48,7 +50,7 @@ export function Statement({ html, className }: { html: string; className?: strin
       node.removeEventListener("click", onClick);
       for (const timer of timers) clearTimeout(timer);
     };
-  }, []);
+  }, [t]);
 
   return (
     <div ref={root}>

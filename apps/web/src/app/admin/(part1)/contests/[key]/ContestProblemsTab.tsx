@@ -36,6 +36,7 @@ import {
 } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { ChevronDown, ChevronUp, GripVertical, ListChecks, Plus, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { AdminFormError, JobProgress } from "@/components/admin";
 import type { ContestEdit } from "./types";
@@ -45,6 +46,8 @@ type ContestProblem = ContestEdit["problems"][number];
 /** `ContestProblemInline`: the sortable inline, with the rejudge column DMOJ
  *  puts at the end of each row. */
 export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
+  const t = useTranslations("admin.contests.problems");
+  const actions = useTranslations("common.actions");
   const addProblem = useMutation(api.admin.contests.addProblem);
   const updateProblem = useMutation(api.admin.contests.updateProblem);
   const removeProblem = useMutation(api.admin.contests.removeProblem);
@@ -69,7 +72,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
     try {
       await work();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The change was refused.");
+      setError(caught instanceof Error ? caught.message : t("refused"));
     }
   }
 
@@ -113,12 +116,12 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
       <AdminFormError message={error} />
       {jobId ? <JobProgress jobId={jobId} title={contest.key} onDismiss={() => setJobId(null)} /> : null}
 
-      <Panel title={`Problems (${contest.problems.length})`} bodyClassName="grid gap-0 p-0">
+      <Panel title={t("panelTitle", { count: contest.problems.length })} bodyClassName="grid gap-0 p-0">
         <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
           <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
             <PopoverTrigger asChild>
               <Button size="sm" variant="secondary" icon={<Plus aria-hidden />}>
-                Add a problem
+                {t("addProblem")}
               </Button>
             </PopoverTrigger>
             <PopoverContent align="start" className="w-[320px] p-0">
@@ -126,12 +129,12 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
                 <CommandInput
                   value={term}
                   onValueChange={setTerm}
-                  placeholder="Problem code or name"
+                  placeholder={t("searchPlaceholder")}
                   showEscHint={false}
                 />
                 <CommandList>
                   <CommandEmpty>
-                    {term.trim() ? `No problem matches ${term.trim()}.` : "Type to search problems."}
+                    {term.trim() ? t("searchNoMatch", { term: term.trim() }) : t("searchPrompt")}
                   </CommandEmpty>
                   {candidates.length > 0 ? (
                     <CommandGroup>
@@ -167,32 +170,30 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
               </Command>
             </PopoverContent>
           </Popover>
-          <span className="text-sm text-muted-foreground">
-            Drag a row by its handle, or use the arrows, to change the order the labels follow.
-          </span>
+          <span className="text-sm text-muted-foreground">{t("reorderHint")}</span>
         </div>
 
         {contest.problems.length === 0 ? (
           <EmptyState
             className="m-3"
             icon={<ListChecks aria-hidden />}
-            title="This contest has no problems"
-            description="Add one by its code; its label follows the order of this list."
+            title={t("emptyTitle")}
+            description={t("emptyDescription")}
           />
         ) : (
           <Table dense className="group/table" scrollable={false}>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-8" />
-                <TableHead className="w-12">Label</TableHead>
-                <TableHead>Problem</TableHead>
+                <TableHead className="w-12">{t("columnLabel")}</TableHead>
+                <TableHead>{t("columnProblem")}</TableHead>
                 <TableHead numeric className="w-24">
-                  Points
+                  {t("columnPoints")}
                 </TableHead>
-                <TableHead className="w-20">Partial</TableHead>
-                <TableHead className="w-24">Pretested</TableHead>
+                <TableHead className="w-20">{t("columnPartial")}</TableHead>
+                <TableHead className="w-24">{t("columnPretested")}</TableHead>
                 <TableHead numeric className="w-32">
-                  Max submissions
+                  {t("columnMaxSubmissions")}
                 </TableHead>
                 <TableHead className="w-40" />
               </TableRow>
@@ -221,7 +222,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
                     <Input
                       mono
                       inputMode="decimal"
-                      aria-label={`Points for ${problem.code}`}
+                      aria-label={t("pointsFor", { code: problem.code })}
                       defaultValue={String(problem.points)}
                       onBlur={(event) =>
                         guard(() =>
@@ -239,7 +240,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
                   <TableCell>
                     <Checkbox
                       id={`partial-${problem.id}`}
-                      aria-label={`Partial scoring for ${problem.code}`}
+                      aria-label={t("partialFor", { code: problem.code })}
                       checked={problem.partial}
                       onCheckedChange={(checked) =>
                         guard(() =>
@@ -256,7 +257,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
                   <TableCell>
                     <Checkbox
                       id={`pretested-${problem.id}`}
-                      aria-label={`Pretested for ${problem.code}`}
+                      aria-label={t("pretestedFor", { code: problem.code })}
                       checked={problem.isPretested}
                       onCheckedChange={(checked) =>
                         guard(() =>
@@ -274,7 +275,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
                     <Input
                       mono
                       inputMode="numeric"
-                      aria-label={`Maximum submissions for ${problem.code}`}
+                      aria-label={t("maxSubmissionsFor", { code: problem.code })}
                       placeholder="∞"
                       defaultValue={problem.maxSubmissions === null ? "" : String(problem.maxSubmissions)}
                       onBlur={(event) =>
@@ -295,9 +296,9 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        aria-label={`Move ${problem.code} up`}
+                        aria-label={t("moveUp", { code: problem.code })}
                         disabled={index === 0}
-                        title={index === 0 ? "Already first." : undefined}
+                        title={index === 0 ? t("alreadyFirst") : undefined}
                         onClick={() => move(index, -1)}
                       >
                         <ChevronUp aria-hidden />
@@ -305,20 +306,20 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        aria-label={`Move ${problem.code} down`}
+                        aria-label={t("moveDown", { code: problem.code })}
                         disabled={index === contest.problems.length - 1}
-                        title={index === contest.problems.length - 1 ? "Already last." : undefined}
+                        title={index === contest.problems.length - 1 ? t("alreadyLast") : undefined}
                         onClick={() => move(index, 1)}
                       >
                         <ChevronDown aria-hidden />
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => setPendingRejudge(problem)}>
-                        Rejudge
+                        {t("rejudge")}
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        aria-label={`Remove ${problem.code} from the contest`}
+                        aria-label={t("removeFromContest", { code: problem.code })}
                         onClick={() => setPendingRemove(problem)}
                       >
                         <Trash2 aria-hidden />
@@ -333,11 +334,10 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
       </Panel>
 
       <p className="text-sm text-muted-foreground">
-        Points, partial scoring, pretesting and the submission limit save as soon as the field loses focus.
-        Every one of them writes a revision.{" "}
+        {t("inlineSaveNote")}{" "}
         {contest.problems.some((problem) => problem.isPretested) ? (
           <Badge variant="warn" shape="square">
-            Pretests in use
+            {t("pretestsInUse")}
           </Badge>
         ) : null}
       </p>
@@ -346,15 +346,12 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Remove {pendingRemove?.code} from {contest.name}?
+              {t("removeTitle", { code: pendingRemove?.code ?? "", name: contest.name })}
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              The problem itself and its submissions are kept. The contest's labels close the gap, so the
-              letters after it shift up.
-            </AlertDialogDescription>
+            <AlertDialogDescription>{t("removeDescription")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{actions("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
                 const target = pendingRemove;
@@ -367,10 +364,10 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
                     reason: `Removed problem ${target.code}`,
                   }),
                 );
-                toast.success(`${target.code} was removed from the contest.`);
+                toast.success(t("removed", { code: target.code }));
               }}
             >
-              Remove
+              {t("remove")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -379,14 +376,11 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
       <AlertDialog open={pendingRejudge !== null} onOpenChange={(open) => !open && setPendingRejudge(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Rejudge every submission to {pendingRejudge?.code}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Only submissions made inside this contest are touched. They queue behind live judging, and the
-              scoreboard follows as each one finishes.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t("rejudgeTitle", { code: pendingRejudge?.code ?? "" })}</AlertDialogTitle>
+            <AlertDialogDescription>{t("rejudgeDescription")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{actions("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
                 const target = pendingRejudge;
@@ -399,11 +393,11 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
                     reason: `Rejudged ${target.code}`,
                   });
                   setJobId(result.jobId);
-                  toast.success("Rejudge queued");
+                  toast.success(t("rejudgeQueued"));
                 });
               }}
             >
-              Rejudge
+              {t("rejudge")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

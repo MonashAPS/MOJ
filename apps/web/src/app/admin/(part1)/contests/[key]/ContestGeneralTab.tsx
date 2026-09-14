@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Field, Input, MultiSelect, Panel, Select, Textarea, toast } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
+import { useTranslations } from "next-intl";
 import { useId, useMemo, useState } from "react";
 import {
   AdminCheckField,
@@ -32,6 +33,8 @@ export function ContestGeneralTab({
   contest: ContestEdit;
   options: ContestOptions | undefined;
 }) {
+  const t = useTranslations("admin.contests.general");
+  const scoring = useTranslations("contests.scoring");
   const update = useMutation(api.admin.contests.update);
   const formats = useQuery(api.contestFormats.list, {});
 
@@ -141,7 +144,7 @@ export function ContestGeneralTab({
   });
 
   const permissions = contest.permissions;
-  const configError = !parsedConfig.ok ? "That is not valid JSON." : (validation?.error ?? null);
+  const configError = !parsedConfig.ok ? t("formatConfigInvalid") : (validation?.error ?? null);
 
   function idsFor(list: string[]): Id<"profiles">[] {
     const map = profiles?.ids ?? {};
@@ -151,7 +154,7 @@ export function ContestGeneralTab({
   async function save() {
     setError(null);
     if (!reason.trim()) {
-      setReasonError("Say what you changed so the revision is worth reading.");
+      setReasonError(t("reasonRequired"));
       return;
     }
     if (configError) {
@@ -208,9 +211,9 @@ export function ContestGeneralTab({
         reason: reason.trim(),
       });
       setReason("");
-      toast.success("Contest saved.");
+      toast.success(t("saved"));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The change was refused.");
+      setError(caught instanceof Error ? caught.message : t("refused"));
     }
     setBusy(false);
   }
@@ -219,41 +222,41 @@ export function ContestGeneralTab({
     <AdminForm onSubmit={save}>
       <AdminFormError message={error} />
 
-      <AdminSection title="General">
-        <Field label="Contest id">
-          <Input mono value={contest.key} readOnly disabled title="A contest's id cannot change." />
+      <AdminSection title={t("sectionGeneral")}>
+        <Field label={t("key")}>
+          <Input mono value={contest.key} readOnly disabled title={t("keyFixed")} />
         </Field>
-        <Field label="Name" htmlFor={ids.name}>
+        <Field label={t("name")} htmlFor={ids.name}>
           <Input id={ids.name} value={name} onChange={(event) => setName(event.target.value)} />
         </Field>
-        <Field label="Summary" htmlFor={ids.summary} optional=" (optional)" className="sm:col-span-2">
+        <Field label={t("summary")} htmlFor={ids.summary} optional={t("optional")} className="sm:col-span-2">
           <Input
             id={ids.summary}
             value={summary}
             onChange={(event) => setSummary(event.target.value)}
-            placeholder="One line, used in listings and link previews"
+            placeholder={t("summaryPlaceholder")}
           />
         </Field>
       </AdminSection>
 
-      <Panel title="Description" bodyClassName="p-4">
-        <Field label="Description" hint="Markdown, shown on the contest's own page.">
+      <Panel title={t("sectionDescription")} bodyClassName="p-4">
+        <Field label={t("description")} hint={t("descriptionHint")}>
           <MarkdownEditor value={description} onChange={setDescription} preset="contest" rows={14} />
         </Field>
       </Panel>
 
-      <AdminSection title="Scheduling">
-        <Field label="Starts" htmlFor={ids.start}>
-          <DateTimeField id={ids.start} value={startTime} onChange={setStartTime} ariaLabel="Start" />
+      <AdminSection title={t("sectionScheduling")}>
+        <Field label={t("starts")} htmlFor={ids.start}>
+          <DateTimeField id={ids.start} value={startTime} onChange={setStartTime} ariaLabel={t("start")} />
         </Field>
-        <Field label="Ends" htmlFor={ids.end}>
-          <DateTimeField id={ids.end} value={endTime} onChange={setEndTime} ariaLabel="End" />
+        <Field label={t("ends")} htmlFor={ids.end}>
+          <DateTimeField id={ids.end} value={endTime} onChange={setEndTime} ariaLabel={t("end")} />
         </Field>
         <Field
-          label="Time limit"
+          label={t("timeLimit")}
           htmlFor={ids.timeLimit}
-          optional=" (optional)"
-          hint="Minutes each contestant gets from when they join. Empty means the whole window."
+          optional={t("optional")}
+          hint={t("timeLimitHint")}
         >
           <Input
             id={ids.timeLimit}
@@ -265,77 +268,77 @@ export function ContestGeneralTab({
           />
         </Field>
         <Field
-          label="Locked after"
+          label={t("lockedAfter")}
           htmlFor={ids.locked}
-          optional=" (optional)"
-          hint="Submissions stop being editable and rejudgeable after this moment."
+          optional={t("optional")}
+          hint={t("lockedAfterHint")}
         >
           <DateTimeField
             id={ids.locked}
             value={lockedAfter}
             onChange={setLockedAfter}
             clearable
-            ariaLabel="Locked after"
+            ariaLabel={t("lockedAfter")}
             disabled={!permissions.lockContest}
           />
         </Field>
       </AdminSection>
 
-      <AdminSection title="Settings">
+      <AdminSection title={t("sectionSettings")}>
         <AdminWideField>
           <div className="grid gap-2 sm:grid-cols-3">
             <AdminCheckField
-              label="Visible"
-              hint="Listed on /contests/."
+              label={t("visible")}
+              hint={t("visibleHint")}
               checked={isVisible}
               onCheckedChange={setIsVisible}
               disabled={!permissions.changeContestVisibility}
-              disabledReason="You do not have judge.change_contest_visibility."
+              disabledReason={t("missingPermission", { permission: "judge.change_contest_visibility" })}
             />
             <AdminCheckField
-              label="Clarifications"
-              hint="Contestants may ask questions."
+              label={t("clarifications")}
+              hint={t("clarificationsHint")}
               checked={useClarifications}
               onCheckedChange={setUseClarifications}
             />
             <AdminCheckField
-              label="Hide problem tags"
+              label={t("hideProblemTags")}
               checked={hideProblemTags}
               onCheckedChange={setHideProblemTags}
             />
             <AdminCheckField
-              label="Hide problem authors"
+              label={t("hideProblemAuthors")}
               checked={hideProblemAuthors}
               onCheckedChange={setHideProblemAuthors}
             />
             <AdminCheckField
-              label="Pretests only"
-              hint="Grade against pretests during the contest."
+              label={t("pretestsOnly")}
+              hint={t("pretestsOnlyHint")}
               checked={runPretestsOnly}
               onCheckedChange={setRunPretestsOnly}
             />
             <AdminCheckField
-              label="Short display"
-              hint="Compact scoreboard cells."
+              label={t("shortDisplay")}
+              hint={t("shortDisplayHint")}
               checked={showShortDisplay}
               onCheckedChange={setShowShortDisplay}
             />
           </div>
         </AdminWideField>
-        <Field label="Scoreboard visibility" htmlFor={ids.scoreboard}>
+        <Field label={t("scoreboardVisibility")} htmlFor={ids.scoreboard}>
           <Select
             id={ids.scoreboard}
             value={scoreboardVisibility}
             onValueChange={(value) => setScoreboardVisibility(value as ContestEdit["scoreboardVisibility"])}
             options={[
-              { value: "V", label: "Visible to everyone" },
-              { value: "C", label: "Hidden until the contest ends" },
-              { value: "P", label: "Visible to participants only" },
-              { value: "H", label: "Hidden from everyone" },
+              { value: "V", label: t("scoreboardEveryone") },
+              { value: "C", label: t("scoreboardUntilEnd") },
+              { value: "P", label: t("scoreboardParticipants") },
+              { value: "H", label: t("scoreboardNobody") },
             ]}
           />
         </Field>
-        <Field label="Points precision" htmlFor={ids.precision} hint="Decimal places on the scoreboard.">
+        <Field label={t("pointsPrecision")} htmlFor={ids.precision} hint={t("pointsPrecisionHint")}>
           <Input
             id={ids.precision}
             mono
@@ -346,12 +349,8 @@ export function ContestGeneralTab({
         </Field>
       </AdminSection>
 
-      <AdminSection title="Freeze">
-        <Field
-          label="Freeze"
-          htmlFor={ids.freeze}
-          hint="Minutes before the end that the public scoreboard stops updating. 0 means no freeze."
-        >
+      <AdminSection title={t("sectionFreeze")}>
+        <Field label={t("freeze")} htmlFor={ids.freeze} hint={t("freezeHint")}>
           <Input
             id={ids.freeze}
             mono
@@ -361,15 +360,15 @@ export function ContestGeneralTab({
           />
         </Field>
         <AdminCheckField
-          label="Blind during the freeze"
-          hint="Contestants see 'pending' instead of their own verdicts until the contest ends."
+          label={t("blindDuringFreeze")}
+          hint={t("blindDuringFreezeHint")}
           checked={blindDuringFreeze}
           onCheckedChange={setBlindDuringFreeze}
         />
       </AdminSection>
 
-      <AdminSection title="Format">
-        <Field label="Format" htmlFor={ids.format}>
+      <AdminSection title={t("sectionFormat")}>
+        <Field label={t("format")} htmlFor={ids.format}>
           <Select
             id={ids.format}
             value={formatName}
@@ -381,26 +380,26 @@ export function ContestGeneralTab({
             options={(formats ?? []).map((row) => ({ value: row.name, label: row.displayName }))}
           />
         </Field>
-        <Field label="Problem labels" htmlFor={ids.labelScheme}>
+        <Field label={t("labelScheme")} htmlFor={ids.labelScheme}>
           <Select
             id={ids.labelScheme}
             value={labelScheme}
             onValueChange={(value) => setLabelScheme(value as ContestEdit["labelScheme"])}
             options={[
-              { value: "letters", label: "Letters (A, B, C)" },
-              { value: "numbers", label: "Numbers (1, 2, 3)" },
-              { value: "custom", label: "Custom" },
+              { value: "letters", label: t("labelSchemeLetters") },
+              { value: "numbers", label: t("labelSchemeNumbers") },
+              { value: "custom", label: t("labelSchemeCustom") },
             ]}
           />
         </Field>
         <Field
-          label="Format configuration"
+          label={t("formatConfig")}
           htmlFor={ids.formatConfig}
           error={configError ?? undefined}
           hint={
             described?.lines?.length
-              ? described.lines.join(" ")
-              : "JSON. Leave empty to use the format's defaults."
+              ? described.lines.map((line) => scoring(line.key, line.values)).join(" ")
+              : t("formatConfigHint")
           }
           className="sm:col-span-2"
         >
@@ -416,9 +415,9 @@ export function ContestGeneralTab({
         </Field>
         {labelScheme === "custom" ? (
           <Field
-            label="Custom labels"
+            label={t("customLabels")}
             htmlFor={ids.customLabels}
-            hint="Comma separated, in problem order."
+            hint={t("customLabelsHint")}
             className="sm:col-span-2"
           >
             <Input
@@ -432,28 +431,28 @@ export function ContestGeneralTab({
         ) : null}
       </AdminSection>
 
-      <AdminSection title="Rating">
+      <AdminSection title={t("sectionRating")}>
         <AdminWideField>
           <div className="grid gap-2 sm:grid-cols-2">
             <AdminCheckField
-              label="Rated"
-              hint="Ratings move when the contest is rated from the Actions tab."
+              label={t("rated")}
+              hint={t("ratedHint")}
               checked={isRated}
               onCheckedChange={setIsRated}
               disabled={!permissions.contestRating}
-              disabledReason="You do not have judge.contest_rating."
+              disabledReason={t("missingPermission", { permission: "judge.contest_rating" })}
             />
             <AdminCheckField
-              label="Rate everyone"
-              hint="Include participants who scored nothing."
+              label={t("rateAll")}
+              hint={t("rateAllHint")}
               checked={rateAll}
               onCheckedChange={setRateAll}
               disabled={!permissions.contestRating}
-              disabledReason="You do not have judge.contest_rating."
+              disabledReason={t("missingPermission", { permission: "judge.contest_rating" })}
             />
           </div>
         </AdminWideField>
-        <Field label="Rating floor" htmlFor={ids.ratingFloor} optional=" (optional)">
+        <Field label={t("ratingFloor")} htmlFor={ids.ratingFloor} optional={t("optional")}>
           <Input
             id={ids.ratingFloor}
             mono
@@ -462,7 +461,7 @@ export function ContestGeneralTab({
             onChange={(event) => setRatingFloor(event.target.value)}
           />
         </Field>
-        <Field label="Rating ceiling" htmlFor={ids.ratingCeiling} optional=" (optional)">
+        <Field label={t("ratingCeiling")} htmlFor={ids.ratingCeiling} optional={t("optional")}>
           <Input
             id={ids.ratingCeiling}
             mono
@@ -471,7 +470,7 @@ export function ContestGeneralTab({
             onChange={(event) => setRatingCeiling(event.target.value)}
           />
         </Field>
-        <Field label="Performance ceiling override" htmlFor={ids.performanceCeiling} optional=" (optional)">
+        <Field label={t("performanceCeiling")} htmlFor={ids.performanceCeiling} optional={t("optional")}>
           <Input
             id={ids.performanceCeiling}
             mono
@@ -480,66 +479,68 @@ export function ContestGeneralTab({
             title={
               permissions.overridePerformanceCeiling
                 ? undefined
-                : "You do not have judge.override_performance_ceiling."
+                : t("missingPermission", { permission: "judge.override_performance_ceiling" })
             }
             value={performanceCeiling}
             onChange={(event) => setPerformanceCeiling(event.target.value)}
           />
         </Field>
-        <Field label="Excluded from rating" htmlFor={ids.rateExclude} className="sm:col-span-2">
+        <Field label={t("rateExclude")} htmlFor={ids.rateExclude} className="sm:col-span-2">
           <UserPicker
             id={ids.rateExclude}
             values={rateExclude}
             onChange={setRateExclude}
             disabled={!permissions.contestRating}
-            disabledReason="You do not have judge.contest_rating."
-            ariaLabel="Excluded from rating"
+            disabledReason={t("missingPermission", { permission: "judge.contest_rating" })}
+            ariaLabel={t("rateExclude")}
           />
         </Field>
       </AdminSection>
 
-      <AdminSection title="Access">
+      <AdminSection title={t("sectionAccess")}>
         <Field
-          label="Access code"
+          label={t("accessCode")}
           htmlFor={ids.accessCode}
-          optional=" (optional)"
-          hint="Anyone with the code may join, even if the contest is private."
+          optional={t("optional")}
+          hint={t("accessCodeHint")}
         >
           <Input
             id={ids.accessCode}
             mono
             value={accessCode}
             disabled={!permissions.contestAccessCode}
-            title={permissions.contestAccessCode ? undefined : "You do not have judge.contest_access_code."}
+            title={
+              permissions.contestAccessCode
+                ? undefined
+                : t("missingPermission", { permission: "judge.contest_access_code" })
+            }
             onChange={(event) => setAccessCode(event.target.value)}
           />
         </Field>
         <AdminCheckField
-          label="Private"
-          hint="Only the contestants named below may see it."
+          label={t("private")}
+          hint={t("privateHint")}
           checked={isPrivate}
           onCheckedChange={setIsPrivate}
           disabled={!permissions.createPrivateContest}
-          disabledReason="You do not have judge.create_private_contest."
+          disabledReason={t("missingPermission", { permission: "judge.create_private_contest" })}
         />
-        <Field label="Private contestants" htmlFor={ids.contestants} className="sm:col-span-2">
+        <Field label={t("privateContestants")} htmlFor={ids.contestants} className="sm:col-span-2">
           <UserPicker
             id={ids.contestants}
             values={privateContestants}
             onChange={setPrivateContestants}
             disabled={!permissions.createPrivateContest}
-            disabledReason="You do not have judge.create_private_contest."
-            ariaLabel="Private contestants"
+            disabledReason={t("missingPermission", { permission: "judge.create_private_contest" })}
+            ariaLabel={t("privateContestants")}
           />
         </Field>
-        <Field
-          label="Organisations"
-          htmlFor={ids.organizations}
-          hint="Naming any organisation makes the contest private to them."
-        >
+        <Field label={t("organizations")} htmlFor={ids.organizations} hint={t("organizationsHint")}>
           <div
             title={
-              permissions.createPrivateContest ? undefined : "You do not have judge.create_private_contest."
+              permissions.createPrivateContest
+                ? undefined
+                : t("missingPermission", { permission: "judge.create_private_contest" })
             }
           >
             <MultiSelect
@@ -547,12 +548,12 @@ export function ContestGeneralTab({
               values={organizationSlugs}
               onChange={setOrganizationSlugs}
               options={(options?.organizations ?? []).map((row) => ({ value: row.slug, label: row.name }))}
-              placeholder="Everyone"
+              placeholder={t("organizationsPlaceholder")}
               disabled={!permissions.createPrivateContest}
             />
           </div>
         </Field>
-        <Field label="Classes" htmlFor={ids.classes} optional=" (optional)">
+        <Field label={t("classes")} htmlFor={ids.classes} optional={t("optional")}>
           <MultiSelect
             id={ids.classes}
             values={classNames}
@@ -561,37 +562,37 @@ export function ContestGeneralTab({
               value: row.name,
               label: row.organization ? `${row.name} (${row.organization})` : row.name,
             }))}
-            placeholder="No class"
+            placeholder={t("classesPlaceholder")}
           />
         </Field>
         <AdminCheckField
-          label="Limit who may join"
-          hint="Only members of the organisations below may enter."
+          label={t("limitJoin")}
+          hint={t("limitJoinHint")}
           checked={limitJoinOrganizations}
           onCheckedChange={setLimitJoinOrganizations}
         />
-        <Field label="Organisations that may join" htmlFor={ids.joinOrganizations}>
+        <Field label={t("joinOrganizations")} htmlFor={ids.joinOrganizations}>
           <MultiSelect
             id={ids.joinOrganizations}
             values={joinOrganizationSlugs}
             onChange={setJoinOrganizationSlugs}
             options={(options?.organizations ?? []).map((row) => ({ value: row.slug, label: row.name }))}
-            placeholder="Anyone"
+            placeholder={t("joinOrganizationsPlaceholder")}
           />
         </Field>
       </AdminSection>
 
-      <AdminSection title="Presentation">
-        <Field label="Tags" htmlFor={ids.tags} optional=" (optional)">
+      <AdminSection title={t("sectionPresentation")}>
+        <Field label={t("tags")} htmlFor={ids.tags} optional={t("optional")}>
           <MultiSelect
             id={ids.tags}
             values={tagNames}
             onChange={setTagNames}
             options={(options?.tags ?? []).map((row) => ({ value: row.name, label: row.name }))}
-            placeholder="No tags"
+            placeholder={t("tagsPlaceholder")}
           />
         </Field>
-        <Field label="Social image" htmlFor={ids.ogImage} optional=" (optional)">
+        <Field label={t("ogImage")} htmlFor={ids.ogImage} optional={t("optional")}>
           <Input
             id={ids.ogImage}
             mono
@@ -600,7 +601,7 @@ export function ContestGeneralTab({
             placeholder="https://"
           />
         </Field>
-        <Field label="Logo override" htmlFor={ids.logo} optional=" (optional)">
+        <Field label={t("logoOverride")} htmlFor={ids.logo} optional={t("optional")}>
           <Input
             id={ids.logo}
             mono
@@ -611,23 +612,19 @@ export function ContestGeneralTab({
         </Field>
       </AdminSection>
 
-      <AdminSection title="Justice" columns={1}>
-        <Field
-          label="Banned users"
-          htmlFor={ids.banned}
-          hint="They cannot join, and are dropped out of contest mode when this is saved."
-        >
+      <AdminSection title={t("sectionJustice")} columns={1}>
+        <Field label={t("bannedUsers")} htmlFor={ids.banned} hint={t("bannedUsersHint")}>
           <UserPicker
             id={ids.banned}
             values={bannedUsers}
             onChange={setBannedUsers}
-            ariaLabel="Banned users"
+            ariaLabel={t("bannedUsers")}
           />
         </Field>
       </AdminSection>
 
-      <ReasonField value={reason} onChange={setReason} error={reasonError} entity="contest" />
-      <AdminFormFooter busy={busy} submitLabel="Save contest" />
+      <ReasonField value={reason} onChange={setReason} error={reasonError} hint={t("reasonHint")} />
+      <AdminFormFooter busy={busy} submitLabel={t("submit")} />
     </AdminForm>
   );
 }

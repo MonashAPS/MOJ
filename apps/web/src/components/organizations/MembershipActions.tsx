@@ -22,6 +22,7 @@ import {
 } from "@moj/ui";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 export type MembershipViewer = {
@@ -54,6 +55,9 @@ export function MembershipActions({
   viewer: MembershipViewer;
   signedIn: boolean;
 }) {
+  const t = useTranslations("organizations.membership");
+  const shared = useTranslations("organizations.common");
+  const actions = useTranslations("common.actions");
   const router = useRouter();
   const join = useMutation(api.organizations.join);
   const leave = useMutation(api.organizations.leave);
@@ -65,7 +69,7 @@ export function MembershipActions({
     return (
       <Button variant="secondary" full asChild>
         <a href={`/accounts/login/?next=${encodeURIComponent(requestHref.replace(/\/request\/$/, "/"))}`}>
-          Log in to join
+          {t("logInToJoin")}
         </a>
       </Button>
     );
@@ -75,12 +79,12 @@ export function MembershipActions({
     setBusy(true);
     try {
       await join({ slug, accessCode });
-      toast.success(`You are now a member of ${name}.`);
+      toast.success(t("joined", { organization: name }));
       setCodeOpen(false);
       setCode("");
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "That did not work.");
+      toast.error(error instanceof Error ? error.message : shared("failed"));
     } finally {
       setBusy(false);
     }
@@ -91,20 +95,16 @@ export function MembershipActions({
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button variant="secondary" full>
-            Leave organization
+            {t("leave")}
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Leave {name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {isOpen
-                ? "You will have to rejoin to show up on the organization leaderboard."
-                : "You will have to request membership in order to join again."}
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t("leaveTitle", { organization: name })}</AlertDialogTitle>
+            <AlertDialogDescription>{isOpen ? t("leaveOpen") : t("leavePrivate")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{actions("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               disabled={busy}
               onClick={async (event) => {
@@ -112,16 +112,16 @@ export function MembershipActions({
                 setBusy(true);
                 try {
                   await leave({ slug });
-                  toast.success(`You have left ${name}.`);
+                  toast.success(t("left", { organization: name }));
                   router.refresh();
                 } catch (error) {
-                  toast.error(error instanceof Error ? error.message : "That did not work.");
+                  toast.error(error instanceof Error ? error.message : shared("failed"));
                 } finally {
                   setBusy(false);
                 }
               }}
             >
-              {busy ? "Leaving…" : "Leave organization"}
+              {busy ? t("leaving") : t("leave")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -133,17 +133,17 @@ export function MembershipActions({
     if (!requiresAccessCode) {
       return (
         <Button full busy={busy} onClick={() => doJoin()}>
-          Join organization
+          {t("join")}
         </Button>
       );
     }
     return (
       <Dialog open={codeOpen} onOpenChange={setCodeOpen}>
         <Button full onClick={() => setCodeOpen(true)}>
-          Join organization
+          {t("join")}
         </Button>
-        <DialogContent title={`Join ${name}`} description="This organization asks for an access code.">
-          <Field label="Access code" htmlFor="organization-access-code">
+        <DialogContent title={t("joinTitle", { organization: name })} description={t("accessCodeNeeded")}>
+          <Field label={t("accessCode")} htmlFor="organization-access-code">
             <Input
               id="organization-access-code"
               mono
@@ -154,10 +154,10 @@ export function MembershipActions({
           </Field>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="secondary">Cancel</Button>
+              <Button variant="secondary">{actions("cancel")}</Button>
             </DialogClose>
             <Button busy={busy} disabled={!code} onClick={() => doJoin(code)}>
-              Join
+              {t("joinShort")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -167,8 +167,8 @@ export function MembershipActions({
 
   if (viewer.hasPendingRequest) {
     return (
-      <Button variant="secondary" full disabled title="You already have a request waiting for review.">
-        Request pending
+      <Button variant="secondary" full disabled title={t("requestPendingTitle")}>
+        {t("requestPending")}
       </Button>
     );
   }
@@ -176,14 +176,14 @@ export function MembershipActions({
   if (viewer.canRequest) {
     return (
       <Button full asChild>
-        <a href={requestHref}>Request membership</a>
+        <a href={requestHref}>{t("requestMembership")}</a>
       </Button>
     );
   }
 
   return (
-    <Button variant="secondary" full disabled title={`${name} is not taking new members.`}>
-      Not taking members
+    <Button variant="secondary" full disabled title={t("closedTitle", { organization: name })}>
+      {t("closed")}
     </Button>
   );
 }

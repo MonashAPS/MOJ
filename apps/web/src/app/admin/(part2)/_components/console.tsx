@@ -18,6 +18,7 @@ import {
   Tooltip,
 } from "@moj/ui";
 import { Check, Copy, Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect, useState } from "react";
 
 /** Every missing value in the console is an em-dash. */
@@ -66,6 +67,8 @@ export function ConfirmAction({
   confirmLabel: string;
   onConfirm: () => void | Promise<void>;
 }) {
+  const t = useTranslations("admin.console");
+  const actions = useTranslations("common.actions");
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -90,7 +93,7 @@ export function ConfirmAction({
         <AlertDialogFooter>
           <AlertDialogCancel asChild>
             <Button variant="secondary" type="button">
-              Cancel
+              {actions("cancel")}
             </Button>
           </AlertDialogCancel>
           <AlertDialogAction
@@ -99,7 +102,7 @@ export function ConfirmAction({
               void run();
             }}
           >
-            {busy ? "Working…" : confirmLabel}
+            {busy ? t("working") : confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -146,8 +149,10 @@ export function Flags({
 }
 
 /** Copy shows an inline check, never a toast (DESIGN.md section 20.3). */
-export function CopyButton({ value, label = "Copy" }: { value: string; label?: string }) {
+export function CopyButton({ value, label }: { value: string; label?: string }) {
+  const t = useTranslations("admin.console");
   const [copied, setCopied] = useState(false);
+  const text = label ?? t("copy");
 
   useEffect(() => {
     if (!copied) return;
@@ -156,18 +161,18 @@ export function CopyButton({ value, label = "Copy" }: { value: string; label?: s
   }, [copied]);
 
   return (
-    <Tooltip content={copied ? "Copied" : label}>
+    <Tooltip content={copied ? t("copied") : text}>
       <Button
         type="button"
         variant="secondary"
         size="sm"
-        aria-label={label}
+        aria-label={text}
         icon={copied ? <Check aria-hidden /> : <Copy aria-hidden />}
         onClick={() => {
           void navigator.clipboard.writeText(value).then(() => setCopied(true));
         }}
       >
-        {copied ? "Copied" : label}
+        {copied ? t("copied") : text}
       </Button>
     </Tooltip>
   );

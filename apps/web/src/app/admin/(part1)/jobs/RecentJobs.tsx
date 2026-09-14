@@ -5,34 +5,38 @@ import { EmptyState, Panel, Progress } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { LayoutList } from "lucide-react";
 import Link from "next/link";
-import { JobStatusBadge, jobTypeLabel } from "@/components/admin";
+import { useTranslations } from "next-intl";
+import { JobStatusBadge } from "@/components/admin";
 import { formatRelative } from "@/lib/format";
 
 /** The overview's tail: what the console has been asked to do lately. */
 export function RecentJobs({ limit = 5 }: { limit?: number }) {
+  const t = useTranslations("admin.jobs.recent");
+  const types = useTranslations("admin.jobs.list.types");
+  const states = useTranslations("common.states");
   const jobs = useQuery(api.jobs.recent, { limit });
 
   return (
     <Panel
-      title="Recent jobs"
+      title={t("title")}
       action={
         <Link
           href="/admin/jobs/"
           className="text-sm text-titlebar-ink hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-royal/45"
         >
-          All jobs
+          {t("all")}
         </Link>
       }
       bodyClassName="p-0"
     >
       {jobs === undefined ? (
-        <p className="p-3 text-sm text-muted-foreground">Loading…</p>
+        <p className="p-3 text-sm text-muted-foreground">{states("loading")}</p>
       ) : jobs.length === 0 ? (
         <EmptyState
           className="m-3"
           icon={<LayoutList aria-hidden />}
-          title="No jobs yet"
-          description="Rejudges, rescores and ratings appear here while they run."
+          title={t("emptyTitle")}
+          description={t("emptyDescription")}
         />
       ) : (
         <ul className="divide-y divide-border">
@@ -42,7 +46,9 @@ export function RecentJobs({ limit = 5 }: { limit?: number }) {
             return (
               <li key={job._id} className="grid gap-1 px-3 py-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-base font-medium text-foreground">{jobTypeLabel(job.type)}</span>
+                  <span className="text-base font-medium text-foreground">
+                    {types.has(job.type) ? types(job.type) : job.type}
+                  </span>
                   <JobStatusBadge status={job.status} />
                   <span className="ml-auto font-mono text-sm tabular-nums text-muted-foreground">
                     {formatRelative(job.createdAt)}

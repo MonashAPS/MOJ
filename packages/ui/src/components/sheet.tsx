@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import type { ComponentProps } from "react";
 import { cn } from "../cn";
 import { focusRing } from "../styles";
+import { useUiText } from "../ui-text";
 
 export const Sheet = (props: ComponentProps<typeof DialogPrimitive.Root>) => (
   <DialogPrimitive.Root data-slot="sheet" {...props} />
@@ -28,6 +29,7 @@ export function SheetContent({
   side?: "top" | "right" | "bottom" | "left";
   showCloseButton?: boolean;
 }) {
+  const ui = useUiText();
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay
@@ -54,7 +56,7 @@ export function SheetContent({
         {children}
         {showCloseButton ? (
           <DialogPrimitive.Close
-            aria-label="Close"
+            aria-label={ui.close}
             className={cn(
               "absolute right-4 top-4 flex size-8 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
               focusRing,

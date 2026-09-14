@@ -32,6 +32,7 @@ import {
   participationEndTime,
   participationHasEnded,
   participationTimeRemaining,
+  type ScoringLine,
   shouldLeaveContest,
 } from "@moj/core";
 import { ConvexError, v } from "convex/values";
@@ -893,7 +894,7 @@ export type ContestDetail = {
     hasSubmissionCap: boolean;
     hasPublicEditorials: boolean;
   };
-  format: { name: string; displayName: string; shortFormDisplay: string[]; labelScheme: string };
+  format: { name: string; displayName: string; shortFormDisplay: ScoringLine[]; labelScheme: string };
   participation: ParticipationSummary | null;
   liveParticipation: ParticipationSummary | null;
   timing: {
@@ -1128,7 +1129,7 @@ export const get = query({
       .first();
 
     const format = formatFor(contest);
-    let shortFormDisplay: string[] = [];
+    let shortFormDisplay: ScoringLine[] = [];
     try {
       shortFormDisplay = format.getShortFormDisplay(contest.formatConfig);
     } catch {

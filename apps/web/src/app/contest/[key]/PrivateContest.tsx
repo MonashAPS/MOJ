@@ -2,27 +2,25 @@ import type { AccessDecision } from "@convex/contests";
 import { Alert, AlertDescription, AlertTitle, Panel, TitleRow } from "@moj/ui";
 import { Lock } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 type PrivateAccess = Extract<AccessDecision, { kind: "privateContest" }>;
 
 /** `contest/private.html`: who may open this contest, and nothing else. */
 export function PrivateContest({ access }: { access: PrivateAccess }) {
+  const t = useTranslations("contests.private");
   const { organizations, classes, isPrivate, isOrganizationPrivate } = access;
 
   const organizationsLead =
-    organizations.length > 0
-      ? isPrivate
-        ? "Additionally, only the following organizations may access this contest:"
-        : "Only the following organizations may access this contest:"
-      : null;
+    organizations.length > 0 ? (isPrivate ? t("organizationsAdditional") : t("organizationsOnly")) : null;
 
   const classesLead =
     classes.length > 0
       ? organizations.length > 0
-        ? "Alternatively, the following classes may access this contest:"
+        ? t("classesAlternatively")
         : isPrivate
-          ? "Additionally, only the following classes may access this contest:"
-          : "Only the following classes may access this contest:"
+          ? t("classesAdditional")
+          : t("classesOnly")
       : null;
 
   return (
@@ -30,16 +28,14 @@ export function PrivateContest({ access }: { access: PrivateAccess }) {
       <TitleRow title={access.name} />
       <Alert variant="info">
         <Lock size={16} aria-hidden />
-        <AlertTitle>Access denied</AlertTitle>
-        <AlertDescription>
-          {isPrivate ? "This contest is private to specific users." : "This contest is restricted."}
-        </AlertDescription>
+        <AlertTitle>{t("accessDenied")}</AlertTitle>
+        <AlertDescription>{isPrivate ? t("privateToUsers") : t("restricted")}</AlertDescription>
       </Alert>
 
       {isOrganizationPrivate && (organizationsLead || classesLead) ? (
         <div className="mt-6 grid gap-4">
           {organizationsLead ? (
-            <Panel title="Organizations" bodyClassName="p-0">
+            <Panel title={t("organizations")} bodyClassName="p-0">
               <p className="border-b border-border px-3 py-2 text-sm text-muted-foreground">
                 {organizationsLead}
               </p>
@@ -54,7 +50,7 @@ export function PrivateContest({ access }: { access: PrivateAccess }) {
           ) : null}
 
           {classesLead ? (
-            <Panel title="Classes" bodyClassName="p-0">
+            <Panel title={t("classes")} bodyClassName="p-0">
               <p className="border-b border-border px-3 py-2 text-sm text-muted-foreground">{classesLead}</p>
               <ul>
                 {classes.map((klass) => (

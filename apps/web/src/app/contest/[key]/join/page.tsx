@@ -1,17 +1,19 @@
 import { api } from "@convex/_generated/api";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { queryAsViewer } from "@/lib/convex-server";
 import { JoinPanel } from "./JoinPanel";
 
 export async function generateMetadata({ params }: { params: Promise<{ key: string }> }): Promise<Metadata> {
   const { key } = await params;
+  const t = await getTranslations("contests.join");
   const detail = await queryAsViewer(api.contests.get, { key }).catch(() => null);
-  if (!detail?.contest) return { title: "Join contest" };
+  if (!detail?.contest) return { title: t("metaFallback") };
   return {
     title: detail.viewer.requiresAccessCode
-      ? `Enter access code for "${detail.contest.name}"`
-      : `Join ${detail.contest.name}`,
+      ? t("accessCodeTitle", { name: detail.contest.name })
+      : t("joinTitle", { name: detail.contest.name }),
   };
 }
 

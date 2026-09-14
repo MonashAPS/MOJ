@@ -3,6 +3,7 @@
 import { Button, Panel } from "@moj/ui";
 import { FileQuestion, ShieldAlert, TriangleAlert } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 function SignalIcon({ code }: { code: number }) {
   if (code === 403) return <ShieldAlert size={14} strokeWidth={2} aria-hidden />;
@@ -25,6 +26,9 @@ export function ErrorScreen({
   description: string;
   onRetry?: () => void;
 }) {
+  const t = useTranslations("common.error");
+  const actions = useTranslations("common.actions");
+
   return (
     <div className="relative flex min-h-[60dvh] items-center justify-center py-12">
       {/* An error page can be served from any path, so the shell cannot know to
@@ -46,19 +50,22 @@ export function ErrorScreen({
         </div>
 
         <div className="grid gap-1 font-mono text-mono text-muted-foreground">
-          <span>site: fatal signal: Segmentation fault</span>
+          <span>{t("signal")}</span>
           <span>
-            site died (signal <span className="tabular-nums">{code}</span>, exit -11)
+            {t.rich("exit", {
+              code,
+              num: (chunks) => <span className="tabular-nums">{chunks}</span>,
+            })}
           </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <Button asChild variant="secondary">
-            <Link href="/">Go home</Link>
+            <Link href="/">{actions("goHome")}</Link>
           </Button>
           {onRetry ? (
             <Button variant="primary" onClick={onRetry}>
-              Try again
+              {actions("tryAgain")}
             </Button>
           ) : null}
         </div>

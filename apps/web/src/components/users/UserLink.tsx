@@ -1,7 +1,9 @@
 import { getUserCssClass } from "@moj/core/ratings";
-import { cn, ratingClass, ratingTitle } from "@moj/ui";
+import { cn, ratingClass } from "@moj/ui";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
+import { ratingTitleKey } from "./rating-title";
 
 export type UserLinkProps = {
   username: string;
@@ -35,6 +37,7 @@ export function UserLink({
   className,
   children,
 }: UserLinkProps) {
+  const t = useTranslations("users.ratings");
   // `Profile.get_user_css_class`: `rating <rate-class> <display_rank>`, built in
   // one place so a username looks the same wherever it appears.
   const cls = ratingClass(rating);
@@ -42,7 +45,7 @@ export function UserLink({
   const label = (
     <span
       className={cn(getUserCssClass(displayRank ?? "user", rating ?? null), className)}
-      title={ratingTitle(rating)}
+      title={t(ratingTitleKey(rating))}
     >
       {name}
     </span>

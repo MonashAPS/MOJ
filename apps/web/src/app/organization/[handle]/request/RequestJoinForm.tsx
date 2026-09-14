@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import { Button, Field, FormFooter, Panel, Select, Textarea, toast } from "@moj/ui";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type KeyboardEvent, useId, useState } from "react";
 
 export type ClassOption = { value: string; label: string };
@@ -23,6 +24,9 @@ export function RequestJoinForm({
   classes: ClassOption[];
   classRequired: boolean;
 }) {
+  const t = useTranslations("organizations.request");
+  const shared = useTranslations("organizations.common");
+  const actions = useTranslations("common.actions");
   const router = useRouter();
   const request = useMutation(api.organizations.request);
   const reasonId = useId();
@@ -38,11 +42,11 @@ export function RequestJoinForm({
     setBusy(true);
     try {
       await request({ slug, reason, classSlug });
-      toast.success(`Your request to join ${name} has been sent.`);
+      toast.success(t("sent", { organization: name }));
       router.push(backHref);
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "That did not work.");
+      toast.error(error instanceof Error ? error.message : shared("failed"));
     } finally {
       setBusy(false);
     }
@@ -54,25 +58,25 @@ export function RequestJoinForm({
 
   return (
     <div className="grid max-w-[44rem] gap-4">
-      <Panel title="Your request" bodyClassName="grid gap-4 p-4">
+      <Panel title={t("panel")} bodyClassName="grid gap-4 p-4">
         {classes.length > 0 ? (
           <Field
-            label="Select your class"
+            label={t("class")}
             htmlFor={classId}
-            optional={classRequired ? undefined : " (optional)"}
-            error={missingClass ? "This organization requires a class." : undefined}
+            optional={classRequired ? undefined : t("optional")}
+            error={missingClass ? t("classRequired") : undefined}
           >
             <Select
               id={classId}
               options={classes}
               value={classSlug}
               onValueChange={setClassSlug}
-              placeholder="Pick a class"
+              placeholder={t("classPlaceholder")}
               invalid={missingClass}
             />
           </Field>
         ) : null}
-        <Field label="Your reason for joining" htmlFor={reasonId} hint="Ctrl+Enter sends the request.">
+        <Field label={t("reason")} htmlFor={reasonId} hint={t("reasonHint")}>
           <Textarea
             id={reasonId}
             rows={6}
@@ -84,21 +88,15 @@ export function RequestJoinForm({
       </Panel>
       <FormFooter>
         <Button variant="secondary" asChild>
-          <a href={backHref}>Cancel</a>
+          <a href={backHref}>{actions("cancel")}</a>
         </Button>
         <Button
           busy={busy}
           disabled={!reason.trim() || missingClass}
-          title={
-            missingClass
-              ? "Pick a class first."
-              : reason.trim()
-                ? undefined
-                : "Say why you want to join first."
-          }
+          title={missingClass ? t("pickClass") : reason.trim() ? undefined : t("giveReason")}
           onClick={submit}
         >
-          Request
+          {t("submit")}
         </Button>
       </FormFooter>
     </div>

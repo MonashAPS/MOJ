@@ -16,6 +16,7 @@ import {
 import { ChevronDown, LogOut, Settings, UserCog, UserX } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { authClient } from "@/auth/client";
 import { type ThemeChoice, ThemeSegmented, ThemeToggle } from "./ThemeToggle";
 
@@ -36,6 +37,7 @@ export function UserBlock({
   viewer: ViewerSummary | null;
   registrationOpen?: boolean;
 }) {
+  const t = useTranslations("common.nav");
   const router = useRouter();
 
   if (!viewer) {
@@ -49,11 +51,11 @@ export function UserBlock({
           size="sm"
           className="text-nav-ink/90 hover:bg-nav-hover hover:text-nav-ink"
         >
-          <Link href="/accounts/login/">Log in</Link>
+          <Link href="/accounts/login/">{t("logIn")}</Link>
         </Button>
         {registrationOpen ? (
           <Button asChild variant="canary" size="pill">
-            <Link href="/accounts/register/">Sign up</Link>
+            <Link href="/accounts/register/">{t("signUp")}</Link>
           </Button>
         ) : null}
       </div>
@@ -90,20 +92,20 @@ export function UserBlock({
             <DropdownMenuItem asChild>
               <Link href="/admin/">
                 <Settings aria-hidden />
-                Admin
+                {t("admin")}
               </Link>
             </DropdownMenuItem>
           ) : null}
           <DropdownMenuItem asChild>
             <Link href={`/user/${viewer.username}`}>
               <UserCog aria-hidden />
-              My profile
+              {t("myProfile")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/edit/profile/">
               <UserCog aria-hidden />
-              Edit profile
+              {t("editProfile")}
             </Link>
           </DropdownMenuItem>
           {viewer.isImpersonating ? (
@@ -116,12 +118,12 @@ export function UserBlock({
               }}
             >
               <UserX aria-hidden />
-              Stop impersonating
+              {t("stopImpersonating")}
             </DropdownMenuItem>
           ) : null}
 
           <DropdownMenuSeparator />
-          <DropdownMenuLabel>Theme</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("theme")}</DropdownMenuLabel>
           <div className="px-1 pb-1">
             <ThemeSegmented initial={viewer.siteTheme} />
           </div>
@@ -132,7 +134,7 @@ export function UserBlock({
           <DropdownMenuItem variant="destructive" asChild>
             <Link href="/accounts/logout/">
               <LogOut aria-hidden />
-              Log out
+              {t("logOut")}
             </Link>
           </DropdownMenuItem>
         </DropdownMenuContent>

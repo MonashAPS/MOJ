@@ -16,6 +16,7 @@ import {
 import { ChevronDown, Menu, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { activeNavKeys, type NavNode } from "@/lib/nav";
 import { UserBlock, type ViewerSummary } from "./UserBlock";
@@ -45,6 +46,8 @@ export function NavBar({
   logoUrl?: string | null;
   siteName?: string;
 }) {
+  const t = useTranslations("common.nav");
+  const actions = useTranslations("common.actions");
   const pathname = usePathname() ?? "/";
   const active = activeNavKeys(nav, pathname);
 
@@ -120,11 +123,14 @@ export function NavBar({
   const overflow = isMobile ? [] : nav.slice(visibleCount);
 
   return (
-    <nav aria-label="Main" className="flex h-(--nav-height) select-none items-stretch bg-nav text-nav-ink">
+    <nav
+      aria-label={t("main")}
+      className="flex h-(--nav-height) select-none items-stretch bg-nav text-nav-ink"
+    >
       {isMobile ? (
         <button
           type="button"
-          aria-label="Menu"
+          aria-label={t("menu")}
           aria-expanded={drawerOpen}
           onClick={() => setDrawerOpen(true)}
           className={cn(itemBase, "text-nav-ink/90 hover:bg-nav-hover hover:text-nav-ink")}
@@ -138,7 +144,7 @@ export function NavBar({
           breakpoint, vertically centred, with 12px either side and no plate. */}
       <Link
         href="/"
-        aria-label={`${siteName} home`}
+        aria-label={t("homeLink", { siteName })}
         className="flex h-full shrink-0 items-center px-3 transition-opacity hover:opacity-90"
       >
         <img src={logoUrl ?? "/logo.svg"} alt={siteName} className="h-[26px] w-auto min-[760px]:h-[30px]" />
@@ -177,7 +183,7 @@ export function NavBar({
                     "bg-nav-active text-nav-ink after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-royal",
                 )}
               >
-                More
+                {t("more")}
                 <ChevronDown size={14} aria-hidden />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -215,15 +221,15 @@ export function NavBar({
             )}
           >
             <Search size={16} aria-hidden />
-            <span className="flex-1 truncate">Search</span>
+            <span className="flex-1 truncate">{actions("search")}</span>
             <Kbd className="border-white/20 bg-white/10 text-nav-ink-2 shadow-none">Ctrl K</Kbd>
           </button>
         ) : (
-          <Tooltip content="Search (Ctrl K)">
+          <Tooltip content={t("searchTooltip")}>
             <button
               type="button"
               onClick={onOpenSearch}
-              aria-label="Search"
+              aria-label={actions("search")}
               className={cn(itemBase, "px-3 text-nav-ink/90 hover:bg-nav-hover hover:text-nav-ink")}
             >
               <Search size={20} aria-hidden />
@@ -241,12 +247,12 @@ export function NavBar({
           className="max-h-dvh overflow-y-auto border-b-white/15 bg-nav p-0 text-nav-ink"
         >
           <SheetTitle className="px-4 pt-4 font-sans text-xs font-semibold uppercase tracking-label text-nav-ink-2">
-            Menu
+            {t("menu")}
           </SheetTitle>
           <ul className="flex flex-col pb-2">
             <li>
               <Link href="/" className="flex h-11 items-center px-4 text-md text-nav-ink hover:bg-nav-hover">
-                Home
+                {t("home")}
               </Link>
             </li>
             {nav.map((node) => (
@@ -285,23 +291,23 @@ export function NavBar({
                 </li>
                 <li>
                   <Link href="/edit/profile/" className="flex h-11 items-center text-md text-nav-ink">
-                    Edit profile
+                    {t("editProfile")}
                   </Link>
                 </li>
                 <li>
                   <a href="/accounts/logout/" className="flex h-11 items-center text-md text-nav-ink">
-                    Log out
+                    {t("logOut")}
                   </a>
                 </li>
               </ul>
             ) : (
               <div className="flex items-center gap-3 py-1">
                 <Button asChild variant="ghost" className="text-nav-ink hover:bg-nav-hover">
-                  <Link href="/accounts/login/">Log in</Link>
+                  <Link href="/accounts/login/">{t("logIn")}</Link>
                 </Button>
                 {registrationOpen ? (
                   <Button asChild variant="canary" size="pill">
-                    <Link href="/accounts/register/">Sign up</Link>
+                    <Link href="/accounts/register/">{t("signUp")}</Link>
                   </Button>
                 ) : null}
               </div>

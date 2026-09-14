@@ -5,14 +5,16 @@ import { Alert, AlertTitle, Button, Field, Input, Panel, Textarea } from "@moj/u
 import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { TriangleAlert } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { formatPoints, plural } from "@/lib/units";
+import { formatPoints } from "@/lib/units";
 
 type Stats = NonNullable<(typeof api.problems.voteStats)["_returnType"]>;
 
 /** DMOJ's vote-stats canvas, drawn as bars: one column per point value between
  *  the smallest and largest vote the site allows. */
 function Histogram({ stats }: { stats: Stats }) {
+  const t = useTranslations("problems.vote");
   const counts = new Map<number, number>();
   for (const vote of stats.votes) counts.set(vote, (counts.get(vote) ?? 0) + 1);
   const max = Math.max(1, ...counts.values());
@@ -20,13 +22,13 @@ function Histogram({ stats }: { stats: Stats }) {
   for (let value = stats.minPossibleVote; value <= stats.maxPossibleVote; value += 1) values.push(value);
 
   return (
-    <div className="flex h-40 items-end gap-px" role="img" aria-label="Distribution of point votes">
+    <div className="flex h-40 items-end gap-px" role="img" aria-label={t("histogramLabel")}>
       {values.map((value) => {
         const count = counts.get(value) ?? 0;
         return (
           <span
             key={value}
-            title={`${value} points — ${plural(count, "vote")}`}
+            title={t("histogramBar", { points: value, count })}
             className="min-w-[3px] flex-1 rounded-t-xs bg-primary"
             style={{ height: `${(count / max) * 100}%`, opacity: count === 0 ? 0.12 : 1 }}
           />
@@ -47,6 +49,7 @@ export function VoteView({
   initialVote: { points: number; note: string } | null;
   currentPoints: number;
 }) {
+  const t = useTranslations("problems.vote");
   const stats = useQuery(api.problems.voteStats, { code });
   const castVote = useMutation(api.problems.vote);
   const deleteVote = useMutation(api.problems.deleteVote);
@@ -65,8 +68,8 @@ export function VoteView({
     } catch (thrown) {
       setError(
         thrown instanceof ConvexError && typeof thrown.data === "object" && thrown.data !== null
-          ? String((thrown.data as { message?: string }).message ?? "Your vote was not saved.")
-          : "Your vote was not saved.",
+          ? String((thrown.data as { message?: string }).message ?? t("saveFailed"))
+          : t("saveFailed"),
       );
     } finally {
       setBusy(false);
@@ -78,33 +81,33 @@ export function VoteView({
 
   return (
     <div className="grid gap-4">
-      <Panel title="Voting statistics" bodyClassName="grid gap-3 p-3">
+      <Panel title={t("statsTitle")} bodyClassName="grid gap-3 p-3">
         {stats === undefined || stats === null ? (
-          <p className="text-sm text-muted-foreground">Voting statistics are not available.</p>
+          <p className="text-sm text-muted-foreground">{t("statsUnavailable")}</p>
         ) : stats.votes.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No votes have been cast yet.</p>
+          <p className="text-sm text-muted-foreground">{t("noVotes")}</p>
         ) : (
           <>
             <Histogram stats={stats} />
             <dl className="grid gap-1 border-t border-border pt-2 text-sm">
               <div className="flex justify-between gap-2">
-                <dt className="text-subtle">Median vote</dt>
+                <dt className="text-subtle">{t("median")}</dt>
                 <dd className="font-mono tabular-nums text-foreground">
                   {stats.median === null ? "—" : stats.median.toFixed(1)}
                 </dd>
               </div>
               <div className="flex justify-between gap-2">
-                <dt className="text-subtle">Mean vote</dt>
+                <dt className="text-subtle">{t("mean")}</dt>
                 <dd className="font-mono tabular-nums text-foreground">
                   {stats.mean === null ? "—" : stats.mean.toFixed(1)}
                 </dd>
               </div>
               <div className="flex justify-between gap-2">
-                <dt className="text-subtle">Number of votes</dt>
+                <dt className="text-subtle">{t("total")}</dt>
                 <dd className="font-mono tabular-nums text-foreground">{stats.votes.length}</dd>
               </div>
               <div className="flex justify-between gap-2">
-                <dt className="text-subtle">Current points</dt>
+                <dt className="text-subtle">{t("currentPoints")}</dt>
                 <dd className="font-mono tabular-nums text-foreground">
                   {formatPoints(stats.currentPoints)}
                 </dd>
@@ -121,7 +124,7 @@ export function VoteView({
             event.preventDefault();
             const value = Number(points);
             if (!Number.isFinite(value) || value < min || value > max) {
-              setError(`Your vote must be between ${min} and ${max} points.`);
+              setError(t("outOfRange", { min, max }));
               return;
             }
             void run(async () => {
@@ -131,7 +134,7 @@ export function VoteView({
           }}
         >
           <h2 className="font-display text-h2 font-bold tracking-tight text-foreground">
-            {voted ? "Change vote" : "Cast vote"}
+            {voted ? t("change") : t("cast")}
           </h2>
 
           {error ? (
@@ -141,7 +144,7 @@ export function VoteView({
             </Alert>
           ) : null}
 
-          <Field label="Points" htmlFor="vote-points" hint={`Between ${min} and ${max}.`}>
+          <Field label={t("pointsLabel")} htmlFor="vote-points" hint={t("pointsHint", { min, max })}>
             <Input
               id="vote-points"
               type="number"
@@ -156,19 +159,19 @@ export function VoteView({
             />
           </Field>
 
-          <Field label="Justification" htmlFor="vote-note" optional>
+          <Field label={t("justification")} htmlFor="vote-note" optional>
             <Textarea
               id="vote-note"
               rows={8}
               value={note}
-              placeholder="A short justification for your vote to this problem's point value."
+              placeholder={t("justificationPlaceholder")}
               onChange={(event) => setNote(event.target.value)}
             />
           </Field>
 
           <div className="flex gap-2">
             <Button type="submit" busy={busy}>
-              Vote!
+              {t("submit")}
             </Button>
             {voted ? (
               <Button
@@ -184,15 +187,13 @@ export function VoteView({
                   })
                 }
               >
-                Delete vote
+                {t("delete")}
               </Button>
             ) : null}
           </div>
         </form>
       ) : (
-        <p className="text-base text-muted-foreground">
-          Solve this problem to vote on how many points it should be worth.
-        </p>
+        <p className="text-base text-muted-foreground">{t("cannotVote")}</p>
       )}
     </div>
   );

@@ -5,6 +5,7 @@ import type { ContestDetail, ContestStats } from "@convex/contests";
 import { cn, EmptyState, Panel, TitleRow, Tooltip, type VerdictTone, verdictTone } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { PieChart } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips } from "@/components/contests/pieces";
 import { contestTabs, joinKindFor } from "../tabs";
@@ -33,6 +34,8 @@ function StatusBar({
   max: number;
   codes: string[];
 }) {
+  const t = useTranslations("contests.stats");
+
   if (total === 0) {
     return <div className="h-3 rounded-full bg-secondary" />;
   }
@@ -45,7 +48,7 @@ function StatusBar({
         const value = counts.find((entry) => entry.code === code)?.value ?? 0;
         if (value === 0) return null;
         return (
-          <Tooltip key={code} content={`${code}: ${value} of ${total}`}>
+          <Tooltip key={code} content={t("statusShare", { code, value, total })}>
             <span
               className={cn(
                 "block h-full first:rounded-l-full last:rounded-r-full",
@@ -101,6 +104,8 @@ export function StatsClient({
   stats: ContestStats;
   viewerUsername: string | null;
 }) {
+  const t = useTranslations("contests.stats");
+  const tabLabels = useTranslations("contests.tabs");
   const live = useQuery(api.contests.stats, { key: contestKey });
   const data = live ?? stats;
   const contest = detail.contest;
@@ -115,7 +120,7 @@ export function StatsClient({
       <TitleRow
         title={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            {contest?.name ?? "Statistics"}
+            {contest?.name ?? t("metaFallback")}
             {contest ? (
               <ContestChips
                 isVisible={contest.isVisible}
@@ -128,7 +133,7 @@ export function StatsClient({
             ) : null}
           </span>
         }
-        tabs={contestTabs(detail, contestKey, viewerUsername)}
+        tabs={contestTabs(detail, contestKey, viewerUsername, tabLabels)}
         active="stats"
         action={
           joinKind ? <JoinControl contestKey={contestKey} kind={joinKind} long size="default" /> : undefined
@@ -136,26 +141,18 @@ export function StatsClient({
       />
 
       {!data ? (
-        <EmptyState
-          icon={<PieChart aria-hidden />}
-          title="Statistics are not out yet"
-          description="Contest statistics are published when the contest ends."
-        />
+        <EmptyState icon={<PieChart aria-hidden />} title={t("notOutTitle")} description={t("notOutBody")} />
       ) : data.totalSubmissions === 0 ? (
         <EmptyState
           icon={<PieChart aria-hidden />}
-          title="No submissions"
-          description="Nobody submitted anything during this contest."
+          title={t("noSubmissionsTitle")}
+          description={t("noSubmissionsBody")}
         />
       ) : (
         <div className="grid min-w-0 gap-6">
-          <p className="text-base text-subtle">
-            {data.totalSubmissions === 1
-              ? "1 submission was made during this contest."
-              : `${data.totalSubmissions} submissions were made during this contest.`}
-          </p>
+          <p className="text-base text-subtle">{t("totalSubmissions", { count: data.totalSubmissions })}</p>
 
-          <Panel title="Problem status distribution" bodyClassName="grid gap-3 p-4">
+          <Panel title={t("statusDistribution")} bodyClassName="grid gap-3 p-4">
             <ul className="flex flex-wrap gap-x-4 gap-y-1">
               {codes.map((code) => (
                 <li key={code} className="flex items-center gap-1.5 text-sm text-subtle">
@@ -192,7 +189,7 @@ export function StatsClient({
             </div>
           </Panel>
 
-          <Panel title="Problem AC rate" bodyClassName="grid gap-2.5 p-4">
+          <Panel title={t("problemAcRate")} bodyClassName="grid gap-2.5 p-4">
             {data.problems.map((problem) => (
               <MagnitudeRow
                 key={problem.code}
@@ -205,15 +202,19 @@ export function StatsClient({
                 value={problem.acRate}
                 max={100}
                 suffix="%"
-                hint={`${problem.name}: ${problem.acRate.toFixed(1)}% accepted of ${problem.total}`}
+                hint={t("problemAcHint", {
+                  name: problem.name,
+                  rate: problem.acRate.toFixed(1),
+                  total: problem.total,
+                })}
               />
             ))}
           </Panel>
 
           <div className="grid gap-6 min-[960px]:grid-cols-2">
-            <Panel title="Submissions by language" bodyClassName="grid gap-2.5 p-4">
+            <Panel title={t("byLanguage")} bodyClassName="grid gap-2.5 p-4">
               {data.languageCount.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No submissions yet.</p>
+                <p className="text-sm text-muted-foreground">{t("noSubmissionsYet")}</p>
               ) : (
                 data.languageCount.map((row) => (
                   <MagnitudeRow
@@ -221,15 +222,19 @@ export function StatsClient({
                     label={row.name}
                     value={row.count}
                     max={maxLanguageCount}
-                    hint={`${row.name}: ${row.count} of ${data.totalSubmissions}`}
+                    hint={t("languageShare", {
+                      name: row.name,
+                      count: row.count,
+                      total: data.totalSubmissions,
+                    })}
                   />
                 ))
               )}
             </Panel>
 
-            <Panel title="Language AC rate" bodyClassName="grid gap-2.5 p-4">
+            <Panel title={t("languageAcRate")} bodyClassName="grid gap-2.5 p-4">
               {data.languageAcRate.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nothing was accepted yet.</p>
+                <p className="text-sm text-muted-foreground">{t("nothingAccepted")}</p>
               ) : (
                 data.languageAcRate.map((row) => (
                   <MagnitudeRow
@@ -238,7 +243,7 @@ export function StatsClient({
                     value={row.acRate}
                     max={100}
                     suffix="%"
-                    hint={`${row.name}: ${row.acRate.toFixed(1)}% accepted`}
+                    hint={t("languageAcHint", { name: row.name, rate: row.acRate.toFixed(1) })}
                   />
                 ))
               )}

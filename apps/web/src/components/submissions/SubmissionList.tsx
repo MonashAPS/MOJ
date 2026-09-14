@@ -21,8 +21,9 @@ import {
 import { useConvex, useMutation, usePaginatedQuery } from "convex/react";
 import { Inbox, PlugZap } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { plural, verdictCode } from "@/lib/submissionFormat";
+import { verdictCode } from "@/lib/submissionFormat";
 import type { ListContext } from "@/lib/submissionsData";
 import { type ResultData, ResultsChart } from "./ResultsChart";
 import { SubmissionFilters } from "./SubmissionFilters";
@@ -90,6 +91,9 @@ export function SubmissionList({
   emptyDescription,
   emptyAction,
 }: SubmissionListProps) {
+  const t = useTranslations("submissions.list");
+  const tAction = useTranslations("submissions.actions");
+  const common = useTranslations("common");
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedStatuses = useMemo(() => searchParams.getAll("status"), [searchParams]);
@@ -159,15 +163,13 @@ export function SubmissionList({
     try {
       if (kind === "rejudge") {
         await rejudge({ submissionId: id });
-        toast.success(`Submission ${id} queued for rejudging.`);
+        toast.success(tAction("rejudgeQueued", { id }));
       } else {
         const outcome = await abort({ submissionId: id });
-        toast.success(
-          outcome.pending ? `Asked the judge to stop submission ${id}.` : `Submission ${id} aborted.`,
-        );
+        toast.success(outcome.pending ? tAction("abortAsked", { id }) : tAction("abortDone", { id }));
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "That did not work.");
+      toast.error(error instanceof Error ? error.message : tAction("failed"));
     }
   }
 
@@ -210,11 +212,11 @@ export function SubmissionList({
           filtered ? (
             <EmptyState
               icon={<Inbox aria-hidden />}
-              title="Nothing matches"
-              description="No submissions match these filters."
+              title={t("noMatchTitle")}
+              description={t("noMatchDescription")}
               action={
                 <Button variant="secondary" onClick={() => setFilters({ status: [], language: [] })}>
-                  Clear filters
+                  {t("clearFilters")}
                 </Button>
               }
             />
@@ -258,12 +260,12 @@ export function SubmissionList({
               busy={live.status === "LoadingMore"}
               disabled={live.status === "LoadingMore"}
             >
-              {live.status === "LoadingMore" ? "Loading…" : "Show more submissions"}
+              {live.status === "LoadingMore" ? common("states.loading") : t("showMore")}
             </Button>
           </div>
         ) : rows.length > 0 ? (
           <p className={cn("mt-4 text-center text-sm text-muted-foreground")}>
-            {plural(rows.length, "submission")} shown.
+            {t("shown", { count: rows.length })}
           </p>
         ) : null}
       </TwoColumn>
@@ -273,19 +275,17 @@ export function SubmissionList({
           <AlertDialogHeader>
             <AlertDialogTitle>
               {confirm?.kind === "abort"
-                ? `Abort submission ${confirm?.id}?`
-                : `Rejudge submission ${confirm?.id}?`}
+                ? tAction("abortTitle", { id: confirm?.id ?? "" })
+                : tAction("rejudgeTitle", { id: confirm?.id ?? "" })}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {confirm?.kind === "abort"
-                ? "Judging stops where it is and the submission is marked aborted. It keeps no score."
-                : "The submission goes back into the queue and its verdict, points and case results are replaced."}
+              {confirm?.kind === "abort" ? tAction("abortDescription") : tAction("rejudgeDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{common("actions.cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={runConfirmed}>
-              {confirm?.kind === "abort" ? "Abort" : "Rejudge"}
+              {confirm?.kind === "abort" ? tAction("abort") : tAction("rejudge")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -299,6 +299,7 @@ export function SubmissionList({
  * with a Reconnect action, and it does not push the list down.
  */
 function Disconnected() {
+  const t = useTranslations("submissions.list");
   const convex = useConvex();
   const [down, setDown] = useState(false);
 
@@ -313,9 +314,9 @@ function Disconnected() {
   return (
     <div className="mb-3 flex items-center gap-2 rounded-md border border-warning-line bg-warning-bg px-3 py-2 text-sm text-warning-ink">
       <PlugZap aria-hidden className="size-4 shrink-0" />
-      <span className="min-w-0 flex-1">You were disconnected, so this list has stopped updating.</span>
+      <span className="min-w-0 flex-1">{t("disconnected")}</span>
       <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
-        Reconnect
+        {t("reconnect")}
       </Button>
     </div>
   );

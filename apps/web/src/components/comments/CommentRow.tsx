@@ -26,6 +26,7 @@ import {
 } from "@moj/ui";
 import { useMutation } from "convex/react";
 import { BarChart3, ChevronDown, ChevronUp, Eye, Link2, Pencil, Reply, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { identiconUrl, initials } from "@/lib/avatar";
 import { mutationError } from "@/lib/convex-error";
@@ -54,6 +55,8 @@ export function CommentRow({
   maxLength: number;
   onReply: (parentId: Id<"comments">, body: string) => Promise<unknown>;
 }) {
+  const t = useTranslations("blog.comments");
+  const common = useTranslations("common.actions");
   const vote = useMutation(api.comments.vote);
   const unvote = useMutation(api.comments.unvote);
   const edit = useMutation(api.comments.edit);
@@ -73,11 +76,7 @@ export function CommentRow({
   const collapsed = comment.belowThreshold && !revealed;
   const indent = Math.min(comment.depth, MAX_INDENT_DEPTH) * INDENT_STEP;
 
-  const voteTitle = !signedIn
-    ? "Log in to vote."
-    : isOwn
-      ? "You cannot vote on your own comments."
-      : undefined;
+  const voteTitle = !signedIn ? t("voteLogIn") : isOwn ? t("voteOwn") : undefined;
 
   async function castVote(delta: 1 | -1) {
     setError(null);
@@ -85,7 +84,7 @@ export function CommentRow({
       if (comment.myVote === delta) await unvote({ commentId: comment._id });
       else await vote({ commentId: comment._id, delta });
     } catch (thrown) {
-      setError(mutationError(thrown, "Your vote was not counted."));
+      setError(mutationError(thrown, t("voteFailed")));
     }
   }
 
@@ -95,7 +94,7 @@ export function CommentRow({
       if (next) await hide({ commentId: comment._id });
       else await unhide({ commentId: comment._id, includeReplies: true });
     } catch (thrown) {
-      setError(mutationError(thrown, next ? "The comment was not hidden." : "The comment was not restored."));
+      setError(mutationError(thrown, next ? t("hideFailed") : t("unhideFailed")));
     }
   }
 
@@ -120,7 +119,7 @@ export function CommentRow({
           />
           <span
             className="font-mono text-sm font-medium tabular-nums text-subtle"
-            title={`Score ${comment.score}`}
+            title={t("scoreTitle", { score: comment.score })}
           >
             {comment.score}
           </span>
@@ -149,14 +148,14 @@ export function CommentRow({
                 className="shrink-0"
               />
             ) : (
-              <span className="shrink-0 font-mono text-muted-foreground">deleted user</span>
+              <span className="shrink-0 font-mono text-muted-foreground">{t("deletedUser")}</span>
             )}
             <time
               dateTime={new Date(comment.time).toISOString()}
               title={formatDateTime(comment.time)}
               className="shrink-0 text-sm text-muted-foreground"
             >
-              commented {formatRelative(comment.time)}
+              {t("commented", { time: formatRelative(comment.time) })}
             </time>
             {comment.revisions > 1 ? (
               <button
@@ -168,41 +167,41 @@ export function CommentRow({
                   focusRing,
                 )}
               >
-                {comment.revisions > 2 ? `edit ${comment.revisions - 1}` : "edited"}
+                {comment.revisions > 2 ? t("editNumber", { number: comment.revisions - 1 }) : t("edited")}
               </button>
             ) : null}
             {comment.hidden ? (
               <Badge variant="neutral" className="shrink-0">
-                Hidden
+                {t("hiddenBadge")}
               </Badge>
             ) : null}
 
             <span className="ml-auto flex shrink-0 items-center gap-0.5">
-              <RowAction label="Link" href={`#${commentAnchor(comment)}`}>
+              <RowAction label={t("actionLink")} href={`#${commentAnchor(comment)}`}>
                 <Link2 aria-hidden />
               </RowAction>
               {comment.canReply ? (
-                <RowAction label="Reply" onClick={() => setReplying((open) => !open)}>
+                <RowAction label={t("actionReply")} onClick={() => setReplying((open) => !open)}>
                   <Reply aria-hidden />
                 </RowAction>
               ) : null}
               {comment.canEdit ? (
-                <RowAction label="Edit" onClick={() => setEditing(true)}>
+                <RowAction label={common("edit")} onClick={() => setEditing(true)}>
                   <Pencil aria-hidden />
                 </RowAction>
               ) : null}
               {comment.canModerate ? (
-                <RowAction label="Votes" onClick={() => setVotes(true)}>
+                <RowAction label={t("actionVotes")} onClick={() => setVotes(true)}>
                   <BarChart3 aria-hidden />
                 </RowAction>
               ) : null}
               {comment.canModerate ? (
                 comment.hidden ? (
-                  <RowAction label="Unhide" onClick={() => setHidden(false)}>
+                  <RowAction label={t("actionUnhide")} onClick={() => setHidden(false)}>
                     <Eye aria-hidden />
                   </RowAction>
                 ) : (
-                  <RowAction label="Hide" onClick={() => setConfirmHide(true)}>
+                  <RowAction label={t("actionHide")} onClick={() => setConfirmHide(true)}>
                     <Trash2 aria-hidden />
                   </RowAction>
                 )
@@ -218,14 +217,17 @@ export function CommentRow({
 
           {collapsed ? (
             <p className="mt-2 text-sm text-muted-foreground">
-              This comment is hidden due to too much negative feedback.{" "}
-              <button
-                type="button"
-                onClick={() => setRevealed(true)}
-                className={cn("rounded-sm text-link underline underline-offset-4", focusRing)}
-              >
-                Show it anyway.
-              </button>
+              {t.rich("collapsed", {
+                reveal: (chunks) => (
+                  <button
+                    type="button"
+                    onClick={() => setRevealed(true)}
+                    className={cn("rounded-sm text-link underline underline-offset-4", focusRing)}
+                  >
+                    {chunks}
+                  </button>
+                ),
+              })}
             </p>
           ) : (
             <ContentDescription html={html} className="mt-2" />
@@ -234,7 +236,7 @@ export function CommentRow({
           {replying ? (
             <div className="mt-4 rounded-md border border-border p-3">
               <CommentForm
-                heading="Replying to comment"
+                heading={t("replyHeading")}
                 maxLength={maxLength}
                 autoFocus
                 rows={5}
@@ -250,7 +252,7 @@ export function CommentRow({
       </div>
 
       <Dialog open={editing} onOpenChange={setEditing}>
-        <DialogContent title="Edit comment" width={720}>
+        <DialogContent title={t("editDialogTitle")} width={720}>
           <CommentForm
             initialValue={comment.body}
             maxLength={maxLength}
@@ -270,14 +272,12 @@ export function CommentRow({
       <AlertDialog open={confirmHide} onOpenChange={setConfirmHide}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Hide this comment?</AlertDialogTitle>
-            <AlertDialogDescription>
-              It and every reply below it stop being shown to members. You can unhide it again from this page.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t("hideTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("hideDescription")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => setHidden(true)}>Hide</AlertDialogAction>
+            <AlertDialogCancel>{common("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => setHidden(true)}>{t("actionHide")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -298,7 +298,8 @@ function VoteArrow({
   title?: string;
   onClick: () => void;
 }) {
-  const label = direction === "up" ? "Upvote" : "Downvote";
+  const t = useTranslations("blog.comments");
+  const label = direction === "up" ? t("upvote") : t("downvote");
   const Glyph = direction === "up" ? ChevronUp : ChevronDown;
   return (
     <Tooltip content={title ?? label}>

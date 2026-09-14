@@ -4,6 +4,7 @@ import { Tag } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { ContestWindow, UserCount } from "@/components/contests/pieces";
 import { queryAsViewer } from "@/lib/convex-server";
 import { renderContent } from "@/lib/markdown";
@@ -26,11 +27,14 @@ async function loadTag(name: string) {
 
 export async function generateMetadata({ params }: { params: Promise<{ name: string }> }): Promise<Metadata> {
   const { name } = await params;
-  return { title: `Contest tag: ${name}` };
+  const t = await getTranslations("contests.tag");
+  return { title: t("metaTitle", { name }) };
 }
 
 export default async function ContestTagPage({ params }: { params: Promise<{ name: string }> }) {
   const { name } = await params;
+  const t = await getTranslations("contests.tag");
+  const columns = await getTranslations("contests.columns");
   const { tag, contests, found } = await loadTag(name);
   if (!found || !tag) notFound();
 
@@ -60,15 +64,15 @@ export default async function ContestTagPage({ params }: { params: Promise<{ nam
       {contests.length === 0 ? (
         <EmptyState
           icon={<Tag aria-hidden />}
-          title="Nothing tagged"
-          description={`No contests carry the "${tag.name}" tag.`}
+          title={t("emptyTitle")}
+          description={t("emptyBody", { name: tag.name })}
         />
       ) : (
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-full">Contest</TableHead>
-              <TableHead numeric>Users</TableHead>
+              <TableHead className="w-full">{columns("contest")}</TableHead>
+              <TableHead numeric>{columns("users")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

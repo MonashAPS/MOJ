@@ -14,6 +14,7 @@ import {
 } from "@moj/ui";
 import { useMutation } from "convex/react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import { applyTheme, type ThemeChoice } from "@/components/shell/ThemeToggle";
@@ -27,12 +28,6 @@ const EDITOR_THEMES = [
   { value: "solarized_light", label: "Solarized Light" },
   { value: "solarized_dark", label: "Solarized Dark" },
   { value: "tomorrow_night", label: "Tomorrow Night" },
-];
-
-const SITE_THEMES = [
-  { value: "auto", label: "Follow the system" },
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
 ];
 
 type FormState = {
@@ -68,6 +63,10 @@ export function EditProfileForm({
   /** DMOJ makes the self-description wait until a first solve. */
   canEditAbout: boolean;
 }) {
+  const t = useTranslations("users.editProfile");
+  // The header's theme control names the same three choices, so the two menus
+  // read the same however the wording there is revised.
+  const nav = useTranslations("common.nav");
   const update = useMutation(api.profiles.updateProfile);
   const [baseline, setBaseline] = useState<FormState>({
     about,
@@ -80,6 +79,12 @@ export function EditProfileForm({
   const [form, setForm] = useState<FormState>(baseline);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState("");
+
+  const siteThemes = [
+    { value: "auto", label: t("themeSystem") },
+    { value: "light", label: nav("themeLight") },
+    { value: "dark", label: nav("themeDark") },
+  ];
 
   const dirty =
     form.about !== baseline.about ||
@@ -124,10 +129,10 @@ export function EditProfileForm({
       });
       setBaseline(form);
       setStatus("saved");
-      setMessage("Your profile has been updated.");
+      setMessage(t("saved"));
     } catch (error) {
       setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Your profile could not be saved.");
+      setMessage(error instanceof Error ? error.message : t("failed"));
     }
   }
 
@@ -146,16 +151,12 @@ export function EditProfileForm({
         </Alert>
       ) : null}
 
-      <Panel title="Profile">
+      <Panel title={t("profile")}>
         <Field
-          label="Self-description"
+          label={t("about")}
           htmlFor="profile-about"
-          optional=" optional"
-          hint={
-            canEditAbout
-              ? "Markdown, shown on your profile page. Links, code and maths all work."
-              : "Solve a problem first and this opens up."
-          }
+          optional={t("optional")}
+          hint={canEditAbout ? t("aboutHint") : t("aboutLocked")}
         >
           <MarkdownEditor
             id="profile-about"
@@ -163,50 +164,50 @@ export function EditProfileForm({
             value={form.about}
             onChange={(value) => change("about", value)}
             disabled={!canEditAbout}
-            disabledReason="Solve a problem first, then you can write one."
+            disabledReason={t("aboutDisabled")}
             maxLength={20000}
-            placeholder="A line or two about you."
-            ariaLabel="Self-description"
+            placeholder={t("aboutPlaceholder")}
+            ariaLabel={t("about")}
           />
         </Field>
       </Panel>
 
-      <Panel title="Preferences">
+      <Panel title={t("preferences")}>
         <FieldGroup columns={2}>
-          <Field label="Timezone" htmlFor="profile-timezone" hint="Every date on the site uses it.">
+          <Field label={t("timezone")} htmlFor="profile-timezone" hint={t("timezoneHint")}>
             <Select
               id="profile-timezone"
-              ariaLabel="Timezone"
+              ariaLabel={t("timezone")}
               value={form.timezone}
               onValueChange={(value) => change("timezone", value)}
               options={timezones.map((zone) => ({ value: zone, label: zone }))}
             />
           </Field>
 
-          <Field label="Preferred language" htmlFor="profile-language" hint="Preselected on the submit page.">
+          <Field label={t("language")} htmlFor="profile-language" hint={t("languageHint")}>
             <Select
               id="profile-language"
-              ariaLabel="Preferred language"
+              ariaLabel={t("language")}
               value={form.languageKey}
               onValueChange={(value) => change("languageKey", value)}
               options={languages.map((language) => ({ value: language.key, label: language.name }))}
             />
           </Field>
 
-          <Field label="Site theme" htmlFor="profile-site-theme" hint="Applies as soon as you pick it.">
+          <Field label={t("siteTheme")} htmlFor="profile-site-theme" hint={t("siteThemeHint")}>
             <Select
               id="profile-site-theme"
-              ariaLabel="Site theme"
+              ariaLabel={t("siteTheme")}
               value={form.siteTheme}
               onValueChange={(value) => chooseTheme(value as ThemeChoice)}
-              options={SITE_THEMES}
+              options={siteThemes}
             />
           </Field>
 
-          <Field label="Editor theme" htmlFor="profile-editor-theme" hint="Used by the code editor.">
+          <Field label={t("editorTheme")} htmlFor="profile-editor-theme" hint={t("editorThemeHint")}>
             <Select
               id="profile-editor-theme"
-              ariaLabel="Editor theme"
+              ariaLabel={t("editorTheme")}
               value={form.editorTheme}
               onValueChange={(value) => change("editorTheme", value)}
               options={EDITOR_THEMES}
@@ -215,21 +216,24 @@ export function EditProfileForm({
         </FieldGroup>
       </Panel>
 
-      <Panel title="Organisations">
+      <Panel title={t("organizations")}>
         <Field
-          label="Your organisations"
+          label={t("yourOrganizations")}
           htmlFor="profile-organizations"
-          optional=" optional"
-          hint={`${form.organizationSlugs.length} of ${MAX_ORGANIZATIONS} chosen. Closed organisations are joined by request from their own page.`}
+          optional={t("optional")}
+          hint={t("organizationsHint", {
+            chosen: form.organizationSlugs.length,
+            max: MAX_ORGANIZATIONS,
+          })}
         >
           <MultiSelect
             id="profile-organizations"
-            ariaLabel="Organisations"
+            ariaLabel={t("organizations")}
             values={form.organizationSlugs}
             onChange={(values) => change("organizationSlugs", values)}
             max={MAX_ORGANIZATIONS}
-            placeholder="None"
-            emptyText="There are no open organizations."
+            placeholder={t("organizationsPlaceholder")}
+            emptyText={t("organizationsEmpty")}
             options={organizations.map((organization) => ({
               value: organization.slug,
               label: organization.name,
@@ -238,14 +242,14 @@ export function EditProfileForm({
         </Field>
       </Panel>
 
-      <FormFooter note={dirty ? "Unsaved changes" : undefined}>
+      <FormFooter note={dirty ? t("unsaved") : undefined}>
         <Button
           type="submit"
           busy={status === "saving"}
           disabled={!dirty && status !== "error"}
-          title={!dirty && status !== "error" ? "Nothing has changed yet." : undefined}
+          title={!dirty && status !== "error" ? t("nothingChanged") : undefined}
         >
-          {status === "saving" ? "Saving…" : "Update profile"}
+          {status === "saving" ? t("saving") : t("submit")}
         </Button>
       </FormFooter>
     </form>

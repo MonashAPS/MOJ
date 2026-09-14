@@ -26,6 +26,7 @@ import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { CircleAlert, CircleCheck, Pencil } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { CommentForm } from "@/components/comments/CommentForm";
 import { renderUserMarkdownBatch } from "@/components/markdown/actions";
@@ -49,6 +50,7 @@ export function TicketClient({
   initial: TicketDetail;
   initialHtml: Record<string, string>;
 }) {
+  const t = useTranslations("blog.ticket");
   const live = useQuery(api.tickets.get, { id: ticketId });
   const ticket = live ?? initial;
 
@@ -80,11 +82,11 @@ export function TicketClient({
     try {
       await setOpen({ ticketId, open: !ticket.isOpen });
     } catch (thrown) {
-      setError(mutationError(thrown, "The ticket was not changed."));
+      setError(mutationError(thrown, t("notChanged")));
     }
   }
 
-  const state = ticket.isOpen ? "Open" : "Closed";
+  const state = ticket.isOpen ? t("open") : t("closed");
 
   return (
     <>
@@ -105,7 +107,7 @@ export function TicketClient({
         action={
           ticket.canSetOpen ? (
             <Button variant={ticket.isOpen ? "secondary" : "primary"} onClick={toggleOpen}>
-              {ticket.isOpen ? "Close ticket" : "Reopen ticket"}
+              {ticket.isOpen ? t("close") : t("reopen")}
             </Button>
           ) : null
         }
@@ -122,7 +124,7 @@ export function TicketClient({
           side={
             <>
               {ticket.linkedHref ? (
-                <Panel title="Associated object">
+                <Panel title={t("associated")}>
                   <Link href={`${ticket.linkedHref}/`} className="text-link">
                     {ticket.linkedTitle}
                   </Link>
@@ -146,14 +148,14 @@ export function TicketClient({
           {ticket.canReply ? (
             <CommentForm
               preset="ticket"
-              submitLabel="Post!"
-              placeholder="Write a message…"
+              submitLabel={t("postReply")}
+              placeholder={t("replyPlaceholder")}
               rows={6}
               onSubmit={(body) => reply({ ticketId, body })}
             />
           ) : (
             <Alert variant="info">
-              <AlertDescription>Your part is silent, little toad.</AlertDescription>
+              <AlertDescription>{t("muted")}</AlertDescription>
             </Alert>
           )}
         </TwoColumn>
@@ -163,6 +165,7 @@ export function TicketClient({
 }
 
 function Message({ message, html }: { message: TicketMessage; html: string }) {
+  const t = useTranslations("blog.ticket");
   const author = message.author;
   return (
     <section
@@ -184,14 +187,14 @@ function Message({ message, html }: { message: TicketMessage; html: string }) {
               isAdmin={author.displayRank === "admin"}
             />
           ) : (
-            <span className="font-mono text-muted-foreground">deleted user</span>
+            <span className="font-mono text-muted-foreground">{t("deletedUser")}</span>
           )}
           <time
             dateTime={new Date(message.time).toISOString()}
             title={formatDateTime(message.time)}
             className="text-sm text-muted-foreground"
           >
-            messaged {formatRelative(message.time)}
+            {t("messaged", { time: formatRelative(message.time) })}
           </time>
         </header>
         <ContentDescription html={html} className="mt-2" />
@@ -201,19 +204,19 @@ function Message({ message, html }: { message: TicketMessage; html: string }) {
 }
 
 function AssigneesPanel({ ticket, ticketId }: { ticket: TicketDetail; ticketId: Id<"tickets"> }) {
+  const t = useTranslations("blog.ticket");
   const [editing, setEditing] = useState(false);
-  const title = ticket.assignees.length === 1 ? "Assignee" : "Assignees";
 
   return (
     <Panel
-      title={title}
+      title={t("assignees", { count: ticket.assignees.length })}
       action={
         ticket.canAssign ? (
-          <Tooltip content="Edit assignees">
+          <Tooltip content={t("editAssignees")}>
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Edit assignees"
+              aria-label={t("editAssignees")}
               onClick={() => setEditing(true)}
               className="text-titlebar-ink-2 hover:bg-white/10 hover:text-titlebar-ink"
             >
@@ -224,7 +227,7 @@ function AssigneesPanel({ ticket, ticketId }: { ticket: TicketDetail; ticketId: 
       }
     >
       {ticket.assignees.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No one is assigned.</p>
+        <p className="text-sm text-muted-foreground">{t("noAssignees")}</p>
       ) : (
         <ul className="grid gap-1">
           {ticket.assignees.map((one) => (
@@ -258,6 +261,8 @@ function AssigneesDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const t = useTranslations("blog.ticket");
+  const common = useTranslations("common.actions");
   const staff = useQuery(api.profiles.listStaff, open ? {} : "skip");
   const assign = useMutation(api.tickets.assign);
   const [values, setValues] = useState<string[]>(() => ticket.assignees.map((one) => one._id));
@@ -280,7 +285,7 @@ function AssigneesDialog({
       await assign({ ticketId, profileIds: values as Id<"profiles">[] });
       onOpenChange(false);
     } catch (thrown) {
-      setError(mutationError(thrown, "The assignees were not changed."));
+      setError(mutationError(thrown, t("assigneesNotChanged")));
     } finally {
       setBusy(false);
     }
@@ -288,7 +293,7 @@ function AssigneesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title="Assignees" description="Staff who own this ticket." width={480}>
+      <DialogContent title={t("assigneesTitle")} description={t("assigneesDescription")} width={480}>
         {error ? (
           <Alert variant="danger">
             <AlertDescription>{error}</AlertDescription>
@@ -298,17 +303,17 @@ function AssigneesDialog({
           values={values}
           onChange={setValues}
           options={options}
-          placeholder={staff === undefined ? "Loading staff…" : "Choose staff"}
-          searchPlaceholder="Filter staff…"
-          emptyText="No staff match that."
-          ariaLabel="Assignees"
+          placeholder={staff === undefined ? t("loadingStaff") : t("chooseStaff")}
+          searchPlaceholder={t("filterStaff")}
+          emptyText={t("noStaffMatch")}
+          ariaLabel={t("assigneesTitle")}
         />
         <DialogFooter>
           <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={busy}>
-            Cancel
+            {common("cancel")}
           </Button>
           <Button onClick={save} busy={busy}>
-            {busy ? "Saving…" : "Update"}
+            {busy ? t("saving") : t("update")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -317,6 +322,8 @@ function AssigneesDialog({
 }
 
 function NotesPanel({ ticket, ticketId }: { ticket: TicketDetail; ticketId: Id<"tickets"> }) {
+  const t = useTranslations("blog.ticket");
+  const common = useTranslations("common.actions");
   const setNotes = useMutation(api.tickets.setNotes);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(ticket.notes);
@@ -334,7 +341,7 @@ function NotesPanel({ ticket, ticketId }: { ticket: TicketDetail; ticketId: Id<"
       await setNotes({ ticketId, notes: draft });
       setEditing(false);
     } catch (thrown) {
-      setError(mutationError(thrown, "The notes were not saved."));
+      setError(mutationError(thrown, t("notesNotSaved")));
     } finally {
       setBusy(false);
     }
@@ -342,13 +349,13 @@ function NotesPanel({ ticket, ticketId }: { ticket: TicketDetail; ticketId: Id<"
 
   return (
     <Panel
-      title="Assignee notes"
+      title={t("notes")}
       action={
-        <Tooltip content="Edit assignee notes">
+        <Tooltip content={t("editNotes")}>
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Edit assignee notes"
+            aria-label={t("editNotes")}
             onClick={() => setEditing(true)}
             className="text-titlebar-ink-2 hover:bg-white/10 hover:text-titlebar-ink"
           >
@@ -360,15 +367,11 @@ function NotesPanel({ ticket, ticketId }: { ticket: TicketDetail; ticketId: Id<"
       <p
         className={cn("whitespace-pre-wrap text-sm", ticket.notes ? "text-subtle" : "text-muted-foreground")}
       >
-        {ticket.notes || "Nothing here."}
+        {ticket.notes || t("notesEmpty")}
       </p>
 
       <Dialog open={editing} onOpenChange={setEditing}>
-        <DialogContent
-          title="Assignee notes"
-          description="Only staff and the problem's editors read these."
-          width={560}
-        >
+        <DialogContent title={t("notes")} description={t("notesDescription")} width={560}>
           {error ? (
             <Alert variant="danger">
               <AlertDescription>{error}</AlertDescription>
@@ -378,14 +381,14 @@ function NotesPanel({ ticket, ticketId }: { ticket: TicketDetail; ticketId: Id<"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             rows={6}
-            aria-label="Assignee notes"
+            aria-label={t("notes")}
           />
           <DialogFooter>
             <Button variant="secondary" onClick={() => setEditing(false)} disabled={busy}>
-              Cancel
+              {common("cancel")}
             </Button>
             <Button onClick={save} busy={busy}>
-              {busy ? "Saving…" : "Update"}
+              {busy ? t("saving") : t("update")}
             </Button>
           </DialogFooter>
         </DialogContent>

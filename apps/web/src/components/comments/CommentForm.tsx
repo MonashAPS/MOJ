@@ -2,6 +2,7 @@
 
 import { Alert, AlertDescription, Button, cn } from "@moj/ui";
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import { mutationError } from "@/lib/convex-error";
@@ -31,8 +32,8 @@ export type CommentFormProps = {
 export function CommentForm({
   onSubmit,
   heading,
-  submitLabel = "Post!",
-  placeholder = "Write a comment…",
+  submitLabel,
+  placeholder,
   initialValue = "",
   maxLength,
   preset = "comment",
@@ -42,6 +43,8 @@ export function CommentForm({
   clearOnSuccess = true,
   className,
 }: CommentFormProps) {
+  const t = useTranslations("blog.form");
+  const common = useTranslations("common.actions");
   const [body, setBody] = useState(initialValue);
   const [previewed, setPreviewed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -49,11 +52,7 @@ export function CommentForm({
 
   const empty = body.trim().length === 0;
   const blocked = empty || !previewed || busy;
-  const reason = empty
-    ? "Write something first."
-    : previewed
-      ? undefined
-      : "Preview your comment before posting.";
+  const reason = empty ? t("needText") : previewed ? undefined : t("needPreview");
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -67,7 +66,7 @@ export function CommentForm({
         setPreviewed(false);
       }
     } catch (thrown) {
-      setError(mutationError(thrown, "Your comment was not posted."));
+      setError(mutationError(thrown, t("notPosted")));
     } finally {
       setBusy(false);
     }
@@ -82,8 +81,8 @@ export function CommentForm({
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Close"
-              title="Close"
+              aria-label={common("close")}
+              title={common("close")}
               onClick={onCancel}
               className="shrink-0 text-muted-foreground"
             >
@@ -105,24 +104,22 @@ export function CommentForm({
         preset={preset}
         rows={rows}
         maxLength={maxLength}
-        placeholder={placeholder}
-        ariaLabel={heading ?? "Comment body"}
+        placeholder={placeholder ?? t("placeholder")}
+        ariaLabel={heading ?? t("bodyLabel")}
         autoFocus={autoFocus}
         disabled={busy}
         onPreviewedChange={setPreviewed}
       />
 
       <div className="flex items-center gap-2">
-        <span className="min-w-0 flex-1 text-sm text-muted-foreground">
-          {reason ?? "Markdown, with maths between tildes."}
-        </span>
+        <span className="min-w-0 flex-1 text-sm text-muted-foreground">{reason ?? t("hint")}</span>
         {onCancel && !heading ? (
           <Button variant="secondary" onClick={onCancel} disabled={busy}>
-            Cancel
+            {common("cancel")}
           </Button>
         ) : null}
         <Button type="submit" disabled={blocked} busy={busy} title={reason}>
-          {busy ? "Posting…" : submitLabel}
+          {busy ? t("posting") : (submitLabel ?? t("post"))}
         </Button>
       </div>
     </form>

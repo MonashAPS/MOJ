@@ -1,6 +1,10 @@
+import { getTranslations } from "next-intl/server";
 import { LoginForm } from "./LoginForm";
 
-export const metadata = { title: "Log in" };
+export async function generateMetadata() {
+  const t = await getTranslations("auth.login");
+  return { title: t("metaTitle") };
+}
 
 export default async function LoginPage({
   searchParams,

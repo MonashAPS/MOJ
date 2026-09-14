@@ -17,19 +17,21 @@ import {
 import { useQuery } from "convex/react";
 import { Trophy } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { formatDate } from "@/lib/format";
 import { formatMemory, formatPoints, formatTime } from "@/lib/units";
 
 type Ranks = NonNullable<(typeof api.problems.ranks)["_returnType"]>;
 
 export function RankTable({ code, initial }: { code: string; initial: Ranks }) {
+  const t = useTranslations("problems.rank");
   const live = useQuery(api.problems.ranks, { code });
   const data = live ?? initial;
 
   return (
     <div className="grid gap-4">
       {data.byLanguage.length > 0 ? (
-        <Panel title="By language" bodyClassName="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Panel title={t("byLanguage")} bodyClassName="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3">
           {data.byLanguage.map((row) => (
             <div
               key={row.languageKey}
@@ -54,25 +56,21 @@ export function RankTable({ code, initial }: { code: string; initial: Ranks }) {
 
       <div className="min-w-0">
         {data.rows.length === 0 ? (
-          <EmptyState
-            icon={<Trophy size={20} />}
-            title="Nobody yet"
-            description="No one has solved this problem yet."
-          />
+          <EmptyState icon={<Trophy size={20} />} title={t("emptyTitle")} description={t("emptyBody")} />
         ) : (
-          <Table aria-label="Best submissions" dense>
+          <Table aria-label={t("tableLabel")} dense>
             <TableHeader>
               <TableRow>
                 <TableHead numeric className="w-12">
                   #
                 </TableHead>
-                <TableHead>User</TableHead>
-                <TableHead numeric>Score</TableHead>
-                <TableHead>Result</TableHead>
-                <TableHead>Language</TableHead>
-                <TableHead numeric>Time</TableHead>
-                <TableHead numeric>Memory</TableHead>
-                <TableHead numeric>Date</TableHead>
+                <TableHead>{t("columnUser")}</TableHead>
+                <TableHead numeric>{t("columnScore")}</TableHead>
+                <TableHead>{t("columnResult")}</TableHead>
+                <TableHead>{t("columnLanguage")}</TableHead>
+                <TableHead numeric>{t("columnTime")}</TableHead>
+                <TableHead numeric>{t("columnMemory")}</TableHead>
+                <TableHead numeric>{t("columnDate")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

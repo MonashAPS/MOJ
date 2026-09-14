@@ -90,9 +90,6 @@ export const defaultFormat: ContestFormat = {
   getLabelForProblem: numberLabel,
 
   getShortFormDisplay() {
-    return [
-      "The maximum score submission for each problem will be used.",
-      "Ties will be broken by the sum of the last submission time on problems with a non-zero score.",
-    ];
+    return [{ key: "maxScoreSubmission" }, { key: "tiesByLastSubmission" }];
   },
 };

@@ -25,41 +25,42 @@ import {
 import { useAction, useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { ChevronDown, ChevronUp, Plus, Trash2, TriangleAlert, Upload } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { formatDateTime } from "@/lib/format";
 import { formatMemory } from "@/lib/submissionFormat";
 
 /** `judge/models/problem_data.py::CHECKERS`, in DMOJ's order. */
 const CHECKERS = [
-  { value: "__none__", label: "Default" },
-  { value: "standard", label: "Standard" },
-  { value: "floats", label: "Floats" },
-  { value: "floatsabs", label: "Floats (absolute)" },
-  { value: "floatsrel", label: "Floats (relative)" },
-  { value: "rstripped", label: "Non-trailing spaces" },
-  { value: "sorted", label: "Sorted" },
-  { value: "identical", label: "Byte identical" },
-  { value: "linecount", label: "Line-by-line" },
-];
+  { value: "__none__", key: "default" },
+  { value: "standard", key: "standard" },
+  { value: "floats", key: "floats" },
+  { value: "floatsabs", key: "floatsAbsolute" },
+  { value: "floatsrel", key: "floatsRelative" },
+  { value: "rstripped", key: "nonTrailingSpaces" },
+  { value: "sorted", key: "sorted" },
+  { value: "identical", key: "byteIdentical" },
+  { value: "linecount", key: "lineByLine" },
+] as const;
 
 const CASE_TYPES = [
-  { value: "C", label: "Normal case" },
-  { value: "S", label: "Batch start" },
-  { value: "E", label: "Batch end" },
-];
+  { value: "C", key: "normal" },
+  { value: "S", key: "batchStart" },
+  { value: "E", key: "batchEnd" },
+] as const;
 
 type Payload = NonNullable<(typeof api.problemData.get)["_returnType"]>;
 type CaseRow = Payload["cases"][number] & { key: string };
 
 const OPTIONAL_COLUMNS = [
-  { key: "outputPrefix", label: "Output prefix" },
-  { key: "outputLimit", label: "Output limit" },
-  { key: "checker", label: "Checker" },
-  { key: "generatorArgs", label: "Generator args" },
-  { key: "batchDependencies", label: "Batch dependencies" },
+  "outputPrefix",
+  "outputLimit",
+  "checker",
+  "generatorArgs",
+  "batchDependencies",
 ] as const;
 
-type ColumnKey = (typeof OPTIONAL_COLUMNS)[number]["key"];
+type ColumnKey = (typeof OPTIONAL_COLUMNS)[number];
 
 function numberOrNull(value: string): number | null {
   const trimmed = value.trim();
@@ -68,11 +69,9 @@ function numberOrNull(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-/** The judge grades from data published elsewhere, so nothing here may be saved. */
-const REPOSITORY_OWNED =
-  "This problem is graded from data held on the judge, published from a problem repository.";
-
 export function TestDataEditor({ code, initial }: { code: string; initial: Payload }) {
+  const t = useTranslations("problems.testData");
+  const actions = useTranslations("common.actions");
   const live = useQuery(api.problemData.get, { code });
   const data = live ?? initial;
 
@@ -139,8 +138,8 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
     } catch (thrown) {
       setError(
         thrown instanceof ConvexError && typeof thrown.data === "object" && thrown.data !== null
-          ? String((thrown.data as { message?: string }).message ?? "That change was not saved.")
-          : "That change was not saved.",
+          ? String((thrown.data as { message?: string }).message ?? t("saveFailed"))
+          : t("saveFailed"),
       );
     } finally {
       setBusy(false);
@@ -166,13 +165,19 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
       setFiles(result.files);
       setStatus(
         result.changed
-          ? `${file.name} published — ${result.fileCount} files, ${result.hash.slice(0, 12)}.`
-          : `${file.name} is the archive already published, so nothing changed.`,
+          ? t("archivePublished", {
+              file: file.name,
+              count: result.fileCount,
+              hash: result.hash.slice(0, 12),
+            })
+          : t("archiveUnchanged", { file: file.name }),
       );
     });
   }
 
   const fileOptions = files.map((name) => ({ value: name, label: name }));
+  const checkers = CHECKERS.map((checker) => ({ value: checker.value, label: t(`checkers.${checker.key}`) }));
+  const caseTypes = CASE_TYPES.map((type) => ({ value: type.value, label: t(`caseTypes.${type.key}`) }));
 
   return (
     <div className="grid gap-4">
@@ -195,46 +200,52 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
       ) : null}
       {readOnly ? (
         <Alert variant="info">
-          <AlertTitle>{REPOSITORY_OWNED}</AlertTitle>
+          <AlertTitle>{t("repositoryOwned")}</AlertTitle>
         </Alert>
       ) : null}
 
       {published ? (
-        <Panel title="Published test data" bodyClassName="p-3">
+        <Panel title={t("publishedTitle")} bodyClassName="p-3">
           <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[auto_1fr]">
-            <dt className="text-sm text-muted-foreground">Hash</dt>
+            <dt className="text-sm text-muted-foreground">{t("hash")}</dt>
             <dd className="font-mono text-mono break-all">{published.hash}</dd>
-            <dt className="text-sm text-muted-foreground">Size</dt>
+            <dt className="text-sm text-muted-foreground">{t("size")}</dt>
             <dd className="text-sm">
-              {formatMemory(published.size / 1024)} in {published.fileCount}{" "}
-              {published.fileCount === 1 ? "file" : "files"}
+              {t("sizeSummary", {
+                size: formatMemory(published.size / 1024),
+                count: published.fileCount,
+              })}
             </dd>
-            <dt className="text-sm text-muted-foreground">Published</dt>
+            <dt className="text-sm text-muted-foreground">{t("published")}</dt>
             <dd className="text-sm">
-              {formatDateTime(published.uploadedAt)}
-              {published.uploadedByUsername ? ` by ${published.uploadedByUsername}` : ""}
+              {published.uploadedByUsername
+                ? t("publishedBy", {
+                    when: formatDateTime(published.uploadedAt),
+                    who: published.uploadedByUsername,
+                  })
+                : formatDateTime(published.uploadedAt)}
             </dd>
           </dl>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Judges fetch this archive from the site and grade from it. Uploading a zip below replaces it, as
-            publishing from a problem repository does.
-          </p>
+          <p className="mt-3 text-sm text-muted-foreground">{t("publishedNote")}</p>
         </Panel>
       ) : null}
 
       <fieldset disabled={readOnly} className="contents">
-        <Panel title="Problem data" bodyClassName="grid gap-4 p-3">
+        <Panel title={t("problemDataTitle")} bodyClassName="grid gap-4 p-3">
           <Field
-            label="Data zip file"
+            label={t("zipLabel")}
             htmlFor="zipfile"
             hint={
               readOnly
-                ? REPOSITORY_OWNED
+                ? t("repositoryOwned")
                 : published
-                  ? `The site holds ${published.fileCount} ${published.fileCount === 1 ? "file" : "files"} at ${published.hash.slice(0, 12)}.`
+                  ? t("zipHolding", {
+                      count: published.fileCount,
+                      hash: published.hash.slice(0, 12),
+                    })
                   : data.data?.zipfile
-                    ? `Currently ${data.data.zipfile}.`
-                    : "No archive has been uploaded."
+                    ? t("zipCurrent", { file: data.data.zipfile })
+                    : t("zipNone")
             }
           >
             <div className="flex items-center gap-2">
@@ -244,7 +255,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                 busy={busy}
                 onClick={() => filePicker.current?.click()}
               >
-                Choose a zip file
+                {t("chooseZip")}
               </Button>
               <input
                 ref={filePicker}
@@ -262,7 +273,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
           </Field>
 
           <FieldGroup columns={2}>
-            <Field label="Generator file" htmlFor="generator">
+            <Field label={t("generator")} htmlFor="generator">
               <Input
                 id="generator"
                 mono
@@ -271,16 +282,16 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                 onChange={(event) => setForm({ ...form, generator: event.target.value })}
               />
             </Field>
-            <Field label="Checker" htmlFor="checker">
+            <Field label={t("checker")} htmlFor="checker">
               <Select
                 id="checker"
-                ariaLabel="Checker"
+                ariaLabel={t("checker")}
                 value={form.checker || "__none__"}
                 onValueChange={(value) => setForm({ ...form, checker: value === "__none__" ? "" : value })}
-                options={CHECKERS}
+                options={checkers}
               />
             </Field>
-            <Field label="Output prefix length" htmlFor="output-prefix">
+            <Field label={t("outputPrefixLength")} htmlFor="output-prefix">
               <Input
                 id="output-prefix"
                 type="number"
@@ -289,7 +300,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                 onChange={(event) => setForm({ ...form, outputPrefix: event.target.value })}
               />
             </Field>
-            <Field label="Output limit length" htmlFor="output-limit">
+            <Field label={t("outputLimitLength")} htmlFor="output-limit">
               <Input
                 id="output-limit"
                 type="number"
@@ -301,11 +312,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
           </FieldGroup>
 
           {form.checker.startsWith("floats") ? (
-            <Field
-              label="Checker arguments"
-              htmlFor="checker-args"
-              hint="A JSON object, for example {&quot;precision&quot;: 6}."
-            >
+            <Field label={t("checkerArgs")} htmlFor="checker-args" hint={t("checkerArgsHint")}>
               <Input
                 id="checker-args"
                 mono
@@ -321,13 +328,13 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
               id="unicode"
               checked={form.unicode}
               onCheckedChange={(next) => setForm({ ...form, unicode: next })}
-              label="Enable unicode"
+              label={t("enableUnicode")}
             />
             <Switch
               id="nobigmath"
               checked={form.nobigmath}
               onCheckedChange={(next) => setForm({ ...form, nobigmath: next })}
-              label="Disable bigInteger and bigDecimal"
+              label={t("disableBigMath")}
             />
           </div>
 
@@ -347,53 +354,59 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                     nobigmath: form.nobigmath,
                     files: files.length > 0 ? files : undefined,
                   });
-                  setStatus("Problem data saved.");
+                  setStatus(t("dataSaved"));
                 })
               }
             >
-              Save problem data
+              {t("saveData")}
             </Button>
           </div>
         </Panel>
 
         <Panel
-          title="Test cases"
+          title={t("casesTitle")}
           bodyClassName="p-0"
           action={
             <span className="flex items-center gap-3">
               {OPTIONAL_COLUMNS.map((column) => (
                 <Checkbox
-                  key={column.key}
-                  id={`show-${column.key}`}
-                  checked={visible[column.key]}
-                  onCheckedChange={(next) => setVisible({ ...visible, [column.key]: next })}
-                  label={column.label}
+                  key={column}
+                  id={`show-${column}`}
+                  checked={visible[column]}
+                  onCheckedChange={(next) => setVisible({ ...visible, [column]: next })}
+                  label={t(`columns.${column}`)}
                   labelClassName="text-titlebar-ink-2 hover:text-titlebar-ink text-xs"
                 />
               ))}
             </span>
           }
         >
-          <Table aria-label="Test cases" dense scrollable={false}>
+          <Table aria-label={t("casesTitle")} dense scrollable={false}>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-16">#</TableHead>
-                <TableHead className="w-36">Type</TableHead>
-                <TableHead>Input file</TableHead>
-                <TableHead>Output file</TableHead>
+                <TableHead className="w-36">{t("columns.type")}</TableHead>
+                <TableHead>{t("columns.inputFile")}</TableHead>
+                <TableHead>{t("columns.outputFile")}</TableHead>
                 <TableHead numeric className="w-20">
-                  Points
+                  {t("columns.points")}
                 </TableHead>
-                <TableHead className="w-20">Pretest</TableHead>
-                {visible.outputPrefix ? <TableHead className="w-24">Output prefix</TableHead> : null}
-                {visible.outputLimit ? <TableHead className="w-24">Output limit</TableHead> : null}
-                {visible.checker ? <TableHead className="w-40">Checker</TableHead> : null}
-                {visible.generatorArgs ? <TableHead className="w-40">Generator args</TableHead> : null}
+                <TableHead className="w-20">{t("columns.pretest")}</TableHead>
+                {visible.outputPrefix ? (
+                  <TableHead className="w-24">{t("columns.outputPrefix")}</TableHead>
+                ) : null}
+                {visible.outputLimit ? (
+                  <TableHead className="w-24">{t("columns.outputLimit")}</TableHead>
+                ) : null}
+                {visible.checker ? <TableHead className="w-40">{t("columns.checker")}</TableHead> : null}
+                {visible.generatorArgs ? (
+                  <TableHead className="w-40">{t("columns.generatorArgs")}</TableHead>
+                ) : null}
                 {visible.batchDependencies ? (
-                  <TableHead className="w-32">Batch dependencies</TableHead>
+                  <TableHead className="w-32">{t("columns.batchDependencies")}</TableHead>
                 ) : null}
                 <TableHead className="w-12">
-                  <span className="sr-only">Delete</span>
+                  <span className="sr-only">{actions("delete")}</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -401,9 +414,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
               {rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={12} className="py-8 text-center text-sm text-muted-foreground">
-                    {data.judgesWithProblem > 0
-                      ? "No test data has been uploaded here. This problem is graded from data held on the judge, published from a problem repository."
-                      : "This problem has no test cases yet."}
+                    {data.judgesWithProblem > 0 ? t("emptyJudgeOwned") : t("emptyNoCases")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -414,22 +425,22 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                         <span className="w-5 font-mono text-sm tabular-nums text-muted-foreground">
                           {index + 1}
                         </span>
-                        <Tooltip content="Move up">
+                        <Tooltip content={t("moveUp")}>
                           <Button
                             size="icon-sm"
                             variant="ghost"
-                            aria-label={`Move case ${index + 1} up`}
+                            aria-label={t("moveCaseUp", { index: index + 1 })}
                             disabled={index === 0}
                             onClick={() => move(index, -1)}
                           >
                             <ChevronUp size={12} />
                           </Button>
                         </Tooltip>
-                        <Tooltip content="Move down">
+                        <Tooltip content={t("moveDown")}>
                           <Button
                             size="icon-sm"
                             variant="ghost"
-                            aria-label={`Move case ${index + 1} down`}
+                            aria-label={t("moveCaseDown", { index: index + 1 })}
                             disabled={index === rows.length - 1}
                             onClick={() => move(index, 1)}
                           >
@@ -441,10 +452,10 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                     <TableCell>
                       <Select
                         size="sm"
-                        ariaLabel={`Type of case ${index + 1}`}
+                        ariaLabel={t("caseType", { index: index + 1 })}
                         value={row.type}
                         onValueChange={(value) => patch(row.key, { type: value as CaseRow["type"] })}
-                        options={CASE_TYPES}
+                        options={caseTypes}
                       />
                     </TableCell>
                     <TableCell>
@@ -452,17 +463,17 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                         fileOptions.length > 0 ? (
                           <Select
                             size="sm"
-                            ariaLabel={`Input file for case ${index + 1}`}
+                            ariaLabel={t("caseInputFile", { index: index + 1 })}
                             value={row.inputFile}
                             onValueChange={(value) => patch(row.key, { inputFile: value })}
                             options={fileOptions}
-                            placeholder="Choose a file"
+                            placeholder={t("chooseFile")}
                           />
                         ) : (
                           <Input
                             mono
                             value={row.inputFile}
-                            aria-label={`Input file for case ${index + 1}`}
+                            aria-label={t("caseInputFile", { index: index + 1 })}
                             onChange={(event) => patch(row.key, { inputFile: event.target.value })}
                           />
                         )
@@ -473,17 +484,17 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                         fileOptions.length > 0 ? (
                           <Select
                             size="sm"
-                            ariaLabel={`Output file for case ${index + 1}`}
+                            ariaLabel={t("caseOutputFile", { index: index + 1 })}
                             value={row.outputFile}
                             onValueChange={(value) => patch(row.key, { outputFile: value })}
                             options={fileOptions}
-                            placeholder="Choose a file"
+                            placeholder={t("chooseFile")}
                           />
                         ) : (
                           <Input
                             mono
                             value={row.outputFile}
-                            aria-label={`Output file for case ${index + 1}`}
+                            aria-label={t("caseOutputFile", { index: index + 1 })}
                             onChange={(event) => patch(row.key, { outputFile: event.target.value })}
                           />
                         )
@@ -495,7 +506,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                           type="number"
                           mono
                           className="w-16"
-                          aria-label={`Points for case ${index + 1}`}
+                          aria-label={t("casePoints", { index: index + 1 })}
                           value={row.points ?? ""}
                           onChange={(event) => patch(row.key, { points: numberOrNull(event.target.value) })}
                         />
@@ -506,7 +517,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                         <Checkbox
                           checked={row.isPretest}
                           onCheckedChange={(next) => patch(row.key, { isPretest: next })}
-                          aria-label={`Case ${index + 1} is a pretest`}
+                          aria-label={t("casePretest", { index: index + 1 })}
                         />
                       )}
                     </TableCell>
@@ -516,7 +527,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                           type="number"
                           mono
                           className="w-20"
-                          aria-label={`Output prefix for case ${index + 1}`}
+                          aria-label={t("caseOutputPrefix", { index: index + 1 })}
                           value={row.outputPrefix ?? ""}
                           onChange={(event) =>
                             patch(row.key, { outputPrefix: numberOrNull(event.target.value) })
@@ -530,7 +541,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                           type="number"
                           mono
                           className="w-20"
-                          aria-label={`Output limit for case ${index + 1}`}
+                          aria-label={t("caseOutputLimit", { index: index + 1 })}
                           value={row.outputLimit ?? ""}
                           onChange={(event) =>
                             patch(row.key, { outputLimit: numberOrNull(event.target.value) })
@@ -542,12 +553,12 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                       <TableCell>
                         <Select
                           size="sm"
-                          ariaLabel={`Checker for case ${index + 1}`}
+                          ariaLabel={t("caseChecker", { index: index + 1 })}
                           value={row.checker ?? "__none__"}
                           onValueChange={(value) =>
                             patch(row.key, { checker: value === "__none__" ? null : value })
                           }
-                          options={CHECKERS}
+                          options={checkers}
                         />
                       </TableCell>
                     ) : null}
@@ -555,7 +566,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                       <TableCell>
                         <Input
                           mono
-                          aria-label={`Generator arguments for case ${index + 1}`}
+                          aria-label={t("caseGeneratorArgs", { index: index + 1 })}
                           value={row.generatorArgs}
                           onChange={(event) => patch(row.key, { generatorArgs: event.target.value })}
                         />
@@ -566,7 +577,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                         <Input
                           mono
                           placeholder="1, 2"
-                          aria-label={`Batch dependencies for case ${index + 1}`}
+                          aria-label={t("caseBatchDependencies", { index: index + 1 })}
                           value={row.batchDependencies.join(", ")}
                           onChange={(event) =>
                             patch(row.key, {
@@ -580,11 +591,11 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                       </TableCell>
                     ) : null}
                     <TableCell>
-                      <Tooltip content="Remove this case">
+                      <Tooltip content={t("removeCase")}>
                         <Button
                           size="icon-sm"
                           variant="ghost"
-                          aria-label={`Remove case ${index + 1}`}
+                          aria-label={t("removeCaseLabel", { index: index + 1 })}
                           onClick={() =>
                             setRows((current) =>
                               current
@@ -626,11 +637,11 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                     })),
                     files: files.length > 0 ? files : undefined,
                   });
-                  setStatus("Test cases saved.");
+                  setStatus(t("casesSaved"));
                 })
               }
             >
-              Submit!
+              {t("submitCases")}
             </Button>
             <Button
               variant="secondary"
@@ -657,7 +668,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                 ])
               }
             >
-              Add new case
+              {t("addCase")}
             </Button>
           </div>
         </Panel>
@@ -672,10 +683,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
               </p>
             ) : null}
             <pre className="overflow-x-auto bg-code p-3 font-mono text-mono text-foreground">
-              {preview.yaml ||
-                (data.judgesWithProblem > 0
-                  ? "# Nothing is generated here: the judge grades this problem from the\n# init.yml published beside its test data."
-                  : "# This problem has no generated configuration yet.")}
+              {preview.yaml || (data.judgesWithProblem > 0 ? t("yamlJudgeOwned") : t("yamlNone"))}
             </pre>
           </>
         )}

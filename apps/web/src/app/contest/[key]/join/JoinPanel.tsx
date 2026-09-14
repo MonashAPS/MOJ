@@ -2,9 +2,10 @@
 
 import { Button, Field, FormFooter, Input, Panel, TitleRow } from "@moj/ui";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { joinContest } from "@/app/contest/actions";
-import { humanDuration } from "@/components/contests/pieces";
+import { useHumanDuration } from "@/components/contests/pieces";
 
 /** `contest/access_code.html`, plus the confirmation DMOJ raises in JavaScript
  *  for a contest that needs no code. */
@@ -25,18 +26,22 @@ export function JoinPanel({
   timeLimit: number | null;
 }) {
   const [state, formAction, pending] = useActionState(joinContest, null);
+  const t = useTranslations("contests.join");
+  const humanDuration = useHumanDuration();
 
-  const title = requiresAccessCode ? `Enter access code for "${contestName}"` : `Join ${contestName}`;
+  const title = requiresAccessCode
+    ? t("accessCodeTitle", { name: contestName })
+    : t("joinTitle", { name: contestName });
 
   return (
     <>
       <TitleRow title={title} />
       <div className="mx-auto w-full max-w-[520px]">
-        <Panel title={requiresAccessCode ? "Access code" : "Confirm"} bodyClassName="p-4">
+        <Panel title={requiresAccessCode ? t("accessCodePanel") : t("confirmPanel")} bodyClassName="p-4">
           <form action={formAction} className="grid gap-4">
             <input type="hidden" name="key" value={contestKey} />
             {requiresAccessCode ? (
-              <Field label="Access code" htmlFor="accessCode" error={state?.error}>
+              <Field label={t("accessCodeLabel")} htmlFor="accessCode" error={state?.error}>
                 <Input
                   id="accessCode"
                   name="accessCode"
@@ -52,14 +57,14 @@ export function JoinPanel({
               <>
                 <p className="text-base text-subtle">
                   {alreadyIn
-                    ? "You are already in this contest."
+                    ? t("alreadyIn")
                     : isVirtual
-                      ? `A virtual participation runs your own ${
-                          timeLimit ? humanDuration(timeLimit * 1000) : "full-length"
-                        } window against the contest's problems. It does not appear on the live standings.`
+                      ? t("virtualWindow", {
+                          duration: timeLimit ? humanDuration(timeLimit * 1000) : t("fullLength"),
+                        })
                       : timeLimit
-                        ? `Joining starts your own ${humanDuration(timeLimit * 1000)} window, after which it becomes unstoppable.`
-                        : "Joining a contest for the first time starts your timer, after which it becomes unstoppable."}
+                        ? t("windowStarts", { duration: humanDuration(timeLimit * 1000) })
+                        : t("firstTime")}
                 </p>
                 {state?.error ? <p className="text-sm text-bad">{state.error}</p> : null}
               </>
@@ -67,12 +72,12 @@ export function JoinPanel({
             <FormFooter
               note={
                 <Link href={`/contest/${contestKey}/`} className="text-muted-foreground hover:text-subtle">
-                  Back to the contest
+                  {t("backToContest")}
                 </Link>
               }
             >
               <Button type="submit" busy={pending}>
-                {requiresAccessCode ? "Join contest" : isVirtual ? "Virtual join" : "Join contest"}
+                {requiresAccessCode ? t("join") : isVirtual ? t("virtualJoin") : t("join")}
               </Button>
             </FormFooter>
           </form>

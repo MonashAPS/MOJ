@@ -3,6 +3,7 @@
 import { cn } from "@moj/ui";
 import { GripHorizontal, X } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatDuration, useCountdown } from "@/lib/countdown";
 
@@ -22,6 +23,7 @@ export function ContestFloater({
   endsAt: number | null;
   mode: "live" | "spectating" | "virtual";
 }) {
+  const t = useTranslations("common.contestBar");
   const boxRef = useRef<HTMLDivElement | null>(null);
   const [position, setPosition] = useState<{ left: string; top: string } | null>(null);
   const [hidden, setHidden] = useState(false);
@@ -86,12 +88,12 @@ export function ContestFloater({
       >
         <GripHorizontal size={14} aria-hidden className="text-titlebar-ink-2" />
         <span className="flex-1 truncate font-sans text-xs font-semibold uppercase tracking-label">
-          In contest
+          {t("floater")}
         </span>
         <button
           type="button"
-          aria-label="Hide the contest timer"
-          title="Hide the contest timer until you reload"
+          aria-label={t("hideTimer")}
+          title={t("hideTimerHint")}
           onClick={() => {
             setHidden(true);
             try {
@@ -110,7 +112,11 @@ export function ContestFloater({
           {contestName}
         </Link>
         <span className="font-mono text-md font-medium tabular-nums text-foreground">
-          {mode === "spectating" ? "spectating" : remaining === null ? "virtual" : formatDuration(remaining)}
+          {mode === "spectating"
+            ? t("spectating")
+            : remaining === null
+              ? t("virtual")
+              : formatDuration(remaining)}
         </span>
       </div>
     </div>

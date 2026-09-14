@@ -4,6 +4,7 @@ import { Button, Input, MicroLabel, MultiSelect, Panel } from "@moj/ui";
 import { Filter, Search, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 export type FilterOption = { value: string; label: string };
@@ -35,24 +36,25 @@ export function SubmissionFilters({
   /** Builds the destination for the user search box. */
   userSearchHref: (username: string) => string;
 }) {
+  const t = useTranslations("submissions.filters");
   const router = useRouter();
   const [term, setTerm] = useState("");
   const active = selectedStatuses.length + selectedLanguages.length;
 
   return (
     <Panel
-      title="Filter submissions"
+      title={t("title")}
       icon={<Filter aria-hidden className="size-3.5" />}
       bodyClassName="grid gap-4 p-3"
     >
       <div className="grid gap-1.5">
-        <MicroLabel>Status</MicroLabel>
+        <MicroLabel>{t("status")}</MicroLabel>
         <MultiSelect
           id="filter-status"
-          ariaLabel="Filter by status"
-          placeholder="Any status"
-          searchPlaceholder="Filter statuses…"
-          emptyText="No status matches."
+          ariaLabel={t("statusAria")}
+          placeholder={t("anyStatus")}
+          searchPlaceholder={t("statusSearch")}
+          emptyText={t("statusEmpty")}
           options={statuses}
           values={selectedStatuses}
           onChange={(next) => onChange({ status: next })}
@@ -60,13 +62,13 @@ export function SubmissionFilters({
       </div>
 
       <div className="grid gap-1.5 border-t border-border pt-4">
-        <MicroLabel>Language</MicroLabel>
+        <MicroLabel>{t("language")}</MicroLabel>
         <MultiSelect
           id="filter-language"
-          ariaLabel="Filter by language"
-          placeholder="Any language"
-          searchPlaceholder="Filter languages…"
-          emptyText="No language matches."
+          ariaLabel={t("languageAria")}
+          placeholder={t("anyLanguage")}
+          searchPlaceholder={t("languageSearch")}
+          emptyText={t("languageEmpty")}
           options={languages}
           values={selectedLanguages}
           onChange={(next) => onChange({ language: next })}
@@ -74,7 +76,7 @@ export function SubmissionFilters({
       </div>
 
       <div className="grid gap-1.5 border-t border-border pt-4">
-        <MicroLabel>User</MicroLabel>
+        <MicroLabel>{t("user")}</MicroLabel>
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -88,9 +90,9 @@ export function SubmissionFilters({
             type="search"
             value={term}
             onChange={(event) => setTerm(event.target.value)}
-            placeholder="Username"
+            placeholder={t("username")}
             icon={<Search aria-hidden />}
-            aria-label="Show one user's submissions"
+            aria-label={t("userAria")}
           />
         </form>
         {myHref && myUsername ? (
@@ -99,18 +101,16 @@ export function SubmissionFilters({
             className="mt-1 inline-flex items-center gap-1.5 text-sm text-link hover:text-link-hover"
           >
             <User aria-hidden className="size-3.5" />
-            My submissions
+            {t("mySubmissions")}
           </Link>
         ) : null}
       </div>
 
       {active > 0 ? (
         <div className="-mx-3 -mb-3 flex items-center justify-between gap-3 border-t border-border px-3 py-2 text-sm text-muted-foreground">
-          <span className="font-mono tabular-nums">
-            {active} filter{active === 1 ? "" : "s"}
-          </span>
+          <span className="font-mono tabular-nums">{t("activeCount", { count: active })}</span>
           <Button variant="ghost" size="sm" onClick={onReset}>
-            Reset
+            {t("reset")}
           </Button>
         </div>
       ) : null}

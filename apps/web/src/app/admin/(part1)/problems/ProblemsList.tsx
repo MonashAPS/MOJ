@@ -21,6 +21,7 @@ import { useMutation, useQuery } from "convex/react";
 import { Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { type AdminColumn, AdminPager, AdminShell, AdminTable, AdminToolbar } from "@/components/admin";
 import { formatDate } from "@/lib/format";
@@ -44,6 +45,9 @@ type Row = {
 const PAGE_SIZE = 50;
 
 export function ProblemsList() {
+  const t = useTranslations("admin.problems.list");
+  const shared = useTranslations("admin.problems.shared");
+  const actions = useTranslations("common.actions");
   const router = useRouter();
   const pathname = usePathname() ?? "/admin/problems/";
   const params = useSearchParams();
@@ -94,18 +98,18 @@ export function ProblemsList() {
   const columns: AdminColumn<Row>[] = [
     {
       key: "code",
-      header: "Code",
+      header: t("column.code"),
       cell: (row) => <span className="font-mono text-mono font-medium text-foreground">{row.code}</span>,
     },
     {
       key: "name",
-      header: "Name",
+      header: t("column.name"),
       cell: (row) => (
         <div className="flex min-w-0 items-center gap-2">
           <span className="truncate text-foreground">{row.name}</span>
           {row.isManuallyManaged ? (
             <Badge variant="neutral" shape="square">
-              Manual
+              {t("manual")}
             </Badge>
           ) : null}
         </div>
@@ -113,12 +117,12 @@ export function ProblemsList() {
     },
     {
       key: "group",
-      header: "Group",
+      header: t("column.group"),
       cell: (row) => <span className="text-subtle">{row.group ?? "—"}</span>,
     },
     {
       key: "types",
-      header: "Types",
+      header: t("column.types"),
       cell: (row) => (
         <span className="truncate text-muted-foreground">
           {row.types.length > 0 ? row.types.join(", ") : "—"}
@@ -127,7 +131,7 @@ export function ProblemsList() {
     },
     {
       key: "authors",
-      header: "Authors",
+      header: t("column.authors"),
       cell: (row) => (
         <span className="truncate font-mono text-sm text-muted-foreground">
           {row.authors.length > 0 ? row.authors.join(", ") : "—"}
@@ -136,7 +140,7 @@ export function ProblemsList() {
     },
     {
       key: "points",
-      header: "Points",
+      header: t("column.points"),
       numeric: true,
       cell: (row) => (
         <>
@@ -147,23 +151,23 @@ export function ProblemsList() {
     },
     {
       key: "acRate",
-      header: "AC %",
+      header: t("column.acRate"),
       numeric: true,
       cell: (row) => `${row.acRate.toFixed(1)}%`,
     },
-    { key: "users", header: "Users", numeric: true, cell: (row) => row.userCount },
+    { key: "users", header: t("column.users"), numeric: true, cell: (row) => row.userCount },
     {
       key: "visibility",
-      header: "Visibility",
+      header: t("column.visibility"),
       cell: (row) => (
         <Badge variant={row.isPublic ? "good" : "neutral"} shape="square">
-          {row.isPublic ? "Public" : row.isOrganizationPrivate ? "Organisation" : "Private"}
+          {row.isPublic ? t("public") : row.isOrganizationPrivate ? t("organization") : t("private")}
         </Badge>
       ),
     },
     {
       key: "date",
-      header: "Published",
+      header: t("column.published"),
       numeric: true,
       cell: (row) => formatDate(row.date),
     },
@@ -173,23 +177,21 @@ export function ProblemsList() {
     try {
       const result = await setVisibility({ codes: selected, isPublic, reason: "Bulk visibility change" });
       const count = result?.changed?.length ?? selected.length;
-      toast.success(
-        `${count} ${count === 1 ? "problem" : "problems"} marked ${isPublic ? "public" : "private"}`,
-      );
+      toast.success(isPublic ? t("markedPublic", { count }) : t("markedPrivate", { count }));
       setSelected([]);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "The change was refused.");
+      toast.error(error instanceof Error ? error.message : shared("changeRefused"));
     }
     setPendingVisibility(null);
   }
 
   return (
     <AdminShell
-      title="Problems"
-      breadcrumb={[{ label: "Staff console", href: "/admin/" }, { label: "Problems" }]}
+      title={t("title")}
+      breadcrumb={[{ label: shared("consoleCrumb"), href: "/admin/" }, { label: shared("problemsCrumb") }]}
       action={
         <Button asChild size="sm" icon={<Plus aria-hidden />}>
-          <Link href="/admin/problems/new/">New problem</Link>
+          <Link href="/admin/problems/new/">{t("newProblem")}</Link>
         </Button>
       }
     >
@@ -199,20 +201,19 @@ export function ProblemsList() {
         rowKey={(row) => row.code}
         href={(row) => `/admin/problems/${row.code}/`}
         loading={data === undefined}
-        caption="Problems you may edit"
+        caption={t("caption")}
         selection={{ selected, onChange: setSelected }}
+        selectAllLabel={t("selectAll")}
         bulkActions={[
-          { label: "Make public", onSelect: () => setPendingVisibility(true) },
-          { label: "Make private", onSelect: () => setPendingVisibility(false) },
+          { label: t("bulkMakePublic"), onSelect: () => setPendingVisibility(true) },
+          { label: t("bulkMakePrivate"), onSelect: () => setPendingVisibility(false) },
         ]}
         empty={{
-          title: filtered ? "No problems match" : "No problems yet",
-          description: filtered
-            ? "No problems match these filters."
-            : "Problems appear here once one is created or uploaded by a problem repo.",
+          title: filtered ? t("emptyFilteredTitle") : t("emptyTitle"),
+          description: filtered ? t("emptyFilteredDescription") : t("emptyDescription"),
           action: filtered ? (
             <Button variant="secondary" size="sm" onClick={() => router.replace(pathname, { scroll: false })}>
-              Clear filters
+              {t("clearFilters")}
             </Button>
           ) : undefined,
         }}
@@ -228,42 +229,42 @@ export function ProblemsList() {
                 icon={<Search aria-hidden />}
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
-                placeholder="Code or name"
-                aria-label="Search problems"
+                placeholder={t("searchPlaceholder")}
+                aria-label={t("searchLabel")}
                 className="h-(--control-h-sm) w-[220px]"
               />
             </form>
             <Select
               size="sm"
-              ariaLabel="Visibility"
+              ariaLabel={t("visibilityFilter")}
               value={visibility}
               onValueChange={(value) => go({ public: value === "any" ? null : value })}
               options={[
-                { value: "any", label: "Any visibility" },
-                { value: "public", label: "Public" },
-                { value: "private", label: "Private" },
+                { value: "any", label: t("anyVisibility") },
+                { value: "public", label: t("public") },
+                { value: "private", label: t("private") },
               ]}
               className="w-[150px]"
             />
             <Select
               size="sm"
-              ariaLabel="Group"
-              placeholder="Any group"
+              ariaLabel={t("groupFilter")}
+              placeholder={t("anyGroup")}
               value={group || "all"}
               onValueChange={(value) => go({ group: value === "all" ? null : value })}
               options={[
-                { value: "all", label: "Any group" },
+                { value: "all", label: t("anyGroup") },
                 ...(options?.groups ?? []).map((row) => ({ value: row.name, label: row.fullName })),
               ]}
               className="w-[170px]"
             />
             <Select
               size="sm"
-              ariaLabel="Type"
+              ariaLabel={t("typeFilter")}
               value={type || "all"}
               onValueChange={(value) => go({ type: value === "all" ? null : value })}
               options={[
-                { value: "all", label: "Any type" },
+                { value: "all", label: t("anyType") },
                 ...(options?.types ?? []).map((row) => ({ value: row.name, label: row.fullName })),
               ]}
               className="w-[170px]"
@@ -272,10 +273,10 @@ export function ProblemsList() {
               value={author}
               onValueChange={(value) => go({ author: value === author ? null : value })}
               options={(options?.authors ?? []).map((name) => ({ value: name, label: name }))}
-              placeholder="Any author"
-              searchPlaceholder="Username"
-              emptyText="No author matches."
-              ariaLabel="Author"
+              placeholder={t("anyAuthor")}
+              searchPlaceholder={t("authorSearchPlaceholder")}
+              emptyText={t("noAuthorMatch")}
+              ariaLabel={t("authorFilter")}
               className="h-(--control-h-sm) w-[180px] text-sm"
             />
           </AdminToolbar>
@@ -285,7 +286,7 @@ export function ProblemsList() {
             page={page}
             pageSize={PAGE_SIZE}
             total={data?.total ?? 0}
-            noun="problem"
+            summary={(range) => t("pagerSummary", range)}
             hrefFor={(next) => withParams({ page: String(next) })}
           />
         }
@@ -300,17 +301,18 @@ export function ProblemsList() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {pendingVisibility ? "Make these problems public?" : "Make these problems private?"}
+              {pendingVisibility ? t("confirmPublicTitle") : t("confirmPrivateTitle")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {selected.length} {selected.length === 1 ? "problem" : "problems"} will be marked{" "}
-              {pendingVisibility ? "public" : "private"} and rescored. Submissions are kept either way.
+              {pendingVisibility
+                ? t("confirmPublicBody", { count: selected.length })
+                : t("confirmPrivateBody", { count: selected.length })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{actions("cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={() => applyVisibility(pendingVisibility === true)}>
-              {pendingVisibility ? "Make public" : "Make private"}
+              {pendingVisibility ? t("confirmPublicAction") : t("confirmPrivateAction")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

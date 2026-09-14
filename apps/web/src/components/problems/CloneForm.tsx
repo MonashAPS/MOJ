@@ -6,6 +6,7 @@ import { useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
 import { TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 export type CloneSource = {
@@ -31,6 +32,7 @@ export type CloneSource = {
  * either, and MOJ's lives in Convex storage.
  */
 export function CloneForm({ source, username }: { source: CloneSource; username: string }) {
+  const t = useTranslations("problems.clone");
   const router = useRouter();
   const create = useMutation(api.admin.problems.create);
   const [code, setCode] = useState(`${source.code}-clone`);
@@ -44,7 +46,7 @@ export function CloneForm({ source, username }: { source: CloneSource; username:
         event.preventDefault();
         const wanted = code.trim();
         if (!/^[a-z0-9_-]+$/i.test(wanted)) {
-          setError("A problem code may only contain letters, digits, hyphens and underscores.");
+          setError(t("invalidCode"));
           return;
         }
         setBusy(true);
@@ -75,8 +77,8 @@ export function CloneForm({ source, username }: { source: CloneSource; username:
             setBusy(false);
             setError(
               thrown instanceof ConvexError && typeof thrown.data === "object" && thrown.data !== null
-                ? String((thrown.data as { message?: string }).message ?? "The problem was not cloned.")
-                : "The problem was not cloned.",
+                ? String((thrown.data as { message?: string }).message ?? t("failed"))
+                : t("failed"),
             );
           }
         })();
@@ -89,17 +91,13 @@ export function CloneForm({ source, username }: { source: CloneSource; username:
         </Alert>
       ) : null}
 
-      <Field
-        label="Enter a new code for the cloned problem"
-        htmlFor="clone-code"
-        hint="The copy starts private, with you as its author."
-      >
+      <Field label={t("codeLabel")} htmlFor="clone-code" hint={t("codeHint")}>
         <Input id="clone-code" mono required value={code} onChange={(event) => setCode(event.target.value)} />
       </Field>
 
       <FormFooter>
         <Button type="submit" busy={busy}>
-          Clone!
+          {t("submit")}
         </Button>
       </FormFooter>
     </form>

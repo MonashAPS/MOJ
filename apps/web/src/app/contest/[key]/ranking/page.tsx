@@ -1,13 +1,15 @@
 import { api } from "@convex/_generated/api";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { queryAsViewer } from "@/lib/convex-server";
 import { RankingClient } from "./RankingClient";
 
 export async function generateMetadata({ params }: { params: Promise<{ key: string }> }): Promise<Metadata> {
   const { key } = await params;
+  const t = await getTranslations("contests.ranking");
   const detail = await queryAsViewer(api.contests.get, { key }).catch(() => null);
-  return { title: detail?.contest ? `${detail.contest.name} rankings` : "Rankings" };
+  return { title: detail?.contest ? t("metaTitle", { name: detail.contest.name }) : t("metaFallback") };
 }
 
 export default async function ContestRankingPage({ params }: { params: Promise<{ key: string }> }) {

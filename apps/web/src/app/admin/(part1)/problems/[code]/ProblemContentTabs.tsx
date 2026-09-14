@@ -27,6 +27,7 @@ import {
 } from "@moj/ui";
 import { useMutation } from "convex/react";
 import { Languages, MessageSquare, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import {
   AdminCheckField,
@@ -47,6 +48,9 @@ import type { ProblemEdit, ProblemOptions } from "./types";
 /* -------------------------------------------------------------------------- */
 
 export function ProblemEditorialTab({ problem }: { problem: ProblemEdit }) {
+  const t = useTranslations("admin.problems.content.editorial");
+  const shared = useTranslations("admin.problems.shared");
+  const commonActions = useTranslations("common.actions");
   const setEditorial = useMutation(api.admin.problems.setEditorial);
   const deleteEditorial = useMutation(api.admin.problems.deleteEditorial);
   const editorial = problem.editorial;
@@ -65,7 +69,7 @@ export function ProblemEditorialTab({ problem }: { problem: ProblemEdit }) {
   async function save() {
     setError(null);
     if (!reason.trim()) {
-      setReasonError("Say what you changed so the revision is worth reading.");
+      setReasonError(shared("reasonRequired"));
       return;
     }
     setReasonError(undefined);
@@ -80,9 +84,9 @@ export function ProblemEditorialTab({ problem }: { problem: ProblemEdit }) {
         reason: reason.trim(),
       });
       setReason("");
-      toast.success("Editorial saved.");
+      toast.success(t("saved"));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The change was refused.");
+      setError(caught instanceof Error ? caught.message : shared("changeRefused"));
     }
     setBusy(false);
   }
@@ -92,9 +96,9 @@ export function ProblemEditorialTab({ problem }: { problem: ProblemEdit }) {
     try {
       await deleteEditorial({ code: problem.code, reason: reason.trim() || "Removed the editorial." });
       setContent("");
-      toast.success("Editorial removed.");
+      toast.success(t("removed"));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The change was refused.");
+      setError(caught instanceof Error ? caught.message : shared("changeRefused"));
     }
   }
 
@@ -102,44 +106,40 @@ export function ProblemEditorialTab({ problem }: { problem: ProblemEdit }) {
     <AdminForm onSubmit={save}>
       <AdminFormError message={error} />
 
-      <AdminSection title="Editorial">
-        <Field label="Authors" htmlFor={ids.authors} hint="Credited under the editorial.">
-          <UserPicker id={ids.authors} values={authors} onChange={setAuthors} ariaLabel="Editorial authors" />
+      <AdminSection title={t("panel")}>
+        <Field label={shared("field.authors")} htmlFor={ids.authors} hint={t("authorsHint")}>
+          <UserPicker id={ids.authors} values={authors} onChange={setAuthors} ariaLabel={t("authorsAria")} />
         </Field>
-        <Field
-          label="Publish on"
-          htmlFor={ids.publishOn}
-          hint="Solvers see it from this moment; staff always do."
-        >
+        <Field label={shared("field.publishOn")} htmlFor={ids.publishOn} hint={t("publishOnHint")}>
           <DateTimeField
             id={ids.publishOn}
             value={publishOn}
             onChange={setPublishOn}
-            ariaLabel="Editorial publish date"
+            ariaLabel={t("publishOnAria")}
           />
         </Field>
         <AdminCheckField
-          label="Public"
-          hint="Unpublished editorials stay visible to the problem's staff."
+          label={shared("field.public")}
+          hint={t("publicHint")}
           checked={isPublic}
           onCheckedChange={setIsPublic}
         />
       </AdminSection>
 
-      <Panel title="Solution" bodyClassName="p-4">
-        <Field label="Editorial" hint="Markdown, the same pipeline as a statement.">
+      <Panel title={t("solutionPanel")} bodyClassName="p-4">
+        <Field label={t("label")} hint={t("hint")}>
           <MarkdownEditor value={content} onChange={setContent} preset="solution" rows={22} />
         </Field>
       </Panel>
 
-      <ReasonField value={reason} onChange={setReason} error={reasonError} entity="editorial" />
+      <ReasonField value={reason} onChange={setReason} error={reasonError} hint={t("reasonHint")} />
       <AdminFormFooter
         busy={busy}
-        submitLabel={editorial ? "Save editorial" : "Add editorial"}
+        submitLabel={editorial ? t("save") : t("add")}
         secondary={
           editorial ? (
             <Button variant="secondary" onClick={() => setConfirmDelete(true)}>
-              Remove editorial
+              {t("remove")}
             </Button>
           ) : undefined
         }
@@ -148,14 +148,12 @@ export function ProblemEditorialTab({ problem }: { problem: ProblemEdit }) {
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove the editorial for {problem.name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              The solution text is deleted. The problem itself and its submissions are untouched.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t("confirmTitle", { name: problem.name })}</AlertDialogTitle>
+            <AlertDialogDescription>{t("confirmDescription")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={remove}>Remove editorial</AlertDialogAction>
+            <AlertDialogCancel>{commonActions("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={remove}>{t("remove")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -168,6 +166,9 @@ export function ProblemEditorialTab({ problem }: { problem: ProblemEdit }) {
 /* -------------------------------------------------------------------------- */
 
 export function ProblemTranslationsTab({ problem }: { problem: ProblemEdit }) {
+  const t = useTranslations("admin.problems.content.translations");
+  const shared = useTranslations("admin.problems.shared");
+  const commonActions = useTranslations("common.actions");
   const setTranslation = useMutation(api.admin.problems.setTranslation);
   const deleteTranslation = useMutation(api.admin.problems.deleteTranslation);
 
@@ -190,7 +191,7 @@ export function ProblemTranslationsTab({ problem }: { problem: ProblemEdit }) {
   async function save() {
     setError(null);
     if (!language.trim()) {
-      setError("A translation needs a language code, for example fr or zh-hans.");
+      setError(t("languageRequired"));
       return;
     }
     setBusy(true);
@@ -203,29 +204,29 @@ export function ProblemTranslationsTab({ problem }: { problem: ProblemEdit }) {
         reason: reason.trim() || undefined,
       });
       setReason("");
-      toast.success(`The ${language} translation was saved.`);
+      toast.success(t("saved", { language }));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The change was refused.");
+      setError(caught instanceof Error ? caught.message : shared("changeRefused"));
     }
     setBusy(false);
   }
 
   return (
     <div className="grid gap-4">
-      <Panel title={`Translations (${problem.translations.length})`} bodyClassName="p-0">
+      <Panel title={t("panel", { count: problem.translations.length })} bodyClassName="p-0">
         {problem.translations.length === 0 ? (
           <EmptyState
             className="m-3"
             icon={<Languages aria-hidden />}
-            title="No translations"
-            description="A translation replaces the name and statement for readers using that language."
+            title={t("emptyTitle")}
+            description={t("emptyDescription")}
           />
         ) : (
           <Table dense className="group/table" scrollable={false}>
             <TableHeader>
               <TableRow>
-                <TableHead>Language</TableHead>
-                <TableHead>Name</TableHead>
+                <TableHead>{t("columnLanguage")}</TableHead>
+                <TableHead>{t("columnName")}</TableHead>
                 <TableHead className="w-24" />
               </TableRow>
             </TableHeader>
@@ -237,15 +238,15 @@ export function ProblemTranslationsTab({ problem }: { problem: ProblemEdit }) {
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="sm" onClick={() => choose(row.language)}>
-                        Edit
+                        {commonActions("edit")}
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        aria-label={`Remove the ${row.language} translation`}
+                        aria-label={t("removeAria", { language: row.language })}
                         onClick={async () => {
                           await deleteTranslation({ code: problem.code, language: row.language });
-                          toast.success(`The ${row.language} translation was removed.`);
+                          toast.success(t("removed", { language: row.language }));
                         }}
                       >
                         <Trash2 aria-hidden />
@@ -261,27 +262,27 @@ export function ProblemTranslationsTab({ problem }: { problem: ProblemEdit }) {
 
       <AdminForm onSubmit={save}>
         <AdminFormError message={error} />
-        <AdminSection title={existing ? `Edit the ${language} translation` : "Add a translation"}>
-          <Field label="Language code" htmlFor={ids.language} hint="As in fr, zh-hans, vi.">
+        <AdminSection title={existing ? t("editTitle", { language }) : t("addTitle")}>
+          <Field label={t("languageCode")} htmlFor={ids.language} hint={t("languageCodeHint")}>
             <Input
               id={ids.language}
               mono
               value={language}
               onChange={(event) => setLanguage(event.target.value)}
-              placeholder="fr"
+              placeholder={t("languageCodePlaceholder")}
             />
           </Field>
-          <Field label="Translated name" htmlFor={ids.name}>
+          <Field label={t("translatedName")} htmlFor={ids.name}>
             <Input id={ids.name} value={name} onChange={(event) => setName(event.target.value)} />
           </Field>
         </AdminSection>
-        <Panel title="Translated statement" bodyClassName="p-4">
-          <Field label="Statement">
+        <Panel title={t("statementPanel")} bodyClassName="p-4">
+          <Field label={shared("field.statement")}>
             <MarkdownEditor value={description} onChange={setDescription} preset="problem" rows={18} />
           </Field>
         </Panel>
-        <ReasonField value={reason} onChange={setReason} entity="translation" />
-        <AdminFormFooter busy={busy} submitLabel={existing ? "Save translation" : "Add translation"} />
+        <ReasonField value={reason} onChange={setReason} hint={t("reasonHint")} />
+        <AdminFormFooter busy={busy} submitLabel={existing ? t("save") : t("add")} />
       </AdminForm>
     </div>
   );
@@ -300,6 +301,8 @@ export function ProblemLanguageLimitsTab({
   problem: ProblemEdit;
   options: ProblemOptions | undefined;
 }) {
+  const t = useTranslations("admin.problems.content.languageLimits");
+  const shared = useTranslations("admin.problems.shared");
   const setLanguageLimits = useMutation(api.admin.problems.setLanguageLimits);
   const [limits, setLimits] = useState<Limit[]>(problem.languageLimits);
   const [adding, setAdding] = useState("");
@@ -318,7 +321,7 @@ export function ProblemLanguageLimitsTab({
   async function save() {
     setError(null);
     if (!reason.trim()) {
-      setReasonError("Say what you changed so the revision is worth reading.");
+      setReasonError(shared("reasonRequired"));
       return;
     }
     setReasonError(undefined);
@@ -326,9 +329,9 @@ export function ProblemLanguageLimitsTab({
     try {
       await setLanguageLimits({ code: problem.code, limits, reason: reason.trim() });
       setReason("");
-      toast.success("Language limits saved.");
+      toast.success(t("saved"));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The change was refused.");
+      setError(caught instanceof Error ? caught.message : shared("changeRefused"));
     }
     setBusy(false);
   }
@@ -336,23 +339,23 @@ export function ProblemLanguageLimitsTab({
   return (
     <AdminForm onSubmit={save}>
       <AdminFormError message={error} />
-      <Panel title={`Language limits (${limits.length})`} bodyClassName="grid gap-0 p-0">
+      <Panel title={t("panel", { count: limits.length })} bodyClassName="grid gap-0 p-0">
         {available.length > 0 ? (
           <div className="flex items-center gap-2 border-b border-border p-3">
             <Select
               size="sm"
-              ariaLabel="Language to add a limit for"
+              ariaLabel={t("addAria")}
               value={adding}
               onValueChange={setAdding}
               options={available.map((row) => ({ value: row.key, label: row.name }))}
-              placeholder="Add a language"
+              placeholder={t("addPlaceholder")}
               className="h-(--control-h-sm) w-[180px]"
             />
             <Button
               size="sm"
               variant="secondary"
               disabled={!adding}
-              title={adding ? undefined : "Choose a language first."}
+              title={adding ? undefined : t("chooseLanguageFirst")}
               onClick={() => {
                 if (!adding) return;
                 setLimits([
@@ -366,7 +369,7 @@ export function ProblemLanguageLimitsTab({
                 setAdding("");
               }}
             >
-              Add
+              {t("add")}
             </Button>
           </div>
         ) : null}
@@ -374,16 +377,19 @@ export function ProblemLanguageLimitsTab({
           <EmptyState
             className="m-3"
             icon={<Languages aria-hidden />}
-            title="No language limits"
-            description={`Every language runs at ${problem.timeLimit}s and ${problem.memoryLimit} KB. Add a row to give one language more room.`}
+            title={t("emptyTitle")}
+            description={t("emptyDescription", {
+              seconds: problem.timeLimit,
+              kilobytes: problem.memoryLimit,
+            })}
           />
         ) : (
           <Table dense className="group/table" scrollable={false}>
             <TableHeader>
               <TableRow>
-                <TableHead>Language</TableHead>
-                <TableHead numeric>Time limit (s)</TableHead>
-                <TableHead numeric>Memory limit (KB)</TableHead>
+                <TableHead>{t("columnLanguage")}</TableHead>
+                <TableHead numeric>{t("columnTime")}</TableHead>
+                <TableHead numeric>{t("columnMemory")}</TableHead>
                 <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
@@ -397,7 +403,7 @@ export function ProblemLanguageLimitsTab({
                     <Input
                       mono
                       inputMode="decimal"
-                      aria-label={`Time limit for ${limit.languageKey}`}
+                      aria-label={t("timeAria", { language: limit.languageKey })}
                       value={String(limit.timeLimit)}
                       onChange={(event) => patch(index, { timeLimit: Number(event.target.value) || 0 })}
                       className="ml-auto h-(--control-h-sm) w-[92px] text-right"
@@ -407,7 +413,7 @@ export function ProblemLanguageLimitsTab({
                     <Input
                       mono
                       inputMode="numeric"
-                      aria-label={`Memory limit for ${limit.languageKey}`}
+                      aria-label={t("memoryAria", { language: limit.languageKey })}
                       value={String(limit.memoryLimit)}
                       onChange={(event) => patch(index, { memoryLimit: Number(event.target.value) || 0 })}
                       className="ml-auto h-(--control-h-sm) w-[120px] text-right"
@@ -417,7 +423,7 @@ export function ProblemLanguageLimitsTab({
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      aria-label={`Remove the ${limit.languageKey} limit`}
+                      aria-label={t("removeAria", { language: limit.languageKey })}
                       onClick={() => setLimits(limits.filter((_unused, position) => position !== index))}
                     >
                       <Trash2 aria-hidden />
@@ -429,8 +435,8 @@ export function ProblemLanguageLimitsTab({
           </Table>
         )}
       </Panel>
-      <ReasonField value={reason} onChange={setReason} error={reasonError} entity="limit" />
-      <AdminFormFooter busy={busy} submitLabel="Save language limits" />
+      <ReasonField value={reason} onChange={setReason} error={reasonError} hint={t("reasonHint")} />
+      <AdminFormFooter busy={busy} submitLabel={t("submit")} />
     </AdminForm>
   );
 }
@@ -440,6 +446,9 @@ export function ProblemLanguageLimitsTab({
 /* -------------------------------------------------------------------------- */
 
 export function ProblemClarificationsTab({ problem }: { problem: ProblemEdit }) {
+  const t = useTranslations("admin.problems.content.clarifications");
+  const shared = useTranslations("admin.problems.shared");
+  const commonActions = useTranslations("common.actions");
   const addClarification = useMutation(api.admin.problems.addClarification);
   const deleteClarification = useMutation(api.admin.problems.deleteClarification);
 
@@ -452,7 +461,7 @@ export function ProblemClarificationsTab({ problem }: { problem: ProblemEdit }) 
   async function add() {
     setError(null);
     if (!description.trim()) {
-      setError("A clarification needs something to say.");
+      setError(t("descriptionRequired"));
       return;
     }
     setBusy(true);
@@ -464,22 +473,22 @@ export function ProblemClarificationsTab({ problem }: { problem: ProblemEdit }) 
       });
       setDescription("");
       setReason("");
-      toast.success("Clarification posted.");
+      toast.success(t("posted"));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The change was refused.");
+      setError(caught instanceof Error ? caught.message : shared("changeRefused"));
     }
     setBusy(false);
   }
 
   return (
     <div className="grid gap-4">
-      <Panel title={`Clarifications (${problem.clarifications.length})`} bodyClassName="p-0">
+      <Panel title={t("panel", { count: problem.clarifications.length })} bodyClassName="p-0">
         {problem.clarifications.length === 0 ? (
           <EmptyState
             className="m-3"
             icon={<MessageSquare aria-hidden />}
-            title="No clarifications"
-            description="A clarification appears above the statement for everyone reading the problem."
+            title={t("emptyTitle")}
+            description={t("emptyDescription")}
           />
         ) : (
           <ul className="divide-y divide-border">
@@ -492,7 +501,7 @@ export function ProblemClarificationsTab({ problem }: { problem: ProblemEdit }) 
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    aria-label="Remove this clarification"
+                    aria-label={t("removeAria")}
                     onClick={() => setPending(row.id)}
                   >
                     <Trash2 aria-hidden />
@@ -512,25 +521,23 @@ export function ProblemClarificationsTab({ problem }: { problem: ProblemEdit }) 
 
       <AdminForm onSubmit={add}>
         <AdminFormError message={error} />
-        <Panel title="New clarification" bodyClassName="p-4">
-          <Field label="Clarification" hint="Markdown, shown above the statement.">
+        <Panel title={t("newPanel")} bodyClassName="p-4">
+          <Field label={t("label")} hint={t("hint")}>
             <MarkdownEditor value={description} onChange={setDescription} preset="comment" rows={6} />
           </Field>
         </Panel>
-        <ReasonField value={reason} onChange={setReason} entity="clarification" />
-        <AdminFormFooter busy={busy} submitLabel="Post clarification" busyLabel="Posting…" />
+        <ReasonField value={reason} onChange={setReason} hint={t("reasonHint")} />
+        <AdminFormFooter busy={busy} submitLabel={t("submit")} busyLabel={t("busy")} />
       </AdminForm>
 
       <AlertDialog open={pending !== null} onOpenChange={(open) => !open && setPending(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove this clarification?</AlertDialogTitle>
-            <AlertDialogDescription>
-              It disappears from the problem page for everyone. This cannot be undone.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t("confirmTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("confirmDescription")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{commonActions("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
                 if (!pending) return;
@@ -539,10 +546,10 @@ export function ProblemClarificationsTab({ problem }: { problem: ProblemEdit }) 
                   clarificationId: pending as Id<"problemClarifications">,
                 });
                 setPending(null);
-                toast.success("Clarification removed.");
+                toast.success(t("removed"));
               }}
             >
-              Remove
+              {t("confirmAction")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

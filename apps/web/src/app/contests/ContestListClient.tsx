@@ -24,6 +24,7 @@ import { useQuery } from "convex/react";
 import { CalendarClock, ChevronDown, ChevronUp, Search, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips, ContestWindow, UserCount } from "@/components/contests/pieces";
@@ -35,8 +36,11 @@ const ALL_TAGS = "__all__";
 
 const SKELETON_ROWS = ["a", "b", "c", "d", "e", "f"];
 
-/** A live countdown that reads as a sentence, as DMOJ's `as_countdown` does. */
-function Countdown({ label, endsAt }: { label: string; endsAt: number }) {
+/** A live countdown that reads as a sentence, as DMOJ's `as_countdown` does.
+ *  The sentence is one message rather than a label beside a clock, because the
+ *  clock does not sit at the end of it in every language. */
+function Countdown({ sentence, endsAt }: { sentence: string; endsAt: number }) {
+  const t = useTranslations("contests.list");
   const remaining = useCountdown(endsAt);
   if (remaining === null || remaining > COUNTDOWN_HORIZON) return null;
   const urgent = remaining < 300_000;
@@ -47,7 +51,7 @@ function Countdown({ label, endsAt }: { label: string; endsAt: number }) {
         urgent ? "text-bad" : "text-muted-foreground",
       )}
     >
-      {label} {formatDuration(remaining)}
+      {t(sentence, { time: formatDuration(remaining) })}
     </span>
   );
 }
@@ -102,14 +106,16 @@ function ListTable({
   action?: (contest: ContestListRow) => React.ReactNode;
   inContest: boolean;
 }) {
+  const columns = useTranslations("contests.columns");
+
   return (
     <section className="grid gap-2">
       <h2 className="font-display text-h2 font-semibold">{caption}</h2>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-full">Contest</TableHead>
-            <TableHead numeric>Users</TableHead>
+            <TableHead className="w-full">{columns("contest")}</TableHead>
+            <TableHead numeric>{columns("users")}</TableHead>
             {action && !inContest ? <TableHead className="w-[1%]" /> : null}
           </TableRow>
         </TableHeader>
@@ -138,7 +144,7 @@ function ActiveRow({ participation }: { participation: ActiveParticipation }) {
       <ContestBlock
         contest={contest}
         when={
-          <Countdown label={contest.timeLimit ? "Window ends in" : "Ends in"} endsAt={participation.endsAt} />
+          <Countdown sentence={contest.timeLimit ? "windowEndsIn" : "endsIn"} endsAt={participation.endsAt} />
         }
       />
       <TableCell numeric className="align-top">
@@ -186,6 +192,8 @@ export function ContestListClient({
   descending: boolean;
   inContest: boolean;
 }) {
+  const t = useTranslations("contests.list");
+  const columns = useTranslations("contests.columns");
   const router = useRouter();
   const searchParams = useSearchParams();
   const live = useQuery(api.contests.list, args);
@@ -210,7 +218,7 @@ export function ContestListClient({
 
   const totalPages = Math.max(1, Math.ceil(data.totalPast / PAST_PER_PAGE));
   const tagOptions = [
-    { value: ALL_TAGS, label: "All tags" },
+    { value: ALL_TAGS, label: t("allTags") },
     ...[
       ...new Map(
         [...data.current, ...data.future, ...data.past.page]
@@ -249,12 +257,12 @@ export function ContestListClient({
     <div className="grid min-w-0 gap-8">
       {data.activeParticipations.length > 0 ? (
         <section className="grid gap-2">
-          <h2 className="font-display text-h2 font-semibold">Active contests</h2>
+          <h2 className="font-display text-h2 font-semibold">{t("active")}</h2>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-full">Contest</TableHead>
-                <TableHead numeric>Users</TableHead>
+                <TableHead className="w-full">{columns("contest")}</TableHead>
+                <TableHead numeric>{columns("users")}</TableHead>
                 <TableHead className="w-[1%]" />
               </TableRow>
             </TableHeader>
@@ -269,10 +277,10 @@ export function ContestListClient({
 
       {data.current.length > 0 ? (
         <ListTable
-          caption="Ongoing contests"
+          caption={t("ongoing")}
           rows={data.current}
           inContest={inContest}
-          renderWhen={(contest) => <Countdown label="Ends in" endsAt={contest.endTime} />}
+          renderWhen={(contest) => <Countdown sentence="endsIn" endsAt={contest.endTime} />}
           action={(contest) => (
             <JoinControl
               contestKey={contest.key}
@@ -287,12 +295,12 @@ export function ContestListClient({
       ) : null}
 
       <section className="grid gap-2">
-        <h2 className="font-display text-h2 font-semibold">Upcoming contests</h2>
+        <h2 className="font-display text-h2 font-semibold">{t("upcoming")}</h2>
         {data.future.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Contest</TableHead>
+                <TableHead>{columns("contest")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -300,7 +308,7 @@ export function ContestListClient({
                 <TableRow key={contest._id} className="group">
                   <ContestBlock
                     contest={contest}
-                    when={<Countdown label="Starting in" endsAt={contest.startTime} />}
+                    when={<Countdown sentence="startingIn" endsAt={contest.startTime} />}
                   />
                 </TableRow>
               ))}
@@ -309,11 +317,11 @@ export function ContestListClient({
         ) : (
           <EmptyState
             icon={<CalendarClock aria-hidden />}
-            title="Nothing scheduled"
-            description="No contests are scheduled right now."
+            title={t("nothingScheduledTitle")}
+            description={t("nothingScheduledBody")}
             action={
               <Button asChild variant="secondary" size="sm">
-                <a href="#past-contests">Past contests</a>
+                <a href="#past-contests">{t("past")}</a>
               </Button>
             }
           />
@@ -322,13 +330,13 @@ export function ContestListClient({
 
       <section id="past-contests" className="grid gap-3 scroll-mt-24">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 className="font-display text-h2 font-semibold">Past contests</h2>
+          <h2 className="font-display text-h2 font-semibold">{t("past")}</h2>
           <div className="flex flex-wrap items-end gap-3">
             {tagOptions.length > 1 ? (
               <div className="grid gap-1">
-                <MicroLabel>Tag</MicroLabel>
+                <MicroLabel>{t("tag")}</MicroLabel>
                 <Select
-                  ariaLabel="Filter by tag"
+                  ariaLabel={t("filterByTag")}
                   options={tagOptions}
                   value={tagName || ALL_TAGS}
                   size="sm"
@@ -345,14 +353,14 @@ export function ContestListClient({
                 router.push(hrefWith({ search: draft || null, page: null }));
               }}
             >
-              <MicroLabel>Search</MicroLabel>
+              <MicroLabel>{t("search")}</MicroLabel>
               <InputGroup className="h-(--control-h-sm) w-[220px]" leading={<Search size={14} aria-hidden />}>
                 <InputGroupInput
                   id="contest-search"
                   name="search"
                   type="search"
                   value={draft}
-                  placeholder="Search contests…"
+                  placeholder={t("searchPlaceholder")}
                   onChange={(event) => setDraft(event.target.value)}
                   className="text-[16px] md:text-base"
                 />
@@ -366,8 +374,8 @@ export function ContestListClient({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-full">{sortLink("name", "Contest")}</TableHead>
-                  <TableHead numeric>{sortLink("userCount", "Users")}</TableHead>
+                  <TableHead className="w-full">{sortLink("name", columns("contest"))}</TableHead>
+                  <TableHead numeric>{sortLink("userCount", columns("users"))}</TableHead>
                   {!inContest ? <TableHead className="w-[1%]" /> : null}
                 </TableRow>
               </TableHeader>
@@ -380,7 +388,7 @@ export function ContestListClient({
                     </TableCell>
                     {!inContest ? (
                       <TableCell className="relative z-1 align-top">
-                        <Tooltip content="Run the contest on your own clock.">
+                        <Tooltip content={t("virtualHint")}>
                           <span className="inline-block">
                             <JoinControl contestKey={contest.key} kind="virtual" full />
                           </span>
@@ -400,14 +408,12 @@ export function ContestListClient({
         ) : (
           <EmptyState
             icon={<Trophy aria-hidden />}
-            title={search ? "No matches" : "No past contests"}
-            description={
-              search ? `No matches for "${search}".` : "There are no past contests on the judge yet."
-            }
+            title={search ? t("noMatchesTitle") : t("noPastTitle")}
+            description={search ? t("noMatchesBody", { search }) : t("noPastBody")}
             action={
               search ? (
                 <Button asChild variant="secondary" size="sm">
-                  <Link href={hrefWith({ search: null, page: null })}>Clear search</Link>
+                  <Link href={hrefWith({ search: null, page: null })}>{t("clearSearch")}</Link>
                 </Button>
               ) : undefined
             }

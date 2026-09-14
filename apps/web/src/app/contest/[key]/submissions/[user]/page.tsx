@@ -1,5 +1,6 @@
 import { api } from "@convex/_generated/api";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { type SearchParams, SubmissionListPage } from "@/components/submissions/SubmissionListPage";
 import { queryAsViewer } from "@/lib/convex-server";
 
@@ -7,7 +8,8 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ key: string; user: string }> }) {
   const { key, user } = await params;
-  return { title: `${user}'s submissions in ${key}` };
+  const t = await getTranslations("contests.participations");
+  return { title: t("metaSubmissions", { user, key }) };
 }
 
 export default async function ContestUserSubmissionsPage({

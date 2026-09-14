@@ -4,6 +4,7 @@ import type { ContestBarData } from "@convex/contests";
 import { cn, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@moj/ui";
 import { Clock, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useRef } from "react";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 
@@ -39,16 +40,17 @@ export function ContestBar({
   currentCode?: string;
   viewerUsername?: string | null;
 }) {
+  const t = useTranslations("common.contestBar");
   const remaining = useCountdown(data.isSpectating ? null : data.endsAt);
   const chipsRef = useRef<HTMLDivElement | null>(null);
   const base = `/contest/${data.contest.key}`;
 
   const links = [
-    ...(data.links.standings ? [{ href: `${base}/ranking/`, label: "Standings" }] : []),
+    ...(data.links.standings ? [{ href: `${base}/ranking/`, label: t("standings") }] : []),
     ...(data.links.submissions && viewerUsername
-      ? [{ href: `${base}/submissions/${viewerUsername}/`, label: "My submissions" }]
+      ? [{ href: `${base}/submissions/${viewerUsername}/`, label: t("mySubmissions") }]
       : []),
-    ...(data.links.clarifications ? [{ href: `${base}/#clarifications`, label: "Clarifications" }] : []),
+    ...(data.links.clarifications ? [{ href: `${base}/#clarifications`, label: t("clarifications") }] : []),
   ];
 
   // A contest whose window has closed has no countdown left to run; DMOJ stops
@@ -68,7 +70,7 @@ export function ContestBar({
 
   return (
     <nav
-      aria-label="Contest"
+      aria-label={t("label")}
       data-chrome="dark"
       className="flex h-(--contest-bar-height) items-center gap-3 border-b border-white/10 bg-contest-bar px-4 text-contest-bar-ink"
     >
@@ -92,7 +94,7 @@ export function ContestBar({
                 data-chip
                 href={`/problem/${problem.code}`}
                 aria-current={isCurrent ? "page" : undefined}
-                title={`${problem.label}. ${problem.name} — ${problem.state}`}
+                title={t("problem", { label: problem.label, name: problem.name, state: problem.state })}
                 // Arrow keys move a roving cursor along the chips.
                 onKeyDown={moveBetweenChips(chipsRef)}
                 className={cn(
@@ -123,7 +125,7 @@ export function ContestBar({
       <div className="shrink-0 min-[700px]:hidden">
         <DropdownMenu>
           <DropdownMenuTrigger
-            aria-label="Contest links"
+            aria-label={t("links")}
             className="flex size-6 items-center justify-center rounded-xs text-contest-bar-ink hover:bg-white/10 hover:text-nav-ink"
           >
             <MoreHorizontal size={16} aria-hidden />
@@ -145,7 +147,13 @@ export function ContestBar({
         )}
       >
         <Clock size={14} aria-hidden />
-        {data.isSpectating ? "spectating" : ended ? "ended" : openEnded ? "open" : formatDuration(remaining)}
+        {data.isSpectating
+          ? t("spectating")
+          : ended
+            ? t("ended")
+            : openEnded
+              ? t("openEnded")
+              : formatDuration(remaining)}
       </span>
     </nav>
   );

@@ -2,6 +2,7 @@ import { api } from "@convex/_generated/api";
 import { Pagination, TitleRow } from "@moj/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { LeaderboardTable } from "@/components/users/LeaderboardTable";
 import { pageHref, parseUserOrder } from "@/components/users/leaderboard";
 import { queryAsViewer } from "@/lib/convex-server";
@@ -17,7 +18,8 @@ function first(value: string | string[] | undefined): string | undefined {
 
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
-  return { title: `Members of ${slugFromHandle(handle)}` };
+  const t = await getTranslations("organizations.members");
+  return { title: t("title", { organization: slugFromHandle(handle) }) };
 }
 
 export default async function OrganizationUsersPage({
@@ -28,6 +30,7 @@ export default async function OrganizationUsersPage({
   searchParams: Promise<Search>;
 }) {
   const [{ handle }, search] = await Promise.all([params, searchParams]);
+  const t = await getTranslations("organizations.members");
   const slug = slugFromHandle(handle);
   const state = parseUserOrder(first(search.order));
   const page = Math.max(1, Number.parseInt(first(search.page) ?? "1", 10) || 1);
@@ -50,7 +53,7 @@ export default async function OrganizationUsersPage({
   return (
     <>
       <TitleRow
-        title={`Members of ${data.organization.name}`}
+        title={t("title", { organization: data.organization.name })}
         breadcrumb={
           <Link href={organizationHref(data.organization)} className="hover:underline">
             {data.organization.name}
@@ -65,11 +68,11 @@ export default async function OrganizationUsersPage({
           params={params_.toString()}
           viewerUsername={viewerState?.profile?.username ?? null}
           kickSlug={data.isAdmin ? slug : undefined}
-          emptyMessage="This organization has no listed members yet."
+          emptyMessage={t("empty")}
         />
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <p className="font-mono text-sm tabular-nums text-muted-foreground">
-            {data.total === 1 ? "1 member" : `${data.total.toLocaleString("en-AU")} members`}
+            {t("count", { count: data.total })}
           </p>
           <Pagination
             page={data.page}

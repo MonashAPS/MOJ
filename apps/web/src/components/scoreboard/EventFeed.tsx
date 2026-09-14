@@ -3,16 +3,21 @@
 import type { FeedItem } from "@convex/pages/scoreboard";
 import { EASE_OUT } from "@moj/ui";
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { contestClock } from "./hall";
 
 const SHIFT_MS = 420;
 
-const CHIP: Record<string, string> = { correct: "Solved", incorrect: "Wrong", pending: "Pending" };
-const SAID: Record<string, string> = {
-  correct: " solved ",
-  incorrect: " missed ",
-  pending: " waiting on ",
+const CHIP: Record<string, string> = {
+  correct: "chipCorrect",
+  incorrect: "chipIncorrect",
+  pending: "chipPending",
+};
+const LINE: Record<string, string> = {
+  correct: "lineCorrect",
+  incorrect: "lineIncorrect",
+  pending: "linePending",
 };
 
 function prefersReducedMotion(): boolean {
@@ -37,6 +42,7 @@ export function EventFeed({
   open: boolean;
   onClose: () => void;
 }) {
+  const t = useTranslations("contests.hall.feed");
   const listRef = useRef<HTMLOListElement | null>(null);
   const positions = useRef<Map<string, number>>(new Map());
   const painted = useRef(false);
@@ -74,22 +80,22 @@ export function EventFeed({
   });
 
   return (
-    <aside className="hall-feed" data-open={open ? "true" : "false"} aria-label="Event feed">
+    <aside className="hall-feed" data-open={open ? "true" : "false"} aria-label={t("title")}>
       <div className="hall-feed-head">
-        <span>Event feed</span>
+        <span>{t("title")}</span>
         <span className="hall-spacer" />
         <button
           type="button"
           className="hall-row-edit"
           style={{ position: "static", transform: "none" }}
-          title="Hide the event feed"
-          aria-label="Hide the event feed"
+          title={t("hide")}
+          aria-label={t("hide")}
           onClick={onClose}
         >
           <X size={12} strokeWidth={2} aria-hidden />
         </button>
       </div>
-      {entries.length === 0 ? <p className="hall-feed-empty">Solves appear here as they land.</p> : null}
+      {entries.length === 0 ? <p className="hall-feed-empty">{t("empty")}</p> : null}
       <ol className="hall-feed-list scroll-quiet" ref={listRef}>
         {entries.map((entry) => (
           <li
@@ -103,11 +109,15 @@ export function EventFeed({
             <span className="hall-feed-division" title={entry.divisionName}>
               {entry.divisionName}
             </span>
-            <span className="hall-feed-chip">{CHIP[entry.state] ?? "Pending"}</span>
+            <span className="hall-feed-chip">{t(CHIP[entry.state] ?? "chipPending")}</span>
             <span className="hall-feed-line">
-              <b>{entry.displayName}</b>
-              <span className="hall-feed-said">{SAID[entry.state] ?? " waiting on "}</span>
-              <b>{entry.problem}</b>
+              {t.rich(LINE[entry.state] ?? "linePending", {
+                name: entry.displayName,
+                problem: entry.problem,
+                who: (chunks) => <b>{chunks}</b>,
+                said: (chunks) => <span className="hall-feed-said">{chunks}</span>,
+                what: (chunks) => <b>{chunks}</b>,
+              })}
               {entry.verdict ? <span className="hall-feed-said">{` · ${entry.verdict}`}</span> : null}
             </span>
           </li>

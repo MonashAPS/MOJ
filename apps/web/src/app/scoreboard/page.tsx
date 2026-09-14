@@ -11,33 +11,40 @@ import {
   TitleRow,
 } from "@moj/ui";
 import { MonitorPlay } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { queryAsViewer } from "@/lib/convex-server";
 
-export const metadata = { title: "Scoreboards" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("contests.scoreboards");
+  return { title: t("title") };
+}
 
 /** The index of hall scoreboards. The boards themselves are full-screen displays
  *  outside the site's chrome; this is the ordinary page that links to them. */
 export default async function ScoreboardIndexPage() {
+  const t = await getTranslations("contests.scoreboards");
+  const columns = await getTranslations("contests.columns");
   const events = await queryAsViewer(api.scoreboard.events, {}).catch(() => []);
 
   return (
     <>
-      <TitleRow title="Scoreboards" />
+      <TitleRow title={t("title")} />
       <div id="content-body">
         {events.length === 0 ? (
           <EmptyState
             icon={<MonitorPlay aria-hidden />}
-            title="No scoreboards"
-            description="No hall scoreboard has been set up yet."
+            title={t("emptyTitle")}
+            description={t("emptyBody")}
           />
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Event</TableHead>
-                <TableHead>Divisions</TableHead>
-                <TableHead>Theme</TableHead>
+                <TableHead>{columns("event")}</TableHead>
+                <TableHead>{columns("divisions")}</TableHead>
+                <TableHead>{columns("theme")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -49,7 +56,7 @@ export default async function ScoreboardIndexPage() {
                     </Link>
                     {event.isPublic ? null : (
                       <Badge className="ml-2" variant="neutral">
-                        Private
+                        {t("private")}
                       </Badge>
                     )}
                   </TableCell>

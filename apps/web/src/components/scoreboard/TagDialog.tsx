@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import type { ScoreboardBadge } from "@convex/scoreboard";
 import { Button, Checkbox, Dialog, DialogContent, DialogFooter } from "@moj/ui";
 import { useMutation } from "convex/react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import type { DisplayRow } from "./hall";
 
@@ -32,6 +33,8 @@ export function TagDialog({
   badges: EditableBadge[];
   onClose: () => void;
 }) {
+  const t = useTranslations("contests.hall.tag");
+  const actions = useTranslations("common.actions");
   const setTag = useMutation(api.scoreboard.setTag);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [initial, setInitial] = useState<Record<string, boolean>>({});
@@ -73,7 +76,7 @@ export function TagDialog({
       // Stay open with the boxes as they were left, so a failed save can be
       // retried without redoing the ticking.
       setSaving(false);
-      setError(failure instanceof Error ? failure.message : "The badges could not be saved.");
+      setError(failure instanceof Error ? failure.message : t("saveFailed"));
     }
   };
 
@@ -83,7 +86,7 @@ export function TagDialog({
           palette itself so the modal is not a white card on the projector. */}
       <DialogContent
         className="theme-dark"
-        title={row?.displayName ?? "Badges"}
+        title={row?.displayName ?? t("fallbackTitle")}
         description={row ? `${divisionName} · ${row.username}` : undefined}
         width={420}
         onKeyDown={(event) => {
@@ -94,10 +97,7 @@ export function TagDialog({
         }}
       >
         {badges.length === 0 ? (
-          <p className="text-base text-subtle">
-            This event has no badge organisations, so there is nothing to edit. Add one to the scoreboard in
-            the staff console.
-          </p>
+          <p className="text-base text-subtle">{t("noBadges")}</p>
         ) : (
           <div className="grid gap-1">
             {badges.map((badge) => (
@@ -112,7 +112,7 @@ export function TagDialog({
                     {badge.label}
                     {badge.attendance ? (
                       <span className="ml-auto text-xs uppercase tracking-label text-muted-foreground">
-                        Attendance
+                        {t("attendance")}
                       </span>
                     ) : null}
                   </span>
@@ -129,10 +129,10 @@ export function TagDialog({
             </span>
           ) : null}
           <Button variant="secondary" disabled={saving} onClick={onClose}>
-            Cancel
+            {actions("cancel")}
           </Button>
           <Button busy={saving} disabled={badges.length === 0} onClick={() => void save()}>
-            Save
+            {actions("save")}
           </Button>
         </DialogFooter>
       </DialogContent>

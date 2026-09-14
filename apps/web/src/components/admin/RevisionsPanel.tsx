@@ -2,6 +2,7 @@
 
 import { cn, EmptyState, Panel, Select } from "@moj/ui";
 import { History } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { formatDateTime, formatRelative } from "@/lib/format";
 
@@ -25,11 +26,17 @@ export type RevisionRow = {
 
 type Change = { field: string; before: string; after: string };
 
-function render(value: unknown): string {
+/** What a boolean field reads as in the diff. The rendering runs outside the
+ *  component, where there is no hook to reach the catalogue, so the two words
+ *  are handed down instead. */
+type BooleanWords = { yes: string; no: string };
+
+function render(value: unknown, words: BooleanWords): string {
   if (value === undefined || value === null) return "—";
-  if (Array.isArray(value)) return value.length === 0 ? "—" : value.map(render).join(", ");
+  if (Array.isArray(value))
+    return value.length === 0 ? "—" : value.map((entry) => render(entry, words)).join(", ");
   if (typeof value === "object") return JSON.stringify(value);
-  if (typeof value === "boolean") return value ? "yes" : "no";
+  if (typeof value === "boolean") return value ? words.yes : words.no;
   return String(value);
 }
 
@@ -40,46 +47,21 @@ function asRecord(snapshot: unknown): Record<string, unknown> {
 }
 
 /** Field-by-field, both ways: what a snapshot gained, lost or changed. */
-function diff(before: unknown, after: unknown): Change[] {
+function diff(before: unknown, after: unknown, words: BooleanWords): Change[] {
   const left = asRecord(before);
   const right = asRecord(after);
   const fields = [...new Set([...Object.keys(left), ...Object.keys(right)])].sort();
   const changes: Change[] = [];
   for (const field of fields) {
-    const a = render(left[field]);
-    const b = render(right[field]);
+    const a = render(left[field], words);
+    const b = render(right[field], words);
     if (a !== b) changes.push({ field, before: a, after: b });
   }
   return changes;
 }
 
-const LABELS: Record<string, string> = {
-  isPublic: "Public",
-  isManuallyManaged: "Manually managed",
-  isOrganizationPrivate: "Organisation private",
-  isFullMarkup: "Full markup",
-  submissionSourceVisibility: "Submission source visibility",
-  timeLimit: "Time limit",
-  memoryLimit: "Memory limit",
-  shortCircuit: "Short circuit",
-  allowedLanguages: "Allowed languages",
-  languageLimits: "Language limits",
-  bannedUsers: "Banned users",
-  ogImage: "Social image",
-  startTime: "Start",
-  endTime: "End",
-  isVisible: "Visible",
-  isRated: "Rated",
-  formatName: "Format",
-  formatConfig: "Format configuration",
-  freezeMinutes: "Freeze",
-  blindDuringFreeze: "Blind during freeze",
-  lockedAfter: "Locked after",
-  pointsPrecision: "Points precision",
-};
-
-function label(field: string): string {
-  if (LABELS[field]) return LABELS[field];
+/** A field the catalogue has no name for, spelled out from its camelCase one. */
+function fallbackLabel(field: string): string {
   const spaced = field.replace(/([A-Z])/g, " $1").toLowerCase();
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
@@ -91,10 +73,10 @@ function label(field: string): string {
 export function RevisionsPanel({
   revisions,
   rows: rawRows,
-  title = "History",
+  title,
   loading = false,
   emptyText,
-  emptyDescription = "Every edit made here is recorded with the reason it was made.",
+  emptyDescription,
   className,
 }: {
   revisions?: Revision[] | undefined;
@@ -106,6 +88,7 @@ export function RevisionsPanel({
   emptyDescription?: string;
   className?: string;
 }) {
+  const t = useTranslations("admin.components.revisions");
   const pending = loading || (revisions === undefined && rawRows == null);
   const rows: Revision[] =
     revisions ??
@@ -121,12 +104,21 @@ export function RevisionsPanel({
 
   const left = rows.find((row) => row.id === leftId) ?? rows[1] ?? null;
   const right = rows.find((row) => row.id === rightId) ?? rows[0] ?? null;
-  const changes = useMemo(() => (left && right ? diff(left.snapshot, right.snapshot) : []), [left, right]);
+  const words = useMemo(() => ({ yes: t("booleanTrue"), no: t("booleanFalse") }), [t]);
+  const changes = useMemo(
+    () => (left && right ? diff(left.snapshot, right.snapshot, words) : []),
+    [left, right, words],
+  );
+  const panelTitle = title ?? t("title");
+
+  function fieldLabel(field: string): string {
+    return t.has(`fields.${field}`) ? t(`fields.${field}`) : fallbackLabel(field);
+  }
 
   if (pending) {
     return (
-      <Panel title={title} className={className} bodyClassName="p-4">
-        <p className="text-sm text-muted-foreground">Loading the history…</p>
+      <Panel title={panelTitle} className={className} bodyClassName="p-4">
+        <p className="text-sm text-muted-foreground">{t("loading")}</p>
       </Panel>
     );
   }
@@ -136,20 +128,23 @@ export function RevisionsPanel({
       <EmptyState
         className={className}
         icon={<History aria-hidden />}
-        title="No revisions yet"
-        description={emptyText ?? emptyDescription}
+        title={t("emptyTitle")}
+        description={emptyText ?? emptyDescription ?? t("emptyDescription")}
       />
     );
   }
 
   const options = rows.map((row) => ({
     value: row.id,
-    label: `${formatDateTime(row.createdAt)} — ${row.author ?? "system"}`,
+    label: t("option", {
+      when: formatDateTime(row.createdAt),
+      author: row.author ?? t("systemAuthor"),
+    }),
   }));
 
   return (
     <div className={cn("grid gap-4 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]", className)}>
-      <Panel title={`${title} (${rows.length})`} bodyClassName="p-0">
+      <Panel title={t("titleCount", { title: panelTitle, count: rows.length })} bodyClassName="p-0">
         <ol className="divide-y divide-border">
           {rows.map((row) => (
             <li key={row.id}>
@@ -161,7 +156,7 @@ export function RevisionsPanel({
               >
                 <span className="truncate text-base text-foreground">{row.reason}</span>
                 <span className="font-mono text-sm tabular-nums text-muted-foreground">
-                  {row.author ?? "system"} ·{" "}
+                  {row.author ?? t("systemAuthor")} ·{" "}
                   <time
                     dateTime={new Date(row.createdAt).toISOString()}
                     title={formatDateTime(row.createdAt)}
@@ -175,15 +170,15 @@ export function RevisionsPanel({
         </ol>
       </Panel>
 
-      <Panel title="Compare" bodyClassName="p-4">
+      <Panel title={t("compare")} bodyClassName="p-4">
         <div className="mb-4 grid gap-3 sm:grid-cols-2">
           <div className="grid gap-1">
             <span className="font-sans text-xs font-semibold uppercase tracking-label text-muted-foreground">
-              From
+              {t("from")}
             </span>
             <Select
               size="sm"
-              ariaLabel="Older revision"
+              ariaLabel={t("olderRevision")}
               options={options}
               value={left?.id}
               onValueChange={setLeftId}
@@ -191,11 +186,11 @@ export function RevisionsPanel({
           </div>
           <div className="grid gap-1">
             <span className="font-sans text-xs font-semibold uppercase tracking-label text-muted-foreground">
-              To
+              {t("to")}
             </span>
             <Select
               size="sm"
-              ariaLabel="Newer revision"
+              ariaLabel={t("newerRevision")}
               options={options}
               value={right?.id}
               onValueChange={setRightId}
@@ -204,11 +199,9 @@ export function RevisionsPanel({
         </div>
 
         {rows.length < 2 ? (
-          <p className="text-sm text-muted-foreground">
-            There is one revision so far, so there is nothing to compare it with.
-          </p>
+          <p className="text-sm text-muted-foreground">{t("onlyOne")}</p>
         ) : changes.length === 0 ? (
-          <p className="text-sm text-muted-foreground">These two revisions are identical.</p>
+          <p className="text-sm text-muted-foreground">{t("identical")}</p>
         ) : (
           <dl className="grid gap-0 overflow-hidden rounded-md border border-border">
             {changes.map((change) => (
@@ -216,7 +209,7 @@ export function RevisionsPanel({
                 key={change.field}
                 className="grid grid-cols-[minmax(0,180px)_minmax(0,1fr)] gap-3 border-b border-border px-3 py-2 last:border-b-0"
               >
-                <dt className="truncate text-base font-medium text-subtle">{label(change.field)}</dt>
+                <dt className="truncate text-base font-medium text-subtle">{fieldLabel(change.field)}</dt>
                 <dd className="grid gap-1 text-base">
                   <span className="break-words text-danger-ink line-through decoration-danger-line">
                     {change.before}

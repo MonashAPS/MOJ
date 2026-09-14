@@ -2,11 +2,13 @@ import { api } from "@convex/_generated/api";
 import { ratingClass } from "@moj/ui";
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
+import { NextIntlClientProvider } from "next-intl";
 import { ConvexClientProvider } from "@/auth/convex-client";
 import { getServerSession } from "@/auth/session";
 import { BrandingStyle } from "@/components/BrandingStyle";
 import { SiteShell } from "@/components/shell/SiteShell";
 import { ThemeScript } from "@/components/shell/ThemeScript";
+import { UiText } from "@/components/shell/UiText";
 import { query, queryAsViewer } from "@/lib/convex-server";
 import { gravatarUrl } from "@/lib/gravatar";
 import { viewerLanguage } from "@/lib/language.server";
@@ -87,19 +89,25 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <BrandingStyle branding={branding} />
       </head>
       <body>
-        <ConvexClientProvider>
-          <SiteShell
-            nav={shell?.nav ?? []}
-            misc={shell?.misc ?? {}}
-            viewer={viewer}
-            registrationOpen={shell?.settings?.registrationOpen ?? true}
-            language={language}
-            logoUrl={branding?.logoUrl ?? null}
-            siteName={branding?.siteLongName ?? "MAPS Online Judge"}
-          >
-            {children}
-          </SiteShell>
-        </ConvexClientProvider>
+        {/* The catalogue comes from `src/i18n/request.ts`; the provider is what
+            carries it into the client components below. */}
+        <NextIntlClientProvider>
+          <UiText>
+            <ConvexClientProvider>
+              <SiteShell
+                nav={shell?.nav ?? []}
+                misc={shell?.misc ?? {}}
+                viewer={viewer}
+                registrationOpen={shell?.settings?.registrationOpen ?? true}
+                language={language}
+                logoUrl={branding?.logoUrl ?? null}
+                siteName={branding?.siteLongName ?? "MAPS Online Judge"}
+              >
+                {children}
+              </SiteShell>
+            </ConvexClientProvider>
+          </UiText>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

@@ -17,6 +17,7 @@ import {
   Panel,
 } from "@moj/ui";
 import { AlertTriangle, KeyRound, Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { formatDateTime } from "@/lib/format";
@@ -26,6 +27,7 @@ import { createKeyAction, listKeysAction, revokeKeyAction } from "./actions";
 import { API_KEY_SCOPES, type ConsoleKeyRow } from "./scopes";
 
 export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: string }) {
+  const t = useTranslations("admin.apiKeys");
   const [rows, setRows] = useState<ConsoleKeyRow[] | null>(null);
   const [message, setMessage] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
   const [, startTransition] = useTransition();
@@ -52,7 +54,7 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
   async function create() {
     if (!draft) return;
     if (reason.trim().length === 0) {
-      setError("Say what the key is for; it is the only record of why it exists.");
+      setError(t("reasonRequired"));
       return;
     }
     setBusy(true);
@@ -73,15 +75,15 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
   }
 
   const columns: AdminColumn<ConsoleKeyRow>[] = [
-    { key: "name", header: "Name", cell: (row) => <span className="font-medium">{row.name}</span> },
+    { key: "name", header: t("columnName"), cell: (row) => <span className="font-medium">{row.name}</span> },
     {
       key: "start",
-      header: "Starts with",
+      header: t("columnStart"),
       cell: (row) => <span className="font-mono text-mono">{row.start ? `${row.start}…` : DASH}</span>,
     },
     {
       key: "scopes",
-      header: "Scopes",
+      header: t("columnScopes"),
       cell: (row) =>
         row.scopes.length === 0 ? (
           <span className="text-muted-foreground">{DASH}</span>
@@ -97,48 +99,57 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
     },
     {
       key: "state",
-      header: "State",
+      header: t("columnState"),
       cell: (row) => (
         <Flags
           flags={[
-            { on: row.enabled, label: "Enabled", tone: "good" },
-            { on: !row.enabled, label: "Disabled", tone: "bad" },
-            { on: !row.mirrored, label: "Site only", tone: "warn" },
-            { on: row.expiresAt !== null && row.expiresAt < Date.now(), label: "Expired", tone: "bad" },
+            { on: row.enabled, label: t("stateEnabled"), tone: "good" },
+            { on: !row.enabled, label: t("stateDisabled"), tone: "bad" },
+            { on: !row.mirrored, label: t("stateSiteOnly"), tone: "warn" },
+            {
+              on: row.expiresAt !== null && row.expiresAt < Date.now(),
+              label: t("stateExpired"),
+              tone: "bad",
+            },
           ]}
         />
       ),
     },
-    { key: "created", header: "Created", numeric: true, cell: (row) => formatDateTime(row.createdAt) },
+    {
+      key: "created",
+      header: t("columnCreated"),
+      numeric: true,
+      cell: (row) => formatDateTime(row.createdAt),
+    },
     {
       key: "expires",
-      header: "Expires",
+      header: t("columnExpires"),
       numeric: true,
-      cell: (row) => (row.expiresAt === null ? "Never" : formatDateTime(row.expiresAt)),
+      cell: (row) => (row.expiresAt === null ? t("never") : formatDateTime(row.expiresAt)),
     },
     {
       key: "used",
-      header: "Last used",
+      header: t("columnLastUsed"),
       numeric: true,
       cell: (row) => (row.lastUsedAt === null ? DASH : formatDateTime(row.lastUsedAt)),
     },
     {
       key: "actions",
-      header: <span className="sr-only">Actions</span>,
+      header: <span className="sr-only">{t("columnActions")}</span>,
       cell: (row) => (
         <ConfirmAction
           trigger={
             <Button variant="ghost" size="sm">
-              Revoke
+              {t("revoke")}
             </Button>
           }
-          title={`Revoke ${row.name}?`}
-          description="Any workflow presenting this key starts failing immediately. It cannot be restored; issue a new one instead."
-          confirmLabel="Revoke key"
+          title={t("revokeTitle", { name: row.name })}
+          description={t("revokeDescription")}
+          confirmLabel={t("revokeConfirm")}
           onConfirm={async () => {
             const result = await revokeKeyAction(row.id, row.convexId);
             if (result.ok) {
-              setMessage({ tone: "ok", text: `${row.name} has been revoked.` });
+              setMessage({ tone: "ok", text: t("revokedMessage", { name: row.name }) });
               refresh();
             } else {
               setMessage({ tone: "bad", text: result.error });
@@ -160,7 +171,7 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
         toolbar={
           <>
             <span className="text-sm text-muted-foreground">
-              Keys belong to {username || "you"} and act with {username || "your"} permissions.
+              {username ? t("ownership", { username }) : t("ownershipSelf")}
             </span>
             <Button
               className="ml-auto"
@@ -172,55 +183,50 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
                 setError(null);
               }}
             >
-              New key
+              {t("newKey")}
             </Button>
           </>
         }
-        emptyTitle="No API keys"
-        emptyDescription="A key is what a problem repository's workflow presents when it uploads a statement."
+        emptyTitle={t("emptyTitle")}
+        emptyDescription={t("emptyDescription")}
         emptyAction={
           <Button
             variant="secondary"
             onClick={() => setDraft({ name: "", scopes: ["problems:write"], expiresInDays: "" })}
           >
-            New key
+            {t("newKey")}
           </Button>
         }
       />
 
-      <Panel title="Using a key from a problem repository" bodyClassName="grid gap-3 p-3">
+      <Panel title={t("usageTitle")} bodyClassName="grid gap-3 p-3">
         <p className="text-sm text-subtle">
-          The reusable action uploads every problem a push touched. Put the key in the repository&rsquo;s
-          secrets as <code className="font-mono">JUDGE_API_KEY</code>, and this site&rsquo;s address as{" "}
-          <code className="font-mono">JUDGE_URL</code> — the same address you are reading this on.
+          {t.rich("usageIntro", { code: (chunks) => <code className="font-mono">{chunks}</code> })}
         </p>
         <pre className="overflow-x-auto rounded-md bg-code p-3 font-mono text-mono">{WORKFLOW(apiUrl)}</pre>
-        <p className="text-sm text-subtle">
-          To upload by hand, present the key as a bearer token against the problems API:
-        </p>
+        <p className="text-sm text-subtle">{t("usageCurl")}</p>
         <pre className="overflow-x-auto rounded-md bg-code p-3 font-mono text-mono">{CURL(apiUrl)}</pre>
         <p className="text-sm text-muted-foreground">
-          The endpoint updates only the fields the body carries; anything absent is left as it is. Creating a
-          problem needs a name. <code className="font-mono">problems:write</code> is the scope it checks.
+          {t.rich("usageNote", { code: (chunks) => <code className="font-mono">{chunks}</code> })}
         </p>
       </Panel>
 
       <RecordDialog
         open={draft !== null}
         onOpenChange={(next) => (next ? undefined : setDraft(null))}
-        title="New API key"
-        description="The key is shown once, here, and never again. Only its hash is stored."
+        title={t("createTitle")}
+        description={t("createDescription")}
         onSubmit={create}
         reason={reason}
         onReasonChange={setReason}
-        reasonLabel="What is this key for"
-        reasonHint="Recorded with the key so a stale one can be recognised later."
+        reasonLabel={t("reasonLabel")}
+        reasonHint={t("reasonHint")}
         busy={busy}
         error={error}
-        submitLabel="Create key"
+        submitLabel={t("createSubmit")}
       >
         <FieldGroup columns={2}>
-          <Field label="Name" hint="The repository or workflow that will hold it.">
+          <Field label={t("name")} hint={t("nameHint")}>
             <Input
               value={draft?.name ?? ""}
               onChange={(event) =>
@@ -229,7 +235,7 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
               placeholder="problems-2026"
             />
           </Field>
-          <Field label="Expires in (days)" optional=" (optional)" hint="Blank means the key never expires.">
+          <Field label={t("expiresInDays")} optional={t("optional")} hint={t("expiresInDaysHint")}>
             <Input
               type="number"
               mono
@@ -242,7 +248,7 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
           </Field>
         </FieldGroup>
 
-        <Field label="Scopes" hint="A key can do nothing a scope does not name.">
+        <Field label={t("scopes")} hint={t("scopesHint")}>
           <div className="grid gap-2">
             {API_KEY_SCOPES.map((scope) => (
               <Checkbox
@@ -263,7 +269,7 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
                 label={
                   <span className="grid">
                     <span className="font-mono text-mono">{scope.label}</span>
-                    <span className="text-sm text-muted-foreground">{scope.hint}</span>
+                    <span className="text-sm text-muted-foreground">{t(scope.hintKey)}</span>
                   </span>
                 }
               />
@@ -274,8 +280,8 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
 
       <Dialog open={issued !== null} onOpenChange={(next) => (next ? undefined : setIssued(null))}>
         <DialogContent
-          title={`Key for ${issued?.row.name ?? ""}`}
-          description="Copy it now. It is not shown again and cannot be recovered."
+          title={t("issuedTitle", { name: issued?.row.name ?? "" })}
+          description={t("issuedDescription")}
           width={720}
         >
           <div className="grid gap-3">
@@ -283,25 +289,24 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
               <code className="min-w-0 flex-1 break-all rounded-md bg-code p-3 font-mono text-mono">
                 {issued?.key}
               </code>
-              <CopyButton value={issued?.key ?? ""} label="Copy key" />
+              <CopyButton value={issued?.key ?? ""} label={t("copyKey")} />
             </div>
             {issued?.warning ? (
               <Alert variant="warning">
                 <AlertTriangle className="size-3.5" aria-hidden />
-                <AlertTitle>The judge&rsquo;s key table was not updated</AlertTitle>
+                <AlertTitle>{t("mirrorWarningTitle")}</AlertTitle>
                 <AlertDescription>{issued.warning}</AlertDescription>
               </Alert>
             ) : (
               <p className="flex items-start gap-2 text-sm text-muted-foreground">
                 <KeyRound className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                The key works against the site and against the problems API, whichever route the judge takes
-                to verify it.
+                {t("bothRoutes")}
               </p>
             )}
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="secondary">Done</Button>
+              <Button variant="secondary">{t("done")}</Button>
             </DialogClose>
           </DialogFooter>
         </DialogContent>

@@ -1,12 +1,18 @@
 import { TitleRow } from "@moj/ui";
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { LanguagesTable } from "./LanguagesTable";
 
-export const metadata = { title: "Languages" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("admin.languages");
+  return { title: t("metaTitle") };
+}
 
-export default function AdminLanguagesPage() {
+export default async function AdminLanguagesPage() {
+  const t = await getTranslations("admin.languages");
   return (
     <>
-      <TitleRow title="Languages" />
+      <TitleRow title={t("title")} />
       <LanguagesTable />
     </>
   );

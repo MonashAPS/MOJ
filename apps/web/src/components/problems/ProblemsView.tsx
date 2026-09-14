@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { ActiveFilters, type FilterOptions, FilterPanel } from "@/components/problems/FilterPanel";
 import { HotProblemsBox } from "@/components/problems/HotProblemsBox";
@@ -47,21 +48,24 @@ import {
   problemQueryString,
   toggleSort,
 } from "@/lib/problem-query";
-import { formatPoints, plural } from "@/lib/units";
+import { formatPoints } from "@/lib/units";
 
 type ListPayload = NonNullable<(typeof api.problems.list)["_returnType"]>;
 type ListItem = ListPayload["items"][number];
 
 const STATE_META = {
-  solved: { Icon: CheckCircle2, tone: "var(--state-solved)", label: "Solved" },
-  partial: { Icon: CircleSlash2, tone: "var(--state-partial)", label: "Partially solved" },
-  attempted: { Icon: CircleDashed, tone: "var(--state-attempted)", label: "Attempted" },
+  solved: { Icon: CheckCircle2, tone: "var(--state-solved)", label: "solved" },
+  partial: { Icon: CircleSlash2, tone: "var(--state-partial)", label: "partial" },
+  attempted: { Icon: CircleDashed, tone: "var(--state-attempted)", label: "attempted" },
 } as const;
 
 function StateIcon({ state, code, username }: { state: string; code: string; username: string | null }) {
+  const t = useTranslations("problems.list");
+  const states = useTranslations("problems.state");
   const meta = STATE_META[state as keyof typeof STATE_META];
-  if (!meta) return <span className="sr-only">Not attempted</span>;
-  const { Icon, tone, label } = meta;
+  if (!meta) return <span className="sr-only">{states("notAttempted")}</span>;
+  const { Icon, tone } = meta;
+  const label = states(meta.label);
   const glyph = <Icon size={14} aria-hidden style={{ color: tone }} />;
   return (
     <Tooltip content={label}>
@@ -69,7 +73,7 @@ function StateIcon({ state, code, username }: { state: string; code: string; use
         <Link
           href={`/problem/${code}/submissions/${username}/`}
           className="relative z-1 inline-flex"
-          aria-label={`${label} — your submissions`}
+          aria-label={t("stateSubmissions", { state: label })}
         >
           {glyph}
         </Link>
@@ -123,18 +127,19 @@ function SortHead({
 }
 
 function EditorialCell({ item }: { item: ListItem }) {
+  const t = useTranslations("problems.list");
   return item.hasPublicEditorial ? (
-    <Tooltip content="Editorial available">
+    <Tooltip content={t("editorialAvailable")}>
       <Link
         href={`/problem/${item.code}/editorial`}
         className="relative z-1 inline-flex"
-        aria-label={`Editorial for ${item.i18nName}`}
+        aria-label={t("editorialFor", { name: item.i18nName })}
       >
         <BookOpen size={14} aria-hidden style={{ color: "var(--v-good)" }} />
       </Link>
     </Tooltip>
   ) : (
-    <span role="img" aria-label="No editorial" className="inline-flex opacity-35">
+    <span role="img" aria-label={t("noEditorial")} className="inline-flex opacity-35">
       <BookOpen size={14} aria-hidden className="text-muted-foreground" />
     </span>
   );
@@ -240,6 +245,7 @@ function StackedRow({
   inContest: boolean;
   hideScoreboard: boolean;
 }) {
+  const t = useTranslations("problems.list");
   return (
     <li className="relative flex min-h-[44px] items-start gap-2 border-b border-border px-3 py-2.5 last:border-b-0">
       {username ? (
@@ -259,11 +265,11 @@ function StackedRow({
           {formatPoints(item.points)}
           {item.partial ? "p" : ""}
           {inContest ? null : <> · {item.acRate.toFixed(1)}%</>} ·{" "}
-          {hideScoreboard ? "???" : plural(item.userCount, "user")}
+          {hideScoreboard ? "???" : t("users", { count: item.userCount })}
         </p>
       </div>
       {!inContest && item.hasPublicEditorial ? (
-        <BookOpen size={14} aria-label="Editorial available" style={{ color: "var(--v-good)" }} />
+        <BookOpen size={14} aria-label={t("editorialAvailable")} style={{ color: "var(--v-good)" }} />
       ) : null}
     </li>
   );
@@ -300,6 +306,8 @@ export function ProblemsView({
   username: string | null;
   randomSeed: number;
 }) {
+  const t = useTranslations("problems.list");
+  const filters = useTranslations("problems.filters");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -365,7 +373,7 @@ export function ProblemsView({
         page={data.page}
         totalPages={data.totalPages}
         hrefFor={(page) => problemHref({ ...query, page })}
-        label="Problem list pages"
+        label={t("paginationLabel")}
       />
     ) : null;
 
@@ -376,19 +384,15 @@ export function ProblemsView({
       {data.items.length === 0 && !loading ? (
         <EmptyState
           icon={<Search size={20} />}
-          title="Nothing here"
-          description={
-            activeFilterCount(query) > 0
-              ? "No problems match these filters."
-              : "No problems have been published yet."
-          }
+          title={t("emptyTitle")}
+          description={activeFilterCount(query) > 0 ? t("emptyFiltered") : t("emptyUnpublished")}
           action={
             activeFilterCount(query) > 0 ? (
               <Button
                 variant="secondary"
                 onClick={() => apply({ ...EMPTY_QUERY, showTypes: query.showTypes })}
               >
-                Clear filters
+                {filters("clear")}
               </Button>
             ) : null
           }
@@ -396,18 +400,18 @@ export function ProblemsView({
       ) : (
         <>
           <div className="max-md:hidden">
-            <Table aria-label="Problems">
+            <Table aria-label={t("title")}>
               <TableHeader>
                 <TableRow>
                   {username ? (
                     inContest ? (
                       <TableHead className="w-7 pr-0">
-                        <span className="sr-only">Status</span>
+                        <span className="sr-only">{t("columnStatus")}</span>
                       </TableHead>
                     ) : (
                       <SortHead
                         label={<CheckCircle2 size={12} aria-hidden />}
-                        srLabel="Sort by status"
+                        srLabel={t("sortByStatus")}
                         sort="solved"
                         query={query}
                         onApply={apply}
@@ -417,30 +421,48 @@ export function ProblemsView({
                   ) : null}
                   {inContest ? (
                     <>
-                      <TableHead>Problem</TableHead>
-                      <TableHead>Category</TableHead>
-                      {query.showTypes ? <TableHead>Types</TableHead> : null}
-                      <TableHead numeric>Points</TableHead>
-                      <TableHead numeric>Users</TableHead>
+                      <TableHead>{t("columnProblem")}</TableHead>
+                      <TableHead>{t("columnCategory")}</TableHead>
+                      {query.showTypes ? <TableHead>{t("columnTypes")}</TableHead> : null}
+                      <TableHead numeric>{t("columnPoints")}</TableHead>
+                      <TableHead numeric>{t("columnUsers")}</TableHead>
                     </>
                   ) : (
                     <>
-                      <SortHead label="Problem" sort="name" query={query} onApply={apply} />
-                      <SortHead label="Category" sort="group" query={query} onApply={apply} />
+                      <SortHead label={t("columnProblem")} sort="name" query={query} onApply={apply} />
+                      <SortHead label={t("columnCategory")} sort="group" query={query} onApply={apply} />
                       {query.showTypes ? (
-                        <SortHead label="Types" sort="type" query={query} onApply={apply} />
+                        <SortHead label={t("columnTypes")} sort="type" query={query} onApply={apply} />
                       ) : null}
-                      <SortHead label="Points" sort="points" query={query} onApply={apply} numeric />
-                      <SortHead label="AC %" sort="acRate" query={query} onApply={apply} numeric />
+                      <SortHead
+                        label={t("columnPoints")}
+                        sort="points"
+                        query={query}
+                        onApply={apply}
+                        numeric
+                      />
+                      <SortHead
+                        label={t("columnAcRate")}
+                        sort="acRate"
+                        query={query}
+                        onApply={apply}
+                        numeric
+                      />
                       <SortHead
                         label={<BookOpen size={12} aria-hidden />}
-                        srLabel="Sort by editorial"
+                        srLabel={t("sortByEditorial")}
                         sort="editorial"
                         query={query}
                         onApply={apply}
                         className="w-8"
                       />
-                      <SortHead label="Users" sort="userCount" query={query} onApply={apply} numeric />
+                      <SortHead
+                        label={t("columnUsers")}
+                        sort="userCount"
+                        query={query}
+                        onApply={apply}
+                        numeric
+                      />
                     </>
                   )}
                 </TableRow>
@@ -522,7 +544,7 @@ export function ProblemsView({
     <div id="content-body">
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="font-mono text-sm tabular-nums text-muted-foreground">
-          {plural(data.total, "problem")}
+          {t("count", { count: data.total })}
         </p>
         <div className="flex items-center gap-2">
           <Sheet>
@@ -532,12 +554,12 @@ export function ProblemsView({
                 icon={<SlidersHorizontal size={14} />}
                 className="min-[900px]:hidden max-md:h-11"
               >
-                Filters{activeFilterCount(query) > 0 ? ` (${activeFilterCount(query)})` : ""}
+                {filters("open", { count: activeFilterCount(query) })}
               </Button>
             </SheetTrigger>
             <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto">
               <SheetHeader>
-                <SheetTitle>Filters</SheetTitle>
+                <SheetTitle>{filters("title")}</SheetTitle>
               </SheetHeader>
               <div className="px-4 pb-6">{renderPanel(true)}</div>
             </SheetContent>

@@ -4,20 +4,14 @@ import { Alert, AlertTitle, Button, Field, FieldGroup, Input, MultiSelect, Selec
 import { AlertCircle, AtSign, Check, KeyRound, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { authClient } from "@/auth/client";
-import { DISPOSABLE_EMAIL_MESSAGE, isDisposableEmail } from "@/auth/disposable-email";
+import { DISPOSABLE_EMAIL_KEY, isDisposableEmail } from "@/auth/disposable-email";
 import { PasswordStrength } from "@/components/accounts/PasswordStrength";
 import { AuthCard } from "@/components/auth/AuthCard";
 
 const MAX_ORGANIZATIONS = 3;
-
-const PASSWORD_RULES = [
-  "At least 8 characters.",
-  "Not entirely numeric.",
-  "Not too similar to your username or email.",
-  "Not a commonly used password.",
-];
 
 type FieldErrors = Partial<Record<"username" | "email" | "password1" | "password2" | "form", string>>;
 
@@ -34,6 +28,9 @@ export function RegisterForm({
   languages: Array<{ key: string; name: string }>;
   organizations: Array<{ slug: string; name: string }>;
 }) {
+  const t = useTranslations("auth.register");
+  const tError = useTranslations("auth.errors");
+  const tPassword = useTranslations("auth.password");
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -77,15 +74,14 @@ export function RegisterForm({
 
   function validate(): FieldErrors {
     const next: FieldErrors = {};
-    if (!/^\w+$/.test(username))
-      next.username = "Usernames may only contain letters, digits and underscores.";
-    else if (username.length > 30) next.username = "Usernames are at most 30 characters.";
-    else if (available === "taken") next.username = "That username is already taken.";
-    if (!email.includes("@")) next.email = "Enter a valid email address.";
-    else if (isDisposableEmail(email)) next.email = DISPOSABLE_EMAIL_MESSAGE;
-    if (password1.length < 8) next.password1 = "Passwords must be at least 8 characters.";
-    else if (/^\d+$/.test(password1)) next.password1 = "Passwords cannot be entirely numeric.";
-    if (password1 !== password2) next.password2 = "The two password fields did not match.";
+    if (!/^\w+$/.test(username)) next.username = t("usernameChars");
+    else if (username.length > 30) next.username = t("usernameTooLong");
+    else if (available === "taken") next.username = t("usernameTaken");
+    if (!email.includes("@")) next.email = tError("invalidEmail");
+    else if (isDisposableEmail(email)) next.email = tError(DISPOSABLE_EMAIL_KEY);
+    if (password1.length < 8) next.password1 = tPassword("tooShort");
+    else if (/^\d+$/.test(password1)) next.password1 = tPassword("numeric");
+    if (password1 !== password2) next.password2 = tPassword("mismatch");
     return next;
   }
 
@@ -107,8 +103,8 @@ export function RegisterForm({
         organizationSlugs: selectedOrganizations.join(","),
       });
       if (result.error) {
-        const message = result.error.message ?? "That account could not be created.";
-        if (message === DISPOSABLE_EMAIL_MESSAGE) setErrors({ email: message });
+        const message = result.error.message ?? t("failed");
+        if (message === DISPOSABLE_EMAIL_KEY) setErrors({ email: tError(DISPOSABLE_EMAIL_KEY) });
         else if (/username/i.test(message)) setErrors({ username: message });
         else if (/breach|compromised|password/i.test(message)) setErrors({ password1: message });
         else if (/email/i.test(message)) setErrors({ email: message });
@@ -117,21 +113,26 @@ export function RegisterForm({
       }
       router.push(`/accounts/register/complete/?email=${encodeURIComponent(email)}`);
     } catch {
-      setErrors({ form: "That account could not be created. Try again." });
+      setErrors({ form: t("failedRetry") });
     } finally {
       setBusy(false);
     }
   }
 
+  const passwordRules = [
+    t("passwordRuleLength"),
+    t("passwordRuleNumeric"),
+    t("passwordRuleSimilar"),
+    t("passwordRuleCommon"),
+  ];
+
   return (
     <AuthCard
-      title="Sign up"
-      subtitle="One account for problems, contests and rankings."
+      title={t("title")}
+      subtitle={t("subtitle")}
       wide
       footer={
-        <span>
-          Already have an account? <Link href="/accounts/login/">Sign in</Link>
-        </span>
+        <span>{t.rich("footer", { link: (chunks) => <Link href="/accounts/login/">{chunks}</Link> })}</span>
       }
     >
       <form onSubmit={onSubmit} noValidate>
@@ -144,15 +145,15 @@ export function RegisterForm({
 
         <FieldGroup columns={2} className="items-start">
           <Field
-            label="Username"
+            label={t("usernameLabel")}
             htmlFor="register-username"
-            error={errors.username ?? (available === "taken" ? "That username is already taken." : undefined)}
+            error={errors.username ?? (available === "taken" ? t("usernameTaken") : undefined)}
             hint={
               available === "free"
-                ? "That one is free."
+                ? t("usernameFree")
                 : available === "checking"
-                  ? "Checking…"
-                  : "Letters, digits and underscores, at most 30."
+                  ? t("usernameChecking")
+                  : t("usernameHint")
             }
           >
             <Input
@@ -171,12 +172,7 @@ export function RegisterForm({
             />
           </Field>
 
-          <Field
-            label="Email"
-            htmlFor="register-email"
-            error={errors.email}
-            hint="We send your activation link here."
-          >
+          <Field label={t("emailLabel")} htmlFor="register-email" error={errors.email} hint={t("emailHint")}>
             <Input
               id="register-email"
               name="email"
@@ -191,10 +187,10 @@ export function RegisterForm({
           </Field>
 
           <Field
-            label="Password"
+            label={t("passwordLabel")}
             htmlFor="register-password1"
             error={errors.password1}
-            hint={PASSWORD_RULES[0]}
+            hint={passwordRules[0]}
           >
             <Input
               id="register-password1"
@@ -210,10 +206,10 @@ export function RegisterForm({
           </Field>
 
           <Field
-            label="Confirm password"
+            label={t("confirmLabel")}
             htmlFor="register-password2"
             error={errors.password2}
-            hint="For confirmation."
+            hint={t("confirmHint")}
           >
             <Input
               id="register-password2"
@@ -230,20 +226,20 @@ export function RegisterForm({
 
           <PasswordStrength password={password1} className="sm:col-span-2" />
 
-          <Field label="Timezone" htmlFor="register-timezone" hint="Pick your closest major city.">
+          <Field label={t("timezoneLabel")} htmlFor="register-timezone" hint={t("timezoneHint")}>
             <Select
               id="register-timezone"
-              ariaLabel="Timezone"
+              ariaLabel={t("timezoneLabel")}
               value={timezone}
               onValueChange={setTimezone}
               options={timezones.map((zone) => ({ value: zone, label: zone }))}
             />
           </Field>
 
-          <Field label="Preferred language" htmlFor="register-language">
+          <Field label={t("languageLabel")} htmlFor="register-language">
             <Select
               id="register-language"
-              ariaLabel="Preferred language"
+              ariaLabel={t("languageLabel")}
               value={language}
               onValueChange={setLanguage}
               options={languages.map((item) => ({ value: item.key, label: item.name }))}
@@ -251,20 +247,23 @@ export function RegisterForm({
           </Field>
 
           <Field
-            label="Organizations"
+            label={t("organizationsLabel")}
             htmlFor="register-organizations"
-            optional="optional"
-            hint={`${selectedOrganizations.length} of ${MAX_ORGANIZATIONS} chosen`}
+            optional={t("organizationsOptional")}
+            hint={t("organizationsChosen", {
+              count: selectedOrganizations.length,
+              max: MAX_ORGANIZATIONS,
+            })}
             className="sm:col-span-2"
           >
             <MultiSelect
               id="register-organizations"
-              ariaLabel="Organizations"
+              ariaLabel={t("organizationsLabel")}
               values={selectedOrganizations}
               onChange={setSelectedOrganizations}
               max={MAX_ORGANIZATIONS}
-              placeholder="None"
-              emptyText="There are no open organizations."
+              placeholder={t("organizationsPlaceholder")}
+              emptyText={t("organizationsEmpty")}
               options={organizations.map((organization) => ({
                 value: organization.slug,
                 label: organization.name,
@@ -274,7 +273,7 @@ export function RegisterForm({
 
           <div className="sm:col-span-2">
             <Button type="submit" full busy={busy}>
-              {busy ? "Registering…" : "Register"}
+              {busy ? t("submitBusy") : t("submit")}
             </Button>
           </div>
         </FieldGroup>

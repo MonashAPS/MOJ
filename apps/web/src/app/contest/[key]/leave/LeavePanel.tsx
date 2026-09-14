@@ -2,6 +2,7 @@
 
 import { Button, FormFooter, Panel, TitleRow } from "@moj/ui";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { leaveContest } from "@/app/contest/actions";
 
@@ -15,29 +16,32 @@ export function LeavePanel({
   spectating: boolean;
 }) {
   const [state, formAction, pending] = useActionState(leaveContest, null);
+  const t = useTranslations("contests.leave");
 
   return (
     <>
-      <TitleRow title={spectating ? `Stop spectating ${contestName}` : `Leave ${contestName}`} />
+      <TitleRow
+        title={
+          spectating
+            ? t("stopSpectatingTitle", { name: contestName })
+            : t("leaveTitle", { name: contestName })
+        }
+      />
       <div className="mx-auto w-full max-w-[520px]">
-        <Panel title="Confirm" bodyClassName="p-4">
+        <Panel title={t("confirmPanel")} bodyClassName="p-4">
           <form action={formAction} className="grid gap-4">
             <input type="hidden" name="key" value={contestKey} />
-            <p className="text-base text-subtle">
-              {spectating
-                ? "You will stop seeing the site through this contest. You can start spectating again at any time."
-                : "Leaving takes you out of contest mode. Your window keeps running, so you can rejoin until it closes."}
-            </p>
+            <p className="text-base text-subtle">{spectating ? t("spectatingBody") : t("leaveBody")}</p>
             {state?.error ? <p className="text-sm text-bad">{state.error}</p> : null}
             <FormFooter
               note={
                 <Link href={`/contest/${contestKey}/`} className="text-muted-foreground hover:text-subtle">
-                  Back to the contest
+                  {t("backToContest")}
                 </Link>
               }
             >
               <Button type="submit" variant="secondary" busy={pending}>
-                {spectating ? "Stop spectating" : "Leave contest"}
+                {spectating ? t("stopSpectating") : t("leave")}
               </Button>
             </FormFooter>
           </form>

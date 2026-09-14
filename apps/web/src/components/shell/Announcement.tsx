@@ -2,6 +2,7 @@
 
 import { cn } from "@moj/ui";
 import { Megaphone, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "moj-announcement-dismissed";
@@ -17,6 +18,7 @@ function hashOf(value: string): string {
 /** DMOJ's misc-config announcement box, bottom right. Dismissal is remembered by
  *  content hash, so a new announcement shows again. */
 export function Announcement({ html }: { html?: string }) {
+  const t = useTranslations("common.announcement");
   const body = html?.trim() ?? "";
   const hash = body ? hashOf(body) : "";
   const [dismissed, setDismissed] = useState(true);
@@ -45,8 +47,8 @@ export function Announcement({ html }: { html?: string }) {
       <span className="min-w-0 flex-1 [&_a]:underline" dangerouslySetInnerHTML={{ __html: body }} />
       <button
         type="button"
-        aria-label="Dismiss this announcement"
-        title="Dismiss this announcement"
+        aria-label={t("dismiss")}
+        title={t("dismiss")}
         onClick={() => {
           setDismissed(true);
           try {

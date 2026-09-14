@@ -24,24 +24,27 @@ import { useQuery } from "convex/react";
 import { PanelsTopLeft, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { ADMIN_SECTIONS } from "./sections";
 
 /** DMOJ's `/admin` had Django's sidebar; this is the same idea on the tokens:
  *  a 220px rail of sections, icons only under 1100px, a Sheet under 900px. */
 function RailLinks({ onNavigate, iconsOnly }: { onNavigate?: () => void; iconsOnly?: boolean }) {
+  const t = useTranslations("admin.components.chrome");
+  const sections = useTranslations("admin.shell.sections");
   const pathname = usePathname() ?? "";
   return (
-    <nav aria-label="Console sections" className="grid gap-4 py-3">
+    <nav aria-label={t("sections")} className="grid gap-4 py-3">
       {ADMIN_SECTIONS.map((group) => (
-        <div key={group.label} className="grid gap-0.5">
+        <div key={group.key} className="grid gap-0.5">
           <span
             className={cn(
               "px-3 pb-1 font-sans text-xs font-semibold uppercase tracking-label text-muted-foreground",
               iconsOnly && "sr-only",
             )}
           >
-            {group.label}
+            {sections(`groups.${group.key}`)}
           </span>
           {group.items.map((item) => {
             const active = pathname === item.href || pathname.startsWith(item.href);
@@ -51,7 +54,7 @@ function RailLinks({ onNavigate, iconsOnly }: { onNavigate?: () => void; iconsOn
                 key={item.key}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                aria-label={iconsOnly ? item.label : undefined}
+                aria-label={iconsOnly ? sections(`items.${item.key}`) : undefined}
                 onClick={onNavigate}
                 className={cn(
                   "flex h-[30px] items-center gap-2 rounded-md px-3 text-base text-subtle",
@@ -63,11 +66,13 @@ function RailLinks({ onNavigate, iconsOnly }: { onNavigate?: () => void; iconsOn
                 )}
               >
                 <Icon className="size-4 shrink-0" aria-hidden />
-                <span className={cn("truncate", iconsOnly && "sr-only")}>{item.label}</span>
+                <span className={cn("truncate", iconsOnly && "sr-only")}>
+                  {sections(`items.${item.key}`)}
+                </span>
               </Link>
             );
             return iconsOnly ? (
-              <Tooltip key={item.key} content={item.label} side="right">
+              <Tooltip key={item.key} content={sections(`items.${item.key}`)} side="right">
                 {link}
               </Tooltip>
             ) : (
@@ -82,6 +87,7 @@ function RailLinks({ onNavigate, iconsOnly }: { onNavigate?: () => void; iconsOn
 
 /** Jumps to a problem, contest or user by name from anywhere in the console. */
 function ConsoleSearch() {
+  const t = useTranslations("admin.components.chrome");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [term, setTerm] = useState("");
@@ -110,7 +116,7 @@ function ConsoleSearch() {
           icon={<Search aria-hidden />}
           className="w-[260px] justify-start font-normal text-muted-foreground max-[900px]:w-[160px]"
         >
-          Search the console
+          {t("search")}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-[320px] p-0">
@@ -118,14 +124,12 @@ function ConsoleSearch() {
           <CommandInput
             value={term}
             onValueChange={setTerm}
-            placeholder="Problem, contest or user"
+            placeholder={t("searchPlaceholder")}
             showEscHint={false}
           />
           <CommandList>
             <CommandEmpty>
-              {term.trim()
-                ? `No matches for ${term.trim()}.`
-                : "Type to search problems, contests and users."}
+              {term.trim() ? t("noMatches", { term: term.trim() }) : t("searchPrompt")}
             </CommandEmpty>
             {targets.length > 0 ? (
               <CommandGroup>
@@ -155,6 +159,7 @@ function ConsoleSearch() {
 
 /** The console frame: rail, a bar carrying the search, and the page column. */
 export function AdminChrome({ children }: { children: ReactNode }) {
+  const t = useTranslations("admin.components.chrome");
   const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
@@ -177,7 +182,7 @@ export function AdminChrome({ children }: { children: ReactNode }) {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="Console sections"
+                aria-label={t("sections")}
                 className="hidden max-[900px]:inline-flex"
               >
                 <PanelsTopLeft aria-hidden />
@@ -185,7 +190,7 @@ export function AdminChrome({ children }: { children: ReactNode }) {
             </SheetTrigger>
             <SheetContent side="left" className="w-[260px] p-0">
               <SheetHeader>
-                <SheetTitle>Console</SheetTitle>
+                <SheetTitle>{t("sheetTitle")}</SheetTitle>
               </SheetHeader>
               <div className="px-2">
                 <RailLinks onNavigate={() => setSheetOpen(false)} />
@@ -194,7 +199,7 @@ export function AdminChrome({ children }: { children: ReactNode }) {
           </Sheet>
 
           <span className="font-sans text-xs font-semibold uppercase tracking-label text-muted-foreground">
-            Staff console
+            {t("staffConsole")}
           </span>
           <div className="ml-auto">
             <ConsoleSearch />

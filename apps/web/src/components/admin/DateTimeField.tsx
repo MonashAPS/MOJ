@@ -2,8 +2,11 @@
 
 import { Button, cn, Input, Popover, PopoverContent, PopoverTrigger } from "@moj/ui";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useId, useMemo, useState } from "react";
 
+/** English month names, kept for `formatMoment` below: it is a plain function
+ *  with no hook to read the catalogue through. The picker uses the keys. */
 const MONTHS = [
   "January",
   "February",
@@ -18,7 +21,24 @@ const MONTHS = [
   "November",
   "December",
 ];
-const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+/** The catalogue keys the picker reads its month and weekday names by. The
+ *  short month is a message of its own rather than the first three letters of
+ *  the long one, which is a cut only English survives. */
+const MONTH_KEYS = [
+  "january",
+  "february",
+  "march",
+  "april",
+  "may",
+  "june",
+  "july",
+  "august",
+  "september",
+  "october",
+  "november",
+  "december",
+];
+const WEEKDAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
 function pad(value: number): string {
   return String(value).padStart(2, "0");
@@ -71,6 +91,7 @@ export function DateTimeField({
   ariaLabel?: string;
   className?: string;
 }) {
+  const t = useTranslations("admin.components.dateTime");
   const generatedId = useId();
   const fieldId = id ?? generatedId;
   const [open, setOpen] = useState(false);
@@ -78,6 +99,8 @@ export function DateTimeField({
   const [month, setMonth] = useState<Date>(startOfMonth(selected ?? new Date()));
   const days = useMemo(() => monthGrid(month), [month]);
   const today = new Date();
+  const months = MONTH_KEYS.map((key) => t(`months.${key}`));
+  const monthsShort = MONTH_KEYS.map((key) => t(`monthsShort.${key}`));
 
   function pick(day: Date) {
     const base = selected ?? new Date();
@@ -117,8 +140,8 @@ export function DateTimeField({
             className="min-w-[168px] justify-start font-mono tabular-nums"
           >
             {selected
-              ? `${pad(selected.getDate())} ${MONTHS[selected.getMonth()]?.slice(0, 3)} ${selected.getFullYear()}`
-              : "Pick a date"}
+              ? `${pad(selected.getDate())} ${monthsShort[selected.getMonth()]} ${selected.getFullYear()}`
+              : t("pickDate")}
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-auto p-3">
@@ -126,30 +149,30 @@ export function DateTimeField({
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Previous month"
+              aria-label={t("previousMonth")}
               onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}
             >
               <ChevronLeft aria-hidden />
             </Button>
             <span className="flex-1 text-center text-base font-medium text-foreground">
-              {MONTHS[month.getMonth()]} {month.getFullYear()}
+              {months[month.getMonth()]} {month.getFullYear()}
             </span>
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Next month"
+              aria-label={t("nextMonth")}
               onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}
             >
               <ChevronRight aria-hidden />
             </Button>
           </div>
           <div className="grid grid-cols-7 gap-0.5">
-            {WEEKDAYS.map((weekday) => (
+            {WEEKDAY_KEYS.map((key) => (
               <span
-                key={weekday}
+                key={key}
                 className="flex size-8 items-center justify-center font-sans text-xs font-semibold uppercase tracking-label text-muted-foreground"
               >
-                {weekday}
+                {t(`weekdays.${key}`)}
               </span>
             ))}
             {days.map((day) => {
@@ -183,9 +206,9 @@ export function DateTimeField({
 
       <Input
         mono
-        aria-label={`${ariaLabel ?? "Time"} (24 hour)`}
+        aria-label={t("timeAria", { label: ariaLabel ?? t("time") })}
         disabled={disabled || selected === null}
-        title={selected === null ? "Pick a date first." : undefined}
+        title={selected === null ? t("pickDateFirst") : undefined}
         defaultValue={selected ? `${pad(selected.getHours())}:${pad(selected.getMinutes())}` : ""}
         key={selected ? `${selected.getHours()}:${selected.getMinutes()}` : "empty"}
         placeholder="00:00"
@@ -195,7 +218,7 @@ export function DateTimeField({
 
       {clearable && selected ? (
         <Button variant="ghost" size="sm" onClick={() => onChange(null)}>
-          Clear
+          {t("clearDate")}
         </Button>
       ) : null}
     </div>

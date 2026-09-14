@@ -1,12 +1,18 @@
 import { TitleRow } from "@moj/ui";
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { TicketsTable } from "./TicketsTable";
 
-export const metadata = { title: "Tickets" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("admin.tickets");
+  return { title: t("metaTitle") };
+}
 
-export default function AdminTicketsPage() {
+export default async function AdminTicketsPage() {
+  const t = await getTranslations("admin.tickets");
   return (
     <>
-      <TitleRow title="Tickets" />
+      <TitleRow title={t("title")} />
       <TicketsTable />
     </>
   );

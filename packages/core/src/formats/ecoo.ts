@@ -10,7 +10,7 @@
 import { participationEndTime, participationStart } from "../contestTiming";
 import type { ContestSubmissionRow, FormatData } from "../types";
 import { pyRound } from "../util/number";
-import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from "./base";
+import type { ContestFormat, ParticipationUpdate, ScoringLine, UpdateParticipationInput } from "./base";
 import {
   breakdown,
   buildParticipationResult,
@@ -132,24 +132,14 @@ export const ecooFormat: ContestFormat = {
 
   getShortFormDisplay(config) {
     const resolved = resolveEcooConfig(config);
-    const lines = ["The score on your **last** non-CE submission for each problem will be used."];
+    const lines: ScoringLine[] = [{ key: "lastNonCeSubmission" }];
     if (resolved.firstAcBonus) {
-      lines.push(
-        `There is a **${resolved.firstAcBonus} bonus** for fully solving on your first non-CE submission.`,
-      );
+      lines.push({ key: "firstAcBonus", values: { bonus: resolved.firstAcBonus } });
     }
     if (resolved.timeBonus) {
-      lines.push(
-        `For every **${resolved.timeBonus} ${
-          resolved.timeBonus === 1 ? "minute" : "minutes"
-        }** you submit before the end of your window, there will be a **1** point bonus.`,
-      );
+      lines.push({ key: "timeBonus", values: { minutes: resolved.timeBonus } });
     }
-    lines.push(
-      resolved.cumtime
-        ? "Ties will be broken by the sum of the last submission time on **all** problems."
-        : "Ties by score will **not** be broken.",
-    );
+    lines.push({ key: resolved.cumtime ? "tiesByAllProblems" : "tiesNotBroken" });
     return lines;
   },
 };

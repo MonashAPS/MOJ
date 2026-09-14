@@ -4,6 +4,7 @@ import { Alert, AlertTitle, Button, Field, Input } from "@moj/ui";
 import { AlertCircle, AtSign } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { authClient } from "@/auth/client";
 import { AuthCard } from "@/components/auth/AuthCard";
@@ -11,6 +12,8 @@ import { AuthCard } from "@/components/auth/AuthCard";
 /** DMOJ's `CustomPasswordResetView`, rate limited per address. The answer never
  *  says whether the address is on file. */
 export function ResetRequestForm() {
+  const t = useTranslations("auth.passwordReset");
+  const tError = useTranslations("auth.errors");
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -23,13 +26,13 @@ export function ResetRequestForm() {
     try {
       const result = await authClient.requestPasswordReset({ email: email.trim() });
       if (result.error?.status === 429) {
-        setError("You have asked for too many resets. Wait a minute and try again.");
+        setError(t("tooMany"));
         return;
       }
       // Anything else, including an address nobody has, lands on the same page.
       router.push(`/accounts/reset/done/?email=${encodeURIComponent(email.trim())}`);
     } catch {
-      setError("Something went wrong. Try again.");
+      setError(tError("generic"));
     } finally {
       setBusy(false);
     }
@@ -37,12 +40,10 @@ export function ResetRequestForm() {
 
   return (
     <AuthCard
-      title="Reset your password"
-      subtitle="We will email you a link to choose a new one."
+      title={t("title")}
+      subtitle={t("subtitle")}
       footer={
-        <span>
-          Remembered it? <Link href="/accounts/login/">Log in</Link>
-        </span>
+        <span>{t.rich("footer", { link: (chunks) => <Link href="/accounts/login/">{chunks}</Link> })}</span>
       }
     >
       <form onSubmit={submit} noValidate>
@@ -54,7 +55,7 @@ export function ResetRequestForm() {
         ) : null}
 
         <div className="grid gap-4">
-          <Field label="Email" htmlFor="reset-email" hint="The address you registered with.">
+          <Field label={t("emailLabel")} htmlFor="reset-email" hint={t("emailHint")}>
             <Input
               id="reset-email"
               name="email"
@@ -70,7 +71,7 @@ export function ResetRequestForm() {
           </Field>
 
           <Button type="submit" full busy={busy}>
-            {busy ? "Sending…" : "Send reset email"}
+            {busy ? t("submitBusy") : t("submit")}
           </Button>
         </div>
       </form>

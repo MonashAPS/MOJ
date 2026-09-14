@@ -23,9 +23,10 @@ import {
 import { useMutation, useQuery } from "convex/react";
 import { Ban, Snowflake, Trophy, Undo2 } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { JoinControl } from "@/components/contests/JoinControls";
-import { ContestChips, humanDuration } from "@/components/contests/pieces";
+import { ContestChips, useHumanDuration } from "@/components/contests/pieces";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { formatDateTime, formatPoints } from "@/lib/format";
 import { contestTabs, joinKindFor } from "../tabs";
@@ -39,6 +40,9 @@ const ALL = "__all__";
  * end; `contestRankings.ranking` does not, which is why the page reads both.
  */
 function WindowNote({ detail }: { detail: ContestDetail }) {
+  const t = useTranslations("contests.ranking");
+  const duration = useTranslations("contests.duration");
+  const humanDuration = useHumanDuration();
   const contest = detail.contest;
   const participation = detail.participation ?? detail.liveParticipation;
   const target = participation && !participation.ended ? participation.endsAt : (contest?.endTime ?? null);
@@ -46,7 +50,11 @@ function WindowNote({ detail }: { detail: ContestDetail }) {
   if (!contest) return null;
 
   const window = contest.timeLimit
-    ? `${humanDuration(contest.timeLimit * 1000)} window between ${formatDateTime(contest.startTime)} and ${formatDateTime(contest.endTime)}`
+    ? duration("windowBetween", {
+        duration: humanDuration(contest.timeLimit * 1000),
+        start: formatDateTime(contest.startTime),
+        end: formatDateTime(contest.endTime),
+      })
     : null;
   const clock = remaining !== null && remaining <= COUNTDOWN_HORIZON ? formatDuration(remaining) : null;
 
@@ -55,8 +63,8 @@ function WindowNote({ detail }: { detail: ContestDetail }) {
     <p className="font-mono text-sm tabular-nums text-muted-foreground">
       {clock
         ? participation && !participation.ended
-          ? `Your window closes in ${clock}.`
-          : `The contest ends in ${clock}.`
+          ? t("windowClosesIn", { time: clock })
+          : t("contestEndsIn", { time: clock })
         : null}
       {clock && window ? " " : null}
       {window}
@@ -84,10 +92,12 @@ function ProblemCell({
   pending: number;
   precision: number;
 }) {
+  const t = useTranslations("contests.ranking");
+
   if (pending > 0) {
     return (
       <td className="h-(--row-h-dense) w-11 min-w-11 border-b border-border bg-(--cell-frozen-bg) px-1 text-center align-middle text-(--cell-frozen-ink)">
-        <Tooltip content={`${pending} ${pending === 1 ? "submission" : "submissions"} after the freeze`}>
+        <Tooltip content={t("pendingAfterFreeze", { count: pending })}>
           <span className="block font-mono text-sm font-medium tabular-nums">
             ?<span className="block text-xs opacity-80">{`-${pending}`}</span>
           </span>
@@ -107,10 +117,10 @@ function ProblemCell({
   const isPretest = cell.state.startsWith("pretest-");
   const label = [
     cell.pointsText,
-    cell.penaltyText ? `penalty ${cell.penaltyText}` : null,
-    cell.bonusText ? `bonus ${cell.bonusText}` : null,
+    cell.penaltyText ? t("penalty", { value: cell.penaltyText }) : null,
+    cell.bonusText ? t("bonus", { value: cell.bonusText }) : null,
     cell.timeText || null,
-    isPretest ? "pretests only" : null,
+    isPretest ? t("pretestsOnly") : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -154,6 +164,7 @@ function Row({
   pendingOf: (participationId: string, contestProblemId: string) => number;
   precision: number;
 }) {
+  const t = useTranslations("contests.ranking");
   const disqualify = useMutation(api.contests.disqualify);
   const [busy, setBusy] = useState(false);
 
@@ -165,9 +176,9 @@ function Row({
         participationId: row.participationId,
         disqualified: !row.isDisqualified,
       });
-      toast.success(row.isDisqualified ? "Participation reinstated" : "Participation disqualified");
+      toast.success(row.isDisqualified ? t("reinstated") : t("disqualified"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "That did not work.");
+      toast.error(error instanceof Error ? error.message : t("didNotWork"));
     } finally {
       setBusy(false);
     }
@@ -201,17 +212,17 @@ function Row({
           />
           {row.virtual > 0 ? (
             <Badge variant="neutral" shape="square" mono>
-              virtual
+              {t("virtualBadge")}
             </Badge>
           ) : null}
           {row.virtual === -1 ? (
             <Badge variant="neutral" shape="square" mono>
-              spectator
+              {t("spectatorBadge")}
             </Badge>
           ) : null}
           {row.isDisqualified ? (
             <Badge variant="bad" shape="square" mono>
-              DQ
+              {t("disqualifiedBadge")}
             </Badge>
           ) : null}
         </span>
@@ -265,13 +276,13 @@ function Row({
       </td>
       {canDisqualify ? (
         <td className="h-(--row-h-dense) border-b border-border px-2 text-center align-middle">
-          <Tooltip content={row.isDisqualified ? "Reinstate participation" : "Disqualify participation"}>
+          <Tooltip content={row.isDisqualified ? t("reinstate") : t("disqualify")}>
             <Button
               variant="ghost"
               size="icon-sm"
               busy={busy}
               onClick={toggle}
-              aria-label={row.isDisqualified ? "Reinstate participation" : "Disqualify participation"}
+              aria-label={row.isDisqualified ? t("reinstate") : t("disqualify")}
             >
               {row.isDisqualified ? <Undo2 size={14} aria-hidden /> : <Ban size={14} aria-hidden />}
             </Button>
@@ -297,6 +308,9 @@ export function RankingClient({
   classOptions: { _id: string; name: string }[];
   initialFrozenCells: FrozenCells;
 }) {
+  const t = useTranslations("contests.ranking");
+  const columns = useTranslations("contests.columns");
+  const tabLabels = useTranslations("contests.tabs");
   const [includeVirtual, setIncludeVirtual] = useState(false);
   const [includeSpectators, setIncludeSpectators] = useState(false);
   const [showOrganizations, setShowOrganizations] = useState(true);
@@ -330,7 +344,7 @@ export function RankingClient({
   const precision = contest?.pointsPrecision ?? 2;
 
   const organizationOptions = [
-    { value: ALL, label: "All organizations" },
+    { value: ALL, label: t("allOrganizations") },
     ...[
       ...new Map(
         (data?.rows ?? [])
@@ -344,9 +358,9 @@ export function RankingClient({
     setRevealBusy(true);
     try {
       await unfreeze({ key: contestKey, revealed });
-      toast.success(revealed ? "Scoreboard revealed" : "Scoreboard frozen again");
+      toast.success(revealed ? t("revealed") : t("frozenAgain"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "That did not work.");
+      toast.error(error instanceof Error ? error.message : t("didNotWork"));
     } finally {
       setRevealBusy(false);
     }
@@ -362,7 +376,7 @@ export function RankingClient({
       <TitleRow
         title={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            {contest?.name ?? "Rankings"}
+            {contest?.name ?? t("metaFallback")}
             {contest ? (
               <ContestChips
                 isVisible={contest.isVisible}
@@ -375,7 +389,7 @@ export function RankingClient({
             ) : null}
           </span>
         }
-        tabs={contestTabs(detail, contestKey, viewerUsername)}
+        tabs={contestTabs(detail, contestKey, viewerUsername, tabLabels)}
         active="ranking"
         action={
           joinKind ? <JoinControl contestKey={contestKey} kind={joinKind} long size="default" /> : undefined
@@ -384,32 +398,24 @@ export function RankingClient({
 
       {data === null || data === undefined ? (
         data === null ? (
-          <EmptyState
-            icon={<Trophy aria-hidden />}
-            title="Rankings are hidden"
-            description="The scoreboard for this contest is not visible to you yet."
-          />
+          <EmptyState icon={<Trophy aria-hidden />} title={t("hiddenTitle")} description={t("hiddenBody")} />
         ) : null
       ) : (
         <div className="grid min-w-0 gap-4">
           {data.isFrozen ? (
             <Alert variant="info">
               <Snowflake size={16} aria-hidden />
-              <AlertTitle>The scoreboard is frozen</AlertTitle>
+              <AlertTitle>{t("frozenTitle")}</AlertTitle>
               <AlertDescription>
-                {frozen
-                  ? `Submissions made after ${formatDateTime(frozen.frozenAt)} are withheld until the contest is revealed.`
-                  : "Submissions made after the freeze point are withheld until the contest is revealed."}
+                {frozen ? t("frozenBody", { time: formatDateTime(frozen.frozenAt) }) : t("frozenBodyUnknown")}
               </AlertDescription>
             </Alert>
           ) : null}
 
           {!data.canSeeFullScoreboard ? (
             <Alert variant="info">
-              <AlertTitle>Only your own row is shown</AlertTitle>
-              <AlertDescription>
-                This contest hides the full scoreboard until your window is over.
-              </AlertDescription>
+              <AlertTitle>{t("ownRowTitle")}</AlertTitle>
+              <AlertDescription>{t("ownRowBody")}</AlertDescription>
             </Alert>
           ) : null}
 
@@ -417,17 +423,21 @@ export function RankingClient({
 
           <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-              <Switch label="Include virtual" checked={includeVirtual} onCheckedChange={setIncludeVirtual} />
               <Switch
-                label="Include spectators"
-                aria-label="Include spectators"
+                label={t("includeVirtual")}
+                checked={includeVirtual}
+                onCheckedChange={setIncludeVirtual}
+              />
+              <Switch
+                label={t("includeSpectators")}
+                aria-label={t("includeSpectators")}
                 checked={includeSpectators}
                 onCheckedChange={setIncludeSpectators}
               />
               {anyOrganizations ? (
                 <Switch
-                  label="Show organizations"
-                  aria-label="Show organizations"
+                  label={t("showOrganizations")}
+                  aria-label={t("showOrganizations")}
                   checked={showOrganizations}
                   onCheckedChange={setShowOrganizations}
                 />
@@ -437,9 +447,9 @@ export function RankingClient({
             <div className="flex flex-wrap items-end gap-3">
               {organizationOptions.length > 1 ? (
                 <div className="grid gap-1">
-                  <MicroLabel>Organization</MicroLabel>
+                  <MicroLabel>{columns("organization")}</MicroLabel>
                   <Select
-                    ariaLabel="Filter by organization"
+                    ariaLabel={t("filterByOrganization")}
                     size="sm"
                     options={organizationOptions}
                     value={organizationSlug}
@@ -449,12 +459,12 @@ export function RankingClient({
               ) : null}
               {classOptions.length > 0 ? (
                 <div className="grid gap-1">
-                  <MicroLabel>Class</MicroLabel>
+                  <MicroLabel>{t("class")}</MicroLabel>
                   <Select
-                    ariaLabel="Filter by class"
+                    ariaLabel={t("filterByClass")}
                     size="sm"
                     options={[
-                      { value: ALL, label: "All classes" },
+                      { value: ALL, label: t("allClasses") },
                       ...classOptions.map((klass) => ({ value: klass._id, label: klass.name })),
                     ]}
                     value={classId}
@@ -469,7 +479,7 @@ export function RankingClient({
                   busy={revealBusy}
                   onClick={() => toggleReveal(!data.isRevealed)}
                 >
-                  {data.isRevealed ? "Freeze scoreboard" : "Reveal scoreboard"}
+                  {data.isRevealed ? t("freezeScoreboard") : t("revealScoreboard")}
                 </Button>
               ) : null}
             </div>
@@ -478,8 +488,8 @@ export function RankingClient({
           {data.rows.length === 0 ? (
             <EmptyState
               icon={<Trophy aria-hidden />}
-              title="Nobody yet"
-              description="No one has taken part in this contest."
+              title={t("nobodyTitle")}
+              description={t("nobodyBody")}
             />
           ) : (
             <div className="overflow-hidden overflow-x-auto rounded-md border border-border bg-card">
@@ -492,16 +502,16 @@ export function RankingClient({
                       #
                     </th>
                     <th className="sticky left-12 z-2 h-8 min-w-[180px] whitespace-nowrap border-r border-r-(--line-strong) bg-titlebar px-3 text-left align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">
-                      User
+                      {columns("user")}
                     </th>
                     {data.hasRating ? (
                       <th className="h-8 whitespace-nowrap bg-titlebar px-3 text-right align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">
-                        Rating
+                        {columns("rating")}
                       </th>
                     ) : null}
                     {organizationColumn ? (
                       <th className="h-8 w-full whitespace-nowrap bg-titlebar pl-5 pr-3 text-left align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">
-                        Organization
+                        {columns("organization")}
                       </th>
                     ) : null}
                     {data.problems.map((problem) => (
@@ -522,11 +532,11 @@ export function RankingClient({
                       </th>
                     ))}
                     <th className="h-8 whitespace-nowrap bg-titlebar px-3 text-right align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">
-                      Total
+                      {columns("total")}
                     </th>
                     {data.canDisqualify ? (
                       <th className="h-8 w-10 bg-titlebar px-2 text-center align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">
-                        <span className="sr-only">Actions</span>
+                        <span className="sr-only">{columns("actions")}</span>
                       </th>
                     ) : null}
                   </tr>
@@ -550,9 +560,7 @@ export function RankingClient({
             </div>
           )}
 
-          <p className="text-sm text-muted-foreground">
-            {data.totalRows === 1 ? "1 participation" : `${data.totalRows} participations`}
-          </p>
+          <p className="text-sm text-muted-foreground">{t("participations", { count: data.totalRows })}</p>
         </div>
       )}
     </>

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn, focusRing } from "@moj/ui";
+import { useTranslations } from "next-intl";
 import type { ClipboardEvent, KeyboardEvent } from "react";
 import { useId, useRef } from "react";
 
@@ -27,6 +28,7 @@ export function OneTimeCode({
   disabled?: boolean;
   autoFocus?: boolean;
 }) {
+  const t = useTranslations("auth.code");
   const id = useId();
   const hintId = `${id}-hint`;
   const boxes = useRef<Array<HTMLInputElement | null>>([]);
@@ -114,7 +116,7 @@ export function OneTimeCode({
             autoFocus={autoFocus && slot === 0}
             disabled={disabled}
             aria-invalid={invalid || undefined}
-            aria-label={`Digit ${slot + 1} of ${LENGTH}`}
+            aria-label={t("digit", { position: slot + 1, total: LENGTH })}
             value={value[slot] ?? ""}
             onChange={(event) => handleInput(slot, event.target.value)}
             onKeyDown={(event) => handleKeyDown(slot, event)}

@@ -4,6 +4,7 @@ import { Alert, AlertTitle, Button, Field, Input } from "@moj/ui";
 import { AlertCircle, KeyRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { authClient } from "@/auth/client";
 import { PasswordStrength } from "@/components/accounts/PasswordStrength";
@@ -14,6 +15,9 @@ type Errors = Partial<Record<"next" | "confirm" | "form", string>>;
 /** DMOJ's `password_reset_confirm`. An expired or reused link lands on the same
  *  "invalid link" message DMOJ shows. */
 export function ResetConfirmForm({ token }: { token: string }) {
+  const t = useTranslations("auth.resetConfirm");
+  const tError = useTranslations("auth.errors");
+  const tPassword = useTranslations("auth.password");
   const router = useRouter();
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -24,9 +28,9 @@ export function ResetConfirmForm({ token }: { token: string }) {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const found: Errors = {};
-    if (next.length < 8) found.next = "Passwords must be at least 8 characters.";
-    else if (/^\d+$/.test(next)) found.next = "Passwords cannot be entirely numeric.";
-    if (next !== confirm) found.confirm = "The two password fields did not match.";
+    if (next.length < 8) found.next = tPassword("tooShort");
+    else if (/^\d+$/.test(next)) found.next = tPassword("numeric");
+    if (next !== confirm) found.confirm = tPassword("mismatch");
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
@@ -40,13 +44,13 @@ export function ResetConfirmForm({ token }: { token: string }) {
         } else if (/token|expired|invalid/i.test(message)) {
           setInvalidLink(true);
         } else {
-          setErrors({ form: message || "Your password could not be set." });
+          setErrors({ form: message || t("failed") });
         }
         return;
       }
       router.push("/accounts/reset/complete/");
     } catch {
-      setErrors({ form: "Something went wrong. Try again." });
+      setErrors({ form: tError("generic") });
     } finally {
       setBusy(false);
     }
@@ -55,21 +59,19 @@ export function ResetConfirmForm({ token }: { token: string }) {
   if (invalidLink) {
     return (
       <AuthCard
-        title="This link is no longer valid"
-        subtitle="Reset links can only be used once, and they expire after an hour."
+        title={t("invalidTitle")}
+        subtitle={t("invalidSubtitle")}
         footer={
-          <span>
-            Back to <Link href="/accounts/login/">logging in</Link>
-          </span>
+          <span>{t.rich("footer", { link: (chunks) => <Link href="/accounts/login/">{chunks}</Link> })}</span>
         }
       >
         <div className="grid gap-4">
           <Alert variant="danger">
             <AlertCircle className="size-3.5" aria-hidden />
-            <AlertTitle>Invalid password reset link.</AlertTitle>
+            <AlertTitle>{t("invalidAlert")}</AlertTitle>
           </Alert>
           <Button asChild full>
-            <Link href="/accounts/password/reset/">Ask for a new one</Link>
+            <Link href="/accounts/password/reset/">{t("askForNew")}</Link>
           </Button>
         </div>
       </AuthCard>
@@ -78,12 +80,10 @@ export function ResetConfirmForm({ token }: { token: string }) {
 
   return (
     <AuthCard
-      title="Choose a new password"
-      subtitle="Pick something you have not used anywhere else."
+      title={t("title")}
+      subtitle={t("subtitle")}
       footer={
-        <span>
-          Back to <Link href="/accounts/login/">logging in</Link>
-        </span>
+        <span>{t.rich("footer", { link: (chunks) => <Link href="/accounts/login/">{chunks}</Link> })}</span>
       }
     >
       <form onSubmit={submit} noValidate>
@@ -96,10 +96,10 @@ export function ResetConfirmForm({ token }: { token: string }) {
 
         <div className="grid gap-4">
           <Field
-            label="New password"
+            label={tPassword("newLabel")}
             htmlFor="confirm-next"
             error={errors.next}
-            hint="At least 8 characters, and not one that has turned up in a breach."
+            hint={tPassword("newHint")}
           >
             <Input
               id="confirm-next"
@@ -117,7 +117,7 @@ export function ResetConfirmForm({ token }: { token: string }) {
 
           <PasswordStrength password={next} />
 
-          <Field label="Confirm new password" htmlFor="confirm-again" error={errors.confirm}>
+          <Field label={tPassword("confirmLabel")} htmlFor="confirm-again" error={errors.confirm}>
             <Input
               id="confirm-again"
               name="confirm"
@@ -132,7 +132,7 @@ export function ResetConfirmForm({ token }: { token: string }) {
           </Field>
 
           <Button type="submit" full busy={busy}>
-            {busy ? "Setting…" : "Reset password"}
+            {busy ? t("submitBusy") : t("submit")}
           </Button>
         </div>
       </form>

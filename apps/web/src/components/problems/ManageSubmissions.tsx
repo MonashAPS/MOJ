@@ -24,13 +24,14 @@ import {
 import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { TriangleAlert } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { plural } from "@/lib/units";
 
 /** DMOJ's `Submission.RESULT`, in its own order. */
 const RESULTS = ["AC", "WA", "TLE", "MLE", "OLE", "IR", "RTE", "CE", "IE", "SC", "AB"];
 
-function JobProgress({ jobId, label }: { jobId: Id<"jobs">; label: string }) {
+function JobProgress({ jobId, kind }: { jobId: Id<"jobs">; kind: "rejudge" | "rescore" }) {
+  const t = useTranslations("problems.manage");
   const job = useQuery(api.jobs.status, { jobId });
   if (!job) return null;
   const done = job.status === "done" || job.status === "failed";
@@ -41,7 +42,11 @@ function JobProgress({ jobId, label }: { jobId: Id<"jobs">; label: string }) {
     <div className="grid gap-1.5 rounded-md border border-border bg-secondary p-3">
       <div className="flex items-center justify-between gap-3 text-sm">
         <span className="text-subtle">
-          {job.status === "failed" ? `${label} failed.` : done ? `${label} finished.` : `${label}…`}
+          {job.status === "failed"
+            ? t("jobFailed", { kind })
+            : done
+              ? t("jobFinished", { kind })
+              : t("jobRunning", { kind })}
         </span>
         <span className="font-mono tabular-nums text-muted-foreground">
           {complete.toLocaleString("en-AU")} / {total.toLocaleString("en-AU")}
@@ -67,6 +72,8 @@ export function ManageSubmissions({
   languages: { key: string; name: string }[];
   canRejudge: boolean;
 }) {
+  const t = useTranslations("problems.manage");
+  const actions = useTranslations("common.actions");
   const [useRange, setUseRange] = useState(false);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
@@ -109,8 +116,8 @@ export function ManageSubmissions({
     } catch (thrown) {
       setError(
         thrown instanceof ConvexError && typeof thrown.data === "object" && thrown.data !== null
-          ? String((thrown.data as { message?: string }).message ?? "That job could not be started.")
-          : "That job could not be started.",
+          ? String((thrown.data as { message?: string }).message ?? t("jobNotStarted"))
+          : t("jobNotStarted"),
       );
     } finally {
       setBusy(false);
@@ -128,11 +135,16 @@ export function ManageSubmissions({
       ) : null}
 
       {canRejudge ? (
-        <Panel title="Rejudge submissions" bodyClassName="grid gap-4 p-3">
+        <Panel title={t("rejudgeTitle")} bodyClassName="grid gap-4 p-3">
           <div className="grid gap-2">
-            <Checkbox id="use-range" checked={useRange} onCheckedChange={setUseRange} label="Filter by ID" />
+            <Checkbox
+              id="use-range"
+              checked={useRange}
+              onCheckedChange={setUseRange}
+              label={t("filterById")}
+            />
             <div className="grid grid-cols-2 gap-2">
-              <Field label="Starting ID" htmlFor="range-start">
+              <Field label={t("startingId")} htmlFor="range-start">
                 <Input
                   id="range-start"
                   type="number"
@@ -142,7 +154,7 @@ export function ManageSubmissions({
                   onChange={(event) => setStart(event.target.value)}
                 />
               </Field>
-              <Field label="Ending ID" htmlFor="range-end">
+              <Field label={t("endingId")} htmlFor="range-end">
                 <Input
                   id="range-end"
                   type="number"
@@ -153,33 +165,31 @@ export function ManageSubmissions({
                 />
               </Field>
             </div>
-            <p className="text-sm text-muted-foreground">This range includes both endpoints.</p>
-            {rangeValid ? null : (
-              <p className="text-sm text-bad">The ending ID must not come before the starting ID.</p>
-            )}
+            <p className="text-sm text-muted-foreground">{t("rangeInclusive")}</p>
+            {rangeValid ? null : <p className="text-sm text-bad">{t("rangeInvalid")}</p>}
           </div>
 
-          <Field label="Filter by language" htmlFor="lang-filter">
+          <Field label={t("filterByLanguage")} htmlFor="lang-filter">
             <MultiSelect
               id="lang-filter"
               options={languages.map((language) => ({ value: language.key, label: language.name }))}
               values={languageKeys}
               onChange={setLanguageKeys}
-              placeholder="Any language"
-              searchPlaceholder="Find a language…"
-              emptyText="No languages match."
+              placeholder={t("anyLanguage")}
+              searchPlaceholder={t("findLanguage")}
+              emptyText={t("noLanguages")}
             />
           </Field>
 
-          <Field label="Filter by result" htmlFor="result-filter">
+          <Field label={t("filterByResult")} htmlFor="result-filter">
             <MultiSelect
               id="result-filter"
               options={RESULTS.map((result) => ({ value: result, label: result }))}
               values={results}
               onChange={setResults}
-              placeholder="Any result"
-              searchPlaceholder="Find a result…"
-              emptyText="No results match."
+              placeholder={t("anyResult")}
+              searchPlaceholder={t("findResult")}
+              emptyText={t("noResults")}
             />
           </Field>
 
@@ -187,13 +197,11 @@ export function ManageSubmissions({
             id="archive-locked"
             checked={archiveLocked}
             onCheckedChange={setArchiveLocked}
-            label="Archive locked submissions"
+            label={t("archiveLocked")}
           />
 
           <p className="border-t border-border pt-3 text-sm text-subtle">
-            {previewCount === null
-              ? "Counting the submissions this filter matches…"
-              : `This will rejudge ${plural(previewCount, "submission")}.`}
+            {previewCount === null ? t("counting") : t("willRejudge", { count: previewCount })}
           </p>
 
           <Button
@@ -202,19 +210,19 @@ export function ManageSubmissions({
             busy={busy}
             onClick={() => setConfirming("rejudge")}
           >
-            Rejudge selected submissions
+            {t("rejudgeSelected")}
           </Button>
 
-          {rejudgeJob ? <JobProgress jobId={rejudgeJob} label="Rejudging" /> : null}
+          {rejudgeJob ? <JobProgress jobId={rejudgeJob} kind="rejudge" /> : null}
         </Panel>
       ) : null}
 
-      <Panel title="Rescore everything" bodyClassName="grid gap-4 p-3">
-        <p className="text-sm text-subtle">This will rescore {plural(rescoreCount, "submission")}.</p>
+      <Panel title={t("rescoreTitle")} bodyClassName="grid gap-4 p-3">
+        <p className="text-sm text-subtle">{t("willRescore", { count: rescoreCount })}</p>
         <Button full variant="secondary" busy={busy} onClick={() => setConfirming("rescore")}>
-          Rescore all submissions
+          {t("rescoreAll")}
         </Button>
-        {rescoreJob ? <JobProgress jobId={rescoreJob} label="Rescoring" /> : null}
+        {rescoreJob ? <JobProgress jobId={rescoreJob} kind="rescore" /> : null}
       </Panel>
 
       <AlertDialog open={confirming !== null} onOpenChange={(open) => !open && setConfirming(null)}>
@@ -222,17 +230,15 @@ export function ManageSubmissions({
           <AlertDialogHeader>
             <AlertDialogTitle>
               {confirming === "rescore"
-                ? `Rescore ${plural(rescoreCount, "submission")} on ${problemName}?`
-                : `Rejudge ${plural(previewCount ?? 0, "submission")} on ${problemName}?`}
+                ? t("confirmRescoreTitle", { count: rescoreCount, name: problemName })
+                : t("confirmRejudgeTitle", { count: previewCount ?? 0, name: problemName })}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {confirming === "rescore"
-                ? "Every submission keeps its verdict; only its score is recomputed."
-                : "Each one goes back into the judging queue and its verdict may change."}
+              {confirming === "rescore" ? t("confirmRescoreBody") : t("confirmRejudgeBody")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{actions("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (confirming === "rescore") {
@@ -252,7 +258,7 @@ export function ManageSubmissions({
                 }
               }}
             >
-              {confirming === "rescore" ? "Rescore" : "Rejudge"}
+              {confirming === "rescore" ? t("rescoreAction") : t("rejudgeAction")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

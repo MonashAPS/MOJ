@@ -4,44 +4,31 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Badge, Button, cn, Panel, Progress } from "@moj/ui";
 import { useQuery } from "convex/react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 const NUMBER = new Intl.NumberFormat("en-AU");
 
-export const JOB_TYPE_LABELS: Record<string, string> = {
-  rejudge: "Rejudge",
-  rescore: "Rescore",
-  rescoreContest: "Rescore contest",
-  rateContest: "Rate contest",
-  rejudgeContestProblem: "Rejudge contest problem",
-  moss: "MOSS",
-  userExport: "Data export",
-  pdf: "PDF",
-  sitemap: "Sitemap",
-};
-
-export function jobTypeLabel(type: string): string {
-  return JOB_TYPE_LABELS[type] ?? type;
-}
-
+/** English names for the job types, for the callers that render one outside a
+ *  component of their own. `JobProgress` reads the same names from the
+ *  catalogue instead. */
 export function JobStatusBadge({ status }: { status: string }) {
+  const t = useTranslations("admin.components.jobStatus");
   const variant =
     status === "done" ? "good" : status === "failed" ? "bad" : status === "running" ? "run" : "neutral";
   const label =
-    status === "done" ? "Done" : status === "failed" ? "Failed" : status === "running" ? "Running" : "Queued";
+    status === "done"
+      ? t("done")
+      : status === "failed"
+        ? t("failed")
+        : status === "running"
+          ? t("running")
+          : t("queued");
   return (
     <Badge variant={variant} shape="square">
       {label}
     </Badge>
   );
-}
-
-function elapsedText(from: number, to: number): string {
-  const seconds = Math.max(0, Math.round((to - from) / 1000));
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }
 
 /**
@@ -50,7 +37,7 @@ function elapsedText(from: number, to: number): string {
  */
 export function JobProgress({
   jobId,
-  title = "Job",
+  title,
   onDismiss,
   className,
 }: {
@@ -59,6 +46,7 @@ export function JobProgress({
   onDismiss?: () => void;
   className?: string;
 }) {
+  const t = useTranslations("admin.components.jobProgress");
   const job = useQuery(api.jobs.status, jobId ? { jobId } : "skip");
   const [now, setNow] = useState(() => Date.now());
 
@@ -69,18 +57,28 @@ export function JobProgress({
     return () => window.clearInterval(timer);
   }, [running]);
 
+  const panelTitle = title ?? t("title");
+
+  function elapsedText(from: number, to: number): string {
+    const seconds = Math.max(0, Math.round((to - from) / 1000));
+    if (seconds < 60) return t("elapsedSeconds", { seconds });
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return t("elapsedMinutes", { minutes, seconds: seconds % 60 });
+    return t("elapsedHours", { hours: Math.floor(minutes / 60), minutes: minutes % 60 });
+  }
+
   if (!jobId) return null;
   if (job === undefined) {
     return (
-      <Panel title={title} className={className} bodyClassName="p-3">
-        <p className="text-sm text-muted-foreground">Starting…</p>
+      <Panel title={panelTitle} className={className} bodyClassName="p-3">
+        <p className="text-sm text-muted-foreground">{t("starting")}</p>
       </Panel>
     );
   }
   if (job === null) {
     return (
-      <Panel title={title} className={className} bodyClassName="p-3">
-        <p className="text-sm text-muted-foreground">That job is no longer on record.</p>
+      <Panel title={panelTitle} className={className} bodyClassName="p-3">
+        <p className="text-sm text-muted-foreground">{t("missing")}</p>
       </Panel>
     );
   }
@@ -90,10 +88,11 @@ export function JobProgress({
   const percent =
     total > 0 ? Math.min(100, Math.round((done / total) * 100)) : job.status === "done" ? 100 : 0;
   const finishedAt = job.finishedAt ?? now;
+  const typeName = t.has(`types.${job.type}`) ? t(`types.${job.type}`) : job.type;
 
   return (
     <Panel
-      title={`${jobTypeLabel(job.type)} — ${title}`}
+      title={t("panelTitle", { type: typeName, title: panelTitle })}
       action={<JobStatusBadge status={job.status} />}
       className={className}
       bodyClassName="grid gap-2 p-3"
@@ -112,7 +111,7 @@ export function JobProgress({
         </span>
         {onDismiss ? (
           <Button variant="ghost" size="sm" onClick={onDismiss}>
-            {running ? "Hide" : "Dismiss"}
+            {running ? t("hide") : t("dismiss")}
           </Button>
         ) : null}
       </div>

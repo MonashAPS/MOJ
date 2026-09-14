@@ -1,35 +1,37 @@
 import { Alert, AlertTitle, Button } from "@moj/ui";
 import { LogOut } from "lucide-react";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { getServerSession } from "@/auth/session";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { logOut } from "./actions";
 
-export const metadata = { title: "Log out" };
+export async function generateMetadata() {
+  const t = await getTranslations("auth.logout");
+  return { title: t("metaTitle") };
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function LogoutPage({ searchParams }: { searchParams: Promise<{ done?: string }> }) {
   const { done } = await searchParams;
   const session = done ? null : await getServerSession();
+  const t = await getTranslations("auth.logout");
 
   if (done || !session) {
     return (
       <AuthCard
-        title="See you later"
-        subtitle="You are logged out."
-        footer={
-          <span>
-            Back to <Link href="/">the front page</Link>
-          </span>
-        }
+        title={t("doneTitle")}
+        subtitle={t("doneSubtitle")}
+        footer={<span>{t.rich("doneFooter", { link: (chunks) => <Link href="/">{chunks}</Link> })}</span>}
       >
         <div className="grid gap-4">
           <Alert variant="success">
             <LogOut className="size-3.5" aria-hidden />
-            <AlertTitle>You have been logged out.</AlertTitle>
+            <AlertTitle>{t("doneAlert")}</AlertTitle>
           </Alert>
           <Button asChild full>
-            <Link href="/accounts/login/">Log back in</Link>
+            <Link href="/accounts/login/">{t("logBackIn")}</Link>
           </Button>
         </div>
       </AuthCard>
@@ -40,20 +42,16 @@ export default async function LogoutPage({ searchParams }: { searchParams: Promi
 
   return (
     <AuthCard
-      title="Log out"
-      subtitle={`You are logged in as ${username}.`}
-      footer={
-        <span>
-          Changed your mind? <Link href="/">Back to the front page</Link>
-        </span>
-      }
+      title={t("title")}
+      subtitle={t("subtitle", { username })}
+      footer={<span>{t.rich("footer", { link: (chunks) => <Link href="/">{chunks}</Link> })}</span>}
     >
       <form action={logOut} className="grid gap-2">
         <Button type="submit" full icon={<LogOut aria-hidden />}>
-          Log out
+          {t("submit")}
         </Button>
         <Button asChild variant="ghost" full>
-          <Link href="/">Stay logged in</Link>
+          <Link href="/">{t("stay")}</Link>
         </Button>
       </form>
     </AuthCard>

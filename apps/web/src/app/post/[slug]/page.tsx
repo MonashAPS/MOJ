@@ -3,6 +3,7 @@ import { Button, ContentDescription, RatingName, TitleRow } from "@moj/ui";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Comments } from "@/components/comments/Comments";
 import { queryAsViewer } from "@/lib/convex-server";
 import { formatDateTime } from "@/lib/format";
@@ -24,7 +25,10 @@ async function load(slug: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = await load((await params).slug);
-  if (!post) return { title: "Page not found" };
+  if (!post) {
+    const t = await getTranslations("common.states");
+    return { title: t("notFound") };
+  }
   const description = post.metaDescription.replace(/\s+/g, " ").trim().slice(0, 200);
   return {
     title: post.title,
@@ -38,6 +42,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function BlogPostPage({ params }: Props) {
+  const [t, common] = await Promise.all([getTranslations("blog.post"), getTranslations("common.actions")]);
   const post = await load((await params).slug);
   if (!post) notFound();
 
@@ -50,7 +55,7 @@ export default async function BlogPostPage({ params }: Props) {
         action={
           post.canEdit ? (
             <Button asChild variant="secondary">
-              <Link href={`/admin/blog/${post._id}/`}>Edit</Link>
+              <Link href={`/admin/blog/${post._id}/`}>{common("edit")}</Link>
             </Button>
           ) : null
         }
@@ -75,8 +80,13 @@ export default async function BlogPostPage({ params }: Props) {
                 {" · "}
               </>
             ) : null}
-            posted on{" "}
-            <time dateTime={new Date(post.publishOn).toISOString()}>{formatDateTime(post.publishOn)}</time>
+            {t.rich("postedOn", {
+              time: () => (
+                <time dateTime={new Date(post.publishOn).toISOString()}>
+                  {formatDateTime(post.publishOn)}
+                </time>
+              ),
+            })}
           </p>
 
           <ContentDescription html={html} />

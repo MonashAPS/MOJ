@@ -2,24 +2,26 @@
 
 import { Dialog, DialogContent, Kbd, KbdGroup } from "@moj/ui";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
-/** DESIGN.md section 17.3. Every row here works; nothing is listed that does not. */
-const SHORTCUTS: Array<{ keys: string[]; label: string }> = [
-  { keys: ["Ctrl", "K"], label: "Open the command palette" },
-  { keys: ["/"], label: "Open the command palette" },
-  { keys: ["g", "p"], label: "Go to problems" },
-  { keys: ["g", "s"], label: "Go to submissions" },
-  { keys: ["g", "c"], label: "Go to contests" },
-  { keys: ["g", "u"], label: "Go to users" },
-  { keys: ["g", "h"], label: "Go home" },
-  { keys: ["j"], label: "Move the row cursor down" },
-  { keys: ["k"], label: "Move the row cursor up" },
-  { keys: ["Enter"], label: "Open the focused row" },
-  { keys: ["Ctrl", "Enter"], label: "Submit, from the submit form" },
-  { keys: ["r"], label: "Refetch a live list" },
-  { keys: ["?"], label: "This sheet" },
-  { keys: ["Esc"], label: "Close the topmost overlay" },
+/** DESIGN.md section 17.3. Every row here works; nothing is listed that does not.
+ *  The key caps are literal, so only the description is a message. */
+const SHORTCUTS: Array<{ keys: string[]; message: string }> = [
+  { keys: ["Ctrl", "K"], message: "palette" },
+  { keys: ["/"], message: "palette" },
+  { keys: ["g", "p"], message: "goProblems" },
+  { keys: ["g", "s"], message: "goSubmissions" },
+  { keys: ["g", "c"], message: "goContests" },
+  { keys: ["g", "u"], message: "goUsers" },
+  { keys: ["g", "h"], message: "goHome" },
+  { keys: ["j"], message: "rowDown" },
+  { keys: ["k"], message: "rowUp" },
+  { keys: ["Enter"], message: "openRow" },
+  { keys: ["Ctrl", "Enter"], message: "submitForm" },
+  { keys: ["r"], message: "refetch" },
+  { keys: ["?"], message: "sheet" },
+  { keys: ["Esc"], message: "closeOverlay" },
 ];
 
 const GO_TO: Record<string, string> = {
@@ -39,6 +41,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
 /** `?` opens the sheet; `g` then a letter navigates. Both are ignored while a
  *  text field has focus, and the `g` prefix expires after a second. */
 export function ShortcutLayer() {
+  const t = useTranslations("common.shortcuts");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const pending = useRef<number>(0);
@@ -75,18 +78,14 @@ export function ShortcutLayer() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent
-        title="Keyboard shortcuts"
-        description="Anything typed into a text field is left alone."
-        width={620}
-      >
+      <DialogContent title={t("title")} description={t("description")} width={620}>
         <dl className="grid gap-x-8 gap-y-1 sm:grid-cols-2">
           {SHORTCUTS.map((shortcut) => (
             <div
-              key={`${shortcut.keys.join("+")}-${shortcut.label}`}
+              key={`${shortcut.keys.join("+")}-${shortcut.message}`}
               className="flex items-center justify-between gap-4 border-b border-border py-1.5 last:border-b-0 sm:[&:nth-last-child(2)]:border-b-0"
             >
-              <dt className="text-base text-subtle">{shortcut.label}</dt>
+              <dt className="text-base text-subtle">{t(shortcut.message)}</dt>
               <dd>
                 <KbdGroup>
                   {shortcut.keys.map((key) => (

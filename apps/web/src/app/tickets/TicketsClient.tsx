@@ -23,6 +23,7 @@ import { useQuery } from "convex/react";
 import { CircleAlert, CircleCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import { formatDateTime, formatRelative } from "@/lib/format";
 import { PER_PAGE, scopeFromParams, type TicketPage, type TicketSummary, ticketQueryArgs } from "./filters";
@@ -38,6 +39,7 @@ export function TicketsClient({
   viewerProfileId: Id<"profiles"> | null;
   problemCode?: string;
 }) {
+  const t = useTranslations("blog.tickets");
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -82,27 +84,27 @@ export function TicketsClient({
           value={scope}
           onValueChange={(next) => next && setParam({ scope: next === "all" ? null : next })}
           className="w-auto shrink-0"
-          aria-label="Which tickets"
+          aria-label={t("scopeLabel")}
         >
           <ToggleGroupItem value="all" className="flex-none px-3">
-            All
+            {t("scopeAll")}
           </ToggleGroupItem>
           <ToggleGroupItem value="mine" className="flex-none px-3">
-            Mine
+            {t("scopeMine")}
           </ToggleGroupItem>
           <ToggleGroupItem value="assigned" className="flex-none px-3">
-            Assigned to me
+            {t("scopeAssigned")}
           </ToggleGroupItem>
         </ToggleGroup>
 
         <Checkbox
           checked={onlyOpen}
           onCheckedChange={(checked) => setParam({ open: checked ? "1" : null })}
-          label="Hide closed tickets"
+          label={t("hideClosed")}
         />
 
         <span className="ml-auto font-mono text-sm tabular-nums text-muted-foreground">
-          {result === undefined ? "" : `${total} ${total === 1 ? "ticket" : "tickets"}`}
+          {result === undefined ? "" : t("count", { count: total })}
         </span>
       </div>
 
@@ -113,19 +115,19 @@ export function TicketsClient({
           <TableHeader>
             <TableRow>
               <TableHead className="w-8">
-                <span className="sr-only">Status</span>
+                <span className="sr-only">{t("columnStatus")}</span>
               </TableHead>
               <TableHead numeric className="w-16">
-                ID
+                {t("columnId")}
               </TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead className="w-40">User</TableHead>
-              <TableHead className="w-56">Assignees</TableHead>
+              <TableHead>{t("columnTitle")}</TableHead>
+              <TableHead className="w-40">{t("columnUser")}</TableHead>
+              <TableHead className="w-56">{t("columnAssignees")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.length === 0 ? (
-              <EmptyRow colSpan={5}>{emptyMessage(scope, onlyOpen, Boolean(problemCode))}</EmptyRow>
+              <EmptyRow colSpan={5}>{emptyMessage(t, scope, onlyOpen, Boolean(problemCode))}</EmptyRow>
             ) : (
               rows.map((ticket) => <TicketRow key={ticket._id} ticket={ticket} />)
             )}
@@ -151,21 +153,25 @@ export function TicketsClient({
 }
 
 /** Empty states name what would fill the space, per DESIGN.md section 20.1. */
-function emptyMessage(scope: string, onlyOpen: boolean, onProblem: boolean): string {
+function emptyMessage(
+  t: (key: string) => string,
+  scope: string,
+  onlyOpen: boolean,
+  onProblem: boolean,
+): string {
   if (scope === "assigned") {
-    return onlyOpen ? "Nothing open is assigned to you." : "Nothing is assigned to you.";
+    return onlyOpen ? t("emptyAssignedOpen") : t("emptyAssigned");
   }
   if (scope === "mine") {
-    return onlyOpen
-      ? "None of your tickets are open."
-      : "You have not filed a ticket, and none are assigned to you.";
+    return onlyOpen ? t("emptyMineOpen") : t("emptyMine");
   }
-  if (onlyOpen) return "No open tickets.";
-  return onProblem ? "Nobody has reported an issue with this problem." : "No tickets have been filed yet.";
+  if (onlyOpen) return t("emptyOpen");
+  return onProblem ? t("emptyProblem") : t("emptyAny");
 }
 
 function TicketRow({ ticket }: { ticket: TicketSummary }) {
-  const state = ticket.isOpen ? "Open" : "Closed";
+  const t = useTranslations("blog.ticket");
+  const state = ticket.isOpen ? t("open") : t("closed");
   return (
     <TableRow>
       <TableCell className="pr-0">
@@ -213,7 +219,7 @@ function TicketRow({ ticket }: { ticket: TicketSummary }) {
       </TableCell>
       <TableCell className={cn("text-sm", ticket.assignees.length === 0 && "text-muted-foreground")}>
         {ticket.assignees.length === 0
-          ? "No one is assigned."
+          ? t("noAssignees")
           : ticket.assignees.map((one, index) => (
               <span key={one._id}>
                 {index > 0 ? ", " : ""}

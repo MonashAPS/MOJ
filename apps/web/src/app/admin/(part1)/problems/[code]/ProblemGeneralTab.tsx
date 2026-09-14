@@ -3,6 +3,7 @@
 import { api } from "@convex/_generated/api";
 import { Checkbox, Field, Input, MultiSelect, Select, toast } from "@moj/ui";
 import { useMutation } from "convex/react";
+import { useTranslations } from "next-intl";
 import { useId, useMemo, useState } from "react";
 import {
   AdminCheckField,
@@ -29,6 +30,8 @@ export function ProblemGeneralTab({
   problem: ProblemEdit;
   options: ProblemOptions | undefined;
 }) {
+  const t = useTranslations("admin.problems.general");
+  const shared = useTranslations("admin.problems.shared");
   const update = useMutation(api.admin.problems.update);
   const setOwnership = useMutation(api.admin.problems.setOwnership);
   const setBannedUsers = useMutation(api.admin.problems.setBannedUsers);
@@ -113,7 +116,7 @@ export function ProblemGeneralTab({
   async function save() {
     setError(null);
     if (!reason.trim()) {
-      setReasonError("Say what you changed so the revision is worth reading.");
+      setReasonError(shared("reasonRequired"));
       return;
     }
     setReasonError(undefined);
@@ -148,9 +151,9 @@ export function ProblemGeneralTab({
         await setBannedUsers({ code: problem.code, usernames: banned, reason: reason.trim() });
       }
       setReason("");
-      toast.success(result?.rescoreScheduled ? "Problem saved. A rescore was queued." : "Problem saved.");
+      toast.success(result?.rescoreScheduled ? t("savedRescoreQueued") : t("saved"));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The change was refused.");
+      setError(caught instanceof Error ? caught.message : shared("changeRefused"));
     }
     setBusy(false);
   }
@@ -159,14 +162,14 @@ export function ProblemGeneralTab({
     <AdminForm onSubmit={save}>
       <AdminFormError message={error} />
 
-      <AdminSection title="General">
-        <Field label="Problem code">
-          <Input mono value={problem.code} readOnly disabled title="A problem's code cannot change." />
+      <AdminSection title={shared("panel.general")}>
+        <Field label={shared("field.code")}>
+          <Input mono value={problem.code} readOnly disabled title={t("codeLocked")} />
         </Field>
-        <Field label="Name" htmlFor={ids.name}>
+        <Field label={shared("field.name")} htmlFor={ids.name}>
           <Input id={ids.name} value={name} onChange={(event) => setName(event.target.value)} />
         </Field>
-        <Field label="Points" htmlFor={ids.points}>
+        <Field label={shared("field.points")} htmlFor={ids.points}>
           <Input
             id={ids.points}
             mono
@@ -175,53 +178,58 @@ export function ProblemGeneralTab({
             onChange={(event) => setPoints(event.target.value)}
           />
         </Field>
-        <Field label="Publish on" htmlFor={ids.date}>
-          <DateTimeField id={ids.date} value={date} onChange={setDate} ariaLabel="Publish on" />
+        <Field label={shared("field.publishOn")} htmlFor={ids.date}>
+          <DateTimeField
+            id={ids.date}
+            value={date}
+            onChange={setDate}
+            ariaLabel={shared("field.publishOn")}
+          />
         </Field>
         <AdminWideField>
           <div className="grid gap-2 sm:grid-cols-3">
             <AdminCheckField
-              label="Partial scoring"
-              hint="Score the cases that passed."
+              label={shared("field.partial")}
+              hint={shared("field.partialHint")}
               checked={partial}
               onCheckedChange={setPartial}
             />
             <AdminCheckField
-              label="Short circuit"
-              hint="Stop at the first failed case."
+              label={shared("field.shortCircuit")}
+              hint={shared("field.shortCircuitHint")}
               checked={shortCircuit}
               onCheckedChange={setShortCircuit}
             />
             <AdminCheckField
-              label="Public"
-              hint="Listed on /problems/ for everyone."
+              label={shared("field.public")}
+              hint={shared("field.publicHint")}
               checked={isPublic}
               onCheckedChange={setIsPublic}
               disabled={!permissions.changePublicVisibility && !problem.isOrganizationPrivate}
-              disabledReason="You do not have judge.change_public_visibility."
+              disabledReason={shared("missingPermission", { permission: "judge.change_public_visibility" })}
             />
             <AdminCheckField
-              label="Manually managed"
-              hint="The judge will not grade it."
+              label={shared("field.manuallyManaged")}
+              hint={shared("field.manuallyManagedHint")}
               checked={isManuallyManaged}
               onCheckedChange={setIsManuallyManaged}
               disabled={!permissions.changeManuallyManaged}
-              disabledReason="You do not have judge.change_manually_managed."
+              disabledReason={shared("missingPermission", { permission: "judge.change_manually_managed" })}
             />
             <AdminCheckField
-              label="Full markup"
-              hint="Allow raw HTML in the statement."
+              label={t("fullMarkup")}
+              hint={t("fullMarkupHint")}
               checked={isFullMarkup}
               onCheckedChange={setIsFullMarkup}
               disabled={!permissions.problemFullMarkup}
-              disabledReason="You do not have judge.problem_full_markup."
+              disabledReason={shared("missingPermission", { permission: "judge.problem_full_markup" })}
             />
           </div>
         </AdminWideField>
       </AdminSection>
 
-      <AdminSection title="Limits">
-        <Field label="Time limit" htmlFor={ids.timeLimit} hint="Seconds.">
+      <AdminSection title={shared("panel.limits")}>
+        <Field label={shared("field.timeLimit")} htmlFor={ids.timeLimit} hint={shared("field.timeLimitHint")}>
           <Input
             id={ids.timeLimit}
             mono
@@ -230,7 +238,11 @@ export function ProblemGeneralTab({
             onChange={(event) => setTimeLimit(event.target.value)}
           />
         </Field>
-        <Field label="Memory limit" htmlFor={ids.memoryLimit} hint="Kilobytes.">
+        <Field
+          label={shared("field.memoryLimit")}
+          htmlFor={ids.memoryLimit}
+          hint={shared("field.memoryLimitHint")}
+        >
           <Input
             id={ids.memoryLimit}
             mono
@@ -241,8 +253,8 @@ export function ProblemGeneralTab({
         </Field>
       </AdminSection>
 
-      <AdminSection title="Taxonomy">
-        <Field label="Group" htmlFor={ids.group}>
+      <AdminSection title={shared("panel.taxonomy")}>
+        <Field label={shared("field.group")} htmlFor={ids.group}>
           <Select
             id={ids.group}
             value={group}
@@ -250,50 +262,50 @@ export function ProblemGeneralTab({
             options={(options?.groups ?? []).map((row) => ({ value: row.name, label: row.fullName }))}
           />
         </Field>
-        <Field label="Types" htmlFor={ids.types}>
+        <Field label={shared("field.types")} htmlFor={ids.types}>
           <MultiSelect
             id={ids.types}
             values={types}
             onChange={setTypes}
             options={(options?.types ?? []).map((row) => ({ value: row.name, label: row.fullName }))}
-            placeholder="Choose types"
+            placeholder={shared("field.typesPlaceholder")}
           />
         </Field>
-        <Field label="Licence" htmlFor={ids.license} optional=" (optional)">
+        <Field label={shared("field.license")} htmlFor={ids.license} optional={shared("optional")}>
           <Select
             id={ids.license}
             value={license}
             onValueChange={setLicense}
             options={(options?.licenses ?? []).map((row) => ({ value: row.key, label: row.name }))}
-            placeholder="No licence"
+            placeholder={shared("field.licensePlaceholder")}
           />
         </Field>
         <Field
-          label="Submission source visibility"
+          label={shared("field.sourceVisibility")}
           htmlFor={ids.visibility}
-          hint="Who may read other people's code for this problem."
+          hint={shared("field.sourceVisibilityHint")}
         >
           <Select
             id={ids.visibility}
             value={sourceVisibility}
             onValueChange={(value) => setSourceVisibility(value as ProblemEdit["submissionSourceVisibility"])}
             options={[
-              { value: "F", label: "Follow the site default" },
-              { value: "A", label: "Anyone" },
-              { value: "S", label: "Users who solved it" },
-              { value: "O", label: "Only the problem's staff" },
+              { value: "F", label: shared("field.sourceVisibilityFollow") },
+              { value: "A", label: shared("field.sourceVisibilityAnyone") },
+              { value: "S", label: shared("field.sourceVisibilitySolved") },
+              { value: "O", label: shared("field.sourceVisibilityStaff") },
             ]}
           />
         </Field>
       </AdminSection>
 
       <AdminSection
-        title="Languages"
+        title={shared("panel.languages")}
         columns={1}
         action={
           <Checkbox
             id={ids.languages}
-            label="Check all"
+            label={shared("field.checkAll")}
             labelClassName="text-xs"
             checked={allChecked}
             onCheckedChange={(checked) => setLanguages(checked ? allLanguageKeys : [])}
@@ -301,59 +313,70 @@ export function ProblemGeneralTab({
         }
       >
         <Field
-          label="Allowed languages"
-          hint={`${languages.length} of ${allLanguageKeys.length} languages may be submitted in.`}
+          label={shared("field.allowedLanguages")}
+          hint={t("allowedLanguagesHint", { count: languages.length, total: allLanguageKeys.length })}
         >
           <MultiSelect
             values={languages}
             onChange={setLanguages}
             options={(options?.languages ?? []).map((row) => ({ value: row.key, label: row.name }))}
-            placeholder="Every language"
-            ariaLabel="Allowed languages"
+            placeholder={shared("field.everyLanguage")}
+            ariaLabel={shared("field.allowedLanguages")}
           />
         </Field>
       </AdminSection>
 
-      <AdminSection title="People">
-        <Field label="Authors" htmlFor={ids.authors}>
-          <UserPicker id={ids.authors} values={authors} onChange={setAuthors} ariaLabel="Authors" />
+      <AdminSection title={shared("panel.people")}>
+        <Field label={shared("field.authors")} htmlFor={ids.authors}>
+          <UserPicker
+            id={ids.authors}
+            values={authors}
+            onChange={setAuthors}
+            ariaLabel={shared("field.authors")}
+          />
         </Field>
-        <Field label="Curators" htmlFor={ids.curators}>
-          <UserPicker id={ids.curators} values={curators} onChange={setCurators} ariaLabel="Curators" />
+        <Field label={shared("field.curators")} htmlFor={ids.curators}>
+          <UserPicker
+            id={ids.curators}
+            values={curators}
+            onChange={setCurators}
+            ariaLabel={shared("field.curators")}
+          />
         </Field>
-        <Field label="Testers" htmlFor={ids.testers}>
-          <UserPicker id={ids.testers} values={testers} onChange={setTesters} ariaLabel="Testers" />
+        <Field label={shared("field.testers")} htmlFor={ids.testers}>
+          <UserPicker
+            id={ids.testers}
+            values={testers}
+            onChange={setTesters}
+            ariaLabel={shared("field.testers")}
+          />
         </Field>
         <Field
-          label="Organisations"
+          label={shared("field.organizations")}
           htmlFor={ids.organizations}
-          hint="Naming any organisation makes the problem private to them."
+          hint={shared("field.organizationsHint")}
         >
           <MultiSelect
             id={ids.organizations}
             values={organizations}
             onChange={setOrganizations}
             options={(options?.organizations ?? []).map((row) => ({ value: row.slug, label: row.name }))}
-            placeholder="Everyone"
+            placeholder={shared("field.everyone")}
           />
         </Field>
       </AdminSection>
 
-      <AdminSection title="Justice" columns={1}>
-        <Field
-          label="Banned users"
-          htmlFor={ids.banned}
-          hint="These users cannot submit to this problem. Their existing submissions are kept."
-        >
-          <UserPicker id={ids.banned} values={banned} onChange={setBanned} ariaLabel="Banned users" />
+      <AdminSection title={t("justicePanel")} columns={1}>
+        <Field label={t("bannedUsers")} htmlFor={ids.banned} hint={t("bannedUsersHint")}>
+          <UserPicker id={ids.banned} values={banned} onChange={setBanned} ariaLabel={t("bannedUsers")} />
         </Field>
       </AdminSection>
 
-      <AdminSection title="Social">
-        <Field label="Summary" htmlFor={ids.summary} optional=" (optional)">
+      <AdminSection title={t("socialPanel")}>
+        <Field label={t("summary")} htmlFor={ids.summary} optional={shared("optional")}>
           <Input id={ids.summary} value={summary} onChange={(event) => setSummary(event.target.value)} />
         </Field>
-        <Field label="Social image" htmlFor={ids.ogImage} optional=" (optional)">
+        <Field label={t("socialImage")} htmlFor={ids.ogImage} optional={shared("optional")}>
           <Input
             id={ids.ogImage}
             mono
@@ -364,8 +387,8 @@ export function ProblemGeneralTab({
         </Field>
       </AdminSection>
 
-      <ReasonField value={reason} onChange={setReason} error={reasonError} entity="problem" />
-      <AdminFormFooter dirty={dirty} busy={busy} submitLabel="Save problem" />
+      <ReasonField value={reason} onChange={setReason} error={reasonError} hint={t("reasonHint")} />
+      <AdminFormFooter dirty={dirty} busy={busy} submitLabel={t("submit")} />
     </AdminForm>
   );
 }

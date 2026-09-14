@@ -29,6 +29,7 @@ import {
 } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { MoreHorizontal, Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { formatRelative } from "@/lib/format";
@@ -57,6 +58,8 @@ type Draft = { id: Id<"judges"> | null; name: string; tier: string; description:
 const EMPTY: Draft = { id: null, name: "", tier: "1", description: "" };
 
 export function JudgesTable({ siteUrl }: { siteUrl: string }) {
+  const t = useTranslations("admin.judges");
+  const actions = useTranslations("common.actions");
   const judges = useQuery(api.admin.judges.list, {}) as JudgeRow[] | undefined;
   const create = useMutation(api.admin.judges.create);
   const update = useMutation(api.admin.judges.update);
@@ -86,7 +89,7 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
   async function save() {
     if (!draft) return;
     if (reason.trim().length === 0) {
-      setError("Give a reason for the change; it is recorded on the revision.");
+      setError(t("reasonRequired"));
       return;
     }
     setBusy(true);
@@ -100,7 +103,7 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
           description: draft.description,
           reason,
         });
-        setMessage({ tone: "ok", text: `${draft.name} has been updated.` });
+        setMessage({ tone: "ok", text: t("updated", { name: draft.name }) });
       } else {
         const result = await create({
           name: draft.name,
@@ -112,7 +115,7 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
       }
       setDraft(null);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "That judge could not be saved.");
+      setError(caught instanceof Error ? caught.message : t("saveFailed"));
     } finally {
       setBusy(false);
     }
@@ -125,7 +128,7 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
     } catch (caught) {
       setMessage({
         tone: "bad",
-        text: caught instanceof Error ? caught.message : "That did not work.",
+        text: caught instanceof Error ? caught.message : t("actionFailed"),
       });
     }
   }
@@ -135,13 +138,13 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
     const { kind, row } = pending;
     setPending(null);
     if (kind === "disconnect") {
-      await run(() => disconnect({ id: row._id }), `${row.name} will disconnect on its next heartbeat.`);
+      await run(() => disconnect({ id: row._id }), t("disconnectingMessage", { name: row.name }));
       return;
     }
     if (kind === "delete") {
       await run(
         () => remove({ id: row._id, reason: "Deleted from the console" }),
-        `${row.name} has been deleted.`,
+        t("deletedMessage", { name: row.name }),
       );
       return;
     }
@@ -151,7 +154,7 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
     } catch (caught) {
       setMessage({
         tone: "bad",
-        text: caught instanceof Error ? caught.message : "The key could not be issued.",
+        text: caught instanceof Error ? caught.message : t("keyFailed"),
       });
     }
   }
@@ -159,7 +162,7 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
   const columns: AdminColumn<JudgeRow>[] = [
     {
       key: "name",
-      header: "Judge",
+      header: t("columnJudge"),
       cell: (row) => (
         <span className="grid">
           <span className="font-mono text-mono font-medium text-foreground">{row.name}</span>
@@ -171,57 +174,62 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
     },
     {
       key: "status",
-      header: "Status",
+      header: t("columnStatus"),
       cell: (row) => (
         <Flags
           flags={[
-            { on: row.online, label: "Online", tone: "good" },
-            { on: !row.online, label: "Offline", tone: "warn" },
-            { on: row.isDisabled, label: "Disabled", tone: "bad" },
-            { on: row.isBlocked, label: "Blocked", tone: "bad" },
-            { on: row.disconnectRequestedAt !== null, label: "Disconnecting", tone: "warn" },
+            { on: row.online, label: t("statusOnline"), tone: "good" },
+            { on: !row.online, label: t("statusOffline"), tone: "warn" },
+            { on: row.isDisabled, label: t("statusDisabled"), tone: "bad" },
+            { on: row.isBlocked, label: t("statusBlocked"), tone: "bad" },
+            { on: row.disconnectRequestedAt !== null, label: t("statusDisconnecting"), tone: "warn" },
           ]}
         />
       ),
     },
-    { key: "tier", header: "Tier", numeric: true, cell: (row) => row.tier },
+    { key: "tier", header: t("columnTier"), numeric: true, cell: (row) => row.tier },
     {
       key: "ping",
-      header: "Ping",
+      header: t("columnPing"),
       numeric: true,
-      cell: (row) => (row.ping === null ? DASH : `${(row.ping * 1000).toFixed(1)} ms`),
+      cell: (row) => (row.ping === null ? DASH : t("pingValue", { value: (row.ping * 1000).toFixed(1) })),
     },
     {
       key: "load",
-      header: "Load",
+      header: t("columnLoad"),
       numeric: true,
       cell: (row) => (row.load === null ? DASH : row.load.toFixed(2)),
     },
-    { key: "problems", header: "Problems", numeric: true, cell: (row) => row.problemCount.toLocaleString() },
-    { key: "runtimes", header: "Runtimes", numeric: true, cell: (row) => row.runtimeCount },
+    {
+      key: "problems",
+      header: t("columnProblems"),
+      numeric: true,
+      cell: (row) => row.problemCount.toLocaleString(),
+    },
+    { key: "runtimes", header: t("columnRuntimes"), numeric: true, cell: (row) => row.runtimeCount },
     {
       key: "lastSeen",
-      header: "Last seen",
+      header: t("columnLastSeen"),
       numeric: true,
       cell: (row) => (row.lastSeen === null ? DASH : formatRelative(row.lastSeen)),
     },
     {
       key: "ip",
-      header: "Address",
+      header: t("columnAddress"),
       cell: (row) => <span className="font-mono text-mono">{row.lastIp ?? DASH}</span>,
     },
     {
       key: "actions",
-      header: <span className="sr-only">Actions</span>,
+      header: <span className="sr-only">{t("columnActions")}</span>,
       cell: (row) => (
         <span className="flex items-center justify-end gap-1">
           <Button variant="secondary" size="sm" onClick={() => open(row)}>
-            Edit
+            {actions("edit")}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Tooltip content="More actions">
-                <Button variant="ghost" size="icon-sm" aria-label={`More actions for ${row.name}`}>
+              <Tooltip content={t("moreActions")}>
+                <Button variant="ghost" size="icon-sm" aria-label={t("moreActionsFor", { name: row.name })}>
                   <MoreHorizontal aria-hidden />
                 </Button>
               </Tooltip>
@@ -231,11 +239,13 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
                 onSelect={() =>
                   run(
                     () => toggleDisabled({ id: row._id, reason: "Toggled from the console" }),
-                    `${row.name} has been ${row.isDisabled ? "enabled" : "disabled"}.`,
+                    row.isDisabled
+                      ? t("enabledMessage", { name: row.name })
+                      : t("disabledMessage", { name: row.name }),
                   )
                 }
               >
-                {row.isDisabled ? "Enable" : "Disable"}
+                {row.isDisabled ? t("enable") : t("disable")}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={() =>
@@ -246,25 +256,27 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
                         isBlocked: !row.isBlocked,
                         reason: "Toggled block from the console",
                       }),
-                    `${row.name} has been ${row.isBlocked ? "unblocked" : "blocked"}.`,
+                    row.isBlocked
+                      ? t("unblockedMessage", { name: row.name })
+                      : t("blockedMessage", { name: row.name }),
                   )
                 }
               >
-                {row.isBlocked ? "Unblock" : "Block"}
+                {row.isBlocked ? t("unblock") : t("block")}
               </DropdownMenuItem>
               <DropdownMenuItem
                 disabled={!row.online}
-                title={row.online ? undefined : "That judge is not connected."}
+                title={row.online ? undefined : t("notConnected")}
                 onSelect={() => setPending({ kind: "disconnect", row })}
               >
-                Disconnect
+                {t("disconnect")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => setPending({ kind: "key", row })}>
-                Issue a new key
+                {t("issueKey")}
               </DropdownMenuItem>
               <DropdownMenuItem variant="destructive" onSelect={() => setPending({ kind: "delete", row })}>
-                Delete
+                {actions("delete")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -284,18 +296,23 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
         toolbar={
           <>
             <span className="text-sm text-muted-foreground">
-              {judges ? `${judges.filter((row) => row.online).length} of ${judges.length} online` : ""}
+              {judges
+                ? t("onlineCount", {
+                    online: judges.filter((row) => row.online).length,
+                    total: judges.length,
+                  })
+                : ""}
             </span>
             <Button className="ml-auto" size="sm" icon={<Plus aria-hidden />} onClick={() => open()}>
-              New judge
+              {t("newJudge")}
             </Button>
           </>
         }
-        emptyTitle="No judges"
-        emptyDescription="Nothing is registered to grade submissions yet."
+        emptyTitle={t("emptyTitle")}
+        emptyDescription={t("emptyDescription")}
         emptyAction={
           <Button variant="secondary" onClick={() => open()}>
-            New judge
+            {t("newJudge")}
           </Button>
         }
       />
@@ -303,21 +320,17 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
       <RecordDialog
         open={draft !== null}
         onOpenChange={(next) => (next ? undefined : setDraft(null))}
-        title={draft?.id ? `Edit ${draft.name}` : "New judge"}
-        description={
-          draft?.id
-            ? "The key is not shown again. Issue a new one from the row if it has been lost."
-            : "The key is generated here and shown once."
-        }
+        title={draft?.id ? t("editTitle", { name: draft.name }) : t("newTitle")}
+        description={draft?.id ? t("editDescription") : t("newDescription")}
         onSubmit={save}
         reason={reason}
         onReasonChange={setReason}
         busy={busy}
         error={error}
-        submitLabel={draft?.id ? "Save judge" : "Create judge"}
+        submitLabel={draft?.id ? t("saveSubmit") : t("createSubmit")}
       >
         <FieldGroup columns={2}>
-          <Field label="Name" hint="What the judge presents at the handshake.">
+          <Field label={t("name")} hint={t("nameHint")}>
             <Input
               mono
               value={draft?.name ?? ""}
@@ -328,7 +341,7 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
               placeholder="judge2"
             />
           </Field>
-          <Field label="Tier" hint="Lower tiers are handed work first.">
+          <Field label={t("tier")} hint={t("tierHint")}>
             <Input
               type="number"
               mono
@@ -340,7 +353,7 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
             />
           </Field>
         </FieldGroup>
-        <Field label="Description" optional=" (optional)" hint="Where the machine lives, who runs it.">
+        <Field label={t("description")} optional={t("optional")} hint={t("descriptionHint")}>
           <Textarea
             rows={3}
             value={draft?.description ?? ""}
@@ -356,25 +369,28 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
           <AlertDialogHeader>
             <AlertDialogTitle>
               {pending?.kind === "disconnect"
-                ? `Disconnect ${pending.row.name}?`
+                ? t("disconnectTitle", { name: pending.row.name })
                 : pending?.kind === "key"
-                  ? `Issue a new key for ${pending.row.name}?`
-                  : `Delete ${pending?.row.name ?? ""}?`}
+                  ? t("issueKeyTitle", { name: pending.row.name })
+                  : t("deleteTitle", { name: pending?.row.name ?? "" })}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {pending?.kind === "disconnect"
-                ? "The judge drops its session on its next heartbeat and anything it is grading is requeued."
+                ? t("disconnectDescription")
                 : pending?.kind === "key"
-                  ? "The current key stops working immediately. The judge cannot reconnect until it is restarted with the new one."
+                  ? t("issueKeyDescription")
                   : pending
-                    ? `${pending.row.name} and its ${pending.row.runtimeCount} recorded runtimes are removed. Submissions it graded keep their results.`
+                    ? t("deleteDescription", {
+                        name: pending.row.name,
+                        count: pending.row.runtimeCount,
+                      })
                     : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel asChild>
               <Button variant="secondary" type="button">
-                Cancel
+                {actions("cancel")}
               </Button>
             </AlertDialogCancel>
             <AlertDialogAction
@@ -384,10 +400,10 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
               }}
             >
               {pending?.kind === "disconnect"
-                ? "Disconnect"
+                ? t("disconnect")
                 : pending?.kind === "key"
-                  ? "Issue a new key"
-                  : "Delete judge"}
+                  ? t("issueKey")
+                  : t("deleteConfirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -395,25 +411,25 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
 
       <Dialog open={issued !== null} onOpenChange={(next) => (next ? undefined : setIssued(null))}>
         <DialogContent
-          title={`Key for ${issued?.name ?? ""}`}
-          description="This is the only time the key is shown. Copy it now; only its hash is stored."
+          title={t("keyTitle", { name: issued?.name ?? "" })}
+          description={t("keyDescription")}
           width={720}
         >
           <div className="grid gap-3">
             <div className="grid gap-2">
               <span className="font-sans text-xs font-semibold uppercase tracking-label text-muted-foreground">
-                Key
+                {t("keyLabel")}
               </span>
               <div className="flex items-start gap-2">
                 <code className="min-w-0 flex-1 break-all rounded-md bg-code p-3 font-mono text-mono">
                   {issued?.key}
                 </code>
-                <CopyButton value={issued?.key ?? ""} label="Copy key" />
+                <CopyButton value={issued?.key ?? ""} label={t("copyKey")} />
               </div>
             </div>
             <div className="grid gap-2">
               <span className="font-sans text-xs font-semibold uppercase tracking-label text-muted-foreground">
-                Start this judge
+                {t("startJudge")}
               </span>
               <div className="flex items-start gap-2">
                 <pre className="min-w-0 flex-1 overflow-x-auto rounded-md bg-code p-3 font-mono text-mono">
@@ -421,18 +437,19 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
                 </pre>
                 <CopyButton
                   value={dockerCommand(siteUrl, issued?.name ?? "", issued?.key ?? "")}
-                  label="Copy command"
+                  label={t("copyCommand")}
                 />
               </div>
               <p className="text-sm text-muted-foreground">
-                The container needs the problem tree mounted at <code className="font-mono">/problems</code>{" "}
-                and outbound HTTPS to this site. Nothing has to listen.
+                {t.rich("dockerHint", {
+                  code: (chunks) => <code className="font-mono">{chunks}</code>,
+                })}
               </p>
             </div>
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="secondary">Done</Button>
+              <Button variant="secondary">{t("done")}</Button>
             </DialogClose>
           </DialogFooter>
         </DialogContent>

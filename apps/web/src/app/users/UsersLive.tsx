@@ -3,6 +3,7 @@
 import { api } from "@convex/_generated/api";
 import { Pagination } from "@moj/ui";
 import { useQuery } from "convex/react";
+import { useTranslations } from "next-intl";
 import {
   type LeaderboardRow,
   LeaderboardTable,
@@ -32,6 +33,7 @@ export function UsersLive({
   viewerUsername: string | null;
   organizations: Record<string, OrganizationChip[]>;
 }) {
+  const t = useTranslations("users.list");
   const live = useQuery(api.rankings.users, args);
   const data = live ?? initial;
   const search = new URLSearchParams(params);
@@ -45,11 +47,11 @@ export function UsersLive({
         params={params}
         viewerUsername={viewerUsername}
         organizations={organizations}
-        emptyMessage="No users are on the leaderboard yet."
+        emptyMessage={t("empty")}
       />
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <p className="font-mono text-sm tabular-nums text-muted-foreground">
-          {data.totalUsers === 1 ? "1 user" : `${data.totalUsers.toLocaleString("en-AU")} users`}
+          {t("count", { count: data.totalUsers })}
         </p>
         <Pagination
           page={data.page}

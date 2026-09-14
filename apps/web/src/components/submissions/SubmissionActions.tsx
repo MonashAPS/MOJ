@@ -15,6 +15,7 @@ import {
 } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { RefreshCw, Square } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { isGrading } from "@/lib/submissionFormat";
 
@@ -37,6 +38,8 @@ export function SubmissionActions({
   canRejudge: boolean;
   isLocked: boolean;
 }) {
+  const t = useTranslations("submissions.actions");
+  const common = useTranslations("common.actions");
   const live = useQuery(api.submissions.detail, { submissionId: String(submissionId) });
   const status = live?.submission.status ?? initialStatus;
   const grading = isGrading(status);
@@ -54,17 +57,15 @@ export function SubmissionActions({
     try {
       if (kind === "rejudge") {
         await rejudge({ submissionId });
-        toast.success(`Submission ${submissionId} queued for rejudging.`);
+        toast.success(t("rejudgeQueued", { id: submissionId }));
       } else {
         const outcome = await abort({ submissionId });
         toast.success(
-          outcome.pending
-            ? `Asked the judge to stop submission ${submissionId}.`
-            : `Submission ${submissionId} aborted.`,
+          outcome.pending ? t("abortAsked", { id: submissionId }) : t("abortDone", { id: submissionId }),
         );
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "That did not work.");
+      toast.error(error instanceof Error ? error.message : t("failed"));
     } finally {
       setBusy(false);
     }
@@ -82,7 +83,7 @@ export function SubmissionActions({
           onClick={() => setOpen("abort")}
           icon={<Square aria-hidden />}
         >
-          Abort
+          {t("abort")}
         </Button>
       ) : null}
       {canRejudge && !grading ? (
@@ -91,11 +92,11 @@ export function SubmissionActions({
           size="sm"
           busy={busy}
           disabled={isLocked}
-          title={isLocked ? "This submission has been locked, and cannot be rejudged." : undefined}
+          title={isLocked ? t("locked") : undefined}
           onClick={() => setOpen("rejudge")}
           icon={<RefreshCw aria-hidden />}
         >
-          Rejudge
+          {t("rejudge")}
         </Button>
       ) : null}
 
@@ -103,17 +104,19 @@ export function SubmissionActions({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {open === "abort" ? `Abort submission ${submissionId}?` : `Rejudge submission ${submissionId}?`}
+              {open === "abort"
+                ? t("abortTitle", { id: submissionId })
+                : t("rejudgeTitle", { id: submissionId })}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {open === "abort"
-                ? "Judging stops where it is and the submission is marked aborted. It keeps no score."
-                : "The submission goes back into the queue and its verdict, points and case results are replaced."}
+              {open === "abort" ? t("abortDescription") : t("rejudgeDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={run}>{open === "abort" ? "Abort" : "Rejudge"}</AlertDialogAction>
+            <AlertDialogCancel>{common("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={run}>
+              {open === "abort" ? t("abort") : t("rejudge")}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

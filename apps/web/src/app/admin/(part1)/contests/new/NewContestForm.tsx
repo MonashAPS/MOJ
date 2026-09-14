@@ -5,6 +5,7 @@ import { Button, Field, Input, Select } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import {
   AdminCheckField,
@@ -23,6 +24,8 @@ const HOUR = 3600_000;
 /** The add form. Everything else — problems, people, rating — opens once the
  *  contest exists, the same two-step DMOJ's admin uses. */
 export function NewContestForm() {
+  const t = useTranslations("admin.contests.new");
+  const actions = useTranslations("common.actions");
   const router = useRouter();
   const create = useMutation(api.admin.contests.create);
   const formats = useQuery(api.contestFormats.list, {});
@@ -45,15 +48,15 @@ export function NewContestForm() {
   async function submit() {
     setError(null);
     if (!/^[a-z0-9]+$/.test(key) || key.length > 20) {
-      setError("Contest id must be lowercase letters and digits, at most 20 characters.");
+      setError(t("errorKey"));
       return;
     }
     if (!name.trim()) {
-      setError("A contest needs a name.");
+      setError(t("errorName"));
       return;
     }
     if (!startTime || !endTime || endTime <= startTime) {
-      setError("The contest must end after it starts.");
+      setError(t("errorWindow"));
       return;
     }
     setBusy(true);
@@ -73,44 +76,44 @@ export function NewContestForm() {
       });
       router.push(`/admin/contests/${result.key}/`);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The contest could not be created.");
+      setError(caught instanceof Error ? caught.message : t("errorCreate"));
       setBusy(false);
     }
   }
 
   return (
     <AdminShell
-      title="New contest"
+      title={t("title")}
       breadcrumb={[
-        { label: "Staff console", href: "/admin/" },
-        { label: "Contests", href: "/admin/contests/" },
-        { label: "New" },
+        { label: t("breadcrumbConsole"), href: "/admin/" },
+        { label: t("breadcrumbContests"), href: "/admin/contests/" },
+        { label: t("breadcrumbNew") },
       ]}
     >
       <AdminForm onSubmit={submit}>
         <AdminFormError message={error} />
 
-        <AdminSection title="General">
-          <Field label="Contest id" htmlFor={ids.key} hint="Lowercase letters and digits. This is the URL.">
+        <AdminSection title={t("sectionGeneral")}>
+          <Field label={t("key")} htmlFor={ids.key} hint={t("keyHint")}>
             <Input
               id={ids.key}
               mono
               maxLength={20}
               value={key}
               onChange={(event) => setKey(event.target.value.toLowerCase())}
-              placeholder="winter26"
+              placeholder={t("keyPlaceholder")}
             />
           </Field>
-          <Field label="Name" htmlFor={ids.name}>
+          <Field label={t("name")} htmlFor={ids.name}>
             <Input id={ids.name} value={name} onChange={(event) => setName(event.target.value)} />
           </Field>
-          <Field label="Starts" htmlFor={ids.start}>
-            <DateTimeField id={ids.start} value={startTime} onChange={setStartTime} ariaLabel="Start" />
+          <Field label={t("starts")} htmlFor={ids.start}>
+            <DateTimeField id={ids.start} value={startTime} onChange={setStartTime} ariaLabel={t("start")} />
           </Field>
-          <Field label="Ends" htmlFor={ids.end}>
-            <DateTimeField id={ids.end} value={endTime} onChange={setEndTime} ariaLabel="End" />
+          <Field label={t("ends")} htmlFor={ids.end}>
+            <DateTimeField id={ids.end} value={endTime} onChange={setEndTime} ariaLabel={t("end")} />
           </Field>
-          <Field label="Format" htmlFor={ids.format}>
+          <Field label={t("format")} htmlFor={ids.format}>
             <Select
               id={ids.format}
               value={formatName}
@@ -118,11 +121,7 @@ export function NewContestForm() {
               options={(formats ?? []).map((row) => ({ value: row.name, label: row.displayName }))}
             />
           </Field>
-          <Field
-            label="Freeze"
-            htmlFor={ids.freeze}
-            hint="Minutes before the end that the public board stops updating."
-          >
+          <Field label={t("freeze")} htmlFor={ids.freeze} hint={t("freezeHint")}>
             <Input
               id={ids.freeze}
               mono
@@ -133,41 +132,41 @@ export function NewContestForm() {
           </Field>
         </AdminSection>
 
-        <AdminSection title="Settings">
+        <AdminSection title={t("sectionSettings")}>
           <AdminCheckField
-            label="Visible"
-            hint="Leave this off until the problems are in."
+            label={t("visible")}
+            hint={t("visibleHint")}
             checked={isVisible}
             onCheckedChange={setIsVisible}
           />
           <AdminCheckField
-            label="Rated"
-            hint="Ratings only move once the contest is rated from Actions."
+            label={t("rated")}
+            hint={t("ratedHint")}
             checked={isRated}
             onCheckedChange={setIsRated}
           />
           <AdminCheckField
-            label="Clarifications"
-            hint="Contestants may ask questions."
+            label={t("clarifications")}
+            hint={t("clarificationsHint")}
             checked={useClarifications}
             onCheckedChange={setUseClarifications}
           />
         </AdminSection>
 
-        <AdminSection title="Description" columns={1}>
-          <Field label="Description" hint="Markdown, shown on the contest's own page.">
+        <AdminSection title={t("sectionDescription")} columns={1}>
+          <Field label={t("description")} hint={t("descriptionHint")}>
             <MarkdownEditor value={description} onChange={setDescription} preset="contest" rows={10} />
           </Field>
         </AdminSection>
 
-        <ReasonField value={reason} onChange={setReason} entity="contest" />
+        <ReasonField value={reason} onChange={setReason} hint={t("reasonHint")} />
         <AdminFormFooter
           busy={busy}
-          submitLabel="Create contest"
-          busyLabel="Creating…"
+          submitLabel={t("submit")}
+          busyLabel={t("submitBusy")}
           secondary={
             <Button asChild variant="secondary">
-              <Link href="/admin/contests/">Cancel</Link>
+              <Link href="/admin/contests/">{actions("cancel")}</Link>
             </Button>
           }
         />

@@ -91,6 +91,19 @@ export interface ParticipationResultDisplay {
   readonly cumtimeText: string;
 }
 
+/**
+ * One line of `getShortFormDisplay`, as a message key rather than a sentence.
+ *
+ * The keys live under `contests.scoring` in the web app's catalogue rather than
+ * here because this package has no locale to read, and the scoring rules have to
+ * be readable in the language the rest of the contest page is in. The markdown
+ * emphasis stays inside the message, which is where a translator needs it.
+ */
+export interface ScoringLine {
+  readonly key: string;
+  readonly values?: Readonly<Record<string, number>>;
+}
+
 export interface ContestFormat {
   /** Registry key: `default`, `ioi`, `ioi16`, `atcoder`, `icpc`, `ecoo`. */
   readonly name: string;
@@ -128,8 +141,8 @@ export interface ContestFormat {
   /** DMOJ's per-format label. The contest's `labelScheme` overrides it. */
   getLabelForProblem(index: number): string;
 
-  /** Markdown lines describing the format's settings. */
-  getShortFormDisplay(config?: unknown): string[];
+  /** Message keys for the markdown lines describing the format's settings. */
+  getShortFormDisplay(config?: unknown): ScoringLine[];
 }
 
 /* -------------------------------------------------------------------------- */

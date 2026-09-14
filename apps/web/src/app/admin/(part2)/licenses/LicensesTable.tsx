@@ -5,6 +5,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { Button, Field, FieldGroup, Input, Textarea } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { ConfirmAction, DASH, StatusLine } from "../_components/console";
@@ -34,6 +35,8 @@ type Draft = {
 const EMPTY: Draft = { id: null, key: "", link: "", name: "", display: "", icon: "", text: "" };
 
 export function LicensesTable() {
+  const t = useTranslations("admin.licenses");
+  const actions = useTranslations("common.actions");
   const licenses = useQuery(api.admin.licenses.list, {}) as LicenseRow[] | undefined;
   const create = useMutation(api.admin.licenses.create);
   const update = useMutation(api.admin.licenses.update);
@@ -66,7 +69,7 @@ export function LicensesTable() {
   async function save() {
     if (!draft) return;
     if (reason.trim().length === 0) {
-      setError("Give a reason for the change; it is recorded on the revision.");
+      setError(t("reasonRequired"));
       return;
     }
     setBusy(true);
@@ -75,10 +78,10 @@ export function LicensesTable() {
       const { id, ...fields } = draft;
       if (id) await update({ ...fields, id, reason });
       else await create({ ...fields, reason });
-      setMessage({ tone: "ok", text: `${draft.name} has been saved.` });
+      setMessage({ tone: "ok", text: t("savedMessage", { name: draft.name }) });
       setDraft(null);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "That license could not be saved.");
+      setError(caught instanceof Error ? caught.message : t("saveFailed"));
     } finally {
       setBusy(false);
     }
@@ -87,50 +90,55 @@ export function LicensesTable() {
   const columns: AdminColumn<LicenseRow>[] = [
     {
       key: "key",
-      header: "Key",
+      header: t("columnKey"),
       cell: (row) => <span className="font-mono text-mono font-medium">{row.key}</span>,
     },
-    { key: "name", header: "Name", cell: (row) => row.name },
-    { key: "display", header: "Short display", cell: (row) => row.display || DASH },
+    { key: "name", header: t("columnName"), cell: (row) => row.name },
+    { key: "display", header: t("columnDisplay"), cell: (row) => row.display || DASH },
     {
       key: "link",
-      header: "Link",
+      header: t("columnLink"),
       cell: (row) => (
         <a className="text-link hover:underline" href={row.link} rel="nofollow noreferrer" target="_blank">
           {row.link}
         </a>
       ),
     },
-    { key: "problems", header: "Problems", numeric: true, cell: (row) => row.problemCount.toLocaleString() },
+    {
+      key: "problems",
+      header: t("columnProblems"),
+      numeric: true,
+      cell: (row) => row.problemCount.toLocaleString(),
+    },
     {
       key: "actions",
-      header: <span className="sr-only">Actions</span>,
+      header: <span className="sr-only">{t("columnActions")}</span>,
       cell: (row) => (
         <span className="flex items-center justify-end gap-1">
           <Button variant="secondary" size="sm" onClick={() => open(row)}>
-            Edit
+            {actions("edit")}
           </Button>
           <ConfirmAction
             trigger={
               <Button variant="ghost" size="sm">
-                Delete
+                {actions("delete")}
               </Button>
             }
-            title={`Delete ${row.name}?`}
+            title={t("deleteTitle", { name: row.name })}
             description={
               row.problemCount > 0
-                ? `${row.problemCount} ${row.problemCount === 1 ? "problem loses" : "problems lose"} their license.`
-                : "Nothing uses this license."
+                ? t("deleteDescription", { count: row.problemCount })
+                : t("deleteDescriptionNone")
             }
-            confirmLabel="Delete license"
+            confirmLabel={t("deleteConfirm")}
             onConfirm={async () => {
               try {
                 await remove({ id: row._id, reason: "Deleted from the console" });
-                setMessage({ tone: "ok", text: `${row.name} has been deleted.` });
+                setMessage({ tone: "ok", text: t("deletedMessage", { name: row.name }) });
               } catch (caught) {
                 setMessage({
                   tone: "bad",
-                  text: caught instanceof Error ? caught.message : "That license could not be deleted.",
+                  text: caught instanceof Error ? caught.message : t("deleteFailed"),
                 });
               }
             }}
@@ -150,14 +158,14 @@ export function LicensesTable() {
         rowKey={(row) => row._id}
         toolbar={
           <Button className="ml-auto" size="sm" icon={<Plus aria-hidden />} onClick={() => open()}>
-            New license
+            {t("newLicense")}
           </Button>
         }
-        emptyTitle="No licenses"
-        emptyDescription="A license is what a problem page credits when its statement came from somewhere else."
+        emptyTitle={t("emptyTitle")}
+        emptyDescription={t("emptyDescription")}
         emptyAction={
           <Button variant="secondary" onClick={() => open()}>
-            New license
+            {t("newLicense")}
           </Button>
         }
       />
@@ -165,16 +173,16 @@ export function LicensesTable() {
       <RecordDialog
         open={draft !== null}
         onOpenChange={(next) => (next ? undefined : setDraft(null))}
-        title={draft?.id ? `Edit ${draft.name}` : "New license"}
+        title={draft?.id ? t("editTitle", { name: draft.name }) : t("newTitle")}
         onSubmit={save}
         reason={reason}
         onReasonChange={setReason}
         busy={busy}
         error={error}
-        submitLabel={draft?.id ? "Save license" : "Create license"}
+        submitLabel={draft?.id ? t("saveSubmit") : t("createSubmit")}
       >
         <FieldGroup columns={2}>
-          <Field label="Key" hint="Used in the URL: /license/&lt;key&gt;.">
+          <Field label={t("key")} hint={t("keyHint")}>
             <Input
               mono
               value={draft?.key ?? ""}
@@ -183,7 +191,7 @@ export function LicensesTable() {
               }
             />
           </Field>
-          <Field label="Name" hint="The full name of the license.">
+          <Field label={t("name")} hint={t("nameHint")}>
             <Input
               value={draft?.name ?? ""}
               onChange={(event) =>
@@ -191,7 +199,7 @@ export function LicensesTable() {
               }
             />
           </Field>
-          <Field label="Short display" optional=" (optional)" hint="What the problem page shows.">
+          <Field label={t("display")} optional={t("optional")} hint={t("displayHint")}>
             <Input
               value={draft?.display ?? ""}
               onChange={(event) =>
@@ -199,7 +207,7 @@ export function LicensesTable() {
               }
             />
           </Field>
-          <Field label="Icon" optional=" (optional)" hint="A URL to the license badge.">
+          <Field label={t("icon")} optional={t("optional")} hint={t("iconHint")}>
             <Input
               mono
               value={draft?.icon ?? ""}
@@ -209,7 +217,7 @@ export function LicensesTable() {
             />
           </Field>
         </FieldGroup>
-        <Field label="Link" hint="Where the license itself is published.">
+        <Field label={t("link")} hint={t("linkHint")}>
           <Input
             mono
             value={draft?.link ?? ""}
@@ -218,7 +226,7 @@ export function LicensesTable() {
             }
           />
         </Field>
-        <Field label="Text" optional=" (optional)" hint="Markdown, shown on the license page.">
+        <Field label={t("text")} optional={t("optional")} hint={t("textHint")}>
           <Textarea
             mono
             rows={6}

@@ -1,18 +1,21 @@
 import { Skeleton, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@moj/ui";
+import { useTranslations } from "next-intl";
 
 /** The list's own shape: the same frame, the same header and rows at `--row-h`
  *  with bars at the real column widths. Never a centred spinner for a list. */
 export function StatusSkeleton({ rows = 4 }: { rows?: number }) {
+  const t = useTranslations("status.judges");
+
   return (
-    <div role="status" aria-label="Loading judges">
+    <div role="status" aria-label={t("loading")}>
       <Table aria-hidden>
         <TableHeader>
           <TableRow>
-            <TableHead>Judge</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead numeric>Ping</TableHead>
-            <TableHead numeric>Load</TableHead>
-            <TableHead>Runtimes</TableHead>
+            <TableHead>{t("judge")}</TableHead>
+            <TableHead>{t("status")}</TableHead>
+            <TableHead numeric>{t("ping")}</TableHead>
+            <TableHead numeric>{t("load")}</TableHead>
+            <TableHead>{t("runtimes")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

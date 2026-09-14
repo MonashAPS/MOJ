@@ -4,6 +4,7 @@ import { Alert, AlertDescription, AlertTitle, Button, Spinner } from "@moj/ui";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/auth/client";
 import { AuthCard } from "@/components/auth/AuthCard";
@@ -11,6 +12,7 @@ import { AuthCard } from "@/components/auth/AuthCard";
 /** DMOJ's `EmailChangeActivateView`. The token is Better Auth's, so the change
  *  itself is applied by the verify-email endpoint. */
 export function ActivateEmailClient({ token }: { token: string }) {
+  const t = useTranslations("auth.emailChangeActivate");
   const router = useRouter();
   const [state, setState] = useState<"working" | "done" | "failed">("working");
   const started = useRef(false);
@@ -31,10 +33,10 @@ export function ActivateEmailClient({ token }: { token: string }) {
 
   if (state === "working") {
     return (
-      <AuthCard title="Changing your email" subtitle="One moment.">
+      <AuthCard title={t("workingTitle")} subtitle={t("workingSubtitle")}>
         <p className="flex items-center gap-2 text-base text-subtle">
           <Spinner aria-hidden />
-          Confirming the change…
+          {t("working")}
         </p>
       </AuthCard>
     );
@@ -43,25 +45,20 @@ export function ActivateEmailClient({ token }: { token: string }) {
   if (state === "failed") {
     return (
       <AuthCard
-        title="Email change failed"
-        subtitle="Nothing has changed on your account."
+        title={t("failedTitle")}
+        subtitle={t("failedSubtitle")}
         footer={
-          <span>
-            Back to <Link href="/edit/profile/">your profile</Link>
-          </span>
+          <span>{t.rich("footer", { link: (chunks) => <Link href="/edit/profile/">{chunks}</Link> })}</span>
         }
       >
         <div className="grid gap-4">
           <Alert variant="danger">
             <AlertCircle className="size-3.5" aria-hidden />
-            <AlertTitle>This link is no longer valid.</AlertTitle>
-            <AlertDescription>
-              It may have expired, been used already, or the address may have been taken by somebody else in
-              the meantime. Open the link while logged in to the account that asked for the change.
-            </AlertDescription>
+            <AlertTitle>{t("failedAlertTitle")}</AlertTitle>
+            <AlertDescription>{t("failedAlertDescription")}</AlertDescription>
           </Alert>
           <Button asChild full>
-            <Link href="/accounts/email/change/">Try again</Link>
+            <Link href="/accounts/email/change/">{t("tryAgain")}</Link>
           </Button>
         </div>
       </AuthCard>
@@ -70,21 +67,19 @@ export function ActivateEmailClient({ token }: { token: string }) {
 
   return (
     <AuthCard
-      title="Email changed"
-      subtitle="Your account now uses the new address."
+      title={t("doneTitle")}
+      subtitle={t("doneSubtitle")}
       footer={
-        <span>
-          Back to <Link href="/edit/profile/">your profile</Link>
-        </span>
+        <span>{t.rich("footer", { link: (chunks) => <Link href="/edit/profile/">{chunks}</Link> })}</span>
       }
     >
       <div className="grid gap-4">
         <Alert variant="success">
           <CheckCircle2 className="size-3.5" aria-hidden />
-          <AlertTitle>The email attached to your account has been changed.</AlertTitle>
+          <AlertTitle>{t("doneAlert")}</AlertTitle>
         </Alert>
         <Button asChild full>
-          <Link href="/edit/profile/">Back to your profile</Link>
+          <Link href="/edit/profile/">{t("backToProfile")}</Link>
         </Button>
       </div>
     </AuthCard>

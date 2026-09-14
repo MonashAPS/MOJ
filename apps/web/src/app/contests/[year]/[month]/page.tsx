@@ -3,23 +3,24 @@ import { Button, TitleRow } from "@moj/ui";
 import { CalendarPlus } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { queryAsViewer } from "@/lib/convex-server";
 import { contestListTabs } from "../../tabs";
 import { CalendarGrid } from "./CalendarGrid";
 
 const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
+  "january",
+  "february",
+  "march",
+  "april",
+  "may",
+  "june",
+  "july",
+  "august",
+  "september",
+  "october",
+  "november",
+  "december",
 ];
 
 export async function generateMetadata({
@@ -28,9 +29,10 @@ export async function generateMetadata({
   params: Promise<{ year: string; month: string }>;
 }): Promise<Metadata> {
   const { year, month } = await params;
+  const t = await getTranslations("contests.calendar");
   const index = Number.parseInt(month, 10) - 1;
   const name = MONTHS[index];
-  return { title: name ? `Contests in ${name} ${year}` : "Contest calendar" };
+  return { title: name ? t("metaTitle", { month: t(`months.${name}`), year }) : t("metaFallback") };
 }
 
 export default async function ContestCalendarPage({
@@ -38,6 +40,9 @@ export default async function ContestCalendarPage({
 }: {
   params: Promise<{ year: string; month: string }>;
 }) {
+  const t = await getTranslations("contests.calendar");
+  const list = await getTranslations("contests.list");
+  const tabLabels = await getTranslations("contests.tabs");
   const { year: yearParam, month: monthParam } = await params;
   const year = Number.parseInt(yearParam, 10);
   const month = Number.parseInt(monthParam, 10);
@@ -58,16 +63,17 @@ export default async function ContestCalendarPage({
   return (
     <>
       <TitleRow
-        title={`${MONTHS[month - 1]} ${year}`}
+        title={t("title", { month: t(`months.${MONTHS[month - 1]}`), year: String(year) })}
         tabs={contestListTabs({
           year: now.getFullYear(),
           month: now.getMonth() + 1,
           canEdit: canEditContests,
+          t: tabLabels,
         })}
         active="calendar"
         action={
           <Button asChild variant="secondary" size="sm" icon={<CalendarPlus aria-hidden />}>
-            <a href="/contests.ics">Subscribe</a>
+            <a href="/contests.ics">{list("subscribe")}</a>
           </Button>
         }
       />

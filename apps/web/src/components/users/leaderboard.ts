@@ -4,12 +4,14 @@
 
 export type UserSortKey = "points" | "problem_count" | "rating" | "performance_points";
 
-/** `UserList.all_sorts`, in the order the columns are drawn. */
-export const USER_SORTS: { key: UserSortKey; label: string }[] = [
-  { key: "points", label: "Points" },
-  { key: "problem_count", label: "Problems" },
-  { key: "performance_points", label: "Performance" },
-  { key: "rating", label: "Rating" },
+/** `UserList.all_sorts`, in the order the columns are drawn. The header text is
+ *  a key into `users.table` rather than the text itself, because this module is
+ *  shared by pages that render in whichever language the viewer reads in. */
+export const USER_SORTS: { key: UserSortKey; message: string }[] = [
+  { key: "points", message: "points" },
+  { key: "problem_count", message: "problems" },
+  { key: "performance_points", message: "performance" },
+  { key: "rating", message: "rating" },
 ];
 
 /** `UserList.default_sort`. Every sort is descending first (`default_desc`). */

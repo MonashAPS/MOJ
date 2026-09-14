@@ -1,7 +1,12 @@
+import { getTranslations } from "next-intl/server";
 import { ErrorScreen } from "@/components/ErrorScreen";
 
-export const metadata = { title: "Access denied" };
+export async function generateMetadata() {
+  const t = await getTranslations("common.error");
+  return { title: t("accessDenied") };
+}
 
-export default function Forbidden() {
-  return <ErrorScreen code={403} id="AccessDenied" description="Access denied" />;
+export default async function Forbidden() {
+  const t = await getTranslations("common.error");
+  return <ErrorScreen code={403} id="AccessDenied" description={t("accessDenied")} />;
 }

@@ -2,6 +2,7 @@ import { api } from "@convex/_generated/api";
 import { Badge, Button, MicroLabel, Panel, TitleRow, TwoColumn } from "@moj/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { LeaderboardTable } from "@/components/users/LeaderboardTable";
 import { parseUserOrder } from "@/components/users/leaderboard";
 import { UserLink } from "@/components/users/UserLink";
@@ -29,6 +30,7 @@ export default async function ClassPage({
   searchParams: Promise<Search>;
 }) {
   const [{ handle, klass }, search] = await Promise.all([params, searchParams]);
+  const t = await getTranslations("organizations.class");
   const organizationSlug = slugFromHandle(handle);
   const classSlug = slugFromHandle(klass);
   const state = parseUserOrder(first(search.order));
@@ -61,34 +63,34 @@ export default async function ClassPage({
         action={
           detail.viewer.canJoin ? (
             <Button asChild>
-              <a href={`${base}/join/`}>Join class</a>
+              <a href={`${base}/join/`}>{t("join")}</a>
             </Button>
           ) : detail.viewer.isMember ? (
-            <Badge variant="good">Joined</Badge>
+            <Badge variant="good">{t("joined")}</Badge>
           ) : null
         }
       />
       <div id="content-body">
         <TwoColumn
           side={
-            <Panel title="Class" bodyClassName="grid gap-3 p-3">
+            <Panel title={t("panel")} bodyClassName="grid gap-3 p-3">
               <dl className="grid gap-1">
                 <div className="flex items-baseline justify-between gap-3">
-                  <MicroLabel>Members</MicroLabel>
+                  <MicroLabel>{t("members")}</MicroLabel>
                   <span className="font-mono text-mono tabular-nums text-foreground">
                     {detail.memberCount}
                   </span>
                 </div>
                 <div className="flex items-baseline justify-between gap-3">
-                  <MicroLabel>Status</MicroLabel>
+                  <MicroLabel>{t("status")}</MicroLabel>
                   <Badge variant={detail.isActive ? "good" : "neutral"}>
-                    {detail.isActive ? "Active" : "Closed"}
+                    {detail.isActive ? t("active") : t("closed")}
                   </Badge>
                 </div>
               </dl>
               {detail.admins.length > 0 ? (
                 <div className="border-t border-border pt-3">
-                  <MicroLabel>Tutors</MicroLabel>
+                  <MicroLabel>{t("tutors")}</MicroLabel>
                   <ul className="mt-1 grid gap-1">
                     {detail.admins.map((admin) => (
                       <li key={admin._id}>
@@ -109,7 +111,7 @@ export default async function ClassPage({
               basePath={base}
               params={params_.toString()}
               viewerUsername={viewerState?.profile?.username ?? null}
-              emptyMessage="This class has no listed members yet."
+              emptyMessage={t("empty")}
             />
           </div>
         </TwoColumn>

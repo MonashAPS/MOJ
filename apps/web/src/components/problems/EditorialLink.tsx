@@ -12,6 +12,7 @@ import {
 } from "@moj/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type ReactNode, useId, useState } from "react";
 
 /** The viewer's "don't ask me again" choice. localStorage only: there is no
@@ -49,6 +50,8 @@ export function EditorialLink({
   className?: string;
   children?: ReactNode;
 }) {
+  const t = useTranslations("problems.editorial");
+  const actions = useTranslations("common.actions");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [remember, setRemember] = useState(false);
@@ -73,22 +76,20 @@ export function EditorialLink({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent width={420}>
           <DialogHeader>
-            <DialogTitle>View the editorial?</DialogTitle>
-            <DialogDescription>
-              The editorial reveals the intended solution to this problem.
-            </DialogDescription>
+            <DialogTitle>{t("confirmTitle")}</DialogTitle>
+            <DialogDescription>{t("confirmBody")}</DialogDescription>
           </DialogHeader>
 
           <Checkbox
             id={checkboxId}
             checked={remember}
             onCheckedChange={setRemember}
-            label="Don't ask me again"
+            label={t("dontAskAgain")}
           />
 
           <DialogFooter>
             <Button variant="secondary" onClick={() => setOpen(false)}>
-              No
+              {actions("no")}
             </Button>
             <Button
               onClick={() => {
@@ -97,7 +98,7 @@ export function EditorialLink({
                 router.push(href);
               }}
             >
-              Yes, show it
+              {t("confirmYes")}
             </Button>
           </DialogFooter>
         </DialogContent>

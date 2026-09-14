@@ -25,11 +25,24 @@ import {
   Trophy,
 } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { formatDate } from "@/lib/format";
-import { formatMemoryLimit, formatPoints, formatSeconds, formatTime, plural } from "@/lib/units";
+import { formatPoints, formatTime } from "@/lib/units";
 
 export type ProblemDetail = NonNullable<(typeof api.problems.get)["_returnType"]>;
+
+/* The limits are printed without their unit here because the unit belongs to the
+   message, not to the number: a translation has to be free to put it elsewhere
+   or to leave a space in front of it. `lib/units` keeps the shared spelling. */
+function secondsValue(seconds: number): string {
+  return Number.isInteger(seconds) ? String(seconds) : seconds.toFixed(2);
+}
+
+function megabytesValue(kilobytes: number): string {
+  const megabytes = kilobytes / 1024;
+  return Number.isInteger(megabytes) ? String(megabytes) : megabytes.toFixed(1);
+}
 
 function Entry({
   icon,
@@ -134,6 +147,7 @@ function useShowContests(): [boolean, (next: boolean) => void] {
  * (`views/problem.py:177`). The count is the tickets the viewer may see.
  */
 function TicketLink({ problem }: { problem: ProblemDetail }) {
+  const t = useTranslations("problems.detail");
   const tickets = useQuery(api.tickets.list, { problemCode: problem.code, onlyOwn: !problem.canEdit });
   if (!tickets || tickets.totalCount === 0) return null;
   const open = tickets.page.filter((ticket) => ticket.isOpen).length;
@@ -144,7 +158,7 @@ function TicketLink({ problem }: { problem: ProblemDetail }) {
       className="flex items-center gap-2 text-subtle hover:text-link"
     >
       <LifeBuoy size={13} aria-hidden className="shrink-0 text-muted-foreground" />
-      <span>{problem.canEdit ? "Manage tickets" : "My tickets"}</span>
+      <span>{problem.canEdit ? t("manageTickets") : t("myTickets")}</span>
       {open > 0 ? (
         <Badge variant="accent" mono>
           {open}
@@ -155,6 +169,7 @@ function TicketLink({ problem }: { problem: ProblemDetail }) {
 }
 
 export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
+  const t = useTranslations("problems.detail");
   const [allContests, setAllContests] = useState(false);
   const [showContests, setShowContests] = useShowContests();
   const contestProblem = problem.contestProblem;
@@ -168,26 +183,21 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
     <Panel title={problem.code} bodyClassName="grid min-w-0 gap-3 p-3 [&>*]:min-w-0">
       {contestProblem ? (
         <p className="-mx-3 -mt-3 border-b border-primary-line bg-primary-soft px-3 py-2 text-sm text-subtle">
-          Contest mode — problem{" "}
-          <span className="font-mono font-medium text-foreground">{contestProblem.label}</span>
-          {contestProblem.isPretested ? " · pretested" : null}
+          {t.rich(contestProblem.isPretested ? "contestModePretested" : "contestMode", {
+            label: contestProblem.label,
+            mono: (chunks) => <span className="font-mono font-medium text-foreground">{chunks}</span>,
+          })}
         </p>
       ) : null}
 
       <div>
         {problem.canSubmit && !exhausted ? (
           <Button asChild full>
-            <Link href={`/problem/${problem.code}/submit`}>Submit solution</Link>
+            <Link href={`/problem/${problem.code}/submit`}>{t("submitSolution")}</Link>
           </Button>
         ) : (
-          <Button
-            full
-            disabled
-            title={
-              exhausted ? "You have no submissions left for this problem." : "Log in to submit a solution."
-            }
-          >
-            Submit solution
+          <Button full disabled title={exhausted ? t("noSubmissionsLeft") : t("logInToSubmit")}>
+            {t("submitSolution")}
           </Button>
         )}
         {submissionsLeft !== null ? (
@@ -197,7 +207,7 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
               exhausted ? "text-bad" : "text-muted-foreground",
             )}
           >
-            {plural(submissionsLeft, "submission")} left
+            {t("submissionsLeft", { count: submissionsLeft })}
           </p>
         ) : null}
       </div>
@@ -205,43 +215,43 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
       <div className="grid gap-1 border-t border-border pt-2 text-sm">
         {problem.viewer.hasSubmissions ? (
           <Link href={`/problem/${problem.code}/submissions/`} className="text-subtle hover:text-link">
-            My submissions
+            {t("mySubmissions")}
           </Link>
         ) : null}
         <Link href={`/problem/${problem.code}/submissions/`} className="text-subtle hover:text-link">
-          All submissions
+          {t("allSubmissions")}
         </Link>
         <Link href={`/problem/${problem.code}/rank/`} className="text-subtle hover:text-link">
-          Best submissions
+          {t("bestSubmissions")}
         </Link>
         <TicketLink problem={problem} />
       </div>
 
       <div className="border-t border-border pt-1">
-        <Entry icon={<Check />} label="Points:">
+        <Entry icon={<Check />} label={t("points")}>
           {formatPoints(points)}
-          {partial ? <span className="text-muted-foreground"> (partial)</span> : null}
+          {partial ? <span className="text-muted-foreground"> {t("partial")}</span> : null}
         </Entry>
-        <Entry icon={<Clock />} label="Time limit:">
-          {formatSeconds(problem.timeLimit)}
+        <Entry icon={<Clock />} label={t("timeLimit")}>
+          {t("seconds", { value: secondsValue(problem.timeLimit) })}
         </Entry>
         <LangLimits
           rows={problem.languageLimits.map((limit) => ({
             name: limit.languageName,
-            value: formatSeconds(limit.timeLimit),
+            value: t("seconds", { value: secondsValue(limit.timeLimit) }),
           }))}
         />
-        <Entry icon={<HardDrive />} label="Memory limit:">
-          {formatMemoryLimit(problem.memoryLimit)}
+        <Entry icon={<HardDrive />} label={t("memoryLimit")}>
+          {t("megabytes", { value: megabytesValue(problem.memoryLimit) })}
         </Entry>
         <LangLimits
           rows={problem.languageLimits.map((limit) => ({
             name: limit.languageName,
-            value: formatMemoryLimit(limit.memoryLimit),
+            value: t("megabytes", { value: megabytesValue(limit.memoryLimit) }),
           }))}
         />
         {problem.showLanguages ? (
-          <Entry icon={<Code2 />} label="Languages:">
+          <Entry icon={<Code2 />} label={t("languages")}>
             <Tooltip content={problem.allowedLanguages.map((language) => language.name).join(", ")}>
               <span>{problem.allowedLanguages.length}</span>
             </Tooltip>
@@ -250,10 +260,10 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
       </div>
 
       <div className="grid grid-cols-2 gap-1.5 border-t border-border pt-3">
-        <Stat label="Solvers" value={problem.stats.solvers.toLocaleString("en-AU")} />
-        <Stat label="Attempts" value={problem.stats.attempts.toLocaleString("en-AU")} />
-        <Stat label="AC rate" value={`${problem.stats.acRate.toFixed(1)}%`} />
-        <Stat label="Fastest" value={formatTime(problem.stats.bestTime)} />
+        <Stat label={t("solvers")} value={problem.stats.solvers.toLocaleString("en-AU")} />
+        <Stat label={t("attempts")} value={problem.stats.attempts.toLocaleString("en-AU")} />
+        <Stat label={t("acRate")} value={`${problem.stats.acRate.toFixed(1)}%`} />
+        <Stat label={t("fastest")} value={formatTime(problem.stats.bestTime)} />
       </div>
       {problem.stats.fastestSolver ? (
         <p className="-mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -271,9 +281,7 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
         <div className="border-t border-border pt-2">
           <div className="flex min-w-0 items-baseline gap-2 text-sm">
             <PencilLine size={14} aria-hidden className="relative top-0.5 shrink-0 text-muted-foreground" />
-            <span className="shrink-0 text-subtle">
-              {problem.authors.length === 1 ? "Author:" : "Authors:"}
-            </span>
+            <span className="shrink-0 text-subtle">{t("authors", { count: problem.authors.length })}</span>
             <span className="flex flex-wrap gap-x-1.5">
               {problem.authors.map((author) => (
                 <RatingName
@@ -290,13 +298,13 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
       ) : null}
 
       {problem.types && problem.types.length > 0 ? (
-        <Disclosure label={problem.types.length === 1 ? "Problem type" : "Problem types"}>
+        <Disclosure label={t("problemTypes", { count: problem.types.length })}>
           {problem.types.map((type) => type.fullName).join(", ")}
         </Disclosure>
       ) : null}
 
       {problem.showLanguages ? (
-        <Disclosure label="Allowed languages" defaultOpen>
+        <Disclosure label={t("allowedLanguages")} defaultOpen>
           <span className="flex flex-wrap gap-x-1.5 gap-y-1">
             {problem.allowedLanguages.map((language) => (
               <span key={language.key}>{language.name}</span>
@@ -307,11 +315,11 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
 
       {problem.canEdit ? (
         <div className="border-t border-border pt-2">
-          <Entry icon={<Database />} label="Judges:">
+          <Entry icon={<Database />} label={t("judges")}>
             {problem.availableJudges > 0 ? (
               problem.availableJudges
             ) : (
-              <span className="font-sans italic text-muted-foreground">none available</span>
+              <span className="font-sans italic text-muted-foreground">{t("noJudgesAvailable")}</span>
             )}
           </Entry>
         </div>
@@ -334,7 +342,7 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
                 showContests && "rotate-90",
               )}
             />
-            <span>Show contests</span>
+            <span>{t("showContests")}</span>
             <span className="ml-auto font-mono text-sm tabular-nums text-muted-foreground">
               {problem.appearedIn.length}
             </span>
@@ -369,7 +377,7 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
                   className="mt-1"
                   onClick={() => setAllContests(!allContests)}
                 >
-                  {allContests ? "Show fewer" : `Show all ${problem.appearedIn.length}`}
+                  {allContests ? t("showFewer") : t("showAll", { count: problem.appearedIn.length })}
                 </Button>
               ) : null}
             </>

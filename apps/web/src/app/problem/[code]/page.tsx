@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Comments } from "@/components/comments/Comments";
 import { ProblemPage } from "@/components/problems/ProblemHeader";
 import { Statement } from "@/components/problems/Statement";
@@ -16,10 +17,11 @@ import { decorateStatement } from "@/lib/statement";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
+  const t = await getTranslations("problems.detail");
   const { code } = await params;
   const language = await viewerLanguage();
   const problem = await queryAsViewer(api.problems.get, { code, language }).catch(() => null);
-  if (!problem) return { title: "No such problem" };
+  if (!problem) return { title: t("noSuchProblem") };
   return {
     // DMOJ titles the page with the translation when there is one.
     title: problem.statement.name,
@@ -29,6 +31,7 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
 }
 
 export default async function ProblemStatementPage({ params }: { params: Promise<{ code: string }> }) {
+  const t = await getTranslations("problems.detail");
   const { code } = await params;
   const language = await viewerLanguage();
   const problem = await queryAsViewer(api.problems.get, { code, language });
@@ -69,10 +72,10 @@ export default async function ProblemStatementPage({ params }: { params: Promise
       {showClarifications ? (
         <section className="mb-6">
           <h2 className="mb-3 font-display text-h2 font-bold tracking-tight text-foreground">
-            Clarifications
+            {t("clarifications")}
           </h2>
           {problem.clarifications.length === 0 ? (
-            <p className="text-base text-muted-foreground">No clarifications have been made at this time.</p>
+            <p className="text-base text-muted-foreground">{t("noClarifications")}</p>
           ) : (
             <ul className="grid gap-3">
               {problem.clarifications.map((clarification) => (
@@ -100,7 +103,7 @@ export default async function ProblemStatementPage({ params }: { params: Promise
 
       {previous || next ? (
         <nav
-          aria-label="Contest problems"
+          aria-label={t("contestProblemsNav")}
           className="mt-6 flex items-center justify-between gap-3 border-t border-border pt-4"
         >
           {previous ? (
@@ -128,7 +131,7 @@ export default async function ProblemStatementPage({ params }: { params: Promise
       <div className="mt-6 flex justify-end border-t border-border pt-4">
         <Button asChild variant="secondary">
           <Link href={`/problem/${problem.code}/tickets/new`}>
-            {problem.contestProblem ? "Request clarification" : "Report an issue"}
+            {problem.contestProblem ? t("requestClarification") : t("reportIssue")}
           </Link>
         </Button>
       </div>

@@ -1,6 +1,7 @@
 import { api } from "@convex/_generated/api";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { queryAsViewer } from "@/lib/convex-server";
 import { RankByProblemClient } from "./RankByProblemClient";
 
@@ -10,11 +11,12 @@ export async function generateMetadata({
   params: Promise<{ key: string; problem: string }>;
 }): Promise<Metadata> {
   const { key, problem } = await params;
+  const t = await getTranslations("contests.rankByProblem");
   const payload = await queryAsViewer(api.contestRankings.rankByProblem, {
     key,
     problemCode: problem,
   }).catch(() => null);
-  return { title: payload ? `Best solutions for ${payload.problemName}` : "Best solutions" };
+  return { title: payload ? t("metaTitle", { name: payload.problemName }) : t("metaFallback") };
 }
 
 export default async function ContestRankByProblemPage({

@@ -1,10 +1,15 @@
 import { api } from "@convex/_generated/api";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { query } from "@/lib/convex-server";
 import { timezoneList } from "@/lib/timezones";
 import { RegisterForm } from "./RegisterForm";
 
-export const metadata = { title: "Register" };
+export async function generateMetadata() {
+  const t = await getTranslations("auth.register");
+  return { title: t("metaTitle") };
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function RegisterPage() {

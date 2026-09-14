@@ -2,7 +2,8 @@
 
 import type { BoardCell as Cell } from "@convex/scoreboard";
 import { X } from "lucide-react";
-import { contestMinutes, plural } from "./hall";
+import { useTranslations } from "next-intl";
+import { contestMinutes } from "./hall";
 
 const DASH = "—";
 
@@ -27,31 +28,28 @@ export function BoardCell({
   changed: boolean;
   nextUp: boolean;
 }) {
+  const t = useTranslations("contests.hall.cell");
   let value: React.ReactNode = DASH;
   let sub = "";
-  let title = `${team}, problem ${label}`;
+  let title = t("untouched", { team, label });
 
   if (cell.state === "solved") {
     value = contestMinutes(cell.time ?? 0);
     sub = cell.wrong ? `+${cell.wrong}` : "";
-    title = `${title}: solved at minute ${contestMinutes(cell.time ?? 0)}${
-      cell.wrong ? ` after ${plural(cell.wrong, "wrong try", "wrong tries")}` : ""
-    }`;
+    title = t("solved", { team, label, minute: contestMinutes(cell.time ?? 0), wrong: cell.wrong });
   } else if (cell.state === "frozen") {
     const held = cell.wrong + cell.pending;
     value = "?";
-    sub = plural(held, "sub", "subs");
-    title = `${title}: ${plural(held, "submission", "submissions")}, result withheld until the freeze lifts`;
+    sub = t("subFrozen", { count: held });
+    title = t("frozen", { team, label, count: held });
   } else if (cell.state === "judging") {
     value = "?";
-    sub = cell.pending === 1 ? "judging" : `${cell.pending} judging`;
-    title = `${title}: ${plural(cell.pending, "submission", "submissions")} still with the judge`;
+    sub = t("subJudging", { count: cell.pending });
+    title = t("judging", { team, label, count: cell.pending });
   } else if (cell.state === "failed") {
     value = <X className="hall-cell-icon" size={16} strokeWidth={2.5} aria-hidden />;
-    sub = plural(cell.wrong, "try", "tries");
-    title = `${title}: ${plural(cell.wrong, "attempt", "attempts")}, not solved`;
-  } else {
-    title = `${title}: not attempted`;
+    sub = t("subFailed", { count: cell.wrong });
+    title = t("failed", { team, label, count: cell.wrong });
   }
 
   return (

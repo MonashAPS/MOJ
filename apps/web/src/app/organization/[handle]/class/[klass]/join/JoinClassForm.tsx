@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import { Button, Field, FormFooter, Input, Panel, toast } from "@moj/ui";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 
 /** `RequestJoinClass`, plus the access-code path: a tutor hands the code out in
@@ -21,6 +22,9 @@ export function JoinClassForm({
   backHref: string;
   requiresAccessCode: boolean;
 }) {
+  const t = useTranslations("organizations.class");
+  const shared = useTranslations("organizations.common");
+  const actions = useTranslations("common.actions");
   const router = useRouter();
   const join = useMutation(api.classes.join);
   const codeId = useId();
@@ -31,11 +35,11 @@ export function JoinClassForm({
     setBusy(true);
     try {
       await join({ organizationSlug, classSlug, accessCode: code || undefined });
-      toast.success(`You are now in ${name}.`);
+      toast.success(t("joinedClass", { name }));
       router.push(backHref);
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "That did not work.");
+      toast.error(error instanceof Error ? error.message : shared("failed"));
     } finally {
       setBusy(false);
     }
@@ -43,9 +47,9 @@ export function JoinClassForm({
 
   return (
     <div className="grid max-w-[36rem] gap-4">
-      <Panel title={`Join ${name}`} bodyClassName="grid gap-4 p-4">
+      <Panel title={t("joinTitle", { name })} bodyClassName="grid gap-4 p-4">
         {requiresAccessCode ? (
-          <Field label="Access code" htmlFor={codeId} hint="Your tutor hands this out.">
+          <Field label={t("accessCode")} htmlFor={codeId} hint={t("accessCodeHint")}>
             <Input
               id={codeId}
               mono
@@ -55,29 +59,22 @@ export function JoinClassForm({
             />
           </Field>
         ) : (
-          <p className="text-base text-subtle">
-            {name} does not take an access code. Ask a tutor to add you, or send the organization a join
-            request naming this class.
-          </p>
+          <p className="text-base text-subtle">{t("noAccessCode", { name })}</p>
         )}
       </Panel>
       <FormFooter>
         <Button variant="secondary" asChild>
-          <a href={backHref}>Cancel</a>
+          <a href={backHref}>{actions("cancel")}</a>
         </Button>
         <Button
           busy={busy}
           disabled={!requiresAccessCode || !code}
           title={
-            requiresAccessCode
-              ? code
-                ? undefined
-                : "Enter the access code first."
-              : `${name} does not take an access code.`
+            requiresAccessCode ? (code ? undefined : t("enterAccessCode")) : t("noAccessCodeTitle", { name })
           }
           onClick={submit}
         >
-          Join class
+          {t("join")}
         </Button>
       </FormFooter>
     </div>

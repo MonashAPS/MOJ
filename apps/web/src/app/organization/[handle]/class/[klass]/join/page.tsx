@@ -2,6 +2,7 @@ import { api } from "@convex/_generated/api";
 import { Alert, AlertDescription, AlertTitle, TitleRow } from "@moj/ui";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { getServerSession } from "@/auth/session";
 import { queryAsViewer } from "@/lib/convex-server";
 import { classHref, organizationHref, slugFromHandle } from "@/lib/organizations";
@@ -11,7 +12,8 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ klass: string }> }) {
   const { klass } = await params;
-  return { title: `Join ${slugFromHandle(klass)}` };
+  const t = await getTranslations("organizations.class");
+  return { title: t("joinTitle", { name: slugFromHandle(klass) }) };
 }
 
 export default async function JoinClassPage({
@@ -20,6 +22,7 @@ export default async function JoinClassPage({
   params: Promise<{ handle: string; klass: string }>;
 }) {
   const { handle, klass } = await params;
+  const t = await getTranslations("organizations.class");
   const organizationSlug = slugFromHandle(handle);
   const classSlug = slugFromHandle(klass);
 
@@ -34,7 +37,7 @@ export default async function JoinClassPage({
   return (
     <>
       <TitleRow
-        title={`Join ${detail.name}`}
+        title={t("joinTitle", { name: detail.name })}
         breadcrumb={
           <Link href={base} className="hover:underline">
             {detail.name}
@@ -44,17 +47,19 @@ export default async function JoinClassPage({
       <div id="content-body">
         {detail.viewer.isMember ? (
           <Alert variant="info">
-            <AlertTitle>You are already in {detail.name}.</AlertTitle>
+            <AlertTitle>{t("alreadyIn", { name: detail.name })}</AlertTitle>
           </Alert>
         ) : !detail.isActive ? (
           <Alert variant="warning">
-            <AlertTitle>{detail.name} is not accepting members.</AlertTitle>
+            <AlertTitle>{t("notAccepting", { name: detail.name })}</AlertTitle>
           </Alert>
         ) : !detail.viewer.isOrganizationMember ? (
           <Alert variant="warning">
-            <AlertTitle>Join {detail.organization.name} first.</AlertTitle>
+            <AlertTitle>{t("joinOrganizationFirst", { organization: detail.organization.name })}</AlertTitle>
             <AlertDescription>
-              <Link href={organizationHref(detail.organization)}>Go to {detail.organization.name}</Link>
+              <Link href={organizationHref(detail.organization)}>
+                {t("goToOrganization", { organization: detail.organization.name })}
+              </Link>
             </AlertDescription>
           </Alert>
         ) : (

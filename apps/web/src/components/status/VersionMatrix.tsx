@@ -1,6 +1,7 @@
 import type { VersionMatrix as VersionMatrixData } from "@convex/status";
 import { cn, EmptyState, MicroLabel } from "@moj/ui";
 import { ServerOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { DASH } from "@/lib/submissionFormat";
 
 /**
@@ -9,12 +10,14 @@ import { DASH } from "@/lib/submissionFormat";
  * that says whether that judge is on the newest runtime anyone has.
  */
 export function VersionMatrix({ matrix }: { matrix: VersionMatrixData }) {
+  const t = useTranslations("status.matrix");
+
   if (matrix.judges.length === 0 || matrix.languages.length === 0) {
     return (
       <EmptyState
         icon={<ServerOff aria-hidden />}
-        title="No judges"
-        description="No judges are online, so there are no runtime versions to compare."
+        title={t("emptyTitle")}
+        description={t("emptyDescription")}
       />
     );
   }
@@ -26,7 +29,7 @@ export function VersionMatrix({ matrix }: { matrix: VersionMatrixData }) {
           <thead>
             <tr>
               <th className="sticky left-0 z-(--z-sticky) h-8 whitespace-nowrap bg-titlebar px-3 text-left align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">
-                Language
+                {t("language")}
               </th>
               {matrix.judges.map((judge) => (
                 <th
@@ -57,9 +60,7 @@ export function VersionMatrix({ matrix }: { matrix: VersionMatrixData }) {
                             ? "bg-good-bg text-good"
                             : "bg-warn-bg text-warn",
                       )}
-                      title={
-                        cell ? (cell.isLatest ? "Newest runtime" : "Behind another judge") : "Not installed"
-                      }
+                      title={cell ? (cell.isLatest ? t("newest") : t("behind")) : t("missing")}
                     >
                       {cell ? (
                         <span className="grid">
@@ -84,20 +85,20 @@ export function VersionMatrix({ matrix }: { matrix: VersionMatrixData }) {
 
       {/* Colour is never the only signal, so the two states are named. */}
       <div className="flex flex-wrap items-center gap-4">
-        <MicroLabel>Key</MicroLabel>
+        <MicroLabel>{t("key")}</MicroLabel>
         <span className="inline-flex items-center gap-2 text-sm text-subtle">
           <span aria-hidden className="size-2.5 rounded-xs bg-good" />
-          Newest runtime
+          {t("newest")}
         </span>
         <span className="inline-flex items-center gap-2 text-sm text-subtle">
           <span aria-hidden className="size-2.5 rounded-xs bg-warn" />
-          Behind another judge
+          {t("behind")}
         </span>
         <span className="inline-flex items-center gap-2 text-sm text-subtle">
           <span aria-hidden className="font-mono">
             {DASH}
           </span>
-          Not installed
+          {t("missing")}
         </span>
       </div>
     </div>

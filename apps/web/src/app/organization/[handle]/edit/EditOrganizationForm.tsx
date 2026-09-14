@@ -15,6 +15,7 @@ import {
 } from "@moj/ui";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useId, useState, useTransition } from "react";
 import { previewOrganizationAbout } from "./actions";
 
@@ -38,6 +39,9 @@ export function EditOrganizationForm({
   initialAdmins: string[];
   adminOptions: AdminOption[];
 }) {
+  const t = useTranslations("organizations.edit");
+  const shared = useTranslations("organizations.common");
+  const actions = useTranslations("common.actions");
   const router = useRouter();
   const edit = useMutation(api.organizations.edit);
   const aboutId = useId();
@@ -69,11 +73,11 @@ export function EditOrganizationForm({
     setBusy(true);
     try {
       await edit({ slug, about, logoOverrideImage: logo, adminUsernames: admins });
-      toast.success("Organization updated.");
+      toast.success(t("saved"));
       router.push(backHref);
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "That did not work.");
+      toast.error(error instanceof Error ? error.message : shared("failed"));
     } finally {
       setBusy(false);
     }
@@ -81,16 +85,16 @@ export function EditOrganizationForm({
 
   return (
     <div className="grid max-w-[52rem] gap-4">
-      <Panel title="About" bodyClassName="p-3">
+      <Panel title={t("about")} bodyClassName="p-3">
         <Tabs
           value={tab}
           onValueChange={setTab}
           panels={[
             {
               key: "write",
-              label: "Write",
+              label: t("write"),
               content: (
-                <Field label="About this organization" htmlFor={aboutId} hint="Markdown, as DMOJ renders it.">
+                <Field label={t("aboutLabel")} htmlFor={aboutId} hint={t("aboutHint")}>
                   <Textarea
                     id={aboutId}
                     value={about}
@@ -102,19 +106,19 @@ export function EditOrganizationForm({
             },
             {
               key: "preview",
-              label: "Preview",
+              label: t("preview"),
               content: preview ? (
                 <ContentDescription html={preview} />
               ) : (
-                <p className="text-sm text-muted-foreground">Nothing to preview yet.</p>
+                <p className="text-sm text-muted-foreground">{t("previewEmpty")}</p>
               ),
             },
           ]}
         />
       </Panel>
 
-      <Panel title="Details" bodyClassName="grid gap-4 p-3">
-        <Field label="Logo image URL" htmlFor={logoId} optional=" (optional)">
+      <Panel title={t("details")} bodyClassName="grid gap-4 p-3">
+        <Field label={t("logo")} htmlFor={logoId} optional={t("optional")}>
           <Input
             id={logoId}
             mono
@@ -123,34 +127,28 @@ export function EditOrganizationForm({
             onChange={(event) => setLogo(event.target.value)}
           />
         </Field>
-        <Field
-          label="Administrators"
-          htmlFor={adminsId}
-          hint="Only members of this organization can administer it."
-        >
+        <Field label={t("administrators")} htmlFor={adminsId} hint={t("administratorsHint")}>
           <MultiSelect
             id={adminsId}
             options={adminOptions}
             values={admins}
             onChange={setAdmins}
-            placeholder="Pick administrators"
+            placeholder={t("administratorsPlaceholder")}
           />
         </Field>
       </Panel>
 
-      <FormFooter
-        note={admins.length === 0 ? "An organization needs at least one administrator." : undefined}
-      >
+      <FormFooter note={admins.length === 0 ? t("needAdministrator") : undefined}>
         <Button variant="secondary" asChild>
-          <a href={backHref}>Cancel</a>
+          <a href={backHref}>{actions("cancel")}</a>
         </Button>
         <Button
           busy={busy}
           disabled={admins.length === 0}
-          title={admins.length === 0 ? "An organization needs at least one administrator." : undefined}
+          title={admins.length === 0 ? t("needAdministrator") : undefined}
           onClick={save}
         >
-          Update
+          {t("submit")}
         </Button>
       </FormFooter>
     </div>
