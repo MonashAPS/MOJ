@@ -486,5 +486,17 @@
     "tiesByLastScoreAltering": "Ничьи разрешаются по времени последней посылки, изменившей балл.",
     "tiesByAllProblems": "Ничьи разрешаются по сумме времени последней посылки по **всем** задачам.",
     "tiesNotBroken": "Ничьи по баллам **не** разрешаются."
+  },
+  "seb": {
+    "title": "Требуется Safe Exam Browser",
+    "body": "Войти в «{name}» можно только через Safe Exam Browser.",
+    "wrongConfiguration": "Safe Exam Browser запущен, но не с той конфигурацией, которую ожидает этот контест.",
+    "howTo": "Как войти",
+    "launchHint": "Запустите Safe Exam Browser с конфигурацией этого контеста, и он сам откроет контест.",
+    "noLaunchUrl": "Попросите у организаторов файл конфигурации Safe Exam Browser для этого контеста.",
+    "launch": "Запустить Safe Exam Browser",
+    "leave": "Выйти из режима контеста",
+    "beforeJoining": "Чтобы присоединиться, нужно находиться в Safe Exam Browser.",
+    "beforeJoiningNoUrl": "Чтобы присоединиться, нужно находиться в Safe Exam Browser. Попросите файл конфигурации у организаторов."
   }
 }

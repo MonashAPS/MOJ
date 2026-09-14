@@ -1,9 +1,6 @@
 /**
  * Safe Exam Browser: the two things MOJ has to compute.
  *
- * Unlike the rest of this package none of it is a port of DMOJ, which has no
- * lockdown-browser support at all.
- *
  * SEB proves itself to an exam server with a header rather than an API. With
  * "Use Browser & Config Keys (send in HTTP header)" switched on it appends the
  * base16 SHA-256 of the requested URL concatenated with a key — the URL first —
@@ -12,12 +9,12 @@
  * MOJ operator can use any of SEB Server, the standalone Configuration Tool, or
  * a hand-written `.seb` file and MOJ never needs to know which.
  *
- * The second half is MOJ's own. Only Next.js sees HTTP headers; submissions go
+ * The ticket half is MOJ's own. Only Next.js sees HTTP headers; submissions go
  * to Convex over a websocket that has none, so a check that lived only in the
  * page render would leave `submissions:submit` open to anyone holding a session
- * token and a terminal. The web tier therefore verifies the header and mints a
- * short-lived HMAC ticket, and Convex verifies the ticket. The secret is shared
- * between the two tiers and never reaches the browser.
+ * token and a terminal. The web tier reports the headers it saw, Convex checks
+ * them against the keys and mints a short-lived HMAC ticket, and the mutations
+ * take the ticket. Both the keys and the signing secret stay in Convex.
  */
 
 /** Lowercase hex of a SHA-256 digest, the encoding SEB uses for its hashes. */

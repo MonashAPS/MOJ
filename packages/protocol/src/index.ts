@@ -9,7 +9,6 @@
 // `apps/web` cannot resolve these re-exports when they carry one.
 export * from "./apiV2";
 export * from "./judge";
-
 export {
   API_ERROR_CODES,
   API_ERROR_STATUS,
@@ -47,3 +46,4 @@ export {
   READ_SCOPE,
   sha256Hash,
 } from "./problems";
+export * from "./seb";

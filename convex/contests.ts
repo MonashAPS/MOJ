@@ -880,6 +880,9 @@ export type ContestDetail = {
     lockedAfter: number | null;
     ratingFloor: number | null;
     ratingCeiling: number | null;
+    /** Locked to Safe Exam Browser. The keys themselves are never projected. */
+    sebRequired: boolean;
+    sebLaunchUrl: string | null;
     tags: TagRef[];
     organizations: OrganizationRef[];
     authors: UserRef[];
@@ -1168,6 +1171,8 @@ export const get = query({
         lockedAfter: contest.lockedAfter ?? null,
         ratingFloor: contest.ratingFloor ?? null,
         ratingCeiling: contest.ratingCeiling ?? null,
+        sebRequired: contest.sebRequired ?? false,
+        sebLaunchUrl: contest.sebLaunchUrl ?? null,
         tags: await tagRefs(ctx, contest.tagIds),
         organizations: await organizationRefs(ctx, contest.organizationIds),
         authors: await userRefs(ctx, contest.authorProfileIds),

@@ -447,6 +447,7 @@
         "general": "Umum",
         "problems": "Soal",
         "people": "Orang",
+        "seb": "Safe Exam Browser",
         "actions": "Aksi",
         "revisions": "Revisi"
       },
@@ -611,6 +612,22 @@
       "viewSubmissionsHint": "Pengguna ini dapat melihat pengiriman semua orang selama kontes berlangsung.",
       "submit": "Simpan orang",
       "reasonHint": "Disimpan bersama revisi agar orang berikutnya tahu alasan perubahan kontes ini."
+    },
+    "seb": {
+      "title": "Safe Exam Browser",
+      "intro": "Kontes yang dikunci hanya bisa diikuti dan dikirimi jawaban dari Safe Exam Browser yang menjalankan konfigurasi dengan kunci di bawah ini.",
+      "required": "Wajibkan Safe Exam Browser",
+      "noKeysWarning": "Tidak ada yang dikunci sampai setidaknya satu kunci diisi di bawah.",
+      "launchUrl": "Tautan peluncur",
+      "launchUrlHint": "Ditampilkan kepada siapa pun yang membuka kontes tanpa Safe Exam Browser. Tautan sebs:// ke berkas konfigurasi akan menjalankannya.",
+      "keys": "Kunci",
+      "keysIntro": "Satu per baris. SEB Configuration Tool menampilkan keduanya untuk konfigurasi yang tersimpan.",
+      "configKeys": "Config Keys",
+      "configKeysHint": "Diturunkan dari pengaturannya saja, jadi satu kunci mencakup semua platform dan semua rilis SEB.",
+      "browserExamKeys": "Browser Exam Keys",
+      "browserExamKeysHint": "Opsional, dan satu untuk tiap build SEB: Browser Exam Key juga mencakup tanda tangan kode klien.",
+      "saved": "Pengaturan Safe Exam Browser tersimpan",
+      "refused": "Juri menolak perubahan ini."
     },
     "actions": {
       "refused": "Aksi ditolak.",
@@ -1605,6 +1622,7 @@
       "requireStaffTwoFactor": "Staf wajib mengaktifkan autentikasi dua faktor",
       "enableComments": "Komentar diaktifkan",
       "pdfEnabled": "Deskripsi soal dapat diunduh sebagai PDF",
+      "sebEnabled": "Izinkan kontes mewajibkan Safe Exam Browser",
       "submissions": "Pengiriman",
       "sourceVisibility": "Visibilitas kode sumber",
       "sourceVisibilityHint": "Siapa yang boleh membaca kode sumber anggota lain.",

@@ -11,7 +11,7 @@
  * nothing ever hands out.
  */
 
-import { sebHeadersMatch } from "@moj/core";
+import { sebHeadersMatch } from "@moj/protocol";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
@@ -31,6 +31,13 @@ export type SebRequirement = {
   locked: boolean;
   /** This request carried a hash matching one of the contest's keys. */
   verified: boolean;
+  /**
+   * A hash header was there at all. The difference matters on the launch
+   * screen: no header means SEB is not running (or was configured without
+   * "Use Browser & Config Keys"), a header that does not verify means SEB is
+   * running with somebody else's configuration.
+   */
+  presented: boolean;
   contestKey: string | null;
   contestName: string | null;
   /** Where the launch screen sends someone who is not in SEB yet. */
@@ -40,6 +47,7 @@ export type SebRequirement = {
 const OPEN: SebRequirement = {
   locked: false,
   verified: false,
+  presented: false,
   contestKey: null,
   contestName: null,
   launchUrl: null,
@@ -61,6 +69,7 @@ async function requirementFor(
   return {
     locked: true,
     verified,
+    presented: Boolean(args.configKeyHash || args.requestHash),
     contestKey: contest.key,
     contestName: contest.name,
     launchUrl: contest.sebLaunchUrl ?? null,

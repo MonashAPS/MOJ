@@ -14,7 +14,7 @@ import {
   sebHeadersMatch,
   sebKeysConfigured,
   verifySebTicket,
-} from "@moj/core";
+} from "@moj/protocol";
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { forbidden } from "./errors";

@@ -1,4 +1,6 @@
 import { api } from "@convex/_generated/api";
+import { Alert, AlertDescription, AlertTitle } from "@moj/ui";
+import { ShieldAlert } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -31,9 +33,28 @@ export default async function ContestPage({ params }: { params: Promise<{ key: s
   if (!detail.contest) notFound();
 
   const descriptionHtml = await renderContent(detail.contest.description, "contest");
+  const t = await getTranslations("contests.seb");
 
   return (
     <>
+      {/* Said here as well as on the launch screen, because someone who is not
+          in SEB can still read this page and would otherwise only find out by
+          pressing Join and being refused. */}
+      {detail.contest.sebRequired ? (
+        <Alert variant="warning" className="mb-4">
+          <ShieldAlert size={16} aria-hidden />
+          <AlertTitle>{t("title")}</AlertTitle>
+          <AlertDescription>
+            {detail.contest.sebLaunchUrl ? (
+              <>
+                {t("beforeJoining")} <a href={detail.contest.sebLaunchUrl}>{t("launch")}</a>
+              </>
+            ) : (
+              t("beforeJoiningNoUrl")
+            )}
+          </AlertDescription>
+        </Alert>
+      ) : null}
       <ContestDetailClient
         contestKey={key}
         initial={detail}

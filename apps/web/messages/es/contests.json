@@ -486,5 +486,17 @@
     "tiesByLastScoreAltering": "Los empates se resolverán por el tiempo del último envío que alteró la puntuación.",
     "tiesByAllProblems": "Los empates se resolverán por la suma del tiempo del último envío en **todos** los problemas.",
     "tiesNotBroken": "Los empates por puntuación **no** se resolverán."
+  },
+  "seb": {
+    "title": "Se requiere Safe Exam Browser",
+    "body": "Solo se puede entrar a {name} desde Safe Exam Browser.",
+    "wrongConfiguration": "Safe Exam Browser está en ejecución, pero no con la configuración que este concurso espera.",
+    "howTo": "Cómo entrar",
+    "launchHint": "Inicia Safe Exam Browser con la configuración de este concurso y él mismo abrirá el concurso.",
+    "noLaunchUrl": "Pide a la organización el archivo de configuración de Safe Exam Browser de este concurso.",
+    "launch": "Iniciar Safe Exam Browser",
+    "leave": "Salir del modo concurso",
+    "beforeJoining": "Tienes que estar en Safe Exam Browser antes de poder unirte.",
+    "beforeJoiningNoUrl": "Tienes que estar en Safe Exam Browser antes de poder unirte. Pide el archivo de configuración a la organización."
   }
 }

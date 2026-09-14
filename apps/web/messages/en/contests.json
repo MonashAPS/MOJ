@@ -486,5 +486,17 @@
     "tiesByLastScoreAltering": "Ties will be broken by the last score altering submission time.",
     "tiesByAllProblems": "Ties will be broken by the sum of the last submission time on **all** problems.",
     "tiesNotBroken": "Ties by score will **not** be broken."
+  },
+  "seb": {
+    "title": "Safe Exam Browser required",
+    "body": "{name} can only be entered from Safe Exam Browser.",
+    "wrongConfiguration": "Safe Exam Browser is running, but not with the configuration this contest expects.",
+    "howTo": "Getting in",
+    "launchHint": "Start Safe Exam Browser with this contest's configuration, and it will open the contest itself.",
+    "noLaunchUrl": "Ask the organisers for this contest's Safe Exam Browser configuration file.",
+    "launch": "Launch Safe Exam Browser",
+    "leave": "Leave contest mode",
+    "beforeJoining": "You have to be in Safe Exam Browser before you can join.",
+    "beforeJoiningNoUrl": "You have to be in Safe Exam Browser before you can join. Ask the organisers for the configuration file."
   }
 }

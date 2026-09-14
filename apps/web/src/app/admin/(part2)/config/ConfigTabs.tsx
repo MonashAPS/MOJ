@@ -27,6 +27,7 @@ type Settings = {
   ratingRatios: number[];
   requireStaffTwoFactor: boolean;
   pdfEnabled: boolean;
+  sebEnabled?: boolean;
   mossApiKey?: string;
   analytics?: string;
   enableComments?: boolean;
@@ -97,6 +98,7 @@ function SettingsForm({
       registrationOpen: settings?.registrationOpen ?? true,
       requireStaffTwoFactor: settings?.requireStaffTwoFactor ?? true,
       pdfEnabled: settings?.pdfEnabled ?? true,
+      sebEnabled: settings?.sebEnabled ?? false,
       enableComments: settings?.enableComments ?? true,
       defaultUserTimezone: settings?.defaultUserTimezone ?? "Australia/Melbourne",
       defaultUserLanguageKey: settings?.defaultUserLanguageKey ?? "",
@@ -156,6 +158,7 @@ function SettingsForm({
         registrationOpen: form.registrationOpen,
         requireStaffTwoFactor: form.requireStaffTwoFactor,
         pdfEnabled: form.pdfEnabled,
+        sebEnabled: form.sebEnabled,
         enableComments: form.enableComments,
         defaultUserTimezone: form.defaultUserTimezone,
         defaultUserLanguageKey: form.defaultUserLanguageKey,
@@ -280,6 +283,11 @@ function SettingsForm({
             checked={form.pdfEnabled}
             onCheckedChange={(value) => change("pdfEnabled", value)}
             label={t("pdfEnabled")}
+          />
+          <Checkbox
+            checked={form.sebEnabled}
+            onCheckedChange={(value) => change("sebEnabled", value)}
+            label={t("sebEnabled")}
           />
         </FieldGroup>
       </Panel>

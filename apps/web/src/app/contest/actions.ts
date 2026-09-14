@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { mutateAsViewer } from "@/lib/convex-server";
+import { sebTicket } from "@/lib/seb.server";
 
 export type JoinResult = { error: string } | never;
 
@@ -39,9 +40,14 @@ export async function joinContest(_state: JoinResult | null, formData: FormData)
   if (!key) return { error: t("noSuchContest") };
 
   try {
+    // A locked contest needs proof this request came from Safe Exam Browser,
+    // and a server action is one of the few places the headers carrying it can
+    // be read. An unlocked contest mints nothing and the mutation asks for
+    // nothing.
     await mutateAsViewer(api.contests.join, {
       key,
       accessCode: typeof accessCode === "string" && accessCode ? accessCode : undefined,
+      sebTicket: (await sebTicket(key)) ?? undefined,
     });
   } catch (error) {
     if (reasonOf(error) === "accessCodeRequired") {
@@ -68,6 +74,13 @@ export async function leaveContest(_state: JoinResult | null, formData: FormData
   }
   revalidatePath(`/contest/${key}`);
   redirect(`/contest/${key}/`);
+}
+
+/** The same thing from a plain `<form action>`, which passes no prior state.
+ *  The Safe Exam Browser screen uses it: it has no room for an error and every
+ *  failure there is the contest already being over. */
+export async function leaveContestForm(formData: FormData): Promise<void> {
+  await leaveContest(null, formData);
 }
 
 export type CloneResult = { error: string } | never;
