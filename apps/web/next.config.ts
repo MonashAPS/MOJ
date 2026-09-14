@@ -1,5 +1,6 @@
 import path from "node:path";
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
 
 /** The problems API is a Convex HTTP action, but operators should not have to
  *  publish a second hostname or teach a CI secret about it. `/api/problems/*`
@@ -23,6 +24,12 @@ const config: NextConfig = {
   // `@moj/content` spawns Typst and reads its templates off disk; bundling it
   // drags the whole workspace into the trace and breaks the template lookup.
   serverExternalPackages: ["pg", "@moj/content"],
+  // The message catalogues are loaded by a path built at run time, which the
+  // tracer cannot follow, so the standalone output would ship without them and
+  // every page would fall back to its message keys. Naming them here puts them
+  // in the image; `npm run build` alone would not have caught it, since the dev
+  // server reads them straight off disk.
+  outputFileTracingIncludes: { "/**": ["./messages/**/*.json"] },
   typedRoutes: false,
   agentRules: false,
   trailingSlash: true,
@@ -38,4 +45,6 @@ const config: NextConfig = {
   },
 };
 
-export default config;
+// The plugin points next-intl at `src/i18n/request.ts`, which reads the
+// viewer's language cookie and loads their catalogue.
+export default createNextIntlPlugin("./src/i18n/request.ts")(config);
