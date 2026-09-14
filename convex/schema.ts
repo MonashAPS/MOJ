@@ -250,6 +250,20 @@ export default defineSchema({
     browserExamKeys: v.array(v.string()),
   }).index("by_contest", ["contestId"]),
 
+  /**
+   * When a viewer last proved, on a real HTTP request, that they were in Safe
+   * Exam Browser for a given contest.
+   *
+   * Its own table rather than a field on `contestParticipations` because it is
+   * rewritten as people browse, and a write to a participation invalidates
+   * every query watching one — the scoreboard among them.
+   */
+  sebVerifications: defineTable({
+    profileId: v.id("profiles"),
+    contestId: v.id("contests"),
+    verifiedUntil: v.number(),
+  }).index("by_profile_contest", ["profileId", "contestId"]),
+
   problemTranslations: defineTable({
     problemId: v.id("problems"),
     language: v.string(),

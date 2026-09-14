@@ -51,7 +51,7 @@ import {
 } from "./contestFormats";
 import { optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, invalid, mojError, notFound } from "./lib/errors";
-import { requireSebTicket } from "./lib/seb";
+import { recordSebVerification, requireSebTicket } from "./lib/seb";
 
 /* -------------------------------------------------------------------------- */
 /* Shared shapes                                                              */
@@ -1377,6 +1377,10 @@ export const join = mutation({
     if (!participation) throw mojError("CONFLICT", "Could not join the contest.");
 
     await ctx.db.patch(profile._id, { currentParticipationId: participation._id });
+    // The ticket above already proved this request came from SEB. Stamping it
+    // here means the first page after joining is covered, before any render has
+    // had a chance to check in.
+    if (sebTicket) await recordSebVerification(ctx, profile._id, contest._id);
     await updateUserCount(ctx, contest._id);
     return { participationId: participation._id, virtual: participation.virtual };
   },

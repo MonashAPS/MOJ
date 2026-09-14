@@ -15,7 +15,7 @@ import {
   sebKeysConfigured,
   verifySebTicket,
 } from "@moj/protocol";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { forbidden } from "./errors";
 
@@ -124,4 +124,78 @@ export async function requireSebTicket(
   if (!ok) {
     throw forbidden("This contest can only be entered from Safe Exam Browser.");
   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Session verification                                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * How long one verified request vouches for the next few.
+ *
+ * Reads arrive as Convex queries, which carry no headers and cannot be handed a
+ * ticket without threading one through every caller. Instead each page render
+ * checks in over HTTP, where the headers exist, and that vouches for the reads
+ * the page makes. Long enough to cover a page that sits open, short enough that
+ * closing SEB stops access within a minute and a half.
+ */
+export const SEB_VERIFY_WINDOW_MS = 90_000;
+
+/** Only rewrite once the stamp is half spent, to keep the write rate down. */
+const SEB_REFRESH_AFTER_MS = SEB_VERIFY_WINDOW_MS / 2;
+
+/** Record that this viewer was in SEB for this contest, just now. */
+export async function recordSebVerification(
+  ctx: MutationCtx,
+  profileId: Id<"profiles">,
+  contestId: Id<"contests">,
+): Promise<void> {
+  const now = Date.now();
+  const existing = await ctx.db
+    .query("sebVerifications")
+    .withIndex("by_profile_contest", (q) => q.eq("profileId", profileId).eq("contestId", contestId))
+    .unique();
+
+  if (!existing) {
+    await ctx.db.insert("sebVerifications", {
+      profileId,
+      contestId,
+      verifiedUntil: now + SEB_VERIFY_WINDOW_MS,
+    });
+    return;
+  }
+  if (existing.verifiedUntil - now > SEB_REFRESH_AFTER_MS) return;
+  await ctx.db.patch(existing._id, { verifiedUntil: now + SEB_VERIFY_WINDOW_MS });
+}
+
+async function sebVerifiedNow(
+  ctx: AnySebCtx,
+  profileId: Id<"profiles">,
+  contestId: Id<"contests">,
+): Promise<boolean> {
+  const row = await ctx.db
+    .query("sebVerifications")
+    .withIndex("by_profile_contest", (q) => q.eq("profileId", profileId).eq("contestId", contestId))
+    .unique();
+  return !!row && row.verifiedUntil > Date.now();
+}
+
+/**
+ * Whether contest mode should stop opening this contest's problems.
+ *
+ * Being in a contest is what makes its problems readable whatever their own
+ * visibility says. When the contest is locked, that only holds while the viewer
+ * is demonstrably in SEB; otherwise the bypass falls away and the ordinary
+ * permission rules decide on their own, which is what a public problem being
+ * public and an unlisted one being unlisted already means.
+ */
+export async function sebBlocksContestProblems(
+  ctx: AnySebCtx,
+  contest: Doc<"contests">,
+  profileId: Id<"profiles"> | null,
+): Promise<boolean> {
+  const { locked } = await sebLockFor(ctx, contest);
+  if (!locked) return false;
+  if (!profileId) return true;
+  return !(await sebVerifiedNow(ctx, profileId, contest._id));
 }

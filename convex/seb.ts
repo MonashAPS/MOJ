@@ -17,7 +17,7 @@ import type { Doc } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import { contestByKey } from "./contestFormats";
 import { optionalViewer } from "./lib/auth";
-import { type AnySebCtx, issueSebTicket, sebLockFor } from "./lib/seb";
+import { type AnySebCtx, issueSebTicket, recordSebVerification, sebLockFor } from "./lib/seb";
 
 const evidence = {
   /** Exactly as SEB requested it: SEB hashed this string, not a tidied one. */
@@ -114,12 +114,41 @@ export const ticket = mutation({
     const contest = await contestByKey(ctx, args.contestKey);
     if (!contest) return { ticket: null };
 
-    return {
-      ticket: await issueSebTicket(ctx, contest, profile._id, {
-        url: args.url,
-        configKeyHash: args.configKeyHash ?? null,
-        requestHash: args.requestHash ?? null,
-      }),
-    };
+    const ticket = await issueSebTicket(ctx, contest, profile._id, {
+      url: args.url,
+      configKeyHash: args.configKeyHash ?? null,
+      requestHash: args.requestHash ?? null,
+    });
+    // Minting one is itself a request that proved it came from SEB, so it
+    // vouches for the reads around it the same way a page render does.
+    if (ticket) await recordSebVerification(ctx, profile._id, contest._id);
+    return { ticket };
+  },
+});
+
+/**
+ * What the page render calls: verify, and vouch for the reads this page is
+ * about to make.
+ *
+ * Reads arrive as Convex queries over a websocket that carries no headers, so
+ * they cannot prove anything themselves. This is the request that can, and the
+ * stamp it leaves is what `sebBlocksContestProblems` consults. A mutation
+ * rather than a query because it writes; it writes at most every forty-five
+ * seconds per person, and nothing but this module reads what it writes.
+ */
+export const checkIn = mutation({
+  args: evidence,
+  handler: async (ctx, args): Promise<SebRequirement> => {
+    const profile = await optionalViewer(ctx);
+    if (!profile?.currentParticipationId) return OPEN;
+
+    const participation = await ctx.db.get(profile.currentParticipationId);
+    if (!participation) return OPEN;
+    const contest = await ctx.db.get(participation.contestId);
+    if (!contest) return OPEN;
+
+    const state = await requirementFor(ctx, contest, args);
+    if (state.verified) await recordSebVerification(ctx, profile._id, contest._id);
+    return state;
   },
 });

@@ -35,7 +35,7 @@ import { optionalViewer, requireViewer } from "./lib/auth";
 import { globalSourceVisibility, siteSettings } from "./lib/community";
 import { forbidden, invalid, mojError, notFound } from "./lib/errors";
 import { rateLimiter } from "./lib/rateLimiter";
-import { requireSebTicket } from "./lib/seb";
+import { requireSebTicket, sebBlocksContestProblems } from "./lib/seb";
 
 /* -------------------------------------------------------------------------- */
 /* DMOJ settings                                                              */
@@ -785,7 +785,9 @@ export const submit = mutation({
     // itself is not, and it decides the priority and the lock.
     const viewerCtx = await viewerContext(ctx);
     let contestProblem: Doc<"contestProblems"> | null = null;
-    if (viewerCtx.inContest && viewerCtx.contest) {
+    const sebBlocked =
+      viewerCtx.contest !== null && (await sebBlocksContestProblems(ctx, viewerCtx.contest, profile._id));
+    if (viewerCtx.inContest && viewerCtx.contest && !sebBlocked) {
       const contestProblems = await ctx.db
         .query("contestProblems")
         .withIndex("by_problem", (q) => q.eq("problemId", problem._id))

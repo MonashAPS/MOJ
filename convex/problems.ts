@@ -15,6 +15,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, type QueryCtx, query } from "./_generated/server";
 import { optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, invalid, notFound } from "./lib/errors";
+import { sebBlocksContestProblems } from "./lib/seb";
 
 export const MIN_USER_POINTS_VOTE = 1;
 export const MAX_USER_POINTS_VOTE = 50;
@@ -152,7 +153,10 @@ export async function canAccessProblem(
   viewer: ViewerContext,
 ): Promise<boolean> {
   let inCurrentContest = false;
-  if (viewer.contest) {
+  // A locked contest only opens its problems while the viewer is demonstrably
+  // in SEB. Without that the bypass falls away and the problem's own visibility
+  // decides, so a public problem stays readable and an unlisted one does not.
+  if (viewer.contest && !(await sebBlocksContestProblems(ctx, viewer.contest, viewer.profile?._id ?? null))) {
     inCurrentContest = (await contestProblemFor(ctx, viewer.contest._id, problem._id)) !== null;
   }
   return problemIsAccessibleBy(toCoreProblem(problem), viewer.core, { inCurrentContest });

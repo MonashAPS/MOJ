@@ -3,7 +3,7 @@ import "server-only";
 import { api } from "@convex/_generated/api";
 import type { SebRequirement } from "@convex/seb";
 import { headers } from "next/headers";
-import { mutateAsViewer, queryAsViewer } from "@/lib/convex-server";
+import { mutateAsViewer } from "@/lib/convex-server";
 import { SEB_CONFIG_KEY_HEADER, SEB_REQUEST_HASH_HEADER, SEB_URL_HEADER } from "@/lib/seb";
 
 export type SebEvidence = {
@@ -34,11 +34,15 @@ export const SEB_OPEN: SebRequirement = {
 /**
  * Whether the viewer's current contest is locked, and whether this request
  * satisfies it. The keys stay in Convex; this only reports what it saw.
+ *
+ * It checks in rather than merely asking, because this is the request that can
+ * see the headers and the reads the page is about to make cannot. A verified
+ * check-in vouches for those reads for the next minute and a half.
  */
 export async function sebRequirement(): Promise<SebRequirement> {
   const evidence = await sebEvidence();
   if (!evidence.url) return SEB_OPEN;
-  return await queryAsViewer(api.seb.requirement, evidence).catch(() => SEB_OPEN);
+  return await mutateAsViewer(api.seb.checkIn, evidence).catch(() => SEB_OPEN);
 }
 
 /**

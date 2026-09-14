@@ -44,6 +44,21 @@ Config Keys derive from the settings alone, so one key covers Windows and macOS
 and every SEB release. Browser Exam Keys also cover the client's code signature:
 use them to pin exact builds, one key per build, in the second box.
 
+## What the lock covers
+
+Being in a contest is what makes its problems readable whatever their own
+visibility says. A locked contest only does that while the viewer is
+demonstrably in SEB: joining, reading a statement and submitting all stop
+working without it.
+
+The lock decides where, not whether. A problem that is public stays public, in
+SEB or out of it; one that is not public is reachable only through the contest,
+and so only from SEB. Permissions are unchanged.
+
+Every page render checks in over HTTP, which is the only request that can see
+SEB's headers, and that vouches for the queries the page makes for ninety
+seconds. Closing SEB stops access within that.
+
 ## What a competitor sees
 
 In SEB with the right configuration, nothing changes.
@@ -66,9 +81,10 @@ SEB records nothing on its own. Screen capture is [SEB
 Server](https://safeexambrowser.org/alpha/sebserver.html), a separate service you
 host yourself, which also collects the client event log centrally.
 
-The lock covers joining and submitting. Reading a statement goes through queries
-that carry no headers, and a competitor who joined inside SEB could read them
-outside it.
+Verification is per person, not per device. While SEB is open and checking in,
+requests made from somewhere else as the same account are covered by the same
+check-in. Nothing available to a browser can tell two of a person's devices
+apart.
 
 Anyone holding the Config Key can compute the header for any URL. It is as
 secret as the `.seb` file you distribute, which is what the Configuration Tool's

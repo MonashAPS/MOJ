@@ -37,10 +37,19 @@ async function fixture(options: { sebRequired?: boolean; sebEnabled?: boolean; k
   const problemId = await makeProblem(t, { code: "aplusb", allowedLanguageIds: [languageId] });
   const member = await makeProfile(t);
 
+  // The contest also carries a problem that is not public on its own, which is
+  // the one contest mode is doing the work for.
+  const hiddenId = await makeProblem(t, {
+    code: "hidden",
+    isPublic: false,
+    allowedLanguageIds: [languageId],
+  });
+
   const contestId = await t.run(async (ctx) =>
     insertContest(ctx.db, "mcpc", { sebRequired: options.sebRequired ?? true }),
   );
   await t.run(async (ctx) => insertContestProblem(ctx.db, contestId, problemId, 1));
+  await t.run(async (ctx) => insertContestProblem(ctx.db, contestId, hiddenId, 2));
 
   await t.run(async (ctx) => {
     await ctx.db.insert("siteSettings", {
@@ -70,7 +79,7 @@ async function fixture(options: { sebRequired?: boolean; sebEnabled?: boolean; k
     }
   });
 
-  return { t, contestId, problemId, member, languageId };
+  return { t, contestId, problemId, hiddenId, member, languageId };
 }
 
 /** Put the member in contest mode, the way joining would. */
@@ -259,5 +268,76 @@ describe("seb:requirement", () => {
       .withIdentity({ subject: f.member.userId })
       .query(api.seb.requirement, { url: URL, configKeyHash: null });
     expect(state).toMatchObject({ locked: false });
+  });
+});
+
+describe("reading a locked contest's problems", () => {
+  /** What `problems:get` answers, which is null when it is not readable. */
+  function read(f: Fixture, code: string) {
+    return f.t.withIdentity({ subject: f.member.userId }).query(api.problems.get, { code });
+  }
+
+  function checkIn(f: Fixture, configKeyHash: string | null) {
+    return f.t
+      .withIdentity({ subject: f.member.userId })
+      .mutation(api.seb.checkIn, { url: URL, configKeyHash });
+  }
+
+  it("hides a contest-only problem from a session that has not proved it is in SEB", async () => {
+    const f = await fixture();
+    await enterContest(f);
+    expect(await read(f, "hidden")).toBeNull();
+  });
+
+  it("opens it once a request has checked in", async () => {
+    const f = await fixture();
+    await enterContest(f);
+    await checkIn(f, await goodHash());
+    expect(await read(f, "hidden")).not.toBeNull();
+  });
+
+  it("keeps it shut when the check-in did not verify", async () => {
+    const f = await fixture();
+    await enterContest(f);
+    await checkIn(f, "a".repeat(64));
+    expect(await read(f, "hidden")).toBeNull();
+  });
+
+  it("leaves a public problem public, because the lock decides where and not whether", async () => {
+    const f = await fixture();
+    await enterContest(f);
+    expect(await read(f, "aplusb")).not.toBeNull();
+  });
+
+  it("opens a contest-only problem without SEB when the contest is not locked", async () => {
+    const f = await fixture({ sebRequired: false });
+    await enterContest(f);
+    expect(await read(f, "hidden")).not.toBeNull();
+  });
+
+  it("stops opening it again once the check-in has aged out", async () => {
+    const f = await fixture();
+    await enterContest(f);
+    await checkIn(f, await goodHash());
+    expect(await read(f, "hidden")).not.toBeNull();
+
+    await f.t.run(async (ctx) => {
+      for (const row of await ctx.db.query("sebVerifications").collect()) {
+        await ctx.db.patch(row._id, { verifiedUntil: Date.now() - 1 });
+      }
+    });
+    expect(await read(f, "hidden")).toBeNull();
+  });
+
+  it("refuses a submission to a contest-only problem it will not show", async () => {
+    const f = await fixture();
+    await enterContest(f);
+    await expect(
+      f.t.withIdentity({ subject: f.member.userId }).mutation(api.submissions.submit, {
+        problemCode: "hidden",
+        languageKey: "PY3",
+        source: "print(1)",
+      }),
+    ).rejects.toThrow();
   });
 });
