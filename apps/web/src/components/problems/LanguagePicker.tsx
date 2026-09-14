@@ -128,7 +128,9 @@ export function LanguagePicker({
               {families.map((family) => (
                 <div
                   key={family.name}
-                  className="rounded-md border border-border p-3 transition-colors hover:border-primary-line hover:bg-primary-soft"
+                  // The card is a grouping and not a target: only the chips
+                  // inside it can be picked, so only they answer the pointer.
+                  className="rounded-md border border-border p-3"
                 >
                   <div className="mb-2 flex items-center gap-2.5">
                     <Mark commonName={family.name} />
