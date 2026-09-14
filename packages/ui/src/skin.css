@@ -27,7 +27,15 @@
   body {
     margin: 0;
     min-height: 100dvh;
-    background: var(--bg-2);
+    /* The grid sits on the ground itself, under the constellations that
+       `body::before` paints, so every page has both. */
+    background-color: var(--bg-2);
+    background-image:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-position: center top;
+    background-attachment: fixed;
     color: var(--ink);
     font-family: var(--font-body);
     font-size: var(--fs-base);
@@ -146,14 +154,39 @@
     scrollbar-color: var(--line-strong) transparent;
   }
 
-  /* The royal grid, painted on the page ground. Home, auth, /about/ and
-     the error pages only: behind a table it is noise. */
-  .page-grid {
-    background-image:
-      linear-gradient(var(--bg-grid) 1px, transparent 1px),
-      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
-    background-size: 48px 48px;
-    background-position: center top;
+  /* MAPS's own motif: their logo is a graph, and their banner scatters large
+     faint constellations of it across a blue ground.
+
+     The home page only. Every other page keeps the grid alone, because behind a
+     dense table a second layer is one more thing competing with the rows.
+
+     It is a mask rather than a picture, so one tile serves both themes and the
+     colour comes from a token. */
+  .page-constellations {
+    position: fixed;
+    /* Oversized top and bottom: the drift moves the layer, and an edge must
+       never come into view. */
+    inset: -50% 0;
+    z-index: -1;
+    pointer-events: none;
+    background-color: var(--bg-graph);
+    mask-image: var(--constellation-tile);
+    mask-size: 620px 620px;
+    mask-repeat: repeat;
+    mask-position: center top;
+    /* Set by BackdropDrift, which lags the backdrop behind the scroll. Without
+       it the layer is simply fixed, which is what a reduced-motion reader and
+       anyone before hydration gets. */
+    transform: translate3d(0, var(--backdrop-shift, 0), 0);
+    will-change: transform;
+  }
+
+  /* A divider that fades out at both ends. A hard rule drawn edge to edge cuts
+     the constellation behind it and makes the backdrop read as two pieces. */
+  .page-rule {
+    height: 1px;
+    border: 0;
+    background: linear-gradient(90deg, transparent, var(--line) 8%, var(--line) 92%, transparent);
   }
 
   .skip-link {

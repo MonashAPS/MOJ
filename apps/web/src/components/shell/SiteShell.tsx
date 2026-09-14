@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { cn, Toaster, TooltipProvider } from "@moj/ui";
+import { Toaster, TooltipProvider } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -10,6 +10,7 @@ import { CommandPalette, useCommandPalette } from "@/components/CommandPalette";
 import { ProfileBootstrap } from "@/components/ProfileBootstrap";
 import type { NavNode } from "@/lib/nav";
 import { Announcement } from "./Announcement";
+import { BackdropDrift } from "./BackdropDrift";
 import { ContestBar } from "./ContestBar";
 import { ContestFloater } from "./ContestFloater";
 import { Footer } from "./Footer";
@@ -25,18 +26,6 @@ import type { ViewerSummary } from "./UserBlock";
  *  ordinary page. */
 function isHallScoreboard(pathname: string): boolean {
   return /^\/scoreboard\/.+/.test(pathname);
-}
-
-/** The royal grid belongs on the pages that are mostly words. Behind a
- *  table it is noise (DESIGN.md section 7). */
-function wantsGrid(pathname: string): boolean {
-  return (
-    pathname === "/" ||
-    pathname.startsWith("/accounts/") ||
-    pathname.startsWith("/about") ||
-    pathname.startsWith("/blog") ||
-    pathname.startsWith("/post/")
-  );
 }
 
 export function SiteShell({
@@ -62,6 +51,7 @@ export function SiteShell({
 }) {
   const t = useTranslations("common.nav");
   const pathname = usePathname() ?? "/";
+  const isHome = pathname === "/";
   const [paletteOpen, setPaletteOpen] = useCommandPalette();
   const headerRef = useRef<HTMLElement | null>(null);
 
@@ -130,13 +120,14 @@ export function SiteShell({
       </header>
 
       <ProfileBootstrap />
+      {isHome ? (
+        <>
+          <div aria-hidden className="page-constellations" />
+          <BackdropDrift />
+        </>
+      ) : null}
 
-      <div
-        className={cn(
-          "flex min-h-dvh flex-col pt-[var(--header-height,calc(var(--nav-height)+3px))]",
-          wantsGrid(pathname) && "page-grid",
-        )}
-      >
+      <div className="flex min-h-dvh flex-col pt-[var(--header-height,calc(var(--nav-height)+3px))]">
         {/* `overflow-x: clip` (not hidden, which would make this a scroll
             container and break every sticky header inside it): a dense table
             already scrolls inside its own wrapper, but a wide console page

@@ -64,7 +64,7 @@ export function TitleRow({
           ) : null}
         </div>
       </div>
-      {ruler ? <hr className="mb-6 mt-3 border-0 border-t border-border" /> : null}
+      {ruler ? <hr className="page-rule mb-6 mt-3" /> : null}
     </>
   );
 }

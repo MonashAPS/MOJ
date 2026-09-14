@@ -47,7 +47,7 @@ export function AdminShell({
           {tabs && tabs.length > 0 ? <PageTabs tabs={tabs} active={activeTab} /> : null}
           {action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
         </div>
-        <hr className="mb-4 mt-2 border-0 border-t border-border" />
+        <hr className="page-rule mb-4 mt-2" />
       </div>
       <div className="min-h-0 min-w-0 flex-1">{children}</div>
     </div>

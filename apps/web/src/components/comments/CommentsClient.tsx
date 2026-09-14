@@ -71,7 +71,7 @@ export function CommentsClient({
         {t("heading")}
         <span className="font-mono text-h3 font-medium tabular-nums text-muted-foreground">{visible}</span>
       </h2>
-      <hr className="mb-5 mt-3 border-0 border-t border-border" />
+      <hr className="page-rule mb-5 mt-3" />
 
       {data.locked ? (
         <Alert variant="warning" className="mb-5">
@@ -125,7 +125,7 @@ function NewComment({
   return (
     <div id="new-comment" className="mt-8">
       <h3>{t("newHeading")}</h3>
-      <hr className="mb-4 mt-3 border-0 border-t border-border" />
+      <hr className="page-rule mb-4 mt-3" />
       {!signedIn ? (
         <p className="text-sm text-muted-foreground">
           {t.rich("logInPrompt", {
