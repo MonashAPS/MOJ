@@ -184,7 +184,8 @@
     "authors": "{count, plural, one {Автор} few {Авторы} many {Авторы} other {Авторы}}",
     "curators": "{count, plural, one {Куратор} few {Кураторы} many {Кураторы} other {Кураторы}}",
     "testers": "{count, plural, one {Тестировщик} few {Тестировщики} many {Тестировщики} other {Тестировщики}}",
-    "spectators": "{count, plural, one {Наблюдатель} few {Наблюдатели} many {Наблюдатели} other {Наблюдатели}}"
+    "spectators": "{count, plural, one {Наблюдатель} few {Наблюдатели} many {Наблюдатели} other {Наблюдатели}}",
+    "problemsNotReleased": "Задачи этого контеста ещё не опубликованы."
   },
   "clarifications": {
     "title": "Вопросы",

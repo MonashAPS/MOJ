@@ -184,7 +184,8 @@
     "authors": "{count, plural, one {Autor} other {Autores}}",
     "curators": "{count, plural, one {Curador} other {Curadores}}",
     "testers": "{count, plural, one {Tester} other {Testers}}",
-    "spectators": "{count, plural, one {Espectador} other {Espectadores}}"
+    "spectators": "{count, plural, one {Espectador} other {Espectadores}}",
+    "problemsNotReleased": "Los problemas de este concurso aún no se han publicado."
   },
   "clarifications": {
     "title": "Aclaraciones",

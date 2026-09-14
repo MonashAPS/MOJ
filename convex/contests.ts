@@ -145,10 +145,8 @@ export type ContestListRow = {
 /**
  * How far the viewer has got through a contest.
  *
- * Only ever for a contest that has finished, or for the people running it.
- * Naming a problem before or during a contest hands it to anybody who looks,
- * and these squares carry the names in their tooltips; DMOJ gates its problem
- * table the same way (`contest.ended or is_editor or is_tester`).
+ * The squares carry problem names in their tooltips, so they are shown on
+ * exactly the terms the problems themselves are.
  */
 export type ContestProgress = {
   solved: number;
@@ -407,7 +405,9 @@ export const navBar = query({
     const isCurrent = !!participation && profile?.currentParticipationId === participation._id;
     if (!isCurrent && contestAccessCheck(contestRow, viewer).kind !== "ok") return null;
 
-    const contestProblems = await loadContestProblems(ctx, contest._id);
+    const contestProblems = problemsReleasedFor(contest, profile, isCurrent, Date.now())
+      ? await loadContestProblems(ctx, contest._id)
+      : [];
     const problems: ContestBarProblem[] = [];
     for (const [index, contestProblem] of contestProblems.entries()) {
       const problem = await ctx.db.get(contestProblem.problemId);
@@ -480,14 +480,43 @@ function compareContests(a: Doc<"contests">, b: Doc<"contests">, sort: Sort, des
  * being answered on the contest list is "have I done these", and a problem
  * solved afterwards is still done.
  */
+/**
+ * Whether a contest's problems may be named yet.
+ *
+ * DMOJ's gate on the problem table (`contest/contest.html`): `contest.ended or
+ * is_superuser or is_editor or is_tester or (is_spectator and
+ * contest.started)`. Naming a problem before the contest is over hands it to
+ * anybody who opens the page. Participants are added, who plainly need to read
+ * what they are competing on.
+ */
+function problemsReleasedFor(
+  contest: Doc<"contests">,
+  profile: Doc<"profiles"> | null,
+  taking: boolean,
+  now: number,
+): boolean {
+  if (contest.endTime <= now) return true;
+  if (!profile) return false;
+  if (
+    profile.isSuperuser ||
+    contest.authorProfileIds.includes(profile._id) ||
+    contest.curatorProfileIds.includes(profile._id) ||
+    contest.testerProfileIds.includes(profile._id)
+  ) {
+    return true;
+  }
+  const started = contest.startTime <= now;
+  return started && (taking || contest.spectatorProfileIds.includes(profile._id));
+}
+
 async function progressFor(
   ctx: QueryCtx,
   contest: Doc<"contests">,
   solved: Set<string> | null,
-  editorOrTester: boolean,
+  released: boolean,
 ): Promise<ContestProgress | null> {
   if (!solved) return null;
-  if (contest.endTime > Date.now() && !editorOrTester) return null;
+  if (!released) return null;
 
   const links = await ctx.db
     .query("contestProblems")
@@ -519,6 +548,7 @@ async function listRow(
   editorOrTester: boolean,
   hasCompleted: boolean,
   solved: Set<string> | null = null,
+  released = false,
 ): Promise<ContestListRow> {
   return {
     _id: contest._id,
@@ -539,7 +569,7 @@ async function listRow(
     isEditorOrTester: editorOrTester,
     hasCompleted,
     proctorRequired: contest.proctorRequired ?? false,
-    progress: await progressFor(ctx, contest, solved, editorOrTester),
+    progress: await progressFor(ctx, contest, solved, released),
   };
 }
 
@@ -599,8 +629,10 @@ export const list = query({
         contest.testerProfileIds.includes(profile._id));
 
     // One pass over the viewer's submissions for the whole page, rather than
-    // one per contest row.
+    // one per contest row, and the contests they took part in, which decides
+    // whether a live contest's problems may be named to them.
     let solvedIds: Set<string> | null = null;
+    const joinedContests = new Set<string>();
     if (profile) {
       const submissions = await ctx.db
         .query("submissions")
@@ -609,7 +641,16 @@ export const list = query({
       solvedIds = new Set(
         submissions.filter((row) => row.result === "AC").map((row) => row.problemId as string),
       );
+      for (const row of await ctx.db
+        .query("contestParticipations")
+        .withIndex("by_profile_contest", (q) => q.eq("profileId", profile._id))
+        .collect()) {
+        joinedContests.add(row.contestId as string);
+      }
     }
+
+    const released = (contest: Doc<"contests">): boolean =>
+      problemsReleasedFor(contest, profile, joinedContests.has(contest._id as string), now);
 
     const running: Doc<"contests">[] = [];
     const future: Doc<"contests">[] = [];
@@ -636,7 +677,7 @@ export const list = query({
       const endsAt = endTimeOf(contest, participation);
       activeParticipations.push({
         participationId: participation._id,
-        contest: await listRow(ctx, contest, editorOrTester(contest), false, solvedIds),
+        contest: await listRow(ctx, contest, editorOrTester(contest), false, solvedIds, released(contest)),
         virtual: participation.virtual,
         endsAt,
         timeRemaining: endsAt >= now ? endsAt - now : null,
@@ -667,18 +708,29 @@ export const list = query({
     const pastRows: ContestListRow[] = [];
     for (const contest of slice) {
       const participation = profile ? await liveParticipationOf(ctx, contest._id, profile._id) : null;
-      pastRows.push(await listRow(ctx, contest, editorOrTester(contest), !!participation, solvedIds));
+      pastRows.push(
+        await listRow(ctx, contest, editorOrTester(contest), !!participation, solvedIds, released(contest)),
+      );
     }
 
     const currentRows: ContestListRow[] = [];
     for (const contest of current) {
       currentRows.push(
-        await listRow(ctx, contest, editorOrTester(contest), finishedKeys.includes(contest.key), solvedIds),
+        await listRow(
+          ctx,
+          contest,
+          editorOrTester(contest),
+          finishedKeys.includes(contest.key),
+          solvedIds,
+          released(contest),
+        ),
       );
     }
     const futureRows: ContestListRow[] = [];
     for (const contest of future) {
-      futureRows.push(await listRow(ctx, contest, editorOrTester(contest), false, solvedIds));
+      futureRows.push(
+        await listRow(ctx, contest, editorOrTester(contest), false, solvedIds, released(contest)),
+      );
     }
 
     return {
@@ -965,6 +1017,11 @@ export type ContestDetail = {
     spectators: UserRef[];
   } | null;
   problems: ContestProblemEntry[];
+  /**
+   * Whether the problems may be named yet. False leaves `problems` empty and
+   * the page says so, rather than pretending the contest has none.
+   */
+  problemsReleased: boolean;
   metadata: {
     problemCount: number;
     hasPartials: boolean;
@@ -1014,6 +1071,7 @@ function emptyDetail(access: AccessDecision, now: number): ContestDetail {
     now,
     contest: null,
     problems: [],
+    problemsReleased: false,
     metadata: {
       problemCount: 0,
       hasPartials: false,
@@ -1128,13 +1186,24 @@ export const get = query({
     }
 
     const contestProblems = await loadContestProblems(ctx, contest._id);
+
+    /**
+     * DMOJ's gate on the problem table (`contest/contest.html`):
+     * `contest.ended or is_superuser or is_editor or is_tester or
+     * (is_spectator and contest.started)`. Naming a problem before the contest
+     * is over hands it to anybody who opens the page, so the same rule applies
+     * here — with participants added, who plainly need to read what they are
+     * competing on.
+     */
+    const problemsReleased = problemsReleasedFor(contest, profile, inThisContest, now);
+
     const problems: ContestProblemEntry[] = [];
     let hasPartials = false;
     let hasPretests = false;
     let hasSubmissionCap = false;
     let hasPublicEditorials = false;
 
-    for (const [index, contestProblem] of contestProblems.entries()) {
+    for (const [index, contestProblem] of problemsReleased ? contestProblems.entries() : []) {
       const problem = await ctx.db.get(contestProblem.problemId);
       if (!problem) continue;
 
@@ -1254,6 +1323,7 @@ export const get = query({
         spectators: await userRefs(ctx, contest.spectatorProfileIds),
       },
       problems,
+      problemsReleased,
       metadata: {
         problemCount: problems.length,
         hasPartials,

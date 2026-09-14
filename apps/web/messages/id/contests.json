@@ -184,7 +184,8 @@
     "authors": "{count, plural, other {Penulis}}",
     "curators": "{count, plural, other {Kurator}}",
     "testers": "{count, plural, other {Penguji}}",
-    "spectators": "{count, plural, other {Penonton}}"
+    "spectators": "{count, plural, other {Penonton}}",
+    "problemsNotReleased": "Soal untuk kontes ini belum dirilis."
   },
   "clarifications": {
     "title": "Klarifikasi",
