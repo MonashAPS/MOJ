@@ -43,6 +43,7 @@ export function ContestSebTab({ contest }: { contest: ContestEdit }) {
   const bekId = useId();
 
   const [required, setRequired] = useState(contest.sebRequired);
+  const [proctorRequired, setProctorRequired] = useState(contest.proctorRequired);
   const [launchUrl, setLaunchUrl] = useState(contest.sebLaunchUrl);
   const [configKeys, setConfigKeys] = useState("");
   const [browserExamKeys, setBrowserExamKeys] = useState("");
@@ -99,8 +100,9 @@ export function ContestSebTab({ contest }: { contest: ContestEdit }) {
       await update({
         key: contest.key,
         sebRequired: required,
+        proctorRequired,
         sebLaunchUrl: launchUrl.trim() || null,
-        reason: "Changed the Safe Exam Browser settings",
+        reason: "Changed the supervision settings",
       });
       toast.success(t("saved"));
     } catch (caught) {
@@ -113,6 +115,16 @@ export function ContestSebTab({ contest }: { contest: ContestEdit }) {
   return (
     <div className="grid gap-4">
       <AdminFormError message={error} />
+
+      <Panel title={t("proctorTitle")} bodyClassName="grid gap-3 p-4">
+        <p className="text-sm text-muted-foreground">{t("proctorIntro")}</p>
+        <Checkbox
+          checked={proctorRequired}
+          onCheckedChange={setProctorRequired}
+          label={t("proctorRequired")}
+        />
+        <p className="text-sm text-muted-foreground">{t("proctorHint")}</p>
+      </Panel>
 
       <Panel title={t("title")} bodyClassName="grid gap-4 p-4">
         <p className="text-sm text-muted-foreground">{t("intro")}</p>

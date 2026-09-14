@@ -10,6 +10,7 @@ import {
   LifeBuoy,
   ListChecks,
   Menu,
+  MonitorPlay,
   Scale,
   Server,
   Settings2,
@@ -45,6 +46,7 @@ export const ADMIN_SECTIONS: AdminSectionGroup[] = [
       { key: "submissions", href: "/admin/submissions/", icon: FlaskConical },
       { key: "scoreboards", href: "/admin/scoreboards/", icon: Gauge },
       { key: "jobs", href: "/admin/jobs/", icon: LayoutList },
+      { key: "proctor", href: "/admin/proctor/", icon: MonitorPlay },
     ],
   },
   {

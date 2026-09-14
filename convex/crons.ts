@@ -9,5 +9,7 @@ crons.interval("judge recovery", { minutes: 1 }, internal.judging.recoverStuckSu
 crons.interval("judge offline marking", { minutes: 1 }, internal.judgeApi.markOfflineJudges, {});
 crons.interval("stale contest-mode cleanup", { minutes: 5 }, internal.jobsContests.sweepContestMode, {});
 crons.interval("stats refresh", { minutes: 15 }, internal.stats.refresh, {});
+// Recordings are the largest thing stored and the least often looked at.
+crons.interval("proctor retention", { hours: 6 }, internal.jobsProctor.sweepRecordings, {});
 
 export default crons;

@@ -56,6 +56,7 @@
         "submissions": "提交",
         "scoreboards": "排行榜",
         "jobs": "任务",
+        "proctor": "监考",
         "users": "用户",
         "organizations": "组织",
         "classes": "班级",
@@ -634,7 +635,11 @@
       "generatedFor": "已为 {origin} 生成。",
       "downloadGenerated": "下载",
       "regenerate": "重新生成",
-      "generated": "配置已生成"
+      "generated": "配置已生成",
+      "proctorTitle": "屏幕监考",
+      "proctorIntro": "有监考的比赛只在参赛者于 /proctor/ 共享整个屏幕期间开放题目。",
+      "proctorRequired": "要求共享屏幕",
+      "proctorHint": "与 Safe Exam Browser 相互独立。一场比赛可以只要求其中之一、同时要求或都不要求。仅限 Chromium 浏览器。"
     },
     "actions": {
       "refused": "操作被拒绝。",
@@ -2074,5 +2079,30 @@
         "pointsPrecision": "分值精度"
       }
     }
+  },
+  "proctor": {
+    "title": "监考",
+    "breadcrumbConsole": "控制台",
+    "user": "用户",
+    "contest": "比赛",
+    "started": "开始",
+    "lastSeen": "最后活动",
+    "recording": "录制",
+    "status": "状态",
+    "live": "进行中",
+    "lapsed": "已失效",
+    "noContest": "无",
+    "emptyTitle": "暂无会话",
+    "emptyBody": "只要有人在 /proctor/ 共享屏幕，会话就会出现在这里。",
+    "slices": "{count, plural, =0 {无} other {# 段}}",
+    "missingSlices": "{count, plural, other {有 # 段始终未送达}}",
+    "details": "会话",
+    "replay": "回放",
+    "startedAt": "开始于 {at}",
+    "lastSeenAt": "最后活动于 {at}",
+    "missing": "找不到该会话。",
+    "follow": "跟随实时",
+    "gap": "录制中有缺口",
+    "noRecording": "尚未录制任何内容。"
   }
 }

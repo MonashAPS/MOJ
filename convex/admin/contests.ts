@@ -78,6 +78,7 @@ const writable = {
   blindDuringFreeze: v.optional(v.boolean()),
   sebRequired: v.optional(v.boolean()),
   sebLaunchUrl: v.optional(v.union(v.string(), v.null())),
+  proctorRequired: v.optional(v.boolean()),
 };
 
 /** `create` takes these three explicitly, so they are dropped from the spread. */

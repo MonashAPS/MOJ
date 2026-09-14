@@ -56,6 +56,7 @@
         "submissions": "Envíos",
         "scoreboards": "Marcadores",
         "jobs": "Tareas",
+        "proctor": "Supervisión",
         "users": "Usuarios",
         "organizations": "Organizaciones",
         "classes": "Clases",
@@ -634,7 +635,11 @@
       "generatedFor": "Generada para {origin}.",
       "downloadGenerated": "Descargarla",
       "regenerate": "Generar de nuevo",
-      "generated": "Configuración generada"
+      "generated": "Configuración generada",
+      "proctorTitle": "Supervisión de pantalla",
+      "proctorIntro": "Un concurso supervisado abre sus problemas solo mientras la persona comparte toda su pantalla en /proctor/.",
+      "proctorRequired": "Requerir compartir pantalla",
+      "proctorHint": "Independiente de Safe Exam Browser. Un concurso puede pedir uno, ambos o ninguno. Solo navegadores Chromium."
     },
     "actions": {
       "refused": "La acción fue rechazada.",
@@ -2074,5 +2079,30 @@
         "pointsPrecision": "Precisión de los puntos"
       }
     }
+  },
+  "proctor": {
+    "title": "Supervisión",
+    "breadcrumbConsole": "Consola",
+    "user": "Usuario",
+    "contest": "Concurso",
+    "started": "Inicio",
+    "lastSeen": "Visto por última vez",
+    "recording": "Grabación",
+    "status": "Estado",
+    "live": "En directo",
+    "lapsed": "Caducada",
+    "noContest": "Ninguno",
+    "emptyTitle": "Aún no hay sesiones",
+    "emptyBody": "Aparecerá una sesión en cuanto alguien comparta su pantalla en /proctor/.",
+    "slices": "{count, plural, =0 {nada} one {# fragmento} other {# fragmentos}}",
+    "missingSlices": "{count, plural, one {# fragmento nunca llegó} other {# fragmentos nunca llegaron}}",
+    "details": "Sesión",
+    "replay": "Reproducción",
+    "startedAt": "Inicio {at}",
+    "lastSeenAt": "visto por última vez {at}",
+    "missing": "No existe esa sesión.",
+    "follow": "Seguir en directo",
+    "gap": "Hueco en la grabación",
+    "noRecording": "Todavía no hay nada grabado."
   }
 }

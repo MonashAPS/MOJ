@@ -56,6 +56,7 @@
         "submissions": "Посылки",
         "scoreboards": "Табло",
         "jobs": "Задания",
+        "proctor": "Прокторинг",
         "users": "Пользователи",
         "organizations": "Организации",
         "classes": "Группы",
@@ -634,7 +635,11 @@
       "generatedFor": "Создана для {origin}.",
       "downloadGenerated": "Скачать",
       "regenerate": "Создать заново",
-      "generated": "Конфигурация создана"
+      "generated": "Конфигурация создана",
+      "proctorTitle": "Прокторинг экрана",
+      "proctorIntro": "Контест с прокторингом открывает задачи только пока участник демонстрирует весь экран на /proctor/.",
+      "proctorRequired": "Требовать демонстрацию экрана",
+      "proctorHint": "Не связано с Safe Exam Browser. Контест может требовать одно, оба или ничего. Только браузеры на Chromium."
     },
     "actions": {
       "refused": "В действии отказано.",
@@ -2074,5 +2079,30 @@
         "pointsPrecision": "Точность баллов"
       }
     }
+  },
+  "proctor": {
+    "title": "Прокторинг",
+    "breadcrumbConsole": "Консоль",
+    "user": "Пользователь",
+    "contest": "Контест",
+    "started": "Начало",
+    "lastSeen": "Последний сигнал",
+    "recording": "Запись",
+    "status": "Статус",
+    "live": "В эфире",
+    "lapsed": "Истекла",
+    "noContest": "Нет",
+    "emptyTitle": "Сессий пока нет",
+    "emptyBody": "Сессия появится здесь, как только кто-нибудь начнёт демонстрацию экрана на /proctor/.",
+    "slices": "{count, plural, =0 {ничего} one {# фрагмент} few {# фрагмента} many {# фрагментов} other {# фрагментов}}",
+    "missingSlices": "{count, plural, one {# фрагмент не дошёл} few {# фрагмента не дошли} many {# фрагментов не дошли} other {# фрагментов не дошли}}",
+    "details": "Сессия",
+    "replay": "Воспроизведение",
+    "startedAt": "Начало {at}",
+    "lastSeenAt": "последний сигнал {at}",
+    "missing": "Такой сессии нет.",
+    "follow": "Следить в эфире",
+    "gap": "Пропуск в записи",
+    "noRecording": "Пока ничего не записано."
   }
 }

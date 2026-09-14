@@ -181,5 +181,25 @@
   "ui": {
     "close": "Close",
     "loading": "Loading"
+  },
+  "proctor": {
+    "title": "Proctoring",
+    "intro": "A proctored contest needs you to share your whole screen for as long as you are taking part. The recording goes to the contest's organisers and nobody else.",
+    "idleTitle": "Not sharing",
+    "idleBody": "Start sharing to open a proctored contest's problems. Choose your entire screen when the browser asks.",
+    "watchingTitle": "Sharing your screen",
+    "watchingBody": "Leave this tab open. Closing it, or stopping the share, closes the contest's problems until you start again.",
+    "share": "Share my screen",
+    "stop": "Stop sharing",
+    "uploaded": "{count, plural, =0 {No recording sent yet} one {# piece of recording sent} other {# pieces of recording sent}}",
+    "wholeScreenTitle": "Share the whole screen",
+    "wholeScreenBody": "You picked a window or a tab. Pick Entire Screen so what you do outside the browser is covered too.",
+    "deniedTitle": "Screen sharing was not allowed",
+    "deniedBody": "The browser refused or you dismissed the prompt. On macOS you may also need to allow screen recording for your browser in System Settings.",
+    "stoppedTitle": "Sharing stopped",
+    "stoppedBody": "A proctored contest's problems are closed until you share again.",
+    "chromeOnly": "Use Chrome or Edge",
+    "chromeOnlyBody": "Only Chromium browsers report enough about what is being shared for proctoring to check that it is your whole screen.",
+    "failed": "Could not start the session."
   }
 }
