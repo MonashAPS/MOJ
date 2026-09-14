@@ -553,6 +553,8 @@ export const contestEdit = query({
       tagNames,
       lockedAfter: contest.lockedAfter ?? null,
       pointsPrecision: contest.pointsPrecision,
+      sebRequired: contest.sebRequired ?? false,
+      sebLaunchUrl: contest.sebLaunchUrl ?? "",
       hideProblemTags: contest.hideProblemTags,
       hideProblemAuthors: contest.hideProblemAuthors,
       runPretestsOnly: contest.runPretestsOnly,
@@ -582,11 +584,15 @@ export const contestOptions = query({
   args: {},
   handler: async (ctx) => {
     const viewer = await staffViewer(ctx);
-    if (!viewer) return { organizations: [], classes: [], tags: [] };
-    const [organizations, classes, tags] = await Promise.all([
+    if (!viewer) return { organizations: [], classes: [], tags: [], sebEnabled: false };
+    const [organizations, classes, tags, settings] = await Promise.all([
       ctx.db.query("organizations").collect(),
       ctx.db.query("classes").collect(),
       ctx.db.query("contestTags").collect(),
+      ctx.db
+        .query("siteSettings")
+        .withIndex("by_singleton", (q) => q.eq("singleton", "site"))
+        .unique(),
     ]);
     const classRows = [];
     for (const row of classes) {
@@ -601,6 +607,9 @@ export const contestOptions = query({
       tags: tags
         .map((row) => ({ name: row.name, color: row.color }))
         .sort((a, b) => a.name.localeCompare(b.name)),
+      // The contest editor hides the Safe Exam Browser tab unless the site has
+      // the feature on, and this saves it a second query for one boolean.
+      sebEnabled: settings?.sebEnabled ?? false,
     };
   },
 });

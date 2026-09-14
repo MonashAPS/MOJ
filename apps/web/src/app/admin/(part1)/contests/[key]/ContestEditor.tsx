@@ -12,8 +12,9 @@ import { ContestActionsTab } from "./ContestActionsTab";
 import { ContestGeneralTab } from "./ContestGeneralTab";
 import { ContestPeopleTab } from "./ContestPeopleTab";
 import { ContestProblemsTab } from "./ContestProblemsTab";
+import { ContestSebTab } from "./ContestSebTab";
 
-const TABS = ["general", "problems", "people", "actions", "revisions"] as const;
+const TABS = ["general", "problems", "people", "seb", "actions", "revisions"] as const;
 
 export function ContestEditor({ contestKey }: { contestKey: string }) {
   const t = useTranslations("admin.contests.editor");
@@ -28,7 +29,9 @@ export function ContestEditor({ contestKey }: { contestKey: string }) {
     active === "revisions" ? { entityType: "contest" as const, key: contestKey } : "skip",
   );
 
-  const tabs: TabItem[] = TABS.map((tab) => ({
+  // Safe Exam Browser is off for most deployments and the tab would only be a
+  // dead end, so it appears once the site setting turns the feature on.
+  const tabs: TabItem[] = TABS.filter((tab) => tab !== "seb" || options?.sebEnabled).map((tab) => ({
     key: tab,
     label: t(`tabs.${tab}`),
     href: tab === "general" ? `/admin/contests/${contestKey}/` : `/admin/contests/${contestKey}/?tab=${tab}`,
@@ -84,6 +87,8 @@ export function ContestEditor({ contestKey }: { contestKey: string }) {
         <ContestProblemsTab contest={contest} />
       ) : active === "people" ? (
         <ContestPeopleTab contest={contest} />
+      ) : active === "seb" ? (
+        <ContestSebTab contest={contest} />
       ) : active === "actions" ? (
         <ContestActionsTab contest={contest} />
       ) : (

@@ -447,6 +447,7 @@
         "general": "General",
         "problems": "Problemas",
         "people": "Personas",
+        "seb": "Safe Exam Browser",
         "actions": "Acciones",
         "revisions": "Revisiones"
       },
@@ -611,6 +612,22 @@
       "viewSubmissionsHint": "Estos usuarios ven los envíos de todos durante el concurso.",
       "submit": "Guardar personas",
       "reasonHint": "Se guarda con la revisión para que la siguiente persona vea por qué cambió este concurso."
+    },
+    "seb": {
+      "title": "Safe Exam Browser",
+      "intro": "A un concurso bloqueado solo se puede entrar y enviar desde Safe Exam Browser ejecutando la configuración cuyas claves están abajo.",
+      "required": "Requerir Safe Exam Browser",
+      "noKeysWarning": "No se bloquea nada hasta que haya al menos una clave abajo.",
+      "launchUrl": "Enlace de inicio",
+      "launchUrlHint": "Se muestra a quien llegue al concurso sin Safe Exam Browser. Un enlace sebs:// al archivo de configuración lo inicia.",
+      "keys": "Claves",
+      "keysIntro": "Una por línea. La herramienta de configuración de SEB muestra ambas para una configuración guardada.",
+      "configKeys": "Config Keys",
+      "configKeysHint": "Se derivan solo de los ajustes, así que una sirve para cualquier plataforma y cualquier versión de SEB.",
+      "browserExamKeys": "Browser Exam Keys",
+      "browserExamKeysHint": "Opcionales, y una por compilación de SEB: una Browser Exam Key también cubre la firma del cliente.",
+      "saved": "Ajustes de Safe Exam Browser guardados",
+      "refused": "El juez rechazó el cambio."
     },
     "actions": {
       "refused": "La acción fue rechazada.",
@@ -1605,6 +1622,7 @@
       "requireStaffTwoFactor": "El personal debe tener autenticación de dos factores",
       "enableComments": "Los comentarios están habilitados",
       "pdfEnabled": "Los enunciados se pueden descargar como PDF",
+      "sebEnabled": "Permitir que los concursos requieran Safe Exam Browser",
       "submissions": "Envíos",
       "sourceVisibility": "Visibilidad del código fuente",
       "sourceVisibilityHint": "Quién puede leer el código de otro miembro.",

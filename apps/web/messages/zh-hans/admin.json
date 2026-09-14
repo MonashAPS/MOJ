@@ -447,6 +447,7 @@
         "general": "常规",
         "problems": "题目",
         "people": "人员",
+        "seb": "Safe Exam Browser",
         "actions": "操作",
         "revisions": "版本记录"
       },
@@ -611,6 +612,22 @@
       "viewSubmissionsHint": "这些用户可在比赛期间查看所有人的提交。",
       "submit": "保存人员",
       "reasonHint": "会随版本记录一同保存，方便他人了解此比赛的变更原因。"
+    },
+    "seb": {
+      "title": "Safe Exam Browser",
+      "intro": "被锁定的比赛只能通过运行下列密钥所对应配置的 Safe Exam Browser 参加和提交。",
+      "required": "要求使用 Safe Exam Browser",
+      "noKeysWarning": "在下面至少填入一个密钥之前，不会锁定任何内容。",
+      "launchUrl": "启动链接",
+      "launchUrlHint": "展示给未通过 Safe Exam Browser 打开比赛的人。指向配置文件的 sebs:// 链接会启动它。",
+      "keys": "密钥",
+      "keysIntro": "每行一个。SEB 配置工具会为保存的配置显示这两种密钥。",
+      "configKeys": "Config Keys",
+      "configKeysHint": "仅由设置本身推导得出，因此一个就能覆盖所有平台和所有 SEB 版本。",
+      "browserExamKeys": "Browser Exam Keys",
+      "browserExamKeysHint": "可选，且每个 SEB 构建一个：Browser Exam Key 还包含客户端的代码签名。",
+      "saved": "Safe Exam Browser 设置已保存",
+      "refused": "评测机拒绝了本次修改。"
     },
     "actions": {
       "refused": "操作被拒绝。",
@@ -1605,6 +1622,7 @@
       "requireStaffTwoFactor": "工作人员必须启用双重验证",
       "enableComments": "启用评论",
       "pdfEnabled": "允许将题面下载为 PDF",
+      "sebEnabled": "允许比赛要求使用 Safe Exam Browser",
       "submissions": "提交",
       "sourceVisibility": "源代码可见性",
       "sourceVisibilityHint": "谁可以查看其他成员的源代码。",

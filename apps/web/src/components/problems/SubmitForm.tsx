@@ -57,6 +57,7 @@ export function SubmitForm({
   initialSource = "",
   canPinJudge,
   submissionsLeft,
+  sebContestKey = null,
 }: {
   problemCode: string;
   problemName: string;
@@ -64,6 +65,8 @@ export function SubmitForm({
   initialSource?: string;
   canPinJudge: boolean;
   submissionsLeft: number | null;
+  /** Set when the viewer is in a contest locked to Safe Exam Browser. */
+  sebContestKey?: string | null;
 }) {
   const t = useTranslations("problems.submit");
   const router = useRouter();
@@ -137,11 +140,26 @@ export function SubmitForm({
     }
     setBusy(true);
     try {
+      // The mutation travels over a websocket, which carries none of the
+      // headers Safe Exam Browser attaches. This one fetch is an ordinary HTTP
+      // request, so the server can read them and hand back something the
+      // mutation will accept. It is minted fresh each time and lasts about a
+      // minute.
+      let sebTicket: string | undefined;
+      if (sebContestKey) {
+        const response = await fetch(`/api/seb/ticket?contest=${encodeURIComponent(sebContestKey)}`, {
+          cache: "no-store",
+        });
+        const body = (await response.json().catch(() => null)) as { ticket?: string | null } | null;
+        sebTicket = body?.ticket ?? undefined;
+      }
+
       const created = await submit({
         problemCode,
         languageKey,
         source,
         judgePin: judgePin || undefined,
+        sebTicket,
       });
       try {
         window.localStorage.removeItem(draftKey(problemCode, languageKey));
@@ -157,7 +175,7 @@ export function SubmitForm({
           : t("failed"),
       );
     }
-  }, [busy, judgePin, languageKey, problemCode, router, source, submit, t]);
+  }, [busy, judgePin, languageKey, problemCode, router, sebContestKey, source, submit, t]);
 
   const lines = source.length === 0 ? 0 : source.split("\n").length;
   const groups = groupLanguages(languages);

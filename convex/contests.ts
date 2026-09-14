@@ -51,6 +51,7 @@ import {
 } from "./contestFormats";
 import { optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, invalid, mojError, notFound } from "./lib/errors";
+import { recordSebVerification, requireSebTicket } from "./lib/seb";
 
 /* -------------------------------------------------------------------------- */
 /* Shared shapes                                                              */
@@ -879,6 +880,9 @@ export type ContestDetail = {
     lockedAfter: number | null;
     ratingFloor: number | null;
     ratingCeiling: number | null;
+    /** Locked to Safe Exam Browser. The keys themselves are never projected. */
+    sebRequired: boolean;
+    sebLaunchUrl: string | null;
     tags: TagRef[];
     organizations: OrganizationRef[];
     authors: UserRef[];
@@ -1167,6 +1171,8 @@ export const get = query({
         lockedAfter: contest.lockedAfter ?? null,
         ratingFloor: contest.ratingFloor ?? null,
         ratingCeiling: contest.ratingCeiling ?? null,
+        sebRequired: contest.sebRequired ?? false,
+        sebLaunchUrl: contest.sebLaunchUrl ?? null,
         tags: await tagRefs(ctx, contest.tagIds),
         organizations: await organizationRefs(ctx, contest.organizationIds),
         authors: await userRefs(ctx, contest.authorProfileIds),
@@ -1275,13 +1281,17 @@ async function updateUserCount(ctx: MutationCtx, contestId: Id<"contests">): Pro
  * both win.
  */
 export const join = mutation({
-  args: { key: v.string(), accessCode: v.optional(v.string()) },
+  args: { key: v.string(), accessCode: v.optional(v.string()), sebTicket: v.optional(v.string()) },
   handler: async (
     ctx,
-    { key, accessCode },
+    { key, accessCode, sebTicket },
   ): Promise<{ participationId: Id<"contestParticipations">; virtual: number }> => {
     const profile = await requireViewer(ctx);
     const contest = await requireAccessibleContest(ctx, key, profile);
+    // Joining is what puts the viewer in contest mode, and contest mode is what
+    // opens the contest's problems regardless of their own visibility. A locked
+    // contest therefore has to be gated here and not only at the page render.
+    await requireSebTicket(ctx, contest, profile._id, sebTicket);
     const viewer = await toViewerRowInContest(ctx, profile);
     const contestRow = toContestRow(contest);
     const now = Date.now();
@@ -1367,6 +1377,10 @@ export const join = mutation({
     if (!participation) throw mojError("CONFLICT", "Could not join the contest.");
 
     await ctx.db.patch(profile._id, { currentParticipationId: participation._id });
+    // The ticket above already proved this request came from SEB. Stamping it
+    // here means the first page after joining is covered, before any render has
+    // had a chance to check in.
+    if (sebTicket) await recordSebVerification(ctx, profile._id, contest._id);
     await updateUserCount(ctx, contest._id);
     return { participationId: participation._id, virtual: participation.virtual };
   },

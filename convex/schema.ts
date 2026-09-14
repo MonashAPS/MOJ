@@ -235,6 +235,35 @@ export default defineSchema({
       filterFields: ["isPublic", "isOrganizationPrivate"],
     }),
 
+  /**
+   * The keys a SEB-locked contest accepts. Secret, and deliberately in its own
+   * table so that no query returning a contest can leak them.
+   *
+   * A Config Key is derived from the SEB settings alone, so one value covers
+   * every platform and every SEB release. A Browser Exam Key additionally folds
+   * in the client's code signature, so it differs per build and the list has to
+   * be maintained by hand; it is there for operators who want to pin versions.
+   */
+  contestSebKeys: defineTable({
+    contestId: v.id("contests"),
+    configKeys: v.array(v.string()),
+    browserExamKeys: v.array(v.string()),
+  }).index("by_contest", ["contestId"]),
+
+  /**
+   * When a viewer last proved, on a real HTTP request, that they were in Safe
+   * Exam Browser for a given contest.
+   *
+   * Its own table rather than a field on `contestParticipations` because it is
+   * rewritten as people browse, and a write to a participation invalidates
+   * every query watching one — the scoreboard among them.
+   */
+  sebVerifications: defineTable({
+    profileId: v.id("profiles"),
+    contestId: v.id("contests"),
+    verifiedUntil: v.number(),
+  }).index("by_profile_contest", ["profileId", "contestId"]),
+
   problemTranslations: defineTable({
     problemId: v.id("problems"),
     language: v.string(),
@@ -529,6 +558,12 @@ export default defineSchema({
     isUnfrozen: v.optional(v.boolean()),
     freezeRevealed: v.optional(v.boolean()),
     revealState: v.optional(v.any()),
+    // Safe Exam Browser. The keys themselves live in `contestSebKeys` rather
+    // than here: anyone holding a Config Key can compute the header for any URL
+    // and walk straight past the check, and this row is returned whole by
+    // `viewer.current` and the contest pages.
+    sebRequired: v.optional(v.boolean()),
+    sebLaunchUrl: v.optional(v.string()),
     legacyId: v.optional(v.number()),
   })
     .index("by_key", ["key"])
@@ -756,6 +791,9 @@ export default defineSchema({
     navColor: v.optional(v.string()),
     customCss: v.optional(v.string()),
     themeDefault: v.optional(themeDefault),
+    /** Whether contests may be locked to Safe Exam Browser at all. Off leaves
+     *  the feature out of the admin entirely. */
+    sebEnabled: v.optional(v.boolean()),
   }).index("by_singleton", ["singleton"]),
 
   statsSnapshots: defineTable({

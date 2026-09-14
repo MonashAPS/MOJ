@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { COMPROMISED_COOKIE } from "@/auth/password-compromised";
+import { SEB_URL_HEADER, sebRequestUrl } from "@/lib/seb";
 
 /** Gates that must run before any page renders.
  *
@@ -12,6 +13,11 @@ import { COMPROMISED_COOKIE } from "@/auth/password-compromised";
  *     auth/server.ts checks the typed password against Have I Been Pwned and
  *     sets a cookie on a hit. This gate turns that cookie into DMOJ's forced
  *     password change; completing one clears the cookie.
+ *
+ *  It also stamps the request's own URL onto the headers for the Safe Exam
+ *  Browser check. SEB hashes the URL it asked for, and a server component has
+ *  `headers()` but no way to ask what URL is being rendered; this is the one
+ *  place both that and the proxy's view of the host are available.
  */
 
 const EXEMPT_PREFIXES = [
@@ -54,6 +60,13 @@ async function fetchSession(request: NextRequest): Promise<SessionResponse> {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  /** Carry on, with the request's URL stamped on for `lib/seb.server.ts`. */
+  const proceed = (): NextResponse => {
+    const headers = new Headers(request.headers);
+    headers.set(SEB_URL_HEADER, sebRequestUrl(request.headers, request.nextUrl));
+    return NextResponse.next({ request: { headers } });
+  };
+
   // DMOJ's URLs all end in a slash and old links must keep working. Next's own
   // redirect is disabled (skipTrailingSlashRedirect) so it does not fire on the
   // auth API, which better-call matches without one.
@@ -74,11 +87,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
-  if (EXEMPT_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return NextResponse.next();
+  if (EXEMPT_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return proceed();
 
   // Cheap negative check: no session cookie, nothing to gate.
   const cookieHeader = request.headers.get("cookie") ?? "";
-  if (!cookieHeader.includes("moj.session_token")) return NextResponse.next();
+  if (!cookieHeader.includes("moj.session_token")) return proceed();
 
   if (request.cookies.get(COMPROMISED_COOKIE)?.value === "1") {
     const url = request.nextUrl.clone();
@@ -96,7 +109,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  return NextResponse.next();
+  return proceed();
 }
 
 export const config = {

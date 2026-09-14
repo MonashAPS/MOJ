@@ -447,6 +447,7 @@
         "general": "Общее",
         "problems": "Задачи",
         "people": "Люди",
+        "seb": "Safe Exam Browser",
         "actions": "Действия",
         "revisions": "Правки"
       },
@@ -611,6 +612,22 @@
       "viewSubmissionsHint": "Эти пользователи видят чужие посылки во время соревнования.",
       "submit": "Сохранить людей",
       "reasonHint": "Сохраняется вместе с правкой, чтобы следующий человек понял, зачем она понадобилась."
+    },
+    "seb": {
+      "title": "Safe Exam Browser",
+      "intro": "В заблокированный контест можно войти и отправлять решения только из Safe Exam Browser с конфигурацией, ключи которой указаны ниже.",
+      "required": "Требовать Safe Exam Browser",
+      "noKeysWarning": "Ничего не блокируется, пока ниже не задан хотя бы один ключ.",
+      "launchUrl": "Ссылка для запуска",
+      "launchUrlHint": "Показывается всем, кто открыл контест не через Safe Exam Browser. Ссылка sebs:// на файл конфигурации запускает его.",
+      "keys": "Ключи",
+      "keysIntro": "По одному в строке. SEB Configuration Tool показывает оба для сохранённой конфигурации.",
+      "configKeys": "Config Keys",
+      "configKeysHint": "Зависят только от настроек, поэтому одного хватает для всех платформ и всех версий SEB.",
+      "browserExamKeys": "Browser Exam Keys",
+      "browserExamKeysHint": "Необязательны, и по одному на сборку SEB: Browser Exam Key учитывает ещё и подпись клиента.",
+      "saved": "Настройки Safe Exam Browser сохранены",
+      "refused": "Судья отклонил изменение."
     },
     "actions": {
       "refused": "В действии отказано.",
@@ -1605,6 +1622,7 @@
       "requireStaffTwoFactor": "У персонала обязательна двухфакторная аутентификация",
       "enableComments": "Комментарии включены",
       "pdfEnabled": "Условия можно скачать в формате PDF",
+      "sebEnabled": "Разрешить контестам требовать Safe Exam Browser",
       "submissions": "Посылки",
       "sourceVisibility": "Видимость исходного кода",
       "sourceVisibilityHint": "Кто может читать чужой исходный код.",
