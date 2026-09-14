@@ -56,6 +56,7 @@
         "submissions": "Submissions",
         "scoreboards": "Scoreboards",
         "jobs": "Jobs",
+        "proctor": "Proctoring",
         "users": "Users",
         "organizations": "Organisations",
         "classes": "Classes",
@@ -2074,5 +2075,30 @@
         "pointsPrecision": "Points precision"
       }
     }
+  },
+  "proctor": {
+    "title": "Proctoring",
+    "breadcrumbConsole": "Console",
+    "user": "User",
+    "contest": "Contest",
+    "started": "Started",
+    "lastSeen": "Last seen",
+    "recording": "Recording",
+    "status": "Status",
+    "live": "Live",
+    "lapsed": "Lapsed",
+    "noContest": "None",
+    "emptyTitle": "No sessions yet",
+    "emptyBody": "A session appears here as soon as somebody shares their screen at /proctor/.",
+    "slices": "{count, plural, =0 {nothing} one {# slice} other {# slices}}",
+    "missingSlices": "{count, plural, one {# slice never arrived} other {# slices never arrived}}",
+    "details": "Session",
+    "replay": "Replay",
+    "startedAt": "Started {at}",
+    "lastSeenAt": "last seen {at}",
+    "assemble": "Load the recording",
+    "assembleHint": "The slices are joined back into one stream before playing, so a long session takes a moment.",
+    "replayFailed": "The recording could not be assembled.",
+    "missing": "No such session."
   }
 }

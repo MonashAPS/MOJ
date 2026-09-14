@@ -56,6 +56,7 @@
         "submissions": "Envíos",
         "scoreboards": "Marcadores",
         "jobs": "Tareas",
+        "proctor": "Supervisión",
         "users": "Usuarios",
         "organizations": "Organizaciones",
         "classes": "Clases",
@@ -2074,5 +2075,30 @@
         "pointsPrecision": "Precisión de los puntos"
       }
     }
+  },
+  "proctor": {
+    "title": "Supervisión",
+    "breadcrumbConsole": "Consola",
+    "user": "Usuario",
+    "contest": "Concurso",
+    "started": "Inicio",
+    "lastSeen": "Visto por última vez",
+    "recording": "Grabación",
+    "status": "Estado",
+    "live": "En directo",
+    "lapsed": "Caducada",
+    "noContest": "Ninguno",
+    "emptyTitle": "Aún no hay sesiones",
+    "emptyBody": "Aparecerá una sesión en cuanto alguien comparta su pantalla en /proctor/.",
+    "slices": "{count, plural, =0 {nada} one {# fragmento} other {# fragmentos}}",
+    "missingSlices": "{count, plural, one {# fragmento nunca llegó} other {# fragmentos nunca llegaron}}",
+    "details": "Sesión",
+    "replay": "Reproducción",
+    "startedAt": "Inicio {at}",
+    "lastSeenAt": "visto por última vez {at}",
+    "assemble": "Cargar la grabación",
+    "assembleHint": "Los fragmentos se vuelven a unir en un solo flujo antes de reproducir, así que una sesión larga tarda un momento.",
+    "replayFailed": "No se pudo montar la grabación.",
+    "missing": "No existe esa sesión."
   }
 }
