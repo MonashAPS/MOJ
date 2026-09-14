@@ -12,6 +12,7 @@
         "submissions": "Find a submission, rejudge it, or rejudge a batch.",
         "scoreboards": "The hall boards and what each one shows.",
         "jobs": "Rejudges, rescores and ratings, with their progress.",
+        "proctor": "Screen-sharing sessions, live and recorded.",
         "users": "Accounts, permissions and points.",
         "organizations": "Organisations, their admins and their members.",
         "classes": "Classes inside an organisation.",
