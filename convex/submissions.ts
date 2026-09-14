@@ -34,8 +34,9 @@ import { allocateSubmissionNumber, queueSubmission, resolveSubmission } from "./
 import { optionalViewer, requireViewer } from "./lib/auth";
 import { globalSourceVisibility, siteSettings } from "./lib/community";
 import { forbidden, invalid, mojError, notFound } from "./lib/errors";
+import { requireProctored, supervisionBlocksContestProblems } from "./lib/proctor";
 import { rateLimiter } from "./lib/rateLimiter";
-import { requireSebTicket, sebBlocksContestProblems } from "./lib/seb";
+import { requireSebTicket } from "./lib/seb";
 
 /* -------------------------------------------------------------------------- */
 /* DMOJ settings                                                              */
@@ -785,9 +786,10 @@ export const submit = mutation({
     // itself is not, and it decides the priority and the lock.
     const viewerCtx = await viewerContext(ctx);
     let contestProblem: Doc<"contestProblems"> | null = null;
-    const sebBlocked =
-      viewerCtx.contest !== null && (await sebBlocksContestProblems(ctx, viewerCtx.contest, profile._id));
-    if (viewerCtx.inContest && viewerCtx.contest && !sebBlocked) {
+    const supervisionBlocked =
+      viewerCtx.contest !== null &&
+      (await supervisionBlocksContestProblems(ctx, viewerCtx.contest, profile._id));
+    if (viewerCtx.inContest && viewerCtx.contest && !supervisionBlocked) {
       const contestProblems = await ctx.db
         .query("contestProblems")
         .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
@@ -808,6 +810,7 @@ export const submit = mutation({
     // headers, hence the ticket.
     if (viewerCtx.contest) {
       await requireSebTicket(ctx, viewerCtx.contest, profile._id, args.sebTicket);
+      await requireProctored(ctx, viewerCtx.contest, profile._id);
     }
 
     // `form_valid`: the rate limits come before everything else.

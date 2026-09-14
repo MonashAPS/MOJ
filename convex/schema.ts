@@ -272,6 +272,54 @@ export default defineSchema({
     verifiedUntil: v.number(),
   }).index("by_profile_contest", ["profileId", "contestId"]),
 
+  /**
+   * A screen-sharing session. Being proctored is a state an account is in, not
+   * something a contest owns: someone can start one without being in a contest
+   * at all, and a contest that asks for it simply checks whether they are.
+   *
+   * `lastSeenAt` is what makes it live. The page heartbeats while it holds the
+   * stream, so a closed tab, a revoked share or a flat battery all stop the
+   * session the same way — by going quiet — and the gap is visible on the
+   * timeline rather than silently absent.
+   */
+  proctorSessions: defineTable({
+    profileId: v.id("profiles"),
+    startedAt: v.number(),
+    lastSeenAt: v.number(),
+    /** Set when the session ended cleanly, or when a newer one replaced it. */
+    endedAt: v.optional(v.number()),
+    endedReason: v.optional(v.string()),
+    /** What the browser said it was capturing: only "monitor" is accepted. */
+    displaySurface: v.string(),
+    userAgent: v.string(),
+    /** The contest they were in when it started, for the admin's benefit only. */
+    contestId: v.optional(v.id("contests")),
+  })
+    .index("by_profile", ["profileId"])
+    .index("by_profile_started", ["profileId", "startedAt"])
+    .index("by_lastSeen", ["lastSeenAt"]),
+
+  /**
+   * One recorded slice of a session, as MediaRecorder handed it over.
+   *
+   * Chunks rather than stills because a hidden tab throttles its timers to once
+   * a minute, which would gut a screenshot loop exactly when someone has tabbed
+   * away to their editor. The encoder is native and keeps running.
+   */
+  proctorChunks: defineTable({
+    sessionId: v.id("proctorSessions"),
+    profileId: v.id("profiles"),
+    /** Monotonic within the session, so a gap in the sequence is detectable. */
+    index: v.number(),
+    startedAt: v.number(),
+    durationMs: v.number(),
+    bytes: v.number(),
+    mimeType: v.string(),
+    storageId: v.id("_storage"),
+  })
+    .index("by_session_index", ["sessionId", "index"])
+    .index("by_session_started", ["sessionId", "startedAt"]),
+
   problemTranslations: defineTable({
     problemId: v.id("problems"),
     language: v.string(),
@@ -572,6 +620,9 @@ export default defineSchema({
     // `viewer.current` and the contest pages.
     sebRequired: v.optional(v.boolean()),
     sebLaunchUrl: v.optional(v.string()),
+    /** Requires a live screen-sharing session, the same way `sebRequired`
+     *  requires Safe Exam Browser. The two are independent. */
+    proctorRequired: v.optional(v.boolean()),
     legacyId: v.optional(v.number()),
   })
     .index("by_key", ["key"])
