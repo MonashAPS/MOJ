@@ -579,7 +579,9 @@ export const setSebGenerated = mutation({
     // competitor sees has both buttons without anyone hosting anything.
     const host = patch.generatedOrigin.replace(/^https?:\/\//, "");
     await ctx.db.patch(contest._id, {
-      sebLaunchUrl: `sebs://${host}/contest/${contest.key}/seb-config`,
+      // Trailing slash: every MOJ URL has one, and the proxy 308s anything
+      // without it, which is a redirect SEB need not be asked to follow.
+      sebLaunchUrl: `sebs://${host}/contest/${contest.key}/seb-config/`,
     });
 
     await writeRevision(
