@@ -1,6 +1,6 @@
 import { api } from "@convex/_generated/api";
 import { renderMarkdown } from "@moj/content";
-import { Button } from "@moj/ui";
+import { Button, TitleRow } from "@moj/ui";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Comments } from "@/components/comments/Comments";
 import { ProblemPage } from "@/components/problems/ProblemHeader";
+import { ProctorRequired } from "@/components/problems/ProctorRequired";
 import { Statement } from "@/components/problems/Statement";
 import { queryAsViewer } from "@/lib/convex-server";
 import { formatRelative } from "@/lib/format";
@@ -35,7 +36,21 @@ export default async function ProblemStatementPage({ params }: { params: Promise
   const { code } = await params;
   const language = await viewerLanguage();
   const problem = await queryAsViewer(api.problems.get, { code, language });
-  if (!problem) notFound();
+  if (!problem) {
+    // A proctored contest withholds its problems rather than hiding them. Say
+    // so here, where somebody is looking at the problem, instead of replacing
+    // the whole site with a notice they did not ask for.
+    const gate = await queryAsViewer(api.proctor.gate, {}).catch(() => null);
+    if (gate?.blocked) {
+      return (
+        <>
+          <TitleRow title={gate.contestName ?? t("noSuchProblem")} />
+          <ProctorRequired contestName={gate.contestName} />
+        </>
+      );
+    }
+    notFound();
+  }
 
   const [{ html }, bar] = await Promise.all([
     renderMarkdown(problem.statement.source, problem.statement.preset),

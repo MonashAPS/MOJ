@@ -40,7 +40,7 @@ export default async function ContestPage({ params }: { params: Promise<{ key: s
       {/* Said before they join as well as on the gate afterwards, because
           somebody reading the page should know what it will ask of them. */}
       {detail.contest.proctorRequired ? (
-        <Alert variant="warning" className="mb-4">
+        <Alert variant="info" className="mb-4">
           <MonitorPlay size={16} aria-hidden />
           <AlertTitle>{t("title")}</AlertTitle>
           <AlertDescription>{t("noticeProctor")}</AlertDescription>

@@ -6,7 +6,6 @@ import { NextIntlClientProvider } from "next-intl";
 import { ConvexClientProvider } from "@/auth/convex-client";
 import { getServerSession } from "@/auth/session";
 import { BrandingStyle } from "@/components/BrandingStyle";
-import { ProctorGate } from "@/components/shell/ProctorGate";
 import { SiteShell } from "@/components/shell/SiteShell";
 import { ThemeScript } from "@/components/shell/ThemeScript";
 import { UiText } from "@/components/shell/UiText";
@@ -45,14 +44,13 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [shell, viewerState, session, language, branding, jar, proctor] = await Promise.all([
+  const [shell, viewerState, session, language, branding, jar] = await Promise.all([
     query(api.site.shell, {}).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
     getServerSession().catch(() => null),
     viewerLanguage(),
     query(api.site.branding, {}).catch(() => null),
     cookies(),
-    queryAsViewer(api.proctor.gate, {}).catch(() => null),
   ]);
 
   // Rendering the attribute here rather than leaving it to the inline script
@@ -105,10 +103,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 logoUrl={branding?.logoUrl ?? null}
                 siteName={branding?.siteLongName ?? "MAPS Online Judge"}
               >
-                {/* A proctored contest replaces every page, not one route:
-                    contest mode follows the viewer, and the statements it opens
-                    live under `/problem/` with everything else. */}
-                {proctor?.blocked ? <ProctorGate state={proctor} /> : children}
+                {children}
               </SiteShell>
             </ConvexClientProvider>
           </UiText>

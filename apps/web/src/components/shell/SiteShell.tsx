@@ -28,6 +28,13 @@ function isHallScoreboard(pathname: string): boolean {
   return /^\/scoreboard\/.+/.test(pathname);
 }
 
+/** Proctoring is a thing you set up, not a page of the site: it draws its own
+ *  chrome full-bleed over the club's backdrop, and the nav would only offer
+ *  somewhere else to go at the moment we are asking for attention. */
+function isProctor(pathname: string): boolean {
+  return /^\/proctor(\/|$)/.test(pathname);
+}
+
 export function SiteShell({
   nav,
   misc,
@@ -85,6 +92,20 @@ export function SiteShell({
       `calc(var(--header-height, var(--nav-height)) + var(--space-5))`,
     );
   }, []);
+
+  if (isProctor(pathname)) {
+    return (
+      <TooltipProvider>
+        <ProfileBootstrap />
+        {/* The club's own backdrop, which is what stops a bare page reading as
+            an error page. */}
+        <div aria-hidden className="page-constellations" />
+        <BackdropDrift />
+        {children}
+        <Toaster />
+      </TooltipProvider>
+    );
+  }
 
   if (isHallScoreboard(pathname)) {
     return (
