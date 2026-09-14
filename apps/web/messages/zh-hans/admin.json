@@ -2083,6 +2083,8 @@
     "missing": "找不到该会话。",
     "follow": "跟随实时",
     "gap": "录制中有缺口",
-    "noRecording": "尚未录制任何内容。"
+    "noRecording": "尚未录制任何内容。",
+    "watch": "查看",
+    "watchLive": "实时查看"
   }
 }

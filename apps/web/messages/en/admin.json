@@ -2083,6 +2083,8 @@
     "missing": "No such session.",
     "follow": "Follow live",
     "gap": "Gap in the recording",
-    "noRecording": "Nothing recorded yet."
+    "noRecording": "Nothing recorded yet.",
+    "watch": "Watch",
+    "watchLive": "Watch live"
   }
 }

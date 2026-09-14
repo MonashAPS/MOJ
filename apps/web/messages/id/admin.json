@@ -2083,6 +2083,8 @@
     "missing": "Sesi tidak ditemukan.",
     "follow": "Ikuti langsung",
     "gap": "Ada jeda pada rekaman",
-    "noRecording": "Belum ada yang terekam."
+    "noRecording": "Belum ada yang terekam.",
+    "watch": "Tonton",
+    "watchLive": "Tonton langsung"
   }
 }

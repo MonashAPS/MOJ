@@ -2083,6 +2083,8 @@
     "missing": "No existe esa sesión.",
     "follow": "Seguir en directo",
     "gap": "Hueco en la grabación",
-    "noRecording": "Todavía no hay nada grabado."
+    "noRecording": "Todavía no hay nada grabado.",
+    "watch": "Ver",
+    "watchLive": "Ver en directo"
   }
 }

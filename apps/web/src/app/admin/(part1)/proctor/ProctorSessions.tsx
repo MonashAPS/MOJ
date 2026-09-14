@@ -1,7 +1,17 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { Badge, EmptyState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@moj/ui";
+import {
+  Badge,
+  Button,
+  EmptyState,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@moj/ui";
 import { useQuery } from "convex/react";
 import { MonitorOff } from "lucide-react";
 import Link from "next/link";
@@ -44,14 +54,13 @@ export function ProctorSessions() {
               <TableHead>{t("lastSeen")}</TableHead>
               <TableHead>{t("recording")}</TableHead>
               <TableHead>{t("status")}</TableHead>
+              <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
             {sessions.map((session) => (
               <TableRow key={session._id}>
-                <TableCell>
-                  <Link href={`/admin/proctor/${session._id}/`}>{session.displayName}</Link>
-                </TableCell>
+                <TableCell>{session.displayName}</TableCell>
                 <TableCell>
                   {session.contestKey ? (
                     <Link href={`/contest/${session.contestKey}/`}>{session.contestKey}</Link>
@@ -75,6 +84,13 @@ export function ProctorSessions() {
                       {session.endedReason ?? t("lapsed")}
                     </Badge>
                   )}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button asChild size="sm" variant="secondary">
+                    <Link href={`/admin/proctor/${session._id}/`}>
+                      {session.live ? t("watchLive") : t("watch")}
+                    </Link>
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
