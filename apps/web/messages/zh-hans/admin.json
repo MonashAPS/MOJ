@@ -448,7 +448,7 @@
         "general": "常规",
         "problems": "题目",
         "people": "人员",
-        "seb": "Safe Exam Browser",
+        "proctoring": "监考",
         "actions": "操作",
         "revisions": "版本记录"
       },
@@ -614,33 +614,6 @@
       "submit": "保存人员",
       "reasonHint": "会随版本记录一同保存，方便他人了解此比赛的变更原因。"
     },
-    "seb": {
-      "title": "Safe Exam Browser",
-      "intro": "被锁定的比赛只能通过运行下列密钥所对应配置的 Safe Exam Browser 参加和提交。",
-      "required": "要求使用 Safe Exam Browser",
-      "noKeysWarning": "在下面至少填入一个密钥之前，不会锁定任何内容。",
-      "launchUrl": "启动链接",
-      "launchUrlHint": "展示给未通过 Safe Exam Browser 打开比赛的人。指向配置文件的 sebs:// 链接会启动它。",
-      "keys": "密钥",
-      "keysIntro": "每行一个。SEB 配置工具会为保存的配置显示这两种密钥。",
-      "configKeys": "Config Keys",
-      "configKeysHint": "仅由设置本身推导得出，因此一个就能覆盖所有平台和所有 SEB 版本。",
-      "browserExamKeys": "Browser Exam Keys",
-      "browserExamKeysHint": "可选，且每个 SEB 构建一个：Browser Exam Key 还包含客户端的代码签名。",
-      "saved": "Safe Exam Browser 设置已保存",
-      "refused": "评测机拒绝了本次修改。",
-      "generate": "生成配置",
-      "generateIntro": "MOJ 可以为本场比赛生成 .seb 文件并提供下载，无需任何人自行制作或托管。它会打开本场比赛并发送密钥请求头。",
-      "generateUnverified": "Config Key 按 SEB 公布的算法从该文件计算得出。该算法没有官方测试向量，因此在正式比赛前请用 SEB 配置工具核对，若不一致请把工具给出的密钥填到下方。",
-      "generatedFor": "已为 {origin} 生成。",
-      "downloadGenerated": "下载",
-      "regenerate": "重新生成",
-      "generated": "配置已生成",
-      "proctorTitle": "屏幕监考",
-      "proctorIntro": "有监考的比赛只在参赛者于 /proctor/ 共享整个屏幕期间开放题目。",
-      "proctorRequired": "要求共享屏幕",
-      "proctorHint": "与 Safe Exam Browser 相互独立。一场比赛可以只要求其中之一、同时要求或都不要求。仅限 Chromium 浏览器。"
-    },
     "actions": {
       "refused": "操作被拒绝。",
       "missingPermission": "你没有 {permission} 权限。",
@@ -704,6 +677,14 @@
           "action": "解锁"
         }
       }
+    },
+    "proctoring": {
+      "title": "监考",
+      "intro": "有监考的比赛只在参赛者于 /proctor/ 共享整个屏幕期间开放题目。",
+      "required": "要求共享屏幕",
+      "hint": "参加永远不会被拦截，查看题目和提交才会。仅限 Chromium 浏览器。",
+      "saved": "监考设置已保存",
+      "refused": "评测机拒绝了本次修改。"
     }
   },
   "submissions": {
@@ -1634,7 +1615,6 @@
       "requireStaffTwoFactor": "工作人员必须启用双重验证",
       "enableComments": "启用评论",
       "pdfEnabled": "允许将题面下载为 PDF",
-      "sebEnabled": "允许比赛要求使用 Safe Exam Browser",
       "submissions": "提交",
       "sourceVisibility": "源代码可见性",
       "sourceVisibilityHint": "谁可以查看其他成员的源代码。",

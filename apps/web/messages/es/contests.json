@@ -247,13 +247,34 @@
   },
   "joinControls": {
     "labels": {
-      "join": { "short": "Unirse", "long": "Unirse al concurso" },
-      "spectate": { "short": "Espectar", "long": "Espectar el concurso" },
-      "virtual": { "short": "Unión virtual", "long": "Unión virtual" },
-      "leave": { "short": "Salir", "long": "Salir del concurso" },
-      "stopSpectating": { "short": "Dejar de espectar", "long": "Dejar de espectar" },
-      "blocked": { "short": "Unirse", "long": "Unirse al concurso" },
-      "login": { "short": "Iniciar sesión", "long": "Inicia sesión para participar" }
+      "join": {
+        "short": "Unirse",
+        "long": "Unirse al concurso"
+      },
+      "spectate": {
+        "short": "Espectar",
+        "long": "Espectar el concurso"
+      },
+      "virtual": {
+        "short": "Unión virtual",
+        "long": "Unión virtual"
+      },
+      "leave": {
+        "short": "Salir",
+        "long": "Salir del concurso"
+      },
+      "stopSpectating": {
+        "short": "Dejar de espectar",
+        "long": "Dejar de espectar"
+      },
+      "blocked": {
+        "short": "Unirse",
+        "long": "Unirse al concurso"
+      },
+      "login": {
+        "short": "Iniciar sesión",
+        "long": "Inicia sesión para participar"
+      }
     },
     "confirm": {
       "join": {
@@ -487,19 +508,13 @@
     "tiesByAllProblems": "Los empates se resolverán por la suma del tiempo del último envío en **todos** los problemas.",
     "tiesNotBroken": "Los empates por puntuación **no** se resolverán."
   },
-  "seb": {
-    "dialogBody": "Este concurso está bloqueado. Inicia Safe Exam Browser con su configuración y el concurso se abrirá allí.",
-    "dialogLink": "Safe Exam Browser es un navegador de bloqueo gratuito para Windows y macOS. <seb>Más información</seb>.",
-    "downloadConfig": "Descargar configuración",
-    "title": "Se requiere Safe Exam Browser",
-    "body": "Solo se puede entrar a {name} desde Safe Exam Browser.",
-    "wrongConfiguration": "Safe Exam Browser está en ejecución, pero no con la configuración que este concurso espera.",
-    "howTo": "Cómo entrar",
-    "launchHint": "Inicia Safe Exam Browser con la configuración de este concurso y él mismo abrirá el concurso.",
-    "noLaunchUrl": "Pide a la organización el archivo de configuración de Safe Exam Browser de este concurso.",
-    "launch": "Iniciar Safe Exam Browser",
-    "leave": "Salir del modo concurso",
-    "beforeJoining": "Tienes que estar en Safe Exam Browser antes de poder unirte.",
-    "beforeJoiningNoUrl": "Tienes que estar en Safe Exam Browser antes de poder unirte. Pide el archivo de configuración a la organización."
+  "supervision": {
+    "title": "Este concurso está supervisado",
+    "body": "{name} solo abre sus problemas mientras compartes tu pantalla. Unirte no tiene restricción.",
+    "noticeProctor": "Tendrás que compartir toda tu pantalla para leer los problemas o enviar.",
+    "proctorTitle": "Comparte tu pantalla",
+    "proctorBody": "La supervisión graba toda tu pantalla mientras participas. La grabación va a la organización del concurso y a nadie más.",
+    "proctorAction": "Empezar a compartir",
+    "leave": "Salir del modo concurso"
   }
 }

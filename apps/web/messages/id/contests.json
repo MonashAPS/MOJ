@@ -247,13 +247,34 @@
   },
   "joinControls": {
     "labels": {
-      "join": { "short": "Gabung", "long": "Gabung kontes" },
-      "spectate": { "short": "Tonton", "long": "Tonton kontes" },
-      "virtual": { "short": "Gabung virtual", "long": "Gabung virtual" },
-      "leave": { "short": "Tinggalkan", "long": "Tinggalkan kontes" },
-      "stopSpectating": { "short": "Berhenti menonton", "long": "Berhenti menonton" },
-      "blocked": { "short": "Gabung", "long": "Gabung kontes" },
-      "login": { "short": "Masuk", "long": "Masuk untuk berpartisipasi" }
+      "join": {
+        "short": "Gabung",
+        "long": "Gabung kontes"
+      },
+      "spectate": {
+        "short": "Tonton",
+        "long": "Tonton kontes"
+      },
+      "virtual": {
+        "short": "Gabung virtual",
+        "long": "Gabung virtual"
+      },
+      "leave": {
+        "short": "Tinggalkan",
+        "long": "Tinggalkan kontes"
+      },
+      "stopSpectating": {
+        "short": "Berhenti menonton",
+        "long": "Berhenti menonton"
+      },
+      "blocked": {
+        "short": "Gabung",
+        "long": "Gabung kontes"
+      },
+      "login": {
+        "short": "Masuk",
+        "long": "Masuk untuk berpartisipasi"
+      }
     },
     "confirm": {
       "join": {
@@ -487,19 +508,13 @@
     "tiesByAllProblems": "Hasil seri akan diputuskan berdasarkan jumlah waktu pengiriman terakhir pada **semua** soal.",
     "tiesNotBroken": "Hasil seri berdasarkan skor **tidak** akan diputuskan."
   },
-  "seb": {
-    "dialogBody": "Kontes ini terkunci. Jalankan Safe Exam Browser dengan konfigurasinya dan kontesnya akan terbuka di sana.",
-    "dialogLink": "Safe Exam Browser adalah peramban terkunci gratis untuk Windows dan macOS. <seb>Selengkapnya</seb>.",
-    "downloadConfig": "Unduh konfigurasi",
-    "title": "Safe Exam Browser diperlukan",
-    "body": "{name} hanya bisa dimasuki dari Safe Exam Browser.",
-    "wrongConfiguration": "Safe Exam Browser sedang berjalan, tetapi bukan dengan konfigurasi yang diharapkan kontes ini.",
-    "howTo": "Cara masuk",
-    "launchHint": "Jalankan Safe Exam Browser dengan konfigurasi kontes ini, dan kontesnya akan terbuka sendiri.",
-    "noLaunchUrl": "Mintalah berkas konfigurasi Safe Exam Browser kontes ini kepada panitia.",
-    "launch": "Jalankan Safe Exam Browser",
-    "leave": "Keluar dari mode kontes",
-    "beforeJoining": "Kamu harus berada di Safe Exam Browser sebelum bisa bergabung.",
-    "beforeJoiningNoUrl": "Kamu harus berada di Safe Exam Browser sebelum bisa bergabung. Mintalah berkas konfigurasinya kepada panitia."
+  "supervision": {
+    "title": "Kontes ini diawasi",
+    "body": "{name} hanya membuka soalnya selama kamu membagikan layarmu. Bergabung tetap bebas.",
+    "noticeProctor": "Kamu perlu membagikan seluruh layar untuk membaca soal atau mengirim jawaban.",
+    "proctorTitle": "Bagikan layarmu",
+    "proctorBody": "Pengawasan merekam seluruh layarmu selama kamu ikut serta. Rekamannya hanya diterima panitia kontes.",
+    "proctorAction": "Mulai membagikan",
+    "leave": "Keluar dari mode kontes"
   }
 }

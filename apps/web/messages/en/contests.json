@@ -247,13 +247,34 @@
   },
   "joinControls": {
     "labels": {
-      "join": { "short": "Join", "long": "Join contest" },
-      "spectate": { "short": "Spectate", "long": "Spectate contest" },
-      "virtual": { "short": "Virtual join", "long": "Virtual join" },
-      "leave": { "short": "Leave", "long": "Leave contest" },
-      "stopSpectating": { "short": "Stop spectating", "long": "Stop spectating" },
-      "blocked": { "short": "Join", "long": "Join contest" },
-      "login": { "short": "Log in", "long": "Log in to participate" }
+      "join": {
+        "short": "Join",
+        "long": "Join contest"
+      },
+      "spectate": {
+        "short": "Spectate",
+        "long": "Spectate contest"
+      },
+      "virtual": {
+        "short": "Virtual join",
+        "long": "Virtual join"
+      },
+      "leave": {
+        "short": "Leave",
+        "long": "Leave contest"
+      },
+      "stopSpectating": {
+        "short": "Stop spectating",
+        "long": "Stop spectating"
+      },
+      "blocked": {
+        "short": "Join",
+        "long": "Join contest"
+      },
+      "login": {
+        "short": "Log in",
+        "long": "Log in to participate"
+      }
     },
     "confirm": {
       "join": {
@@ -487,19 +508,13 @@
     "tiesByAllProblems": "Ties will be broken by the sum of the last submission time on **all** problems.",
     "tiesNotBroken": "Ties by score will **not** be broken."
   },
-  "seb": {
-    "dialogBody": "This contest is locked. Start Safe Exam Browser with its configuration and the contest opens there.",
-    "dialogLink": "Safe Exam Browser is a free lockdown browser for Windows and macOS. <seb>Read about it</seb>.",
-    "downloadConfig": "Download configuration",
-    "title": "Safe Exam Browser required",
-    "body": "{name} can only be entered from Safe Exam Browser.",
-    "wrongConfiguration": "Safe Exam Browser is running, but not with the configuration this contest expects.",
-    "howTo": "Getting in",
-    "launchHint": "Start Safe Exam Browser with this contest's configuration, and it will open the contest itself.",
-    "noLaunchUrl": "Ask the organisers for this contest's Safe Exam Browser configuration file.",
-    "launch": "Launch Safe Exam Browser",
-    "leave": "Leave contest mode",
-    "beforeJoining": "You have to be in Safe Exam Browser before you can join.",
-    "beforeJoiningNoUrl": "You have to be in Safe Exam Browser before you can join. Ask the organisers for the configuration file."
+  "supervision": {
+    "title": "This contest is proctored",
+    "body": "{name} only opens its problems while you are sharing your screen. Joining is fine either way.",
+    "noticeProctor": "You will need to share your whole screen to read the problems or submit.",
+    "proctorTitle": "Share your screen",
+    "proctorBody": "Proctoring records your whole screen for as long as you take part. The recording goes to the contest's organisers and nobody else.",
+    "proctorAction": "Start sharing",
+    "leave": "Leave contest mode"
   }
 }

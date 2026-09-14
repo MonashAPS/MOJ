@@ -43,9 +43,6 @@ export default async function SubmitPage({ params }: { params: Promise<{ code: s
         defaultLanguageKey={preferred?.key ?? null}
         canPinJudge={problem.canEdit}
         submissionsLeft={problem.contestProblem?.submissionsLeft ?? null}
-        // Only a locked contest makes the form fetch a ticket, so an ordinary
-        // submission costs no extra request.
-        sebContestKey={viewerState?.contest?.sebRequired ? viewerState.contest.key : null}
       />
     </ProblemPage>
   );

@@ -6,14 +6,13 @@ import { NextIntlClientProvider } from "next-intl";
 import { ConvexClientProvider } from "@/auth/convex-client";
 import { getServerSession } from "@/auth/session";
 import { BrandingStyle } from "@/components/BrandingStyle";
-import { SebLaunch } from "@/components/shell/SebLaunch";
+import { ProctorGate } from "@/components/shell/ProctorGate";
 import { SiteShell } from "@/components/shell/SiteShell";
 import { ThemeScript } from "@/components/shell/ThemeScript";
 import { UiText } from "@/components/shell/UiText";
 import { query, queryAsViewer } from "@/lib/convex-server";
 import { gravatarUrl } from "@/lib/gravatar";
 import { viewerLanguage } from "@/lib/language.server";
-import { sebRequirement } from "@/lib/seb.server";
 import { resolveTheme, THEME_COOKIE } from "@/lib/theme";
 import "./globals.css";
 
@@ -46,14 +45,14 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [shell, viewerState, session, language, branding, jar, seb] = await Promise.all([
+  const [shell, viewerState, session, language, branding, jar, proctor] = await Promise.all([
     query(api.site.shell, {}).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
     getServerSession().catch(() => null),
     viewerLanguage(),
     query(api.site.branding, {}).catch(() => null),
     cookies(),
-    sebRequirement(),
+    queryAsViewer(api.proctor.gate, {}).catch(() => null),
   ]);
 
   // Rendering the attribute here rather than leaving it to the inline script
@@ -106,10 +105,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 logoUrl={branding?.logoUrl ?? null}
                 siteName={branding?.siteLongName ?? "MAPS Online Judge"}
               >
-                {/* A locked contest replaces every page, not one route: contest
-                    mode follows the viewer, and the statements it opens live
-                    under `/problem/` with everything else. */}
-                {seb.locked && !seb.verified ? <SebLaunch requirement={seb} /> : children}
+                {/* A proctored contest replaces every page, not one route:
+                    contest mode follows the viewer, and the statements it opens
+                    live under `/problem/` with everything else. */}
+                {proctor?.blocked ? <ProctorGate state={proctor} /> : children}
               </SiteShell>
             </ConvexClientProvider>
           </UiText>

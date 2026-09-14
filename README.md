@@ -11,8 +11,8 @@ MOJ is an online judge and contest platform written in TypeScript, compatible wi
 * **Live submission status**, with no polling and no event daemon to run
 * **Contest formats** for ICPC, IOI, AtCoder and ECOO, with rated contests and virtual participation
 * **Hidden scoreboards**, a scoreboard freeze, a reveal ceremony and a hall scoreboard for projectors
-* **Safe Exam Browser**: a locked contest can only be joined, read and submitted to from the configuration you
-  hand out. See [Safe Exam Browser](https://monashaps.github.io/MOJ/admin/seb).
+* **Screen proctoring**, built in: a proctored contest opens its problems only while the competitor is sharing
+  their whole screen, with live monitoring and replay in the staff console
 * **Problem statements** in markdown, with maths, images, PDF export and per-language limits
 * **Editorials and clarifications**, organisations, classes, comments, tickets and a blog
 * A **staff console** with revision history and impersonation

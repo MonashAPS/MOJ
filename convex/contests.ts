@@ -51,7 +51,6 @@ import {
 } from "./contestFormats";
 import { optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, invalid, mojError, notFound } from "./lib/errors";
-import { recordSebVerification, requireSebTicket } from "./lib/seb";
 
 /* -------------------------------------------------------------------------- */
 /* Shared shapes                                                              */
@@ -134,9 +133,7 @@ export type ContestListRow = {
   authors: UserRef[];
   isEditorOrTester: boolean;
   hasCompleted: boolean;
-  /** Locked to Safe Exam Browser, so the join control offers a launch instead. */
-  sebRequired: boolean;
-  sebLaunchUrl: string | null;
+  proctorRequired: boolean;
 };
 
 export type ActiveParticipation = {
@@ -480,8 +477,7 @@ async function listRow(
     authors: await userRefs(ctx, contest.authorProfileIds),
     isEditorOrTester: editorOrTester,
     hasCompleted,
-    sebRequired: contest.sebRequired ?? false,
-    sebLaunchUrl: contest.sebLaunchUrl ?? null,
+    proctorRequired: contest.proctorRequired ?? false,
   };
 }
 
@@ -493,33 +489,6 @@ async function listRow(
  * The cursor is an offset into the filtered list, because contest visibility
  * cannot be expressed as an index range.
  */
-/**
- * Where the generated Safe Exam Browser configuration points, for the route
- * that serves it. Null when this contest has never had one generated.
- *
- * Public on purpose: a competitor has to be able to fetch the file before they
- * are in SEB, which is the whole point of handing them a link to it.
- */
-export const sebConfig = query({
-  args: { key: v.string() },
-  handler: async (ctx, { key }): Promise<{ startUrl: string; quitUrl: string } | null> => {
-    const contest = await contestByKey(ctx, key);
-    if (!contest?.sebRequired) return null;
-
-    const row = await ctx.db
-      .query("contestSebKeys")
-      .withIndex("by_contest", (q) => q.eq("contestId", contest._id))
-      .unique();
-    const origin = row?.generatedOrigin;
-    if (!origin) return null;
-
-    return {
-      startUrl: `${origin}/contest/${contest.key}/`,
-      quitUrl: `${origin}/contests/`,
-    };
-  },
-});
-
 export const list = query({
   args: {
     paginationOpts: v.optional(v.object({ numItems: v.number(), cursor: v.union(v.string(), v.null()) })),
@@ -912,9 +881,7 @@ export type ContestDetail = {
     lockedAfter: number | null;
     ratingFloor: number | null;
     ratingCeiling: number | null;
-    /** Locked to Safe Exam Browser. The keys themselves are never projected. */
-    sebRequired: boolean;
-    sebLaunchUrl: string | null;
+    proctorRequired: boolean;
     tags: TagRef[];
     organizations: OrganizationRef[];
     authors: UserRef[];
@@ -1203,8 +1170,7 @@ export const get = query({
         lockedAfter: contest.lockedAfter ?? null,
         ratingFloor: contest.ratingFloor ?? null,
         ratingCeiling: contest.ratingCeiling ?? null,
-        sebRequired: contest.sebRequired ?? false,
-        sebLaunchUrl: contest.sebLaunchUrl ?? null,
+        proctorRequired: contest.proctorRequired ?? false,
         tags: await tagRefs(ctx, contest.tagIds),
         organizations: await organizationRefs(ctx, contest.organizationIds),
         authors: await userRefs(ctx, contest.authorProfileIds),
@@ -1313,17 +1279,17 @@ async function updateUserCount(ctx: MutationCtx, contestId: Id<"contests">): Pro
  * both win.
  */
 export const join = mutation({
-  args: { key: v.string(), accessCode: v.optional(v.string()), sebTicket: v.optional(v.string()) },
+  args: { key: v.string(), accessCode: v.optional(v.string()) },
   handler: async (
     ctx,
-    { key, accessCode, sebTicket },
+    { key, accessCode },
   ): Promise<{ participationId: Id<"contestParticipations">; virtual: number }> => {
     const profile = await requireViewer(ctx);
     const contest = await requireAccessibleContest(ctx, key, profile);
-    // Joining is what puts the viewer in contest mode, and contest mode is what
-    // opens the contest's problems regardless of their own visibility. A locked
-    // contest therefore has to be gated here and not only at the page render.
-    await requireSebTicket(ctx, contest, profile._id, sebTicket);
+    // Joining a supervised contest is not itself gated. Reading a problem and
+    // submitting to one are, and those are the acts that matter; refusing the
+    // join as well only meant someone could not get as far as being told what
+    // to do about it.
     const viewer = await toViewerRowInContest(ctx, profile);
     const contestRow = toContestRow(contest);
     const now = Date.now();
@@ -1409,10 +1375,6 @@ export const join = mutation({
     if (!participation) throw mojError("CONFLICT", "Could not join the contest.");
 
     await ctx.db.patch(profile._id, { currentParticipationId: participation._id });
-    // The ticket above already proved this request came from SEB. Stamping it
-    // here means the first page after joining is covered, before any render has
-    // had a chance to check in.
-    if (sebTicket) await recordSebVerification(ctx, profile._id, contest._id);
     await updateUserCount(ctx, contest._id);
     return { participationId: participation._id, virtual: participation.virtual };
   },

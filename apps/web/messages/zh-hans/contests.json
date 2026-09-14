@@ -247,13 +247,34 @@
   },
   "joinControls": {
     "labels": {
-      "join": { "short": "加入", "long": "加入比赛" },
-      "spectate": { "short": "观赛", "long": "观看比赛" },
-      "virtual": { "short": "虚拟加入", "long": "虚拟加入" },
-      "leave": { "short": "退出", "long": "退出比赛" },
-      "stopSpectating": { "short": "停止观赛", "long": "停止观赛" },
-      "blocked": { "short": "加入", "long": "加入比赛" },
-      "login": { "short": "登录", "long": "登录以参赛" }
+      "join": {
+        "short": "加入",
+        "long": "加入比赛"
+      },
+      "spectate": {
+        "short": "观赛",
+        "long": "观看比赛"
+      },
+      "virtual": {
+        "short": "虚拟加入",
+        "long": "虚拟加入"
+      },
+      "leave": {
+        "short": "退出",
+        "long": "退出比赛"
+      },
+      "stopSpectating": {
+        "short": "停止观赛",
+        "long": "停止观赛"
+      },
+      "blocked": {
+        "short": "加入",
+        "long": "加入比赛"
+      },
+      "login": {
+        "short": "登录",
+        "long": "登录以参赛"
+      }
     },
     "confirm": {
       "join": {
@@ -487,19 +508,13 @@
     "tiesByAllProblems": "并列名次按**所有**题目中最后一次提交时间之和排定先后。",
     "tiesNotBroken": "得分并列的名次**不会**被进一步区分。"
   },
-  "seb": {
-    "dialogBody": "本场比赛已锁定。用它的配置启动 Safe Exam Browser，比赛就会在那里打开。",
-    "dialogLink": "Safe Exam Browser 是适用于 Windows 和 macOS 的免费锁定浏览器。<seb>了解详情</seb>。",
-    "downloadConfig": "下载配置",
-    "title": "需要 Safe Exam Browser",
-    "body": "只能通过 Safe Exam Browser 进入 {name}。",
-    "wrongConfiguration": "Safe Exam Browser 正在运行，但使用的不是本场比赛要求的配置。",
-    "howTo": "如何进入",
-    "launchHint": "用本场比赛的配置启动 Safe Exam Browser，它会自己打开比赛页面。",
-    "noLaunchUrl": "请向主办方索取本场比赛的 Safe Exam Browser 配置文件。",
-    "launch": "启动 Safe Exam Browser",
-    "leave": "退出比赛模式",
-    "beforeJoining": "必须先进入 Safe Exam Browser 才能参加。",
-    "beforeJoiningNoUrl": "必须先进入 Safe Exam Browser 才能参加。请向主办方索取配置文件。"
+  "supervision": {
+    "title": "本场比赛有监考",
+    "body": "只有在你共享屏幕时，{name} 才会开放题目。参加本身不受限制。",
+    "noticeProctor": "你需要共享整个屏幕才能查看题目或提交。",
+    "proctorTitle": "共享你的屏幕",
+    "proctorBody": "监考会在你参赛期间录制整个屏幕。录制内容只交给比赛主办方。",
+    "proctorAction": "开始共享",
+    "leave": "退出比赛模式"
   }
 }

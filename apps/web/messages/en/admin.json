@@ -448,7 +448,7 @@
         "general": "General",
         "problems": "Problems",
         "people": "People",
-        "seb": "Safe Exam Browser",
+        "proctoring": "Proctoring",
         "actions": "Actions",
         "revisions": "Revisions"
       },
@@ -614,33 +614,6 @@
       "submit": "Save people",
       "reasonHint": "Kept with the revision so the next person can see why this contest moved."
     },
-    "seb": {
-      "title": "Safe Exam Browser",
-      "intro": "A locked contest can only be joined and submitted to from Safe Exam Browser running the configuration whose keys are below.",
-      "required": "Require Safe Exam Browser",
-      "noKeysWarning": "Nothing is locked until at least one key is set below.",
-      "launchUrl": "Launch link",
-      "launchUrlHint": "Shown to anyone who reaches the contest without Safe Exam Browser. An sebs:// link to the configuration file starts it.",
-      "keys": "Keys",
-      "keysIntro": "One per line. The SEB Configuration Tool shows both for a saved configuration.",
-      "configKeys": "Config Keys",
-      "configKeysHint": "Derived from the settings alone, so one covers every platform and every SEB release.",
-      "browserExamKeys": "Browser Exam Keys",
-      "browserExamKeysHint": "Optional, and one per SEB build: a Browser Exam Key also covers the client's code signature.",
-      "saved": "Safe Exam Browser settings saved",
-      "refused": "The judge refused the change.",
-      "generate": "Generate a configuration",
-      "generateIntro": "MOJ can write the .seb file for this contest and serve it, so nobody has to build or host one. It opens on this contest and sends the key header.",
-      "generateUnverified": "The Config Key is computed from the file by SEB's published recipe. There is no official test vector for that recipe, so confirm it against the SEB Configuration Tool before a contest that matters, and paste the tool's key below if they disagree.",
-      "generatedFor": "Generated for {origin}.",
-      "downloadGenerated": "Download it",
-      "regenerate": "Generate again",
-      "generated": "Configuration generated",
-      "proctorTitle": "Screen proctoring",
-      "proctorIntro": "A proctored contest opens its problems only while the competitor is sharing their whole screen at /proctor/.",
-      "proctorRequired": "Require screen sharing",
-      "proctorHint": "Independent of Safe Exam Browser. A contest may ask for either, both or neither. Chromium browsers only."
-    },
     "actions": {
       "refused": "The action was refused.",
       "missingPermission": "You do not have {permission}.",
@@ -704,6 +677,14 @@
           "action": "Unlock"
         }
       }
+    },
+    "proctoring": {
+      "title": "Proctoring",
+      "intro": "A proctored contest opens its problems only while the competitor is sharing their whole screen at /proctor/.",
+      "required": "Require screen sharing",
+      "hint": "Joining is never blocked. Reading a problem and submitting to one are. Chromium browsers only.",
+      "saved": "Proctoring settings saved",
+      "refused": "The judge refused the change."
     }
   },
   "submissions": {
@@ -1634,7 +1615,6 @@
       "requireStaffTwoFactor": "Staff must have two-factor authentication",
       "enableComments": "Comments are enabled",
       "pdfEnabled": "Statements can be downloaded as PDF",
-      "sebEnabled": "Allow contests to require Safe Exam Browser",
       "submissions": "Submissions",
       "sourceVisibility": "Source visibility",
       "sourceVisibilityHint": "Who may read another member's source.",
