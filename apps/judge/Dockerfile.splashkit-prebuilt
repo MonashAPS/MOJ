@@ -1,0 +1,77 @@
+# MOJ judge image with SplashKit, from a library someone else already compiled.
+#
+# `Dockerfile.splashkit` builds SplashKit from source, which pulls llama.cpp and
+# wants several gigabytes of scratch space and a quarter of an hour. That is fine
+# on a workstation and wrong on a judge box, which is typically small and already
+# holding a runtimes image. This one skips the compile: it takes the library and
+# headers out of the build context and layers them onto the tier you name, which
+# costs about 280 MB on top of a base the box already has.
+#
+# Produce the artifacts once, from the source build:
+#
+#   docker build --target splashkit -f apps/judge/Dockerfile.splashkit \
+#     --build-arg TIER=tier1 -t moj-splashkit-source apps/judge
+#   cid=$(docker create moj-splashkit-source)
+#   mkdir -p apps/judge/splashkit
+#   docker cp "$cid:/skm/lib/linux/libSplashKit.so"          apps/judge/splashkit/
+#   docker cp "$cid:/skm/clang++/include"                    apps/judge/splashkit/splashkit
+#   docker cp "$cid:/skm/global/install/splashkit.h"         apps/judge/splashkit/
+#   docker cp "$cid:/skm/global/install/splashkit-arrays.h"  apps/judge/splashkit/
+#   docker cp "$cid:/skm/python3/splashkit.py"               apps/judge/splashkit/
+#   docker rm "$cid"
+#
+# The tier the artifacts were built on does not have to match the tier here: the
+# library links against the SDL and libcurl runtimes installed below, which every
+# tier gets from the same Debian.
+#
+#   docker build -f apps/judge/Dockerfile.splashkit-prebuilt \
+#     --build-arg TIER=tier3 -t moj-judge:splashkit-tier3 apps/judge
+ARG TIER=tier1
+FROM dmoj/runtimes-${TIER}
+
+# Only the runtime halves of what libSplashKit.so links against. The bullseye
+# list goes back afterwards: the older runtimes in this image install from it.
+RUN mv /etc/apt/sources.list.d/bullseye.list /etc/apt/sources.list.d/experimental.list /tmp/ && \
+	apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+	libsdl2-2.0-0 libsdl2-mixer-2.0-0 libsdl2-gfx-1.0-0 libsdl2-image-2.0-0 \
+	libsdl2-net-2.0-0 libsdl2-ttf-2.0-0 libmikmod3 libpng16-16t64 libcurl4 \
+	libflac14 libvorbis0a libvorbisfile3 libwebp7 libfreetype6 && \
+	mv /tmp/bullseye.list /tmp/experimental.list /etc/apt/sources.list.d/ && \
+	rm -rf /var/lib/apt/lists/*
+
+COPY splashkit/libSplashKit.so /usr/local/lib/libSplashKit.so
+COPY splashkit/splashkit/ /usr/local/include/splashkit/
+COPY splashkit/splashkit.h /usr/local/include/splashkit.h
+COPY splashkit/splashkit-arrays.h /usr/local/include/splashkit-arrays.h
+COPY splashkit/splashkit.py /usr/local/lib/splashkit.py
+RUN echo /usr/local/lib > /etc/ld.so.conf.d/splashkit.conf && ldconfig && \
+	# The Python binding is a single module that loads the same shared library
+	# through ctypes. It goes where this image's python3 already looks, so the
+	# SplashKit Python executor only has to name the directory on the path.
+	python3 -c "import shutil, site; shutil.copy('/usr/local/lib/splashkit.py', site.getsitepackages()[0])"
+
+COPY judge-server /judge
+
+RUN mkdir -p /problems /judge-data-cache && chown judge:judge /judge-data-cache && cd /judge && \
+	{ python3 -m venv /env || { python3 -m pip install --no-cache-dir virtualenv && \
+		python3 -m virtualenv --prompt=DMOJ /env; }; } && \
+	/env/bin/pip3 install --no-cache-dir cython setuptools && \
+	/env/bin/pip3 install --no-cache-dir -e . && \
+	/env/bin/python3 setup.py develop && \
+	HOME=~judge . ~judge/.profile && \
+	runuser -u judge -w PATH -- /env/bin/dmoj-autoconf -V > /judge-runtime-paths.yml && \
+	echo '  crt_x86_in_lib32: true' >> /judge-runtime-paths.yml
+
+COPY judge.yml.template /judge.yml.template
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENV DMOJ_IN_DOCKER=1 \
+	PYTHONUNBUFFERED=1 \
+	LANG=C.UTF-8 \
+	PYTHONIOENCODING=utf8 \
+	MOJ_DATA_CACHE=/judge-data-cache
+
+VOLUME ["/judge-data-cache"]
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]
