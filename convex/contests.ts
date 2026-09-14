@@ -134,6 +134,9 @@ export type ContestListRow = {
   authors: UserRef[];
   isEditorOrTester: boolean;
   hasCompleted: boolean;
+  /** Locked to Safe Exam Browser, so the join control offers a launch instead. */
+  sebRequired: boolean;
+  sebLaunchUrl: string | null;
 };
 
 export type ActiveParticipation = {
@@ -477,6 +480,8 @@ async function listRow(
     authors: await userRefs(ctx, contest.authorProfileIds),
     isEditorOrTester: editorOrTester,
     hasCompleted,
+    sebRequired: contest.sebRequired ?? false,
+    sebLaunchUrl: contest.sebLaunchUrl ?? null,
   };
 }
 

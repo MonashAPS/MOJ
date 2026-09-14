@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  Alert,
+  AlertTitle,
   Button,
   type ButtonSize,
   Dialog,
@@ -10,12 +12,38 @@ import {
   DialogTrigger,
   Tooltip,
 } from "@moj/ui";
+import { TriangleAlert } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 import { joinContest, leaveContest } from "@/app/contest/actions";
 
 export type JoinKind = "join" | "spectate" | "virtual" | "leave" | "stopSpectating" | "blocked" | "login";
+
+/**
+ * One stored URL gives both buttons. SEB registers the `seb://` and `sebs://`
+ * schemes, which tell it to fetch the configuration and start on it; the same
+ * address over https is the plain file, for anyone who wants to open it by
+ * hand or has not installed SEB yet.
+ */
+function sebLinks(launchUrl: string | null | undefined): { launch: string; download: string } | null {
+  if (!launchUrl) return null;
+  const trimmed = launchUrl.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("sebs://")) {
+    return { launch: trimmed, download: `https://${trimmed.slice("sebs://".length)}` };
+  }
+  if (trimmed.startsWith("seb://")) {
+    return { launch: trimmed, download: `http://${trimmed.slice("seb://".length)}` };
+  }
+  if (trimmed.startsWith("https://")) {
+    return { launch: `sebs://${trimmed.slice("https://".length)}`, download: trimmed };
+  }
+  if (trimmed.startsWith("http://")) {
+    return { launch: `seb://${trimmed.slice("http://".length)}`, download: trimmed };
+  }
+  return { launch: trimmed, download: trimmed };
+}
 
 /** The kinds DMOJ asks about before it posts; the rest go straight through. */
 const CONFIRMED: JoinKind[] = ["join", "virtual"];
@@ -32,6 +60,8 @@ export function JoinControl({
   full = false,
   size = "sm",
   banned = false,
+  sebRequired = false,
+  sebLaunchUrl = null,
   className,
 }: {
   contestKey: string;
@@ -41,8 +71,12 @@ export function JoinControl({
   size?: ButtonSize;
   /** DMOJ's persona non grata: the reason the button is off. */
   banned?: boolean;
+  /** Locked to Safe Exam Browser: entering is a launch, not a form post. */
+  sebRequired?: boolean;
+  sebLaunchUrl?: string | null;
   className?: string;
 }) {
+  const seb = useTranslations("contests.seb");
   const pathname = usePathname() ?? "/contests/";
   const [open, setOpen] = useState(false);
   const leaving = kind === "leave" || kind === "stopSpectating";
@@ -56,6 +90,50 @@ export function JoinControl({
       <Button asChild variant="secondary" size={size} full={full} className={className}>
         <a href={`/accounts/login/?next=${encodeURIComponent(pathname)}`}>{label}</a>
       </Button>
+    );
+  }
+
+  // A locked contest is not entered by posting a form, so the button opens what
+  // to do about it rather than a refusal the mutation would have raised anyway.
+  // Leaving is untouched: someone stuck in contest mode has to be able to get out.
+  if (sebRequired && !leaving) {
+    const links = sebLinks(sebLaunchUrl);
+    return (
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button variant="primary" size={size} full={full} className={className}>
+            {label}
+          </Button>
+        </DialogTrigger>
+        <DialogContent title={seb("title")} description={seb("dialogBody")}>
+          <p className="text-sm text-muted-foreground">
+            {seb.rich("dialogLink", {
+              seb: (chunks) => (
+                <a href="https://safeexambrowser.org/" target="_blank" rel="noreferrer noopener">
+                  {chunks}
+                </a>
+              ),
+            })}
+          </p>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="secondary">{common("cancel")}</Button>
+            </DialogClose>
+            {links ? (
+              <>
+                <Button asChild variant="secondary">
+                  <a href={links.download} download>
+                    {seb("downloadConfig")}
+                  </a>
+                </Button>
+                <Button asChild variant="primary">
+                  <a href={links.launch}>{seb("launch")}</a>
+                </Button>
+              </>
+            ) : null}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     );
   }
 
@@ -103,7 +181,7 @@ export function JoinControl({
     return (
       <>
         {form}
-        {state?.error ? <p className="mt-1 text-sm text-bad">{state.error}</p> : null}
+        <JoinError message={state?.error ?? null} />
       </>
     );
   }
@@ -130,7 +208,18 @@ export function JoinControl({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {state?.error ? <p className="mt-1 text-sm text-bad">{state.error}</p> : null}
+      <JoinError message={state?.error ?? null} />
     </>
+  );
+}
+
+/** A refusal from the server action, which is a sentence and not a field error. */
+function JoinError({ message }: { message: string | null }) {
+  if (!message) return null;
+  return (
+    <Alert variant="danger" role="alert" className="mt-2">
+      <TriangleAlert size={16} aria-hidden />
+      <AlertTitle>{message}</AlertTitle>
+    </Alert>
   );
 }

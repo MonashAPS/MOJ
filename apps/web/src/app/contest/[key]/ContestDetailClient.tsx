@@ -408,6 +408,8 @@ export function ContestDetailClient({
               long
               size="default"
               banned={detail.viewer.isBanned}
+              sebRequired={detail.contest?.sebRequired}
+              sebLaunchUrl={detail.contest?.sebLaunchUrl}
             />
           ) : undefined
         }
