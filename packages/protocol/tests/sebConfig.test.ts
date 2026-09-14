@@ -77,6 +77,57 @@ describe("sebConfigKeyJson", () => {
   });
 });
 
+describe("permitted applications", () => {
+  it("lists an entry per platform an application names", () => {
+    const rows = sebConfigFor(OPTIONS).permittedProcesses as SebConfigDict[];
+    const mac = rows.filter((row) => row.os === 0);
+    const windows = rows.filter((row) => row.os === 1);
+    expect(mac.some((row) => row.identifier === "com.microsoft.VSCode")).toBe(true);
+    expect(windows.some((row) => row.executable === "Code.exe")).toBe(true);
+    // Xcode is macOS only and must not appear as a Windows executable.
+    expect(windows.some((row) => row.title === "Xcode")).toBe(false);
+  });
+
+  it("puts them in the dock and lets the competitor start them", () => {
+    const rows = sebConfigFor(OPTIONS).permittedProcesses as SebConfigDict[];
+    for (const row of rows) {
+      expect(row.active).toBe(true);
+      expect(row.allowUser).toBe(true);
+      // Nothing launches itself, and SEB does not take an unsaved buffer away.
+      expect(row.autostart).toBe(false);
+      expect(row.strongKill).toBe(false);
+    }
+  });
+
+  it("turns the dock on, since macOS hides its own", () => {
+    expect(sebConfigFor(OPTIONS).showTaskBar).toBe(true);
+  });
+});
+
+describe("nested structures", () => {
+  it("sorts keys inside a nested dictionary too", () => {
+    const json = sebConfigKeyJson({ outer: { zebra: 1, apple: 2 } });
+    expect(json).toBe('{"outer":{"apple":2,"zebra":1}}');
+  });
+
+  it("keeps array order, which is the author's and not sorted", () => {
+    const json = sebConfigKeyJson({ list: [{ b: 1 }, { a: 2 }] });
+    expect(json).toBe('{"list":[{"b":1},{"a":2}]}');
+  });
+
+  it("writes nested dictionaries and arrays as a property list", () => {
+    const xml = sebConfigPlist({ rows: [{ title: "One", active: true }] });
+    expect(xml).toContain("<array>");
+    expect(xml).toContain("<dict>");
+    expect(xml).toContain("<key>title</key>");
+    expect(xml).toContain("<string>One</string>");
+  });
+
+  it("writes an empty array in its short form", () => {
+    expect(sebConfigPlist({ rows: [] })).toContain("<array/>");
+  });
+});
+
 describe("sebConfigKey", () => {
   it("is 64 hexadecimal characters, the shape a contest stores", async () => {
     expect(await sebConfigKey(sebConfigFor(OPTIONS))).toMatch(/^[0-9a-f]{64}$/);

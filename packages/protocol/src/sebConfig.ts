@@ -1,3 +1,5 @@
+import { SEB_APPLICATIONS, SEB_OS_MACOS, SEB_OS_WINDOWS } from "./sebApps";
+
 /**
  * Generating a Safe Exam Browser configuration, and the Config Key for it.
  *
@@ -15,8 +17,8 @@
  */
 
 /** The subset of a `.seb` file MOJ writes. Everything else takes SEB's default. */
-export type SebConfigValue = string | number | boolean;
-export type SebConfigDict = Record<string, SebConfigValue>;
+export type SebConfigValue = string | number | boolean | SebConfigDict | SebConfigValue[];
+export type SebConfigDict = { [key: string]: SebConfigValue };
 
 export type SebConfigOptions = {
   /** Where SEB lands, normally the contest: `https://judge.example.org/contest/x/`. */
@@ -69,7 +71,50 @@ export function sebConfigFor(options: SebConfigOptions): SebConfigDict {
     // and SEB shows a banner on it; nothing here uses SEB's JavaScript API,
     // which is the only reason to stay on the old one.
     browserWindowWebView: 3,
+
+    // Without the dock a competitor has no way to start anything: macOS hides
+    // its own, so the permitted applications below would be unreachable.
+    showTaskBar: true,
+    taskBarHeight: 40,
+    permittedProcesses: permittedProcesses(),
   };
+}
+
+/**
+ * One row per platform an application names.
+ *
+ * `active` puts it in the dock, `allowUser` lets the competitor start it, and
+ * `autostart` is off so nothing launches itself into their face. `strongKill`
+ * is off as well: SEB should not be taking an unsaved buffer away from anyone.
+ */
+function permittedProcesses(): SebConfigDict[] {
+  const rows: SebConfigDict[] = [];
+  for (const app of SEB_APPLICATIONS) {
+    const common = {
+      active: true,
+      allowUser: true,
+      autostart: false,
+      iconInTaskbar: true,
+      runInBackground: false,
+      strongKill: false,
+      title: app.title,
+      description: app.title,
+      arguments: [] as SebConfigValue[],
+    };
+    if (app.macBundleId) {
+      rows.push({ ...common, os: SEB_OS_MACOS, identifier: app.macBundleId, executable: "" });
+    }
+    if (app.windowsExecutable) {
+      rows.push({
+        ...common,
+        os: SEB_OS_WINDOWS,
+        executable: app.windowsExecutable,
+        originalName: app.windowsExecutable,
+        identifier: "",
+      });
+    }
+  }
+  return rows;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -80,17 +125,36 @@ function escapeXml(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-function plistValue(value: SebConfigValue): string {
+function plistValue(value: SebConfigValue, depth: number): string {
+  const pad = "\t".repeat(depth);
   if (typeof value === "boolean") return value ? "<true/>" : "<false/>";
   if (typeof value === "number") return `<integer>${value}</integer>`;
-  return `<string>${escapeXml(value)}</string>`;
+  if (typeof value === "string") return `<string>${escapeXml(value)}</string>`;
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "<array/>";
+    return `<array>\n${value.map((item) => `${pad}\t${plistValue(item, depth + 1)}`).join("\n")}\n${pad}</array>`;
+  }
+  return plistDict(value, depth);
+}
+
+function plistDict(dict: SebConfigDict, depth: number): string {
+  const pad = "\t".repeat(depth);
+  if (Object.keys(dict).length === 0) return "<dict/>";
+  const body = Object.keys(dict)
+    .sort(compareKeys)
+    .map(
+      (key) =>
+        `${pad}\t<key>${escapeXml(key)}</key>\n${pad}\t${plistValue(dict[key] as SebConfigValue, depth + 1)}`,
+    )
+    .join("\n");
+  return `<dict>\n${body}\n${pad}</dict>`;
 }
 
 /** The unencrypted `.seb` form, which is an XML property list. */
 export function sebConfigPlist(config: SebConfigDict): string {
   const body = Object.keys(config)
     .sort(compareKeys)
-    .map((key) => `\t<key>${escapeXml(key)}</key>\n\t${plistValue(config[key] as SebConfigValue)}`)
+    .map((key) => `\t<key>${escapeXml(key)}</key>\n\t${plistValue(config[key] as SebConfigValue, 1)}`)
     .join("\n");
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -133,17 +197,23 @@ function compareKeys(a: string, b: string): number {
  * whitespace, no added escaping.
  */
 export function sebConfigKeyJson(config: SebConfigDict): string {
+  return encodeDict(config);
+}
+
+function encodeValue(value: SebConfigValue): string {
+  if (typeof value === "boolean") return String(value);
+  if (typeof value === "number") return String(value);
+  if (typeof value === "string") return JSON.stringify(value);
+  // Array order is the author's and is preserved; only dictionaries sort.
+  if (Array.isArray(value)) return `[${value.map(encodeValue).join(",")}]`;
+  return encodeDict(value);
+}
+
+function encodeDict(dict: SebConfigDict): string {
   const parts: string[] = [];
-  for (const key of Object.keys(config).sort(compareKeys)) {
+  for (const key of Object.keys(dict).sort(compareKeys)) {
     if (EXCLUDED_FROM_CONFIG_KEY.has(key)) continue;
-    const value = config[key] as SebConfigValue;
-    const encoded =
-      typeof value === "boolean"
-        ? String(value)
-        : typeof value === "number"
-          ? String(value)
-          : JSON.stringify(value);
-    parts.push(`${JSON.stringify(key)}:${encoded}`);
+    parts.push(`${JSON.stringify(key)}:${encodeValue(dict[key] as SebConfigValue)}`);
   }
   return `{${parts.join(",")}}`;
 }
