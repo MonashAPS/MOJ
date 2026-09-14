@@ -184,22 +184,23 @@
   },
   "proctor": {
     "title": "监考",
-    "intro": "有监考的比赛要求你在参赛期间共享整个屏幕。录制内容只交给比赛主办方。",
-    "idleTitle": "未在共享",
-    "idleBody": "开始共享后才能打开有监考的比赛题目。浏览器询问时请选择整个屏幕。",
-    "watchingTitle": "正在共享你的屏幕",
     "watchingBody": "请保持此标签页打开。关闭它或停止共享，比赛题目会关闭，直到你重新开始。",
     "share": "共享我的屏幕",
     "stop": "停止共享",
     "uploaded": "{count, plural, =0 {尚未发送录制内容} other {已发送 # 段录制内容}}",
-    "wholeScreenTitle": "请共享整个屏幕",
     "wholeScreenBody": "你选择了窗口或标签页。请选择「整个屏幕」，这样你在浏览器之外的操作也会被涵盖。",
-    "deniedTitle": "未允许屏幕共享",
     "deniedBody": "浏览器拒绝了，或者你关闭了提示。在 macOS 上，你可能还需要在系统设置中允许浏览器录制屏幕。",
-    "stoppedTitle": "共享已停止",
     "stoppedBody": "在你重新共享之前，有监考的比赛题目将保持关闭。",
-    "chromeOnly": "请使用 Chrome 或 Edge",
-    "chromeOnlyBody": "只有基于 Chromium 的浏览器会报告足够的共享信息，用来确认共享的是整个屏幕。",
-    "failed": "无法开始会话。"
+    "failed": "无法开始会话。",
+    "stepBrowser": "检查你的浏览器",
+    "checking": "正在检查…",
+    "browserOk": "{name} {version}，可以开始。",
+    "browserWrong": "监考只支持 Chrome 和 Edge。",
+    "getChrome": "获取 Chrome {min}+",
+    "getEdge": "获取 Edge {min}+",
+    "stepShare": "共享你的整个屏幕",
+    "stepShareBody": "你必须选择「整个屏幕」，而不是窗口或标签页",
+    "stepKeep": "请保持此标签页打开",
+    "stepKeepBody": "关闭此标签页会让你退出比赛"
   }
 }

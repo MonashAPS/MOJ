@@ -15,7 +15,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, type QueryCtx, query } from "./_generated/server";
 import { optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, invalid, notFound } from "./lib/errors";
-import { supervisionBlocksContestProblems } from "./lib/proctor";
+import { proctorBlocksContestProblems } from "./lib/proctor";
 
 export const MIN_USER_POINTS_VOTE = 1;
 export const MAX_USER_POINTS_VOTE = 50;
@@ -153,13 +153,13 @@ export async function canAccessProblem(
   viewer: ViewerContext,
 ): Promise<boolean> {
   let inCurrentContest = false;
-  // A supervised contest only opens its problems while the viewer is
-  // demonstrably in SEB, or sharing their screen, or both. Without that the
-  // bypass falls away and the problem's own visibility decides, so a public
-  // problem stays readable and an unlisted one does not.
+  // A proctored contest only opens its problems while the viewer is sharing
+  // their screen. Without that the bypass falls away and the problem's own
+  // visibility decides, so a public problem stays readable and an unlisted one
+  // does not.
   if (
     viewer.contest &&
-    !(await supervisionBlocksContestProblems(ctx, viewer.contest, viewer.profile?._id ?? null))
+    !(await proctorBlocksContestProblems(ctx, viewer.contest, viewer.profile?._id ?? null))
   ) {
     inCurrentContest = (await contestProblemFor(ctx, viewer.contest._id, problem._id)) !== null;
   }

@@ -43,6 +43,39 @@ export const state = query({
   },
 });
 
+export type ProctorGate = {
+  /** The viewer is in a contest that wants a screen share they are not giving. */
+  blocked: boolean;
+  contestKey: string | null;
+  contestName: string | null;
+};
+
+/**
+ * What the page render asks: should this viewer be seeing the site at all?
+ *
+ * A plain query, because being proctored is state the session already carries;
+ * nothing about the request itself has to be inspected.
+ */
+export const gate = query({
+  args: {},
+  handler: async (ctx): Promise<ProctorGate> => {
+    const shut: ProctorGate = { blocked: false, contestKey: null, contestName: null };
+    const profile = await optionalViewer(ctx);
+    if (!profile?.currentParticipationId) return shut;
+
+    const participation = await ctx.db.get(profile.currentParticipationId);
+    if (!participation) return shut;
+    const contest = await ctx.db.get(participation.contestId);
+    if (!contest?.proctorRequired) return shut;
+
+    return {
+      blocked: !(await activeProctorSession(ctx, profile._id)),
+      contestKey: contest.key,
+      contestName: contest.name,
+    };
+  },
+});
+
 /**
  * Begin a session, retiring any earlier one.
  *

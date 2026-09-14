@@ -2,11 +2,11 @@
 
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { Alert, AlertDescription, AlertTitle, Button, Panel } from "@moj/ui";
+import { Button } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
-import { MonitorPlay, ShieldCheck, TriangleAlert } from "lucide-react";
+import { Check, MonitorPlay, ShieldCheck, TriangleAlert } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 /** How often the page tells the server it is still holding the stream. */
 const HEARTBEAT_MS = 10_000;
@@ -40,18 +40,53 @@ const REQUIRED_SURFACE = "monitor";
 type Phase = "idle" | "starting" | "sharing" | "stopped" | "wrongSurface" | "denied" | "unsupported";
 
 /**
- * Chrome and Edge report a full `displaySurface`, which is what makes "they
- * really shared the whole screen" checkable. Firefox reports almost nothing and
- * Safari reports only a frame rate, so the check would pass vacuously there.
- * Proctored contests are Chromium-only on purpose.
+ * The Chromium version that began reporting `displaySurface` in track settings,
+ * which is the only way to tell a whole screen from a window after the fact.
+ * Below it the check would pass vacuously and proctoring would be a formality.
  */
-function isChromium(): boolean {
-  const brands = (navigator as Navigator & { userAgentData?: { brands?: { brand: string }[] } }).userAgentData
-    ?.brands;
-  if (brands?.length) {
-    return brands.some((b) => /chromium|google chrome|microsoft edge/i.test(b.brand));
+const MIN_CHROMIUM = 92;
+
+type BrowserCheck = { ok: boolean; name: string | null; version: number | null };
+
+/**
+ * Which browser this is, and whether it can be proctored.
+ *
+ * Firefox reports almost nothing in `getSettings` and Safari reports only a
+ * frame rate, so neither can be held to sharing a whole screen. Rather than
+ * accept a check that cannot fail, they are turned away and told what to use.
+ */
+function checkBrowser(): BrowserCheck {
+  const agent = navigator.userAgent;
+  const data = (
+    navigator as Navigator & { userAgentData?: { brands?: { brand: string; version: string }[] } }
+  ).userAgentData;
+
+  for (const brand of data?.brands ?? []) {
+    if (/microsoft edge/i.test(brand.brand)) {
+      const version = Number.parseInt(brand.version, 10);
+      return { ok: version >= MIN_CHROMIUM, name: "Edge", version };
+    }
+    if (/google chrome/i.test(brand.brand)) {
+      const version = Number.parseInt(brand.version, 10);
+      return { ok: version >= MIN_CHROMIUM, name: "Chrome", version };
+    }
   }
-  return /Chrome\/|Edg\//.test(navigator.userAgent) && !/OPR\//.test(navigator.userAgent);
+
+  const edge = /Edg\/(\d+)/.exec(agent);
+  if (edge?.[1]) {
+    const version = Number.parseInt(edge[1], 10);
+    return { ok: version >= MIN_CHROMIUM, name: "Edge", version };
+  }
+  // Opera and friends carry Chrome/ in the agent as well; they are Chromium and
+  // report the same settings, but naming them here would be guesswork.
+  const chrome = /Chrome\/(\d+)/.exec(agent);
+  if (chrome?.[1] && !/OPR\//.test(agent)) {
+    const version = Number.parseInt(chrome[1], 10);
+    return { ok: version >= MIN_CHROMIUM, name: "Chrome", version };
+  }
+
+  const name = /Firefox\//.test(agent) ? "Firefox" : /Safari\//.test(agent) ? "Safari" : null;
+  return { ok: false, name, version: null };
 }
 
 export function ProctorClient() {
@@ -73,8 +108,11 @@ export function ProctorClient() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const indexRef = useRef(0);
 
+  const [browser, setBrowser] = useState<BrowserCheck | null>(null);
   useEffect(() => {
-    if (!isChromium()) setPhase("unsupported");
+    const check = checkBrowser();
+    setBrowser(check);
+    if (!check.ok) setPhase("unsupported");
   }, []);
 
   /** Tear the local half down. The server's session ends by going quiet. */
@@ -232,86 +270,147 @@ export function ProctorClient() {
 
   useEffect(() => teardown, [teardown]);
 
-  if (phase === "unsupported") {
-    return (
-      <Alert variant="danger">
-        <TriangleAlert size={16} aria-hidden />
-        <AlertTitle>{t("chromeOnly")}</AlertTitle>
-        <AlertDescription>{t("chromeOnlyBody")}</AlertDescription>
-      </Alert>
-    );
-  }
-
   const live = phase === "sharing" || state?.active === true;
+  const step = !browser ? 0 : !browser.ok ? 1 : live ? 3 : 2;
 
   return (
-    <div className="grid gap-4">
-      {error ? (
-        <Alert variant="danger" role="alert">
-          <TriangleAlert size={16} aria-hidden />
-          <AlertTitle>{error}</AlertTitle>
-        </Alert>
-      ) : null}
-
-      {phase === "wrongSurface" ? (
-        <Alert variant="warning">
-          <TriangleAlert size={16} aria-hidden />
-          <AlertTitle>{t("wholeScreenTitle")}</AlertTitle>
-          <AlertDescription>{t("wholeScreenBody")}</AlertDescription>
-        </Alert>
-      ) : null}
-
-      {phase === "denied" ? (
-        <Alert variant="warning">
-          <TriangleAlert size={16} aria-hidden />
-          <AlertTitle>{t("deniedTitle")}</AlertTitle>
-          <AlertDescription>{t("deniedBody")}</AlertDescription>
-        </Alert>
-      ) : null}
-
-      {phase === "stopped" ? (
-        <Alert variant="warning">
-          <TriangleAlert size={16} aria-hidden />
-          <AlertTitle>{t("stoppedTitle")}</AlertTitle>
-          <AlertDescription>{t("stoppedBody")}</AlertDescription>
-        </Alert>
-      ) : null}
-
-      <Panel title={live ? t("watchingTitle") : t("idleTitle")} bodyClassName="grid gap-4 p-4">
-        <p className="text-sm text-muted-foreground">{live ? t("watchingBody") : t("idleBody")}</p>
-
-        {live ? (
-          <div className="flex items-center gap-2 text-sm">
-            <ShieldCheck size={16} aria-hidden className="text-success-ink" />
-            <span>{t("uploaded", { count: uploaded })}</span>
+    <div className="grid gap-5">
+      <Step
+        index={1}
+        current={step}
+        title={t("stepBrowser")}
+        done={browser?.ok === true}
+        failed={browser !== null && !browser.ok}
+      >
+        {browser === null ? (
+          <p className="text-sm text-muted-foreground">{t("checking")}</p>
+        ) : browser.ok ? (
+          <p className="text-sm text-muted-foreground">
+            {t("browserOk", { name: browser.name ?? "Chromium", version: browser.version ?? 0 })}
+          </p>
+        ) : (
+          <div className="grid gap-3">
+            <p className="text-sm text-muted-foreground">{t("browserWrong")}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild size="sm" variant="secondary">
+                <a href="https://www.google.com/chrome/" target="_blank" rel="noreferrer noopener">
+                  {t("getChrome", { min: MIN_CHROMIUM })}
+                </a>
+              </Button>
+              <Button asChild size="sm" variant="secondary">
+                <a href="https://www.microsoft.com/edge/download" target="_blank" rel="noreferrer noopener">
+                  {t("getEdge", { min: MIN_CHROMIUM })}
+                </a>
+              </Button>
+            </div>
           </div>
-        ) : null}
+        )}
+      </Step>
 
-        <div>
-          {live ? (
-            <Button variant="secondary" onClick={() => void finish("stopped")}>
-              {t("stop")}
-            </Button>
-          ) : (
-            <Button onClick={() => void begin()} busy={phase === "starting"}>
-              <MonitorPlay size={16} aria-hidden />
-              {t("share")}
-            </Button>
+      <Step index={2} current={step} title={t("stepShare")} done={live}>
+        <div className="grid gap-3">
+          <p className="text-sm text-muted-foreground">{t("stepShareBody")}</p>
+
+          {phase === "wrongSurface" ? <Note tone="warning" text={t("wholeScreenBody")} /> : null}
+          {phase === "denied" ? <Note tone="warning" text={t("deniedBody")} /> : null}
+          {phase === "stopped" && !live ? <Note tone="warning" text={t("stoppedBody")} /> : null}
+          {error ? <Note tone="danger" text={error} /> : null}
+
+          {live ? null : (
+            <div>
+              <Button onClick={() => void begin()} busy={phase === "starting"} disabled={!browser?.ok}>
+                <MonitorPlay size={16} aria-hidden />
+                {t("share")}
+              </Button>
+            </div>
           )}
         </div>
+      </Step>
 
-        {/* Their own view of what is being sent. Seeing it is what stops "is
-            this actually recording?" being a question. */}
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          playsInline
-          className={live ? "w-full max-w-md rounded-md border border-border" : "hidden"}
-        >
-          <track kind="captions" />
-        </video>
-      </Panel>
+      <Step index={3} current={step} title={t("stepKeep")} done={false}>
+        {live ? (
+          <div className="grid gap-3">
+            <p className="text-sm text-muted-foreground">{t("watchingBody")}</p>
+            <p className="flex items-center gap-2 text-sm">
+              <ShieldCheck size={16} aria-hidden className="text-success-ink" />
+              <span>{t("uploaded", { count: uploaded })}</span>
+            </p>
+            {/* Their own view of what is being sent. Seeing it is what stops
+                "is this actually recording?" being a question. */}
+            <video
+              ref={videoRef}
+              autoPlay
+              muted
+              playsInline
+              className="w-full rounded-md border border-border bg-black"
+            >
+              <track kind="captions" />
+            </video>
+            <div>
+              <Button variant="secondary" size="sm" onClick={() => void finish("stopped")}>
+                {t("stop")}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t("stepKeepBody")}</p>
+        )}
+      </Step>
     </div>
+  );
+}
+
+/** One numbered step, dimmed until it is this one's turn. */
+function Step({
+  index,
+  current,
+  title,
+  done,
+  failed = false,
+  children,
+}: {
+  index: number;
+  current: number;
+  title: string;
+  done: boolean;
+  failed?: boolean;
+  children: ReactNode;
+}) {
+  const active = current === index;
+  return (
+    <section className={active || done || failed ? "" : "opacity-50"}>
+      <h2 className="flex items-center gap-2 text-sm font-semibold">
+        <span
+          aria-hidden
+          className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+            failed
+              ? "bg-danger-ink text-background"
+              : done
+                ? "bg-success-ink text-background"
+                : active
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground"
+          }`}
+        >
+          {done && !failed ? <Check size={13} aria-hidden /> : index}
+        </span>
+        {title}
+      </h2>
+      <div className="mt-2 pl-8">{children}</div>
+    </section>
+  );
+}
+
+function Note({ tone, text }: { tone: "warning" | "danger"; text: string }) {
+  return (
+    <p
+      role={tone === "danger" ? "alert" : undefined}
+      className={`flex items-start gap-2 rounded-md border px-3 py-2 text-sm ${
+        tone === "danger" ? "border-danger-ink/30 text-danger-ink" : "border-warning-ink/30 text-warning-ink"
+      }`}
+    >
+      <TriangleAlert size={15} aria-hidden className="mt-0.5 shrink-0" />
+      <span>{text}</span>
+    </p>
   );
 }

@@ -184,22 +184,23 @@
   },
   "proctor": {
     "title": "Pengawasan",
-    "intro": "Kontes yang diawasi mengharuskan kamu membagikan seluruh layar selama mengikutinya. Rekamannya hanya diterima panitia kontes.",
-    "idleTitle": "Belum membagikan",
-    "idleBody": "Mulai membagikan layar untuk membuka soal kontes yang diawasi. Pilih seluruh layar saat peramban meminta.",
-    "watchingTitle": "Layarmu sedang dibagikan",
     "watchingBody": "Biarkan tab ini terbuka. Menutupnya atau menghentikan pembagian akan menutup soal kontes sampai kamu mulai lagi.",
     "share": "Bagikan layar saya",
     "stop": "Hentikan pembagian",
     "uploaded": "{count, plural, =0 {Belum ada rekaman terkirim} other {# bagian rekaman terkirim}}",
-    "wholeScreenTitle": "Bagikan seluruh layar",
     "wholeScreenBody": "Kamu memilih jendela atau tab. Pilih Seluruh Layar agar yang kamu lakukan di luar peramban juga tercakup.",
-    "deniedTitle": "Pembagian layar tidak diizinkan",
     "deniedBody": "Peramban menolak atau kamu menutup permintaannya. Di macOS kamu mungkin juga perlu mengizinkan perekaman layar untuk peramban di System Settings.",
-    "stoppedTitle": "Pembagian dihentikan",
     "stoppedBody": "Soal kontes yang diawasi tertutup sampai kamu membagikan layar lagi.",
-    "chromeOnly": "Gunakan Chrome atau Edge",
-    "chromeOnlyBody": "Hanya peramban Chromium yang melaporkan cukup detail tentang apa yang dibagikan untuk memastikan itu seluruh layarmu.",
-    "failed": "Sesi tidak bisa dimulai."
+    "failed": "Sesi tidak bisa dimulai.",
+    "stepBrowser": "Periksa peramban kamu",
+    "checking": "Memeriksa…",
+    "browserOk": "{name} {version}. Siap.",
+    "browserWrong": "Untuk pengawasan kami hanya mendukung Chrome dan Edge.",
+    "getChrome": "Unduh Chrome {min}+",
+    "getEdge": "Unduh Edge {min}+",
+    "stepShare": "Bagikan seluruh layarmu",
+    "stepShareBody": "Kamu harus memilih Seluruh Layar, bukan jendela atau tab",
+    "stepKeep": "Biarkan tab ini terbuka",
+    "stepKeepBody": "Kamu akan dikeluarkan dari kontes jika menutup tab ini"
   }
 }

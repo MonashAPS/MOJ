@@ -289,8 +289,6 @@ export function ContestListClient({
               // Join and the mutation says no if the viewer may not.
               kind={data.finishedKeys.includes(contest.key) ? "spectate" : "join"}
               full
-              sebRequired={contest.sebRequired}
-              sebLaunchUrl={contest.sebLaunchUrl}
             />
           )}
         />
@@ -392,13 +390,7 @@ export function ContestListClient({
                       <TableCell className="relative z-1 align-top">
                         <Tooltip content={t("virtualHint")}>
                           <span className="inline-block">
-                            <JoinControl
-                              contestKey={contest.key}
-                              kind="virtual"
-                              full
-                              sebRequired={contest.sebRequired}
-                              sebLaunchUrl={contest.sebLaunchUrl}
-                            />
+                            <JoinControl contestKey={contest.key} kind="virtual" full />
                           </span>
                         </Tooltip>
                       </TableCell>

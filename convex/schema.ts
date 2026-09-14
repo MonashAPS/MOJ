@@ -236,43 +236,6 @@ export default defineSchema({
     }),
 
   /**
-   * The keys a SEB-locked contest accepts. Secret, and deliberately in its own
-   * table so that no query returning a contest can leak them.
-   *
-   * A Config Key is derived from the SEB settings alone, so one value covers
-   * every platform and every SEB release. A Browser Exam Key additionally folds
-   * in the client's code signature, so it differs per build and the list has to
-   * be maintained by hand; it is there for operators who want to pin versions.
-   */
-  contestSebKeys: defineTable({
-    contestId: v.id("contests"),
-    configKeys: v.array(v.string()),
-    browserExamKeys: v.array(v.string()),
-    /**
-     * The Config Key of the configuration MOJ generates and serves for this
-     * contest, and the origin it was generated against. The file itself is not
-     * stored: it is a pure function of those two, so regenerating it byte for
-     * byte is cheaper than keeping a copy that could drift from the key.
-     */
-    generatedKey: v.optional(v.string()),
-    generatedOrigin: v.optional(v.string()),
-  }).index("by_contest", ["contestId"]),
-
-  /**
-   * When a viewer last proved, on a real HTTP request, that they were in Safe
-   * Exam Browser for a given contest.
-   *
-   * Its own table rather than a field on `contestParticipations` because it is
-   * rewritten as people browse, and a write to a participation invalidates
-   * every query watching one — the scoreboard among them.
-   */
-  sebVerifications: defineTable({
-    profileId: v.id("profiles"),
-    contestId: v.id("contests"),
-    verifiedUntil: v.number(),
-  }).index("by_profile_contest", ["profileId", "contestId"]),
-
-  /**
    * A screen-sharing session. Being proctored is a state an account is in, not
    * something a contest owns: someone can start one without being in a contest
    * at all, and a contest that asks for it simply checks whether they are.
@@ -302,9 +265,8 @@ export default defineSchema({
   /**
    * One recorded slice of a session, as MediaRecorder handed it over.
    *
-   * Chunks rather than stills because a hidden tab throttles its timers to once
-   * a minute, which would gut a screenshot loop exactly when someone has tabbed
-   * away to their editor. The encoder is native and keeps running.
+   * Each slice is a complete file rather than a piece of one, so a lost upload
+   * is a gap and nothing more, and any point plays on its own.
    */
   proctorChunks: defineTable({
     sessionId: v.id("proctorSessions"),
@@ -614,14 +576,7 @@ export default defineSchema({
     isUnfrozen: v.optional(v.boolean()),
     freezeRevealed: v.optional(v.boolean()),
     revealState: v.optional(v.any()),
-    // Safe Exam Browser. The keys themselves live in `contestSebKeys` rather
-    // than here: anyone holding a Config Key can compute the header for any URL
-    // and walk straight past the check, and this row is returned whole by
-    // `viewer.current` and the contest pages.
-    sebRequired: v.optional(v.boolean()),
-    sebLaunchUrl: v.optional(v.string()),
-    /** Requires a live screen-sharing session, the same way `sebRequired`
-     *  requires Safe Exam Browser. The two are independent. */
+    /** Opens its problems only while the viewer is sharing their whole screen. */
     proctorRequired: v.optional(v.boolean()),
     legacyId: v.optional(v.number()),
   })
@@ -850,9 +805,6 @@ export default defineSchema({
     navColor: v.optional(v.string()),
     customCss: v.optional(v.string()),
     themeDefault: v.optional(themeDefault),
-    /** Whether contests may be locked to Safe Exam Browser at all. Off leaves
-     *  the feature out of the admin entirely. */
-    sebEnabled: v.optional(v.boolean()),
     /** How long proctoring recordings are kept, in days. Zero keeps them for
      *  ever, which on a small disk is a decision and not a default. */
     proctorRetentionDays: v.optional(v.number()),

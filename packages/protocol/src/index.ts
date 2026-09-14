@@ -46,5 +46,3 @@ export {
   READ_SCOPE,
   sha256Hash,
 } from "./problems";
-export * from "./seb";
-export * from "./sebConfig";

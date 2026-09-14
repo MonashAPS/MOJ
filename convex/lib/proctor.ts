@@ -11,7 +11,6 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { forbidden } from "./errors";
-import { sebBlocksContestProblems } from "./seb";
 
 export type AnyProctorCtx = QueryCtx | MutationCtx;
 
@@ -67,23 +66,6 @@ export async function proctorBlocksContestProblems(
 ): Promise<boolean> {
   if (!contest.proctorRequired) return false;
   return !(await isProctored(ctx, profileId));
-}
-
-/**
- * Either supervision a contest asks for, in one question.
- *
- * A contest may require Safe Exam Browser, a screen share, both or neither, and
- * the two are checked the same way against the same bypass. Keeping them behind
- * one call is what stops a new gate being added to one access path and not the
- * other.
- */
-export async function supervisionBlocksContestProblems(
-  ctx: AnyProctorCtx,
-  contest: Doc<"contests">,
-  profileId: Id<"profiles"> | null,
-): Promise<boolean> {
-  if (await sebBlocksContestProblems(ctx, contest, profileId)) return true;
-  return await proctorBlocksContestProblems(ctx, contest, profileId);
 }
 
 /** Refuse a write that a contest's proctoring requirement does not cover. */

@@ -76,8 +76,6 @@ const writable = {
   pointsPrecision: v.optional(v.number()),
   freezeMinutes: v.optional(v.number()),
   blindDuringFreeze: v.optional(v.boolean()),
-  sebRequired: v.optional(v.boolean()),
-  sebLaunchUrl: v.optional(v.union(v.string(), v.null())),
   proctorRequired: v.optional(v.boolean()),
 };
 
@@ -108,7 +106,6 @@ function buildPatch(args: Record<string, unknown>): WritablePatch {
     "logoOverrideImage",
     "accessCode",
     "lockedAfter",
-    "sebLaunchUrl",
   ]);
   for (const [key, value] of Object.entries(args)) {
     if (value === undefined) continue;
@@ -445,157 +442,6 @@ function pick(row: Doc<"contests">, keys: string[]): Record<string, unknown> {
   for (const key of keys) out[key] = (row as unknown as Record<string, unknown>)[key];
   return out;
 }
-
-/**
- * The Config Keys and Browser Exam Keys a locked contest accepts.
- *
- * Separate from `update` because they live in their own table, which is where
- * they have to live: a Config Key is enough to compute the header for any URL,
- * and the contest row itself is returned whole by queries the browser can call.
- * Staff who can edit the contest can read them back, since they are the people
- * who set them and can change the lock in any case.
- */
-export const sebKeys = query({
-  args: { key: v.string() },
-  handler: async (
-    ctx,
-    { key },
-  ): Promise<{
-    configKeys: string[];
-    browserExamKeys: string[];
-    generatedKey: string | null;
-    generatedOrigin: string | null;
-  }> => {
-    const profile = await optionalViewer(ctx);
-    const contest = await contestByKey(ctx, key);
-    if (!contest) throw notFound(`Contest "${key}"`);
-    const viewer = await toViewerRowInContest(ctx, profile);
-    if (!contestIsEditableBy(toContestRow(contest), viewer)) throw forbidden();
-
-    const row = await ctx.db
-      .query("contestSebKeys")
-      .withIndex("by_contest", (q) => q.eq("contestId", contest._id))
-      .unique();
-    return {
-      configKeys: row?.configKeys ?? [],
-      browserExamKeys: row?.browserExamKeys ?? [],
-      generatedKey: row?.generatedKey ?? null,
-      generatedOrigin: row?.generatedOrigin ?? null,
-    };
-  },
-});
-
-/** A Config Key is base16 SHA-256, which is what the Configuration Tool shows. */
-const SEB_KEY_PATTERN = /^[0-9a-f]{64}$/i;
-
-export const setSebKeys = mutation({
-  args: {
-    key: v.string(),
-    configKeys: v.array(v.string()),
-    browserExamKeys: v.array(v.string()),
-    reason: v.optional(v.string()),
-  },
-  handler: async (ctx, args): Promise<null> => {
-    const { profile, contest } = await requireEditable(ctx, args.key);
-
-    const clean = (keys: string[], what: string): string[] => {
-      const out: string[] = [];
-      for (const raw of keys) {
-        const value = raw.trim().toLowerCase();
-        if (!value) continue;
-        if (!SEB_KEY_PATTERN.test(value)) {
-          throw invalid(`"${raw.trim()}" is not a ${what}: expected 64 hexadecimal characters.`);
-        }
-        if (!out.includes(value)) out.push(value);
-      }
-      return out;
-    };
-
-    const configKeys = clean(args.configKeys, "Config Key");
-    const browserExamKeys = clean(args.browserExamKeys, "Browser Exam Key");
-
-    const existing = await ctx.db
-      .query("contestSebKeys")
-      .withIndex("by_contest", (q) => q.eq("contestId", contest._id))
-      .unique();
-    if (existing) {
-      await ctx.db.patch(existing._id, { configKeys, browserExamKeys });
-    } else {
-      await ctx.db.insert("contestSebKeys", {
-        contestId: contest._id,
-        configKeys,
-        browserExamKeys,
-      });
-    }
-
-    // The keys are the secret, so the audit trail records how many there are
-    // rather than what they are.
-    await writeRevision(
-      ctx,
-      "contest",
-      contest._id,
-      { sebConfigKeys: configKeys.length, sebBrowserExamKeys: browserExamKeys.length },
-      profile._id,
-      args.reason ?? "Changed the Safe Exam Browser keys",
-    );
-    return null;
-  },
-});
-
-/**
- * Record the Config Key of the configuration MOJ generates for this contest.
- *
- * The file is not stored: `/contest/<key>/seb-config` rebuilds it from the same
- * origin, and it is a pure function of that, so the two cannot drift apart
- * without the key changing too.
- */
-export const setSebGenerated = mutation({
-  args: { key: v.string(), origin: v.string(), configKey: v.string() },
-  handler: async (ctx, args): Promise<null> => {
-    const { profile, contest } = await requireEditable(ctx, args.key);
-    if (!SEB_KEY_PATTERN.test(args.configKey)) {
-      throw invalid("A Config Key is 64 hexadecimal characters.");
-    }
-
-    const existing = await ctx.db
-      .query("contestSebKeys")
-      .withIndex("by_contest", (q) => q.eq("contestId", contest._id))
-      .unique();
-    const patch = {
-      generatedKey: args.configKey.toLowerCase(),
-      generatedOrigin: args.origin.replace(/\/+$/, ""),
-    };
-    if (existing) {
-      await ctx.db.patch(existing._id, patch);
-    } else {
-      await ctx.db.insert("contestSebKeys", {
-        contestId: contest._id,
-        configKeys: [],
-        browserExamKeys: [],
-        ...patch,
-      });
-    }
-
-    // Point the launch link at the file MOJ now serves, so the dialog a
-    // competitor sees has both buttons without anyone hosting anything.
-    const host = patch.generatedOrigin.replace(/^https?:\/\//, "");
-    await ctx.db.patch(contest._id, {
-      // Trailing slash: every MOJ URL has one, and the proxy 308s anything
-      // without it, which is a redirect SEB need not be asked to follow.
-      sebLaunchUrl: `sebs://${host}/contest/${contest.key}/seb-config/`,
-    });
-
-    await writeRevision(
-      ctx,
-      "contest",
-      contest._id,
-      { sebGeneratedFor: patch.generatedOrigin },
-      profile._id,
-      "Generated a Safe Exam Browser configuration",
-    );
-    return null;
-  },
-});
 
 export const setVisibility = mutation({
   args: { key: v.string(), isVisible: v.boolean(), reason: v.optional(v.string()) },

@@ -184,22 +184,23 @@
   },
   "proctor": {
     "title": "Supervisión",
-    "intro": "Un concurso supervisado requiere que compartas toda tu pantalla mientras participas. La grabación va a la organización del concurso y a nadie más.",
-    "idleTitle": "No estás compartiendo",
-    "idleBody": "Empieza a compartir para abrir los problemas de un concurso supervisado. Elige toda la pantalla cuando el navegador lo pida.",
-    "watchingTitle": "Compartiendo tu pantalla",
     "watchingBody": "Deja esta pestaña abierta. Si la cierras o dejas de compartir, los problemas del concurso se cierran hasta que vuelvas a empezar.",
     "share": "Compartir mi pantalla",
     "stop": "Dejar de compartir",
     "uploaded": "{count, plural, =0 {Aún no se ha enviado grabación} one {# fragmento de grabación enviado} other {# fragmentos de grabación enviados}}",
-    "wholeScreenTitle": "Comparte toda la pantalla",
     "wholeScreenBody": "Has elegido una ventana o una pestaña. Elige Toda la pantalla para que también se cubra lo que hagas fuera del navegador.",
-    "deniedTitle": "No se permitió compartir la pantalla",
     "deniedBody": "El navegador lo rechazó o cerraste el aviso. En macOS puede que también tengas que permitir la grabación de pantalla para tu navegador en Ajustes del Sistema.",
-    "stoppedTitle": "Has dejado de compartir",
     "stoppedBody": "Los problemas de un concurso supervisado están cerrados hasta que vuelvas a compartir.",
-    "chromeOnly": "Usa Chrome o Edge",
-    "chromeOnlyBody": "Solo los navegadores Chromium informan lo suficiente sobre lo que se comparte para comprobar que es toda tu pantalla.",
-    "failed": "No se pudo iniciar la sesión."
+    "failed": "No se pudo iniciar la sesión.",
+    "stepBrowser": "Comprueba tu navegador",
+    "checking": "Comprobando…",
+    "browserOk": "{name} {version}. Todo listo.",
+    "browserWrong": "Para la supervisión solo admitimos Chrome y Edge.",
+    "getChrome": "Obtener Chrome {min}+",
+    "getEdge": "Obtener Edge {min}+",
+    "stepShare": "Comparte toda tu pantalla",
+    "stepShareBody": "Debes elegir Toda la pantalla, no una ventana ni una pestaña",
+    "stepKeep": "Deja esta pestaña abierta",
+    "stepKeepBody": "Saldrás del concurso si cierras esta pestaña"
   }
 }

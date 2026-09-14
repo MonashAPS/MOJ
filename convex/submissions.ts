@@ -34,9 +34,8 @@ import { allocateSubmissionNumber, queueSubmission, resolveSubmission } from "./
 import { optionalViewer, requireViewer } from "./lib/auth";
 import { globalSourceVisibility, siteSettings } from "./lib/community";
 import { forbidden, invalid, mojError, notFound } from "./lib/errors";
-import { requireProctored, supervisionBlocksContestProblems } from "./lib/proctor";
+import { proctorBlocksContestProblems, requireProctored } from "./lib/proctor";
 import { rateLimiter } from "./lib/rateLimiter";
-import { requireSebTicket } from "./lib/seb";
 
 /* -------------------------------------------------------------------------- */
 /* DMOJ settings                                                              */
@@ -755,10 +754,6 @@ export const submit = mutation({
     languageKey: v.string(),
     source: v.string(),
     judgePin: v.optional(v.string()),
-    /** Proof the submission came from Safe Exam Browser, for a locked contest.
-     *  Minted by `seb:ticket` after the web tier verified the request's headers,
-     *  which is the only place those headers can be seen. */
-    sebTicket: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<{ submissionId: Id<"submissions">; id: number }> => {
     const profile = await requireViewer(ctx);
@@ -786,10 +781,9 @@ export const submit = mutation({
     // itself is not, and it decides the priority and the lock.
     const viewerCtx = await viewerContext(ctx);
     let contestProblem: Doc<"contestProblems"> | null = null;
-    const supervisionBlocked =
-      viewerCtx.contest !== null &&
-      (await supervisionBlocksContestProblems(ctx, viewerCtx.contest, profile._id));
-    if (viewerCtx.inContest && viewerCtx.contest && !supervisionBlocked) {
+    const proctorBlocked =
+      viewerCtx.contest !== null && (await proctorBlocksContestProblems(ctx, viewerCtx.contest, profile._id));
+    if (viewerCtx.inContest && viewerCtx.contest && !proctorBlocked) {
       const contestProblems = await ctx.db
         .query("contestProblems")
         .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
@@ -806,10 +800,8 @@ export const submit = mutation({
     }
 
     // Submitting is the act that decides the standings, so it is the one a
-    // locked contest most has to hold. The websocket this arrives on carries no
-    // headers, hence the ticket.
+    // proctored contest most has to hold.
     if (viewerCtx.contest) {
-      await requireSebTicket(ctx, viewerCtx.contest, profile._id, args.sebTicket);
       await requireProctored(ctx, viewerCtx.contest, profile._id);
     }
 

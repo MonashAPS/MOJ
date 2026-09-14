@@ -448,7 +448,7 @@
         "general": "Umum",
         "problems": "Soal",
         "people": "Orang",
-        "seb": "Safe Exam Browser",
+        "proctoring": "Pengawasan",
         "actions": "Aksi",
         "revisions": "Revisi"
       },
@@ -614,33 +614,6 @@
       "submit": "Simpan orang",
       "reasonHint": "Disimpan bersama revisi agar orang berikutnya tahu alasan perubahan kontes ini."
     },
-    "seb": {
-      "title": "Safe Exam Browser",
-      "intro": "Kontes yang dikunci hanya bisa diikuti dan dikirimi jawaban dari Safe Exam Browser yang menjalankan konfigurasi dengan kunci di bawah ini.",
-      "required": "Wajibkan Safe Exam Browser",
-      "noKeysWarning": "Tidak ada yang dikunci sampai setidaknya satu kunci diisi di bawah.",
-      "launchUrl": "Tautan peluncur",
-      "launchUrlHint": "Ditampilkan kepada siapa pun yang membuka kontes tanpa Safe Exam Browser. Tautan sebs:// ke berkas konfigurasi akan menjalankannya.",
-      "keys": "Kunci",
-      "keysIntro": "Satu per baris. SEB Configuration Tool menampilkan keduanya untuk konfigurasi yang tersimpan.",
-      "configKeys": "Config Keys",
-      "configKeysHint": "Diturunkan dari pengaturannya saja, jadi satu kunci mencakup semua platform dan semua rilis SEB.",
-      "browserExamKeys": "Browser Exam Keys",
-      "browserExamKeysHint": "Opsional, dan satu untuk tiap build SEB: Browser Exam Key juga mencakup tanda tangan kode klien.",
-      "saved": "Pengaturan Safe Exam Browser tersimpan",
-      "refused": "Juri menolak perubahan ini.",
-      "generate": "Buat konfigurasi",
-      "generateIntro": "MOJ bisa menulis berkas .seb untuk kontes ini dan menyajikannya, jadi tidak ada yang perlu membuat atau menghostingnya. Berkas itu membuka kontes ini dan mengirim header kuncinya.",
-      "generateUnverified": "Config Key dihitung dari berkas itu dengan resep yang diterbitkan SEB. Tidak ada vektor uji resmi untuk resep tersebut, jadi cocokkan dengan SEB Configuration Tool sebelum kontes yang penting, dan tempelkan kunci dari alat itu di bawah bila berbeda.",
-      "generatedFor": "Dibuat untuk {origin}.",
-      "downloadGenerated": "Unduh",
-      "regenerate": "Buat ulang",
-      "generated": "Konfigurasi dibuat",
-      "proctorTitle": "Pengawasan layar",
-      "proctorIntro": "Kontes yang diawasi hanya membuka soalnya selama peserta membagikan seluruh layarnya di /proctor/.",
-      "proctorRequired": "Wajibkan berbagi layar",
-      "proctorHint": "Terpisah dari Safe Exam Browser. Kontes bisa meminta salah satu, keduanya, atau tidak sama sekali. Hanya peramban Chromium."
-    },
     "actions": {
       "refused": "Aksi ditolak.",
       "missingPermission": "Anda tidak memiliki {permission}.",
@@ -704,6 +677,14 @@
           "action": "Buka kunci"
         }
       }
+    },
+    "proctoring": {
+      "title": "Pengawasan",
+      "intro": "Kontes yang diawasi hanya membuka soalnya selama peserta membagikan seluruh layarnya di /proctor/.",
+      "required": "Wajibkan berbagi layar",
+      "hint": "Bergabung tidak pernah diblokir. Membaca soal dan mengirim jawaban iya. Hanya peramban Chromium.",
+      "saved": "Pengaturan pengawasan tersimpan",
+      "refused": "Juri menolak perubahan ini."
     }
   },
   "submissions": {
@@ -1634,7 +1615,6 @@
       "requireStaffTwoFactor": "Staf wajib mengaktifkan autentikasi dua faktor",
       "enableComments": "Komentar diaktifkan",
       "pdfEnabled": "Deskripsi soal dapat diunduh sebagai PDF",
-      "sebEnabled": "Izinkan kontes mewajibkan Safe Exam Browser",
       "submissions": "Pengiriman",
       "sourceVisibility": "Visibilitas kode sumber",
       "sourceVisibilityHint": "Siapa yang boleh membaca kode sumber anggota lain.",

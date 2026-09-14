@@ -57,7 +57,7 @@ export default defineConfig({
           { text: "Staff console", link: "/admin/staff-console" },
           { text: "Importing from DMOJ", link: "/admin/import" },
           { text: "Deployment", link: "/admin/deployment" },
-          { text: "Safe Exam Browser", link: "/admin/seb" },
+          { text: "Proctoring", link: "/admin/proctoring" },
           { text: "Troubleshooting", link: "/admin/troubleshooting" },
         ],
       },

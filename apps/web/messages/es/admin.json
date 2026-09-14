@@ -448,7 +448,7 @@
         "general": "General",
         "problems": "Problemas",
         "people": "Personas",
-        "seb": "Safe Exam Browser",
+        "proctoring": "Supervisión",
         "actions": "Acciones",
         "revisions": "Revisiones"
       },
@@ -614,33 +614,6 @@
       "submit": "Guardar personas",
       "reasonHint": "Se guarda con la revisión para que la siguiente persona vea por qué cambió este concurso."
     },
-    "seb": {
-      "title": "Safe Exam Browser",
-      "intro": "A un concurso bloqueado solo se puede entrar y enviar desde Safe Exam Browser ejecutando la configuración cuyas claves están abajo.",
-      "required": "Requerir Safe Exam Browser",
-      "noKeysWarning": "No se bloquea nada hasta que haya al menos una clave abajo.",
-      "launchUrl": "Enlace de inicio",
-      "launchUrlHint": "Se muestra a quien llegue al concurso sin Safe Exam Browser. Un enlace sebs:// al archivo de configuración lo inicia.",
-      "keys": "Claves",
-      "keysIntro": "Una por línea. La herramienta de configuración de SEB muestra ambas para una configuración guardada.",
-      "configKeys": "Config Keys",
-      "configKeysHint": "Se derivan solo de los ajustes, así que una sirve para cualquier plataforma y cualquier versión de SEB.",
-      "browserExamKeys": "Browser Exam Keys",
-      "browserExamKeysHint": "Opcionales, y una por compilación de SEB: una Browser Exam Key también cubre la firma del cliente.",
-      "saved": "Ajustes de Safe Exam Browser guardados",
-      "refused": "El juez rechazó el cambio.",
-      "generate": "Generar una configuración",
-      "generateIntro": "MOJ puede escribir el archivo .seb de este concurso y servirlo, así nadie tiene que crearlo ni alojarlo. Se abre en este concurso y envía la cabecera de la clave.",
-      "generateUnverified": "La Config Key se calcula a partir del archivo con la receta publicada por SEB. No existe un vector de prueba oficial para esa receta, así que compruébala con la herramienta de configuración de SEB antes de un concurso importante y pega abajo la clave de la herramienta si no coinciden.",
-      "generatedFor": "Generada para {origin}.",
-      "downloadGenerated": "Descargarla",
-      "regenerate": "Generar de nuevo",
-      "generated": "Configuración generada",
-      "proctorTitle": "Supervisión de pantalla",
-      "proctorIntro": "Un concurso supervisado abre sus problemas solo mientras la persona comparte toda su pantalla en /proctor/.",
-      "proctorRequired": "Requerir compartir pantalla",
-      "proctorHint": "Independiente de Safe Exam Browser. Un concurso puede pedir uno, ambos o ninguno. Solo navegadores Chromium."
-    },
     "actions": {
       "refused": "La acción fue rechazada.",
       "missingPermission": "No tienes {permission}.",
@@ -704,6 +677,14 @@
           "action": "Desbloquear"
         }
       }
+    },
+    "proctoring": {
+      "title": "Supervisión",
+      "intro": "Un concurso supervisado abre sus problemas solo mientras la persona comparte toda su pantalla en /proctor/.",
+      "required": "Requerir compartir pantalla",
+      "hint": "Unirse nunca se bloquea. Leer un problema y enviar sí. Solo navegadores Chromium.",
+      "saved": "Ajustes de supervisión guardados",
+      "refused": "El juez rechazó el cambio."
     }
   },
   "submissions": {
@@ -1634,7 +1615,6 @@
       "requireStaffTwoFactor": "El personal debe tener autenticación de dos factores",
       "enableComments": "Los comentarios están habilitados",
       "pdfEnabled": "Los enunciados se pueden descargar como PDF",
-      "sebEnabled": "Permitir que los concursos requieran Safe Exam Browser",
       "submissions": "Envíos",
       "sourceVisibility": "Visibilidad del código fuente",
       "sourceVisibilityHint": "Quién puede leer el código de otro miembro.",
