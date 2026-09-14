@@ -32,6 +32,10 @@ describe("sebConfigFor", () => {
     expect(config.allowPreferencesWindow).toBe(false);
   });
 
+  it("asks for the modern WebView, the classic one being deprecated on macOS", () => {
+    expect(sebConfigFor(OPTIONS).browserWindowWebView).toBe(3);
+  });
+
   it("stays permissive, which is the point of this configuration", () => {
     const config = sebConfigFor(OPTIONS);
     expect(config.allowSwitchToApplications).toBe(true);

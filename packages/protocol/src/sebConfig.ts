@@ -64,6 +64,11 @@ export function sebConfigFor(options: SebConfigOptions): SebConfigDict {
 
     // A judge shows verdicts as they arrive, so reloading has to work.
     browserWindowAllowReload: true,
+
+    // 3 = the modern WKWebView everywhere. macOS deprecated the classic engine
+    // and SEB shows a banner on it; nothing here uses SEB's JavaScript API,
+    // which is the only reason to stay on the old one.
+    browserWindowWebView: 3,
   };
 }
 
