@@ -515,5 +515,10 @@
     "proctorBody": "监考会在你参赛期间录制整个屏幕。录制内容只交给比赛主办方。",
     "proctorAction": "开始共享",
     "leave": "退出比赛模式"
+  },
+  "progress": {
+    "solvedCount": "已解决 {solved}/{total}",
+    "solvedOne": "已解决",
+    "hiddenExplained": "本场比赛有非公开题目。参加比赛后才能看到它们。"
   }
 }

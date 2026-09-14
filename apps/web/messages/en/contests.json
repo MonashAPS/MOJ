@@ -515,5 +515,10 @@
     "proctorBody": "Proctoring records your whole screen for as long as you take part. The recording goes to the contest's organisers and nobody else.",
     "proctorAction": "Start sharing",
     "leave": "Leave contest mode"
+  },
+  "progress": {
+    "solvedCount": "{solved}/{total} solved",
+    "solvedOne": "solved",
+    "hiddenExplained": "This contest has problems that are not public. Take part in the contest to see them."
   }
 }

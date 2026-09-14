@@ -515,5 +515,10 @@
     "proctorBody": "Pengawasan merekam seluruh layarmu selama kamu ikut serta. Rekamannya hanya diterima panitia kontes.",
     "proctorAction": "Mulai membagikan",
     "leave": "Keluar dari mode kontes"
+  },
+  "progress": {
+    "solvedCount": "{solved}/{total} terselesaikan",
+    "solvedOne": "terselesaikan",
+    "hiddenExplained": "Kontes ini punya soal yang tidak publik. Ikuti kontesnya untuk melihatnya."
   }
 }

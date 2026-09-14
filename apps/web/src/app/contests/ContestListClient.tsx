@@ -29,6 +29,7 @@ import { useEffect, useState } from "react";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips, ContestWindow, UserCount } from "@/components/contests/pieces";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
+import { ContestProgress } from "./ContestProgress";
 import { type ContestListArgs, PAST_PER_PAGE } from "./shared";
 
 /** Radix has no empty option value, so "every tag" needs a name of its own. */
@@ -88,6 +89,7 @@ function ContestBlock({ contest, when }: { contest: ContestListRow; when?: React
           endTime={contest.endTime}
           timeLimit={contest.timeLimit}
         />
+        {contest.progress ? <ContestProgress progress={contest.progress} /> : null}
       </div>
     </TableCell>
   );
@@ -123,11 +125,11 @@ function ListTable({
           {rows.map((contest) => (
             <TableRow key={contest._id} className="group">
               <ContestBlock contest={contest} when={renderWhen?.(contest)} />
-              <TableCell numeric className="align-top">
+              <TableCell numeric className="align-middle">
                 <UserCount count={contest.userCount} href={`/contest/${contest.key}/ranking/`} />
               </TableCell>
               {action && !inContest ? (
-                <TableCell className="relative z-1 align-top">{action(contest)}</TableCell>
+                <TableCell className="relative z-1 align-middle">{action(contest)}</TableCell>
               ) : null}
             </TableRow>
           ))}
@@ -147,11 +149,11 @@ function ActiveRow({ participation }: { participation: ActiveParticipation }) {
           <Countdown sentence={contest.timeLimit ? "windowEndsIn" : "endsIn"} endsAt={participation.endsAt} />
         }
       />
-      <TableCell numeric className="align-top">
+      <TableCell numeric className="align-middle">
         <UserCount count={contest.userCount} href={`/contest/${contest.key}/ranking/`} />
       </TableCell>
-      <TableCell className="relative z-1 align-top">
-        <JoinControl contestKey={contest.key} kind="leave" full />
+      <TableCell className="relative z-1 align-middle">
+        <JoinControl contestKey={contest.key} kind="leave" full size="default" />
       </TableCell>
     </TableRow>
   );
@@ -289,6 +291,7 @@ export function ContestListClient({
               // Join and the mutation says no if the viewer may not.
               kind={data.finishedKeys.includes(contest.key) ? "spectate" : "join"}
               full
+              size="default"
             />
           )}
         />
@@ -383,14 +386,14 @@ export function ContestListClient({
                 {data.past.page.map((contest) => (
                   <TableRow key={contest._id} className="group">
                     <ContestBlock contest={contest} />
-                    <TableCell numeric className="align-top">
+                    <TableCell numeric className="align-middle">
                       <UserCount count={contest.userCount} href={`/contest/${contest.key}/ranking/`} />
                     </TableCell>
                     {!inContest ? (
-                      <TableCell className="relative z-1 align-top">
+                      <TableCell className="relative z-1 align-middle">
                         <Tooltip content={t("virtualHint")}>
                           <span className="inline-block">
-                            <JoinControl contestKey={contest.key} kind="virtual" full />
+                            <JoinControl contestKey={contest.key} kind="virtual" full size="default" />
                           </span>
                         </Tooltip>
                       </TableCell>

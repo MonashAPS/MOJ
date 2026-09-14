@@ -175,8 +175,8 @@ export function ProblemStateIcon({ state, title }: { state: ProblemState; title?
 /** DMOJ's user-count cell: a link to the ranking when the viewer may see it. */
 export function UserCount({ count, href }: { count: number; href?: string | null }) {
   const body = (
-    <span className="font-mono text-mono tabular-nums">
-      <Users size={12} className="mr-1 inline text-muted-foreground" aria-hidden />
+    <span className="font-mono text-base tabular-nums">
+      <Users size={15} className="mr-1.5 inline text-muted-foreground" aria-hidden />
       {count}
     </span>
   );

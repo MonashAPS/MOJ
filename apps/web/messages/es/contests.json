@@ -515,5 +515,10 @@
     "proctorBody": "La supervisión graba toda tu pantalla mientras participas. La grabación va a la organización del concurso y a nadie más.",
     "proctorAction": "Empezar a compartir",
     "leave": "Salir del modo concurso"
+  },
+  "progress": {
+    "solvedCount": "{solved}/{total} resueltos",
+    "solvedOne": "resuelto",
+    "hiddenExplained": "Este concurso tiene problemas que no son públicos. Participa en el concurso para verlos."
   }
 }
