@@ -128,7 +128,7 @@ export function LanguagePicker({
               {families.map((family) => (
                 <div
                   key={family.name}
-                  className="rounded-md border border-border p-3 transition-colors hover:border-accent-line"
+                  className="rounded-md border border-border p-3 transition-colors hover:border-primary-line hover:bg-primary-soft"
                 >
                   <div className="mb-2 flex items-center gap-2.5">
                     <Mark commonName={family.name} />
@@ -153,7 +153,7 @@ export function LanguagePicker({
                         className={`flex cursor-pointer items-center gap-1 rounded border px-2 py-1 text-[13px] transition-[background-color,border-color,box-shadow] ${
                           item.key === value
                             ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border bg-secondary hover:border-accent-line hover:bg-accent-soft hover:shadow-xs"
+                            : "border-border bg-card hover:border-primary hover:bg-primary-soft hover:shadow-xs"
                         } ${item.runnable ? "" : "opacity-55"}`}
                       >
                         {item.key === value ? <Check size={12} aria-hidden /> : null}
