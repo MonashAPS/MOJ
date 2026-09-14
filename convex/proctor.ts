@@ -404,6 +404,25 @@ export const sessions = query({
   },
 });
 
+/**
+ * One slice's URL, for the hover preview on the chart.
+ *
+ * Fetched a slice at a time rather than returned with the timeline, because a
+ * busy window is thousands of slices and signing a URL for every one of them to
+ * show at most one would be work nobody asked for.
+ */
+export const sliceUrl = query({
+  args: { sessionId: v.id("proctorSessions"), index: v.number() },
+  handler: async (ctx, args): Promise<string | null> => {
+    if (!(await staffOnly(ctx))) return null;
+    const chunk = await ctx.db
+      .query("proctorChunks")
+      .withIndex("by_session_index", (q) => q.eq("sessionId", args.sessionId).eq("index", args.index))
+      .unique();
+    return chunk ? await ctx.storage.getUrl(chunk.storageId) : null;
+  },
+});
+
 /** The slices of one session, in order, with the URLs to play them back. */
 export const replay = query({
   args: { sessionId: v.id("proctorSessions") },

@@ -2071,26 +2071,20 @@
     "emptyBody": "Sesi muncul di sini begitu ada yang membagikan layarnya di /proctor/.",
     "slices": "{count, plural, =0 {tidak ada} other {# bagian}}",
     "missingSlices": "{count, plural, other {# bagian tidak pernah sampai}}",
-    "details": "Sesi",
-    "replay": "Pemutaran",
-    "startedAt": "Mulai {at}",
-    "lastSeenAt": "terakhir terlihat {at}",
     "missing": "Sesi tidak ditemukan.",
     "follow": "Ikuti langsung",
     "gap": "Ada jeda pada rekaman",
     "noRecording": "Belum ada yang terekam.",
-    "watch": "Tonton",
-    "watchLive": "Tonton langsung",
     "everyone": "Semua orang",
     "anyContest": "Kontes apa pun",
     "searchUser": "Cari orang",
     "searchContest": "Cari kontes",
-    "whenLabel": "Kapan",
     "panBack": "Lebih awal",
     "panForward": "Lebih akhir",
     "zoomIn": "Perbesar",
     "zoomOut": "Perkecil",
     "now": "Sekarang",
-    "followingNow": "Mengikuti"
+    "followingNow": "Mengikuti",
+    "close": "Tutup"
   }
 }

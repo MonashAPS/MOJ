@@ -2071,26 +2071,20 @@
     "emptyBody": "Aparecerá una sesión en cuanto alguien comparta su pantalla en /proctor/.",
     "slices": "{count, plural, =0 {nada} one {# fragmento} other {# fragmentos}}",
     "missingSlices": "{count, plural, one {# fragmento nunca llegó} other {# fragmentos nunca llegaron}}",
-    "details": "Sesión",
-    "replay": "Reproducción",
-    "startedAt": "Inicio {at}",
-    "lastSeenAt": "visto por última vez {at}",
     "missing": "No existe esa sesión.",
     "follow": "Seguir en directo",
     "gap": "Hueco en la grabación",
     "noRecording": "Todavía no hay nada grabado.",
-    "watch": "Ver",
-    "watchLive": "Ver en directo",
     "everyone": "Todos",
     "anyContest": "Cualquier concurso",
     "searchUser": "Buscar personas",
     "searchContest": "Buscar concursos",
-    "whenLabel": "Cuándo",
     "panBack": "Antes",
     "panForward": "Después",
     "zoomIn": "Acercar",
     "zoomOut": "Alejar",
     "now": "Ahora",
-    "followingNow": "Siguiendo"
+    "followingNow": "Siguiendo",
+    "close": "Cerrar"
   }
 }

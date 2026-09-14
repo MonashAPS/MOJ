@@ -2071,26 +2071,20 @@
     "emptyBody": "Сессия появится здесь, как только кто-нибудь начнёт демонстрацию экрана на /proctor/.",
     "slices": "{count, plural, =0 {ничего} one {# фрагмент} few {# фрагмента} many {# фрагментов} other {# фрагментов}}",
     "missingSlices": "{count, plural, one {# фрагмент не дошёл} few {# фрагмента не дошли} many {# фрагментов не дошли} other {# фрагментов не дошли}}",
-    "details": "Сессия",
-    "replay": "Воспроизведение",
-    "startedAt": "Начало {at}",
-    "lastSeenAt": "последний сигнал {at}",
     "missing": "Такой сессии нет.",
     "follow": "Следить в эфире",
     "gap": "Пропуск в записи",
     "noRecording": "Пока ничего не записано.",
-    "watch": "Смотреть",
-    "watchLive": "Смотреть в эфире",
     "everyone": "Все",
     "anyContest": "Любой контест",
     "searchUser": "Поиск людей",
     "searchContest": "Поиск контестов",
-    "whenLabel": "Когда",
     "panBack": "Раньше",
     "panForward": "Позже",
     "zoomIn": "Приблизить",
     "zoomOut": "Отдалить",
     "now": "Сейчас",
-    "followingNow": "Слежу"
+    "followingNow": "Слежу",
+    "close": "Закрыть"
   }
 }

@@ -2071,26 +2071,20 @@
     "emptyBody": "只要有人在 /proctor/ 共享屏幕，会话就会出现在这里。",
     "slices": "{count, plural, =0 {无} other {# 段}}",
     "missingSlices": "{count, plural, other {有 # 段始终未送达}}",
-    "details": "会话",
-    "replay": "回放",
-    "startedAt": "开始于 {at}",
-    "lastSeenAt": "最后活动于 {at}",
     "missing": "找不到该会话。",
     "follow": "跟随实时",
     "gap": "录制中有缺口",
     "noRecording": "尚未录制任何内容。",
-    "watch": "查看",
-    "watchLive": "实时查看",
     "everyone": "所有人",
     "anyContest": "任意比赛",
     "searchUser": "搜索用户",
     "searchContest": "搜索比赛",
-    "whenLabel": "时间",
     "panBack": "更早",
     "panForward": "更晚",
     "zoomIn": "放大",
     "zoomOut": "缩小",
     "now": "现在",
-    "followingNow": "跟随中"
+    "followingNow": "跟随中",
+    "close": "关闭"
   }
 }

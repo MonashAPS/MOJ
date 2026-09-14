@@ -2071,26 +2071,20 @@
     "emptyBody": "A session appears here as soon as somebody shares their screen at /proctor/.",
     "slices": "{count, plural, =0 {nothing} one {# slice} other {# slices}}",
     "missingSlices": "{count, plural, one {# slice never arrived} other {# slices never arrived}}",
-    "details": "Session",
-    "replay": "Replay",
-    "startedAt": "Started {at}",
-    "lastSeenAt": "last seen {at}",
     "missing": "No such session.",
     "follow": "Follow live",
     "gap": "Gap in the recording",
     "noRecording": "Nothing recorded yet.",
-    "watch": "Watch",
-    "watchLive": "Watch live",
     "everyone": "Everyone",
     "anyContest": "Any contest",
     "searchUser": "Search people",
     "searchContest": "Search contests",
-    "whenLabel": "When",
     "panBack": "Earlier",
     "panForward": "Later",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "now": "Now",
-    "followingNow": "Following"
+    "followingNow": "Following",
+    "close": "Close"
   }
 }
