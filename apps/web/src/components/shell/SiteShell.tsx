@@ -136,6 +136,11 @@ export function SiteShell({
         <div aria-hidden className="h-[3px] bg-royal" />
         {onContestPage && contest ? (
           <ContestBar data={contest} currentCode={problemCode} viewerUsername={viewer?.username ?? null} />
+        ) : routeKey && contest === undefined ? (
+          // The bar arrives a moment after the page and used to push everything
+          // below it down when it did. On a contest route its height is claimed
+          // while the query is in flight, so nothing moves when it lands.
+          <div aria-hidden className="h-(--contest-bar-height) border-b border-white/10 bg-contest-bar" />
         ) : null}
         {viewer?.isImpersonating ? <ImpersonationBar username={viewer.displayName} /> : null}
       </header>

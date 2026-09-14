@@ -311,10 +311,6 @@ function ProfileForm({
   }
 
   async function save() {
-    if (reason.trim().length === 0) {
-      setStatus({ error: t("reasonRequired") });
-      return;
-    }
     setBusy(true);
     try {
       await edit({
@@ -349,8 +345,7 @@ function ProfileForm({
   return (
     <AdminForm
       onSubmit={save}
-      reason={reason}
-      onReasonChange={setReason}
+      managed
       dirty={dirty}
       busy={busy}
       error={status.error ?? null}
@@ -509,10 +504,6 @@ function PermissionsForm({
   }
 
   async function save() {
-    if (reason.trim().length === 0) {
-      setStatus({ error: t("reasonRequired") });
-      return;
-    }
     setBusy(true);
     try {
       await edit({
@@ -535,8 +526,7 @@ function PermissionsForm({
   return (
     <AdminForm
       onSubmit={save}
-      reason={reason}
-      onReasonChange={setReason}
+      managed
       dirty={dirty}
       busy={busy}
       error={status.error ?? null}

@@ -143,10 +143,6 @@ function SettingsForm({
   }
 
   async function submit() {
-    if (reason.trim().length === 0) {
-      setStatus({ error: t("reasonRequired") });
-      return;
-    }
     setBusy(true);
     try {
       await save({
@@ -203,8 +199,7 @@ function SettingsForm({
   return (
     <AdminForm
       onSubmit={submit}
-      reason={reason}
-      onReasonChange={setReason}
+      managed
       dirty={dirty}
       busy={busy}
       error={status.error ?? null}
@@ -502,10 +497,6 @@ function MiscConfig() {
 
   async function save() {
     if (!draft) return;
-    if (reason.trim().length === 0) {
-      setError(t("reasonRequired"));
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
@@ -634,8 +625,6 @@ function MiscConfig() {
         }
         description={draft?.key ? help(draft.key) : undefined}
         onSubmit={save}
-        reason={reason}
-        onReasonChange={setReason}
         busy={busy}
         error={error}
         submitLabel={t("submit")}

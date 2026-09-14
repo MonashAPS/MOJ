@@ -98,17 +98,12 @@ function DetailsForm({ organization }: { organization: OrganizationRow }) {
   );
 
   const [draft, setDraft] = useState(initial);
-  const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<{ error?: string; saved?: string }>({});
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial);
 
   async function save() {
-    if (reason.trim().length === 0) {
-      setStatus({ error: t("reasonRequired") });
-      return;
-    }
     setBusy(true);
     try {
       await update({
@@ -123,10 +118,8 @@ function DetailsForm({ organization }: { organization: OrganizationRow }) {
         accessCode: draft.accessCode === "" ? null : draft.accessCode,
         logoOverrideImage: draft.logoOverrideImage,
         adminUsernames: parseUsernames(draft.adminUsernames),
-        reason,
       });
       setStatus({ saved: t("saved", { name: draft.name }) });
-      setReason("");
     } catch (error) {
       setStatus({ error: error instanceof Error ? error.message : t("saveFailed") });
     } finally {
@@ -145,8 +138,7 @@ function DetailsForm({ organization }: { organization: OrganizationRow }) {
   return (
     <AdminForm
       onSubmit={save}
-      reason={reason}
-      onReasonChange={setReason}
+      managed
       dirty={dirty}
       busy={busy}
       error={status.error ?? null}
@@ -210,17 +202,12 @@ function Classes({ organization }: { organization: OrganizationRow }) {
   const remove = useMutation(api.classes.remove);
 
   const [draft, setDraft] = useState<ClassDraft | null>(null);
-  const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
 
   async function save() {
     if (!draft) return;
-    if (reason.trim().length === 0) {
-      setError(t("reasonRequired"));
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
@@ -306,7 +293,6 @@ function Classes({ organization }: { organization: OrganizationRow }) {
                 adminUsernames: "",
                 memberUsernames: "",
               });
-              setReason("");
               setError(null);
             }}
           >
@@ -357,7 +343,6 @@ function Classes({ organization }: { organization: OrganizationRow }) {
               icon={<Plus aria-hidden />}
               onClick={() => {
                 setDraft({ ...EMPTY_CLASS });
-                setReason("");
                 setError(null);
               }}
             >
@@ -383,8 +368,6 @@ function Classes({ organization }: { organization: OrganizationRow }) {
             : t("dialogCreateTitle", { organization: organization.name })
         }
         onSubmit={save}
-        reason={reason}
-        onReasonChange={setReason}
         busy={busy}
         error={error}
         submitLabel={draft?.originalSlug ? t("dialogEditSubmit") : t("dialogCreateSubmit")}

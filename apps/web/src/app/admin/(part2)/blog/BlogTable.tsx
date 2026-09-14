@@ -101,10 +101,6 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
 
   async function save() {
     if (!draft) return;
-    if (reason.trim().length === 0) {
-      setError(t("reasonRequired"));
-      return;
-    }
     const publishOn = draft.publishOn.trim() === "" ? Date.now() : fromLocalInput(draft.publishOn);
     if (publishOn === null) {
       setError(t("publishTimeInvalid"));
@@ -278,8 +274,6 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
         }}
         title={draft?.id ? t("editTitle", { title: draft.title }) : t("newTitle")}
         onSubmit={save}
-        reason={reason}
-        onReasonChange={setReason}
         busy={busy}
         error={error}
         submitLabel={draft?.id ? t("submitSave") : t("submitCreate")}

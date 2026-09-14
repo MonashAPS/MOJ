@@ -107,10 +107,6 @@ export function LanguagesTable() {
 
   async function save() {
     if (!draft) return;
-    if (reason.trim().length === 0) {
-      setError(t("reasonRequired"));
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
@@ -132,10 +128,6 @@ export function LanguagesTable() {
 
   async function runCopy() {
     if (!copy) return;
-    if (reason.trim().length === 0) {
-      setError(t("reasonRequired"));
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
@@ -279,8 +271,6 @@ export function LanguagesTable() {
         title={draft?.id ? t("editTitle", { name: draft.name }) : t("newTitle")}
         description={t("dialogDescription")}
         onSubmit={save}
-        reason={reason}
-        onReasonChange={setReason}
         busy={busy}
         error={error}
         submitLabel={draft?.id ? t("saveSubmit") : t("createSubmit")}
@@ -386,8 +376,6 @@ export function LanguagesTable() {
         title={t("copyTitle", { source: copy?.sourceKey ?? "" })}
         description={t("copyDescription")}
         onSubmit={runCopy}
-        reason={reason}
-        onReasonChange={setReason}
         busy={busy}
         error={error}
         submitLabel={t("copySubmit")}

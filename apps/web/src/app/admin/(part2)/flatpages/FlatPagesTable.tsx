@@ -63,10 +63,6 @@ export function FlatPagesTable() {
 
   async function save() {
     if (!draft) return;
-    if (reason.trim().length === 0) {
-      setError(t("reasonRequired"));
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
@@ -174,8 +170,6 @@ export function FlatPagesTable() {
         onOpenChange={(next) => (next ? undefined : setDraft(null))}
         title={draft?.id ? t("editTitle", { title: draft.title }) : t("newTitle")}
         onSubmit={save}
-        reason={reason}
-        onReasonChange={setReason}
         busy={busy}
         error={error}
         submitLabel={draft?.id ? t("submitSave") : t("submitCreate")}

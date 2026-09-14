@@ -18,22 +18,22 @@ import { useTranslations } from "next-intl";
 import { type FormEvent, type ReactNode, useEffect, useId } from "react";
 
 /**
- * A console form: sections stacked, then the reason field, then the footer.
+ * A console form: sections stacked, then the footer.
  *
- * A page that lays out its own reason field and footer passes only `children`
- * and `onSubmit`. Passing `reason` and `onReasonChange` makes the form draw
- * both itself, along with the saved and error alerts, which is what most of the
- * console's editors want.
+ * A page that lays out its own footer passes only `children` and `onSubmit`.
+ * `managed` makes the form draw the footer and the saved and error alerts,
+ * which is what most of the console's editors want.
+ *
+ * There is no reason field. Every edit used to demand a sentence explaining
+ * itself, which is a toll on the common case — fixing a typo — in exchange for
+ * a history nobody reads. Revisions still record who changed what and when;
+ * they just no longer ask why.
  */
 export function AdminForm({
   onSubmit,
   children,
   className,
-  reason,
-  onReasonChange,
-  reasonRequired = true,
-  reasonLabel,
-  reasonHint,
+  managed = false,
   dirty = false,
   busy = false,
   busyLabel,
@@ -45,11 +45,8 @@ export function AdminForm({
   onSubmit: () => void | Promise<void>;
   children: ReactNode;
   className?: string;
-  reason?: string;
-  onReasonChange?: (value: string) => void;
-  reasonRequired?: boolean;
-  reasonLabel?: string;
-  reasonHint?: string;
+  /** Draw the saved and error alerts and the footer, not only the fields. */
+  managed?: boolean;
   dirty?: boolean;
   busy?: boolean;
   busyLabel?: string;
@@ -58,10 +55,6 @@ export function AdminForm({
   saved?: string | null;
   actions?: ReactNode;
 }) {
-  const t = useTranslations("admin.components.form");
-  const reasonId = useId();
-  const managed = onReasonChange !== undefined;
-
   useEffect(() => {
     if (!dirty) return;
     function warn(event: BeforeUnloadEvent) {
@@ -95,23 +88,6 @@ export function AdminForm({
       <AdminFormError message={error ?? null} />
 
       <div className="grid gap-4">{children}</div>
-
-      <div className="mt-4">
-        <Field
-          label={reasonLabel ?? t("reasonLabel")}
-          htmlFor={reasonId}
-          hint={reasonHint ?? t("reasonHint")}
-        >
-          <Input
-            id={reasonId}
-            value={reason ?? ""}
-            required={reasonRequired}
-            maxLength={200}
-            onChange={(event) => onReasonChange?.(event.target.value)}
-            placeholder={t("reasonPlaceholder")}
-          />
-        </Field>
-      </div>
 
       <AdminFormFooter
         dirty={dirty}
@@ -242,7 +218,16 @@ export function AdminFormFooter({
 }) {
   const t = useTranslations("admin.components.form");
   return (
-    <FormFooter note={note ?? (dirty ? t("unsaved") : undefined)}>
+    // Pinned to the bottom of the window rather than the bottom of the form.
+    // A console page is long and the thing you came to press was under all of
+    // it; scrolling to save is a tax on every edit. The negative margins undo
+    // the page column's gutter so the bar runs the full width of the content,
+    // and the background is opaque so the form scrolls behind rather than
+    // through it.
+    <FormFooter
+      note={note ?? (dirty ? t("unsaved") : undefined)}
+      className="sticky bottom-0 z-(--z-sticky) -mx-(--gutter) mt-6 border-t border-border bg-background/95 px-(--gutter) py-3 backdrop-blur-sm"
+    >
       {secondary}
       <Button type="submit" busy={busy}>
         {busy ? (busyLabel ?? t("busy")) : (submitLabel ?? t("submit"))}
