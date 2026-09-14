@@ -13,6 +13,7 @@ export * from "./permissions";
 export * from "./points";
 export * from "./ratings";
 export * from "./scoreboard";
+export * from "./seb";
 export * from "./types";
 export { floatformat, niceRepr, pyRound, roundHalfUp } from "./util/number";
 export * from "./verdicts";
