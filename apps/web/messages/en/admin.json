@@ -680,9 +680,8 @@
     },
     "proctoring": {
       "title": "Proctoring",
-      "intro": "A proctored contest opens its problems only while the competitor is sharing their whole screen at /proctor/.",
+      "intro": "A proctored contest opens its problems only while the competitor is sharing their whole screen",
       "required": "Require screen sharing",
-      "hint": "Joining is never blocked. Reading a problem and submitting to one are. Chromium browsers only.",
       "saved": "Proctoring settings saved",
       "refused": "The judge refused the change."
     }

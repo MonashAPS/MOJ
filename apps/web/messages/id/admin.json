@@ -680,9 +680,8 @@
     },
     "proctoring": {
       "title": "Pengawasan",
-      "intro": "Kontes yang diawasi hanya membuka soalnya selama peserta membagikan seluruh layarnya di /proctor/.",
+      "intro": "Kontes yang diawasi hanya membuka soalnya selama peserta membagikan seluruh layarnya",
       "required": "Wajibkan berbagi layar",
-      "hint": "Bergabung tidak pernah diblokir. Membaca soal dan mengirim jawaban iya. Hanya peramban Chromium.",
       "saved": "Pengaturan pengawasan tersimpan",
       "refused": "Juri menolak perubahan ini."
     }

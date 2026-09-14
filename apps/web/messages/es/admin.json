@@ -680,9 +680,8 @@
     },
     "proctoring": {
       "title": "Supervisión",
-      "intro": "Un concurso supervisado abre sus problemas solo mientras la persona comparte toda su pantalla en /proctor/.",
+      "intro": "Un concurso supervisado abre sus problemas solo mientras la persona comparte toda su pantalla",
       "required": "Requerir compartir pantalla",
-      "hint": "Unirse nunca se bloquea. Leer un problema y enviar sí. Solo navegadores Chromium.",
       "saved": "Ajustes de supervisión guardados",
       "refused": "El juez rechazó el cambio."
     }
