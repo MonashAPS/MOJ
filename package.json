@@ -37,9 +37,9 @@
     "fflate": "^0.8.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.12",
+    "@biomejs/biome": "^2.5.13",
     "@edge-runtime/vm": "^5.0.0",
-    "@types/node": "^26.5.0",
+    "@types/node": "^26.5.1",
     "concurrently": "^10.0.5",
     "convex": "^1.45.0",
     "convex-test": "^0.0.57",
