@@ -1,0 +1,144 @@
+name: Release
+
+# Publishing the images is what a release does, beyond tagging the source: an
+# operator standing up MOJ should be able to pull a version rather than build
+# one. The tag on the release is the tag on the image.
+on:
+  release:
+    types: [published]
+  # For a release whose publish failed, or to push a tier the release did not.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The release tag to build, for example v1.2.0
+        required: true
+      judge-tier:
+        description: Which runtimes image the judge is built on
+        default: tier1
+        type: choice
+        options: [tier1, tier2]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  web:
+    name: Web image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.event.release.tag_name }}
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # `source` is what links the package to this repository, which is what
+      # gives the repository's workflows permission to push to it later.
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/moj-web
+          tags: |
+            type=semver,pattern={{version}},value=${{ inputs.tag || github.event.release.tag_name }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.tag || github.event.release.tag_name }}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.description=The MOJ web application
+            org.opencontainers.image.licenses=AGPL-3.0-only
+
+      # Built and tested before it is pushed: a broken image in a public
+      # registry is worse than a release that failed to publish one.
+      - name: Build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          tags: moj-web:release
+          load: true
+          cache-from: type=gha
+
+      - name: The image starts and answers its healthcheck
+        run: |
+          docker run -d --name moj-web-release -p 3000:3000 \
+            -e NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:3210 \
+            -e NEXT_PUBLIC_CONVEX_SITE_URL=http://127.0.0.1:3211 \
+            -e NEXT_PUBLIC_APP_URL=http://localhost:3000 \
+            -e DATABASE_URL=postgresql://moj:moj@127.0.0.1:5433/moj_auth \
+            -e AUTH_SECRET=ci-run-only-not-a-real-secret \
+            moj-web:release
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/api/health; then
+              echo
+              docker rm -f moj-web-release
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs moj-web-release
+          docker rm -f moj-web-release
+          exit 1
+
+      - name: Push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          push: true
+          cache-from: type=gha
+
+  judge:
+    name: Judge image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.event.release.tag_name }}
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/moj-judge
+          # The tier is part of the tag: the same release builds more than one,
+          # and an operator picks the tier by the languages they need.
+          flavor: |
+            latest=false
+            suffix=-${{ inputs.judge-tier || 'tier1' }},onlatest=true
+          tags: |
+            type=semver,pattern={{version}},value=${{ inputs.tag || github.event.release.tag_name }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.tag || github.event.release.tag_name }}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.description=The MOJ judge, built on DMOJ's runtimes image
+            org.opencontainers.image.licenses=AGPL-3.0-only
+
+      - name: Push
+        uses: docker/build-push-action@v7
+        with:
+          context: apps/judge
+          file: apps/judge/Dockerfile
+          build-args: |
+            TIER=${{ inputs.judge-tier || 'tier1' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          push: true
+          cache-from: type=gha

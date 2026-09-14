@@ -290,6 +290,23 @@ Judges still need no backup. A judge holds a cache of archives it has downloaded
 submission, plus whatever problem data was put on the box directly, which comes from the repositories. Rebuilding
 one is a `docker run` away.
 
+## Images
+
+Every GitHub release publishes its images to the GitHub container registry, so a deployment pulls a version
+rather than building one:
+
+| Image | Tags |
+| --- | --- |
+| `ghcr.io/monashaps/moj-web` | `1.2.0`, `1.2`, `latest` |
+| `ghcr.io/monashaps/moj-judge` | `1.2.0-tier1`, `1.2-tier1`, `latest-tier1` |
+
+The judge's tier is part of its tag, because one release builds more than one and an operator picks the tier by
+the languages they need. Only tier 1 is published automatically; tier 2 can be built from the Actions tab, and
+tier 3 is too large for a hosted runner to build, so build that one on the judge box.
+
+Building from a checkout keeps working and is what a change under review wants. The published images only save
+an operator the build.
+
 ## Updating
 
 ```bash
@@ -305,12 +322,13 @@ The order matters. Convex functions are deployed before the new web image starts
 new functions; a schema change that removes a field should be split across two releases so that the running site
 never queries a field that has gone.
 
-Judges are updated separately and do not need to match the site's version:
+Judges are updated separately and do not need to match the site's version. Pull the release you want, or build
+it yourself if you need a tier that is not published:
 
 ```bash
-docker build --build-arg TIER=tier1 -t moj-judge:tier1 apps/judge
+docker pull ghcr.io/monashaps/moj-judge:latest-tier1     # or :1.2.0-tier1
 docker stop moj-judge && docker rm moj-judge
-docker run -d ... moj-judge:tier1   # the same command as before
+docker run -d ... ghcr.io/monashaps/moj-judge:latest-tier1   # the same command as before
 ```
 
 Do that one judge at a time. With several judges online, the others keep grading, and a judge that goes away
