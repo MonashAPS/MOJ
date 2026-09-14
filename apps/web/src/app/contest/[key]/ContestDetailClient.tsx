@@ -29,6 +29,7 @@ import { ContestChips, OPEN_ENDED, ProblemStateIcon, useHumanDuration } from "@/
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { formatDateTime, formatPoints } from "@/lib/format";
 import { Clarifications } from "./Clarifications";
+import { ProblemsNotReleased } from "./ProblemsNotReleased";
 import { contestTabs, joinKindFor } from "./tabs";
 
 const DASH = "—";
@@ -418,7 +419,9 @@ export function ContestDetailClient({
       <TwoColumn side={<Sidebar detail={detail} />}>
         <ContentDescription html={descriptionHtml} />
 
-        {showProblems ? (
+        {!showProblems ? (
+          <ProblemsNotReleased />
+        ) : (
           <section className="mt-8 grid gap-2">
             <h2 className="flex items-center gap-2 font-display text-h2 font-semibold">
               <CircleHelp size={18} className="text-muted-foreground" aria-hidden />
@@ -462,7 +465,7 @@ export function ContestDetailClient({
               <p className="text-sm text-muted-foreground">{t("tickNote")}</p>
             ) : null}
           </section>
-        ) : null}
+        )}
 
         {contest.useClarifications ? (
           <Clarifications

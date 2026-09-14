@@ -184,7 +184,8 @@
     "authors": "{count, plural, one {Autor} other {Autores}}",
     "curators": "{count, plural, one {Curador} other {Curadores}}",
     "testers": "{count, plural, one {Tester} other {Testers}}",
-    "spectators": "{count, plural, one {Espectador} other {Espectadores}}"
+    "spectators": "{count, plural, one {Espectador} other {Espectadores}}",
+    "problemsNotReleased": "Los problemas de este concurso aún no se han publicado."
   },
   "clarifications": {
     "title": "Aclaraciones",
@@ -515,5 +516,9 @@
     "proctorBody": "La supervisión graba toda tu pantalla mientras participas. La grabación va a la organización del concurso y a nadie más.",
     "proctorAction": "Empezar a compartir",
     "leave": "Salir del modo concurso"
+  },
+  "progress": {
+    "solvedCount": "{solved}/{total} resueltos",
+    "solvedOne": "resuelto"
   }
 }

@@ -184,7 +184,8 @@
     "authors": "{count, plural, one {Author} other {Authors}}",
     "curators": "{count, plural, one {Curator} other {Curators}}",
     "testers": "{count, plural, one {Tester} other {Testers}}",
-    "spectators": "{count, plural, one {Spectator} other {Spectators}}"
+    "spectators": "{count, plural, one {Spectator} other {Spectators}}",
+    "problemsNotReleased": "The problems for this contest have not been released yet."
   },
   "clarifications": {
     "title": "Clarifications",
@@ -515,5 +516,9 @@
     "proctorBody": "Proctoring records your whole screen for as long as you take part. The recording goes to the contest's organisers and nobody else.",
     "proctorAction": "Start sharing",
     "leave": "Leave contest mode"
+  },
+  "progress": {
+    "solvedCount": "{solved}/{total} solved",
+    "solvedOne": "solved"
   }
 }

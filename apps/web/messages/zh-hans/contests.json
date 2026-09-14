@@ -184,7 +184,8 @@
     "authors": "{count, plural, other {作者}}",
     "curators": "{count, plural, other {策划}}",
     "testers": "{count, plural, other {测试员}}",
-    "spectators": "{count, plural, other {观众}}"
+    "spectators": "{count, plural, other {观众}}",
+    "problemsNotReleased": "本场比赛的题目尚未公开。"
   },
   "clarifications": {
     "title": "答疑",
@@ -515,5 +516,9 @@
     "proctorBody": "监考会在你参赛期间录制整个屏幕。录制内容只交给比赛主办方。",
     "proctorAction": "开始共享",
     "leave": "退出比赛模式"
+  },
+  "progress": {
+    "solvedCount": "已解决 {solved}/{total}",
+    "solvedOne": "已解决"
   }
 }
