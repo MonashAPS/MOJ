@@ -169,8 +169,10 @@ export async function verifySebTicket(
   now: number,
 ): Promise<boolean> {
   const parts = ticket.split(".");
-  if (parts.length !== 3 || parts[0] !== "v1") return false;
   const [version, payload, signature] = parts;
+  // The length check is not redundant: without it a valid ticket with anything
+  // appended after a further dot would still verify.
+  if (parts.length !== 3 || version !== "v1" || !payload || !signature) return false;
 
   const expectedSignature = await sign(secret, `${version}.${payload}`);
   if (!constantTimeEquals(signature, expectedSignature)) return false;

@@ -51,6 +51,7 @@ import {
 } from "./contestFormats";
 import { optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, invalid, mojError, notFound } from "./lib/errors";
+import { requireSebTicket } from "./lib/seb";
 
 /* -------------------------------------------------------------------------- */
 /* Shared shapes                                                              */
@@ -1275,13 +1276,17 @@ async function updateUserCount(ctx: MutationCtx, contestId: Id<"contests">): Pro
  * both win.
  */
 export const join = mutation({
-  args: { key: v.string(), accessCode: v.optional(v.string()) },
+  args: { key: v.string(), accessCode: v.optional(v.string()), sebTicket: v.optional(v.string()) },
   handler: async (
     ctx,
-    { key, accessCode },
+    { key, accessCode, sebTicket },
   ): Promise<{ participationId: Id<"contestParticipations">; virtual: number }> => {
     const profile = await requireViewer(ctx);
     const contest = await requireAccessibleContest(ctx, key, profile);
+    // Joining is what puts the viewer in contest mode, and contest mode is what
+    // opens the contest's problems regardless of their own visibility. A locked
+    // contest therefore has to be gated here and not only at the page render.
+    await requireSebTicket(ctx, contest, profile._id, sebTicket);
     const viewer = await toViewerRowInContest(ctx, profile);
     const contestRow = toContestRow(contest);
     const now = Date.now();

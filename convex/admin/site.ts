@@ -368,6 +368,7 @@ export const updateSettings = mutation({
     ratingRatios: v.optional(v.array(v.number())),
     requireStaffTwoFactor: v.optional(v.boolean()),
     pdfEnabled: v.optional(v.boolean()),
+    sebEnabled: v.optional(v.boolean()),
     mossApiKey: v.optional(v.string()),
     analytics: v.optional(v.string()),
     enableComments: v.optional(v.boolean()),

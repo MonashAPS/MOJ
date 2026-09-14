@@ -128,6 +128,12 @@ describe("tickets", () => {
     expect(await verifySebTicket(SECRET, `${version}.${forged}.${signature}`, claims, now)).toBe(false);
   });
 
+  it("refuses a valid ticket with anything appended", async () => {
+    const ticket = await mintSebTicket(SECRET, claims, now);
+    expect(await verifySebTicket(SECRET, `${ticket}.`, claims, now)).toBe(false);
+    expect(await verifySebTicket(SECRET, `${ticket}.x`, claims, now)).toBe(false);
+  });
+
   it("refuses malformed tickets rather than throwing", async () => {
     for (const ticket of ["", "v1", "v1.a", "v2.a.b", "v1..", "not-a-ticket"]) {
       expect(await verifySebTicket(SECRET, ticket, claims, now)).toBe(false);
