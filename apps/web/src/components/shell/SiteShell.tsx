@@ -153,7 +153,19 @@ export function SiteShell({
         </>
       ) : null}
 
-      <div className="flex min-h-dvh flex-col pt-[var(--header-height,calc(var(--nav-height)+3px))]">
+      {/* The fallback has to describe the header that will actually be there.
+          `--header-height` is measured after mount, and until it lands this
+          padding is all that holds the content down; a contest route grows a
+          bar, so a fallback that ignores it starts the page too high and drops
+          it the moment the observer reports. That drop was the jitter. */}
+      <div
+        className="flex min-h-dvh flex-col"
+        style={{
+          paddingTop: routeKey
+            ? "var(--header-height, calc(var(--nav-height) + 3px + var(--contest-bar-height)))"
+            : "var(--header-height, calc(var(--nav-height) + 3px))",
+        }}
+      >
         {/* `overflow-x: clip` (not hidden, which would make this a scroll
             container and break every sticky header inside it): a dense table
             already scrolls inside its own wrapper, but a wide console page

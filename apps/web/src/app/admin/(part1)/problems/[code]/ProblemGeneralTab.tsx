@@ -13,7 +13,6 @@ import {
   AdminSection,
   AdminWideField,
   DateTimeField,
-  ReasonField,
   UserPicker,
 } from "@/components/admin";
 import type { ProblemEdit, ProblemOptions } from "./types";
@@ -80,7 +79,6 @@ export function ProblemGeneralTab({
   const [ogImage, setOgImage] = useState(problem.ogImage);
 
   const [reason, setReason] = useState("");
-  const [reasonError, setReasonError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -115,11 +113,6 @@ export function ProblemGeneralTab({
 
   async function save() {
     setError(null);
-    if (!reason.trim()) {
-      setReasonError(shared("reasonRequired"));
-      return;
-    }
-    setReasonError(undefined);
     setBusy(true);
     try {
       const result = await update({
@@ -386,8 +379,6 @@ export function ProblemGeneralTab({
           />
         </Field>
       </AdminSection>
-
-      <ReasonField value={reason} onChange={setReason} error={reasonError} hint={t("reasonHint")} />
       <AdminFormFooter dirty={dirty} busy={busy} submitLabel={t("submit")} />
     </AdminForm>
   );

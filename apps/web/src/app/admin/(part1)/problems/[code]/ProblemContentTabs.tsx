@@ -36,7 +36,6 @@ import {
   AdminFormFooter,
   AdminSection,
   DateTimeField,
-  ReasonField,
   UserPicker,
 } from "@/components/admin";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
@@ -61,18 +60,12 @@ export function ProblemEditorialTab({ problem }: { problem: ProblemEdit }) {
   const [publishOn, setPublishOn] = useState<number | null>(editorial?.publishOn ?? Date.now());
   const [authors, setAuthors] = useState<string[]>(editorial?.authors ?? []);
   const [reason, setReason] = useState("");
-  const [reasonError, setReasonError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function save() {
     setError(null);
-    if (!reason.trim()) {
-      setReasonError(shared("reasonRequired"));
-      return;
-    }
-    setReasonError(undefined);
     setBusy(true);
     try {
       await setEditorial({
@@ -131,8 +124,6 @@ export function ProblemEditorialTab({ problem }: { problem: ProblemEdit }) {
           <MarkdownEditor value={content} onChange={setContent} preset="solution" rows={22} />
         </Field>
       </Panel>
-
-      <ReasonField value={reason} onChange={setReason} error={reasonError} hint={t("reasonHint")} />
       <AdminFormFooter
         busy={busy}
         submitLabel={editorial ? t("save") : t("add")}
@@ -281,7 +272,6 @@ export function ProblemTranslationsTab({ problem }: { problem: ProblemEdit }) {
             <MarkdownEditor value={description} onChange={setDescription} preset="problem" rows={18} />
           </Field>
         </Panel>
-        <ReasonField value={reason} onChange={setReason} hint={t("reasonHint")} />
         <AdminFormFooter busy={busy} submitLabel={existing ? t("save") : t("add")} />
       </AdminForm>
     </div>
@@ -307,7 +297,6 @@ export function ProblemLanguageLimitsTab({
   const [limits, setLimits] = useState<Limit[]>(problem.languageLimits);
   const [adding, setAdding] = useState("");
   const [reason, setReason] = useState("");
-  const [reasonError, setReasonError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -320,11 +309,6 @@ export function ProblemLanguageLimitsTab({
 
   async function save() {
     setError(null);
-    if (!reason.trim()) {
-      setReasonError(shared("reasonRequired"));
-      return;
-    }
-    setReasonError(undefined);
     setBusy(true);
     try {
       await setLanguageLimits({ code: problem.code, limits, reason: reason.trim() });
@@ -435,7 +419,6 @@ export function ProblemLanguageLimitsTab({
           </Table>
         )}
       </Panel>
-      <ReasonField value={reason} onChange={setReason} error={reasonError} hint={t("reasonHint")} />
       <AdminFormFooter busy={busy} submitLabel={t("submit")} />
     </AdminForm>
   );
@@ -526,7 +509,6 @@ export function ProblemClarificationsTab({ problem }: { problem: ProblemEdit }) 
             <MarkdownEditor value={description} onChange={setDescription} preset="comment" rows={6} />
           </Field>
         </Panel>
-        <ReasonField value={reason} onChange={setReason} hint={t("reasonHint")} />
         <AdminFormFooter busy={busy} submitLabel={t("submit")} busyLabel={t("busy")} />
       </AdminForm>
 

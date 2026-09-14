@@ -14,7 +14,6 @@ import {
   AdminSection,
   AdminWideField,
   DateTimeField,
-  ReasonField,
   UserPicker,
 } from "@/components/admin";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
@@ -111,7 +110,6 @@ export function ContestGeneralTab({
   const [bannedUsers, setBannedUsers] = useState<string[]>(contest.bannedUsers);
 
   const [reason, setReason] = useState("");
-  const [reasonError, setReasonError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -153,15 +151,10 @@ export function ContestGeneralTab({
 
   async function save() {
     setError(null);
-    if (!reason.trim()) {
-      setReasonError(t("reasonRequired"));
-      return;
-    }
     if (configError) {
       setError(configError);
       return;
     }
-    setReasonError(undefined);
     setBusy(true);
     try {
       await update({
@@ -622,8 +615,6 @@ export function ContestGeneralTab({
           />
         </Field>
       </AdminSection>
-
-      <ReasonField value={reason} onChange={setReason} error={reasonError} hint={t("reasonHint")} />
       <AdminFormFooter busy={busy} submitLabel={t("submit")} />
     </AdminForm>
   );

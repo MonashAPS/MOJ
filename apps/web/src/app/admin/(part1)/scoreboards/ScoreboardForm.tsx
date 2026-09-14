@@ -31,7 +31,6 @@ import {
   AdminFormFooter,
   AdminSection,
   AdminShell,
-  ReasonField,
 } from "@/components/admin";
 
 /** `scoreboardEvents`: the rows that replaced the fork's hard-coded scoreboard setting. */
@@ -69,7 +68,6 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
   const [freezeMinutes, setFreezeMinutes] = useState("60");
   const [isPublic, setIsPublic] = useState(true);
   const [reason, setReason] = useState("");
-  const [reasonError, setReasonError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
@@ -98,11 +96,6 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
       setError(t("contestsRequired"));
       return;
     }
-    if (eventKey && !reason.trim()) {
-      setReasonError(t("reasonRequired"));
-      return;
-    }
-    setReasonError(undefined);
     setBusy(true);
     try {
       const payload = {
@@ -272,8 +265,6 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
             onCheckedChange={setIsPublic}
           />
         </AdminSection>
-
-        <ReasonField value={reason} onChange={setReason} error={reasonError} hint={t("reasonHint")} />
         <AdminFormFooter
           busy={busy}
           submitLabel={eventKey ? t("save") : t("create")}

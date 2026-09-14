@@ -7,10 +7,8 @@ import {
   Button,
   Checkbox,
   cn,
-  Field,
   FieldGroup,
   FormFooter,
-  Input,
   Panel,
 } from "@moj/ui";
 import { CheckCircle2 } from "lucide-react";
@@ -169,38 +167,6 @@ export function AdminCheckField({
  * SPEC section 8: every edit form ends with the reason the revision records.
  * It sits directly above the footer and is never optional.
  */
-export function ReasonField({
-  value,
-  onChange,
-  error,
-  hint,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  error?: string;
-  /** The finished sentence, from the page that knows what is being edited. A
-   *  bare noun dropped into a frame here comes out in the wrong case, or in the
-   *  wrong place, once either half is translated. */
-  hint: string;
-}) {
-  const t = useTranslations("admin.components.form");
-  const id = useId();
-  return (
-    <Panel title={t("historyPanel")} bodyClassName="p-4">
-      <Field label={t("reasonLabel")} htmlFor={id} error={error} hint={hint}>
-        <Input
-          id={id}
-          value={value}
-          invalid={!!error}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={t("reasonPlaceholder")}
-        />
-      </Field>
-    </Panel>
-  );
-}
-
-/** The rule, the unsaved-changes note, then the buttons, primary right-most. */
 export function AdminFormFooter({
   dirty,
   busy,
