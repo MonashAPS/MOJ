@@ -297,16 +297,20 @@ export type Timeline = {
  */
 export const timeline = query({
   args: {
-    /** The window to draw. Defaults to the last day. */
-    from: v.optional(v.number()),
-    to: v.optional(v.number()),
+    /**
+     * The window, as a width and a distance back from now, rather than two
+     * timestamps. Absolute bounds computed in the browser would change on every
+     * render, and a query whose arguments never settle never resolves.
+     */
+    spanMs: v.optional(v.number()),
+    endOffsetMs: v.optional(v.number()),
     username: v.optional(v.string()),
     contestKey: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<Timeline> => {
     const now = Date.now();
-    const to = args.to ?? now;
-    const from = args.from ?? to - 24 * 60 * 60 * 1000;
+    const to = now - (args.endOffsetMs ?? 0);
+    const from = to - (args.spanMs ?? 24 * 60 * 60 * 1000);
     if (!(await staffOnly(ctx))) return { from, to, rows: [], contests: [] };
 
     const wanted = args.contestKey

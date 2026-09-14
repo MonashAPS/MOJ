@@ -70,12 +70,12 @@ export function ProctorSessions() {
   const [username, setUsername] = useState("");
   const [contestKey, setContestKey] = useState("");
 
-  const to = Date.now() - endOffset;
-  const from = to - span;
-
+  // Span and offset, never a timestamp computed here: an absolute bound would
+  // be a new value on every render, and a query whose arguments never settle
+  // never resolves. The server reads the clock.
   const data = useQuery(api.proctor.timeline, {
-    from,
-    to,
+    spanMs: span,
+    endOffsetMs: endOffset,
     ...(username ? { username } : {}),
     ...(contestKey ? { contestKey } : {}),
   });
@@ -92,8 +92,10 @@ export function ProctorSessions() {
   }, [data]);
 
   const breadcrumb = [{ label: t("breadcrumbConsole"), href: "/admin/" }, { label: t("title") }];
-  const width = Math.max(1, (data?.to ?? to) - (data?.from ?? from));
-  const ticks = ticksFor(data?.from ?? from, data?.to ?? to);
+  const from = data?.from ?? 0;
+  const to = data?.to ?? 1;
+  const width = Math.max(1, to - from);
+  const ticks = data ? ticksFor(from, to) : [];
 
   return (
     <AdminShell title={t("title")} breadcrumb={breadcrumb}>
@@ -188,7 +190,7 @@ export function ProctorSessions() {
                   <span
                     key={tick.at}
                     className="absolute top-1 -translate-x-1/2 whitespace-nowrap text-xs tabular-nums text-muted-foreground"
-                    style={{ left: `${((tick.at - (data.from ?? from)) / width) * 100}%` }}
+                    style={{ left: `${((tick.at - from) / width) * 100}%` }}
                   >
                     {tick.label}
                   </span>
@@ -217,12 +219,12 @@ export function ProctorSessions() {
                         key={tick.at}
                         aria-hidden
                         className="absolute inset-y-0 w-px bg-border"
-                        style={{ left: `${((tick.at - (data.from ?? from)) / width) * 100}%` }}
+                        style={{ left: `${((tick.at - from) / width) * 100}%` }}
                       />
                     ))}
                     {entry.rows.flatMap((row) =>
                       row.slices.map((slice) => {
-                        const left = ((slice.startedAt - (data.from ?? from)) / width) * 100;
+                        const left = ((slice.startedAt - from) / width) * 100;
                         const w = Math.max((slice.durationMs / width) * 100, 0.3);
                         const label = slice.contestKey
                           ? `${entry.displayName} · ${formatDateTime(slice.startedAt)} · ${slice.contestKey}`
