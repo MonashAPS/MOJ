@@ -627,7 +627,14 @@
       "browserExamKeys": "Browser Exam Keys",
       "browserExamKeysHint": "Opcionales, y una por compilación de SEB: una Browser Exam Key también cubre la firma del cliente.",
       "saved": "Ajustes de Safe Exam Browser guardados",
-      "refused": "El juez rechazó el cambio."
+      "refused": "El juez rechazó el cambio.",
+      "generate": "Generar una configuración",
+      "generateIntro": "MOJ puede escribir el archivo .seb de este concurso y servirlo, así nadie tiene que crearlo ni alojarlo. Se abre en este concurso y envía la cabecera de la clave.",
+      "generateUnverified": "La Config Key se calcula a partir del archivo con la receta publicada por SEB. No existe un vector de prueba oficial para esa receta, así que compruébala con la herramienta de configuración de SEB antes de un concurso importante y pega abajo la clave de la herramienta si no coinciden.",
+      "generatedFor": "Generada para {origin}.",
+      "downloadGenerated": "Descargarla",
+      "regenerate": "Generar de nuevo",
+      "generated": "Configuración generada"
     },
     "actions": {
       "refused": "La acción fue rechazada.",

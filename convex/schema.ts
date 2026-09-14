@@ -248,6 +248,14 @@ export default defineSchema({
     contestId: v.id("contests"),
     configKeys: v.array(v.string()),
     browserExamKeys: v.array(v.string()),
+    /**
+     * The Config Key of the configuration MOJ generates and serves for this
+     * contest, and the origin it was generated against. The file itself is not
+     * stored: it is a pure function of those two, so regenerating it byte for
+     * byte is cheaper than keeping a copy that could drift from the key.
+     */
+    generatedKey: v.optional(v.string()),
+    generatedOrigin: v.optional(v.string()),
   }).index("by_contest", ["contestId"]),
 
   /**

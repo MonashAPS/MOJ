@@ -627,7 +627,14 @@
       "browserExamKeys": "Browser Exam Keys",
       "browserExamKeysHint": "可选，且每个 SEB 构建一个：Browser Exam Key 还包含客户端的代码签名。",
       "saved": "Safe Exam Browser 设置已保存",
-      "refused": "评测机拒绝了本次修改。"
+      "refused": "评测机拒绝了本次修改。",
+      "generate": "生成配置",
+      "generateIntro": "MOJ 可以为本场比赛生成 .seb 文件并提供下载，无需任何人自行制作或托管。它会打开本场比赛并发送密钥请求头。",
+      "generateUnverified": "Config Key 按 SEB 公布的算法从该文件计算得出。该算法没有官方测试向量，因此在正式比赛前请用 SEB 配置工具核对，若不一致请把工具给出的密钥填到下方。",
+      "generatedFor": "已为 {origin} 生成。",
+      "downloadGenerated": "下载",
+      "regenerate": "重新生成",
+      "generated": "配置已生成"
     },
     "actions": {
       "refused": "操作被拒绝。",

@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
+import { sebConfigFor, sebConfigKey } from "@moj/protocol";
 import { Button, Checkbox, Field, Input, Panel, Textarea, toast } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { useTranslations } from "next-intl";
@@ -46,7 +47,34 @@ export function ContestSebTab({ contest }: { contest: ContestEdit }) {
   const [configKeys, setConfigKeys] = useState("");
   const [browserExamKeys, setBrowserExamKeys] = useState("");
   const [busy, setBusy] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const setGenerated = useMutation(api.admin.contests.setSebGenerated);
+
+  /**
+   * Build the configuration MOJ will serve for this contest and record its
+   * Config Key. The same pure function produces the file the route hands out,
+   * so the key and the file cannot disagree.
+   */
+  async function generate() {
+    setGenerating(true);
+    setError(null);
+    try {
+      const origin = window.location.origin;
+      const configKey = await sebConfigKey(
+        sebConfigFor({
+          startUrl: `${origin}/contest/${contest.key}/`,
+          quitUrl: `${origin}/contests/`,
+        }),
+      );
+      await setGenerated({ key: contest.key, origin, configKey });
+      toast.success(t("generated"));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t("refused"));
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   // The keys arrive a moment after the rest of the tab; seed the boxes once.
   useEffect(() => {
@@ -100,6 +128,22 @@ export function ContestSebTab({ contest }: { contest: ContestEdit }) {
             placeholder="sebs://judge.example.org/contest.seb"
           />
         </Field>
+      </Panel>
+
+      <Panel title={t("generate")} bodyClassName="grid gap-3 p-4">
+        <p className="text-sm text-muted-foreground">{t("generateIntro")}</p>
+        {keys?.generatedOrigin ? (
+          <p className="text-sm text-muted-foreground">
+            {t("generatedFor", { origin: keys.generatedOrigin })}{" "}
+            <a href={`/contest/${contest.key}/seb-config`}>{t("downloadGenerated")}</a>
+          </p>
+        ) : null}
+        <div>
+          <Button variant="secondary" onClick={() => void generate()} busy={generating}>
+            {keys?.generatedOrigin ? t("regenerate") : t("generate")}
+          </Button>
+        </div>
+        <p className="text-sm text-muted-foreground">{t("generateUnverified")}</p>
       </Panel>
 
       <Panel title={t("keys")} bodyClassName="grid gap-4 p-4">

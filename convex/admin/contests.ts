@@ -456,7 +456,15 @@ function pick(row: Doc<"contests">, keys: string[]): Record<string, unknown> {
  */
 export const sebKeys = query({
   args: { key: v.string() },
-  handler: async (ctx, { key }): Promise<{ configKeys: string[]; browserExamKeys: string[] }> => {
+  handler: async (
+    ctx,
+    { key },
+  ): Promise<{
+    configKeys: string[];
+    browserExamKeys: string[];
+    generatedKey: string | null;
+    generatedOrigin: string | null;
+  }> => {
     const profile = await optionalViewer(ctx);
     const contest = await contestByKey(ctx, key);
     if (!contest) throw notFound(`Contest "${key}"`);
@@ -470,6 +478,8 @@ export const sebKeys = query({
     return {
       configKeys: row?.configKeys ?? [],
       browserExamKeys: row?.browserExamKeys ?? [],
+      generatedKey: row?.generatedKey ?? null,
+      generatedOrigin: row?.generatedOrigin ?? null,
     };
   },
 });
@@ -526,6 +536,61 @@ export const setSebKeys = mutation({
       { sebConfigKeys: configKeys.length, sebBrowserExamKeys: browserExamKeys.length },
       profile._id,
       args.reason ?? "Changed the Safe Exam Browser keys",
+    );
+    return null;
+  },
+});
+
+/**
+ * Record the Config Key of the configuration MOJ generates for this contest.
+ *
+ * The file is not stored: `/contest/<key>/seb-config` rebuilds it from the same
+ * origin, and it is a pure function of that, so the two cannot drift apart
+ * without the key changing too.
+ */
+export const setSebGenerated = mutation({
+  args: { key: v.string(), origin: v.string(), configKey: v.string() },
+  handler: async (ctx, args): Promise<null> => {
+    const { profile, contest } = await requireEditable(ctx, args.key);
+    if (!SEB_KEY_PATTERN.test(args.configKey)) {
+      throw invalid("A Config Key is 64 hexadecimal characters.");
+    }
+
+    const existing = await ctx.db
+      .query("contestSebKeys")
+      .withIndex("by_contest", (q) => q.eq("contestId", contest._id))
+      .unique();
+    const patch = {
+      generatedKey: args.configKey.toLowerCase(),
+      generatedOrigin: args.origin.replace(/\/+$/, ""),
+    };
+    if (existing) {
+      await ctx.db.patch(existing._id, patch);
+    } else {
+      await ctx.db.insert("contestSebKeys", {
+        contestId: contest._id,
+        configKeys: [],
+        browserExamKeys: [],
+        ...patch,
+      });
+    }
+
+    // Point the launch link at the file MOJ now serves, so the dialog a
+    // competitor sees has both buttons without anyone hosting anything.
+    const host = patch.generatedOrigin.replace(/^https?:\/\//, "");
+    await ctx.db.patch(contest._id, {
+      // Trailing slash: every MOJ URL has one, and the proxy 308s anything
+      // without it, which is a redirect SEB need not be asked to follow.
+      sebLaunchUrl: `sebs://${host}/contest/${contest.key}/seb-config/`,
+    });
+
+    await writeRevision(
+      ctx,
+      "contest",
+      contest._id,
+      { sebGeneratedFor: patch.generatedOrigin },
+      profile._id,
+      "Generated a Safe Exam Browser configuration",
     );
     return null;
   },

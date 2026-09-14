@@ -627,7 +627,14 @@
       "browserExamKeys": "Browser Exam Keys",
       "browserExamKeysHint": "Optional, and one per SEB build: a Browser Exam Key also covers the client's code signature.",
       "saved": "Safe Exam Browser settings saved",
-      "refused": "The judge refused the change."
+      "refused": "The judge refused the change.",
+      "generate": "Generate a configuration",
+      "generateIntro": "MOJ can write the .seb file for this contest and serve it, so nobody has to build or host one. It opens on this contest and sends the key header.",
+      "generateUnverified": "The Config Key is computed from the file by SEB's published recipe. There is no official test vector for that recipe, so confirm it against the SEB Configuration Tool before a contest that matters, and paste the tool's key below if they disagree.",
+      "generatedFor": "Generated for {origin}.",
+      "downloadGenerated": "Download it",
+      "regenerate": "Generate again",
+      "generated": "Configuration generated"
     },
     "actions": {
       "refused": "The action was refused.",
