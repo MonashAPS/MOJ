@@ -45,7 +45,7 @@ export default async function ProblemStatementPage({ params }: { params: Promise
       return (
         <>
           <TitleRow title={gate.contestName ?? t("noSuchProblem")} />
-          <ProctorRequired contestName={gate.contestName} />
+          <ProctorRequired />
         </>
       );
     }

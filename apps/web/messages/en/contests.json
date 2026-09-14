@@ -510,7 +510,6 @@
   },
   "supervision": {
     "title": "This contest is proctored",
-    "body": "{name} only opens its problems while you are sharing your screen. Joining is fine either way.",
     "noticeProctor": "You will need to share your whole screen to read the problems or submit.",
     "proctorTitle": "Share your screen",
     "proctorBody": "Proctoring records your whole screen for as long as you take part. The recording goes to the contest's organisers and nobody else.",

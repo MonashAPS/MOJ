@@ -510,7 +510,6 @@
   },
   "supervision": {
     "title": "Kontes ini diawasi",
-    "body": "{name} hanya membuka soalnya selama kamu membagikan layarmu. Bergabung tetap bebas.",
     "noticeProctor": "Kamu perlu membagikan seluruh layar untuk membaca soal atau mengirim jawaban.",
     "proctorTitle": "Bagikan layarmu",
     "proctorBody": "Pengawasan merekam seluruh layarmu selama kamu ikut serta. Rekamannya hanya diterima panitia kontes.",

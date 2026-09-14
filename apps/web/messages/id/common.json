@@ -184,7 +184,6 @@
   },
   "proctor": {
     "title": "Pengawasan",
-    "intro": "Kontes yang diawasi mengharuskan kamu membagikan seluruh layar selama mengikutinya. Rekamannya hanya diterima panitia kontes.",
     "watchingBody": "Biarkan tab ini terbuka. Menutupnya atau menghentikan pembagian akan menutup soal kontes sampai kamu mulai lagi.",
     "share": "Bagikan layar saya",
     "stop": "Hentikan pembagian",
@@ -196,12 +195,12 @@
     "stepBrowser": "Periksa peramban kamu",
     "checking": "Memeriksa…",
     "browserOk": "{name} {version}. Siap.",
-    "browserWrong": "Untuk pengawasan kami hanya mendukung Chrome dan Edge. Hanya keduanya yang melaporkan cukup detail tentang apa yang dibagikan untuk memastikan itu seluruh layarmu.",
+    "browserWrong": "Untuk pengawasan kami hanya mendukung Chrome dan Edge.",
     "getChrome": "Unduh Chrome {min}+",
     "getEdge": "Unduh Edge {min}+",
     "stepShare": "Bagikan seluruh layarmu",
-    "stepShareBody": "Pilih Seluruh Layar saat peramban meminta. Jendela atau tab akan ditolak.",
+    "stepShareBody": "Kamu harus memilih Seluruh Layar, bukan jendela atau tab",
     "stepKeep": "Biarkan tab ini terbuka",
-    "stepKeepBody": "Soal kontes hanya terbuka selama ini berjalan."
+    "stepKeepBody": "Kamu akan dikeluarkan dari kontes jika menutup tab ini"
   }
 }

@@ -184,7 +184,6 @@
   },
   "proctor": {
     "title": "监考",
-    "intro": "有监考的比赛要求你在参赛期间共享整个屏幕。录制内容只交给比赛主办方。",
     "watchingBody": "请保持此标签页打开。关闭它或停止共享，比赛题目会关闭，直到你重新开始。",
     "share": "共享我的屏幕",
     "stop": "停止共享",
@@ -196,12 +195,12 @@
     "stepBrowser": "检查你的浏览器",
     "checking": "正在检查…",
     "browserOk": "{name} {version}，可以开始。",
-    "browserWrong": "监考只支持 Chrome 和 Edge。只有它们会报告足够的共享信息，让我们确认共享的是整个屏幕。",
+    "browserWrong": "监考只支持 Chrome 和 Edge。",
     "getChrome": "获取 Chrome {min}+",
     "getEdge": "获取 Edge {min}+",
     "stepShare": "共享你的整个屏幕",
-    "stepShareBody": "浏览器询问时请选择「整个屏幕」。窗口或标签页会被拒绝。",
+    "stepShareBody": "你必须选择「整个屏幕」，而不是窗口或标签页",
     "stepKeep": "请保持此标签页打开",
-    "stepKeepBody": "只有在它运行期间，比赛题目才会保持开放。"
+    "stepKeepBody": "关闭此标签页会让你退出比赛"
   }
 }

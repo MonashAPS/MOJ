@@ -53,7 +53,6 @@ export default async function ProctorPage() {
 
       <div className="w-full max-w-xl rounded-lg border border-border bg-card p-6 shadow-lg min-[560px]:p-8">
         <h1 className="font-display text-h2 font-semibold tracking-tight">{t("title")}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{t("intro")}</p>
         <hr className="page-rule my-6" />
         <ProctorClient />
       </div>

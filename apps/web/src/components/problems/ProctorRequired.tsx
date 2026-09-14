@@ -27,7 +27,7 @@ const LINES = [
  * stand in for the text; nothing real is sent to the browser, so there is
  * nothing to read out of the markup.
  */
-export async function ProctorRequired({ contestName }: { contestName: string | null }) {
+export async function ProctorRequired() {
   const t = await getTranslations("contests.supervision");
 
   return (
@@ -48,9 +48,6 @@ export async function ProctorRequired({ contestName }: { contestName: string | n
         <div className="w-full max-w-sm rounded-lg border border-border bg-card p-6 text-center shadow-lg">
           <MonitorPlay size={22} aria-hidden className="mx-auto text-muted-foreground" />
           <h2 className="mt-3 font-display text-h3 font-semibold tracking-tight">{t("title")}</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {contestName ? t("body", { name: contestName }) : t("noticeProctor")}
-          </p>
           <Button asChild className="mt-5">
             <Link href="/proctor/">{t("proctorAction")}</Link>
           </Button>

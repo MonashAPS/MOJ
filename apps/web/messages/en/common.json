@@ -184,7 +184,6 @@
   },
   "proctor": {
     "title": "Proctoring",
-    "intro": "A proctored contest needs you to share your whole screen for as long as you are taking part. The recording goes to the contest's organisers and nobody else.",
     "watchingBody": "Leave this tab open. Closing it, or stopping the share, closes the contest's problems until you start again.",
     "share": "Share my screen",
     "stop": "Stop sharing",
@@ -196,12 +195,12 @@
     "stepBrowser": "Check your browser",
     "checking": "Checking…",
     "browserOk": "{name} {version}. Good to go.",
-    "browserWrong": "We only support Chrome and Edge for proctoring. They are the only browsers that report enough about what is being shared for us to confirm it is your whole screen.",
+    "browserWrong": "We only support Chrome and Edge for proctoring.",
     "getChrome": "Get Chrome {min}+",
     "getEdge": "Get Edge {min}+",
     "stepShare": "Share your entire screen",
-    "stepShareBody": "Choose Entire Screen when the browser asks. A window or a tab is refused.",
+    "stepShareBody": "You must choose Entire Screen, not a window or a tab",
     "stepKeep": "Leave this tab open",
-    "stepKeepBody": "The contest's problems stay open only while this is running."
+    "stepKeepBody": "You will be exited out of the contest if you close this tab"
   }
 }
