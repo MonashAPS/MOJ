@@ -162,7 +162,10 @@
     "judge": "Judge",
     "anyJudge": "Judge apa pun",
     "hint": "<keys></keys> untuk mengirim",
-    "submit": "Kirim!"
+    "submit": "Kirim!",
+    "searchLanguages": "Cari bahasa",
+    "noLanguages": "Tidak ada bahasa yang cocok.",
+    "noJudgeFor": "{name} — tidak ada juri daring untuk yang ini"
   },
   "rank": {
     "titleFor": "Solusi terbaik untuk {name}",

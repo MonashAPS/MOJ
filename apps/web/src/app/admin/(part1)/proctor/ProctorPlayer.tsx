@@ -2,7 +2,7 @@
 
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { Badge, Button } from "@moj/ui";
+import { Badge, Button, SkeletonPanel } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { Radio, X } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -30,7 +30,6 @@ export function ProctorPlayer({
   onClose?: () => void;
 }) {
   const t = useTranslations("admin.proctor");
-  const states = useTranslations("common.states");
   const data = useQuery(api.proctor.replay, { sessionId });
 
   const [at, setAt] = useState(0);
@@ -64,7 +63,7 @@ export function ProctorPlayer({
     if (!live) setFollowing(false);
   }, [live]);
 
-  if (data === undefined) return <p className="text-sm text-muted-foreground">{states("loading")}</p>;
+  if (data === undefined) return <SkeletonPanel lines={4} />;
   if (data === null) return <p className="text-sm text-muted-foreground">{t("missing")}</p>;
 
   const { session } = data;

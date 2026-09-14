@@ -162,7 +162,10 @@
     "judge": "评测机",
     "anyJudge": "任意评测机",
     "hint": "按 <keys></keys> 提交",
-    "submit": "提交！"
+    "submit": "提交！",
+    "searchLanguages": "搜索语言",
+    "noLanguages": "没有匹配的语言。",
+    "noJudgeFor": "{name} — 没有在线评测机支持"
   },
   "rank": {
     "titleFor": "{name} 的最佳解答",

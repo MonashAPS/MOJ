@@ -118,7 +118,10 @@ export function AdminTable<Row>({
               ))}
             </TableRow>
           </TableHeader>
-          <TableBody>
+          {/* Rows fade in over the placeholders they replace rather than
+              cutting, which is the difference between a table that loaded and
+              one that flickered. */}
+          <TableBody className={pending ? undefined : "enter-fade"}>
             {pending
               ? Array.from({ length: skeletonRows }, (_unused, index) => (
                   // biome-ignore lint/suspicious/noArrayIndexKey: placeholder rows have no identity

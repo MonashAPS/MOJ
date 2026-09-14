@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { Button, Combobox, EmptyState, Field } from "@moj/ui";
+import { Button, Combobox, EmptyState, Field, SkeletonTable } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { ChevronLeft, ChevronRight, MonitorOff, Trophy, User, ZoomIn, ZoomOut } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -24,7 +24,6 @@ const HOUR = 60 * MINUTE;
  */
 export function ProctorSessions() {
   const t = useTranslations("admin.proctor");
-  const states = useTranslations("common.states");
 
   // How much history to fetch. The chart fits itself to whatever came back, so
   // this is a reach rather than a window.
@@ -126,7 +125,7 @@ export function ProctorSessions() {
         </div>
 
         {data === undefined ? (
-          <p className="text-sm text-muted-foreground">{states("loading")}</p>
+          <SkeletonTable rows={4} columns={3} />
         ) : data.rows.length === 0 ? (
           <EmptyState
             icon={<MonitorOff aria-hidden />}

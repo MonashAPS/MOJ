@@ -369,6 +369,13 @@
     animation: enter-rise var(--dur-slow) var(--ease-out) both;
   }
 
+  /* Content arriving should not snap in behind the placeholder it replaces.
+     Shorter than the route transition: the page did not change, its contents
+     did. */
+  .enter-fade {
+    animation: enter-fade var(--dur) var(--ease-out) both;
+  }
+
   /* Display maths gets its own scrolling row and never scrollbars the page. */
   .display-math,
   .katex-display {
@@ -388,6 +395,15 @@
   }
   to {
     transform: translateX(400%);
+  }
+}
+
+@keyframes enter-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 

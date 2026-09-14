@@ -190,6 +190,7 @@ export {
   SheetTitle,
   SheetTrigger,
 } from "./components/sheet";
+export { SkeletonPanel, SkeletonTable, SkeletonText } from "./components/skeleton";
 export { Slider } from "./components/slider";
 export { Switch, type SwitchProps, Toggle } from "./components/switch";
 export {

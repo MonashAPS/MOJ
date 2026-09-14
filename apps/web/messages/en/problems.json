@@ -162,7 +162,10 @@
     "judge": "Judge",
     "anyJudge": "Any judge",
     "hint": "<keys></keys> to submit",
-    "submit": "Submit!"
+    "submit": "Submit!",
+    "searchLanguages": "Search languages",
+    "noLanguages": "No language matches that.",
+    "noJudgeFor": "{name} — no judge online for this one"
   },
   "rank": {
     "titleFor": "Best solutions for {name}",
