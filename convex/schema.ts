@@ -853,6 +853,9 @@ export default defineSchema({
     /** Whether contests may be locked to Safe Exam Browser at all. Off leaves
      *  the feature out of the admin entirely. */
     sebEnabled: v.optional(v.boolean()),
+    /** How long proctoring recordings are kept, in days. Zero keeps them for
+     *  ever, which on a small disk is a decision and not a default. */
+    proctorRetentionDays: v.optional(v.number()),
   }).index("by_singleton", ["singleton"]),
 
   statsSnapshots: defineTable({

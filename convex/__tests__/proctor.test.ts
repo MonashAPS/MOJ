@@ -8,9 +8,10 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { PROCTOR_LIVE_WINDOW_MS } from "../lib/proctor";
+import { siteSettingsRow } from "../lib/testing";
 import { insertContest, insertContestProblem, insertParticipation } from "./contests.fixtures";
 import { makeLanguage, makeProblem, makeProfile, setupTest, type T } from "./fixtures.helpers";
 
@@ -163,5 +164,68 @@ describe("the staff view", () => {
     );
     rows = await asStaff.query(api.proctor.sessions, {});
     expect(rows[0]?.live).toBe(false);
+  });
+});
+
+describe("retention", () => {
+  it("drops recordings past the cutoff and keeps the session", async () => {
+    const f = await fixture();
+    const { sessionId } = await share(f);
+
+    const old = Date.now() - 40 * 24 * 60 * 60 * 1000;
+    const storageIds = await f.t.run(async (ctx) => {
+      const ids = [];
+      for (const [index, startedAt] of [
+        [0, old],
+        [1, Date.now()],
+      ] as const) {
+        const storageId = await ctx.storage.store(new Blob(["x"], { type: "video/webm" }));
+        ids.push(storageId);
+        await ctx.db.insert("proctorChunks", {
+          sessionId,
+          profileId: f.member.profileId,
+          index,
+          startedAt,
+          durationMs: 5000,
+          bytes: 1,
+          mimeType: "video/webm",
+          storageId,
+        });
+      }
+      return ids;
+    });
+
+    await f.t.mutation(internal.jobsProctor.sweepRecordings, {});
+
+    const left = await f.t.run(async (ctx) => ctx.db.query("proctorChunks").collect());
+    expect(left).toHaveLength(1);
+    expect(left[0]?.index).toBe(1);
+    // The session itself survives: who shared and when stays on the record.
+    expect(await f.t.run(async (ctx) => ctx.db.get(sessionId))).not.toBeNull();
+    // And the blob is actually gone, not merely unreferenced.
+    const removed = storageIds[0];
+    if (!removed) throw new Error("no blob was stored");
+    expect(await f.t.run(async (ctx) => ctx.storage.getUrl(removed))).toBeNull();
+  });
+
+  it("keeps everything when retention is switched off", async () => {
+    const f = await fixture();
+    const { sessionId } = await share(f);
+    await f.t.run(async (ctx) => {
+      await ctx.db.insert("siteSettings", siteSettingsRow({ proctorRetentionDays: 0 }) as never);
+      await ctx.db.insert("proctorChunks", {
+        sessionId,
+        profileId: f.member.profileId,
+        index: 0,
+        startedAt: Date.now() - 400 * 24 * 60 * 60 * 1000,
+        durationMs: 5000,
+        bytes: 1,
+        mimeType: "video/webm",
+        storageId: await ctx.storage.store(new Blob(["x"], { type: "video/webm" })),
+      });
+    });
+
+    await f.t.mutation(internal.jobsProctor.sweepRecordings, {});
+    expect(await f.t.run(async (ctx) => ctx.db.query("proctorChunks").collect())).toHaveLength(1);
   });
 });

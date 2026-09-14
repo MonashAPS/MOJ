@@ -635,7 +635,11 @@
       "generatedFor": "Generada para {origin}.",
       "downloadGenerated": "Descargarla",
       "regenerate": "Generar de nuevo",
-      "generated": "Configuración generada"
+      "generated": "Configuración generada",
+      "proctorTitle": "Supervisión de pantalla",
+      "proctorIntro": "Un concurso supervisado abre sus problemas solo mientras la persona comparte toda su pantalla en /proctor/.",
+      "proctorRequired": "Requerir compartir pantalla",
+      "proctorHint": "Independiente de Safe Exam Browser. Un concurso puede pedir uno, ambos o ninguno. Solo navegadores Chromium."
     },
     "actions": {
       "refused": "La acción fue rechazada.",
@@ -2096,9 +2100,9 @@
     "replay": "Reproducción",
     "startedAt": "Inicio {at}",
     "lastSeenAt": "visto por última vez {at}",
-    "assemble": "Cargar la grabación",
-    "assembleHint": "Los fragmentos se vuelven a unir en un solo flujo antes de reproducir, así que una sesión larga tarda un momento.",
-    "replayFailed": "No se pudo montar la grabación.",
-    "missing": "No existe esa sesión."
+    "missing": "No existe esa sesión.",
+    "follow": "Seguir en directo",
+    "gap": "Hueco en la grabación",
+    "noRecording": "Todavía no hay nada grabado."
   }
 }

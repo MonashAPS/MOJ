@@ -635,7 +635,11 @@
       "generatedFor": "Dibuat untuk {origin}.",
       "downloadGenerated": "Unduh",
       "regenerate": "Buat ulang",
-      "generated": "Konfigurasi dibuat"
+      "generated": "Konfigurasi dibuat",
+      "proctorTitle": "Pengawasan layar",
+      "proctorIntro": "Kontes yang diawasi hanya membuka soalnya selama peserta membagikan seluruh layarnya di /proctor/.",
+      "proctorRequired": "Wajibkan berbagi layar",
+      "proctorHint": "Terpisah dari Safe Exam Browser. Kontes bisa meminta salah satu, keduanya, atau tidak sama sekali. Hanya peramban Chromium."
     },
     "actions": {
       "refused": "Aksi ditolak.",
@@ -2096,9 +2100,9 @@
     "replay": "Pemutaran",
     "startedAt": "Mulai {at}",
     "lastSeenAt": "terakhir terlihat {at}",
-    "assemble": "Muat rekaman",
-    "assembleHint": "Bagian-bagiannya disatukan kembali menjadi satu aliran sebelum diputar, jadi sesi yang panjang butuh waktu sejenak.",
-    "replayFailed": "Rekaman tidak bisa disatukan.",
-    "missing": "Sesi tidak ditemukan."
+    "missing": "Sesi tidak ditemukan.",
+    "follow": "Ikuti langsung",
+    "gap": "Ada jeda pada rekaman",
+    "noRecording": "Belum ada yang terekam."
   }
 }

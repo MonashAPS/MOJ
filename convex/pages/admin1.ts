@@ -555,6 +555,7 @@ export const contestEdit = query({
       pointsPrecision: contest.pointsPrecision,
       sebRequired: contest.sebRequired ?? false,
       sebLaunchUrl: contest.sebLaunchUrl ?? "",
+      proctorRequired: contest.proctorRequired ?? false,
       hideProblemTags: contest.hideProblemTags,
       hideProblemAuthors: contest.hideProblemAuthors,
       runPretestsOnly: contest.runPretestsOnly,

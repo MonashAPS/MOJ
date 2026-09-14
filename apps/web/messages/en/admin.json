@@ -635,7 +635,11 @@
       "generatedFor": "Generated for {origin}.",
       "downloadGenerated": "Download it",
       "regenerate": "Generate again",
-      "generated": "Configuration generated"
+      "generated": "Configuration generated",
+      "proctorTitle": "Screen proctoring",
+      "proctorIntro": "A proctored contest opens its problems only while the competitor is sharing their whole screen at /proctor/.",
+      "proctorRequired": "Require screen sharing",
+      "proctorHint": "Independent of Safe Exam Browser. A contest may ask for either, both or neither. Chromium browsers only."
     },
     "actions": {
       "refused": "The action was refused.",
@@ -2096,9 +2100,9 @@
     "replay": "Replay",
     "startedAt": "Started {at}",
     "lastSeenAt": "last seen {at}",
-    "assemble": "Load the recording",
-    "assembleHint": "The slices are joined back into one stream before playing, so a long session takes a moment.",
-    "replayFailed": "The recording could not be assembled.",
-    "missing": "No such session."
+    "missing": "No such session.",
+    "follow": "Follow live",
+    "gap": "Gap in the recording",
+    "noRecording": "Nothing recorded yet."
   }
 }

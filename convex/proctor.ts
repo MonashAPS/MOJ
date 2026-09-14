@@ -174,6 +174,8 @@ export type ProctorSessionRow = {
   endedReason: string | null;
   live: boolean;
   chunkCount: number;
+  /** What the recording is costing, which on a small disk is the whole story. */
+  bytes: number;
   contestKey: string | null;
 };
 
@@ -198,6 +200,7 @@ async function toRow(
     endedReason: session.endedReason ?? null,
     live: session.endedAt === undefined && session.lastSeenAt + PROCTOR_LIVE_WINDOW_MS > now,
     chunkCount: chunks.length,
+    bytes: chunks.reduce((total, chunk) => total + chunk.bytes, 0),
     contestKey: contest?.key ?? null,
   };
 }

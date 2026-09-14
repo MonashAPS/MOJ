@@ -9,6 +9,11 @@ import { useTranslations } from "next-intl";
 import { AdminShell } from "@/components/admin";
 import { formatDateTime } from "@/lib/format";
 
+/** Recordings are megabytes, always, so one unit keeps the column comparable. */
+function megabytes(bytes: number): string {
+  return `${(bytes / 1_000_000).toFixed(1)} MB`;
+}
+
 /**
  * Who is sharing, right now.
  *
@@ -56,7 +61,10 @@ export function ProctorSessions() {
                 </TableCell>
                 <TableCell className="tabular-nums">{formatDateTime(session.startedAt)}</TableCell>
                 <TableCell className="tabular-nums">{formatDateTime(session.lastSeenAt)}</TableCell>
-                <TableCell className="tabular-nums">{t("slices", { count: session.chunkCount })}</TableCell>
+                <TableCell className="tabular-nums">
+                  {t("slices", { count: session.chunkCount })}
+                  {session.bytes > 0 ? ` · ${megabytes(session.bytes)}` : ""}
+                </TableCell>
                 <TableCell>
                   {session.live ? (
                     <Badge variant="good" shape="square">

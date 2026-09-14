@@ -20,6 +20,20 @@ const HEARTBEAT_MS = 10_000;
  */
 const SLICE_MS = 5_000;
 
+/**
+ * Each slice is a complete WebM file rather than a piece of one.
+ *
+ * `MediaRecorder.start(timeslice)` is cheaper — it emits continuation clusters
+ * with no header — but then one failed upload corrupts every slice after it,
+ * and nothing can be played without first fetching the whole recording. A
+ * recorder restarted per slice costs a keyframe each time and buys a recording
+ * where a lost slice is a gap and nothing more, playable from any point.
+ *
+ * The restart is driven by the recorder's own `dataavailable`, which the native
+ * encoder times. A `setInterval` would be throttled to once a minute the moment
+ * the tab went to the background, which is the case this exists to cover.
+ */
+
 /** Only a whole screen counts; a window or a tab shows us what they chose. */
 const REQUIRED_SURFACE = "monitor";
 
@@ -66,10 +80,12 @@ export function ProctorClient() {
   /** Tear the local half down. The server's session ends by going quiet. */
   const teardown = useCallback(() => {
     const recorder = recorderRef.current;
-    if (recorder && recorder.state !== "inactive") recorder.stop();
     recorderRef.current = null;
+    // Drop the stream first: the slice loop restarts itself from `onstop` and
+    // checks for one, so clearing it is what makes the last stop the last.
     for (const track of streamRef.current?.getTracks() ?? []) track.stop();
     streamRef.current = null;
+    if (recorder && recorder.state !== "inactive") recorder.stop();
   }, []);
 
   const finish = useCallback(
@@ -101,7 +117,7 @@ export function ProctorClient() {
           storageId,
           index,
           startedAt,
-          durationMs: SLICE_MS,
+          durationMs: Math.max(0, Date.now() - startedAt),
           bytes: blob.size,
           mimeType: blob.type || "video/webm",
         });
@@ -160,15 +176,32 @@ export function ProctorClient() {
     // Stopping from the browser's own sharing bar has to end the session too.
     track?.addEventListener("ended", () => void finish("sharing stopped"));
 
-    const recorder = new MediaRecorder(stream, {
-      mimeType: MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
-        ? "video/webm;codecs=vp9"
-        : "video/webm",
-      videoBitsPerSecond: 400_000,
-    });
-    recorder.ondataavailable = (event) => void send(event.data, Date.now() - SLICE_MS);
-    recorder.start(SLICE_MS);
-    recorderRef.current = recorder;
+    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+      ? "video/webm;codecs=vp9"
+      : "video/webm";
+
+    const recordSlice = () => {
+      if (!streamRef.current) return;
+      const recorder = new MediaRecorder(streamRef.current, { mimeType, videoBitsPerSecond: 400_000 });
+      const startedAt = Date.now();
+      const parts: Blob[] = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) parts.push(event.data);
+        // The first one lands on the encoder's own clock; stopping here flushes
+        // the rest and closes the file.
+        if (recorder.state === "recording") recorder.stop();
+      };
+      recorder.onstop = () => {
+        void send(new Blob(parts, { type: mimeType }), startedAt);
+        recordSlice();
+      };
+
+      recorder.start(SLICE_MS);
+      recorderRef.current = recorder;
+    };
+
+    recordSlice();
     setPhase("sharing");
   }, [finish, send, start, t]);
 

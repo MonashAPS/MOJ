@@ -37,6 +37,7 @@ import type * as http_problemsApi from "../http/problemsApi.js";
 import type * as importer from "../importer.js";
 import type * as jobs from "../jobs.js";
 import type * as jobsContests from "../jobsContests.js";
+import type * as jobsProctor from "../jobsProctor.js";
 import type * as jobsUsers from "../jobsUsers.js";
 import type * as judgeApi from "../judgeApi.js";
 import type * as judges from "../judges.js";
@@ -114,6 +115,7 @@ declare const fullApi: ApiFromModules<{
   importer: typeof importer;
   jobs: typeof jobs;
   jobsContests: typeof jobsContests;
+  jobsProctor: typeof jobsProctor;
   jobsUsers: typeof jobsUsers;
   judgeApi: typeof judgeApi;
   judges: typeof judges;

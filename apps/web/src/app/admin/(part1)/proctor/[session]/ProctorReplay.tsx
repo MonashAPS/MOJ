@@ -4,62 +4,43 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Alert, AlertTitle, Badge, Button, Panel } from "@moj/ui";
 import { useQuery } from "convex/react";
-import { TriangleAlert } from "lucide-react";
+import { Radio, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AdminShell } from "@/components/admin";
 import { formatDateTime } from "@/lib/format";
 
+/** A slice boundary wider than this is a gap rather than the usual few frames. */
+const GAP_MS = 8_000;
+
 /**
- * Play back a session.
+ * Watch a session, live or afterwards.
  *
- * The slices cannot be played one at a time. MediaRecorder writes the WebM
- * header into the first one only and the rest are bare continuation clusters,
- * so they are fetched in order and joined back into the single stream they were
- * cut from before anything can play it.
+ * Each slice is a complete file, so playback is a playlist rather than a
+ * stream: the video plays one and moves to the next, and following a live
+ * session is just jumping to whichever slice arrived most recently. Convex
+ * pushes new slices as they land, so nothing here polls.
  */
 export function ProctorReplay({ sessionId }: { sessionId: Id<"proctorSessions"> }) {
   const t = useTranslations("admin.proctor");
   const states = useTranslations("common.states");
   const data = useQuery(api.proctor.replay, { sessionId });
 
-  const [src, setSrc] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const urlRef = useRef<string | null>(null);
+  const [at, setAt] = useState(0);
+  const [following, setFollowing] = useState(true);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  useEffect(
-    () => () => {
-      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
-    },
-    [],
-  );
+  const chunks = data?.chunks ?? [];
+  const live = data?.session.live ?? false;
 
-  const assemble = useCallback(async () => {
-    if (!data) return;
-    setLoading(true);
-    setFailed(false);
-    try {
-      const parts: BlobPart[] = [];
-      for (const chunk of data.chunks) {
-        if (!chunk.url) continue;
-        parts.push(await (await fetch(chunk.url)).blob());
-      }
-      if (parts.length === 0) {
-        setFailed(true);
-        return;
-      }
-      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
-      const url = URL.createObjectURL(new Blob(parts, { type: "video/webm" }));
-      urlRef.current = url;
-      setSrc(url);
-    } catch {
-      setFailed(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [data]);
+  // Following means the newest slice, which is what "watch this person now"
+  // means. Any manual jump stops it, so a click does not fight the stream.
+  useEffect(() => {
+    if (following && chunks.length > 0) setAt(chunks.length - 1);
+  }, [following, chunks.length]);
+
+  const current = chunks[at] ?? null;
 
   const breadcrumb = [
     { label: t("breadcrumbConsole"), href: "/admin/" },
@@ -85,9 +66,9 @@ export function ProctorReplay({ sessionId }: { sessionId: Id<"proctorSessions"> 
     );
   }
 
-  const { session, chunks } = data;
-  // A hole in the sequence is an upload that never arrived, which is a
-  // different thing from someone stopping, and worth saying so.
+  const { session } = data;
+  // A hole in the numbering is an upload that never arrived, which is not the
+  // same as somebody stopping, and worth telling apart.
   const expected = chunks.length > 0 ? (chunks[chunks.length - 1]?.index ?? 0) + 1 : 0;
   const missing = expected - chunks.length;
 
@@ -115,6 +96,7 @@ export function ProctorReplay({ sessionId }: { sessionId: Id<"proctorSessions"> 
           </p>
           <p>
             {t("slices", { count: chunks.length })}
+            {session.bytes > 0 ? ` · ${(session.bytes / 1_000_000).toFixed(1)} MB` : ""}
             {missing > 0 ? ` · ${t("missingSlices", { count: missing })}` : ""}
           </p>
           {session.contestKey ? (
@@ -125,23 +107,69 @@ export function ProctorReplay({ sessionId }: { sessionId: Id<"proctorSessions"> 
         </Panel>
 
         <Panel title={t("replay")} bodyClassName="grid gap-3 p-4">
-          {failed ? (
-            <Alert variant="danger">
-              <TriangleAlert size={16} aria-hidden />
-              <AlertTitle>{t("replayFailed")}</AlertTitle>
-            </Alert>
-          ) : null}
-
-          {src ? (
-            // biome-ignore lint/a11y/useMediaCaption: a screen recording has none.
-            <video src={src} controls className="w-full rounded-md border border-border" />
+          {chunks.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("noRecording")}</p>
           ) : (
-            <div>
-              <Button onClick={() => void assemble()} busy={loading} disabled={chunks.length === 0}>
-                {t("assemble")}
-              </Button>
-              <p className="mt-2 text-sm text-muted-foreground">{t("assembleHint")}</p>
-            </div>
+            <>
+              <video
+                ref={videoRef}
+                key={current?.url ?? "none"}
+                src={current?.url ?? undefined}
+                controls
+                autoPlay
+                muted
+                className="w-full rounded-md border border-border bg-black"
+                onEnded={() => {
+                  // Roll into the next slice, or sit on the last one and wait
+                  // for the person being watched to produce another.
+                  if (at + 1 < chunks.length) setAt(at + 1);
+                }}
+              />
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  variant={following ? "primary" : "secondary"}
+                  onClick={() => setFollowing((on) => !on)}
+                  disabled={!live}
+                >
+                  <Radio size={14} aria-hidden />
+                  {t("follow")}
+                </Button>
+                <span className="text-sm text-muted-foreground tabular-nums">
+                  {current ? formatDateTime(current.startedAt) : ""}
+                  {chunks.length > 0 ? ` · ${at + 1}/${chunks.length}` : ""}
+                </span>
+              </div>
+
+              {/* The timeline. A wide boundary is drawn as a gap so a drop is
+                  visible rather than something you have to notice missing. */}
+              <div className="flex flex-wrap gap-px">
+                {chunks.map((chunk, index) => {
+                  const previous = chunks[index - 1];
+                  const gap = previous
+                    ? chunk.startedAt - (previous.startedAt + previous.durationMs) > GAP_MS
+                    : false;
+                  return (
+                    <span key={chunk.index} className="flex items-center gap-px">
+                      {gap ? <span className="w-2" title={t("gap")} aria-hidden /> : null}
+                      <button
+                        type="button"
+                        title={formatDateTime(chunk.startedAt)}
+                        aria-label={formatDateTime(chunk.startedAt)}
+                        onClick={() => {
+                          setFollowing(false);
+                          setAt(index);
+                        }}
+                        className={`h-6 w-2 rounded-xs ${
+                          index === at ? "bg-primary" : gap ? "bg-warning-ink" : "bg-secondary"
+                        }`}
+                      />
+                    </span>
+                  );
+                })}
+              </div>
+            </>
           )}
         </Panel>
       </div>
