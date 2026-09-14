@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { Badge, Button, EmptyState, type TabItem } from "@moj/ui";
+import { Badge, Button, EmptyState, SkeletonPanel, type TabItem } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { FileQuestion } from "lucide-react";
 import Link from "next/link";
@@ -18,7 +18,6 @@ const TABS = ["general", "problems", "people", "proctoring", "actions", "revisio
 
 export function ContestEditor({ contestKey }: { contestKey: string }) {
   const t = useTranslations("admin.contests.editor");
-  const states = useTranslations("common.states");
   const params = useSearchParams();
   const active = TABS.some((tab) => tab === params.get("tab")) ? (params.get("tab") as string) : "general";
 
@@ -78,7 +77,10 @@ export function ContestEditor({ contestKey }: { contestKey: string }) {
       }
     >
       {contest === undefined ? (
-        <p className="text-sm text-muted-foreground">{states("loading")}</p>
+        <div className="grid gap-4">
+          <SkeletonPanel lines={5} />
+          <SkeletonPanel lines={3} />
+        </div>
       ) : active === "general" ? (
         <ContestGeneralTab contest={contest} options={options} />
       ) : active === "problems" ? (

@@ -88,10 +88,6 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
 
   async function save() {
     if (!draft) return;
-    if (reason.trim().length === 0) {
-      setError(t("reasonRequired"));
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
@@ -323,8 +319,6 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
         title={draft?.id ? t("editTitle", { name: draft.name }) : t("newTitle")}
         description={draft?.id ? t("editDescription") : t("newDescription")}
         onSubmit={save}
-        reason={reason}
-        onReasonChange={setReason}
         busy={busy}
         error={error}
         submitLabel={draft?.id ? t("saveSubmit") : t("createSubmit")}

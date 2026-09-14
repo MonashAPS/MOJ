@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { EmptyState, Panel, Progress } from "@moj/ui";
+import { EmptyState, Panel, Progress, SkeletonText } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { LayoutList } from "lucide-react";
 import Link from "next/link";
@@ -13,7 +13,6 @@ import { formatRelative } from "@/lib/format";
 export function RecentJobs({ limit = 5 }: { limit?: number }) {
   const t = useTranslations("admin.jobs.recent");
   const types = useTranslations("admin.jobs.list.types");
-  const states = useTranslations("common.states");
   const jobs = useQuery(api.jobs.recent, { limit });
 
   return (
@@ -30,7 +29,9 @@ export function RecentJobs({ limit = 5 }: { limit?: number }) {
       bodyClassName="p-0"
     >
       {jobs === undefined ? (
-        <p className="p-3 text-sm text-muted-foreground">{states("loading")}</p>
+        <div className="p-3">
+          <SkeletonText lines={3} />
+        </div>
       ) : jobs.length === 0 ? (
         <EmptyState
           className="m-3"

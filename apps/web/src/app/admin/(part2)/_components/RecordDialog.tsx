@@ -6,7 +6,7 @@ import { AdminForm } from "@/components/admin/AdminForm";
 
 /**
  * The console's create-and-edit surface for the small tables: a dialog holding
- * an `AdminForm`, so the reason field and the footer are the same everywhere.
+ * an `AdminForm`, so the footer is the same everywhere.
  */
 export function RecordDialog({
   open,
@@ -15,13 +15,9 @@ export function RecordDialog({
   description,
   children,
   onSubmit,
-  reason,
-  onReasonChange,
   busy,
   error,
   submitLabel,
-  reasonLabel,
-  reasonHint,
   width = 620,
 }: {
   open: boolean;
@@ -30,13 +26,9 @@ export function RecordDialog({
   description?: string;
   children: ReactNode;
   onSubmit: () => void | Promise<void>;
-  reason: string;
-  onReasonChange: (value: string) => void;
   busy: boolean;
   error: string | null;
   submitLabel: string;
-  reasonLabel?: string;
-  reasonHint?: string;
   width?: number;
 }) {
   return (
@@ -47,16 +39,7 @@ export function RecordDialog({
         width={width}
         className="max-h-[86dvh] overflow-y-auto"
       >
-        <AdminForm
-          onSubmit={onSubmit}
-          reason={reason}
-          onReasonChange={onReasonChange}
-          {...(reasonLabel ? { reasonLabel } : {})}
-          {...(reasonHint ? { reasonHint } : {})}
-          busy={busy}
-          error={error}
-          submitLabel={submitLabel}
-        >
+        <AdminForm onSubmit={onSubmit} managed busy={busy} error={error} submitLabel={submitLabel}>
           {children}
         </AdminForm>
       </DialogContent>

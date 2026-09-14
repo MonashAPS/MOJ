@@ -15,7 +15,6 @@ import {
   AdminSection,
   AdminShell,
   DateTimeField,
-  ReasonField,
 } from "@/components/admin";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 
@@ -41,7 +40,7 @@ export function NewContestForm() {
   const [isVisible, setIsVisible] = useState(false);
   const [isRated, setIsRated] = useState(false);
   const [useClarifications, setUseClarifications] = useState(true);
-  const [reason, setReason] = useState("");
+  const [reason, _setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -158,8 +157,6 @@ export function NewContestForm() {
             <MarkdownEditor value={description} onChange={setDescription} preset="contest" rows={10} />
           </Field>
         </AdminSection>
-
-        <ReasonField value={reason} onChange={setReason} hint={t("reasonHint")} />
         <AdminFormFooter
           busy={busy}
           submitLabel={t("submit")}

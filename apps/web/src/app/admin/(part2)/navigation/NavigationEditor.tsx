@@ -94,10 +94,6 @@ export function NavigationEditor() {
 
   async function save() {
     if (!draft) return;
-    if (reason.trim().length === 0) {
-      setError(t("reasonRequired"));
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
@@ -317,8 +313,6 @@ export function NavigationEditor() {
         onOpenChange={(next) => (next ? undefined : setDraft(null))}
         title={draft?.id ? t("editTitle", { label: draft.label }) : t("newTitle")}
         onSubmit={save}
-        reason={reason}
-        onReasonChange={setReason}
         busy={busy}
         error={error}
         submitLabel={draft?.id ? t("submitSave") : t("submitCreate")}

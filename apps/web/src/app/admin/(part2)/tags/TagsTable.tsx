@@ -45,10 +45,6 @@ export function TagsTable() {
 
   async function save() {
     if (!draft) return;
-    if (reason.trim().length === 0) {
-      setError(t("reasonRequired"));
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
@@ -158,8 +154,6 @@ export function TagsTable() {
         onOpenChange={(next) => (next ? undefined : setDraft(null))}
         title={draft?.id ? t("editTitle", { name: draft.name }) : t("newTitle")}
         onSubmit={save}
-        reason={reason}
-        onReasonChange={setReason}
         busy={busy}
         error={error}
         submitLabel={draft?.id ? t("saveSubmit") : t("createSubmit")}

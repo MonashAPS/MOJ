@@ -162,7 +162,10 @@
     "judge": "Судья",
     "anyJudge": "Любой судья",
     "hint": "<keys></keys> — отправить",
-    "submit": "Отправить!"
+    "submit": "Отправить!",
+    "searchLanguages": "Поиск языков",
+    "noLanguages": "Ничего не найдено.",
+    "noJudgeFor": "{name} — для него нет судьи в сети"
   },
   "rank": {
     "titleFor": "Лучшие решения — {name}",

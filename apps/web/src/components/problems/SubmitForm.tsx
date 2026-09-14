@@ -1,22 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-  Button,
-  Kbd,
-  KbdGroup,
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectRoot,
-  SelectTrigger,
-  SelectValue,
-} from "@moj/ui";
+import { Alert, AlertDescription, AlertTitle, Button, Kbd, KbdGroup, Select } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { TriangleAlert } from "lucide-react";
@@ -24,30 +9,12 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CodeEditor } from "@/components/problems/CodeEditor";
+import { LanguagePicker } from "@/components/problems/LanguagePicker";
 
 const MAX_SOURCE_LENGTH = 65_536;
 
-type UsableLanguage = NonNullable<
-  (typeof api.languages.usableForProblem)["_returnType"]
->["languages"][number];
-
 function draftKey(code: string, languageKey: string): string {
   return `submit:${code}:${languageKey}`;
-}
-
-/** DMOJ orders the select by name; MOJ groups by common name, which is what
- *  `Language.common_name` is for. */
-function groupLanguages(languages: UsableLanguage[]): { name: string; items: UsableLanguage[] }[] {
-  const groups = new Map<string, UsableLanguage[]>();
-  for (const language of languages) {
-    const key = language.commonName || language.name;
-    const bucket = groups.get(key) ?? [];
-    bucket.push(language);
-    groups.set(key, bucket);
-  }
-  return [...groups.entries()]
-    .map(([name, items]) => ({ name, items: items.sort((a, b) => a.name.localeCompare(b.name)) }))
-    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function SubmitForm({
@@ -160,7 +127,6 @@ export function SubmitForm({
   }, [busy, judgePin, languageKey, problemCode, router, source, submit, t]);
 
   const lines = source.length === 0 ? 0 : source.split("\n").length;
-  const groups = groupLanguages(languages);
   const onlineJudges = (judges?.judges ?? []).filter((judge) => judge.online);
 
   return (
@@ -189,23 +155,7 @@ export function SubmitForm({
 
       <div className="flex min-h-[60dvh] flex-col overflow-hidden rounded-md border border-border bg-card">
         <div className="flex h-9 shrink-0 items-center gap-3 border-b border-border bg-secondary px-2">
-          <SelectRoot value={languageKey} onValueChange={setLanguageKey}>
-            <SelectTrigger size="sm" aria-label={t("language")} className="w-56 bg-card">
-              <SelectValue placeholder={t("language")} />
-            </SelectTrigger>
-            <SelectContent>
-              {groups.map((group) => (
-                <SelectGroup key={group.name}>
-                  <SelectLabel>{group.name}</SelectLabel>
-                  {group.items.map((item) => (
-                    <SelectItem key={item.key} value={item.key}>
-                      {item.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              ))}
-            </SelectContent>
-          </SelectRoot>
+          <LanguagePicker languages={languages} value={languageKey} onChange={setLanguageKey} />
           <span className="ml-auto font-mono text-sm tabular-nums text-muted-foreground">
             {lines.toLocaleString("en-AU")} × {source.length.toLocaleString("en-AU")}
           </span>

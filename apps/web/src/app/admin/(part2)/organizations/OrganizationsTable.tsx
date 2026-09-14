@@ -56,17 +56,12 @@ export function OrganizationsTable() {
   const recount = useMutation(api.admin.organizations.recountMembers);
 
   const [draft, setDraft] = useState<OrganizationDraft | null>(null);
-  const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
 
   async function save() {
     if (!draft) return;
-    if (reason.trim().length === 0) {
-      setError(t("reasonRequired"));
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
@@ -231,7 +226,6 @@ export function OrganizationsTable() {
               icon={<Plus aria-hidden />}
               onClick={() => {
                 setDraft({ ...EMPTY_ORGANIZATION });
-                setReason("");
                 setError(null);
               }}
             >
@@ -259,8 +253,6 @@ export function OrganizationsTable() {
         onOpenChange={(next) => (next ? undefined : setDraft(null))}
         title={t("dialogTitle")}
         onSubmit={save}
-        reason={reason}
-        onReasonChange={setReason}
         busy={busy}
         error={error}
         submitLabel={t("dialogSubmit")}

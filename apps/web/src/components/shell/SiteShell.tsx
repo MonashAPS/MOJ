@@ -136,6 +136,11 @@ export function SiteShell({
         <div aria-hidden className="h-[3px] bg-royal" />
         {onContestPage && contest ? (
           <ContestBar data={contest} currentCode={problemCode} viewerUsername={viewer?.username ?? null} />
+        ) : routeKey && contest === undefined ? (
+          // The bar arrives a moment after the page and used to push everything
+          // below it down when it did. On a contest route its height is claimed
+          // while the query is in flight, so nothing moves when it lands.
+          <div aria-hidden className="h-(--contest-bar-height) border-b border-white/10 bg-contest-bar" />
         ) : null}
         {viewer?.isImpersonating ? <ImpersonationBar username={viewer.displayName} /> : null}
       </header>
@@ -148,7 +153,19 @@ export function SiteShell({
         </>
       ) : null}
 
-      <div className="flex min-h-dvh flex-col pt-[var(--header-height,calc(var(--nav-height)+3px))]">
+      {/* The fallback has to describe the header that will actually be there.
+          `--header-height` is measured after mount, and until it lands this
+          padding is all that holds the content down; a contest route grows a
+          bar, so a fallback that ignores it starts the page too high and drops
+          it the moment the observer reports. That drop was the jitter. */}
+      <div
+        className="flex min-h-dvh flex-col"
+        style={{
+          paddingTop: routeKey
+            ? "var(--header-height, calc(var(--nav-height) + 3px + var(--contest-bar-height)))"
+            : "var(--header-height, calc(var(--nav-height) + 3px))",
+        }}
+      >
         {/* `overflow-x: clip` (not hidden, which would make this a scroll
             container and break every sticky header inside it): a dense table
             already scrolls inside its own wrapper, but a wide console page

@@ -358,8 +358,11 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
                     <Badge variant="neutral" shape="square" mono>
                       {contest.label}
                     </Badge>
+                    {/* The contest itself, not its standings: somebody reading a
+                        problem wants the contest's problems, and getting back
+                        to them from the ranking is two more clicks. */}
                     <Link
-                      href={`/contest/${contest.contestKey}/ranking/`}
+                      href={`/contest/${contest.contestKey}/`}
                       className="min-w-0 flex-1 truncate text-subtle hover:text-link"
                     >
                       {contest.contestName}

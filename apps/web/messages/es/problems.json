@@ -162,7 +162,10 @@
     "judge": "Juez",
     "anyJudge": "Cualquier juez",
     "hint": "<keys></keys> para enviar",
-    "submit": "¡Enviar!"
+    "submit": "¡Enviar!",
+    "searchLanguages": "Buscar lenguajes",
+    "noLanguages": "Ningún lenguaje coincide.",
+    "noJudgeFor": "{name} — no hay ningún juez en línea para este"
   },
   "rank": {
     "titleFor": "Mejores soluciones para {name}",

@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { Badge, Button, EmptyState, type TabItem } from "@moj/ui";
+import { Badge, Button, EmptyState, SkeletonPanel, type TabItem } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { FileQuestion } from "lucide-react";
 import Link from "next/link";
@@ -33,7 +33,6 @@ const TABS = [
 export function ProblemEditor({ code }: { code: string }) {
   const t = useTranslations("admin.problems.editor");
   const shared = useTranslations("admin.problems.shared");
-  const states = useTranslations("common.states");
   const params = useSearchParams();
   const active = TABS.some((tab) => tab === params.get("tab")) ? (params.get("tab") as string) : "general";
 
@@ -93,7 +92,10 @@ export function ProblemEditor({ code }: { code: string }) {
       }
     >
       {problem === undefined ? (
-        <p className="text-sm text-muted-foreground">{states("loading")}</p>
+        <div className="grid gap-4">
+          <SkeletonPanel lines={5} />
+          <SkeletonPanel lines={3} />
+        </div>
       ) : active === "general" ? (
         <ProblemGeneralTab problem={problem} options={options} />
       ) : active === "statement" ? (

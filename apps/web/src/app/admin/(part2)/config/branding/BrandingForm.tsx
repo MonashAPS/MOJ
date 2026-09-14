@@ -138,10 +138,6 @@ export function BrandingForm({ branding }: { branding: Branding }) {
   }
 
   async function save() {
-    if (reason.trim().length === 0) {
-      setStatus({ error: t("reasonRequired") });
-      return;
-    }
     if (!accentValid || !navValid) {
       setStatus({ error: t("colourInvalid") });
       return;
@@ -203,8 +199,7 @@ export function BrandingForm({ branding }: { branding: Branding }) {
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       <AdminForm
         onSubmit={save}
-        reason={reason}
-        onReasonChange={setReason}
+        managed
         dirty={dirty}
         busy={busy}
         error={status.error ?? null}

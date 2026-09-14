@@ -33,7 +33,6 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
   const [, startTransition] = useTransition();
 
   const [draft, setDraft] = useState<{ name: string; scopes: string[]; expiresInDays: string } | null>(null);
-  const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [issued, setIssued] = useState<{ key: string; row: ConsoleKeyRow; warning?: string } | null>(null);
@@ -53,10 +52,6 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
 
   async function create() {
     if (!draft) return;
-    if (reason.trim().length === 0) {
-      setError(t("reasonRequired"));
-      return;
-    }
     setBusy(true);
     setError(null);
     const result = await createKeyAction({
@@ -179,7 +174,6 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
               icon={<Plus aria-hidden />}
               onClick={() => {
                 setDraft({ name: "", scopes: ["problems:write"], expiresInDays: "" });
-                setReason("");
                 setError(null);
               }}
             >
@@ -217,10 +211,6 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
         title={t("createTitle")}
         description={t("createDescription")}
         onSubmit={create}
-        reason={reason}
-        onReasonChange={setReason}
-        reasonLabel={t("reasonLabel")}
-        reasonHint={t("reasonHint")}
         busy={busy}
         error={error}
         submitLabel={t("createSubmit")}

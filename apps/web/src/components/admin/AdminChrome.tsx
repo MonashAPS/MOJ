@@ -163,8 +163,11 @@ export function AdminChrome({ children }: { children: ReactNode }) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
-    <div className="-mx-(--gutter) -my-6 flex min-h-[calc(100dvh-var(--header-height,47px))] min-w-0 min-[760px]:-mx-(--gutter-lg)">
-      <aside className="shrink-0 border-r border-border bg-secondary max-[900px]:hidden">
+    <div className="-mx-(--gutter) -my-6 flex min-h-[calc(100dvh-var(--header-height,47px))] min-w-0 items-stretch min-[760px]:-mx-(--gutter-lg)">
+      {/* `self-stretch` so the rail's ground runs the whole height of the
+          column: the sticky block inside is only as tall as its links, and
+          without this the page ended in a band of nothing below them. */}
+      <aside className="shrink-0 self-stretch border-r border-border bg-secondary max-[900px]:hidden">
         <div className="sticky top-(--header-height,47px) w-[220px] max-[1100px]:w-[52px]">
           <div className="max-[1100px]:hidden">
             <RailLinks />

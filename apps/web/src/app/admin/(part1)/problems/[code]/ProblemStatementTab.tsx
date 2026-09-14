@@ -6,7 +6,7 @@ import { useMutation } from "convex/react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { AdminForm, AdminFormError, AdminFormFooter, ReasonField } from "@/components/admin";
+import { AdminForm, AdminFormError, AdminFormFooter } from "@/components/admin";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import type { ProblemEdit } from "./types";
 
@@ -16,7 +16,6 @@ export function ProblemStatementTab({ problem }: { problem: ProblemEdit }) {
   const update = useMutation(api.admin.problems.update);
   const [description, setDescription] = useState(problem.description);
   const [reason, setReason] = useState("");
-  const [reasonError, setReasonError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,11 +23,6 @@ export function ProblemStatementTab({ problem }: { problem: ProblemEdit }) {
 
   async function save() {
     setError(null);
-    if (!reason.trim()) {
-      setReasonError(shared("reasonRequired"));
-      return;
-    }
-    setReasonError(undefined);
     setBusy(true);
     try {
       await update({ code: problem.code, description, reason: reason.trim() });
@@ -73,7 +67,6 @@ export function ProblemStatementTab({ problem }: { problem: ProblemEdit }) {
           />
         </Field>
       </Panel>
-      <ReasonField value={reason} onChange={setReason} error={reasonError} hint={t("reasonHint")} />
       <AdminFormFooter dirty={description !== problem.description} busy={busy} submitLabel={t("submit")} />
     </AdminForm>
   );

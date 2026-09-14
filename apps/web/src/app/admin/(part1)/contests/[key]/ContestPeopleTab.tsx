@@ -12,7 +12,6 @@ import {
   AdminFormError,
   AdminFormFooter,
   AdminSection,
-  ReasonField,
   UserPicker,
 } from "@/components/admin";
 import type { ContestEdit } from "./types";
@@ -39,7 +38,6 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
   const [testerSeeScoreboard, setTesterSeeScoreboard] = useState(contest.testerSeeScoreboard);
   const [testerSeeSubmissions, setTesterSeeSubmissions] = useState(contest.testerSeeSubmissions);
   const [reason, setReason] = useState("");
-  const [reasonError, setReasonError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,15 +58,10 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
 
   async function save() {
     setError(null);
-    if (!reason.trim()) {
-      setReasonError(t("reasonRequired"));
-      return;
-    }
     if (authors.length === 0) {
       setError(t("errorNoAuthor"));
       return;
     }
-    setReasonError(undefined);
     setBusy(true);
     try {
       await update({
@@ -146,8 +139,6 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
           />
         </Field>
       </AdminSection>
-
-      <ReasonField value={reason} onChange={setReason} error={reasonError} hint={t("reasonHint")} />
       <AdminFormFooter busy={busy} submitLabel={t("submit")} />
     </AdminForm>
   );

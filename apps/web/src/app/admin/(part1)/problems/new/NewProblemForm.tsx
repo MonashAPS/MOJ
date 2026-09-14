@@ -16,7 +16,6 @@ import {
   AdminShell,
   AdminWideField,
   DateTimeField,
-  ReasonField,
   UserPicker,
 } from "@/components/admin";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
@@ -69,7 +68,7 @@ export function NewProblemForm() {
   const [testers, setTesters] = useState<string[]>([]);
   const [sourceVisibility, setSourceVisibility] = useState("F");
   const [date, setDate] = useState<number | null>(Date.now());
-  const [reason, setReason] = useState("");
+  const [reason, _setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -345,8 +344,6 @@ export function NewProblemForm() {
             <MarkdownEditor value={description} onChange={setDescription} preset="problem" />
           </Field>
         </AdminSection>
-
-        <ReasonField value={reason} onChange={setReason} hint={t("reasonHint")} />
 
         <AdminFormFooter
           busy={busy}

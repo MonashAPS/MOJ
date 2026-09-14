@@ -256,7 +256,7 @@ function AssignDialog({
 
   const [values, setValues] = useState<string[] | null>(null);
   const [notes, setNotesValue] = useState(ticket.notes);
-  const [reason, setReason] = useState("");
+  const [reason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -267,10 +267,6 @@ function AssignDialog({
       .map((option) => option._id as string);
 
   async function save() {
-    if (reason.trim().length === 0) {
-      setError(t("reasonRequired"));
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
@@ -297,8 +293,6 @@ function AssignDialog({
       title={t("assignTitle", { title: ticket.title })}
       description={t("assignDescription")}
       onSubmit={save}
-      reason={reason}
-      onReasonChange={setReason}
       busy={busy}
       error={error}
       submitLabel={t("assignSubmit")}
