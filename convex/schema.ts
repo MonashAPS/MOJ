@@ -255,7 +255,9 @@ export default defineSchema({
     /** What the browser said it was capturing: only "monitor" is accepted. */
     displaySurface: v.string(),
     userAgent: v.string(),
-    /** The contest they were in when it started, for the admin's benefit only. */
+    /** Which contest they were in when the session began, if any. Only ever a
+     *  starting point: a session outlives any one contest, so what they were
+     *  doing at a given moment is recorded on the slice instead. */
     contestId: v.optional(v.id("contests")),
   })
     .index("by_profile", ["profileId"])
@@ -278,9 +280,14 @@ export default defineSchema({
     bytes: v.number(),
     mimeType: v.string(),
     storageId: v.id("_storage"),
+    /** The contest the viewer was in while this slice was recorded, if any.
+     *  Proctoring is not a contest's to own, so this is what makes "show me
+     *  what happened during that contest" answerable at all. */
+    contestId: v.optional(v.id("contests")),
   })
     .index("by_session_index", ["sessionId", "index"])
-    .index("by_session_started", ["sessionId", "startedAt"]),
+    .index("by_session_started", ["sessionId", "startedAt"])
+    .index("by_started", ["startedAt"]),
 
   problemTranslations: defineTable({
     problemId: v.id("problems"),

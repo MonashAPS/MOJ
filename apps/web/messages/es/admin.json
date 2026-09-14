@@ -2065,10 +2065,6 @@
     "breadcrumbConsole": "Consola",
     "user": "Usuario",
     "contest": "Concurso",
-    "started": "Inicio",
-    "lastSeen": "Visto por última vez",
-    "recording": "Grabación",
-    "status": "Estado",
     "live": "En directo",
     "lapsed": "Caducada",
     "noContest": "Ninguno",
@@ -2085,6 +2081,10 @@
     "gap": "Hueco en la grabación",
     "noRecording": "Todavía no hay nada grabado.",
     "watch": "Ver",
-    "watchLive": "Ver en directo"
+    "watchLive": "Ver en directo",
+    "window": "Periodo",
+    "lastHours": "{count, plural, one {Última hora} =168 {Última semana} other {Últimas # horas}}",
+    "everyone": "Todos",
+    "anyContest": "Cualquier concurso"
   }
 }

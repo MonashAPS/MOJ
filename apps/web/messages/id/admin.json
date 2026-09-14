@@ -2065,10 +2065,6 @@
     "breadcrumbConsole": "Konsol",
     "user": "Pengguna",
     "contest": "Kontes",
-    "started": "Mulai",
-    "lastSeen": "Terakhir terlihat",
-    "recording": "Rekaman",
-    "status": "Status",
     "live": "Langsung",
     "lapsed": "Kedaluwarsa",
     "noContest": "Tidak ada",
@@ -2085,6 +2081,10 @@
     "gap": "Ada jeda pada rekaman",
     "noRecording": "Belum ada yang terekam.",
     "watch": "Tonton",
-    "watchLive": "Tonton langsung"
+    "watchLive": "Tonton langsung",
+    "window": "Rentang",
+    "lastHours": "{count, plural, =1 {1 jam terakhir} =168 {Seminggu terakhir} other {# jam terakhir}}",
+    "everyone": "Semua orang",
+    "anyContest": "Kontes apa pun"
   }
 }

@@ -184,10 +184,8 @@
   },
   "proctor": {
     "title": "Supervisión",
-    "watchingBody": "Deja esta pestaña abierta. Si la cierras o dejas de compartir, los problemas del concurso se cierran hasta que vuelvas a empezar.",
     "share": "Compartir mi pantalla",
     "stop": "Dejar de compartir",
-    "uploaded": "{count, plural, =0 {Aún no se ha enviado grabación} one {# fragmento de grabación enviado} other {# fragmentos de grabación enviados}}",
     "wholeScreenBody": "Has elegido una ventana o una pestaña. Elige Toda la pantalla para que también se cubra lo que hagas fuera del navegador.",
     "deniedBody": "El navegador lo rechazó o cerraste el aviso. En macOS puede que también tengas que permitir la grabación de pantalla para tu navegador en Ajustes del Sistema.",
     "stoppedBody": "Los problemas de un concurso supervisado están cerrados hasta que vuelvas a compartir.",
@@ -201,6 +199,8 @@
     "stepShare": "Comparte toda tu pantalla",
     "stepShareBody": "Debes elegir Toda la pantalla, no una ventana ni una pestaña",
     "stepKeep": "Deja esta pestaña abierta",
-    "stepKeepBody": "Saldrás del concurso si cierras esta pestaña"
+    "stepKeepBody": "Saldrás del concurso si cierras esta pestaña",
+    "liveTitle": "Todo funciona",
+    "liveKeepOpen": "No cierres esta pestaña"
   }
 }

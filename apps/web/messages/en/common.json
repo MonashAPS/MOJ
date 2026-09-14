@@ -184,10 +184,8 @@
   },
   "proctor": {
     "title": "Proctoring",
-    "watchingBody": "Leave this tab open. Closing it, or stopping the share, closes the contest's problems until you start again.",
     "share": "Share my screen",
     "stop": "Stop sharing",
-    "uploaded": "{count, plural, =0 {No recording sent yet} one {# piece of recording sent} other {# pieces of recording sent}}",
     "wholeScreenBody": "You picked a window or a tab. Pick Entire Screen so what you do outside the browser is covered too.",
     "deniedBody": "The browser refused or you dismissed the prompt. On macOS you may also need to allow screen recording for your browser in System Settings.",
     "stoppedBody": "A proctored contest's problems are closed until you share again.",
@@ -201,6 +199,8 @@
     "stepShare": "Share your entire screen",
     "stepShareBody": "You must choose Entire Screen, not a window or a tab",
     "stepKeep": "Leave this tab open",
-    "stepKeepBody": "You will be exited out of the contest if you close this tab"
+    "stepKeepBody": "You will be exited out of the contest if you close this tab",
+    "liveTitle": "It all works",
+    "liveKeepOpen": "Do not close this tab"
   }
 }

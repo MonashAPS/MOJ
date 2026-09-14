@@ -184,10 +184,8 @@
   },
   "proctor": {
     "title": "Pengawasan",
-    "watchingBody": "Biarkan tab ini terbuka. Menutupnya atau menghentikan pembagian akan menutup soal kontes sampai kamu mulai lagi.",
     "share": "Bagikan layar saya",
     "stop": "Hentikan pembagian",
-    "uploaded": "{count, plural, =0 {Belum ada rekaman terkirim} other {# bagian rekaman terkirim}}",
     "wholeScreenBody": "Kamu memilih jendela atau tab. Pilih Seluruh Layar agar yang kamu lakukan di luar peramban juga tercakup.",
     "deniedBody": "Peramban menolak atau kamu menutup permintaannya. Di macOS kamu mungkin juga perlu mengizinkan perekaman layar untuk peramban di System Settings.",
     "stoppedBody": "Soal kontes yang diawasi tertutup sampai kamu membagikan layar lagi.",
@@ -201,6 +199,8 @@
     "stepShare": "Bagikan seluruh layarmu",
     "stepShareBody": "Kamu harus memilih Seluruh Layar, bukan jendela atau tab",
     "stepKeep": "Biarkan tab ini terbuka",
-    "stepKeepBody": "Kamu akan dikeluarkan dari kontes jika menutup tab ini"
+    "stepKeepBody": "Kamu akan dikeluarkan dari kontes jika menutup tab ini",
+    "liveTitle": "Semuanya berjalan",
+    "liveKeepOpen": "Jangan tutup tab ini"
   }
 }

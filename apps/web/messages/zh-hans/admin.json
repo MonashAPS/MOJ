@@ -2065,10 +2065,6 @@
     "breadcrumbConsole": "控制台",
     "user": "用户",
     "contest": "比赛",
-    "started": "开始",
-    "lastSeen": "最后活动",
-    "recording": "录制",
-    "status": "状态",
     "live": "进行中",
     "lapsed": "已失效",
     "noContest": "无",
@@ -2085,6 +2081,10 @@
     "gap": "录制中有缺口",
     "noRecording": "尚未录制任何内容。",
     "watch": "查看",
-    "watchLive": "实时查看"
+    "watchLive": "实时查看",
+    "window": "时间范围",
+    "lastHours": "{count, plural, =168 {最近一周} other {最近 # 小时}}",
+    "everyone": "所有人",
+    "anyContest": "任意比赛"
   }
 }

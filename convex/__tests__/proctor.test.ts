@@ -143,9 +143,13 @@ describe("submitting", () => {
 });
 
 describe("the staff view", () => {
-  it("is refused to someone who is not staff", async () => {
+  it("shows nothing to someone who is not staff, rather than throwing", async () => {
+    // A reactive query that throws takes the page down, and the viewer is
+    // briefly absent on every token refresh, so this has to answer emptily.
     const f = await fixture();
-    await expect(as(f).query(api.proctor.sessions, {})).rejects.toThrow();
+    expect(await as(f).query(api.proctor.sessions, {})).toEqual([]);
+    expect(await f.t.query(api.proctor.sessions, {})).toEqual([]);
+    expect(await f.t.query(api.proctor.timeline, {})).toMatchObject({ rows: [], contests: [] });
   });
 
   it("shows a live session, and stops calling it live once it lapses", async () => {

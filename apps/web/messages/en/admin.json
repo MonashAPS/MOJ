@@ -2065,10 +2065,6 @@
     "breadcrumbConsole": "Console",
     "user": "User",
     "contest": "Contest",
-    "started": "Started",
-    "lastSeen": "Last seen",
-    "recording": "Recording",
-    "status": "Status",
     "live": "Live",
     "lapsed": "Lapsed",
     "noContest": "None",
@@ -2085,6 +2081,10 @@
     "gap": "Gap in the recording",
     "noRecording": "Nothing recorded yet.",
     "watch": "Watch",
-    "watchLive": "Watch live"
+    "watchLive": "Watch live",
+    "window": "Window",
+    "lastHours": "{count, plural, one {Last hour} =168 {Last week} other {Last # hours}}",
+    "everyone": "Everyone",
+    "anyContest": "Any contest"
   }
 }
