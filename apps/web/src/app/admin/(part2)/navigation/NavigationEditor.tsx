@@ -5,6 +5,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { Button, Field, FieldGroup, Input, Panel, Tooltip } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { ChevronDown, ChevronRight, ChevronUp, CornerDownRight, Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { ConfirmAction, StatusLine } from "../_components/console";
@@ -58,6 +59,8 @@ function flatten(rows: NavRow[]): FlatRow[] {
 }
 
 export function NavigationEditor() {
+  const t = useTranslations("admin.navigation");
+  const actions = useTranslations("common.actions");
   const rows = useQuery(api.admin.site.navRows, {}) as NavRow[] | undefined;
   const createItem = useMutation(api.admin.site.createNavItem);
   const updateItem = useMutation(api.admin.site.updateNavItem);
@@ -92,7 +95,7 @@ export function NavigationEditor() {
   async function save() {
     if (!draft) return;
     if (reason.trim().length === 0) {
-      setError("Give a reason for the change; it is recorded on the revision.");
+      setError(t("reasonRequired"));
       return;
     }
     setBusy(true);
@@ -119,10 +122,10 @@ export function NavigationEditor() {
           reason,
         });
       }
-      setMessage({ tone: "ok", text: `${draft.label} has been saved.` });
+      setMessage({ tone: "ok", text: t("saved", { label: draft.label }) });
       setDraft(null);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "That navigation item could not be saved.");
+      setError(caught instanceof Error ? caught.message : t("saveFailed"));
     } finally {
       setBusy(false);
     }
@@ -133,7 +136,7 @@ export function NavigationEditor() {
       await action();
       setMessage({ tone: "ok", text: ok });
     } catch (caught) {
-      setMessage({ tone: "bad", text: caught instanceof Error ? caught.message : "That did not work." });
+      setMessage({ tone: "bad", text: caught instanceof Error ? caught.message : t("actionFailed") });
     }
   }
 
@@ -149,7 +152,7 @@ export function NavigationEditor() {
             { id: target._id, order: row.order },
           ],
         }),
-      `${row.label} has moved ${direction === -1 ? "up" : "down"}.`,
+      direction === -1 ? t("movedUp", { label: row.label }) : t("movedDown", { label: row.label }),
     );
   }
 
@@ -160,7 +163,7 @@ export function NavigationEditor() {
     if (!previous) return;
     void run(
       () => reorder({ items: [{ id: row._id, order: row.order, parentId: previous._id }] }),
-      `${row.label} is now under ${previous.label}.`,
+      t("nested", { label: row.label, parent: previous.label }),
     );
   }
 
@@ -169,14 +172,16 @@ export function NavigationEditor() {
     const parent = all.find((entry) => entry._id === row.parentId);
     void run(
       () => reorder({ items: [{ id: row._id, order: row.order, parentId: parent?.parentId ?? null }] }),
-      `${row.label} is no longer under ${parent?.label ?? "its parent"}.`,
+      parent
+        ? t("outdented", { label: row.label, parent: parent.label })
+        : t("outdentedFromParent", { label: row.label }),
     );
   }
 
   const columns: AdminColumn<FlatRow>[] = [
     {
       key: "label",
-      header: "Item",
+      header: t("columnItem"),
       cell: (row) => (
         <span className="flex items-center gap-1" style={{ paddingLeft: row.depth * 18 }}>
           {row.depth > 0 ? <ChevronRight className="size-3.5 text-muted-foreground" aria-hidden /> : null}
@@ -184,54 +189,58 @@ export function NavigationEditor() {
         </span>
       ),
     },
-    { key: "key", header: "Key", cell: (row) => <span className="font-mono text-mono">{row.key}</span> },
-    { key: "path", header: "Path", cell: (row) => <span className="font-mono text-mono">{row.path}</span> },
+    {
+      key: "key",
+      header: t("columnKey"),
+      cell: (row) => <span className="font-mono text-mono">{row.key}</span>,
+    },
+    {
+      key: "path",
+      header: t("columnPath"),
+      cell: (row) => <span className="font-mono text-mono">{row.path}</span>,
+    },
     {
       key: "regex",
-      header: "Highlight when the path matches",
+      header: t("columnRegex"),
       cell: (row) => <span className="font-mono text-mono text-subtle">{row.regex}</span>,
     },
-    { key: "order", header: "Order", numeric: true, cell: (row) => row.order },
+    { key: "order", header: t("columnOrder"), numeric: true, cell: (row) => row.order },
     {
       key: "actions",
-      header: <span className="sr-only">Actions</span>,
+      header: <span className="sr-only">{t("columnActions")}</span>,
       cell: (row) => (
         <span className="flex items-center justify-end gap-1">
-          <Tooltip content="Move up">
+          <Tooltip content={t("moveUp")}>
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label={`Move ${row.label} up`}
+              aria-label={t("moveUpLabel", { label: row.label })}
               disabled={row.index === 0}
-              title={row.index === 0 ? "This is already the first item at its level." : undefined}
+              title={row.index === 0 ? t("moveUpDisabled") : undefined}
               onClick={() => move(row, -1)}
             >
               <ChevronUp aria-hidden />
             </Button>
           </Tooltip>
-          <Tooltip content="Move down">
+          <Tooltip content={t("moveDown")}>
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label={`Move ${row.label} down`}
+              aria-label={t("moveDownLabel", { label: row.label })}
               disabled={row.index === row.siblings.length - 1}
-              title={
-                row.index === row.siblings.length - 1
-                  ? "This is already the last item at its level."
-                  : undefined
-              }
+              title={row.index === row.siblings.length - 1 ? t("moveDownDisabled") : undefined}
               onClick={() => move(row, 1)}
             >
               <ChevronDown aria-hidden />
             </Button>
           </Tooltip>
-          <Tooltip content="Nest under the item above">
+          <Tooltip content={t("indent")}>
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label={`Make ${row.label} a child of the item above`}
+              aria-label={t("indentLabel", { label: row.label })}
               disabled={row.index === 0}
-              title={row.index === 0 ? "There is no item above it to nest under." : undefined}
+              title={row.index === 0 ? t("indentDisabled") : undefined}
               onClick={() => indent(row)}
             >
               <CornerDownRight aria-hidden />
@@ -241,27 +250,27 @@ export function NavigationEditor() {
             variant="ghost"
             size="sm"
             disabled={!row.parentId}
-            title={row.parentId ? undefined : "This item is already at the top level."}
+            title={row.parentId ? undefined : t("outdentDisabled")}
             onClick={() => outdent(row, tree ?? [])}
           >
-            Outdent
+            {t("outdent")}
           </Button>
           <Button variant="secondary" size="sm" onClick={() => open(row)}>
-            Edit
+            {actions("edit")}
           </Button>
           <ConfirmAction
             trigger={
               <Button variant="ghost" size="sm">
-                Delete
+                {actions("delete")}
               </Button>
             }
-            title={`Delete ${row.label}?`}
-            description="Anything nested under it moves up a level rather than disappearing."
-            confirmLabel="Delete item"
+            title={t("deleteTitle", { label: row.label })}
+            description={t("deleteDescription")}
+            confirmLabel={t("deleteConfirm")}
             onConfirm={() =>
               run(
                 () => deleteItem({ id: row._id, reason: "Deleted from the console" }),
-                `${row.label} has been removed from the bar.`,
+                t("deleted", { label: row.label }),
               )
             }
           />
@@ -280,44 +289,42 @@ export function NavigationEditor() {
         rowKey={(row) => row._id}
         toolbar={
           <>
-            <span className="text-sm text-muted-foreground">
-              The order here is the order of the bar at the top of every page.
-            </span>
+            <span className="text-sm text-muted-foreground">{t("toolbarNote")}</span>
             <Button className="ml-auto" size="sm" icon={<Plus aria-hidden />} onClick={() => open()}>
-              New item
+              {t("newItem")}
             </Button>
           </>
         }
-        emptyTitle="The navigation bar is empty"
-        emptyDescription="Members would see the wordmark and nothing else."
+        emptyTitle={t("emptyTitle")}
+        emptyDescription={t("emptyDescription")}
         emptyAction={
           <Button variant="secondary" onClick={() => open()}>
-            New item
+            {t("newItem")}
           </Button>
         }
       />
 
-      <Panel title="How the highlight works" bodyClassName="p-3">
+      <Panel title={t("highlightTitle")} bodyClassName="p-3">
         <p className="text-sm text-muted-foreground">
-          An item lights up when the current path matches its regular expression, not its link. Problems uses{" "}
-          <code className="font-mono">^/problem</code> so a problem page keeps the tab lit, and Submissions
-          uses <code className="font-mono">^/submi|^/src/</code> so a source view does too.
+          {t.rich("highlightBody", {
+            code: (chunks) => <code className="font-mono">{chunks}</code>,
+          })}
         </p>
       </Panel>
 
       <RecordDialog
         open={draft !== null}
         onOpenChange={(next) => (next ? undefined : setDraft(null))}
-        title={draft?.id ? `Edit ${draft.label}` : "New navigation item"}
+        title={draft?.id ? t("editTitle", { label: draft.label }) : t("newTitle")}
         onSubmit={save}
         reason={reason}
         onReasonChange={setReason}
         busy={busy}
         error={error}
-        submitLabel={draft?.id ? "Save item" : "Create item"}
+        submitLabel={draft?.id ? t("submitSave") : t("submitCreate")}
       >
         <FieldGroup columns={2}>
-          <Field label="Label" hint="Sentence case, as it reads in the bar.">
+          <Field label={t("label")} hint={t("labelHint")}>
             <Input
               value={draft?.label ?? ""}
               onChange={(event) =>
@@ -325,7 +332,7 @@ export function NavigationEditor() {
               }
             />
           </Field>
-          <Field label="Key" hint="At most 10 characters, unique.">
+          <Field label={t("key")} hint={t("keyHint")}>
             <Input
               mono
               maxLength={10}
@@ -336,7 +343,7 @@ export function NavigationEditor() {
             />
           </Field>
         </FieldGroup>
-        <Field label="Path" hint="Where the item links to.">
+        <Field label={t("path")} hint={t("pathHint")}>
           <Input
             mono
             value={draft?.path ?? ""}
@@ -345,7 +352,7 @@ export function NavigationEditor() {
             }
           />
         </Field>
-        <Field label="Highlight regex" hint="The item lights up while the path matches this.">
+        <Field label={t("regex")} hint={t("regexHint")}>
           <Input
             mono
             value={draft?.regex ?? ""}

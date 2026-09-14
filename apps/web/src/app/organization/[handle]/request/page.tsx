@@ -2,6 +2,7 @@ import { api } from "@convex/_generated/api";
 import { Alert, AlertTitle, TitleRow } from "@moj/ui";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { getServerSession } from "@/auth/session";
 import { queryAsViewer } from "@/lib/convex-server";
 import { organizationHref, slugFromHandle } from "@/lib/organizations";
@@ -11,12 +12,14 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
-  return { title: `Request to join ${slugFromHandle(handle)}` };
+  const t = await getTranslations("organizations.request");
+  return { title: t("title", { organization: slugFromHandle(handle) }) };
 }
 
 export default async function RequestJoinPage({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
   const slug = slugFromHandle(handle);
+  const t = await getTranslations("organizations.request");
 
   const session = await getServerSession();
   if (!session) redirect(`/accounts/login/?next=/organization/${handle}/request/`);
@@ -36,7 +39,7 @@ export default async function RequestJoinPage({ params }: { params: Promise<{ ha
   return (
     <>
       <TitleRow
-        title={`Request to join ${organization.name}`}
+        title={t("title", { organization: organization.name })}
         breadcrumb={
           <Link href={base} className="hover:underline">
             {organization.name}
@@ -46,11 +49,11 @@ export default async function RequestJoinPage({ params }: { params: Promise<{ ha
       <div id="content-body">
         {organization.viewer.isMember ? (
           <Alert variant="info">
-            <AlertTitle>You are already in {organization.name}.</AlertTitle>
+            <AlertTitle>{t("alreadyMember", { organization: organization.name })}</AlertTitle>
           </Alert>
         ) : organization.viewer.hasPendingRequest ? (
           <Alert variant="info">
-            <AlertTitle>You already have a request waiting for review.</AlertTitle>
+            <AlertTitle>{t("alreadyRequested")}</AlertTitle>
           </Alert>
         ) : (
           <RequestJoinForm

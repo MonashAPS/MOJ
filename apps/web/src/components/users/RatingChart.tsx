@@ -1,6 +1,7 @@
 "use client";
 
-import { cn, ratingClass, ratingTitle } from "@moj/ui";
+import { cn, ratingClass } from "@moj/ui";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { formatDate } from "@/lib/format";
 import {
@@ -11,6 +12,7 @@ import {
   type ChartDot,
   type RatingPoint,
 } from "./rating-chart";
+import { ratingTitleKey } from "./rating-title";
 
 export type { RatingPoint } from "./rating-chart";
 
@@ -25,20 +27,17 @@ function signed(delta: number) {
   return delta > 0 ? `+${delta}` : `${delta}`;
 }
 
-function describe(dot: ChartDot) {
-  const move = dot.delta === null ? "" : ` (${signed(dot.delta)})`;
-  return `${dot.point.label}: rating ${dot.point.rating}${move}, rank #${dot.point.ranking} on ${formatDate(dot.point.timestamp)}`;
-}
-
 function RatingValue({ rating }: { rating: number }) {
+  const t = useTranslations("users.ratings");
   return (
-    <span className={cn("rating", ratingClass(rating))} title={ratingTitle(rating)}>
+    <span className={cn("rating", ratingClass(rating))} title={t(ratingTitleKey(rating))}>
       {rating}
     </span>
   );
 }
 
 function Tooltip({ dot, width }: { dot: ChartDot; width: number }) {
+  const t = useTranslations("users.ratingChart");
   // A point near the top has no room for a card above it, and one near an edge
   // would hang out of the panel, so both are nudged back inside.
   const below = dot.y < TOOLTIP_FLIP;
@@ -62,7 +61,7 @@ function Tooltip({ dot, width }: { dot: ChartDot; width: number }) {
         {dot.delta === null ? null : (
           <span className={dot.delta < 0 ? "text-danger-ink" : "text-success-ink"}> {signed(dot.delta)}</span>
         )}
-        <span className="text-muted-foreground"> · rank #{dot.point.ranking}</span>
+        <span className="text-muted-foreground">{t("rank", { rank: String(dot.point.ranking) })}</span>
       </p>
     </div>
   );
@@ -75,6 +74,7 @@ function Tooltip({ dot, width }: { dot: ChartDot; width: number }) {
  * history — bands, axis and an empty state — so the About tab keeps its shape.
  */
 export function RatingChart({ points }: { points: RatingPoint[] }) {
+  const t = useTranslations("users.ratingChart");
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(CHART_WIDTH);
   const [active, setActive] = useState<string | null>(null);
@@ -93,6 +93,20 @@ export function RatingChart({ points }: { points: RatingPoint[] }) {
   const chart = buildRatingChart(points, width, CHART_HEIGHT);
   const activeDot = chart.dots.find((dot) => dot.key === active) ?? null;
 
+  // The point's own sentence, so a screen reader gets the contest, the rating and
+  // the move without having to read the tooltip that only a pointer can open.
+  function describe(dot: ChartDot) {
+    const values = {
+      contest: dot.point.label,
+      rating: String(dot.point.rating),
+      rank: String(dot.point.ranking),
+      date: formatDate(dot.point.timestamp),
+    };
+    return dot.delta === null
+      ? t("point", values)
+      : t("pointWithChange", { ...values, change: signed(dot.delta) });
+  }
+
   return (
     <div ref={containerRef} className="relative w-full" style={{ height: CHART_HEIGHT }}>
       <svg
@@ -101,7 +115,7 @@ export function RatingChart({ points }: { points: RatingPoint[] }) {
         viewBox={`0 0 ${chart.width} ${chart.height}`}
         className="block"
       >
-        <title>Rating history</title>
+        <title>{t("title")}</title>
         {/* biome-ignore lint/a11y/noAriaHiddenOnFocusable: the bands, grid and axis hold nothing focusable — the links sit outside this group */}
         <g aria-hidden="true">
           {chart.bands.map((band) => (
@@ -201,7 +215,7 @@ export function RatingChart({ points }: { points: RatingPoint[] }) {
 
       {chart.dots.length === 0 ? (
         <p className="absolute inset-0 flex items-center justify-center text-base text-muted-foreground">
-          No rated contests yet.
+          {t("empty")}
         </p>
       ) : null}
     </div>

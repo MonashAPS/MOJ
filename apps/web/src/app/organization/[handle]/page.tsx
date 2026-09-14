@@ -17,6 +17,7 @@ import {
 } from "@moj/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { getServerSession } from "@/auth/session";
 import { MembershipActions } from "@/components/organizations/MembershipActions";
 import { UserLink } from "@/components/users/UserLink";
@@ -30,12 +31,14 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
   const organization = await queryAsViewer(api.organizations.get, { slug: slugFromHandle(handle) }).catch(
     () => null,
   );
-  return { title: organization?.name ?? "Organization" };
+  const t = await getTranslations("organizations.home");
+  return { title: organization?.name ?? t("metaTitle") };
 }
 
 export default async function OrganizationHomePage({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
   const slug = slugFromHandle(handle);
+  const t = await getTranslations("organizations.home");
 
   const [organization, session] = await Promise.all([
     queryAsViewer(api.organizations.get, { slug }),
@@ -54,12 +57,12 @@ export default async function OrganizationHomePage({ params }: { params: Promise
         title={organization.name}
         breadcrumb={
           <Link href="/organizations/" className="hover:underline">
-            Organizations
+            {t("breadcrumb")}
           </Link>
         }
         action={
           <Button variant="secondary" asChild>
-            <a href={`${base}/users/`}>View members</a>
+            <a href={`${base}/users/`}>{t("viewMembers")}</a>
           </Button>
         }
       />
@@ -67,7 +70,7 @@ export default async function OrganizationHomePage({ params }: { params: Promise
         <TwoColumn
           side={
             <>
-              <Panel title="Membership" bodyClassName="grid gap-3 p-3">
+              <Panel title={t("membership")} bodyClassName="grid gap-3 p-3">
                 <MembershipActions
                   slug={organization.slug}
                   name={organization.name}
@@ -79,7 +82,7 @@ export default async function OrganizationHomePage({ params }: { params: Promise
                 />
                 <dl className="grid gap-1 border-t border-border pt-3">
                   <div className="flex items-baseline justify-between gap-3">
-                    <MicroLabel>Members</MicroLabel>
+                    <MicroLabel>{t("members")}</MicroLabel>
                     <span className="font-mono text-mono tabular-nums text-foreground">
                       {organization.memberCount}
                       {organization.slots === null ? null : (
@@ -88,13 +91,13 @@ export default async function OrganizationHomePage({ params }: { params: Promise
                     </span>
                   </div>
                   <div className="flex items-baseline justify-between gap-3">
-                    <MicroLabel>Short name</MicroLabel>
+                    <MicroLabel>{t("shortName")}</MicroLabel>
                     <span className="font-mono text-mono text-foreground">{organization.shortName}</span>
                   </div>
                   <div className="flex items-baseline justify-between gap-3">
-                    <MicroLabel>Access</MicroLabel>
+                    <MicroLabel>{t("access")}</MicroLabel>
                     <Badge variant={organization.isOpen ? "good" : "neutral"}>
-                      {organization.isOpen ? "Open" : "Private"}
+                      {organization.isOpen ? t("open") : t("private")}
                     </Badge>
                   </div>
                 </dl>
@@ -102,12 +105,12 @@ export default async function OrganizationHomePage({ params }: { params: Promise
                   <div className="grid gap-1 border-t border-border pt-3">
                     {organization.viewer.canEdit ? (
                       <Link href={`${base}/edit/`} className="text-base text-link hover:underline">
-                        Edit organization
+                        {t("edit")}
                       </Link>
                     ) : null}
                     {organization.viewer.canEdit ? (
                       <Link href={`${base}/kick/`} className="text-base text-link hover:underline">
-                        Remove a member
+                        {t("removeMember")}
                       </Link>
                     ) : null}
                     {organization.viewer.canReviewRequests ? (
@@ -115,16 +118,16 @@ export default async function OrganizationHomePage({ params }: { params: Promise
                         href={`${base}/requests/pending/`}
                         className="text-base text-link hover:underline"
                       >
-                        View requests
+                        {t("viewRequests")}
                       </Link>
                     ) : null}
                   </div>
                 ) : null}
               </Panel>
 
-              <Panel title="Administrators" bodyClassName="p-3">
+              <Panel title={t("administrators")} bodyClassName="p-3">
                 {organization.admins.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">This organization has no administrators.</p>
+                  <p className="text-sm text-muted-foreground">{t("noAdministrators")}</p>
                 ) : (
                   <ul className="grid gap-1">
                     {organization.admins.map((admin) => (
@@ -146,19 +149,17 @@ export default async function OrganizationHomePage({ params }: { params: Promise
             {about ? (
               <ContentDescription html={about} />
             ) : (
-              <p className="text-base italic text-muted-foreground">
-                This organization has not written anything about itself yet.
-              </p>
+              <p className="text-base italic text-muted-foreground">{t("aboutEmpty")}</p>
             )}
 
             {organization.classes.length > 0 ? (
               <section>
-                <h3 className="mb-2 font-display text-h3 font-semibold text-foreground">Classes</h3>
+                <h3 className="mb-2 font-display text-h3 font-semibold text-foreground">{t("classes")}</h3>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Class</TableHead>
-                      <TableHead numeric>Members</TableHead>
+                      <TableHead>{t("class")}</TableHead>
+                      <TableHead numeric>{t("classMembers")}</TableHead>
                       <TableHead className="w-40" />
                     </TableRow>
                   </TableHeader>
@@ -176,10 +177,10 @@ export default async function OrganizationHomePage({ params }: { params: Promise
                         <TableCell numeric>{klass.memberCount}</TableCell>
                         <TableCell className="text-right">
                           {klass.joined ? (
-                            <Badge variant="good">Joined</Badge>
+                            <Badge variant="good">{t("joined")}</Badge>
                           ) : (
                             <Button variant="secondary" size="sm" asChild>
-                              <a href={classHref(organization, klass, "/join/")}>Join class</a>
+                              <a href={classHref(organization, klass, "/join/")}>{t("joinClass")}</a>
                             </Button>
                           )}
                         </TableCell>

@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import { cn, Toaster, TooltipProvider } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect, useLayoutEffect, useRef } from "react";
 import { CommandPalette, useCommandPalette } from "@/components/CommandPalette";
 import { ProfileBootstrap } from "@/components/ProfileBootstrap";
@@ -59,6 +60,7 @@ export function SiteShell({
   language: string;
   children: ReactNode;
 }) {
+  const t = useTranslations("common.nav");
   const pathname = usePathname() ?? "/";
   const [paletteOpen, setPaletteOpen] = useCommandPalette();
   const headerRef = useRef<HTMLElement | null>(null);
@@ -107,7 +109,7 @@ export function SiteShell({
   return (
     <TooltipProvider>
       <a className="skip-link" href="#content">
-        Skip to content
+        {t("skipToContent")}
       </a>
 
       <header ref={headerRef} className="fixed inset-x-0 top-0 z-(--z-nav)">

@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@moj/ui";
 import { Code2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { DASH } from "@/lib/submissionFormat";
 
 /** `runtime_versions(info)` (judge/jinja2/runtime.py): `name version, name version`. */
@@ -28,13 +29,11 @@ export function RuntimeTable({
   languages: RuntimeListEntry[];
   descriptions: Record<string, string>;
 }) {
+  const t = useTranslations("status.runtimes");
+
   if (languages.length === 0) {
     return (
-      <EmptyState
-        icon={<Code2 aria-hidden />}
-        title="No runtimes"
-        description="No judges are online, so the judge does not know what it can run."
-      />
+      <EmptyState icon={<Code2 aria-hidden />} title={t("emptyTitle")} description={t("emptyDescription")} />
     );
   }
 
@@ -42,9 +41,9 @@ export function RuntimeTable({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>ID</TableHead>
-          <TableHead>Name</TableHead>
-          <TableHead>Runtime info</TableHead>
+          <TableHead>{t("id")}</TableHead>
+          <TableHead>{t("name")}</TableHead>
+          <TableHead>{t("info")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

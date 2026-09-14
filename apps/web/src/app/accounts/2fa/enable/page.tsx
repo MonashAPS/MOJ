@@ -1,9 +1,14 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireAccount } from "@/auth/account-state";
 import { safeNext } from "@/lib/next-path";
 import { EnableTotpForm } from "./EnableTotpForm";
 
-export const metadata = { title: "Enable two factor authentication" };
+export async function generateMetadata() {
+  const t = await getTranslations("auth.twoFactor.enable");
+  return { title: t("metaTitle") };
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function EnableTwoFactorPage({

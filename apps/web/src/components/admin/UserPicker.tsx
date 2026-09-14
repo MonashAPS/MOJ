@@ -16,6 +16,7 @@ import {
 } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { Plus, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 /** DMOJ's heavy select2 on `profile_select2`: type a name, pick, get a chip. */
@@ -25,7 +26,7 @@ export function UserPicker({
   id,
   disabled,
   disabledReason,
-  placeholder = "Add a user",
+  placeholder,
   ariaLabel,
   className,
 }: {
@@ -38,6 +39,7 @@ export function UserPicker({
   ariaLabel?: string;
   className?: string;
 }) {
+  const t = useTranslations("admin.components.userPicker");
   const [open, setOpen] = useState(false);
   const [term, setTerm] = useState("");
   const matches = useQuery(api.pages.admin1.profileSearch, open ? { term, limit: 10 } : "skip");
@@ -46,7 +48,7 @@ export function UserPicker({
   return (
     <div className={cn("grid gap-2", className)} title={disabled ? disabledReason : undefined}>
       {values.length > 0 ? (
-        <ul className="flex flex-wrap gap-1.5" aria-label={ariaLabel ?? "Chosen users"}>
+        <ul className="flex flex-wrap gap-1.5" aria-label={ariaLabel ?? t("chosen")}>
           {values.map((username) => (
             <li key={username}>
               <span className="inline-flex h-[22px] items-center gap-1 rounded-full border border-primary-line bg-primary-soft pl-2 pr-[2px] font-mono text-xs text-primary">
@@ -54,7 +56,7 @@ export function UserPicker({
                 <button
                   type="button"
                   disabled={disabled}
-                  aria-label={`Remove ${username}`}
+                  aria-label={t("remove", { username })}
                   onClick={() => onChange(values.filter((entry) => entry !== username))}
                   className="flex size-4 items-center justify-center rounded-full text-primary/70 transition-colors hover:bg-primary/15 hover:text-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-royal/45"
                 >
@@ -77,15 +79,20 @@ export function UserPicker({
             icon={<Plus aria-hidden />}
             className="w-fit font-normal"
           >
-            {placeholder}
+            {placeholder ?? t("add")}
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-[260px] p-0">
           <Command shouldFilter={false}>
-            <CommandInput value={term} onValueChange={setTerm} placeholder="Username" showEscHint={false} />
+            <CommandInput
+              value={term}
+              onValueChange={setTerm}
+              placeholder={t("searchPlaceholder")}
+              showEscHint={false}
+            />
             <CommandList>
               <CommandEmpty>
-                {term.trim() ? `No user matches ${term.trim()}.` : "Type to search users."}
+                {term.trim() ? t("noMatches", { term: term.trim() }) : t("searchPrompt")}
               </CommandEmpty>
               {options.length > 0 ? (
                 <CommandGroup>

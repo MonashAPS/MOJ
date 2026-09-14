@@ -1,5 +1,6 @@
 import { api } from "@convex/_generated/api";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { PPBreakdown } from "@/components/users/PPBreakdown";
 import { SolvedProblems } from "@/components/users/SolvedProblems";
 import { UserShell } from "@/components/users/UserShell";
@@ -11,7 +12,8 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ user: string }> }) {
   const { user } = await params;
-  return { title: `Problems solved by ${decodeURIComponent(user)}` };
+  const t = await getTranslations("users.solved");
+  return { title: t("metaTitle", { username: decodeURIComponent(user) }) };
 }
 
 type Search = Record<string, string | string[] | undefined>;

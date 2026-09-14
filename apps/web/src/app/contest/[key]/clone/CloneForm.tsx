@@ -2,6 +2,7 @@
 
 import type { ContestDetail } from "@convex/contests";
 import { Button, Field, FormFooter, Input, Panel, TitleRow } from "@moj/ui";
+import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { cloneContest } from "@/app/contest/actions";
 import { ContestChips } from "@/components/contests/pieces";
@@ -19,6 +20,8 @@ export function CloneForm({
   viewerUsername: string | null;
 }) {
   const [state, formAction, pending] = useActionState(cloneContest, null);
+  const t = useTranslations("contests.clone");
+  const tabLabels = useTranslations("contests.tabs");
   const contest = detail.contest;
 
   return (
@@ -26,7 +29,7 @@ export function CloneForm({
       <TitleRow
         title={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            {contest?.name ?? "Clone contest"}
+            {contest?.name ?? t("metaFallback")}
             {contest ? (
               <ContestChips
                 isVisible={contest.isVisible}
@@ -39,20 +42,15 @@ export function CloneForm({
             ) : null}
           </span>
         }
-        tabs={contestTabs(detail, contestKey, viewerUsername)}
+        tabs={contestTabs(detail, contestKey, viewerUsername, tabLabels)}
         active="clone"
       />
 
       <div className="mx-auto w-full max-w-[520px]">
-        <Panel title="Clone contest" bodyClassName="p-4">
+        <Panel title={t("panelTitle")} bodyClassName="p-4">
           <form action={formAction} className="grid gap-4">
             <input type="hidden" name="key" value={contestKey} />
-            <Field
-              label="New contest id"
-              htmlFor="newKey"
-              hint="Lowercase letters and digits, at most 20 characters. The clone starts hidden, with you as its only author."
-              error={state?.error}
-            >
+            <Field label={t("newKeyLabel")} htmlFor="newKey" hint={t("newKeyHint")} error={state?.error}>
               <Input
                 id="newKey"
                 name="newKey"
@@ -67,7 +65,7 @@ export function CloneForm({
             </Field>
             <FormFooter>
               <Button type="submit" busy={pending}>
-                Clone contest
+                {t("submit")}
               </Button>
             </FormFooter>
           </form>

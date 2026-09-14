@@ -1,17 +1,23 @@
 import { api } from "@convex/_generated/api";
 import { TitleRow } from "@moj/ui";
-import { STATUS_TABS } from "@/components/status/StatusTabs";
+import { getTranslations } from "next-intl/server";
+import { statusTabs } from "@/components/status/StatusTabs";
 import { VersionMatrix } from "@/components/status/VersionMatrix";
 import { queryAsViewer } from "@/lib/convex-server";
 
-export const metadata = { title: "Version matrix" };
+export async function generateMetadata() {
+  const t = await getTranslations("status.matrix");
+  return { title: t("title") };
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function VersionMatrixPage() {
-  const matrix = await queryAsViewer(api.status.matrix, {});
+  const t = await getTranslations("status.matrix");
+  const [matrix, tabs] = await Promise.all([queryAsViewer(api.status.matrix, {}), statusTabs()]);
   return (
     <>
-      <TitleRow title="Version matrix" tabs={STATUS_TABS} active="matrix" />
+      <TitleRow title={t("title")} tabs={tabs} active="matrix" />
       <div id="content-body">
         <VersionMatrix matrix={matrix} />
       </div>

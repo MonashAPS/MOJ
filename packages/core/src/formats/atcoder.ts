@@ -9,7 +9,7 @@
 import { participationStart } from "../contestTiming";
 import type { FormatData } from "../types";
 import { pyRound } from "../util/number";
-import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from "./base";
+import type { ContestFormat, ParticipationUpdate, ScoringLine, UpdateParticipationInput } from "./base";
 import {
   breakdown,
   buildParticipationResult,
@@ -95,15 +95,9 @@ export const atcoderFormat: ContestFormat = {
 
   getShortFormDisplay(config) {
     const { penalty } = resolveAtcoderConfig(config);
-    const lines = ["The maximum score submission for each problem will be used."];
-    if (penalty) {
-      lines.push(
-        `Each submission before the first maximum score submission will incur a **penalty of ${penalty} ${
-          penalty === 1 ? "minute" : "minutes"
-        }**.`,
-      );
-    }
-    lines.push("Ties will be broken by the last score altering submission time.");
+    const lines: ScoringLine[] = [{ key: "maxScoreSubmission" }];
+    if (penalty) lines.push({ key: "penalty", values: { minutes: penalty } });
+    lines.push({ key: "tiesByLastScoreAltering" });
     return lines;
   },
 };

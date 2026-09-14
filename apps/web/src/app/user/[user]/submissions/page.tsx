@@ -1,4 +1,5 @@
 import { api } from "@convex/_generated/api";
+import { getTranslations } from "next-intl/server";
 import { type SearchParams, SubmissionListPage } from "@/components/submissions/SubmissionListPage";
 import { queryAsViewer } from "@/lib/convex-server";
 
@@ -6,7 +7,8 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ user: string }> }) {
   const { user } = await params;
-  return { title: `All submissions by ${decodeURIComponent(user)}` };
+  const t = await getTranslations("users.submissions");
+  return { title: t("metaTitle", { username: decodeURIComponent(user) }) };
 }
 
 /** `dmoj/urls.py`: `/user/<user>/submissions/` is `AllUserSubmissions`, the same

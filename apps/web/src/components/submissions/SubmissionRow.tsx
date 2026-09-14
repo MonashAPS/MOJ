@@ -4,6 +4,7 @@ import type { SubmissionListRow } from "@convex/submissions";
 import { cn, focusRingInset, RatingName, Tooltip, VerdictPill } from "@moj/ui";
 import { Eye, Loader2, RefreshCw, XCircle } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import {
   absoluteTime,
@@ -62,6 +63,7 @@ export function SubmissionRow({
   onRejudge: (id: number | string) => void;
   onAbort: (id: number | string) => void;
 }) {
+  const t = useTranslations("submissions");
   const grading = isGrading(row.status);
   const code = verdictCode(row);
   const score = formatScore(row.casePoints, row.caseTotal);
@@ -112,7 +114,7 @@ export function SubmissionRow({
             ) : grading ? (
               <span className="inline-flex items-center gap-1 text-run">
                 <Loader2 aria-hidden className="size-3 animate-spin-slow" />
-                <span className="sr-only">Judging</span>
+                <span className="sr-only">{t("row.judging")}</span>
               </span>
             ) : (
               <span className="text-muted-foreground">{DASH}</span>
@@ -128,7 +130,7 @@ export function SubmissionRow({
                 {row.problem.name}
               </Link>
             ) : (
-              <span className="min-w-0 truncate text-muted-foreground">Deleted problem</span>
+              <span className="min-w-0 truncate text-muted-foreground">{t("row.deletedProblem")}</span>
             )
           ) : null}
 
@@ -172,7 +174,9 @@ export function SubmissionRow({
           {grading && row.currentTestcase > 0 ? (
             <>
               <span aria-hidden>·</span>
-              <span className="font-mono tabular-nums text-run">Case #{row.currentTestcase}</span>
+              <span className="font-mono tabular-nums text-run">
+                {t("cases.caseLabel", { number: row.currentTestcase })}
+              </span>
             </>
           ) : null}
         </div>
@@ -194,10 +198,10 @@ export function SubmissionRow({
       {(row.canSeeDetail || canRejudge || canAbort) && (
         <div className="flex shrink-0 items-center gap-1 pr-3 max-[700px]:order-3 max-[700px]:ml-auto max-[700px]:pb-1">
           {row.canSeeDetail ? (
-            <Tooltip content="View this submission">
+            <Tooltip content={t("row.view")}>
               <Link
                 href={`/submission/${row.id}`}
-                aria-label={`View submission ${row.id}`}
+                aria-label={t("row.viewAria", { id: row.id })}
                 className="relative z-10 inline-flex size-(--control-h-sm) items-center justify-center rounded-md text-subtle hover:bg-row-hover hover:text-foreground max-[700px]:size-11"
               >
                 <Eye aria-hidden className="size-3.5" />
@@ -206,16 +210,16 @@ export function SubmissionRow({
           ) : null}
           {canRejudge ? (
             row.isLocked ? (
-              <Tooltip content="This submission has been locked, and cannot be rejudged.">
+              <Tooltip content={t("actions.locked")}>
                 <span className="relative z-10 inline-flex size-(--control-h-sm) items-center justify-center rounded-md text-muted-foreground opacity-50 max-[700px]:size-11">
                   <RefreshCw aria-hidden className="size-3.5" />
                 </span>
               </Tooltip>
             ) : (
-              <Tooltip content="Rejudge this submission">
+              <Tooltip content={t("row.rejudge")}>
                 <button
                   type="button"
-                  aria-label={`Rejudge submission ${row.id}`}
+                  aria-label={t("row.rejudgeAria", { id: row.id })}
                   onClick={() => onRejudge(row.id)}
                   className="relative z-10 inline-flex size-(--control-h-sm) items-center justify-center rounded-md text-subtle hover:bg-row-hover hover:text-foreground max-[700px]:size-11"
                 >
@@ -225,10 +229,10 @@ export function SubmissionRow({
             )
           ) : null}
           {canAbort ? (
-            <Tooltip content="Abort this submission">
+            <Tooltip content={t("row.abort")}>
               <button
                 type="button"
-                aria-label={`Abort submission ${row.id}`}
+                aria-label={t("row.abortAria", { id: row.id })}
                 onClick={() => onAbort(row.id)}
                 className="relative z-10 inline-flex size-(--control-h-sm) items-center justify-center rounded-md text-subtle hover:bg-row-hover hover:text-bad max-[700px]:size-11"
               >
@@ -242,10 +246,14 @@ export function SubmissionRow({
       {/* The whole row is the hit area; the links above it stay clickable. */}
       <Link
         href={href}
-        aria-label={row.problem ? `Submission ${row.id} for ${row.problem.name}` : `Submission ${row.id}`}
+        aria-label={
+          row.problem
+            ? t("row.rowAriaForProblem", { id: row.id, problem: row.problem.name })
+            : t("row.rowAria", { id: row.id })
+        }
         className={cn("absolute inset-0", focusRingInset)}
       >
-        <span className="sr-only">Open submission {row.id}</span>
+        <span className="sr-only">{t("row.openAria", { id: row.id })}</span>
       </Link>
     </li>
   );

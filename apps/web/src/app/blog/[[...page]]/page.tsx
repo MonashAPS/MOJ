@@ -1,6 +1,7 @@
 import { api } from "@convex/_generated/api";
 import { ContentDescription, Pagination, TitleRow, TwoColumn } from "@moj/ui";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { PostCard } from "@/components/blog/PostCard";
 import { ContestsBox, NewProblemsBox, RecentCommentsBox, TopUsersBox } from "@/components/home/SideBoxes";
 import { queryAsViewer } from "@/lib/convex-server";
@@ -23,10 +24,12 @@ function pageNumber(segments: string[] | undefined): number {
 
 export async function generateMetadata({ params }: Props) {
   const page = pageNumber((await params).page);
-  return { title: page === 1 ? "News" : `Page ${page} of Posts` };
+  const t = await getTranslations("blog.meta");
+  return { title: page === 1 ? t("news") : t("newsPage", { page }) };
 }
 
 export default async function BlogListPage({ params }: Props) {
+  const t = await getTranslations("blog.list");
   const page = pageNumber((await params).page);
   const result = await queryAsViewer(api.blog.paginated, {
     paginationOpts: { numItems: PER_PAGE, cursor: String((page - 1) * PER_PAGE) },
@@ -49,7 +52,7 @@ export default async function BlogListPage({ params }: Props) {
 
   return (
     <>
-      <TitleRow title="News" />
+      <TitleRow title={t("title")} />
       <div id="content-body">
         <TwoColumn
           side={
@@ -62,7 +65,7 @@ export default async function BlogListPage({ params }: Props) {
           }
         >
           {posts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">There are no announcements yet.</p>
+            <p className="text-sm text-muted-foreground">{t("empty")}</p>
           ) : (
             <div className="grid gap-4">
               {posts.map((post) => (

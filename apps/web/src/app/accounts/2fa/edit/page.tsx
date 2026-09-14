@@ -1,9 +1,14 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireAccount } from "@/auth/account-state";
 import { safeNext } from "@/lib/next-path";
 import { RegenerateScratchCodes } from "./RegenerateScratchCodes";
 
-export const metadata = { title: "Edit two factor authentication" };
+export async function generateMetadata() {
+  const t = await getTranslations("auth.twoFactor.scratch");
+  return { title: t("metaTitle") };
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function EditTwoFactorPage({

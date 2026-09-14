@@ -8,7 +8,7 @@ import { admin, bearer, jwt, twoFactor, username } from "better-auth/plugins";
 import { haveIBeenPwned, isPasswordCompromised } from "better-auth/plugins/haveibeenpwned";
 import { eq } from "drizzle-orm";
 import { db, schema } from "./db";
-import { DISPOSABLE_EMAIL_MESSAGE, isDisposableEmail } from "./disposable-email";
+import { DISPOSABLE_EMAIL_KEY, isDisposableEmail } from "./disposable-email";
 import { isDjangoHash, isUnusablePassword, verifyDjangoPassword } from "./django-hash";
 import {
   activationEmail,
@@ -178,7 +178,7 @@ export const auth = betterAuth({
       if (ctx.path === "/sign-up/email" || ctx.path === "/change-email") {
         const address = String(ctx.body?.email ?? ctx.body?.newEmail ?? "");
         if (isDisposableEmail(address)) {
-          throw new APIError("BAD_REQUEST", { message: DISPOSABLE_EMAIL_MESSAGE });
+          throw new APIError("BAD_REQUEST", { message: DISPOSABLE_EMAIL_KEY });
         }
       }
 

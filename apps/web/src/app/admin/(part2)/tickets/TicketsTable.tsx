@@ -5,6 +5,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { Badge, Button, Field, MultiSelect, Select, Textarea } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { formatDateTime } from "@/lib/format";
@@ -26,13 +27,15 @@ type TicketRow = {
 };
 
 const STATE_OPTIONS = [
-  { value: "open", label: "Open tickets" },
-  { value: "all", label: "Every ticket" },
+  { value: "open", labelKey: "stateOpen" },
+  { value: "all", labelKey: "stateAll" },
 ];
 
 const PER_PAGE = 50;
 
 export function TicketsTable() {
+  const t = useTranslations("admin.tickets");
+  const actions = useTranslations("common.actions");
   const [state, setState] = useState("open");
   const [search, setSearch] = useState("");
   const [cursor, setCursor] = useState("0");
@@ -56,14 +59,14 @@ export function TicketsTable() {
       await action();
       setMessage({ tone: "ok", text: ok });
     } catch (caught) {
-      setMessage({ tone: "bad", text: caught instanceof Error ? caught.message : "That did not work." });
+      setMessage({ tone: "bad", text: caught instanceof Error ? caught.message : t("actionFailed") });
     }
   }
 
   const columns: AdminColumn<TicketRow>[] = [
     {
       key: "title",
-      header: "Ticket",
+      header: t("columnTicket"),
       cell: (row) => (
         <span className="grid">
           <Link
@@ -73,41 +76,43 @@ export function TicketsTable() {
             {row.title}
           </Link>
           <span className="text-sm text-muted-foreground">
-            {row.linkedType === "problem" && row.linkedKey ? `on problem ${row.linkedKey}` : "site ticket"}
+            {row.linkedType === "problem" && row.linkedKey
+              ? t("onProblem", { code: row.linkedKey })
+              : t("siteTicket")}
             {" · "}
-            {row.messageCount} {row.messageCount === 1 ? "message" : "messages"}
+            {t("messageCount", { count: row.messageCount })}
           </span>
         </span>
       ),
     },
-    { key: "author", header: "Opened by", cell: (row) => row.authorName },
+    { key: "author", header: t("columnAuthor"), cell: (row) => row.authorName },
     {
       key: "assignees",
-      header: "Assigned to",
+      header: t("columnAssignees"),
       cell: (row) =>
         row.assigneeNames.length === 0 ? (
-          <span className="text-muted-foreground">Nobody</span>
+          <span className="text-muted-foreground">{t("nobody")}</span>
         ) : (
           row.assigneeNames.join(", ")
         ),
     },
     {
       key: "state",
-      header: "State",
+      header: t("columnState"),
       cell: (row) => (
         <Badge variant={row.isOpen ? "warn" : "good"} shape="square">
-          {row.isOpen ? "Open" : "Closed"}
+          {row.isOpen ? t("badgeOpen") : t("badgeClosed")}
         </Badge>
       ),
     },
-    { key: "time", header: "Opened", numeric: true, cell: (row) => formatDateTime(row.time) },
+    { key: "time", header: t("columnOpened"), numeric: true, cell: (row) => formatDateTime(row.time) },
     {
       key: "actions",
-      header: <span className="sr-only">Actions</span>,
+      header: <span className="sr-only">{t("columnActions")}</span>,
       cell: (row) => (
         <span className="flex items-center justify-end gap-1">
           <Button variant="secondary" size="sm" onClick={() => setAssigning(row)}>
-            Assign
+            {t("assign")}
           </Button>
           <Button
             variant="ghost"
@@ -120,25 +125,27 @@ export function TicketsTable() {
                     open: !row.isOpen,
                     reason: row.isOpen ? "Closed from the console" : "Reopened from the console",
                   }),
-                `${row.title} has been ${row.isOpen ? "closed" : "reopened"}.`,
+                row.isOpen
+                  ? t("closedMessage", { title: row.title })
+                  : t("reopenedMessage", { title: row.title }),
               )
             }
           >
-            {row.isOpen ? "Close" : "Reopen"}
+            {row.isOpen ? t("close") : t("reopen")}
           </Button>
           <ConfirmAction
             trigger={
               <Button variant="ghost" size="sm">
-                Delete
+                {actions("delete")}
               </Button>
             }
-            title={`Delete "${row.title}"?`}
-            description={`The ticket and its ${row.messageCount} ${row.messageCount === 1 ? "message" : "messages"} are removed. Closing it instead keeps the thread.`}
-            confirmLabel="Delete ticket"
+            title={t("deleteTitle", { title: row.title })}
+            description={t("deleteDescription", { count: row.messageCount })}
+            confirmLabel={t("deleteConfirm")}
             onConfirm={() =>
               run(
                 () => remove({ ticketId: row._id, reason: "Deleted from the console" }),
-                `${row.title} has been deleted.`,
+                t("deletedMessage", { title: row.title }),
               )
             }
           />
@@ -165,35 +172,34 @@ export function TicketsTable() {
                 setSearch(value);
                 setCursor("0");
               }}
-              placeholder="Ticket title"
-              ariaLabel="Search tickets"
+              placeholder={t("searchPlaceholder")}
+              ariaLabel={t("searchLabel")}
             />
             <Select
-              options={STATE_OPTIONS}
+              options={STATE_OPTIONS.map((option) => ({
+                value: option.value,
+                label: t(option.labelKey),
+              }))}
               value={state}
               onValueChange={(value) => {
                 setState(value);
                 setCursor("0");
               }}
-              ariaLabel="Ticket state"
+              ariaLabel={t("stateLabel")}
               size="sm"
               className="w-[168px]"
             />
             <span className="ml-auto font-mono text-mono tabular-nums text-muted-foreground">
-              {counts ? `${counts.open} open · ${counts.mine} mine · ${counts.total} total` : ""}
+              {counts ? t("counts", { open: counts.open, mine: counts.mine, total: counts.total }) : ""}
             </span>
           </>
         }
-        emptyTitle={state === "open" ? "No open tickets" : "No tickets"}
-        emptyDescription={
-          state === "open"
-            ? "Nothing is waiting on staff right now."
-            : "Nobody has reported a problem with a problem yet."
-        }
+        emptyTitle={state === "open" ? t("emptyOpenTitle") : t("emptyTitle")}
+        emptyDescription={state === "open" ? t("emptyOpenDescription") : t("emptyDescription")}
         emptyAction={
           state === "open" ? (
             <Button variant="secondary" onClick={() => setState("all")}>
-              Show closed tickets
+              {t("showClosed")}
             </Button>
           ) : undefined
         }
@@ -201,19 +207,19 @@ export function TicketsTable() {
           page && !page.isDone ? (
             <>
               <span className="font-mono text-mono tabular-nums text-muted-foreground">
-                Showing {rows?.length ?? 0} of {page.totalCount}
+                {t("showing", { shown: rows?.length ?? 0, total: page.totalCount })}
               </span>
               <Button variant="secondary" size="sm" onClick={() => setCursor(page.continueCursor)}>
-                Next page
+                {t("nextPage")}
               </Button>
             </>
           ) : cursor !== "0" ? (
             <>
               <span className="font-mono text-mono tabular-nums text-muted-foreground">
-                End of {page?.totalCount ?? 0} tickets
+                {t("endOfList", { total: page?.totalCount ?? 0 })}
               </span>
               <Button variant="secondary" size="sm" onClick={() => setCursor("0")}>
-                Back to the first page
+                {t("backToFirst")}
               </Button>
             </>
           ) : null
@@ -243,6 +249,7 @@ function AssignDialog({
   onClose: () => void;
   onDone: (message: string) => void;
 }) {
+  const t = useTranslations("admin.tickets");
   const options = useQuery(api.admin.tickets.assigneeOptions, { ticketId: ticket._id });
   const setAssignees = useMutation(api.admin.tickets.setAssignees);
   const setNotes = useMutation(api.admin.tickets.setNotes);
@@ -261,7 +268,7 @@ function AssignDialog({
 
   async function save() {
     if (reason.trim().length === 0) {
-      setError("Give a reason for the change; it is recorded on the revision.");
+      setError(t("reasonRequired"));
       return;
     }
     setBusy(true);
@@ -275,9 +282,9 @@ function AssignDialog({
       if (notes !== ticket.notes) {
         await setNotes({ ticketId: ticket._id, notes, reason });
       }
-      onDone(`${ticket.title} has been reassigned.`);
+      onDone(t("reassignedMessage", { title: ticket.title }));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "That ticket could not be reassigned.");
+      setError(caught instanceof Error ? caught.message : t("reassignFailed"));
     } finally {
       setBusy(false);
     }
@@ -287,16 +294,16 @@ function AssignDialog({
     <RecordDialog
       open
       onOpenChange={(next) => (next ? undefined : onClose())}
-      title={`Assign ${ticket.title}`}
-      description="Assignees see the ticket in their own list and are notified when it moves."
+      title={t("assignTitle", { title: ticket.title })}
+      description={t("assignDescription")}
       onSubmit={save}
       reason={reason}
       onReasonChange={setReason}
       busy={busy}
       error={error}
-      submitLabel="Save assignment"
+      submitLabel={t("assignSubmit")}
     >
-      <Field label="Assignees" hint="The problem's authors and curators come first, then every staff member.">
+      <Field label={t("assignees")} hint={t("assigneesHint")}>
         <MultiSelect
           options={(options ?? []).map((option) => ({
             value: option._id as string,
@@ -304,22 +311,23 @@ function AssignDialog({
           }))}
           values={chosen}
           onChange={setValues}
-          searchPlaceholder="Find a member"
-          emptyText="Nobody by that name."
+          searchPlaceholder={t("findMember")}
+          emptyText={t("noMemberMatch")}
         />
       </Field>
-      <Field
-        label="Staff notes"
-        optional=" (optional)"
-        hint="Only staff read these; the reporter never does."
-      >
+      <Field label={t("notes")} optional={t("optional")} hint={t("notesHint")}>
         <Textarea rows={4} value={notes} onChange={(event) => setNotesValue(event.target.value)} />
       </Field>
       <p className="text-sm text-muted-foreground">
-        Opened {formatDateTime(ticket.time)} by {ticket.authorName}
-        {ticket.linkedKey ? ` on problem ${ticket.linkedKey}` : ""}.{" "}
+        {ticket.linkedKey
+          ? t("openedOnProblem", {
+              when: formatDateTime(ticket.time),
+              author: ticket.authorName,
+              code: ticket.linkedKey,
+            })
+          : t("opened", { when: formatDateTime(ticket.time), author: ticket.authorName })}{" "}
         <Link className="text-link hover:underline" href={`/ticket/${ticket.legacyId ?? ticket._id}/`}>
-          Open the thread
+          {t("openThread")}
         </Link>
       </p>
     </RecordDialog>

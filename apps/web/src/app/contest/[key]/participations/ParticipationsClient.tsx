@@ -16,6 +16,7 @@ import {
 import { useQuery } from "convex/react";
 import { Search, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips } from "@/components/contests/pieces";
@@ -51,6 +52,9 @@ export function ParticipationsClient({
   subject: string | null;
   isOwn: boolean;
 }) {
+  const t = useTranslations("contests.participations");
+  const columns = useTranslations("contests.columns");
+  const tabLabels = useTranslations("contests.tabs");
   const router = useRouter();
   const [lookup, setLookup] = useState("");
   const live = useQuery(api.contests.participations, isOwn ? { key: contestKey } : "skip");
@@ -70,7 +74,7 @@ export function ParticipationsClient({
       <TitleRow
         title={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            {contest?.name ?? "Participation"}
+            {contest?.name ?? t("metaFallback")}
             {contest ? (
               <ContestChips
                 isVisible={contest.isVisible}
@@ -83,7 +87,7 @@ export function ParticipationsClient({
             ) : null}
           </span>
         }
-        tabs={contestTabs(detail, contestKey, viewerUsername)}
+        tabs={contestTabs(detail, contestKey, viewerUsername, tabLabels)}
         active="participation"
         action={
           joinKind ? <JoinControl contestKey={contestKey} kind={joinKind} long size="default" /> : undefined
@@ -93,7 +97,7 @@ export function ParticipationsClient({
       <div className="grid min-w-0 gap-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <p className="text-base text-subtle">
-            {isOwn ? "Your runs at this contest." : `${subject}'s runs at this contest.`}
+            {isOwn ? t("ownRuns") : t("userRuns", { user: subject ?? "" })}
           </p>
           {detail.viewer.canSeeFullScoreboard ? (
             <form
@@ -105,13 +109,13 @@ export function ParticipationsClient({
                 }
               }}
             >
-              <MicroLabel>View user participation</MicroLabel>
+              <MicroLabel>{t("lookupLabel")}</MicroLabel>
               <InputGroup className="h-(--control-h-sm) w-[220px]" leading={<Search size={14} aria-hidden />}>
                 <InputGroupInput
                   name="user"
                   type="search"
                   value={lookup}
-                  placeholder="Username"
+                  placeholder={t("lookupPlaceholder")}
                   onChange={(event) => setLookup(event.target.value)}
                   className="text-[16px] md:text-base"
                 />
@@ -124,23 +128,15 @@ export function ParticipationsClient({
           rows === null ? (
             <EmptyState
               icon={<Users aria-hidden />}
-              title="No participation"
-              description={
-                isOwn
-                  ? "You have not taken part in this contest."
-                  : `${subject} has not taken part in this contest.`
-              }
+              title={t("emptyTitle")}
+              description={isOwn ? t("emptyOwnBody") : t("emptyUserBody", { user: subject ?? "" })}
             />
           ) : null
         ) : rows.length === 0 ? (
           <EmptyState
             icon={<Users aria-hidden />}
-            title="No participation"
-            description={
-              isOwn
-                ? "You have not taken part in this contest."
-                : `${subject} has not taken part in this contest.`
-            }
+            title={t("emptyTitle")}
+            description={isOwn ? t("emptyOwnBody") : t("emptyUserBody", { user: subject ?? "" })}
           />
         ) : (
           <div className="overflow-hidden overflow-x-auto rounded-md border border-border bg-card">
@@ -148,10 +144,10 @@ export function ParticipationsClient({
               <thead>
                 <tr>
                   <th className="h-8 whitespace-nowrap bg-titlebar px-3 text-left align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">
-                    Run
+                    {columns("run")}
                   </th>
                   <th className="h-8 w-full whitespace-nowrap bg-titlebar px-3 text-left align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">
-                    Started
+                    {columns("started")}
                   </th>
                   {labels.map((label) => (
                     <th
@@ -162,7 +158,7 @@ export function ParticipationsClient({
                     </th>
                   ))}
                   <th className="h-8 whitespace-nowrap bg-titlebar px-3 text-right align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">
-                    Total
+                    {columns("total")}
                   </th>
                 </tr>
               </thead>
@@ -187,23 +183,24 @@ export function ParticipationsClient({
                         />
                         {row.virtual > 0 ? (
                           <Badge variant="neutral" shape="square" mono>
-                            {`virtual #${row.virtual}`}
+                            {t("virtualBadge", { number: String(row.virtual) })}
                           </Badge>
                         ) : (
                           <Badge variant="accent" shape="square" mono>
-                            live
+                            {t("liveBadge")}
                           </Badge>
                         )}
                         {row.isDisqualified ? (
                           <Badge variant="bad" shape="square" mono>
-                            DQ
+                            {t("disqualifiedBadge")}
                           </Badge>
                         ) : null}
                       </span>
                     </td>
                     <td className="h-(--row-h-dense) whitespace-nowrap border-b border-border px-3 align-middle font-mono text-sm tabular-nums text-muted-foreground">
-                      {formatDateTime(row.realStart)}
-                      {row.ended ? "" : " · still running"}
+                      {row.ended
+                        ? formatDateTime(row.realStart)
+                        : t("stillRunning", { time: formatDateTime(row.realStart) })}
                     </td>
                     {row.problems.map((cell, index) => (
                       <td
@@ -235,14 +232,14 @@ export function ParticipationsClient({
                     ))}
                     <td className="h-(--row-h-dense) whitespace-nowrap border-b border-border px-3 text-right align-middle">
                       {row.isDisqualified ? (
-                        <Tooltip content="Disqualified: this run does not score.">
+                        <Tooltip content={t("disqualifiedNote")}>
                           <span className="block font-mono text-sm font-semibold tabular-nums leading-tight text-muted-foreground">
                             {DASH}
                           </span>
                         </Tooltip>
                       ) : (
                         <>
-                          <Tooltip content={`${formatPoints(row.score, precision)} points`}>
+                          <Tooltip content={t("points", { points: formatPoints(row.score, precision) })}>
                             <span className="block font-mono text-sm font-semibold tabular-nums leading-tight">
                               {row.result.pointsText}
                             </span>

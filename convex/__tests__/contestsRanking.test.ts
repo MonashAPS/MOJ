@@ -795,7 +795,11 @@ describe("contest formats", () => {
       config: { penalty: 20 },
     });
     expect(described.error).toBeNull();
-    expect(described.lines[0]).toContain("maximum score submission");
+    // The lines are message keys rather than English: the web app resolves them
+    // against `contests.scoring`, so the same format reads in the viewer's
+    // language. `packages/core` stays free of any translation of its own.
+    expect(described.lines[0]).toEqual({ key: "maxScoreSubmission" });
+    expect(described.lines).toContainEqual({ key: "penalty", values: { minutes: 20 } });
 
     const invalidConfig = await t.query(api.contestFormats.validate, {
       name: "icpc",

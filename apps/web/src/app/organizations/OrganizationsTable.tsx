@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import { Badge, EmptyRow, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@moj/ui";
 import { useQuery } from "convex/react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { organizationHref } from "@/lib/organizations";
 
 export type OrganizationRow = {
@@ -20,6 +21,7 @@ export type OrganizationRow = {
 /** `organization/list.html`: name and member count, sortable in DMOJ by
  *  tablesorter. The list is short, so it is drawn whole. */
 export function OrganizationsTable({ initial }: { initial: OrganizationRow[] }) {
+  const t = useTranslations("organizations.list");
   const live = useQuery(api.organizations.list, {});
   const rows = live ?? initial;
 
@@ -27,15 +29,15 @@ export function OrganizationsTable({ initial }: { initial: OrganizationRow[] }) 
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Short name</TableHead>
-          <TableHead>Membership</TableHead>
-          <TableHead numeric>Members</TableHead>
+          <TableHead>{t("name")}</TableHead>
+          <TableHead>{t("shortName")}</TableHead>
+          <TableHead>{t("membership")}</TableHead>
+          <TableHead numeric>{t("members")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {rows.length === 0 ? (
-          <EmptyRow colSpan={4}>There are no organizations yet.</EmptyRow>
+          <EmptyRow colSpan={4}>{t("empty")}</EmptyRow>
         ) : (
           rows.map((organization) => (
             <TableRow key={organization._id} selected={organization.viewerIsMember}>
@@ -47,7 +49,7 @@ export function OrganizationsTable({ initial }: { initial: OrganizationRow[] }) 
               <TableCell className="font-mono text-mono text-subtle">{organization.shortName}</TableCell>
               <TableCell>
                 <Badge variant={organization.isOpen ? "good" : "neutral"}>
-                  {organization.isOpen ? "Open" : "Private"}
+                  {organization.isOpen ? t("open") : t("private")}
                 </Badge>
               </TableCell>
               <TableCell numeric>

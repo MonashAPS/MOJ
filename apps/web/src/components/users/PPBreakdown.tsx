@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import { Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, VerdictPill } from "@moj/ui";
 import { useQuery } from "convex/react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { formatDateTime, formatRelative } from "@/lib/format";
 
@@ -40,6 +41,8 @@ export function PPBreakdown({
   initial: PPEntry[];
   initialHasMore: boolean;
 }) {
+  const t = useTranslations("users.pp");
+  const states = useTranslations("common.states");
   const [shown, setShown] = useState(PAGE);
   // The window always starts at zero, so one subscription holds every row that
   // has been asked for and nothing has to be stitched together on the client.
@@ -56,16 +59,16 @@ export function PPBreakdown({
 
   return (
     <section>
-      <h3 className="mb-2 font-display text-h3 font-semibold text-foreground">Points breakdown</h3>
+      <h3 className="mb-2 font-display text-h3 font-semibold text-foreground">{t("title")}</h3>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Problem</TableHead>
-            <TableHead>Result</TableHead>
-            <TableHead numeric>Score</TableHead>
-            <TableHead numeric>Points</TableHead>
-            <TableHead numeric>Weight</TableHead>
-            <TableHead numeric>Weighted</TableHead>
+            <TableHead>{t("problem")}</TableHead>
+            <TableHead>{t("result")}</TableHead>
+            <TableHead numeric>{t("score")}</TableHead>
+            <TableHead numeric>{t("points")}</TableHead>
+            <TableHead numeric>{t("weight")}</TableHead>
+            <TableHead numeric>{t("weighted")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -114,7 +117,7 @@ export function PPBreakdown({
             disabled={loading}
             onClick={() => setShown((value) => value + PAGE)}
           >
-            {loading ? "Loading…" : "Load more"}
+            {loading ? states("loading") : t("loadMore")}
           </Button>
         </div>
       ) : null}

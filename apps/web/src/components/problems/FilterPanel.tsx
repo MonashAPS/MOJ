@@ -20,6 +20,7 @@ import {
   Switch,
 } from "@moj/ui";
 import { ChevronRight, RotateCcw, Search, Shuffle, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useId, useState } from "react";
 import {
   activeFilterCount,
@@ -34,15 +35,6 @@ export type FilterOptions = {
   groups: { name: string; fullName: string; count: number }[];
   contests: { key: string; name: string; startTime: number; problemCount: number }[];
 };
-
-const SORT_OPTIONS: { value: ProblemSort; label: string }[] = [
-  { value: "code", label: "Code" },
-  { value: "name", label: "Name" },
-  { value: "points", label: "Points" },
-  { value: "acRate", label: "AC rate" },
-  { value: "userCount", label: "Users" },
-  { value: "date", label: "Date" },
-];
 
 /** A value that came in from the URL must stay selectable even when the option
  *  list has not loaded it — otherwise the control renders blank. */
@@ -140,6 +132,7 @@ export function FilterPanel({
    *  drops its titlebar rather than repeating the word. */
   bare?: boolean;
 }) {
+  const t = useTranslations("problems.filters");
   const ids = useId();
   const [search, setSearch] = useState(query.search);
   const [author, setAuthor] = useState(query.author);
@@ -155,6 +148,15 @@ export function FilterPanel({
   useEffect(() => {
     setPoints([query.pointStart ?? pointValues.min, query.pointEnd ?? pointValues.max]);
   }, [query.pointStart, query.pointEnd, pointValues.min, pointValues.max]);
+
+  const sortOptions: { value: ProblemSort; label: string }[] = [
+    { value: "code", label: t("sortCode") },
+    { value: "name", label: t("sortName") },
+    { value: "points", label: t("sortPoints") },
+    { value: "acRate", label: t("sortAcRate") },
+    { value: "userCount", label: t("sortUsers") },
+    { value: "date", label: t("sortDate") },
+  ];
 
   const set = (patch: Partial<ProblemQuery>) => onApply({ ...query, ...patch, page: 1 });
   const total = activeFilterCount(query);
@@ -176,7 +178,7 @@ export function FilterPanel({
         icon={<RotateCcw size={12} />}
         onClick={() => onApply({ ...EMPTY_QUERY, showTypes: query.showTypes, sort: query.sort })}
       >
-        Reset
+        {t("reset")}
       </Button>
     ) : null;
 
@@ -192,8 +194,8 @@ export function FilterPanel({
             id={`${ids}-search`}
             type="search"
             value={search}
-            placeholder="Search problems…"
-            aria-label="Search problems"
+            placeholder={t("searchPlaceholder")}
+            aria-label={t("searchLabel")}
             onChange={(event) => setSearch(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
@@ -208,22 +210,22 @@ export function FilterPanel({
             id={`${ids}-full-text`}
             checked={query.fullText}
             onCheckedChange={(next) => set({ fullText: next })}
-            label="Full text search"
+            label={t("fullText")}
           />
         </div>
       </div>
 
-      <Group label="Status" count={query.status !== "all" || query.hideSolved ? 1 : 0}>
+      <Group label={t("groupStatus")} count={query.status !== "all" || query.hideSolved ? 1 : 0}>
         <RadioGroup
           name={`${ids}-status`}
-          ariaLabel="Status"
+          ariaLabel={t("groupStatus")}
           value={query.hideSolved ? "unsolved" : query.status}
           onValueChange={(value) => set({ status: value as ProblemQuery["status"], hideSolved: false })}
           options={[
-            { value: "all", label: "All" },
-            { value: "solved", label: "Solved", disabled: !authenticated },
-            { value: "attempted", label: "Attempted", disabled: !authenticated },
-            { value: "unsolved", label: "Unsolved", disabled: !authenticated },
+            { value: "all", label: t("statusAll") },
+            { value: "solved", label: t("statusSolved"), disabled: !authenticated },
+            { value: "attempted", label: t("statusAttempted"), disabled: !authenticated },
+            { value: "unsolved", label: t("statusUnsolved"), disabled: !authenticated },
           ]}
         />
         {authenticated ? (
@@ -231,18 +233,18 @@ export function FilterPanel({
             id={`${ids}-hide-solved`}
             checked={query.hideSolved}
             onCheckedChange={(next) => set({ hideSolved: next, status: "all" })}
-            label="Hide solved problems"
+            label={t("hideSolved")}
           />
         ) : null}
       </Group>
 
-      <Group label="Category" count={query.category ? 1 : 0}>
+      <Group label={t("groupCategory")} count={query.category ? 1 : 0}>
         <Select
-          ariaLabel="Category"
+          ariaLabel={t("groupCategory")}
           value={query.category || "__all__"}
           onValueChange={(value) => set({ category: value === "__all__" ? "" : value })}
           options={[
-            { value: "__all__", label: "All" },
+            { value: "__all__", label: t("categoryAll") },
             ...withCurrent(
               options.groups.map((group) => ({ value: group.name, label: group.fullName })),
               query.category,
@@ -251,10 +253,10 @@ export function FilterPanel({
         />
       </Group>
 
-      <Group label="Types" count={query.types.length} defaultOpen={query.types.length > 0}>
+      <Group label={t("groupTypes")} count={query.types.length} defaultOpen={query.types.length > 0}>
         <div className="max-h-64 overflow-y-auto pr-1 [scrollbar-color:transparent_transparent] hover:[scrollbar-color:var(--line-strong)_transparent]">
           {options.types.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No problem types are defined.</p>
+            <p className="text-sm text-muted-foreground">{t("noTypes")}</p>
           ) : (
             options.types.map((type) => (
               <OptionRow
@@ -278,18 +280,18 @@ export function FilterPanel({
           id={`${ids}-show-types`}
           checked={query.showTypes}
           onCheckedChange={(next) => set({ showTypes: next })}
-          label="Show problem types"
+          label={t("showTypes")}
         />
       </Group>
 
       {hasPointRange ? (
-        <Group label="Points" count={query.pointStart !== null || query.pointEnd !== null ? 1 : 0}>
+        <Group label={t("groupPoints")} count={query.pointStart !== null || query.pointEnd !== null ? 1 : 0}>
           <div className="flex items-center gap-3">
             <span className="w-9 shrink-0 rounded-sm border border-border bg-secondary px-1 text-center font-mono text-sm tabular-nums text-foreground">
               {points[0]}
             </span>
             <Slider
-              aria-label="Point range"
+              aria-label={t("pointRange")}
               min={pointValues.min}
               max={pointValues.max}
               step={1}
@@ -309,7 +311,7 @@ export function FilterPanel({
         </Group>
       ) : null}
 
-      <Group label="Solved by" count={query.solvedBy.length} defaultOpen={query.solvedBy.length > 0}>
+      <Group label={t("groupSolvedBy")} count={query.solvedBy.length} defaultOpen={query.solvedBy.length > 0}>
         {query.solvedBy.length > 0 ? (
           <ul className="flex flex-wrap gap-1.5">
             {query.solvedBy.map((username) => (
@@ -321,7 +323,7 @@ export function FilterPanel({
                 >
                   {username}
                   <X size={10} aria-hidden />
-                  <span className="sr-only">Remove {username}</span>
+                  <span className="sr-only">{t("removeUser", { username })}</span>
                 </button>
               </li>
             ))}
@@ -330,8 +332,8 @@ export function FilterPanel({
         <Input
           id={`${ids}-solved-by`}
           value={solvedByDraft}
-          placeholder="Add a username…"
-          aria-label="Solved by"
+          placeholder={t("solvedByPlaceholder")}
+          aria-label={t("groupSolvedBy")}
           onChange={(event) => setSolvedByDraft(event.target.value)}
           onKeyDown={(event) => {
             if (event.key !== "Enter") return;
@@ -347,16 +349,16 @@ export function FilterPanel({
           checked={query.notByMe}
           disabled={!authenticated}
           onCheckedChange={(next) => set({ notByMe: next })}
-          label="and not by me"
+          label={t("notByMe")}
         />
       </Group>
 
-      <Group label="Author" count={query.author ? 1 : 0} defaultOpen={!!query.author}>
+      <Group label={t("groupAuthor")} count={query.author ? 1 : 0} defaultOpen={!!query.author}>
         <Input
           id={`${ids}-author`}
           value={author}
-          placeholder="Username…"
-          aria-label="Author"
+          placeholder={t("authorPlaceholder")}
+          aria-label={t("groupAuthor")}
           onChange={(event) => setAuthor(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
@@ -367,7 +369,7 @@ export function FilterPanel({
         />
       </Group>
 
-      <Group label="Contest" count={query.contests.length} defaultOpen={query.contests.length > 0}>
+      <Group label={t("groupContest")} count={query.contests.length} defaultOpen={query.contests.length > 0}>
         <MultiSelect
           options={withCurrent(
             options.contests.map((contest) => ({ value: contest.key, label: contest.name })),
@@ -375,48 +377,48 @@ export function FilterPanel({
           )}
           values={query.contests}
           onChange={(values) => set({ contests: values })}
-          searchPlaceholder="Find a contest…"
-          emptyText="No contests match."
-          placeholder="Any contest"
+          searchPlaceholder={t("findContest")}
+          emptyText={t("noContests")}
+          placeholder={t("anyContest")}
         />
         <Switch
           id={`${ids}-group-by-contest`}
           checked={query.groupByContest}
           onCheckedChange={(next) => set({ groupByContest: next })}
-          label="Group by contest"
+          label={t("groupByContest")}
         />
       </Group>
 
-      <Group label="Editorial" count={query.hasEditorial ? 1 : 0}>
+      <Group label={t("groupEditorial")} count={query.hasEditorial ? 1 : 0}>
         <Checkbox
           id={`${ids}-editorial`}
           checked={query.hasEditorial}
           onCheckedChange={(next) => set({ hasEditorial: next })}
-          label="Has editorial"
+          label={t("hasEditorial")}
         />
       </Group>
 
-      <Group label="Sort">
+      <Group label={t("groupSort")}>
         <Select
-          ariaLabel="Sort"
+          ariaLabel={t("groupSort")}
           value={query.sort}
           onValueChange={(value) => set({ sort: value as ProblemSort })}
-          options={SORT_OPTIONS}
+          options={sortOptions}
         />
         <Switch
           id={`${ids}-descending`}
           checked={query.descending}
           onCheckedChange={(next) => set({ descending: next })}
-          label="Descending"
+          label={t("descending")}
         />
       </Group>
 
       <div className="flex gap-2 border-t border-border pt-3">
         <Button onClick={applyText} busy={busy} className="flex-1 max-md:h-11">
-          Go
+          {t("go")}
         </Button>
         <Button asChild variant="secondary" icon={<Shuffle size={14} />} className="max-md:h-11">
-          <a href={randomHref}>Random</a>
+          <a href={randomHref}>{t("random")}</a>
         </Button>
       </div>
     </div>
@@ -424,7 +426,7 @@ export function FilterPanel({
 
   if (bare) return body;
   return (
-    <Panel title="Filters" bodyClassName="p-0" action={reset}>
+    <Panel title={t("title")} bodyClassName="p-0" action={reset}>
       {body}
     </Panel>
   );
@@ -440,11 +442,19 @@ export function ActiveFilters({
   options: FilterOptions;
   onApply: (next: ProblemQuery) => void;
 }) {
+  const t = useTranslations("problems.filters");
   const chips: { key: string; label: string; clear: Partial<ProblemQuery> }[] = [];
-  if (query.search) chips.push({ key: "search", label: `“${query.search}”`, clear: { search: "" } });
-  if (query.hideSolved) chips.push({ key: "hide", label: "Hide solved", clear: { hideSolved: false } });
-  else if (query.status !== "all") {
-    chips.push({ key: "status", label: `Status: ${query.status}`, clear: { status: "all" } });
+  if (query.search) {
+    chips.push({ key: "search", label: t("chipSearch", { term: query.search }), clear: { search: "" } });
+  }
+  if (query.hideSolved) {
+    chips.push({ key: "hide", label: t("chipHideSolved"), clear: { hideSolved: false } });
+  } else if (query.status !== "all") {
+    chips.push({
+      key: "status",
+      label: t("chipStatus", { status: query.status }),
+      clear: { status: "all" },
+    });
   }
   if (query.category) {
     const group = options.groups.find((row) => row.name === query.category);
@@ -458,22 +468,27 @@ export function ActiveFilters({
       clear: { types: query.types.filter((value) => value !== name) },
     });
   }
-  if (query.pointStart !== null || query.pointEnd !== null) {
-    chips.push({
-      key: "points",
-      label: `${query.pointStart ?? "min"}–${query.pointEnd ?? "max"} points`,
-      clear: { pointStart: null, pointEnd: null },
-    });
+  const { pointStart, pointEnd } = query;
+  const clearPoints = { pointStart: null, pointEnd: null };
+  if (pointStart !== null && pointEnd !== null) {
+    const label = t("chipPoints", { start: pointStart, end: pointEnd });
+    chips.push({ key: "points", label, clear: clearPoints });
+  } else if (pointStart !== null) {
+    chips.push({ key: "points", label: t("chipPointsFrom", { start: pointStart }), clear: clearPoints });
+  } else if (pointEnd !== null) {
+    chips.push({ key: "points", label: t("chipPointsUpTo", { end: pointEnd }), clear: clearPoints });
   }
   for (const username of query.solvedBy) {
     chips.push({
       key: `solved-${username}`,
-      label: `Solved by ${username}`,
+      label: t("chipSolvedBy", { username }),
       clear: { solvedBy: query.solvedBy.filter((value) => value !== username) },
     });
   }
-  if (query.notByMe) chips.push({ key: "notme", label: "and not by me", clear: { notByMe: false } });
-  if (query.author) chips.push({ key: "author", label: `Author: ${query.author}`, clear: { author: "" } });
+  if (query.notByMe) chips.push({ key: "notme", label: t("notByMe"), clear: { notByMe: false } });
+  if (query.author) {
+    chips.push({ key: "author", label: t("chipAuthor", { author: query.author }), clear: { author: "" } });
+  }
   for (const key of query.contests) {
     const contest = options.contests.find((row) => row.key === key);
     chips.push({
@@ -483,7 +498,7 @@ export function ActiveFilters({
     });
   }
   if (query.hasEditorial) {
-    chips.push({ key: "editorial", label: "Has editorial", clear: { hasEditorial: false } });
+    chips.push({ key: "editorial", label: t("hasEditorial"), clear: { hasEditorial: false } });
   }
 
   if (chips.length === 0) return null;
@@ -498,7 +513,7 @@ export function ActiveFilters({
           >
             {chip.label}
             <X size={11} aria-hidden />
-            <span className="sr-only">Remove this filter</span>
+            <span className="sr-only">{t("removeFilter")}</span>
           </button>
         </li>
       ))}
@@ -507,7 +522,7 @@ export function ActiveFilters({
           href={`/problems/${problemQueryString({ ...EMPTY_QUERY, showTypes: query.showTypes })}`}
           className="px-1 text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
         >
-          Clear filters
+          {t("clear")}
         </a>
       </li>
     </ul>

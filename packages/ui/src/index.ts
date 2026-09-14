@@ -254,3 +254,4 @@ export {
   overlayMotion,
   overlayPanel,
 } from "./styles";
+export { type UiText, UiTextProvider, useUiText } from "./ui-text";

@@ -5,6 +5,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { Button, Field, FieldGroup, Input, Select, Textarea } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { Copy, Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { ConfirmAction, DASH, SearchBox, StatusLine } from "../_components/console";
@@ -54,6 +55,8 @@ const EMPTY: Draft = {
 };
 
 export function LanguagesTable() {
+  const t = useTranslations("admin.languages");
+  const actions = useTranslations("common.actions");
   const languages = useQuery(api.admin.languages.list, {}) as LanguageRow[] | undefined;
   const create = useMutation(api.admin.languages.create);
   const update = useMutation(api.admin.languages.update);
@@ -105,7 +108,7 @@ export function LanguagesTable() {
   async function save() {
     if (!draft) return;
     if (reason.trim().length === 0) {
-      setError("Give a reason for the change; it is recorded on the revision.");
+      setError(t("reasonRequired"));
       return;
     }
     setBusy(true);
@@ -114,14 +117,14 @@ export function LanguagesTable() {
       const { id, ...fields } = draft;
       if (id) {
         await update({ ...fields, id, reason });
-        setMessage({ tone: "ok", text: `${draft.name} has been updated.` });
+        setMessage({ tone: "ok", text: t("updated", { name: draft.name }) });
       } else {
         await create({ ...fields, reason });
-        setMessage({ tone: "ok", text: `${draft.name} has been added.` });
+        setMessage({ tone: "ok", text: t("added", { name: draft.name }) });
       }
       setDraft(null);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "That language could not be saved.");
+      setError(caught instanceof Error ? caught.message : t("saveFailed"));
     } finally {
       setBusy(false);
     }
@@ -130,7 +133,7 @@ export function LanguagesTable() {
   async function runCopy() {
     if (!copy) return;
     if (reason.trim().length === 0) {
-      setError("Give a reason for the change; it is recorded on the revision.");
+      setError(t("reasonRequired"));
       return;
     }
     setBusy(true);
@@ -139,11 +142,15 @@ export function LanguagesTable() {
       const result = await copyLanguage({ sourceKey: copy.sourceKey, targetKey: copy.targetKey, reason });
       setMessage({
         tone: "ok",
-        text: `${copy.targetKey} now runs on ${result.problems} more ${result.problems === 1 ? "problem" : "problems"}, with ${result.limits} copied ${result.limits === 1 ? "limit" : "limits"}.`,
+        text: t("copiedMessage", {
+          target: copy.targetKey,
+          problems: result.problems,
+          limits: result.limits,
+        }),
       });
       setCopy(null);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "That copy did not work.");
+      setError(caught instanceof Error ? caught.message : t("copyFailed"));
     } finally {
       setBusy(false);
     }
@@ -152,39 +159,39 @@ export function LanguagesTable() {
   const columns: AdminColumn<LanguageRow>[] = [
     {
       key: "key",
-      header: "Key",
+      header: t("columnKey"),
       cell: (row) => <span className="font-mono text-mono font-medium">{row.key}</span>,
     },
-    { key: "name", header: "Name", cell: (row) => row.name },
-    { key: "common", header: "Common name", cell: (row) => row.commonName },
+    { key: "name", header: t("columnName"), cell: (row) => row.name },
+    { key: "common", header: t("columnCommonName"), cell: (row) => row.commonName },
     {
       key: "short",
-      header: "Short",
+      header: t("columnShort"),
       cell: (row) => <span className="font-mono text-mono">{row.shortName || DASH}</span>,
     },
     {
       key: "extension",
-      header: "Extension",
+      header: t("columnExtension"),
       cell: (row) => <span className="font-mono text-mono">.{row.extension}</span>,
     },
     {
       key: "shiki",
-      header: "Highlighting",
+      header: t("columnHighlighting"),
       cell: (row) => <span className="font-mono text-mono">{row.shikiLang || DASH}</span>,
     },
     {
       key: "problems",
-      header: "Problems",
+      header: t("columnProblems"),
       numeric: true,
       cell: (row) => row.problemCount.toLocaleString(),
     },
     {
       key: "actions",
-      header: <span className="sr-only">Actions</span>,
+      header: <span className="sr-only">{t("columnActions")}</span>,
       cell: (row) => (
         <span className="flex items-center justify-end gap-1">
           <Button variant="secondary" size="sm" onClick={() => open(row)}>
-            Edit
+            {actions("edit")}
           </Button>
           <Button
             variant="ghost"
@@ -196,7 +203,7 @@ export function LanguagesTable() {
               setError(null);
             }}
           >
-            Copy to…
+            {t("copyTo")}
           </Button>
           <ConfirmAction
             trigger={
@@ -205,23 +212,25 @@ export function LanguagesTable() {
                 size="sm"
                 disabled={row.problemCount > 0}
                 title={
-                  row.problemCount > 0 ? `${row.problemCount} problems still allow ${row.name}.` : undefined
+                  row.problemCount > 0
+                    ? t("deleteBlocked", { count: row.problemCount, name: row.name })
+                    : undefined
                 }
               >
-                Delete
+                {actions("delete")}
               </Button>
             }
-            title={`Delete ${row.name}?`}
-            description="The language is removed from every problem that allows it, along with its per-problem limits and recorded runtimes."
-            confirmLabel="Delete language"
+            title={t("deleteTitle", { name: row.name })}
+            description={t("deleteDescription")}
+            confirmLabel={t("deleteConfirm")}
             onConfirm={async () => {
               try {
                 await remove({ id: row._id, reason: "Deleted from the console" });
-                setMessage({ tone: "ok", text: `${row.name} has been deleted.` });
+                setMessage({ tone: "ok", text: t("deletedMessage", { name: row.name }) });
               } catch (caught) {
                 setMessage({
                   tone: "bad",
-                  text: caught instanceof Error ? caught.message : "That language could not be deleted.",
+                  text: caught instanceof Error ? caught.message : t("deleteFailed"),
                 });
               }
             }}
@@ -244,22 +253,22 @@ export function LanguagesTable() {
             <SearchBox
               value={search}
               onChange={setSearch}
-              placeholder="Key, name or common name"
-              ariaLabel="Search languages"
+              placeholder={t("searchPlaceholder")}
+              ariaLabel={t("searchLabel")}
             />
             <span className="text-sm text-muted-foreground">
-              {rows ? `${rows.length} of ${languages?.length ?? 0}` : ""}
+              {rows ? t("filterCount", { shown: rows.length, total: languages?.length ?? 0 }) : ""}
             </span>
             <Button className="ml-auto" size="sm" icon={<Plus aria-hidden />} onClick={() => open()}>
-              New language
+              {t("newLanguage")}
             </Button>
           </>
         }
-        emptyTitle="No languages match"
-        emptyDescription="Nothing here is named like that. Clear the search to see them all."
+        emptyTitle={t("emptyTitle")}
+        emptyDescription={t("emptyDescription")}
         emptyAction={
           <Button variant="secondary" onClick={() => setSearch("")}>
-            Clear search
+            {t("clearSearch")}
           </Button>
         }
       />
@@ -267,18 +276,18 @@ export function LanguagesTable() {
       <RecordDialog
         open={draft !== null}
         onOpenChange={(next) => (next ? undefined : setDraft(null))}
-        title={draft?.id ? `Edit ${draft.name}` : "New language"}
-        description="The key is what the judge announces a runtime as; everything else is what members see."
+        title={draft?.id ? t("editTitle", { name: draft.name }) : t("newTitle")}
+        description={t("dialogDescription")}
         onSubmit={save}
         reason={reason}
         onReasonChange={setReason}
         busy={busy}
         error={error}
-        submitLabel={draft?.id ? "Save language" : "Create language"}
+        submitLabel={draft?.id ? t("saveSubmit") : t("createSubmit")}
         width={720}
       >
         <FieldGroup columns={2}>
-          <Field label="Key" hint="At most 6 characters, e.g. CPP20.">
+          <Field label={t("key")} hint={t("keyHint")}>
             <Input
               mono
               maxLength={6}
@@ -288,7 +297,7 @@ export function LanguagesTable() {
               }
             />
           </Field>
-          <Field label="Name" hint="Shown on the submit page.">
+          <Field label={t("name")} hint={t("nameHint")}>
             <Input
               value={draft?.name ?? ""}
               onChange={(event) =>
@@ -296,7 +305,7 @@ export function LanguagesTable() {
               }
             />
           </Field>
-          <Field label="Short name" optional=" (optional)" hint="Shown in a submission row.">
+          <Field label={t("shortName")} optional={t("optional")} hint={t("shortNameHint")}>
             <Input
               mono
               value={draft?.shortName ?? ""}
@@ -305,7 +314,7 @@ export function LanguagesTable() {
               }
             />
           </Field>
-          <Field label="Common name" hint="Groups the versions, e.g. every C++ under &ldquo;C++&rdquo;.">
+          <Field label={t("commonName")} hint={t("commonNameHint")}>
             <Input
               value={draft?.commonName ?? ""}
               onChange={(event) =>
@@ -313,7 +322,7 @@ export function LanguagesTable() {
               }
             />
           </Field>
-          <Field label="Editor mode" hint="CodeMirror's mode for the submit editor.">
+          <Field label={t("editorMode")} hint={t("editorModeHint")}>
             <Input
               mono
               value={draft?.editorMode ?? ""}
@@ -322,7 +331,7 @@ export function LanguagesTable() {
               }
             />
           </Field>
-          <Field label="Shiki language" hint="How source is highlighted on a submission page.">
+          <Field label={t("shikiLang")} hint={t("shikiLangHint")}>
             <Input
               mono
               value={draft?.shikiLang ?? ""}
@@ -331,7 +340,7 @@ export function LanguagesTable() {
               }
             />
           </Field>
-          <Field label="Extension" hint="No leading dot.">
+          <Field label={t("extension")} hint={t("extensionHint")}>
             <Input
               mono
               value={draft?.extension ?? ""}
@@ -340,7 +349,7 @@ export function LanguagesTable() {
               }
             />
           </Field>
-          <Field label="Runtime info" optional=" (optional)" hint="The version string on /runtimes/.">
+          <Field label={t("info")} optional={t("optional")} hint={t("infoHint")}>
             <Input
               value={draft?.info ?? ""}
               onChange={(event) =>
@@ -349,11 +358,7 @@ export function LanguagesTable() {
             />
           </Field>
         </FieldGroup>
-        <Field
-          label="Template"
-          optional=" (optional)"
-          hint="Pre-filled into the editor for a new submission."
-        >
+        <Field label={t("template")} optional={t("optional")} hint={t("templateHint")}>
           <Textarea
             mono
             rows={5}
@@ -363,7 +368,7 @@ export function LanguagesTable() {
             }
           />
         </Field>
-        <Field label="Description" optional=" (optional)" hint="Markdown, shown on the language's page.">
+        <Field label={t("description")} optional={t("optional")} hint={t("descriptionHint")}>
           <Textarea
             mono
             rows={3}
@@ -378,16 +383,16 @@ export function LanguagesTable() {
       <RecordDialog
         open={copy !== null}
         onOpenChange={(next) => (next ? undefined : setCopy(null))}
-        title={`Copy ${copy?.sourceKey ?? ""} to another language`}
-        description="Every problem that allows the source will allow the target, and the source's per-problem limits are copied across. The target's current problem set is replaced."
+        title={t("copyTitle", { source: copy?.sourceKey ?? "" })}
+        description={t("copyDescription")}
         onSubmit={runCopy}
         reason={reason}
         onReasonChange={setReason}
         busy={busy}
         error={error}
-        submitLabel="Copy language"
+        submitLabel={t("copySubmit")}
       >
-        <Field label="Target language" hint="The language that inherits the source's problems.">
+        <Field label={t("targetLanguage")} hint={t("targetLanguageHint")}>
           <Select
             options={(languages ?? [])
               .filter((row) => row.key !== copy?.sourceKey)
@@ -396,8 +401,8 @@ export function LanguagesTable() {
             onValueChange={(value) =>
               setCopy((current) => (current ? { ...current, targetKey: value } : current))
             }
-            ariaLabel="Target language"
-            placeholder="Pick a language"
+            ariaLabel={t("targetLanguage")}
+            placeholder={t("pickLanguage")}
           />
         </Field>
       </RecordDialog>

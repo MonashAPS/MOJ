@@ -18,6 +18,7 @@ import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Check, ChevronRight, Clock, HardDrive, Server, X } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import {
   absoluteTime,
@@ -128,6 +129,7 @@ export function StatusView({
   extras: StatusExtras;
   serverNow: number;
 }) {
+  const t = useTranslations("submissions.status");
   const live = useQuery(api.submissions.detail, { submissionId: String(extras.id) });
   const detail = live ?? initial;
   const row = detail.submission;
@@ -140,7 +142,7 @@ export function StatusView({
 
   return (
     <div className="grid gap-4">
-      <Panel title={`Submission ${extras.id}`} bodyClassName="grid gap-3 p-4">
+      <Panel title={t("panelTitle", { id: extras.id })} bodyClassName="grid gap-3 p-4">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <VerdictPill verdict={code} judging={grading} label={grading ? row.status : undefined} size="lg" />
           <span className="font-mono text-h2 font-medium tabular-nums text-foreground">
@@ -154,19 +156,19 @@ export function StatusView({
             )}
           </span>
           {row.masked ? (
-            <Badge variant="run">Hidden until the contest ends</Badge>
+            <Badge variant="run">{t("maskedBadge")}</Badge>
           ) : row.isPretested ? (
-            <Badge variant="warn">Pretests only</Badge>
+            <Badge variant="warn">{t("pretestsBadge")}</Badge>
           ) : null}
         </div>
 
         <dl className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-          <Meta label="Problem" first>
+          <Meta label={t("metaProblem")} first>
             <Link href={`/problem/${extras.problem.code}`} className="text-link hover:text-link-hover">
               {extras.problem.name}
             </Link>
           </Meta>
-          <Meta label="User">
+          <Meta label={t("metaUser")}>
             <RatingName
               username={extras.user.username}
               rating={extras.user.rating}
@@ -175,15 +177,15 @@ export function StatusView({
               className="text-sm"
             />
           </Meta>
-          <Meta label="Language">
+          <Meta label={t("metaLanguage")}>
             <span className="font-mono">{extras.language?.name ?? DASH}</span>
           </Meta>
-          <Meta label="Submitted">
+          <Meta label={t("metaSubmitted")}>
             <time dateTime={new Date(extras.date).toISOString()} className="font-mono tabular-nums">
               {absoluteTime(extras.date)}
             </time>
           </Meta>
-          <Meta label="Points">
+          <Meta label={t("metaPoints")}>
             <span className="font-mono tabular-nums">
               {formatPoints(extras.contest ? extras.contest.points : row.points)}
               <span className="text-muted-foreground">
@@ -192,16 +194,16 @@ export function StatusView({
               </span>
             </span>
           </Meta>
-          <Meta label="Time" icon={<Clock aria-hidden className="size-3.5" />}>
+          <Meta label={t("metaTime")} icon={<Clock aria-hidden className="size-3.5" />}>
             <span className="font-mono tabular-nums">
               {row.result === "TLE" ? DASH : formatTime(row.time, 3)}
             </span>
           </Meta>
-          <Meta label="Memory" icon={<HardDrive aria-hidden className="size-3.5" />}>
+          <Meta label={t("metaMemory")} icon={<HardDrive aria-hidden className="size-3.5" />}>
             <span className="font-mono tabular-nums">{formatMemory(row.memory)}</span>
           </Meta>
           {extras.judge ? (
-            <Meta label="Judge" icon={<Server aria-hidden className="size-3.5" />}>
+            <Meta label={t("metaJudge")} icon={<Server aria-hidden className="size-3.5" />}>
               <span className="font-mono">{extras.judge}</span>
             </Meta>
           ) : null}
@@ -212,32 +214,29 @@ export function StatusView({
 
       {!detail.canSeeDetail ? (
         <Alert variant="info">
-          <AlertTitle>This submission is not yours to read</AlertTitle>
+          <AlertTitle>{t("privateTitle")}</AlertTitle>
           <AlertDescription>
             {extras.solveToView
-              ? `Solve ${extras.problem.name} to see other people's solutions to it.`
-              : "You can see its verdict, but not its cases or its source."}
+              ? t("privateSolveFirst", { problem: extras.problem.name })
+              : t("privateDescription")}
           </AlertDescription>
         </Alert>
       ) : row.status === "IE" ? (
         <Alert variant="danger">
-          <AlertTitle>An internal error occurred while grading</AlertTitle>
-          <AlertDescription>
-            The judge failed on this submission, and the administrators have been told. Try submitting again
-            in a few seconds.
-          </AlertDescription>
+          <AlertTitle>{t("internalErrorTitle")}</AlertTitle>
+          <AlertDescription>{t("internalErrorDescription")}</AlertDescription>
         </Alert>
       ) : null}
 
       {detail.canSeeDetail && detail.error && row.status === "CE" ? (
-        <Panel title="Compilation error" bodyClassName="bg-warning-bg p-3 text-warning-ink">
+        <Panel title={t("compileError")} bodyClassName="bg-warning-bg p-3 text-warning-ink">
           <AnsiBlock text={detail.error} />
         </Panel>
       ) : null}
 
       {detail.canSeeDetail && detail.error && row.status !== "CE" ? (
         <Panel
-          title={row.status === "IE" ? "Error information" : "Compilation warnings"}
+          title={row.status === "IE" ? t("errorInformation") : t("compileWarnings")}
           bodyClassName="bg-warning-bg p-3 text-warning-ink"
         >
           <AnsiBlock text={detail.error} />
@@ -249,7 +248,7 @@ export function StatusView({
           {strip.length > 0 ? (
             <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2">
               <MicroLabel className="mr-1">
-                {row.isPretested ? "Pretest results" : "Execution results"}
+                {row.isPretested ? t("pretestResults") : t("executionResults")}
               </MicroLabel>
               {strip.map((entry) => (
                 <span
@@ -290,37 +289,37 @@ export function StatusView({
           ))}
 
           {!grading ? (
-            <Panel title="Result" bodyClassName="grid gap-2 p-3 text-base">
+            <Panel title={t("resultTitle")} bodyClassName="grid gap-2 p-3 text-base">
               {row.result === "AB" ? (
-                <p className="font-medium text-foreground">Submission aborted.</p>
+                <p className="font-medium text-foreground">{t("aborted")}</p>
               ) : (
                 <>
-                  <Line label="Resources">
+                  <Line label={t("resources")}>
                     <span className="font-mono tabular-nums">
                       {row.result === "TLE" ? DASH : formatTime(row.time, 3)}, {formatMemory(row.memory)}
                     </span>
                   </Line>
                   {row.result === "AC" ? (
-                    <Line label="Maximum single-case runtime">
+                    <Line label={t("maxRuntime")}>
                       <span className="font-mono tabular-nums">
                         {formatTime(maxExecutionTime || extras.maxExecutionTime, 3)}
                       </span>
                     </Line>
                   ) : null}
-                  <Line label={row.isPretested ? "Final pretest score" : "Final score"}>
+                  <Line label={row.isPretested ? t("finalPretestScore") : t("finalScore")}>
                     <span className="font-mono tabular-nums">
                       {score.earned} / {score.total}
                       <span className="text-muted-foreground">
-                        {" ("}
-                        {formatPoints(extras.contest ? extras.contest.points : row.points)}/
-                        {formatPoints(extras.contest ? extras.contest.total : extras.problem.points)} points)
+                        {" "}
+                        {t("pointsOf", {
+                          earned: formatPoints(extras.contest ? extras.contest.points : row.points),
+                          total: formatPoints(extras.contest ? extras.contest.total : extras.problem.points),
+                        })}
                       </span>
                     </span>
                   </Line>
                   {row.isPretested && row.result === "AC" ? (
-                    <p className="text-sm italic text-muted-foreground">
-                      Passing pretests does not guarantee a full score on system tests.
-                    </p>
+                    <p className="text-sm italic text-muted-foreground">{t("pretestNote")}</p>
                   ) : null}
                 </>
               )}
@@ -329,7 +328,7 @@ export function StatusView({
         </>
       ) : null}
 
-      <p className="sr-only">Last read at {absoluteTime(serverNow)}.</p>
+      <p className="sr-only">{t("lastRead", { time: absoluteTime(serverNow) })}</p>
     </div>
   );
 }
@@ -378,6 +377,7 @@ function Line({ label, children }: { label: string; children: React.ReactNode })
  * static bar, because `--animate-pulse-judging` collapses to `none`.
  */
 function Progress({ currentCase, status }: { currentCase: number; status: string }) {
+  const t = useTranslations("submissions.status");
   const queued = status === "QU";
   return (
     <div className="flex items-center gap-3">
@@ -387,11 +387,7 @@ function Progress({ currentCase, status }: { currentCase: number; status: string
         </div>
       )}
       <span className="shrink-0 font-mono text-sm tabular-nums text-run">
-        {queued
-          ? "Waiting for a suitable judge\u2026"
-          : currentCase > 0
-            ? `Judging case #${currentCase}`
-            : "Your submission is being processed\u2026"}
+        {queued ? t("queued") : currentCase > 0 ? t("judgingCase", { number: currentCase }) : t("processing")}
       </span>
     </div>
   );
@@ -412,6 +408,7 @@ function CaseGroup({
   isPretested: boolean;
   currentCase: number;
 }) {
+  const t = useTranslations("submissions.cases");
   const rows = (
     <ul>
       {group.cases.map((testCase, position) => (
@@ -420,10 +417,10 @@ function CaseGroup({
           testCase={testCase}
           label={
             group.batch
-              ? `Case #${position + 1}`
+              ? t("caseLabel", { number: position + 1 })
               : isPretested
-                ? `Pretest #${testCase.case}`
-                : `Test case #${testCase.case}`
+                ? t("pretestLabel", { number: testCase.case })
+                : t("testCaseLabel", { number: testCase.case })
           }
           showPoints={!group.batch}
           timeLimit={timeLimit}
@@ -436,7 +433,7 @@ function CaseGroup({
 
   if (!group.batch) {
     return (
-      <Panel title={isPretested ? "Pretests" : "Test cases"} bodyClassName="p-0">
+      <Panel title={isPretested ? t("pretestsTitle") : t("testCasesTitle")} bodyClassName="p-0">
         {rows}
       </Panel>
     );
@@ -444,7 +441,7 @@ function CaseGroup({
 
   return (
     <Panel
-      title={`Batch ${group.batch}`}
+      title={t("batchTitle", { number: group.batch })}
       action={
         <span className="font-mono text-xs tabular-nums text-titlebar-ink">
           {group.points} / {group.total}
@@ -473,6 +470,7 @@ function CaseRow({
   outputPrefix: number | null;
   isCurrent: boolean;
 }) {
+  const t = useTranslations("submissions.cases");
   const [open, setOpen] = useState(false);
   const clipped =
     testCase.status !== "AC" && testCase.output.length > 0 && (outputPrefix === null || outputPrefix > 0);
@@ -494,7 +492,7 @@ function CaseRow({
             aria-expanded={open}
             onClick={() => setOpen((previous) => !previous)}
             className="inline-flex size-4 shrink-0 items-center justify-center rounded-xs text-muted-foreground hover:text-foreground"
-            aria-label={open ? `Hide the output for ${label}` : `Show the output for ${label}`}
+            aria-label={open ? t("hideOutput", { label }) : t("showOutput", { label })}
           >
             <ChevronRight
               aria-hidden
@@ -538,13 +536,13 @@ function CaseRow({
         <div className="grid gap-3 border-t border-border px-3 py-3">
           {clipped ? (
             <div className="grid gap-1.5">
-              <MicroLabel>Your output (clipped)</MicroLabel>
+              <MicroLabel>{t("yourOutput")}</MicroLabel>
               <pre className={styles.output}>{output}</pre>
             </div>
           ) : null}
           {testCase.extendedFeedback ? (
             <div className="grid gap-1.5">
-              <MicroLabel>Judge feedback</MicroLabel>
+              <MicroLabel>{t("judgeFeedback")}</MicroLabel>
               <pre className={styles.output}>{testCase.extendedFeedback}</pre>
             </div>
           ) : null}

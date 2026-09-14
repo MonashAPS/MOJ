@@ -3,6 +3,7 @@
 import { Alert, AlertDescription, AlertTitle, Button, Field, Input, Panel } from "@moj/ui";
 import { AlertCircle, AtSign, KeyRound, MailCheck } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { requestEmailChange } from "./actions";
 
@@ -11,6 +12,8 @@ type Errors = Partial<Record<"email" | "password" | "form", string>>;
 /** DMOJ's `EmailChangeRequestView`: the password, then a link to the new address
  *  and a warning to the old one. Nothing changes until that link is used. */
 export function EmailChangeForm({ currentEmail }: { currentEmail: string }) {
+  const t = useTranslations("auth.emailChange");
+  const tError = useTranslations("auth.errors");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Errors>({});
@@ -21,10 +24,9 @@ export function EmailChangeForm({ currentEmail }: { currentEmail: string }) {
     event.preventDefault();
     const address = email.trim();
     const found: Errors = {};
-    if (!address.includes("@")) found.email = "Enter a valid email address.";
-    else if (address.toLowerCase() === currentEmail.toLowerCase())
-      found.email = "That is already your email address.";
-    if (!password) found.password = "Enter your password.";
+    if (!address.includes("@")) found.email = tError("invalidEmail");
+    else if (address.toLowerCase() === currentEmail.toLowerCase()) found.email = t("sameAddress");
+    if (!password) found.password = t("enterPassword");
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
@@ -38,7 +40,7 @@ export function EmailChangeForm({ currentEmail }: { currentEmail: string }) {
       setSentTo(address);
       setPassword("");
     } catch {
-      setErrors({ form: "Something went wrong. Try again." });
+      setErrors({ form: tError("generic") });
     } finally {
       setBusy(false);
     }
@@ -49,21 +51,26 @@ export function EmailChangeForm({ currentEmail }: { currentEmail: string }) {
       <div className="grid gap-4">
         <Alert variant="success">
           <MailCheck className="size-3.5" aria-hidden />
-          <AlertTitle>Email change requested.</AlertTitle>
+          <AlertTitle>{t("requestedTitle")}</AlertTitle>
           <AlertDescription>
-            Follow the link we sent to <strong className="font-medium">{sentTo}</strong> to finish the change.
-            We have also told {currentEmail} that somebody asked.
+            {t.rich("requestedDescription", {
+              email: sentTo,
+              current: currentEmail,
+              strong: (chunks) => <strong className="font-medium">{chunks}</strong>,
+            })}
           </AlertDescription>
         </Alert>
         <p className="text-base text-subtle">
-          Nothing arrives? Check the spam folder, then <Link href="/accounts/email/change/">try again</Link>.
+          {t.rich("nothingArrives", {
+            link: (chunks) => <Link href="/accounts/email/change/">{chunks}</Link>,
+          })}
         </p>
       </div>
     );
   }
 
   return (
-    <Panel title="Change your email">
+    <Panel title={t("panelTitle")}>
       <form onSubmit={submit} noValidate className="grid gap-4">
         {errors.form ? (
           <Alert variant="danger">
@@ -72,16 +79,11 @@ export function EmailChangeForm({ currentEmail }: { currentEmail: string }) {
           </Alert>
         ) : null}
 
-        <Field label="Current email" htmlFor="email-current">
-          <Input id="email-current" value={currentEmail} readOnly disabled title="Change it below." />
+        <Field label={t("currentLabel")} htmlFor="email-current">
+          <Input id="email-current" value={currentEmail} readOnly disabled title={t("currentTitle")} />
         </Field>
 
-        <Field
-          label="New email"
-          htmlFor="email-new"
-          error={errors.email}
-          hint="We send the confirmation link here."
-        >
+        <Field label={t("newLabel")} htmlFor="email-new" error={errors.email} hint={t("newHint")}>
           <Input
             id="email-new"
             name="newEmail"
@@ -96,10 +98,10 @@ export function EmailChangeForm({ currentEmail }: { currentEmail: string }) {
         </Field>
 
         <Field
-          label="Password"
+          label={t("passwordLabel")}
           htmlFor="email-password"
           error={errors.password}
-          hint="Confirm it is you before we move the account."
+          hint={t("passwordHint")}
         >
           <Input
             id="email-password"
@@ -116,7 +118,7 @@ export function EmailChangeForm({ currentEmail }: { currentEmail: string }) {
 
         <div className="flex justify-end">
           <Button type="submit" busy={busy}>
-            {busy ? "Sending…" : "Request email change"}
+            {busy ? t("submitBusy") : t("submit")}
           </Button>
         </div>
       </form>

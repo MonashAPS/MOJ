@@ -5,6 +5,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { Button, Select } from "@moj/ui";
 import { useQuery } from "convex/react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { Flags } from "../_components/console";
@@ -25,6 +26,7 @@ export function ClassesBrowser({
 }: {
   organizations: Array<{ slug: string; name: string; classCount: number }>;
 }) {
+  const t = useTranslations("admin.classes");
   const [slug, setSlug] = useState(organizations[0]?.slug ?? "");
   const rows = useQuery(
     api.classes.listForOrganization,
@@ -36,7 +38,7 @@ export function ClassesBrowser({
   const columns: AdminColumn<ClassRow>[] = [
     {
       key: "name",
-      header: "Class",
+      header: t("columnClass"),
       cell: (row) => (
         <Link
           className="font-medium text-link hover:underline"
@@ -46,17 +48,21 @@ export function ClassesBrowser({
         </Link>
       ),
     },
-    { key: "slug", header: "Slug", cell: (row) => <span className="font-mono text-mono">{row.slug}</span> },
-    { key: "members", header: "Members", numeric: true, cell: (row) => row.memberCount },
+    {
+      key: "slug",
+      header: t("columnSlug"),
+      cell: (row) => <span className="font-mono text-mono">{row.slug}</span>,
+    },
+    { key: "members", header: t("columnMembers"), numeric: true, cell: (row) => row.memberCount },
     {
       key: "state",
-      header: "State",
+      header: t("columnState"),
       cell: (row) => (
         <Flags
           flags={[
-            { on: row.isActive, label: "Active", tone: "good" },
-            { on: !row.isActive, label: "Archived", tone: "warn" },
-            { on: row.requiresAccessCode, label: "Access code", tone: "accent" },
+            { on: row.isActive, label: t("flagActive"), tone: "good" },
+            { on: !row.isActive, label: t("flagArchived"), tone: "warn" },
+            { on: row.requiresAccessCode, label: t("flagAccessCode"), tone: "accent" },
           ]}
         />
       ),
@@ -77,20 +83,24 @@ export function ClassesBrowser({
             }))}
             value={slug}
             onValueChange={setSlug}
-            ariaLabel="Organization"
+            ariaLabel={t("organizationAria")}
             size="sm"
             className="w-[280px]"
           />
           <Button asChild variant="secondary" size="sm" className="ml-auto">
-            <Link href={`/admin/organizations/${slug}/`}>Manage {organization?.name ?? "organization"}</Link>
+            <Link href={`/admin/organizations/${slug}/`}>
+              {organization ? t("manage", { name: organization.name }) : t("manageFallback")}
+            </Link>
           </Button>
         </>
       }
-      emptyTitle="No classes"
-      emptyDescription={`${organization?.name ?? "That organization"} has one flat membership list.`}
+      emptyTitle={t("emptyTitle")}
+      emptyDescription={
+        organization ? t("emptyDescription", { name: organization.name }) : t("emptyDescriptionFallback")
+      }
       emptyAction={
         <Button asChild variant="secondary">
-          <Link href={`/admin/organizations/${slug}/`}>Add a class</Link>
+          <Link href={`/admin/organizations/${slug}/`}>{t("addClass")}</Link>
         </Button>
       }
     />

@@ -18,6 +18,7 @@ import { useQuery } from "convex/react";
 import { Mail } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { formatDate } from "@/lib/format";
@@ -27,30 +28,30 @@ import { type AccountRow, searchAccountsAction } from "./actions";
 const PER_PAGE = 50;
 
 const ROLE_OPTIONS = [
-  { value: "any", label: "Anyone" },
-  { value: "staff", label: "Staff" },
-  { value: "superuser", label: "Superusers" },
-  { value: "member", label: "Members" },
-];
+  { value: "any", labelKey: "roleAny" },
+  { value: "staff", labelKey: "roleStaff" },
+  { value: "superuser", labelKey: "roleSuperuser" },
+  { value: "member", labelKey: "roleMember" },
+] as const;
 
 const RANK_OPTIONS = [
-  { value: "any", label: "Any display rank" },
-  { value: "user", label: "User" },
-  { value: "setter", label: "Problem setter" },
-  { value: "admin", label: "Admin" },
-];
+  { value: "any", labelKey: "rankAny" },
+  { value: "user", labelKey: "rankUser" },
+  { value: "setter", labelKey: "rankSetter" },
+  { value: "admin", labelKey: "rankAdmin" },
+] as const;
 
 const STATE_OPTIONS = [
-  { value: "any", label: "Any state" },
-  { value: "unlisted", label: "Unlisted" },
-  { value: "muted", label: "Muted" },
-  { value: "deactivated", label: "Deactivated" },
-];
+  { value: "any", labelKey: "stateAny" },
+  { value: "unlisted", labelKey: "stateUnlisted" },
+  { value: "muted", labelKey: "stateMuted" },
+  { value: "deactivated", labelKey: "stateDeactivated" },
+] as const;
 
 const SEARCH_OPTIONS = [
-  { value: "username", label: "Username" },
-  { value: "email", label: "Email" },
-];
+  { value: "username", labelKey: "searchByUsername" },
+  { value: "email", labelKey: "searchByEmail" },
+] as const;
 
 type Row = {
   _id: string;
@@ -71,6 +72,8 @@ type Row = {
 };
 
 export function UsersTable() {
+  const t = useTranslations("admin.users.list");
+  const actions = useTranslations("common.actions");
   const router = useRouter();
   const pathname = usePathname() ?? "/admin/users/";
   const params = useSearchParams();
@@ -122,7 +125,7 @@ export function UsersTable() {
   const columns: AdminColumn<Row>[] = [
     {
       key: "username",
-      header: "Username",
+      header: t("columnUsername"),
       cell: (row) => (
         <RatingName
           username={row.displayName}
@@ -134,31 +137,31 @@ export function UsersTable() {
     },
     {
       key: "role",
-      header: "Role",
+      header: t("columnRole"),
       cell: (row) =>
         row.isSuperuser ? (
           <Badge variant="primary" shape="square">
-            Superuser
+            {t("badgeSuperuser")}
           </Badge>
         ) : row.isStaff ? (
           <Badge variant="accent" shape="square">
-            Staff
+            {t("badgeStaff")}
           </Badge>
         ) : (
           <span className="text-muted-foreground capitalize">{row.displayRank}</span>
         ),
     },
-    { key: "points", header: "Points", numeric: true, cell: (row) => row.points.toFixed(0) },
+    { key: "points", header: t("columnPoints"), numeric: true, cell: (row) => row.points.toFixed(0) },
     {
       key: "pp",
-      header: "PP",
+      header: t("columnPerformancePoints"),
       numeric: true,
       cell: (row) => row.performancePoints.toFixed(0),
     },
-    { key: "solved", header: "Solved", numeric: true, cell: (row) => row.problemCount },
+    { key: "solved", header: t("columnSolved"), numeric: true, cell: (row) => row.problemCount },
     {
       key: "organizations",
-      header: "Organizations",
+      header: t("columnOrganizations"),
       cell: (row) =>
         row.organizationSlugs.length === 0 ? (
           <span className="text-muted-foreground">{DASH}</span>
@@ -168,29 +171,29 @@ export function UsersTable() {
     },
     {
       key: "flags",
-      header: "Flags",
+      header: t("columnFlags"),
       cell: (row) => (
         <Flags
           flags={[
-            { on: row.isUnlisted, label: "Unlisted", tone: "warn" },
-            { on: row.mute, label: "Muted", tone: "warn" },
-            { on: !row.isActive, label: "Deactivated", tone: "bad" },
+            { on: row.isUnlisted, label: t("flagUnlisted"), tone: "warn" },
+            { on: row.mute, label: t("flagMuted"), tone: "warn" },
+            { on: !row.isActive, label: t("flagDeactivated"), tone: "bad" },
           ]}
         />
       ),
     },
     {
       key: "lastAccess",
-      header: "Last seen",
+      header: t("columnLastSeen"),
       numeric: true,
       cell: (row) => (row.lastAccess ? formatDate(row.lastAccess) : DASH),
     },
     {
       key: "actions",
-      header: <span className="sr-only">Actions</span>,
+      header: <span className="sr-only">{t("columnActions")}</span>,
       cell: (row) => (
         <Button asChild variant="secondary" size="sm">
-          <Link href={`/admin/users/${row.username}/`}>Edit</Link>
+          <Link href={`/admin/users/${row.username}/`}>{actions("edit")}</Link>
         </Button>
       ),
     },
@@ -206,63 +209,68 @@ export function UsersTable() {
         toolbar={
           <>
             <Select
-              options={SEARCH_OPTIONS}
+              options={SEARCH_OPTIONS.map((option) => ({
+                value: option.value,
+                label: t(option.labelKey),
+              }))}
               value={searchBy}
               onValueChange={(value) => setParam({ by: value === "username" ? null : value })}
-              ariaLabel="Search by"
+              ariaLabel={t("searchByAria")}
               size="sm"
               className="w-[124px]"
             />
             <SearchBox
               value={search}
               onChange={(value) => setParam({ q: value })}
-              placeholder={searchBy === "email" ? "someone@example.com" : "Username"}
-              ariaLabel={searchBy === "email" ? "Search users by email" : "Search users by username"}
+              placeholder={
+                searchBy === "email" ? t("searchEmailPlaceholder") : t("searchUsernamePlaceholder")
+              }
+              ariaLabel={searchBy === "email" ? t("searchEmailAria") : t("searchUsernameAria")}
             />
             <Select
-              options={ROLE_OPTIONS}
+              options={ROLE_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
               value={role}
               onValueChange={(value) => setParam({ role: value })}
-              ariaLabel="Role"
+              ariaLabel={t("roleAria")}
               size="sm"
               className="w-[150px]"
             />
             <Select
-              options={RANK_OPTIONS}
+              options={RANK_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
               value={rank}
               onValueChange={(value) => setParam({ rank: value })}
-              ariaLabel="Display rank"
+              ariaLabel={t("rankAria")}
               size="sm"
               className="w-[176px]"
             />
             <Select
-              options={STATE_OPTIONS}
+              options={STATE_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
               value={state}
               onValueChange={(value) => setParam({ state: value })}
-              ariaLabel="Account state"
+              ariaLabel={t("stateAria")}
               size="sm"
               className="w-[150px]"
             />
             <span className="ml-auto font-mono text-mono tabular-nums text-muted-foreground">
-              {result ? `${total.toLocaleString()} ${total === 1 ? "user" : "users"}` : ""}
+              {result ? t("count", { count: total }) : ""}
             </span>
           </>
         }
-        emptyTitle="No users match"
-        emptyDescription="No account matches these filters. Widen the search or clear a filter."
+        emptyTitle={t("emptyTitle")}
+        emptyDescription={t("emptyDescription")}
         emptyAction={
           <Button
             variant="secondary"
             onClick={() => setParam({ q: null, role: null, rank: null, state: null })}
           >
-            Clear filters
+            {t("clearFilters")}
           </Button>
         }
         footer={
           totalPages > 1 ? (
             <>
               <span className="whitespace-nowrap font-mono text-mono tabular-nums text-muted-foreground">
-                Page {page} of {totalPages}
+                {t("pageOf", { page, total: totalPages })}
               </span>
               <Pagination
                 page={page}
@@ -286,6 +294,8 @@ export function UsersTable() {
 /** Emails live in Better Auth, not Convex, so this half of the search is a
  *  server action against Postgres. */
 function EmailResults({ term }: { term: string }) {
+  const t = useTranslations("admin.users.emailSearch");
+  const actions = useTranslations("common.actions");
   const [rows, setRows] = useState<AccountRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -316,25 +326,25 @@ function EmailResults({ term }: { term: string }) {
     return (
       <p className="flex items-center gap-2 text-sm text-muted-foreground">
         <Mail className="size-3.5" aria-hidden />
-        Type at least two characters of an email address.
+        {t("prompt")}
       </p>
     );
   }
   if (error) return <StatusLine tone="bad">{error}</StatusLine>;
-  if (rows === null) return <p className="text-sm text-muted-foreground">{pending ? "Searching…" : ""}</p>;
+  if (rows === null) return <p className="text-sm text-muted-foreground">{pending ? t("searching") : ""}</p>;
   if (rows.length === 0) {
-    return <p className="text-sm text-muted-foreground">No account has an email like that.</p>;
+    return <p className="text-sm text-muted-foreground">{t("none")}</p>;
   }
 
   return (
     <Table dense>
       <TableHeader>
         <TableRow>
-          <TableHead>Username</TableHead>
-          <TableHead>Email</TableHead>
-          <TableHead>Account</TableHead>
+          <TableHead>{t("columnUsername")}</TableHead>
+          <TableHead>{t("columnEmail")}</TableHead>
+          <TableHead>{t("columnAccount")}</TableHead>
           <TableHead>
-            <span className="sr-only">Actions</span>
+            <span className="sr-only">{t("columnActions")}</span>
           </TableHead>
         </TableRow>
       </TableHeader>
@@ -346,16 +356,16 @@ function EmailResults({ term }: { term: string }) {
             <TableCell>
               <Flags
                 flags={[
-                  { on: row.banned, label: "Banned", tone: "bad" },
-                  { on: !row.emailVerified, label: "Unverified", tone: "warn" },
-                  { on: row.twoFactorEnabled, label: "2FA", tone: "good" },
+                  { on: row.banned, label: t("flagBanned"), tone: "bad" },
+                  { on: !row.emailVerified, label: t("flagUnverified"), tone: "warn" },
+                  { on: row.twoFactorEnabled, label: t("flagTwoFactor"), tone: "good" },
                 ]}
               />
             </TableCell>
             <TableCell>
               {row.username ? (
                 <Button asChild variant="secondary" size="sm">
-                  <Link href={`/admin/users/${row.username}/`}>Edit</Link>
+                  <Link href={`/admin/users/${row.username}/`}>{actions("edit")}</Link>
                 </Button>
               ) : (
                 DASH

@@ -11,6 +11,7 @@ import {
   Tooltip,
 } from "@moj/ui";
 import { ServerOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { DASH } from "@/lib/submissionFormat";
 
 /** `judge.uptime|timedelta('localized')`, compact. */
@@ -30,9 +31,16 @@ export function formatUptime(ms: number | null): string {
  * live rows, and it says nothing about where they came from.
  */
 export function JudgeTable({ judges, seeAll }: { judges: JudgeRow[]; seeAll: boolean }) {
+  const t = useTranslations("status.judges");
+  const states = useTranslations("common.states");
+
   if (judges.length === 0) {
     return (
-      <EmptyState icon={<ServerOff aria-hidden />} title="No judges" description="No judges are online." />
+      <EmptyState
+        icon={<ServerOff aria-hidden />}
+        title={t("emptyTitle")}
+        description={t("emptyDescription")}
+      />
     );
   }
 
@@ -40,13 +48,13 @@ export function JudgeTable({ judges, seeAll }: { judges: JudgeRow[]; seeAll: boo
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Judge</TableHead>
-          {seeAll ? <TableHead>Status</TableHead> : null}
-          <TableHead numeric>Uptime</TableHead>
-          <TableHead numeric>Ping</TableHead>
-          <TableHead numeric>Load</TableHead>
-          <TableHead numeric>Tier</TableHead>
-          <TableHead>Runtimes</TableHead>
+          <TableHead>{t("judge")}</TableHead>
+          {seeAll ? <TableHead>{t("status")}</TableHead> : null}
+          <TableHead numeric>{t("uptime")}</TableHead>
+          <TableHead numeric>{t("ping")}</TableHead>
+          <TableHead numeric>{t("load")}</TableHead>
+          <TableHead numeric>{t("tier")}</TableHead>
+          <TableHead>{t("runtimes")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -58,7 +66,7 @@ export function JudgeTable({ judges, seeAll }: { judges: JudgeRow[]; seeAll: boo
             {seeAll ? (
               <TableCell className="whitespace-nowrap">
                 <Badge variant={judge.online ? "good" : "neutral"}>
-                  {judge.online ? "Online" : "Offline"}
+                  {judge.online ? states("online") : states("offline")}
                 </Badge>
               </TableCell>
             ) : null}

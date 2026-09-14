@@ -1,17 +1,23 @@
 import { api } from "@convex/_generated/api";
 import { TitleRow } from "@moj/ui";
-import { STATUS_TABS } from "@/components/status/StatusTabs";
+import { getTranslations } from "next-intl/server";
+import { statusTabs } from "@/components/status/StatusTabs";
 import { queryAsViewer } from "@/lib/convex-server";
 import { StatusTable } from "./StatusTable";
 
-export const metadata = { title: "Status" };
+export async function generateMetadata() {
+  const t = await getTranslations("status.judges");
+  return { title: t("title") };
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function StatusPage() {
-  const initial = await queryAsViewer(api.status.page, {});
+  const t = await getTranslations("status.judges");
+  const [initial, tabs] = await Promise.all([queryAsViewer(api.status.page, {}), statusTabs()]);
   return (
     <>
-      <TitleRow title="Status" tabs={STATUS_TABS} active="judges" />
+      <TitleRow title={t("title")} tabs={tabs} active="judges" />
       <div id="content-body">
         <StatusTable initial={initial} />
       </div>

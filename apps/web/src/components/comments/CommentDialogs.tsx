@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@moj/ui";
 import { useQuery } from "convex/react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { renderUserMarkdown } from "@/components/markdown/actions";
 import { formatDateTime } from "@/lib/format";
@@ -35,6 +36,7 @@ export function CommentHistoryDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const t = useTranslations("blog.history");
   const revisions = useQuery(api.comments.history, open ? { commentId } : "skip");
   const [index, setIndex] = useState(0);
   const [html, setHtml] = useState("");
@@ -63,18 +65,14 @@ export function CommentHistoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        title="Edit history"
-        description="Every revision of this comment, oldest first."
-        width={640}
-      >
+      <DialogContent title={t("title")} description={t("description")} width={640}>
         {revisions === undefined ? (
           <div className="grid gap-2">
             <Skeleton className="h-6 w-48" />
             <Skeleton className="h-24 w-full" />
           </div>
         ) : revisions === null || revisions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">This comment has no recorded history.</p>
+          <p className="text-sm text-muted-foreground">{t("empty")}</p>
         ) : (
           <div className="grid gap-3">
             <div className="flex flex-wrap gap-1">
@@ -86,7 +84,7 @@ export function CommentHistoryDialog({
                   onClick={() => setIndex(position)}
                   className={cn(position !== index && "text-subtle")}
                 >
-                  {position === 0 ? "Original" : `Edit ${position}`}
+                  {position === 0 ? t("original") : t("edit", { number: position })}
                 </Button>
               ))}
             </div>
@@ -125,24 +123,25 @@ export function CommentVotesDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const t = useTranslations("blog.votes");
   const votes = useQuery(api.comments.votes, open ? { commentId } : "skip");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title="Votes" description="Who voted on this comment." width={480}>
+      <DialogContent title={t("title")} description={t("description")} width={480}>
         {votes === undefined ? (
           <Skeleton className="h-24 w-full" />
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Voter</TableHead>
-                <TableHead numeric>Score</TableHead>
+                <TableHead>{t("columnVoter")}</TableHead>
+                <TableHead numeric>{t("columnScore")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {votes === null || votes.length === 0 ? (
-                <EmptyRow colSpan={2}>No votes.</EmptyRow>
+                <EmptyRow colSpan={2}>{t("empty")}</EmptyRow>
               ) : (
                 votes.map((vote) => (
                   <TableRow key={vote._id}>

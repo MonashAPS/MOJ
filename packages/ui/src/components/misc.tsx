@@ -7,6 +7,7 @@ import * as SeparatorPrimitive from "@radix-ui/react-separator";
 import { Loader2 } from "lucide-react";
 import type { ComponentProps } from "react";
 import { cn } from "../cn";
+import { useUiText } from "../ui-text";
 
 /* Avatar ------------------------------------------------------------------- */
 
@@ -164,10 +165,11 @@ export function Skeleton({ className, ...props }: ComponentProps<"div">) {
 /** Twelve lines of CSS on a Lucide glyph. Words beat spinners; use this only where
  *  a word will not fit. */
 export function Spinner({ className, ...props }: ComponentProps<typeof Loader2>) {
+  const ui = useUiText();
   return (
     <Loader2
       role="status"
-      aria-label="Loading"
+      aria-label={ui.loading}
       className={cn("size-4 animate-spin-slow", className)}
       {...props}
     />

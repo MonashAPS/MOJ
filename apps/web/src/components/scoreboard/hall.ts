@@ -89,10 +89,6 @@ export function contestClock(seconds: number): string {
   return `${hours}:${String(minutes).padStart(2, "0")}`;
 }
 
-export function plural(count: number, one: string, many: string): string {
-  return `${count} ${count === 1 ? one : many}`;
-}
-
 /* -------------------------------------------------------------------------- */
 /* Persistence                                                                */
 /* -------------------------------------------------------------------------- */

@@ -76,15 +76,19 @@ export function PageTabs({
   active,
   className,
   linkAs: Link = "a" as unknown as TabLink,
+  // A landmark label, so it is a prop rather than read from context: this
+  // component renders on the server, where context is not available.
+  sectionsLabel = "Sections",
 }: {
   tabs: TabItem[];
   active?: string;
   className?: string;
   linkAs?: TabLink;
+  sectionsLabel?: string;
 }) {
   return (
     <nav
-      aria-label="Sections"
+      aria-label={sectionsLabel}
       className={cn(
         // `min-w-0` so a long tab strip scrolls inside itself instead of
         // widening the page: a grid or flex child is min-content wide by default.

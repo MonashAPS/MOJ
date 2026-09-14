@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 const DELAY_MS = 120;
@@ -10,6 +11,7 @@ const DELAY_MS = 120;
  *  global router event in the App Router, so this watches internal anchor clicks
  *  and history moves and clears itself when the path lands. */
 export function RouteProgress() {
+  const t = useTranslations("common.states");
   const pathname = usePathname();
   const [pending, setPending] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -53,7 +55,7 @@ export function RouteProgress() {
   return (
     <div
       role="progressbar"
-      aria-label="Loading the page"
+      aria-label={t("loadingPage")}
       className="pointer-events-none absolute inset-x-0 top-0 h-0.5 overflow-hidden"
     >
       <div className="h-full w-1/3 animate-[route-progress_1s_var(--ease-out)_infinite] bg-royal" />

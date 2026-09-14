@@ -1,0 +1,45 @@
+{
+  "tabs": {
+    "judges": "Judges",
+    "runtimes": "Runtimes",
+    "matrix": "Versions"
+  },
+  "judges": {
+    "title": "Status",
+    "loading": "Loading judges",
+    "emptyTitle": "No judges",
+    "emptyDescription": "No judges are online.",
+    "judge": "Judge",
+    "status": "Status",
+    "uptime": "Uptime",
+    "ping": "Ping",
+    "load": "Load",
+    "tier": "Tier",
+    "runtimes": "Runtimes"
+  },
+  "runtimes": {
+    "title": "Runtimes",
+    "emptyTitle": "No runtimes",
+    "emptyDescription": "No judges are online, so the judge does not know what it can run.",
+    "id": "ID",
+    "name": "Name",
+    "info": "Runtime info"
+  },
+  "matrix": {
+    "title": "Version matrix",
+    "emptyTitle": "No judges",
+    "emptyDescription": "No judges are online, so there are no runtime versions to compare.",
+    "language": "Language",
+    "key": "Key",
+    "newest": "Newest runtime",
+    "behind": "Behind another judge",
+    "missing": "Not installed"
+  },
+  "languageStats": {
+    "title": "Statistics",
+    "metaTitle": "Language statistics",
+    "tab": "Language",
+    "counted": "Counted from the most recent <count>{scanned, plural, one {# submission} other {# submissions}}</count>, last updated <when>{updated}</when>.",
+    "countedCapped": "Counted from the most recent <count>{scanned, plural, one {# submission} other {# submissions}}</count> (the tally is capped), last updated <when>{updated}</when>."
+  }
+}

@@ -17,6 +17,7 @@ import {
   getFormatOrDefault,
   type ProblemRow,
   type ProfileRow,
+  type ScoringLine,
   type SubmissionTestCaseRow,
   UnknownContestFormatError,
 } from "@moj/core";
@@ -318,10 +319,10 @@ export const list = query({
   },
 });
 
-/** `ContestFormat.get_short_form_display()`: markdown lines about the scoring. */
+/** `ContestFormat.get_short_form_display()`: message keys about the scoring. */
 export const describe = query({
   args: { name: v.string(), config: v.optional(v.any()) },
-  handler: async (_ctx, { name, config }): Promise<{ lines: string[]; error: string | null }> => {
+  handler: async (_ctx, { name, config }): Promise<{ lines: ScoringLine[]; error: string | null }> => {
     try {
       const format = getFormatOrDefault(name);
       return { lines: format.getShortFormDisplay(config), error: null };

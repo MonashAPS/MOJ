@@ -22,6 +22,7 @@ import { useMutation, useQuery } from "convex/react";
 import { ExternalLink, FileQuestion } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import {
   AdminCheckField,
@@ -35,6 +36,10 @@ import {
 
 /** `scoreboardEvents`: the rows that replaced the fork's hard-coded scoreboard setting. */
 export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
+  const t = useTranslations("admin.scoreboards.form");
+  const shell = useTranslations("admin.shell");
+  const list = useTranslations("admin.scoreboards.list");
+  const actions = useTranslations("common.actions");
   const router = useRouter();
   const existing = useQuery(api.admin.scoreboards.get, eventKey ? { key: eventKey } : "skip");
   const options = useQuery(api.pages.admin1.scoreboardOptions, {});
@@ -86,15 +91,15 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
   async function save() {
     setError(null);
     if (!/^[a-z0-9][a-z0-9_-]*$/.test(key)) {
-      setError("Scoreboard keys use lowercase letters, digits, '-' and '_'.");
+      setError(t("keyInvalid"));
       return;
     }
     if (contestKeys.length === 0) {
-      setError("A scoreboard needs at least one contest.");
+      setError(t("contestsRequired"));
       return;
     }
     if (eventKey && !reason.trim()) {
-      setReasonError("Say what you changed so the revision is worth reading.");
+      setReasonError(t("reasonRequired"));
       return;
     }
     setReasonError(undefined);
@@ -114,21 +119,21 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
       if (eventKey) {
         await update({ key: eventKey, ...payload });
         setReason("");
-        toast.success("Scoreboard saved.");
+        toast.success(t("saved"));
       } else {
         await create({ key, ...payload });
         router.push(`/admin/scoreboards/${key}/`);
       }
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The change was refused.");
+      setError(caught instanceof Error ? caught.message : t("refused"));
     }
     setBusy(false);
   }
 
   const breadcrumb = [
-    { label: "Staff console", href: "/admin/" },
-    { label: "Scoreboards", href: "/admin/scoreboards/" },
-    { label: eventKey ?? "New" },
+    { label: shell("consoleName"), href: "/admin/" },
+    { label: list("title"), href: "/admin/scoreboards/" },
+    { label: eventKey ?? t("breadcrumbNew") },
   ];
 
   if (eventKey && loaded && existing === null) {
@@ -136,11 +141,11 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
       <AdminShell title={eventKey} breadcrumb={breadcrumb}>
         <EmptyState
           icon={<FileQuestion aria-hidden />}
-          title="No such scoreboard"
-          description="There is no scoreboard with that key."
+          title={t("missingTitle")}
+          description={t("missingDescription")}
           action={
             <Button asChild variant="secondary" size="sm">
-              <Link href="/admin/scoreboards/">Back to scoreboards</Link>
+              <Link href="/admin/scoreboards/">{t("backToList")}</Link>
             </Button>
           }
         />
@@ -150,12 +155,12 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
 
   return (
     <AdminShell
-      title={eventKey ? (existing?.name ?? eventKey) : "New scoreboard"}
+      title={eventKey ? (existing?.name ?? eventKey) : t("newTitle")}
       breadcrumb={breadcrumb}
       action={
         eventKey ? (
           <Button asChild variant="secondary" size="sm" icon={<ExternalLink aria-hidden />}>
-            <Link href={`/scoreboard/${eventKey}/`}>Open board</Link>
+            <Link href={`/scoreboard/${eventKey}/`}>{t("openBoard")}</Link>
           </Button>
         ) : null
       }
@@ -163,30 +168,26 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
       <AdminForm onSubmit={save}>
         <AdminFormError message={error} />
 
-        <AdminSection title="General">
-          <Field
-            label="Key"
-            htmlFor={ids.key}
-            hint="The URL: /scoreboard/<key>. Lowercase letters, digits, dashes and underscores."
-          >
+        <AdminSection title={t("general")}>
+          <Field label={t("key")} htmlFor={ids.key} hint={t("keyHint")}>
             <Input
               id={ids.key}
               mono
               value={key}
               readOnly={!!eventKey}
               disabled={!!eventKey}
-              title={eventKey ? "A scoreboard's key cannot change." : undefined}
+              title={eventKey ? t("keyLocked") : undefined}
               onChange={(event) => setKey(event.target.value.toLowerCase())}
               placeholder="winter25"
             />
           </Field>
-          <Field label="Name" htmlFor={ids.name} hint="Shown across the top of the hall display.">
+          <Field label={t("name")} htmlFor={ids.name} hint={t("nameHint")}>
             <Input id={ids.name} value={name} onChange={(event) => setName(event.target.value)} />
           </Field>
           <Field
-            label="Contests"
+            label={t("contests")}
             htmlFor={ids.contests}
-            hint="Each contest becomes a division on the board."
+            hint={t("contestsHint")}
             className="sm:col-span-2"
           >
             <MultiSelect
@@ -197,29 +198,24 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
                 value: row.key,
                 label: `${row.name} (${row.key})`,
               }))}
-              placeholder="Choose contests"
+              placeholder={t("contestsPlaceholder")}
             />
           </Field>
         </AdminSection>
 
-        <AdminSection title="Presentation">
-          <Field label="Theme" htmlFor={ids.theme}>
+        <AdminSection title={t("presentation")}>
+          <Field label={t("theme")} htmlFor={ids.theme}>
             <Select
               id={ids.theme}
               value={theme}
               onValueChange={setTheme}
               options={[
-                { value: "default", label: "Default" },
-                { value: "olympics", label: "Olympics" },
+                { value: "default", label: t("themeDefault") },
+                { value: "olympics", label: t("themeOlympics") },
               ]}
             />
           </Field>
-          <Field
-            label="Flag pattern"
-            htmlFor={ids.flag}
-            optional=" (optional)"
-            hint="A URL with {username} in it, for the flag beside each row."
-          >
+          <Field label={t("flag")} htmlFor={ids.flag} optional={t("optional")} hint={t("flagHint")}>
             <Input
               id={ids.flag}
               mono
@@ -228,12 +224,7 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
               placeholder="https://example.com/flags/{username}.png"
             />
           </Field>
-          <Field
-            label="Badge organisations"
-            htmlFor={ids.badges}
-            optional=" (optional)"
-            hint="Members of these organisations get a badge on their row."
-          >
+          <Field label={t("badges")} htmlFor={ids.badges} optional={t("optional")} hint={t("badgesHint")}>
             <MultiSelect
               id={ids.badges}
               values={badgeSlugs}
@@ -242,14 +233,14 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
                 value: row.slug,
                 label: row.name,
               }))}
-              placeholder="No badges"
+              placeholder={t("badgesPlaceholder")}
             />
           </Field>
           <Field
-            label="In-person organisation"
+            label={t("inPerson")}
             htmlFor={ids.inPerson}
-            optional=" (optional)"
-            hint="Drives the All / In-person toggle on the board."
+            optional={t("optional")}
+            hint={t("inPersonHint")}
           >
             <Select
               id={ids.inPerson}
@@ -259,17 +250,13 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
                 value: row.slug,
                 label: row.name,
               }))}
-              placeholder="No in-person split"
+              placeholder={t("inPersonPlaceholder")}
             />
           </Field>
         </AdminSection>
 
-        <AdminSection title="Freeze and access">
-          <Field
-            label="Freeze"
-            htmlFor={ids.freeze}
-            hint="Minutes before each contest ends that this board stops updating."
-          >
+        <AdminSection title={t("freezeAndAccess")}>
+          <Field label={t("freeze")} htmlFor={ids.freeze} hint={t("freezeHint")}>
             <Input
               id={ids.freeze}
               mono
@@ -279,26 +266,26 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
             />
           </Field>
           <AdminCheckField
-            label="Public"
-            hint="The board's URL works for anyone, whatever the contests' scoreboard visibility says."
+            label={t("public")}
+            hint={t("publicHint")}
             checked={isPublic}
             onCheckedChange={setIsPublic}
           />
         </AdminSection>
 
-        <ReasonField value={reason} onChange={setReason} error={reasonError} entity="scoreboard" />
+        <ReasonField value={reason} onChange={setReason} error={reasonError} hint={t("reasonHint")} />
         <AdminFormFooter
           busy={busy}
-          submitLabel={eventKey ? "Save scoreboard" : "Create scoreboard"}
-          busyLabel={eventKey ? "Saving…" : "Creating…"}
+          submitLabel={eventKey ? t("save") : t("create")}
+          busyLabel={eventKey ? t("saving") : t("creating")}
           secondary={
             eventKey ? (
               <Button variant="secondary" onClick={() => setConfirmDelete(true)}>
-                Delete scoreboard
+                {t("deleteAction")}
               </Button>
             ) : (
               <Button asChild variant="secondary">
-                <Link href="/admin/scoreboards/">Cancel</Link>
+                <Link href="/admin/scoreboards/">{actions("cancel")}</Link>
               </Button>
             )
           }
@@ -308,13 +295,11 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete the {name || eventKey} scoreboard?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Its URL stops working. The contests it named, and their rankings, are untouched.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t("deleteTitle", { name: name || eventKey || "" })}</AlertDialogTitle>
+            <AlertDialogDescription>{t("deleteDescription")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{actions("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
                 setConfirmDelete(false);
@@ -323,11 +308,11 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
                   await remove({ key: eventKey, reason: reason.trim() || undefined });
                   router.push("/admin/scoreboards/");
                 } catch (caught) {
-                  setError(caught instanceof Error ? caught.message : "The change was refused.");
+                  setError(caught instanceof Error ? caught.message : t("refused"));
                 }
               }}
             >
-              Delete
+              {actions("delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

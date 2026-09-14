@@ -6,6 +6,7 @@ import { Button, Checkbox, Field, FieldGroup, Input, MultiSelect, Textarea } fro
 import { useMutation, useQuery } from "convex/react";
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { formatDateTime } from "@/lib/format";
@@ -64,6 +65,8 @@ function fromLocalInput(value: string): number | null {
 }
 
 export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string; label: string }> | null }) {
+  const t = useTranslations("admin.blog");
+  const actions = useTranslations("common.actions");
   const [search, setSearch] = useState("");
   const posts = useQuery(api.admin.blog.list, search.trim() ? { search: search.trim() } : {}) as
     | PostRow[]
@@ -99,12 +102,12 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
   async function save() {
     if (!draft) return;
     if (reason.trim().length === 0) {
-      setError("Give a reason for the change; it is recorded on the revision.");
+      setError(t("reasonRequired"));
       return;
     }
     const publishOn = draft.publishOn.trim() === "" ? Date.now() : fromLocalInput(draft.publishOn);
     if (publishOn === null) {
-      setError("Write the publish time as YYYY-MM-DD HH:MM.");
+      setError(t("publishTimeInvalid"));
       return;
     }
     setBusy(true);
@@ -123,11 +126,11 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
       };
       if (draft.id) await update({ ...payload, id: draft.id });
       else await create(payload);
-      setMessage({ tone: "ok", text: `${draft.title} has been saved.` });
+      setMessage({ tone: "ok", text: t("saved", { title: draft.title }) });
       setDraft(null);
       setLoadingPost(null);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "That post could not be saved.");
+      setError(caught instanceof Error ? caught.message : t("saveFailed"));
     } finally {
       setBusy(false);
     }
@@ -136,7 +139,7 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
   const columns: AdminColumn<PostRow>[] = [
     {
       key: "title",
-      header: "Title",
+      header: t("columnTitle"),
       cell: (row) => (
         <span className="grid">
           <span className="font-medium text-foreground">{row.title}</span>
@@ -151,7 +154,7 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
     },
     {
       key: "authors",
-      header: "Authors",
+      header: t("columnAuthors"),
       cell: (row) =>
         row.authors.length === 0 ? (
           <span className="text-muted-foreground">{DASH}</span>
@@ -161,27 +164,27 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
     },
     {
       key: "state",
-      header: "State",
+      header: t("columnState"),
       cell: (row) => (
         <Flags
           flags={[
-            { on: row.visible, label: "Visible", tone: "good" },
-            { on: !row.visible, label: "Draft", tone: "warn" },
-            { on: row.sticky, label: "Sticky", tone: "accent" },
-            { on: row.publishOn > Date.now(), label: "Scheduled", tone: "accent" },
+            { on: row.visible, label: t("stateVisible"), tone: "good" },
+            { on: !row.visible, label: t("stateDraft"), tone: "warn" },
+            { on: row.sticky, label: t("stateSticky"), tone: "accent" },
+            { on: row.publishOn > Date.now(), label: t("stateScheduled"), tone: "accent" },
           ]}
         />
       ),
     },
     {
       key: "publishOn",
-      header: "Publishes",
+      header: t("columnPublishOn"),
       numeric: true,
       cell: (row) => formatDateTime(row.publishOn),
     },
     {
       key: "actions",
-      header: <span className="sr-only">Actions</span>,
+      header: <span className="sr-only">{t("columnActions")}</span>,
       cell: (row) => (
         <span className="flex items-center justify-end gap-1">
           <Button
@@ -194,25 +197,25 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
               setError(null);
             }}
           >
-            Edit
+            {actions("edit")}
           </Button>
           <ConfirmAction
             trigger={
               <Button variant="ghost" size="sm">
-                Delete
+                {actions("delete")}
               </Button>
             }
-            title={`Delete ${row.title}?`}
-            description="The post and every comment on it are removed."
-            confirmLabel="Delete post"
+            title={t("deleteTitle", { title: row.title })}
+            description={t("deleteDescription")}
+            confirmLabel={t("deleteConfirm")}
             onConfirm={async () => {
               try {
                 await remove({ id: row._id, reason: "Deleted from the console" });
-                setMessage({ tone: "ok", text: `${row.title} has been deleted.` });
+                setMessage({ tone: "ok", text: t("deleted", { title: row.title }) });
               } catch (caught) {
                 setMessage({
                   tone: "bad",
-                  text: caught instanceof Error ? caught.message : "That post could not be deleted.",
+                  text: caught instanceof Error ? caught.message : t("deleteFailed"),
                 });
               }
             }}
@@ -235,8 +238,8 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
             <SearchBox
               value={search}
               onChange={setSearch}
-              placeholder="Title or slug"
-              ariaLabel="Search posts"
+              placeholder={t("searchPlaceholder")}
+              ariaLabel={t("searchLabel")}
             />
             <Button
               className="ml-auto"
@@ -249,18 +252,18 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
                 setError(null);
               }}
             >
-              New post
+              {t("newPost")}
             </Button>
           </>
         }
-        emptyTitle="No posts"
-        emptyDescription="The blog is where contest announcements and editorials are published."
+        emptyTitle={t("emptyTitle")}
+        emptyDescription={t("emptyDescription")}
         emptyAction={
           <Button
             variant="secondary"
             onClick={() => setDraft({ ...EMPTY, publishOn: toLocalInput(Date.now()) })}
           >
-            New post
+            {t("newPost")}
           </Button>
         }
       />
@@ -273,17 +276,17 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
             setLoadingPost(null);
           }
         }}
-        title={draft?.id ? `Edit ${draft.title}` : "New post"}
+        title={draft?.id ? t("editTitle", { title: draft.title }) : t("newTitle")}
         onSubmit={save}
         reason={reason}
         onReasonChange={setReason}
         busy={busy}
         error={error}
-        submitLabel={draft?.id ? "Save post" : "Create post"}
+        submitLabel={draft?.id ? t("submitSave") : t("submitCreate")}
         width={880}
       >
         <FieldGroup columns={2}>
-          <Field label="Title">
+          <Field label={t("postTitle")}>
             <Input
               value={draft?.title ?? ""}
               maxLength={100}
@@ -292,7 +295,7 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
               }
             />
           </Field>
-          <Field label="Slug" optional=" (optional)" hint="Left blank it is made from the title.">
+          <Field label={t("slug")} optional={t("optional")} hint={t("slugHint")}>
             <Input
               mono
               value={draft?.slug ?? ""}
@@ -301,14 +304,7 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
               }
             />
           </Field>
-          <Field
-            label="Authors"
-            hint={
-              authorOptions
-                ? "Who the post is credited to."
-                : "Listing accounts needs judge.change_profile, so the authors stay as they are."
-            }
-          >
+          <Field label={t("authors")} hint={authorOptions ? t("authorsHint") : t("authorsLockedHint")}>
             <MultiSelect
               options={(authorOptions ?? []).map((option) => ({ value: option.id, label: option.label }))}
               values={draft?.authorProfileIds ?? []}
@@ -316,11 +312,11 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
                 setDraft((current) => (current ? { ...current, authorProfileIds: values } : current))
               }
               disabled={!authorOptions}
-              searchPlaceholder="Find a member"
-              emptyText="No member by that name."
+              searchPlaceholder={t("authorsSearchPlaceholder")}
+              emptyText={t("authorsEmpty")}
             />
           </Field>
-          <Field label="Publishes" hint="YYYY-MM-DD HH:MM in your own timezone.">
+          <Field label={t("publishOn")} hint={t("publishOnHint")}>
             <Input
               mono
               value={draft?.publishOn ?? ""}
@@ -332,11 +328,7 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
           </Field>
         </FieldGroup>
 
-        <Field
-          label="Summary"
-          optional=" (optional)"
-          hint="Shown on the blog list instead of the first paragraph."
-        >
+        <Field label={t("summary")} optional={t("optional")} hint={t("summaryHint")}>
           <Textarea
             rows={3}
             value={draft?.summary ?? ""}
@@ -347,8 +339,8 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
         </Field>
 
         <MarkdownField
-          label="Content"
-          hint="Markdown, rendered with the blog preset."
+          label={t("content")}
+          hint={t("contentHint")}
           preset="blog"
           value={draft?.content ?? ""}
           onChange={(value) => setDraft((current) => (current ? { ...current, content: value } : current))}
@@ -360,14 +352,14 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
             onCheckedChange={(value) =>
               setDraft((current) => (current ? { ...current, visible: value } : current))
             }
-            label="Visible — members can read it once it has published"
+            label={t("visible")}
           />
           <Checkbox
             checked={draft?.sticky ?? false}
             onCheckedChange={(value) =>
               setDraft((current) => (current ? { ...current, sticky: value } : current))
             }
-            label="Sticky — pinned to the top of the blog"
+            label={t("sticky")}
           />
         </FieldGroup>
       </RecordDialog>

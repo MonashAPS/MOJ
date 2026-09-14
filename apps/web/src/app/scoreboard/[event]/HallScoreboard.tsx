@@ -15,6 +15,7 @@ import {
   Snowflake,
   Users,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DivisionPanel } from "@/components/scoreboard/DivisionPanel";
 import { EventFeed } from "@/components/scoreboard/EventFeed";
@@ -25,7 +26,6 @@ import {
   type DisplayRow,
   displayRows,
   nextRevealTarget,
-  plural,
   readSetting,
   writeSetting,
 } from "@/components/scoreboard/hall";
@@ -53,6 +53,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
  * same result at the same moment.
  */
 export function HallScoreboard({ eventKey, initial }: { eventKey: string; initial: ScoreboardEventPayload }) {
+  const t = useTranslations("contests.hall");
   const live = useQuery(api.scoreboard.event, { key: eventKey });
   const payload = live === undefined ? initial : live;
 
@@ -241,7 +242,7 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
     return (
       <div className="hall theme-dark">
         <div className="hall-body">
-          <p className="hall-empty">This scoreboard has no divisions yet.</p>
+          <p className="hall-empty">{t("noDivisions")}</p>
         </div>
       </div>
     );
@@ -261,7 +262,7 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
         {division.isFrozen ? (
           <span className="hall-frozen-chip">
             <Snowflake size={12} strokeWidth={2} aria-hidden />
-            Frozen
+            {t("frozenChip")}
           </span>
         ) : null}
         <span className="hall-spacer" />
@@ -271,13 +272,13 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Previous division"
-              title="Previous division"
+              aria-label={t("previousDivision")}
+              title={t("previousDivision")}
               onClick={() => goTo(index - 1)}
             >
               <ChevronLeft aria-hidden />
             </Button>
-            <div className="hall-tabs" role="tablist" aria-label="Divisions">
+            <div className="hall-tabs" role="tablist" aria-label={t("divisions")}>
               {divisions.map((entry, position) => (
                 <button
                   key={entry.key}
@@ -294,8 +295,8 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Next division"
-              title="Next division"
+              aria-label={t("nextDivision")}
+              title={t("nextDivision")}
               onClick={() => goTo(index + 1)}
             >
               <ChevronRight aria-hidden />
@@ -308,10 +309,10 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
           size="sm"
           icon={touring ? <Pause aria-hidden /> : <Play aria-hidden />}
           aria-pressed={touring}
-          title={touring ? "Pause the auto-preview (P)" : "Start the auto-preview (P)"}
+          title={touring ? t("pauseTour") : t("startTour")}
           onClick={() => setTouring((on) => !on)}
         >
-          {touring ? "Pause" : "Play"}
+          {touring ? t("pause") : t("play")}
         </Button>
 
         {hasRoster ? (
@@ -320,14 +321,10 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
             size="sm"
             icon={<Users aria-hidden />}
             aria-pressed={attendance === "in-person"}
-            title={
-              attendance === "in-person"
-                ? "Showing the hall only — switch to everyone (I)"
-                : "Showing everyone — switch to the hall only (I)"
-            }
+            title={attendance === "in-person" ? t("showingInPerson") : t("showingEveryone")}
             onClick={() => chooseAttendance(attendance === "all" ? "in-person" : "all")}
           >
-            {attendance === "in-person" ? `In person (${shown})` : `All (${shown})`}
+            {attendance === "in-person" ? t("inPerson", { count: shown }) : t("all", { count: shown })}
           </Button>
         ) : null}
 
@@ -336,10 +333,10 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
           size="sm"
           icon={<ListOrdered aria-hidden />}
           aria-pressed={feedOpen}
-          title="Show or hide the event feed (F)"
+          title={t("toggleFeed")}
           onClick={() => chooseFeed(!feedOpen)}
         >
-          Events
+          {t("events")}
         </Button>
 
         {canEditTags ? (
@@ -348,10 +345,10 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
             size="sm"
             icon={<Pencil aria-hidden />}
             aria-pressed={editing}
-            title={editing ? "Stop editing badges (E)" : "Edit competitor badges (E)"}
+            title={editing ? t("stopEditingBadges") : t("editBadges")}
             onClick={() => setEditing((on) => !on)}
           >
-            Badges
+            {t("badges")}
           </Button>
         ) : null}
 
@@ -359,13 +356,13 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
           revealing ? (
             <div className="hall-reveal-bar">
               <span className="hall-reveal-status">
-                {target ? `Revealing rank ${target.rank}` : "Reveal complete"}
+                {target ? t("revealingRank", { rank: target.rank }) : t("revealComplete")}
               </span>
               <Button size="sm" disabled={!target} busy={busy} onClick={step}>
-                Reveal next
+                {t("revealNext")}
               </Button>
               <Button variant="secondary" size="sm" disabled={division.revealedCount === 0} onClick={undo}>
-                Undo
+                {t("undo")}
               </Button>
               <Button
                 variant="secondary"
@@ -373,18 +370,18 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
                 disabled={!target}
                 onClick={() => void run(() => revealAll({ event: eventKey, contestKey: division.key }))}
               >
-                Reveal all
+                {t("revealAll")}
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
-                title="Drop the freeze entirely and show live results"
+                title={t("unfreezeHint")}
                 onClick={() => void run(() => unfreeze({ event: eventKey, contestKey: division.key }))}
               >
-                Unfreeze
+                {t("unfreeze")}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setRevealing(false)}>
-                Exit
+                {t("exit")}
               </Button>
             </div>
           ) : (
@@ -392,14 +389,14 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
               variant="secondary"
               size="sm"
               disabled={!target}
-              title={target ? "Start the reveal (R)" : "Nothing is frozen in this view"}
+              title={target ? t("startRevealHint") : t("nothingFrozen")}
               onClick={() => {
                 setTouring(false);
                 setEditing(false);
                 setRevealing(true);
               }}
             >
-              Start reveal
+              {t("startReveal")}
             </Button>
           )
         ) : null}
@@ -407,8 +404,8 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label="Keyboard shortcuts"
-          title="Keyboard shortcuts (?)"
+          aria-label={t("shortcuts")}
+          title={t("shortcutsHint")}
           onClick={() => setHelpOpen(true)}
         >
           <Keyboard aria-hidden />
@@ -418,10 +415,12 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
       {division.isFrozen ? (
         <p className="hall-banner">
           <Snowflake size={14} strokeWidth={2} aria-hidden />
-          The board froze at <span className="hall-mono">{contestClock(division.freezeOffset)}</span>, with
-          the final <span className="hall-mono">{payload.event.freezeMinutes}</span> minutes withheld.{" "}
-          <span className="hall-mono">{plural(division.revealPending, "result", "results")}</span> still to
-          come.
+          {t.rich("freezeBanner", {
+            time: contestClock(division.freezeOffset),
+            minutes: payload.event.freezeMinutes,
+            pending: division.revealPending,
+            mono: (chunks) => <span className="hall-mono">{chunks}</span>,
+          })}
         </p>
       ) : null}
 
@@ -454,29 +453,29 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
       <footer className="hall-foot">
         <span className="hall-legend">
           <span className="hall-swatch" data-state="solved" />
-          Solved
+          {t("legendSolved")}
         </span>
         <span className="hall-legend">
           <span className="hall-swatch" data-state="first" />
-          First to solve
+          {t("legendFirst")}
         </span>
         <span className="hall-legend">
           <span className="hall-swatch" data-state="frozen" />
-          Frozen, result withheld
+          {t("legendFrozen")}
         </span>
         <span className="hall-legend">
           <span className="hall-swatch" data-state="judging" />
-          Judging
+          {t("legendJudging")}
         </span>
         <span className="hall-legend">
           <span className="hall-swatch" data-state="failed" />
-          Attempted
+          {t("legendAttempted")}
         </span>
         <span className="hall-spacer" />
         {payload.warnings.length ? (
           <span className="hall-warnings">{payload.warnings.join(" · ")}</span>
         ) : null}
-        <span>{plural(rows.length, "competitor", "competitors")}</span>
+        <span>{t("competitors", { count: rows.length })}</span>
       </footer>
 
       <TagDialog

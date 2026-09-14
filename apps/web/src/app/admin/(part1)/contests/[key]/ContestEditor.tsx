@@ -6,25 +6,20 @@ import { useQuery } from "convex/react";
 import { FileQuestion } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { AdminShell, RevisionsPanel } from "@/components/admin";
 import { ContestActionsTab } from "./ContestActionsTab";
 import { ContestGeneralTab } from "./ContestGeneralTab";
 import { ContestPeopleTab } from "./ContestPeopleTab";
 import { ContestProblemsTab } from "./ContestProblemsTab";
 
-const TABS = [
-  { key: "general", label: "General" },
-  { key: "problems", label: "Problems" },
-  { key: "people", label: "People" },
-  { key: "actions", label: "Actions" },
-  { key: "revisions", label: "Revisions" },
-];
+const TABS = ["general", "problems", "people", "actions", "revisions"] as const;
 
 export function ContestEditor({ contestKey }: { contestKey: string }) {
+  const t = useTranslations("admin.contests.editor");
+  const states = useTranslations("common.states");
   const params = useSearchParams();
-  const active = TABS.some((tab) => tab.key === params.get("tab"))
-    ? (params.get("tab") as string)
-    : "general";
+  const active = TABS.some((tab) => tab === params.get("tab")) ? (params.get("tab") as string) : "general";
 
   const contest = useQuery(api.pages.admin1.contestEdit, { key: contestKey });
   const options = useQuery(api.pages.admin1.contestOptions, {});
@@ -34,17 +29,14 @@ export function ContestEditor({ contestKey }: { contestKey: string }) {
   );
 
   const tabs: TabItem[] = TABS.map((tab) => ({
-    key: tab.key,
-    label: tab.label,
-    href:
-      tab.key === "general"
-        ? `/admin/contests/${contestKey}/`
-        : `/admin/contests/${contestKey}/?tab=${tab.key}`,
+    key: tab,
+    label: t(`tabs.${tab}`),
+    href: tab === "general" ? `/admin/contests/${contestKey}/` : `/admin/contests/${contestKey}/?tab=${tab}`,
   }));
 
   const breadcrumb = [
-    { label: "Staff console", href: "/admin/" },
-    { label: "Contests", href: "/admin/contests/" },
+    { label: t("breadcrumbConsole"), href: "/admin/" },
+    { label: t("breadcrumbContests"), href: "/admin/contests/" },
     { label: contestKey },
   ];
 
@@ -53,11 +45,11 @@ export function ContestEditor({ contestKey }: { contestKey: string }) {
       <AdminShell title={contestKey} breadcrumb={breadcrumb}>
         <EmptyState
           icon={<FileQuestion aria-hidden />}
-          title="No such contest"
-          description="There is no contest with that id, or it is not one you may edit."
+          title={t("missingTitle")}
+          description={t("missingDescription")}
           action={
             <Button asChild variant="secondary" size="sm">
-              <Link href="/admin/contests/">Back to contests</Link>
+              <Link href="/admin/contests/">{t("backToContests")}</Link>
             </Button>
           }
         />
@@ -75,17 +67,17 @@ export function ContestEditor({ contestKey }: { contestKey: string }) {
         contest ? (
           <>
             <Badge variant={contest.isVisible ? "good" : "neutral"} shape="square">
-              {contest.isVisible ? "Visible" : "Hidden"}
+              {contest.isVisible ? t("visible") : t("hidden")}
             </Badge>
             <Button asChild variant="secondary" size="sm">
-              <Link href={`/contest/${contestKey}/`}>View on site</Link>
+              <Link href={`/contest/${contestKey}/`}>{t("viewOnSite")}</Link>
             </Button>
           </>
         ) : null
       }
     >
       {contest === undefined ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">{states("loading")}</p>
       ) : active === "general" ? (
         <ContestGeneralTab contest={contest} options={options} />
       ) : active === "problems" ? (
@@ -95,10 +87,7 @@ export function ContestEditor({ contestKey }: { contestKey: string }) {
       ) : active === "actions" ? (
         <ContestActionsTab contest={contest} />
       ) : (
-        <RevisionsPanel
-          revisions={revisions}
-          emptyDescription="Every edit to this contest is recorded here with the reason it was made."
-        />
+        <RevisionsPanel revisions={revisions} emptyDescription={t("revisionsEmpty")} />
       )}
     </AdminShell>
   );

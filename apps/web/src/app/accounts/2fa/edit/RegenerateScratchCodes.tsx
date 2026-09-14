@@ -4,6 +4,7 @@ import { Alert, AlertTitle, Button, Field, Input } from "@moj/ui";
 import { AlertCircle, KeyRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { ScratchCodes } from "@/components/accounts/ScratchCodes";
 import { AuthCard } from "@/components/auth/AuthCard";
@@ -11,6 +12,8 @@ import { AuthCard } from "@/components/auth/AuthCard";
 /** DMOJ's `generate_scratch_codes`, on its own page. The endpoint is the URL
  *  DMOJ uses, `/accounts/2fa/scratchcode/generate/`. */
 export function RegenerateScratchCodes({ next, remaining }: { next: string; remaining: number }) {
+  const t = useTranslations("auth.twoFactor.scratch");
+  const tError = useTranslations("auth.errors");
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [codes, setCodes] = useState<string[] | null>(null);
@@ -29,13 +32,13 @@ export function RegenerateScratchCodes({ next, remaining }: { next: string; rema
       });
       const body = (await response.json()) as { data?: { codes?: string[] }; error?: { message?: string } };
       if (!response.ok || !body.data?.codes) {
-        setError(body.error?.message ?? "Those codes could not be generated.");
+        setError(body.error?.message ?? t("failed"));
         return;
       }
       setCodes(body.data.codes);
       router.refresh();
     } catch {
-      setError("Something went wrong. Try again.");
+      setError(tError("generic"));
     } finally {
       setBusy(false);
     }
@@ -44,11 +47,11 @@ export function RegenerateScratchCodes({ next, remaining }: { next: string; rema
   if (codes) {
     return (
       <AuthCard
-        title="Your new scratch codes"
-        subtitle="The old set no longer works."
+        title={t("doneTitle")}
+        subtitle={t("doneSubtitle")}
         footer={
           <span>
-            Back to <Link href="/accounts/2fa/">two factor authentication</Link>.
+            {t.rich("doneFooter", { link: (chunks) => <Link href="/accounts/2fa/">{chunks}</Link> })}
           </span>
         }
       >
@@ -61,7 +64,7 @@ export function RegenerateScratchCodes({ next, remaining }: { next: string; rema
               router.refresh();
             }}
           >
-            I have saved them
+            {t("saved")}
           </Button>
         </div>
       </AuthCard>
@@ -70,16 +73,10 @@ export function RegenerateScratchCodes({ next, remaining }: { next: string; rema
 
   return (
     <AuthCard
-      title="New scratch codes"
-      subtitle={
-        remaining === 1
-          ? "You have one code left. A new set replaces it."
-          : `You have ${remaining} codes left. A new set replaces them.`
-      }
+      title={t("title")}
+      subtitle={t("subtitle", { count: remaining })}
       footer={
-        <span>
-          Changed your mind? <Link href="/accounts/2fa/">Back to two factor authentication</Link>
-        </span>
+        <span>{t.rich("footer", { link: (chunks) => <Link href="/accounts/2fa/">{chunks}</Link> })}</span>
       }
     >
       <form onSubmit={generate} noValidate>
@@ -90,7 +87,7 @@ export function RegenerateScratchCodes({ next, remaining }: { next: string; rema
           </Alert>
         ) : null}
         <div className="grid gap-4">
-          <Field label="Password" htmlFor="scratch-password" hint="Confirm it is you before we reissue them.">
+          <Field label={t("passwordLabel")} htmlFor="scratch-password" hint={t("passwordHint")}>
             <Input
               id="scratch-password"
               name="password"
@@ -105,7 +102,7 @@ export function RegenerateScratchCodes({ next, remaining }: { next: string; rema
             />
           </Field>
           <Button type="submit" full busy={busy}>
-            {busy ? "Generating…" : "Generate new codes"}
+            {busy ? t("submitBusy") : t("submit")}
           </Button>
         </div>
       </form>

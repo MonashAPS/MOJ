@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { api } from "@convex/_generated/api";
 import type { NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { mutateAsViewer, queryAsViewer } from "@/lib/convex-server";
 import { normaliseLanguage } from "@/lib/language";
 import { viewerLanguage } from "@/lib/language.server";
@@ -27,8 +28,9 @@ async function content(): Promise<typeof import("@moj/content")> {
   return await import(/* turbopackIgnore: true */ "@moj/content");
 }
 
-function notFound(): Response {
-  return new Response("Page not found", {
+async function notFound(): Promise<Response> {
+  const t = await getTranslations("common.states");
+  return new Response(t("notFound"), {
     status: 404,
     headers: { "content-type": "text/plain; charset=utf-8" },
   });
@@ -81,7 +83,8 @@ export async function GET(
     pdf = await renderPdf(typstSource, { bin: process.env.TYPST_BIN });
   } catch (error) {
     console.error(`Failed to render the PDF for ${code}:`, error);
-    return new Response("Internal error", {
+    const t = await getTranslations("problems.pdf");
+    return new Response(t("internalError"), {
       status: 500,
       headers: { "content-type": "text/plain; charset=utf-8" },
     });

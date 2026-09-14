@@ -4,6 +4,7 @@ import { Alert, AlertDescription, AlertTitle, Button, Field, Input, Label } from
 import { AlertCircle, Fingerprint, KeyRound, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { authClient } from "@/auth/client";
 import { AuthCard } from "@/components/auth/AuthCard";
@@ -12,6 +13,8 @@ import { resendActivation } from "./actions";
 type Failure = { message: string; needsActivation?: boolean };
 
 export function LoginForm({ next, initialError }: { next: string; initialError?: string }) {
+  const t = useTranslations("auth.login");
+  const tError = useTranslations("auth.errors");
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -38,8 +41,8 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
       if (result.error) {
         setError(
           result.error.status === 403
-            ? { message: "This account has not been activated.", needsActivation: true }
-            : { message: "Invalid username or password." },
+            ? { message: t("notActivated"), needsActivation: true }
+            : { message: t("badCredentials") },
         );
         return;
       }
@@ -56,7 +59,7 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
       }
       finish();
     } catch {
-      setError({ message: "Something went wrong. Try again." });
+      setError({ message: tError("generic") });
     } finally {
       setBusy(false);
     }
@@ -68,7 +71,7 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
     try {
       const result = await authClient.signIn.passkey();
       if (result?.error) {
-        setError({ message: "That passkey was not accepted. Use your password instead." });
+        setError({ message: t("passkeyRefused") });
         return;
       }
       finish();
@@ -82,11 +85,13 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
 
   return (
     <AuthCard
-      title="Log in"
-      subtitle="Welcome back to the MAPS Online Judge."
+      title={t("title")}
+      subtitle={t("subtitle")}
       footer={
         <span>
-          New here? <Link href="/accounts/register/">Create an account</Link>
+          {t.rich("footer", {
+            link: (chunks) => <Link href="/accounts/register/">{chunks}</Link>,
+          })}
         </span>
       }
     >
@@ -98,7 +103,7 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
             {error.needsActivation ? (
               <AlertDescription>
                 {resent ? (
-                  <span>Another activation email is on its way. The link is good for seven days.</span>
+                  <span>{t("activationResent")}</span>
                 ) : (
                   <Button
                     variant="link"
@@ -107,7 +112,7 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
                       setResent(true);
                     }}
                   >
-                    Send the activation email again
+                    {t("resendActivation")}
                   </Button>
                 )}
               </AlertDescription>
@@ -116,7 +121,7 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
         ) : null}
 
         <div className="grid gap-4">
-          <Field label="Username or email" htmlFor="login-username">
+          <Field label={t("usernameLabel")} htmlFor="login-username">
             <Input
               id="login-username"
               name="username"
@@ -133,9 +138,9 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
 
           <div className="grid gap-1">
             <div className="flex items-baseline justify-between gap-2">
-              <Label htmlFor="login-password">Password</Label>
+              <Label htmlFor="login-password">{t("passwordLabel")}</Label>
               <Link href="/accounts/password/reset/" className="text-sm">
-                Forgot?
+                {t("forgotPassword")}
               </Link>
             </div>
             <Input
@@ -152,12 +157,12 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
           </div>
 
           <Button type="submit" full busy={busy}>
-            {busy ? "Logging in…" : "Log in"}
+            {busy ? t("submitBusy") : t("submit")}
           </Button>
 
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <span className="h-px flex-1 bg-border" />
-            or
+            {t("divider")}
             <span className="h-px flex-1 bg-border" />
           </div>
 
@@ -168,7 +173,7 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
             icon={<Fingerprint aria-hidden />}
             onClick={onPasskey}
           >
-            {passkeyBusy ? "Waiting for your passkey…" : "Passkey"}
+            {passkeyBusy ? t("passkeyBusy") : t("passkey")}
           </Button>
         </div>
       </form>

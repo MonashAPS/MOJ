@@ -11,33 +11,14 @@ import {
   Tooltip,
 } from "@moj/ui";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 import { joinContest, leaveContest } from "@/app/contest/actions";
 
 export type JoinKind = "join" | "spectate" | "virtual" | "leave" | "stopSpectating" | "blocked" | "login";
 
-const COPY: Record<JoinKind, { short: string; long: string }> = {
-  join: { short: "Join", long: "Join contest" },
-  spectate: { short: "Spectate", long: "Spectate contest" },
-  virtual: { short: "Virtual join", long: "Virtual join" },
-  leave: { short: "Leave", long: "Leave contest" },
-  stopSpectating: { short: "Stop spectating", long: "Stop spectating" },
-  blocked: { short: "Join", long: "Join contest" },
-  login: { short: "Log in", long: "Log in to participate" },
-};
-
-const CONFIRM: Partial<Record<JoinKind, { title: string; body: string; action: string }>> = {
-  join: {
-    title: "Join this contest?",
-    body: "Joining a contest for the first time starts your timer, after which it becomes unstoppable.",
-    action: "Join contest",
-  },
-  virtual: {
-    title: "Join virtually?",
-    body: "A virtual participation runs your own window against the contest's problems. It does not appear on the live standings.",
-    action: "Virtual join",
-  },
-};
+/** The kinds DMOJ asks about before it posts; the rest go straight through. */
+const CONFIRMED: JoinKind[] = ["join", "virtual"];
 
 /**
  * DMOJ's contest join/leave forms: one POST per action, in the places
@@ -66,7 +47,9 @@ export function JoinControl({
   const [open, setOpen] = useState(false);
   const leaving = kind === "leave" || kind === "stopSpectating";
   const [state, formAction, pending] = useActionState(leaving ? leaveContest : joinContest, null);
-  const label = long ? COPY[kind].long : COPY[kind].short;
+  const t = useTranslations("contests.joinControls");
+  const common = useTranslations("common.actions");
+  const label = t(`labels.${kind}.${long ? "long" : "short"}`);
 
   if (kind === "login") {
     return (
@@ -77,9 +60,7 @@ export function JoinControl({
   }
 
   if (kind === "blocked") {
-    const why = banned
-      ? "You have been declared persona non grata for this contest. You are permanently barred from joining it."
-      : "You cannot join this contest.";
+    const why = banned ? t("banned") : t("blocked");
     return (
       <Tooltip content={why}>
         <span className={full ? "block w-full" : "inline-block"}>
@@ -91,7 +72,13 @@ export function JoinControl({
     );
   }
 
-  const confirm = CONFIRM[kind];
+  const confirm = CONFIRMED.includes(kind)
+    ? {
+        title: t(`confirm.${kind}.title`),
+        body: t(`confirm.${kind}.body`),
+        action: t(`confirm.${kind}.action`),
+      }
+    : null;
   const button = (
     <Button
       type="submit"
@@ -132,7 +119,7 @@ export function JoinControl({
         <DialogContent title={confirm.title} description={confirm.body}>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="secondary">Cancel</Button>
+              <Button variant="secondary">{common("cancel")}</Button>
             </DialogClose>
             <form action={formAction}>
               <input type="hidden" name="key" value={contestKey} />

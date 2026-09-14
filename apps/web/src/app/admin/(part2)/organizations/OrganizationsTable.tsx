@@ -6,6 +6,7 @@ import { Button, Select } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { ConfirmAction, DASH, Flags, SearchBox, StatusLine } from "../_components/console";
@@ -34,12 +35,14 @@ type OrganizationRow = {
 };
 
 const OPEN_OPTIONS = [
-  { value: "any", label: "Any enrollment" },
-  { value: "open", label: "Open enrollment" },
-  { value: "closed", label: "By request only" },
-];
+  { value: "any", labelKey: "opennessAny" },
+  { value: "open", labelKey: "opennessOpen" },
+  { value: "closed", labelKey: "opennessClosed" },
+] as const;
 
 export function OrganizationsTable() {
+  const t = useTranslations("admin.organizations.list");
+  const actions = useTranslations("common.actions");
   const [search, setSearch] = useState("");
   const [openness, setOpenness] = useState("any");
 
@@ -61,7 +64,7 @@ export function OrganizationsTable() {
   async function save() {
     if (!draft) return;
     if (reason.trim().length === 0) {
-      setError("Give a reason for the change; it is recorded on the revision.");
+      setError(t("reasonRequired"));
       return;
     }
     setBusy(true);
@@ -79,10 +82,10 @@ export function OrganizationsTable() {
         logoOverrideImage: draft.logoOverrideImage,
         adminUsernames: parseUsernames(draft.adminUsernames),
       });
-      setMessage({ tone: "ok", text: `${draft.name} has been created.` });
+      setMessage({ tone: "ok", text: t("created", { name: draft.name }) });
       setDraft(null);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "That organization could not be created.");
+      setError(caught instanceof Error ? caught.message : t("createFailed"));
     } finally {
       setBusy(false);
     }
@@ -91,7 +94,7 @@ export function OrganizationsTable() {
   const columns: AdminColumn<OrganizationRow>[] = [
     {
       key: "name",
-      header: "Organization",
+      header: t("columnOrganization"),
       cell: (row) => (
         <span className="grid">
           <Link className="font-medium text-link hover:underline" href={`/admin/organizations/${row.slug}/`}>
@@ -101,18 +104,18 @@ export function OrganizationsTable() {
         </span>
       ),
     },
-    { key: "short", header: "Short name", cell: (row) => row.shortName || DASH },
-    { key: "admins", header: "Admins", cell: (row) => row.adminUsernames.join(", ") || DASH },
+    { key: "short", header: t("columnShortName"), cell: (row) => row.shortName || DASH },
+    { key: "admins", header: t("columnAdmins"), cell: (row) => row.adminUsernames.join(", ") || DASH },
     {
       key: "members",
-      header: "Members",
+      header: t("columnMembers"),
       numeric: true,
       cell: (row) => (row.slots === null ? row.memberCount : `${row.memberCount} / ${row.slots}`),
     },
-    { key: "classes", header: "Classes", numeric: true, cell: (row) => row.classCount },
+    { key: "classes", header: t("columnClasses"), numeric: true, cell: (row) => row.classCount },
     {
       key: "pending",
-      header: "Pending",
+      header: t("columnPending"),
       numeric: true,
       cell: (row) =>
         row.pendingRequests === 0 ? (
@@ -123,54 +126,52 @@ export function OrganizationsTable() {
     },
     {
       key: "state",
-      header: "Enrollment",
+      header: t("columnEnrollment"),
       cell: (row) => (
         <Flags
           flags={[
-            { on: row.isOpen, label: "Open", tone: "good" },
-            { on: !row.isOpen, label: "By request", tone: "warn" },
-            { on: row.classRequired, label: "Class required", tone: "accent" },
-            { on: row.accessCode !== null, label: "Access code", tone: "accent" },
+            { on: row.isOpen, label: t("flagOpen"), tone: "good" },
+            { on: !row.isOpen, label: t("flagByRequest"), tone: "warn" },
+            { on: row.classRequired, label: t("flagClassRequired"), tone: "accent" },
+            { on: row.accessCode !== null, label: t("flagAccessCode"), tone: "accent" },
           ]}
         />
       ),
     },
     {
       key: "actions",
-      header: <span className="sr-only">Actions</span>,
+      header: <span className="sr-only">{t("columnActions")}</span>,
       cell: (row) => (
         <span className="flex items-center justify-end gap-1">
           {row.canEdit ? (
             <Button asChild variant="secondary" size="sm">
-              <Link href={`/admin/organizations/${row.slug}/`}>Edit</Link>
+              <Link href={`/admin/organizations/${row.slug}/`}>{actions("edit")}</Link>
             </Button>
           ) : (
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled
-              title="You are not an administrator of this organization."
-            >
-              Edit
+            <Button variant="secondary" size="sm" disabled title={t("editDenied")}>
+              {actions("edit")}
             </Button>
           )}
           <ConfirmAction
             trigger={
               <Button variant="ghost" size="sm">
-                Delete
+                {actions("delete")}
               </Button>
             }
-            title={`Delete ${row.name}?`}
-            description={`Its ${row.memberCount} ${row.memberCount === 1 ? "membership" : "memberships"}, ${row.classCount} ${row.classCount === 1 ? "class" : "classes"} and every join request are removed. The accounts themselves stay.`}
-            confirmLabel="Delete organization"
+            title={t("deleteTitle", { name: row.name })}
+            description={t("deleteDescription", {
+              members: row.memberCount,
+              classes: row.classCount,
+            })}
+            confirmLabel={t("deleteConfirm")}
             onConfirm={async () => {
               try {
                 await remove({ slug: row.slug });
-                setMessage({ tone: "ok", text: `${row.name} has been deleted.` });
+                setMessage({ tone: "ok", text: t("deleted", { name: row.name }) });
               } catch (caught) {
                 setMessage({
                   tone: "bad",
-                  text: caught instanceof Error ? caught.message : "That organization could not be deleted.",
+                  text: caught instanceof Error ? caught.message : t("deleteFailed"),
                 });
               }
             }}
@@ -193,14 +194,14 @@ export function OrganizationsTable() {
             <SearchBox
               value={search}
               onChange={setSearch}
-              placeholder="Name"
-              ariaLabel="Search organizations"
+              placeholder={t("searchPlaceholder")}
+              ariaLabel={t("searchAria")}
             />
             <Select
-              options={OPEN_OPTIONS}
+              options={OPEN_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
               value={openness}
               onValueChange={setOpenness}
-              ariaLabel="Enrollment"
+              ariaLabel={t("opennessAria")}
               size="sm"
               className="w-[184px]"
             />
@@ -213,20 +214,17 @@ export function OrganizationsTable() {
                   const fixed = await recount({});
                   setMessage({
                     tone: "ok",
-                    text:
-                      fixed === 0
-                        ? "Every member count already matched."
-                        : `${fixed} ${fixed === 1 ? "count was" : "counts were"} corrected.`,
+                    text: fixed === 0 ? t("recountClean") : t("recountFixed", { count: fixed }),
                   });
                 } catch (caught) {
                   setMessage({
                     tone: "bad",
-                    text: caught instanceof Error ? caught.message : "The counts could not be recalculated.",
+                    text: caught instanceof Error ? caught.message : t("recountFailed"),
                   });
                 }
               }}
             >
-              Recount members
+              {t("recount")}
             </Button>
             <Button
               size="sm"
@@ -237,12 +235,12 @@ export function OrganizationsTable() {
                 setError(null);
               }}
             >
-              New organization
+              {t("create")}
             </Button>
           </>
         }
-        emptyTitle="No organizations match"
-        emptyDescription="An organisation groups members and can keep its own problems and contests private."
+        emptyTitle={t("emptyTitle")}
+        emptyDescription={t("emptyDescription")}
         emptyAction={
           <Button
             variant="secondary"
@@ -251,7 +249,7 @@ export function OrganizationsTable() {
               setOpenness("any");
             }}
           >
-            Clear filters
+            {t("clearFilters")}
           </Button>
         }
       />
@@ -259,13 +257,13 @@ export function OrganizationsTable() {
       <RecordDialog
         open={draft !== null}
         onOpenChange={(next) => (next ? undefined : setDraft(null))}
-        title="New organization"
+        title={t("dialogTitle")}
         onSubmit={save}
         reason={reason}
         onReasonChange={setReason}
         busy={busy}
         error={error}
-        submitLabel="Create organization"
+        submitLabel={t("dialogSubmit")}
         width={880}
       >
         {draft ? (

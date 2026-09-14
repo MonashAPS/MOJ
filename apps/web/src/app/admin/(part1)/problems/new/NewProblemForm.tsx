@@ -5,6 +5,7 @@ import { Button, Checkbox, Field, Input, MultiSelect, Select } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import {
   AdminCheckField,
@@ -23,6 +24,9 @@ import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 /** `ProblemAdmin`'s add form. The statement, test data and the rest of the tabs
  *  open once the problem exists, exactly as DMOJ's add-then-change flow does. */
 export function NewProblemForm() {
+  const t = useTranslations("admin.problems.new");
+  const shared = useTranslations("admin.problems.shared");
+  const commonActions = useTranslations("common.actions");
   const router = useRouter();
   const options = useQuery(api.pages.admin1.problemOptions, {});
   const viewer = useQuery(api.pages.admin1.consoleViewer, {});
@@ -76,11 +80,11 @@ export function NewProblemForm() {
   async function submit() {
     setError(null);
     if (!/^[a-z.0-9]+$/.test(code) || code.length > 20) {
-      setError("Problem codes may only contain lowercase letters, digits and dots.");
+      setError(t("invalidCode"));
       return;
     }
     if (!name.trim()) {
-      setError("A problem needs a name.");
+      setError(t("nameRequired"));
       return;
     }
     setBusy(true);
@@ -110,42 +114,38 @@ export function NewProblemForm() {
       });
       router.push(`/admin/problems/${code}/`);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The problem could not be created.");
+      setError(caught instanceof Error ? caught.message : t("createFailed"));
       setBusy(false);
     }
   }
 
   return (
     <AdminShell
-      title="New problem"
+      title={t("title")}
       breadcrumb={[
-        { label: "Staff console", href: "/admin/" },
-        { label: "Problems", href: "/admin/problems/" },
-        { label: "New" },
+        { label: shared("consoleCrumb"), href: "/admin/" },
+        { label: shared("problemsCrumb"), href: "/admin/problems/" },
+        { label: t("crumb") },
       ]}
     >
       <AdminForm onSubmit={submit}>
         <AdminFormError message={error} />
 
-        <AdminSection title="General">
-          <Field
-            label="Problem code"
-            htmlFor={ids.code}
-            hint="Lowercase letters, digits and dots. This is the URL and the test-data folder name."
-          >
+        <AdminSection title={shared("panel.general")}>
+          <Field label={shared("field.code")} htmlFor={ids.code} hint={t("codeHint")}>
             <Input
               id={ids.code}
               mono
               value={code}
               maxLength={20}
               onChange={(event) => setCode(event.target.value.toLowerCase())}
-              placeholder="aplusb"
+              placeholder={t("codePlaceholder")}
             />
           </Field>
-          <Field label="Name" htmlFor={ids.name}>
+          <Field label={shared("field.name")} htmlFor={ids.name}>
             <Input id={ids.name} value={name} onChange={(event) => setName(event.target.value)} />
           </Field>
-          <Field label="Points" htmlFor={ids.points}>
+          <Field label={shared("field.points")} htmlFor={ids.points}>
             <Input
               id={ids.points}
               mono
@@ -154,49 +154,58 @@ export function NewProblemForm() {
               onChange={(event) => setPoints(event.target.value)}
             />
           </Field>
-          <Field
-            label="Publish on"
-            htmlFor={ids.date}
-            hint="The problem stays hidden from the list until then."
-          >
-            <DateTimeField id={ids.date} value={date} onChange={setDate} ariaLabel="Publish on" />
+          <Field label={shared("field.publishOn")} htmlFor={ids.date} hint={t("publishOnHint")}>
+            <DateTimeField
+              id={ids.date}
+              value={date}
+              onChange={setDate}
+              ariaLabel={shared("field.publishOn")}
+            />
           </Field>
           <AdminWideField>
             <div className="grid gap-2 sm:grid-cols-3">
               <AdminCheckField
-                label="Partial scoring"
-                hint="Score the cases that passed."
+                label={shared("field.partial")}
+                hint={shared("field.partialHint")}
                 checked={partial}
                 onCheckedChange={setPartial}
               />
               <AdminCheckField
-                label="Short circuit"
-                hint="Stop at the first failed case."
+                label={shared("field.shortCircuit")}
+                hint={shared("field.shortCircuitHint")}
                 checked={shortCircuit}
                 onCheckedChange={setShortCircuit}
               />
               <AdminCheckField
-                label="Public"
-                hint="Listed on /problems/ for everyone."
+                label={shared("field.public")}
+                hint={shared("field.publicHint")}
                 checked={isPublic}
                 onCheckedChange={setIsPublic}
                 disabled={permissions ? !permissions.changePublicVisibility : false}
-                disabledReason="You do not have judge.change_public_visibility."
+                disabledReason={shared("missingPermission", {
+                  permission: "judge.change_public_visibility",
+                })}
               />
               <AdminCheckField
-                label="Manually managed"
-                hint="The judge will not grade it."
+                label={shared("field.manuallyManaged")}
+                hint={shared("field.manuallyManagedHint")}
                 checked={isManuallyManaged}
                 onCheckedChange={setIsManuallyManaged}
                 disabled={permissions ? !permissions.changeManuallyManaged : false}
-                disabledReason="You do not have judge.change_manually_managed."
+                disabledReason={shared("missingPermission", {
+                  permission: "judge.change_manually_managed",
+                })}
               />
             </div>
           </AdminWideField>
         </AdminSection>
 
-        <AdminSection title="Limits">
-          <Field label="Time limit" htmlFor={ids.timeLimit} hint="Seconds.">
+        <AdminSection title={shared("panel.limits")}>
+          <Field
+            label={shared("field.timeLimit")}
+            htmlFor={ids.timeLimit}
+            hint={shared("field.timeLimitHint")}
+          >
             <Input
               id={ids.timeLimit}
               mono
@@ -205,7 +214,11 @@ export function NewProblemForm() {
               onChange={(event) => setTimeLimit(event.target.value)}
             />
           </Field>
-          <Field label="Memory limit" htmlFor={ids.memoryLimit} hint="Kilobytes.">
+          <Field
+            label={shared("field.memoryLimit")}
+            htmlFor={ids.memoryLimit}
+            hint={shared("field.memoryLimitHint")}
+          >
             <Input
               id={ids.memoryLimit}
               mono
@@ -216,120 +229,132 @@ export function NewProblemForm() {
           </Field>
         </AdminSection>
 
-        <AdminSection title="Taxonomy">
-          <Field label="Group" htmlFor={ids.group}>
+        <AdminSection title={shared("panel.taxonomy")}>
+          <Field label={shared("field.group")} htmlFor={ids.group}>
             <Select
               id={ids.group}
               value={group}
               onValueChange={setGroup}
               options={(options?.groups ?? []).map((row) => ({ value: row.name, label: row.fullName }))}
-              placeholder="Choose a group"
+              placeholder={t("groupPlaceholder")}
             />
           </Field>
-          <Field label="Types" htmlFor={ids.types} optional=" (optional)">
+          <Field label={shared("field.types")} htmlFor={ids.types} optional={shared("optional")}>
             <MultiSelect
               id={ids.types}
               values={types}
               onChange={setTypes}
               options={(options?.types ?? []).map((row) => ({ value: row.name, label: row.fullName }))}
-              placeholder="Choose types"
+              placeholder={shared("field.typesPlaceholder")}
             />
           </Field>
-          <Field label="Licence" htmlFor={ids.license} optional=" (optional)">
+          <Field label={shared("field.license")} htmlFor={ids.license} optional={shared("optional")}>
             <Select
               id={ids.license}
               value={license}
               onValueChange={setLicense}
               options={(options?.licenses ?? []).map((row) => ({ value: row.key, label: row.name }))}
-              placeholder="No licence"
+              placeholder={shared("field.licensePlaceholder")}
             />
           </Field>
           <Field
-            label="Submission source visibility"
+            label={shared("field.sourceVisibility")}
             htmlFor={ids.visibility}
-            hint="Who may read other people's code for this problem."
+            hint={shared("field.sourceVisibilityHint")}
           >
             <Select
               id={ids.visibility}
               value={sourceVisibility}
               onValueChange={setSourceVisibility}
               options={[
-                { value: "F", label: "Follow the site default" },
-                { value: "A", label: "Anyone" },
-                { value: "S", label: "Users who solved it" },
-                { value: "O", label: "Only the problem's staff" },
+                { value: "F", label: shared("field.sourceVisibilityFollow") },
+                { value: "A", label: shared("field.sourceVisibilityAnyone") },
+                { value: "S", label: shared("field.sourceVisibilitySolved") },
+                { value: "O", label: shared("field.sourceVisibilityStaff") },
               ]}
             />
           </Field>
         </AdminSection>
 
         <AdminSection
-          title="Languages"
+          title={shared("panel.languages")}
           columns={1}
           action={
             <Checkbox
               id={ids.languages}
-              label="Check all"
+              label={shared("field.checkAll")}
               labelClassName="text-xs"
               checked={allChecked}
               onCheckedChange={(checked) => setLanguages(checked ? allLanguageKeys : [])}
             />
           }
         >
-          <Field
-            label="Allowed languages"
-            hint="Leave every language checked unless the problem is language specific."
-          >
+          <Field label={shared("field.allowedLanguages")} hint={t("allowedLanguagesHint")}>
             <MultiSelect
               values={languages}
               onChange={setLanguages}
               options={(options?.languages ?? []).map((row) => ({ value: row.key, label: row.name }))}
-              placeholder="Every language"
-              ariaLabel="Allowed languages"
+              placeholder={shared("field.everyLanguage")}
+              ariaLabel={shared("field.allowedLanguages")}
             />
           </Field>
         </AdminSection>
 
-        <AdminSection title="People">
-          <Field label="Authors" htmlFor={ids.authors}>
-            <UserPicker id={ids.authors} values={authors} onChange={setAuthors} ariaLabel="Authors" />
+        <AdminSection title={shared("panel.people")}>
+          <Field label={shared("field.authors")} htmlFor={ids.authors}>
+            <UserPicker
+              id={ids.authors}
+              values={authors}
+              onChange={setAuthors}
+              ariaLabel={shared("field.authors")}
+            />
           </Field>
-          <Field label="Curators" htmlFor={ids.curators}>
-            <UserPicker id={ids.curators} values={curators} onChange={setCurators} ariaLabel="Curators" />
+          <Field label={shared("field.curators")} htmlFor={ids.curators}>
+            <UserPicker
+              id={ids.curators}
+              values={curators}
+              onChange={setCurators}
+              ariaLabel={shared("field.curators")}
+            />
           </Field>
-          <Field label="Testers" htmlFor={ids.testers}>
-            <UserPicker id={ids.testers} values={testers} onChange={setTesters} ariaLabel="Testers" />
+          <Field label={shared("field.testers")} htmlFor={ids.testers}>
+            <UserPicker
+              id={ids.testers}
+              values={testers}
+              onChange={setTesters}
+              ariaLabel={shared("field.testers")}
+            />
           </Field>
           <Field
-            label="Organisations"
+            label={shared("field.organizations")}
             htmlFor={ids.organizations}
-            hint="Naming any organisation makes the problem private to them."
+            hint={shared("field.organizationsHint")}
           >
             <MultiSelect
               id={ids.organizations}
               values={organizations}
               onChange={setOrganizations}
               options={(options?.organizations ?? []).map((row) => ({ value: row.slug, label: row.name }))}
-              placeholder="Everyone"
+              placeholder={shared("field.everyone")}
             />
           </Field>
         </AdminSection>
 
-        <AdminSection title="Statement" columns={1}>
-          <Field label="Statement" hint="Markdown, with ~math~ and $math$ both accepted.">
+        <AdminSection title={shared("panel.statement")} columns={1}>
+          <Field label={shared("field.statement")} hint={t("statementHint")}>
             <MarkdownEditor value={description} onChange={setDescription} preset="problem" />
           </Field>
         </AdminSection>
 
-        <ReasonField value={reason} onChange={setReason} entity="problem" />
+        <ReasonField value={reason} onChange={setReason} hint={t("reasonHint")} />
 
         <AdminFormFooter
           busy={busy}
-          submitLabel="Create problem"
-          busyLabel="Creating…"
+          submitLabel={t("submit")}
+          busyLabel={t("busy")}
           secondary={
             <Button asChild variant="secondary">
-              <Link href="/admin/problems/">Cancel</Link>
+              <Link href="/admin/problems/">{commonActions("cancel")}</Link>
             </Button>
           }
         />

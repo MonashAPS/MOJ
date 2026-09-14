@@ -4,12 +4,14 @@ import { Alert, AlertDescription, AlertTitle, Spinner } from "@moj/ui";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/auth/client";
 
 type State = "working" | "done" | "failed";
 
 export function ActivateClient({ token }: { token: string }) {
+  const t = useTranslations("auth.activate");
   const router = useRouter();
   const [state, setState] = useState<State>("working");
   const started = useRef(false);
@@ -32,7 +34,7 @@ export function ActivateClient({ token }: { token: string }) {
     return (
       <p className="flex items-center gap-2 text-base text-subtle">
         <Spinner aria-hidden />
-        Activating your account…
+        {t("working")}
       </p>
     );
   }
@@ -42,12 +44,14 @@ export function ActivateClient({ token }: { token: string }) {
       <div className="grid max-w-(--prose-max) gap-4">
         <Alert variant="danger">
           <AlertCircle className="size-3.5" aria-hidden />
-          <AlertTitle>This activation link is no longer valid.</AlertTitle>
-          <AlertDescription>Activation links are good for seven days.</AlertDescription>
+          <AlertTitle>{t("invalidTitle")}</AlertTitle>
+          <AlertDescription>{t("invalidDescription")}</AlertDescription>
         </Alert>
         <p className="text-base text-subtle">
-          If your account is already active, <Link href="/accounts/login/">log in</Link>. Otherwise{" "}
-          <Link href="/accounts/register/">register again</Link>, or open a ticket if you think this is wrong.
+          {t.rich("invalidHelp", {
+            login: (chunks) => <Link href="/accounts/login/">{chunks}</Link>,
+            register: (chunks) => <Link href="/accounts/register/">{chunks}</Link>,
+          })}
         </p>
       </div>
     );
@@ -57,11 +61,13 @@ export function ActivateClient({ token }: { token: string }) {
     <div className="grid max-w-(--prose-max) gap-4">
       <Alert variant="success">
         <CheckCircle2 className="size-3.5" aria-hidden />
-        <AlertTitle>Your account is active.</AlertTitle>
+        <AlertTitle>{t("doneTitle")}</AlertTitle>
       </Alert>
       <p className="text-base text-subtle">
-        You are all set. <Link href="/accounts/login/">Log in</Link> and start solving, or head straight to
-        the <Link href="/problems/">problem list</Link>.
+        {t.rich("doneHelp", {
+          login: (chunks) => <Link href="/accounts/login/">{chunks}</Link>,
+          problems: (chunks) => <Link href="/problems/">{chunks}</Link>,
+        })}
       </p>
     </div>
   );

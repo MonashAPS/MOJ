@@ -1,6 +1,8 @@
 "use server";
 
 import { headers } from "next/headers";
+import { getTranslations } from "next-intl/server";
+import { DISPOSABLE_EMAIL_KEY } from "@/auth/disposable-email";
 import { auth } from "@/auth/server";
 
 export type EmailChangeResult =
@@ -15,13 +17,16 @@ export async function requestEmailChange(input: {
   newEmail: string;
 }): Promise<EmailChangeResult> {
   const requestHeaders = await headers();
+  const t = await getTranslations("auth.emailChange");
+  const tError = await getTranslations("auth.errors");
+  const tPassword = await getTranslations("auth.password");
 
   try {
     await auth.api.verifyPassword({ headers: requestHeaders, body: { password: input.password } });
   } catch (error) {
     const status = (error as { statusCode?: number }).statusCode;
-    if (status === 401) return { ok: false, field: "form", message: "Log in again to change your email." };
-    return { ok: false, field: "password", message: "That password is not right." };
+    if (status === 401) return { ok: false, field: "form", message: t("reauth") };
+    return { ok: false, field: "password", message: tPassword("wrong") };
   }
 
   try {
@@ -31,12 +36,11 @@ export async function requestEmailChange(input: {
     const status = (error as { statusCode?: number }).statusCode;
     const message = (error as { body?: { message?: string } }).body?.message;
     if (status === 429) {
-      return {
-        ok: false,
-        field: "form",
-        message: "You have asked for too many changes. Wait a minute and try again.",
-      };
+      return { ok: false, field: "form", message: t("tooMany") };
     }
-    return { ok: false, field: "email", message: message ?? "That address could not be used." };
+    if (message === DISPOSABLE_EMAIL_KEY) {
+      return { ok: false, field: "email", message: tError(DISPOSABLE_EMAIL_KEY) };
+    }
+    return { ok: false, field: "email", message: message ?? t("addressUnusable") };
   }
 }

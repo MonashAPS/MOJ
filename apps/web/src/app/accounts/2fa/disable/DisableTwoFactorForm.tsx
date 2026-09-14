@@ -4,6 +4,7 @@ import { Alert, AlertDescription, AlertTitle, Button, Field, Input } from "@moj/
 import { AlertCircle, KeyRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { authClient } from "@/auth/client";
 import { AuthCard } from "@/components/auth/AuthCard";
@@ -11,6 +12,8 @@ import { AuthCard } from "@/components/auth/AuthCard";
 /** DMOJ's `TOTPDisableView`: authenticate first, with a live code or a scratch
  *  code, and staff whose only factor this is are refused. */
 export function DisableTwoFactorForm({ blocked }: { blocked: boolean }) {
+  const t = useTranslations("auth.twoFactor");
+  const tError = useTranslations("auth.errors");
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -28,21 +31,19 @@ export function DisableTwoFactorForm({ blocked }: { blocked: boolean }) {
         ? await authClient.twoFactor.verifyTotp({ code: digits })
         : await authClient.twoFactor.verifyBackupCode({ code: digits });
       if (verified.error) {
-        setError("That code is not right, or it has already been used.");
+        setError(t("disable.wrongCode"));
         return;
       }
 
       const result = await authClient.twoFactor.disable({ password });
       if (result.error) {
-        setError(
-          result.error.message ?? "Two factor authentication could not be turned off. Check your password.",
-        );
+        setError(result.error.message ?? t("disable.failed"));
         return;
       }
       router.push("/accounts/2fa/");
       router.refresh();
     } catch {
-      setError("Something went wrong. Try again.");
+      setError(tError("generic"));
     } finally {
       setBusy(false);
     }
@@ -50,21 +51,22 @@ export function DisableTwoFactorForm({ blocked }: { blocked: boolean }) {
 
   return (
     <AuthCard
-      title="Turn off two factor authentication"
-      subtitle="Prove it is you before your account drops back to a password alone."
+      title={t("disable.title")}
+      subtitle={t("disable.subtitle")}
       footer={
         <span>
-          Changed your mind? <Link href="/accounts/2fa/">Back to two factor authentication</Link>
+          {t.rich("disable.footer", { link: (chunks) => <Link href="/accounts/2fa/">{chunks}</Link> })}
         </span>
       }
     >
       {blocked ? (
         <Alert variant="warning">
           <AlertCircle className="size-3.5" aria-hidden />
-          <AlertTitle>Staff accounts must keep two factor authentication enabled.</AlertTitle>
+          <AlertTitle>{t("staffRequired")}</AlertTitle>
           <AlertDescription>
-            Register a passkey first if you want to stop using an authenticator app.{" "}
-            <Link href="/accounts/2fa/webauthn/attest/">Register a passkey</Link>
+            {t.rich("disable.blockedDescription", {
+              link: (chunks) => <Link href="/accounts/2fa/webauthn/attest/">{chunks}</Link>,
+            })}
           </AlertDescription>
         </Alert>
       ) : (
@@ -77,7 +79,7 @@ export function DisableTwoFactorForm({ blocked }: { blocked: boolean }) {
           ) : null}
 
           <div className="grid gap-4">
-            <Field label="Password" htmlFor="disable-password">
+            <Field label={t("disable.passwordLabel")} htmlFor="disable-password">
               <Input
                 id="disable-password"
                 name="password"
@@ -92,11 +94,7 @@ export function DisableTwoFactorForm({ blocked }: { blocked: boolean }) {
               />
             </Field>
 
-            <Field
-              label="Code"
-              htmlFor="disable-code"
-              hint="Six digits from your app, or one of your scratch codes."
-            >
+            <Field label={t("disable.codeLabel")} htmlFor="disable-code" hint={t("disable.codeHint")}>
               <Input
                 id="disable-code"
                 name="code"
@@ -111,7 +109,7 @@ export function DisableTwoFactorForm({ blocked }: { blocked: boolean }) {
             </Field>
 
             <Button type="submit" variant="danger" full busy={busy}>
-              {busy ? "Turning off…" : "Turn off two factor authentication"}
+              {busy ? t("disable.submitBusy") : t("disable.submit")}
             </Button>
           </div>
         </form>

@@ -1,6 +1,7 @@
 import { api } from "@convex/_generated/api";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Comments } from "@/components/comments/Comments";
 import { queryAsViewer } from "@/lib/convex-server";
 import { renderContent } from "@/lib/markdown";
@@ -9,8 +10,9 @@ import { PrivateContest } from "./PrivateContest";
 
 export async function generateMetadata({ params }: { params: Promise<{ key: string }> }): Promise<Metadata> {
   const { key } = await params;
+  const t = await getTranslations("contests.detail");
   const detail = await queryAsViewer(api.contests.get, { key }).catch(() => null);
-  if (!detail?.contest) return { title: "Contest" };
+  if (!detail?.contest) return { title: t("metaFallback") };
   return {
     title: detail.contest.name,
     description: detail.contest.summary ?? undefined,

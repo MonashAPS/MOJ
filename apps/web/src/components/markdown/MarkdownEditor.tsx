@@ -2,6 +2,7 @@
 
 import { Button, ContentDescription, cn, focusRing, ToggleGroup, ToggleGroupItem, Tooltip } from "@moj/ui";
 import { Bold, Code2, Italic, Link2, Sigma } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { renderUserMarkdown } from "./actions";
 
@@ -27,6 +28,8 @@ export type MarkdownEditorProps = {
   onPreviewedChange?: (previewed: boolean) => void;
 };
 
+/** The placeholder is inserted into the body as markdown source, so it stays in
+ *  English with the rest of the sample syntax. */
 type Wrap = { before: string; after: string; placeholder: string };
 
 const BOLD: Wrap = { before: "**", after: "**", placeholder: "bold text" };
@@ -56,6 +59,8 @@ export function MarkdownEditor({
   className,
   onPreviewedChange,
 }: MarkdownEditorProps) {
+  const t = useTranslations("common.markdown");
+  const states = useTranslations("common.states");
   const generatedId = useId();
   const fieldId = id ?? generatedId;
   const areaRef = useRef<HTMLTextAreaElement>(null);
@@ -143,40 +148,38 @@ export function MarkdownEditor({
           value={mode}
           onValueChange={onModeChange}
           className="w-auto shrink-0"
-          aria-label="Editor mode"
+          aria-label={t("editorMode")}
         >
           <ToggleGroupItem value="write" className="flex-none px-3" disabled={disabled}>
-            Write
+            {t("write")}
           </ToggleGroupItem>
           <ToggleGroupItem value="preview" className="flex-none px-3">
-            Preview
+            {t("preview")}
           </ToggleGroupItem>
         </ToggleGroup>
 
         <div className="flex shrink-0 items-center gap-0.5">
-          <ToolButton label="Bold" onClick={() => applyWrap(BOLD)} disabled={disabled}>
+          <ToolButton label={t("bold")} onClick={() => applyWrap(BOLD)} disabled={disabled}>
             <Bold aria-hidden />
           </ToolButton>
-          <ToolButton label="Italic" onClick={() => applyWrap(ITALIC)} disabled={disabled}>
+          <ToolButton label={t("italic")} onClick={() => applyWrap(ITALIC)} disabled={disabled}>
             <Italic aria-hidden />
           </ToolButton>
-          <ToolButton label="Code" onClick={() => applyWrap(CODE)} disabled={disabled}>
+          <ToolButton label={t("code")} onClick={() => applyWrap(CODE)} disabled={disabled}>
             <Code2 aria-hidden />
           </ToolButton>
-          <ToolButton label="Link" onClick={() => applyWrap(LINK)} disabled={disabled}>
+          <ToolButton label={t("link")} onClick={() => applyWrap(LINK)} disabled={disabled}>
             <Link2 aria-hidden />
           </ToolButton>
-          <ToolButton
-            label="Maths — wrap an expression in tildes, as in ~a^2 + b^2~"
-            onClick={() => applyWrap(MATH)}
-            disabled={disabled}
-          >
+          <ToolButton label={t("maths")} onClick={() => applyWrap(MATH)} disabled={disabled}>
             <Sigma aria-hidden />
           </ToolButton>
         </div>
 
         <span className="ml-auto flex items-center gap-3">
-          {rendering ? <span className="shrink-0 text-sm text-muted-foreground">Rendering…</span> : null}
+          {rendering ? (
+            <span className="shrink-0 text-sm text-muted-foreground">{states("rendering")}</span>
+          ) : null}
           {counter}
         </span>
       </div>
@@ -204,11 +207,11 @@ export function MarkdownEditor({
       ) : (
         <div className="px-3 py-2" style={{ minHeight: `${rows * 20 + 16}px` }}>
           {value.trim().length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nothing to preview yet.</p>
+            <p className="text-sm text-muted-foreground">{t("nothingToPreview")}</p>
           ) : html ? (
             <ContentDescription html={html} />
           ) : (
-            <p className="text-sm text-muted-foreground">Rendering…</p>
+            <p className="text-sm text-muted-foreground">{states("rendering")}</p>
           )}
         </div>
       )}

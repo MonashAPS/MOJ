@@ -2,6 +2,7 @@
 
 import type { ApiScope } from "@moj/protocol";
 import { headers } from "next/headers";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth/server";
 
 export type TokenScope = ApiScope;
@@ -51,12 +52,13 @@ function scopesFrom(raw: unknown): TokenScope[] {
 
 export async function listApiTokens(): Promise<ApiKeySummary[]> {
   const requestHeaders = await headers();
+  const t = await getTranslations("auth.apiToken");
   const result = await auth.api.listApiKeys({ headers: requestHeaders }).catch(() => []);
   // The endpoint answers with `{apiKeys}`; older shapes answered with the array.
   const keys = Array.isArray(result) ? result : ((result as { apiKeys?: unknown[] }).apiKeys ?? []);
   return (keys as Array<Record<string, unknown>>).map((key, index) => ({
     id: String(key.id),
-    name: typeof key.name === "string" && key.name ? key.name : `Token ${index + 1}`,
+    name: typeof key.name === "string" && key.name ? key.name : t("unnamed", { number: index + 1 }),
     start: typeof key.start === "string" ? key.start : null,
     createdAt: key.createdAt ? new Date(key.createdAt as string).getTime() : Date.now(),
     lastRequest: key.lastRequest ? new Date(key.lastRequest as string).getTime() : null,
@@ -71,6 +73,7 @@ export async function generateApiToken(input: {
   scopes: TokenScope[];
 }): Promise<GenerateResult> {
   const requestHeaders = await headers();
+  const t = await getTranslations("auth.apiToken");
   try {
     const created = await auth.api.createApiKey({
       headers: requestHeaders,
@@ -85,7 +88,7 @@ export async function generateApiToken(input: {
     const status = (error as { statusCode?: number }).statusCode;
     return {
       ok: false,
-      message: status === 401 ? "Log in again to generate a token." : "That token could not be created.",
+      message: status === 401 ? t("reauth") : t("createFailed"),
     };
   }
 }

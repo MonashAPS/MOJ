@@ -4,14 +4,8 @@ import { api } from "@convex/_generated/api";
 import { Progress, Select } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import {
-  type AdminColumn,
-  AdminShell,
-  AdminTable,
-  AdminToolbar,
-  JobStatusBadge,
-  jobTypeLabel,
-} from "@/components/admin";
+import { useTranslations } from "next-intl";
+import { type AdminColumn, AdminShell, AdminTable, AdminToolbar, JobStatusBadge } from "@/components/admin";
 import { formatDateTime, formatRelative } from "@/lib/format";
 
 type Row = {
@@ -28,23 +22,17 @@ type Row = {
 };
 
 const TYPES = [
-  { value: "any", label: "Any type" },
-  { value: "rejudge", label: "Rejudge" },
-  { value: "rescore", label: "Rescore" },
-  { value: "rescoreContest", label: "Rescore contest" },
-  { value: "rateContest", label: "Rate contest" },
-  { value: "rejudgeContestProblem", label: "Rejudge contest problem" },
-  { value: "moss", label: "MOSS" },
-  { value: "userExport", label: "Data export" },
-];
+  "any",
+  "rejudge",
+  "rescore",
+  "rescoreContest",
+  "rateContest",
+  "rejudgeContestProblem",
+  "moss",
+  "userExport",
+] as const;
 
-const STATUSES = [
-  { value: "any", label: "Any status" },
-  { value: "queued", label: "Queued" },
-  { value: "running", label: "Running" },
-  { value: "done", label: "Done" },
-  { value: "failed", label: "Failed" },
-];
+const STATUSES = ["any", "queued", "running", "done", "failed"] as const;
 
 function describeArgs(args: unknown): string {
   if (!args || typeof args !== "object") return "—";
@@ -72,6 +60,8 @@ function outcome(row: Row): string {
 
 /** SPEC section 12's job list, live: `jobs` is a subscription, nothing polls. */
 export function JobsList() {
+  const t = useTranslations("admin.jobs.list");
+  const shell = useTranslations("admin.shell");
   const router = useRouter();
   const pathname = usePathname() ?? "/admin/jobs/";
   const params = useSearchParams();
@@ -97,20 +87,24 @@ export function JobsList() {
   const columns: AdminColumn<Row>[] = [
     {
       key: "type",
-      header: "Type",
-      cell: (row) => <span className="font-medium text-foreground">{jobTypeLabel(row.type)}</span>,
+      header: t("columns.type"),
+      cell: (row) => (
+        <span className="font-medium text-foreground">
+          {t.has(`types.${row.type}`) ? t(`types.${row.type}`) : row.type}
+        </span>
+      ),
     },
     {
       key: "target",
-      header: "Target",
+      header: t("columns.target"),
       cell: (row) => (
         <span className="font-mono text-mono text-muted-foreground">{describeArgs(row.args)}</span>
       ),
     },
-    { key: "status", header: "Status", cell: (row) => <JobStatusBadge status={row.status} /> },
+    { key: "status", header: t("columns.status"), cell: (row) => <JobStatusBadge status={row.status} /> },
     {
       key: "progress",
-      header: "Progress",
+      header: t("columns.progress"),
       cell: (row) => (
         <div className="flex min-w-[140px] items-center gap-2">
           <Progress
@@ -132,17 +126,17 @@ export function JobsList() {
     },
     {
       key: "stage",
-      header: "Stage",
+      header: t("columns.stage"),
       cell: (row) => <span className="truncate text-muted-foreground">{row.progress.stage || "—"}</span>,
     },
     {
       key: "creator",
-      header: "Started by",
-      cell: (row) => <span className="font-mono text-sm">{row.createdBy ?? "system"}</span>,
+      header: t("columns.startedBy"),
+      cell: (row) => <span className="font-mono text-sm">{row.createdBy ?? t("systemActor")}</span>,
     },
     {
       key: "created",
-      header: "Created",
+      header: t("columns.created"),
       numeric: true,
       cell: (row) => (
         <time dateTime={new Date(row.createdAt).toISOString()} title={formatDateTime(row.createdAt)}>
@@ -152,7 +146,7 @@ export function JobsList() {
     },
     {
       key: "outcome",
-      header: "Result",
+      header: t("columns.result"),
       cell: (row) => (
         <span className={row.error ? "truncate text-danger-ink" : "truncate text-muted-foreground"}>
           {outcome(row)}
@@ -163,9 +157,9 @@ export function JobsList() {
 
   return (
     <AdminShell
-      title="Jobs"
-      description="Rejudges, rescores and ratings. This list is live; it updates itself as they run."
-      breadcrumb={[{ label: "Staff console", href: "/admin/" }, { label: "Jobs" }]}
+      title={t("title")}
+      description={t("description")}
+      breadcrumb={[{ label: shell("consoleName"), href: "/admin/" }, { label: t("title") }]}
     >
       <AdminTable
         columns={columns}
@@ -173,30 +167,28 @@ export function JobsList() {
         rowKey={(row) => row.id}
         loading={jobs === undefined}
         skeletonRows={6}
-        caption="Background jobs"
+        caption={t("caption")}
         empty={{
-          title: type !== "any" || status !== "any" ? "No jobs match" : "No jobs yet",
+          title: type !== "any" || status !== "any" ? t("emptyFilteredTitle") : t("emptyTitle"),
           description:
-            type !== "any" || status !== "any"
-              ? "No jobs match these filters."
-              : "A rejudge, rescore or rating started from the console appears here while it runs.",
+            type !== "any" || status !== "any" ? t("emptyFilteredDescription") : t("emptyDescription"),
         }}
         toolbar={
           <AdminToolbar>
             <Select
               size="sm"
-              ariaLabel="Job type"
+              ariaLabel={t("typeFilter")}
               value={type}
               onValueChange={(value) => go({ type: value === "any" ? null : value })}
-              options={TYPES}
+              options={TYPES.map((value) => ({ value, label: t(`types.${value}`) }))}
               className="w-[200px]"
             />
             <Select
               size="sm"
-              ariaLabel="Job status"
+              ariaLabel={t("statusFilter")}
               value={status}
               onValueChange={(value) => go({ status: value === "any" ? null : value })}
-              options={STATUSES}
+              options={STATUSES.map((value) => ({ value, label: t(`statuses.${value}`) }))}
               className="w-[160px]"
             />
           </AdminToolbar>

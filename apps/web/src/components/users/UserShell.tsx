@@ -1,8 +1,10 @@
-import { cn, MicroLabel, Panel, ratingClass, ratingTitle, type TabItem, TitleRow } from "@moj/ui";
+import { cn, MicroLabel, Panel, ratingClass, type TabItem, TitleRow } from "@moj/ui";
 import { Info, List, Puzzle, UserCog } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { formatDate } from "@/lib/format";
+import { ratingTitleKey } from "./rating-title";
 
 export type UserShellProfile = {
   username: string;
@@ -41,8 +43,9 @@ function Stat({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function RatingValue({ rating }: { rating: number }) {
+  const t = useTranslations("users.ratings");
   return (
-    <span className={cn("rating", ratingClass(rating))} title={ratingTitle(rating)}>
+    <span className={cn("rating", ratingClass(rating))} title={t(ratingTitleKey(rating))}>
       {rating}
     </span>
   );
@@ -65,18 +68,19 @@ export function UserShell({
   organizationLinks: Record<string, string>;
   children: ReactNode;
 }) {
+  const t = useTranslations("users.shell");
   const { profile } = data;
   const tabs: TabItem[] = [
-    { key: "about", label: "About", href: `/user/${profile.username}/`, icon: <Info aria-hidden /> },
+    { key: "about", label: t("about"), href: `/user/${profile.username}/`, icon: <Info aria-hidden /> },
     {
       key: "problems",
-      label: "Problems",
+      label: t("problems"),
       href: `/user/${profile.username}/solved/`,
       icon: <Puzzle aria-hidden />,
     },
     {
       key: "submissions",
-      label: "Submissions",
+      label: t("submissions"),
       href: `/user/${profile.username}/submissions/`,
       icon: <List aria-hidden />,
     },
@@ -84,7 +88,7 @@ export function UserShell({
   if (isViewer) {
     tabs.push({
       key: "edit",
-      label: "Edit profile",
+      label: t("editProfile"),
       href: "/edit/profile/",
       icon: <UserCog aria-hidden />,
     });
@@ -96,7 +100,7 @@ export function UserShell({
       <div id="content-body" className="grid gap-8 min-[960px]:grid-cols-[var(--sidebar-w)_minmax(0,1fr)]">
         <aside className="min-w-0">
           <div className="grid gap-4 min-[960px]:sticky min-[960px]:top-(--sticky-top)">
-            <Panel title="Profile" bodyClassName="p-4">
+            <Panel title={t("profile")} bodyClassName="p-4">
               <div className="flex flex-col items-center gap-3">
                 <img
                   src={gravatar}
@@ -109,45 +113,43 @@ export function UserShell({
                   )}
                 />
                 <p className="text-center font-mono text-mono tabular-nums text-foreground">
-                  {profile.problemCount === 1
-                    ? "1 problem solved"
-                    : `${profile.problemCount} problems solved`}
+                  {t("problemsSolved", { count: profile.problemCount })}
                 </p>
               </div>
 
               <dl className="mt-4 divide-y divide-border border-t border-border pt-1">
-                {profile.isUnlisted ? null : <Stat label="Rank by points">#{data.rank}</Stat>}
-                <Stat label="Total points">
+                {profile.isUnlisted ? null : <Stat label={t("rankByPoints")}>#{data.rank}</Stat>}
+                <Stat label={t("totalPoints")}>
                   <span title={profile.performancePoints.toFixed(2)}>{whole(profile.performancePoints)}</span>
                 </Stat>
-                <Stat label="Problem points">{whole(profile.points)}</Stat>
-                <Stat label="Contests written">{data.contestsWritten}</Stat>
+                <Stat label={t("problemPoints")}>{whole(profile.points)}</Stat>
+                <Stat label={t("contestsWritten")}>{data.contestsWritten}</Stat>
                 {data.ratingStats ? (
                   <>
                     {profile.isUnlisted || data.ratingRank === null ? null : (
-                      <Stat label="Rank by rating">#{data.ratingRank}</Stat>
+                      <Stat label={t("rankByRating")}>#{data.ratingRank}</Stat>
                     )}
-                    <Stat label="Rating">
+                    <Stat label={t("rating")}>
                       <RatingValue rating={data.ratingStats.current} />
                     </Stat>
-                    <Stat label="Min. rating">
+                    <Stat label={t("minRating")}>
                       <RatingValue rating={data.ratingStats.min} />
                     </Stat>
-                    <Stat label="Max rating">
+                    <Stat label={t("maxRating")}>
                       <RatingValue rating={data.ratingStats.max} />
                     </Stat>
                   </>
                 ) : (
-                  <Stat label="Rating">
+                  <Stat label={t("rating")}>
                     <span className="text-muted-foreground">{DASH}</span>
                   </Stat>
                 )}
-                <Stat label="Joined">{formatDate(profile.joinDate)}</Stat>
+                <Stat label={t("joined")}>{formatDate(profile.joinDate)}</Stat>
               </dl>
 
               {data.organizations.length > 0 ? (
                 <div className="mt-3 border-t border-border pt-3">
-                  <MicroLabel>Organizations</MicroLabel>
+                  <MicroLabel>{t("organizations")}</MicroLabel>
                   <ul className="mt-1 grid gap-1">
                     {data.organizations.map((organization) => (
                       <li key={organization.slug}>
@@ -168,7 +170,7 @@ export function UserShell({
                   href={`/submissions/user/${profile.username}/`}
                   className="text-base text-link hover:underline"
                 >
-                  View submissions
+                  {t("viewSubmissions")}
                 </Link>
               </div>
             </Panel>

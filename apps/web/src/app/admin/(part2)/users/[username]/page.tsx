@@ -2,6 +2,7 @@ import { api } from "@convex/_generated/api";
 import { EmptyState, TitleRow } from "@moj/ui";
 import { UserX } from "lucide-react";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { queryAsViewer } from "@/lib/convex-server";
 import { timezoneList } from "@/lib/timezones";
 import { Crumbs } from "../../_components/Crumbs";
@@ -21,6 +22,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ user
   const viewer = await consoleViewer();
   if (!viewer) notFound();
 
+  const t = await getTranslations("admin.users.detail");
   const [user, extras, permissionCodes, languages, organizations] = await Promise.all([
     queryAsViewer(api.admin.users.get, { username }).catch(() => null),
     queryAsViewer(api.pages.admin2.userExtras, { username }),
@@ -34,12 +36,12 @@ export default async function AdminUserPage({ params }: { params: Promise<{ user
       <>
         <TitleRow
           title={username}
-          breadcrumb={<Crumbs items={[{ label: "Users", href: "/admin/users/" }, { label: username }]} />}
+          breadcrumb={<Crumbs items={[{ label: t("crumb"), href: "/admin/users/" }, { label: username }]} />}
         />
         <EmptyState
           icon={<UserX aria-hidden />}
-          title="No such user"
-          description={`Nobody on this site is called ${username}.`}
+          title={t("notFoundTitle")}
+          description={t("notFoundDescription", { username })}
         />
       </>
     );
@@ -51,7 +53,9 @@ export default async function AdminUserPage({ params }: { params: Promise<{ user
     <>
       <TitleRow
         title={user.displayName}
-        breadcrumb={<Crumbs items={[{ label: "Users", href: "/admin/users/" }, { label: user.username }]} />}
+        breadcrumb={
+          <Crumbs items={[{ label: t("crumb"), href: "/admin/users/" }, { label: user.username }]} />
+        }
       />
       <UserEditor
         user={user}

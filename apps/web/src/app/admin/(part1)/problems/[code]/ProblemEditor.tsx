@@ -6,6 +6,7 @@ import { useQuery } from "convex/react";
 import { FileQuestion } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { AdminShell, RevisionsPanel } from "@/components/admin";
 import { ProblemActionsTab } from "./ProblemActionsTab";
 import {
@@ -17,23 +18,24 @@ import {
 import { ProblemGeneralTab } from "./ProblemGeneralTab";
 import { ProblemStatementTab } from "./ProblemStatementTab";
 
-const TABS: { key: string; label: string }[] = [
-  { key: "general", label: "General" },
-  { key: "statement", label: "Statement" },
-  { key: "editorial", label: "Editorial" },
-  { key: "translations", label: "Translations" },
-  { key: "limits", label: "Language limits" },
-  { key: "clarifications", label: "Clarifications" },
-  { key: "data", label: "Test data" },
-  { key: "revisions", label: "Revisions" },
-  { key: "actions", label: "Actions" },
-];
+const TABS = [
+  "general",
+  "statement",
+  "editorial",
+  "translations",
+  "limits",
+  "clarifications",
+  "data",
+  "revisions",
+  "actions",
+] as const;
 
 export function ProblemEditor({ code }: { code: string }) {
+  const t = useTranslations("admin.problems.editor");
+  const shared = useTranslations("admin.problems.shared");
+  const states = useTranslations("common.states");
   const params = useSearchParams();
-  const active = TABS.some((tab) => tab.key === params.get("tab"))
-    ? (params.get("tab") as string)
-    : "general";
+  const active = TABS.some((tab) => tab === params.get("tab")) ? (params.get("tab") as string) : "general";
 
   const problem = useQuery(api.pages.admin1.problemEdit, { code });
   const options = useQuery(api.pages.admin1.problemOptions, {});
@@ -43,28 +45,27 @@ export function ProblemEditor({ code }: { code: string }) {
   );
 
   const tabs: TabItem[] = TABS.map((tab) => ({
-    key: tab.key,
-    label: tab.label,
-    href: tab.key === "general" ? `/admin/problems/${code}/` : `/admin/problems/${code}/?tab=${tab.key}`,
+    key: tab,
+    label: t(`tab.${tab}`),
+    href: tab === "general" ? `/admin/problems/${code}/` : `/admin/problems/${code}/?tab=${tab}`,
   }));
+
+  const breadcrumb = [
+    { label: shared("consoleCrumb"), href: "/admin/" },
+    { label: shared("problemsCrumb"), href: "/admin/problems/" },
+    { label: code },
+  ];
 
   if (problem === null) {
     return (
-      <AdminShell
-        title={code}
-        breadcrumb={[
-          { label: "Staff console", href: "/admin/" },
-          { label: "Problems", href: "/admin/problems/" },
-          { label: code },
-        ]}
-      >
+      <AdminShell title={code} breadcrumb={breadcrumb}>
         <EmptyState
           icon={<FileQuestion aria-hidden />}
-          title="No such problem"
-          description="There is no problem with that code, or it is not one you may edit."
+          title={t("notFoundTitle")}
+          description={t("notFoundDescription")}
           action={
             <Button asChild variant="secondary" size="sm">
-              <Link href="/admin/problems/">Back to problems</Link>
+              <Link href="/admin/problems/">{t("backToProblems")}</Link>
             </Button>
           }
         />
@@ -75,28 +76,24 @@ export function ProblemEditor({ code }: { code: string }) {
   return (
     <AdminShell
       title={problem ? problem.name : code}
-      breadcrumb={[
-        { label: "Staff console", href: "/admin/" },
-        { label: "Problems", href: "/admin/problems/" },
-        { label: code },
-      ]}
+      breadcrumb={breadcrumb}
       tabs={tabs}
       activeTab={active}
       action={
         problem ? (
           <>
             <Badge variant={problem.isPublic ? "good" : "neutral"} shape="square">
-              {problem.isPublic ? "Public" : "Private"}
+              {problem.isPublic ? t("public") : t("private")}
             </Badge>
             <Button asChild variant="secondary" size="sm">
-              <Link href={`/problem/${code}/`}>View on site</Link>
+              <Link href={`/problem/${code}/`}>{t("viewOnSite")}</Link>
             </Button>
           </>
         ) : null
       }
     >
       {problem === undefined ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">{states("loading")}</p>
       ) : active === "general" ? (
         <ProblemGeneralTab problem={problem} options={options} />
       ) : active === "statement" ? (
@@ -112,10 +109,7 @@ export function ProblemEditor({ code }: { code: string }) {
       ) : active === "data" ? (
         <TestDataTab code={code} />
       ) : active === "revisions" ? (
-        <RevisionsPanel
-          revisions={revisions}
-          emptyDescription="Every edit to this problem is recorded here with the reason it was made."
-        />
+        <RevisionsPanel revisions={revisions} emptyDescription={t("revisionsEmpty")} />
       ) : (
         <ProblemActionsTab problem={problem} options={options} />
       )}
@@ -125,14 +119,15 @@ export function ProblemEditor({ code }: { code: string }) {
 
 /** Test data has its own editor on the public side; the console links to it. */
 function TestDataTab({ code }: { code: string }) {
+  const t = useTranslations("admin.problems.editor");
   return (
     <EmptyState
       icon={<FileQuestion aria-hidden />}
-      title="Test data lives on the problem page"
-      description="Cases, generators, checkers and the archive are edited in the test data editor, which validates the archive as you go."
+      title={t("testDataTitle")}
+      description={t("testDataDescription")}
       action={
         <Button asChild variant="secondary" size="sm">
-          <Link href={`/problem/${code}/test_data/`}>Open the test data editor</Link>
+          <Link href={`/problem/${code}/test_data/`}>{t("testDataAction")}</Link>
         </Button>
       }
     />

@@ -2,6 +2,7 @@ import { api } from "@convex/_generated/api";
 import { Alert, AlertDescription, AlertTitle, TitleRow, TwoColumn } from "@moj/ui";
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { listApiTokens } from "@/app/accounts/api/token/generate/actions";
 import { requireAccount } from "@/auth/account-state";
 import { accountTabs } from "@/components/accounts/AccountTabs";
@@ -10,10 +11,15 @@ import { timezoneList } from "@/lib/timezones";
 import { AccountSideBoxes } from "./AccountSideBoxes";
 import { EditProfileForm } from "./EditProfileForm";
 
-export const metadata = { title: "Edit profile" };
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata() {
+  const t = await getTranslations("users.editProfile");
+  return { title: t("title") };
+}
+
 export default async function EditProfilePage() {
+  const t = await getTranslations("users.editProfile");
   const account = await requireAccount("/edit/profile/");
 
   const [viewerState, languages, openOrganizations, userPage, legacy, tokens] = await Promise.all([
@@ -30,14 +36,14 @@ export default async function EditProfilePage() {
 
   return (
     <>
-      <TitleRow title="Edit profile" tabs={accountTabs()} active="profile" />
+      <TitleRow title={t("title")} tabs={await accountTabs()} active="profile" />
       <div id="content-body">
         {needsTwoFactor ? (
           <Alert variant="warning" className="mb-4">
             <AlertCircle className="size-3.5" aria-hidden />
-            <AlertTitle>Staff accounts must have two factor authentication enabled.</AlertTitle>
+            <AlertTitle>{t("twoFactorRequired")}</AlertTitle>
             <AlertDescription>
-              <Link href="/accounts/2fa/">Set it up now</Link>
+              <Link href="/accounts/2fa/">{t("twoFactorSetUp")}</Link>
             </AlertDescription>
           </Alert>
         ) : null}

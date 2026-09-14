@@ -4,6 +4,7 @@ import { Alert, AlertDescription, AlertTitle, Button, Field, Input } from "@moj/
 import { AlertCircle, KeyRound, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { authClient } from "@/auth/client";
 import { PasswordStrength } from "@/components/accounts/PasswordStrength";
@@ -14,6 +15,9 @@ type Errors = Partial<Record<"current" | "next" | "confirm" | "form", string>>;
 /** DMOJ's `CustomPasswordChangeView`. The compromised banner is the same one
  *  DMOJ shows when `session.password_pwned` is set. */
 export function ChangePasswordForm({ compromised }: { compromised: boolean }) {
+  const t = useTranslations("auth.passwordChange");
+  const tError = useTranslations("auth.errors");
+  const tPassword = useTranslations("auth.password");
   const router = useRouter();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
@@ -24,9 +28,9 @@ export function ChangePasswordForm({ compromised }: { compromised: boolean }) {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const found: Errors = {};
-    if (next.length < 8) found.next = "Passwords must be at least 8 characters.";
-    else if (/^\d+$/.test(next)) found.next = "Passwords cannot be entirely numeric.";
-    if (next !== confirm) found.confirm = "The two password fields did not match.";
+    if (next.length < 8) found.next = tPassword("tooShort");
+    else if (/^\d+$/.test(next)) found.next = tPassword("numeric");
+    if (next !== confirm) found.confirm = tPassword("mismatch");
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
@@ -40,14 +44,14 @@ export function ChangePasswordForm({ compromised }: { compromised: boolean }) {
       if (result.error) {
         const message = result.error.message ?? "";
         if (/breach|compromised/i.test(message)) setErrors({ next: message });
-        else if (result.error.status === 400) setErrors({ current: "That password is not right." });
-        else setErrors({ form: message || "Your password could not be changed." });
+        else if (result.error.status === 400) setErrors({ current: tPassword("wrong") });
+        else setErrors({ form: message || t("failed") });
         return;
       }
       router.push("/accounts/password/change/done/");
       router.refresh();
     } catch {
-      setErrors({ form: "Something went wrong. Try again." });
+      setErrors({ form: tError("generic") });
     } finally {
       setBusy(false);
     }
@@ -55,11 +59,11 @@ export function ChangePasswordForm({ compromised }: { compromised: boolean }) {
 
   return (
     <AuthCard
-      title="Change your password"
-      subtitle="You will stay signed in here and be signed out everywhere else."
+      title={t("title")}
+      subtitle={t("subtitle")}
       footer={
         <span>
-          Forgotten it? <Link href="/accounts/password/reset/">Reset it by email</Link>
+          {t.rich("footer", { link: (chunks) => <Link href="/accounts/password/reset/">{chunks}</Link> })}
         </span>
       }
     >
@@ -67,10 +71,8 @@ export function ChangePasswordForm({ compromised }: { compromised: boolean }) {
         {compromised ? (
           <Alert variant="warning" className="mb-4">
             <ShieldAlert className="size-3.5" aria-hidden />
-            <AlertTitle>We found your password in a database of compromised passwords.</AlertTitle>
-            <AlertDescription>
-              To protect your account you have to choose a new one before you can carry on.
-            </AlertDescription>
+            <AlertTitle>{t("compromisedTitle")}</AlertTitle>
+            <AlertDescription>{t("compromisedDescription")}</AlertDescription>
           </Alert>
         ) : null}
 
@@ -82,7 +84,7 @@ export function ChangePasswordForm({ compromised }: { compromised: boolean }) {
         ) : null}
 
         <div className="grid gap-4">
-          <Field label="Current password" htmlFor="change-current" error={errors.current}>
+          <Field label={t("currentLabel")} htmlFor="change-current" error={errors.current}>
             <Input
               id="change-current"
               name="current"
@@ -98,10 +100,10 @@ export function ChangePasswordForm({ compromised }: { compromised: boolean }) {
           </Field>
 
           <Field
-            label="New password"
+            label={tPassword("newLabel")}
             htmlFor="change-next"
             error={errors.next}
-            hint="At least 8 characters, and not one that has turned up in a breach."
+            hint={tPassword("newHint")}
           >
             <Input
               id="change-next"
@@ -118,7 +120,7 @@ export function ChangePasswordForm({ compromised }: { compromised: boolean }) {
 
           <PasswordStrength password={next} />
 
-          <Field label="Confirm new password" htmlFor="change-confirm" error={errors.confirm}>
+          <Field label={tPassword("confirmLabel")} htmlFor="change-confirm" error={errors.confirm}>
             <Input
               id="change-confirm"
               name="confirm"
@@ -133,7 +135,7 @@ export function ChangePasswordForm({ compromised }: { compromised: boolean }) {
           </Field>
 
           <Button type="submit" full busy={busy}>
-            {busy ? "Changing…" : "Change password"}
+            {busy ? t("submitBusy") : t("submit")}
           </Button>
         </div>
       </form>

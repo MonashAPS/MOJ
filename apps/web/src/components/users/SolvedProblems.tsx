@@ -17,6 +17,7 @@ import {
 import { Puzzle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useId, useTransition } from "react";
 
 export type SolvedGroup = {
@@ -48,6 +49,7 @@ export function SolvedProblems({
   canCompare: boolean;
   compare: boolean;
 }) {
+  const t = useTranslations("users.solved");
   const router = useRouter();
   const toggleId = useId();
   const [pending, startTransition] = useTransition();
@@ -57,11 +59,11 @@ export function SolvedProblems({
   return (
     <section>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="font-display text-h3 font-semibold text-foreground">Solved problems</h3>
+        <h3 className="font-display text-h3 font-semibold text-foreground">{t("title")}</h3>
         {canCompare ? (
           <Switch
             id={toggleId}
-            label="Compare with me"
+            label={t("compare")}
             checked={compare}
             disabled={pending}
             onCheckedChange={(next) => {
@@ -75,19 +77,15 @@ export function SolvedProblems({
 
       {compare && comparedWith ? (
         <p className="mb-3 text-sm text-muted-foreground">
-          Showing only problems {username} has solved that {comparedWith} has not.
+          {t("comparing", { username, other: comparedWith })}
         </p>
       ) : null}
 
       {empty ? (
         <EmptyState
           icon={<Puzzle aria-hidden />}
-          title={compare ? "Nothing left to compare" : "No solved problems"}
-          description={
-            compare
-              ? `You have already solved everything ${username} has.`
-              : `${username} has not yet solved any problems.`
-          }
+          title={compare ? t("emptyCompareTitle") : t("emptyTitle")}
+          description={compare ? t("emptyCompareBody", { username }) : t("emptyBody", { username })}
         />
       ) : (
         <Accordion type="multiple">
@@ -97,7 +95,10 @@ export function SolvedProblems({
                 <span className="flex w-full items-baseline justify-between gap-3 pr-2">
                   <span>{group.name}</span>
                   <span className="font-mono text-sm tabular-nums text-muted-foreground">
-                    {round(group.points)} points · {group.problems.length}
+                    {t("groupSummary", {
+                      points: round(group.points),
+                      count: String(group.problems.length),
+                    })}
                   </span>
                 </span>
               </AccordionTrigger>
@@ -105,8 +106,8 @@ export function SolvedProblems({
                 <Table dense className="group/table">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Problem</TableHead>
-                      <TableHead numeric>Score</TableHead>
+                      <TableHead>{t("problem")}</TableHead>
+                      <TableHead numeric>{t("score")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

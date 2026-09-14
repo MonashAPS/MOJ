@@ -19,11 +19,16 @@ export function paginationRange(page: number, totalPages: number, adjacent = 2):
   return pages;
 }
 
-export function PaginationRoot({ className, ...props }: ComponentProps<"nav">) {
+export function PaginationRoot({
+  className,
+  // Same reason as PageTabs: this renders on the server, so no context.
+  label = "Pagination",
+  ...props
+}: ComponentProps<"nav"> & { label?: string }) {
   return (
     <nav
       data-slot="pagination"
-      aria-label="Pagination"
+      aria-label={label}
       className={cn("mx-auto flex w-full justify-center", className)}
       {...props}
     />

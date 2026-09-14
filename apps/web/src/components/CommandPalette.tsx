@@ -24,6 +24,7 @@ import {
   Users,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { applyTheme } from "@/components/shell/ThemeToggle";
 
@@ -47,18 +48,18 @@ const ICONS = {
   organization: Building2,
 } as const;
 
-const GROUPS: Array<{ kind: Hit["kind"]; label: string }> = [
-  { kind: "problem", label: "Problems" },
-  { kind: "contest", label: "Contests" },
-  { kind: "user", label: "Users" },
-  { kind: "organization", label: "Organizations" },
+const GROUPS: Array<{ kind: Hit["kind"]; message: string }> = [
+  { kind: "problem", message: "problems" },
+  { kind: "contest", message: "contests" },
+  { kind: "user", message: "users" },
+  { kind: "organization", message: "organizations" },
 ];
 
 const PAGES = [
-  { label: "Problems", href: "/problems/", icon: Puzzle },
-  { label: "Submissions", href: "/submissions/", icon: ListChecks },
-  { label: "Contests", href: "/contests/", icon: Trophy },
-  { label: "Users", href: "/users/", icon: Users },
+  { message: "problems", href: "/problems/", icon: Puzzle },
+  { message: "submissions", href: "/submissions/", icon: ListChecks },
+  { message: "contests", href: "/contests/", icon: Trophy },
+  { message: "users", href: "/users/", icon: Users },
 ];
 
 function readRecents(): Hit[] {
@@ -105,6 +106,9 @@ export function CommandPalette({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const t = useTranslations("common.palette");
+  const nav = useTranslations("common.nav");
+  const states = useTranslations("common.states");
   const router = useRouter();
   const [term, setTerm] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -167,23 +171,23 @@ export function CommandPalette({
     <CommandDialog open={open} onOpenChange={onOpenChange} shouldFilter={false}>
       {/* The Convex search index has already ranked these, so cmdk's own filter
           is off and the list is shown as it arrives. */}
-      <CommandInput
-        value={term}
-        onValueChange={setTerm}
-        placeholder="Problems, contests, users, organizations…"
-        autoFocus
-      />
+      <CommandInput value={term} onValueChange={setTerm} placeholder={nav("search")} autoFocus />
       <CommandList className="scroll-quiet">
-        {searching ? <p className="px-4 py-8 text-center text-sm text-muted-foreground">Searching…</p> : null}
+        {searching ? (
+          <p className="px-4 py-8 text-center text-sm text-muted-foreground">{states("searching")}</p>
+        ) : null}
 
         {nothing ? (
           <CommandEmpty>
-            No matches for <em className="not-italic font-medium text-foreground">{debounced}</em>.
+            {t.rich("noMatches", {
+              query: debounced,
+              term: (chunks) => <em className="not-italic font-medium text-foreground">{chunks}</em>,
+            })}
           </CommandEmpty>
         ) : null}
 
         {debounced.length === 0 && recents.length > 0 ? (
-          <CommandGroup heading="Recent">
+          <CommandGroup heading={t("recent")}>
             {recents.map((hit) => {
               const Icon = ICONS[hit.kind];
               return (
@@ -201,12 +205,12 @@ export function CommandPalette({
           </CommandGroup>
         ) : null}
 
-        {GROUPS.map(({ kind, label }) => {
+        {GROUPS.map(({ kind, message }) => {
           const hits = grouped.get(kind) ?? [];
           if (hits.length === 0) return null;
           const Icon = ICONS[kind];
           return (
-            <CommandGroup key={kind} heading={label}>
+            <CommandGroup key={kind} heading={t(message)}>
               {hits.map((hit) => (
                 <CommandItem
                   key={`${hit.kind}-${hit.id}`}
@@ -222,11 +226,11 @@ export function CommandPalette({
           );
         })}
 
-        <CommandGroup heading="Pages">
+        <CommandGroup heading={t("pages")}>
           {PAGES.map((page) => (
-            <CommandItem key={page.href} value={`page ${page.label}`} onSelect={() => go(page.href)}>
+            <CommandItem key={page.href} value={`page ${page.message}`} onSelect={() => go(page.href)}>
               <page.icon aria-hidden />
-              {page.label}
+              {t(page.message)}
             </CommandItem>
           ))}
           {debounced.length > 0 ? (
@@ -235,15 +239,15 @@ export function CommandPalette({
               onSelect={() => go(`/problems/?search=${encodeURIComponent(debounced)}`)}
             >
               <Search aria-hidden />
-              Search all problems
+              {t("searchAllProblems")}
             </CommandItem>
           ) : null}
         </CommandGroup>
 
-        <CommandGroup heading="Actions">
+        <CommandGroup heading={t("actions")}>
           <CommandItem value="action random problem" onSelect={() => go("/problems/random/")}>
             <Dice5 aria-hidden />
-            Random problem
+            {t("randomProblem")}
           </CommandItem>
           <CommandItem
             value="action toggle dark mode"
@@ -253,7 +257,7 @@ export function CommandPalette({
             }}
           >
             <Moon aria-hidden />
-            Toggle dark mode
+            {t("toggleDarkMode")}
           </CommandItem>
         </CommandGroup>
       </CommandList>

@@ -2,6 +2,7 @@
 
 import { Button, cn } from "@moj/ui";
 import { Check, Copy } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 /**
@@ -9,15 +10,8 @@ import { useEffect, useState } from "react";
  * the thing they just copied (DESIGN.md section 20.3). The result is announced
  * through a polite live region for anyone who is not.
  */
-export function CopyButton({
-  text,
-  label = "Copy",
-  className,
-}: {
-  text: string;
-  label?: string;
-  className?: string;
-}) {
+export function CopyButton({ text, label, className }: { text: string; label?: string; className?: string }) {
+  const t = useTranslations("submissions.source");
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -42,10 +36,10 @@ export function CopyButton({
         }}
         icon={copied ? <Check aria-hidden className="text-good" /> : <Copy aria-hidden />}
       >
-        {copied ? "Copied" : label}
+        {copied ? t("copied") : (label ?? t("copy"))}
       </Button>
       <span aria-live="polite" className="sr-only">
-        {copied ? "Copied to clipboard" : ""}
+        {copied ? t("copiedAnnouncement") : ""}
       </span>
     </>
   );

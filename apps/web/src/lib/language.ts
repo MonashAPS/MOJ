@@ -3,32 +3,23 @@
  *
  * DMOJ picks a problem statement with `problem.translations.get(language=
  * request.LANGUAGE_CODE)` — an exact match on the viewer's language, and the
- * untranslated statement otherwise. MOJ has no message catalogues, so the only
- * thing the language selects is which `problemTranslations` row a statement
- * comes from, but the rule and the code space are DMOJ's.
+ * untranslated statement otherwise. That rule and this code space are DMOJ's,
+ * and the language still selects which `problemTranslations` row a statement
+ * comes from.
+ *
+ * What is listed here is what the interface itself is translated into. DMOJ
+ * offers nineteen languages; MOJ offers the ones it has a complete message
+ * catalogue for, because a language in the menu that leaves the page in English
+ * is worse than a language that is not offered at all.
  */
 
-/** `settings.LANGUAGES` (dmoj/settings.py:399). */
+/** A language the interface is translated into, and statements are chosen by. */
 export const SITE_LANGUAGES: readonly { readonly code: string; readonly label: string }[] = [
   { code: "en", label: "English (en)" },
-  { code: "ca", label: "Català (ca)" },
-  { code: "de", label: "Deutsch (de)" },
-  { code: "el", label: "Ελληνικά (el)" },
   { code: "es", label: "Español (es)" },
-  { code: "fr", label: "Français (fr)" },
-  { code: "hr", label: "Hrvatski (hr)" },
-  { code: "hu", label: "Magyar (hu)" },
-  { code: "ja", label: "日本語 (ja)" },
-  { code: "kk", label: "Қазақша (kk)" },
-  { code: "ko", label: "한국어 (ko)" },
-  { code: "pt", label: "Português (pt)" },
-  { code: "ro", label: "Română (ro)" },
+  { code: "id", label: "Bahasa Indonesia (id)" },
   { code: "ru", label: "Русский (ru)" },
-  { code: "sr-latn", label: "Srpski (sr-latn)" },
-  { code: "tr", label: "Türkçe (tr)" },
-  { code: "vi", label: "Tiếng Việt (vi)" },
   { code: "zh-hans", label: "简体中文 (zh-hans)" },
-  { code: "zh-hant", label: "繁體中文 (zh-hant)" },
 ];
 
 /** `settings.LANGUAGE_CODE`. */
@@ -38,9 +29,18 @@ export const LANGUAGE_COOKIE = "moj-language";
 
 const CODES = new Set(SITE_LANGUAGES.map((language) => language.code));
 
-/** A cookie value is only a language if `settings.LANGUAGES` lists it. */
+/** A cookie value is only a language if `SITE_LANGUAGES` lists it. */
 export function normaliseLanguage(value: string | null | undefined): string {
   if (!value) return DEFAULT_LANGUAGE;
   const trimmed = value.trim().toLowerCase();
   return CODES.has(trimmed) ? trimmed : DEFAULT_LANGUAGE;
+}
+
+/**
+ * The BCP 47 tag `Intl` wants, which is not always DMOJ's spelling. Dates,
+ * numbers and plural rules are formatted with this; the cookie and the
+ * statement lookup keep the DMOJ code.
+ */
+export function intlLocale(language: string): string {
+  return language === "zh-hans" ? "zh-Hans" : language;
 }

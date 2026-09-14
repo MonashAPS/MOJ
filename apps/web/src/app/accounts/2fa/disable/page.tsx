@@ -1,8 +1,13 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireAccount } from "@/auth/account-state";
 import { DisableTwoFactorForm } from "./DisableTwoFactorForm";
 
-export const metadata = { title: "Disable two factor authentication" };
+export async function generateMetadata() {
+  const t = await getTranslations("auth.twoFactor.disable");
+  return { title: t("metaTitle") };
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function DisableTwoFactorPage() {

@@ -5,15 +5,17 @@ import { Panel } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { Flame } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { formatPoints } from "@/lib/units";
 
 /** DMOJ's "Hot problems" sidebox, under the search form. */
 export function HotProblemsBox() {
+  const t = useTranslations("problems.list");
   const problems = useQuery(api.problems.hotProblems, {});
   if (problems === undefined || problems.length === 0) return null;
 
   return (
-    <Panel title="Hot problems" icon={<Flame size={14} />} bodyClassName="p-0">
+    <Panel title={t("hotProblems")} icon={<Flame size={14} />} bodyClassName="p-0">
       <ul>
         {problems.map((problem) => (
           <li key={problem.id} className="border-b border-border last:border-b-0">

@@ -3,6 +3,7 @@
 import type { Division, ScoreboardBadge } from "@convex/scoreboard";
 import { EASE_OUT } from "@moj/ui";
 import { Pencil } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { BoardCell } from "./BoardCell";
 import { type Attendance, cellSignature, type DisplayRow, type RevealTarget } from "./hall";
@@ -55,6 +56,7 @@ export function DivisionPanel({
   onEditTags: (row: DisplayRow) => void;
   panelRef: (node: HTMLDivElement | null) => void;
 }) {
+  const t = useTranslations("contests.hall");
   const bodyRef = useRef<HTMLTableSectionElement | null>(null);
   const positions = useRef<Map<string, number>>(new Map());
   const seen = useRef<Map<string, string>>(new Map());
@@ -111,11 +113,7 @@ export function DivisionPanel({
       ref={panelRef}
     >
       {rows.length === 0 ? (
-        <p className="hall-empty">
-          {division.rows.length
-            ? "No competitors in the hall for this division."
-            : "No entrants in this division yet."}
-        </p>
+        <p className="hall-empty">{division.rows.length ? t("emptyInPerson") : t("emptyDivision")}</p>
       ) : (
         <table className="hall-table">
           <thead>
@@ -124,7 +122,7 @@ export function DivisionPanel({
                 #
               </th>
               <th className="hall-team" scope="col">
-                Team
+                {t("columnTeam")}
               </th>
               {division.problems.map((problem, index) => {
                 const picture = olympics ? pictogramFor(division.key, problem.code, index) : null;
@@ -153,10 +151,10 @@ export function DivisionPanel({
                 );
               })}
               <th className="hall-prob" scope="col">
-                Solved
+                {t("columnSolved")}
               </th>
               <th className="hall-prob" scope="col">
-                Time
+                {t("columnTime")}
               </th>
             </tr>
           </thead>
@@ -201,8 +199,8 @@ export function DivisionPanel({
                       <button
                         type="button"
                         className="hall-row-edit"
-                        title={`Edit badges for ${row.displayName}`}
-                        aria-label={`Edit badges for ${row.displayName}`}
+                        title={t("editBadgesFor", { name: row.displayName })}
+                        aria-label={t("editBadgesFor", { name: row.displayName })}
                         onClick={() => onEditTags(row)}
                       >
                         <Pencil size={12} strokeWidth={2} aria-hidden />

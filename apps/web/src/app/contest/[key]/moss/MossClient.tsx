@@ -27,6 +27,7 @@ import { useMutation, useQuery } from "convex/react";
 import { Gavel } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips } from "@/components/contests/pieces";
@@ -45,6 +46,10 @@ export function MossClient({
   moss: MossPayload | null;
   viewerUsername: string | null;
 }) {
+  const t = useTranslations("contests.moss");
+  const columns = useTranslations("contests.columns");
+  const common = useTranslations("common.actions");
+  const tabLabels = useTranslations("contests.tabs");
   const router = useRouter();
   const live = useQuery(api.contests.moss, { key: contestKey });
   const data = live ?? moss;
@@ -66,10 +71,10 @@ export function MossClient({
     setBusy(true);
     try {
       const { deleted } = await deleteResults({ key: contestKey });
-      toast.success(deleted === 1 ? "1 MOSS result deleted" : `${deleted} MOSS results deleted`);
+      toast.success(t("deleted", { count: deleted }));
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "The results could not be deleted.");
+      toast.error(error instanceof Error ? error.message : t("deleteFailed"));
     } finally {
       setBusy(false);
     }
@@ -80,7 +85,7 @@ export function MossClient({
       <TitleRow
         title={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            {contest?.name ?? "MOSS"}
+            {contest?.name ?? t("metaFallback")}
             {contest ? (
               <ContestChips
                 isVisible={contest.isVisible}
@@ -93,7 +98,7 @@ export function MossClient({
             ) : null}
           </span>
         }
-        tabs={contestTabs(detail, contestKey, viewerUsername)}
+        tabs={contestTabs(detail, contestKey, viewerUsername, tabLabels)}
         active="moss"
         action={
           joinKind ? <JoinControl contestKey={contestKey} kind={joinKind} long size="default" /> : undefined
@@ -105,7 +110,7 @@ export function MossClient({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-full">Problem</TableHead>
+                <TableHead className="w-full">{columns("problem")}</TableHead>
                 {languages.map((language) => (
                   <TableHead key={language}>{language}</TableHead>
                 ))}
@@ -124,19 +129,13 @@ export function MossClient({
                         {cell?.submissionCount ? (
                           cell.url ? (
                             <a href={cell.url} rel="noreferrer nofollow" target="_blank">
-                              {cell.submissionCount === 1
-                                ? "1 submission"
-                                : `${cell.submissionCount} submissions`}
+                              {t("submissions", { count: cell.submissionCount })}
                             </a>
                           ) : (
-                            <span>
-                              {cell.submissionCount === 1
-                                ? "1 submission"
-                                : `${cell.submissionCount} submissions`}
-                            </span>
+                            <span>{t("submissions", { count: cell.submissionCount })}</span>
                           )
                         ) : (
-                          <span className="text-muted-foreground">No submissions</span>
+                          <span className="text-muted-foreground">{t("noSubmissions")}</span>
                         )}
                       </TableCell>
                     );
@@ -148,8 +147,8 @@ export function MossClient({
         ) : (
           <EmptyState
             icon={<Gavel aria-hidden />}
-            title="MOSS is not configured"
-            description="This judge has no MOSS API key, so contest submissions cannot be sent for plagiarism analysis."
+            title={t("notConfiguredTitle")}
+            description={t("notConfiguredBody")}
           />
         )}
 
@@ -158,19 +157,17 @@ export function MossClient({
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="danger" busy={busy}>
-                  Delete MOSS results
+                  {t("deleteButton")}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>{`Delete the MOSS results for ${contest?.name}?`}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    The reports stay on MOSS's own servers; the links from this page go for good.
-                  </AlertDialogDescription>
+                  <AlertDialogTitle>{t("deleteTitle", { name: contest?.name ?? "" })}</AlertDialogTitle>
+                  <AlertDialogDescription>{t("deleteBody")}</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={remove}>Delete results</AlertDialogAction>
+                  <AlertDialogCancel>{common("cancel")}</AlertDialogCancel>
+                  <AlertDialogAction onClick={remove}>{t("deleteAction")}</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

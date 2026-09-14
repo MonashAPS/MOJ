@@ -3,14 +3,15 @@
 import { Button, type TabItem, TitleRow, TwoColumn } from "@moj/ui";
 import { CheckCircle2, CircleDashed, CircleSlash2, FileDown } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { ProblemTabLink } from "@/components/problems/EditorialLink";
 import { type ProblemDetail, ProblemInfoBox } from "@/components/problems/ProblemInfoBox";
 import { type ProblemTabKey, problemTabs } from "@/components/problems/tabs";
 
 const STATE_ICON = {
-  solved: { Icon: CheckCircle2, tone: "var(--state-solved)", label: "Solved" },
-  partial: { Icon: CircleSlash2, tone: "var(--state-partial)", label: "Partially solved" },
-  attempted: { Icon: CircleDashed, tone: "var(--state-attempted)", label: "Attempted" },
+  solved: { Icon: CheckCircle2, tone: "var(--state-solved)", label: "solved" },
+  partial: { Icon: CircleSlash2, tone: "var(--state-partial)", label: "partial" },
+  attempted: { Icon: CircleDashed, tone: "var(--state-attempted)", label: "attempted" },
 } as const;
 
 /**
@@ -35,6 +36,8 @@ export function ProblemPage({
   tabs?: TabItem[];
   children: React.ReactNode;
 }) {
+  const t = useTranslations("problems.detail");
+  const states = useTranslations("problems.state");
   const state = STATE_ICON[problem.viewer.state as keyof typeof STATE_ICON];
 
   return (
@@ -51,17 +54,19 @@ export function ProblemPage({
         title={
           title ?? (
             <span className="flex items-center gap-2">
-              {state ? <state.Icon size={20} aria-label={state.label} style={{ color: state.tone }} /> : null}
+              {state ? (
+                <state.Icon size={20} aria-label={states(state.label)} style={{ color: state.tone }} />
+              ) : null}
               <span>{problem.statement.name}</span>
             </span>
           )
         }
-        tabs={tabs ?? problemTabs(problem)}
+        tabs={tabs ?? problemTabs(problem, t)}
         active={active}
         linkAs={ProblemTabLink}
         action={
           <Button asChild variant="ghost" icon={<FileDown size={14} />}>
-            <a href={`/problem/${problem.code}/pdf`}>View as PDF</a>
+            <a href={`/problem/${problem.code}/pdf`}>{t("viewAsPdf")}</a>
           </Button>
         }
       />

@@ -72,8 +72,11 @@ function blockedPatterns(): RegExp[] {
   return [...BUILT_IN_PATTERNS, ...extra];
 }
 
-export const DISPOSABLE_EMAIL_MESSAGE =
-  "Your email provider is not allowed due to a history of abuse. Use a reputable email provider.";
+/** The refusal as a message key under `auth.errors`, not as a sentence. The
+ *  check runs in the browser and in Better Auth's sign-up hook, and neither has
+ *  the viewer's catalogue to hand; the key travels as the error message and is
+ *  resolved where it is shown. */
+export const DISPOSABLE_EMAIL_KEY = "disposableEmail";
 
 /** True when the address belongs to a provider the site will not accept. */
 export function isDisposableEmail(email: string): boolean {

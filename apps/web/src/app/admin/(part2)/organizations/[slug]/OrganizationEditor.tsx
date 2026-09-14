@@ -5,6 +5,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { Badge, Button, Checkbox, Field, FieldGroup, Input, Panel, Select, Tabs, Textarea } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { AdminForm } from "@/components/admin/AdminForm";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
@@ -40,22 +41,27 @@ export function OrganizationEditor({
   organization: OrganizationRow;
   revisions: RevisionRow[] | null;
 }) {
+  const t = useTranslations("admin.organizations.editor");
+
   return (
     <Tabs
       panels={[
-        { key: "details", label: "Details", content: <DetailsForm organization={organization} /> },
+        { key: "details", label: t("tabDetails"), content: <DetailsForm organization={organization} /> },
         {
           key: "classes",
-          label: `Classes (${organization.classCount})`,
+          label: t("tabClasses", { count: organization.classCount }),
           content: <Classes organization={organization} />,
         },
         {
           key: "requests",
-          label: `Join requests${organization.pendingRequests > 0 ? ` (${organization.pendingRequests})` : ""}`,
+          label:
+            organization.pendingRequests > 0
+              ? t("tabRequestsPending", { count: organization.pendingRequests })
+              : t("tabRequests"),
           content: (
             <QueryBoundary
-              title="Join requests"
-              message={`Only an administrator of ${organization.name}, or of one of its classes, can review its join requests. That is DMOJ's rule, and it holds for superusers too.`}
+              title={t("requestsTitle")}
+              message={t("requestsDenied", { name: organization.name })}
             >
               <Requests organization={organization} />
             </QueryBoundary>
@@ -63,8 +69,8 @@ export function OrganizationEditor({
         },
         {
           key: "history",
-          label: "History",
-          content: <RevisionsPanel rows={revisions} title={`Changes to ${organization.name}`} />,
+          label: t("tabHistory"),
+          content: <RevisionsPanel rows={revisions} title={t("historyTitle", { name: organization.name })} />,
         },
       ]}
     />
@@ -72,6 +78,7 @@ export function OrganizationEditor({
 }
 
 function DetailsForm({ organization }: { organization: OrganizationRow }) {
+  const t = useTranslations("admin.organizations.editor");
   const update = useMutation(api.admin.organizations.update);
 
   const initial: OrganizationDraft = useMemo(
@@ -99,7 +106,7 @@ function DetailsForm({ organization }: { organization: OrganizationRow }) {
 
   async function save() {
     if (reason.trim().length === 0) {
-      setStatus({ error: "Give a reason for the change; it is recorded on the revision." });
+      setStatus({ error: t("reasonRequired") });
       return;
     }
     setBusy(true);
@@ -118,10 +125,10 @@ function DetailsForm({ organization }: { organization: OrganizationRow }) {
         adminUsernames: parseUsernames(draft.adminUsernames),
         reason,
       });
-      setStatus({ saved: `${draft.name} has been saved.` });
+      setStatus({ saved: t("saved", { name: draft.name }) });
       setReason("");
     } catch (error) {
-      setStatus({ error: error instanceof Error ? error.message : "That could not be saved." });
+      setStatus({ error: error instanceof Error ? error.message : t("saveFailed") });
     } finally {
       setBusy(false);
     }
@@ -129,10 +136,8 @@ function DetailsForm({ organization }: { organization: OrganizationRow }) {
 
   if (!organization.canEdit) {
     return (
-      <Panel title="Details" bodyClassName="p-3">
-        <p className="text-sm text-muted-foreground">
-          You are not an administrator of {organization.name}, so its details are read-only here.
-        </p>
+      <Panel title={t("detailsTitle")} bodyClassName="p-3">
+        <p className="text-sm text-muted-foreground">{t("readOnly", { name: organization.name })}</p>
       </Panel>
     );
   }
@@ -146,7 +151,7 @@ function DetailsForm({ organization }: { organization: OrganizationRow }) {
       busy={busy}
       error={status.error ?? null}
       saved={status.saved ?? null}
-      submitLabel="Save organization"
+      submitLabel={t("submit")}
     >
       <OrganizationFields
         draft={draft}
@@ -192,6 +197,8 @@ const EMPTY_CLASS: ClassDraft = {
 };
 
 function Classes({ organization }: { organization: OrganizationRow }) {
+  const t = useTranslations("admin.organizations.classes");
+  const actions = useTranslations("common.actions");
   const rows = useQuery(api.classes.listForOrganization, {
     organizationSlug: organization.slug,
     activeOnly: false,
@@ -211,7 +218,7 @@ function Classes({ organization }: { organization: OrganizationRow }) {
   async function save() {
     if (!draft) return;
     if (reason.trim().length === 0) {
-      setError("Give a reason for the change; it is recorded on the revision.");
+      setError(t("reasonRequired"));
       return;
     }
     setBusy(true);
@@ -246,35 +253,43 @@ function Classes({ organization }: { organization: OrganizationRow }) {
           adminUsernames: parseUsernames(draft.adminUsernames),
         });
       }
-      setMessage({ tone: "ok", text: `${draft.name} has been saved.` });
+      setMessage({ tone: "ok", text: t("saved", { name: draft.name }) });
       setDraft(null);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "That class could not be saved.");
+      setError(caught instanceof Error ? caught.message : t("saveFailed"));
     } finally {
       setBusy(false);
     }
   }
 
   const columns: AdminColumn<ClassRow>[] = [
-    { key: "name", header: "Class", cell: (row) => <span className="font-medium">{row.name}</span> },
-    { key: "slug", header: "Slug", cell: (row) => <span className="font-mono text-mono">{row.slug}</span> },
-    { key: "members", header: "Members", numeric: true, cell: (row) => row.memberCount },
+    {
+      key: "name",
+      header: t("columnClass"),
+      cell: (row) => <span className="font-medium">{row.name}</span>,
+    },
+    {
+      key: "slug",
+      header: t("columnSlug"),
+      cell: (row) => <span className="font-mono text-mono">{row.slug}</span>,
+    },
+    { key: "members", header: t("columnMembers"), numeric: true, cell: (row) => row.memberCount },
     {
       key: "state",
-      header: "State",
+      header: t("columnState"),
       cell: (row) => (
         <Flags
           flags={[
-            { on: row.isActive, label: "Active", tone: "good" },
-            { on: !row.isActive, label: "Archived", tone: "warn" },
-            { on: row.requiresAccessCode, label: "Access code", tone: "accent" },
+            { on: row.isActive, label: t("flagActive"), tone: "good" },
+            { on: !row.isActive, label: t("flagArchived"), tone: "warn" },
+            { on: row.requiresAccessCode, label: t("flagAccessCode"), tone: "accent" },
           ]}
         />
       ),
     },
     {
       key: "actions",
-      header: <span className="sr-only">Actions</span>,
+      header: <span className="sr-only">{t("columnActions")}</span>,
       cell: (row) => (
         <span className="flex items-center justify-end gap-1">
           <Button
@@ -295,25 +310,28 @@ function Classes({ organization }: { organization: OrganizationRow }) {
               setError(null);
             }}
           >
-            Edit
+            {actions("edit")}
           </Button>
           <ConfirmAction
             trigger={
               <Button variant="ghost" size="sm">
-                Delete
+                {actions("delete")}
               </Button>
             }
-            title={`Delete ${row.name}?`}
-            description={`Its ${row.memberCount} ${row.memberCount === 1 ? "member stays" : "members stay"} in ${organization.name}; only the class goes.`}
-            confirmLabel="Delete class"
+            title={t("deleteTitle", { name: row.name })}
+            description={t("deleteDescription", {
+              count: row.memberCount,
+              organization: organization.name,
+            })}
+            confirmLabel={t("deleteConfirm")}
             onConfirm={async () => {
               try {
                 await remove({ organizationSlug: organization.slug, classSlug: row.slug });
-                setMessage({ tone: "ok", text: `${row.name} has been deleted.` });
+                setMessage({ tone: "ok", text: t("deleted", { name: row.name }) });
               } catch (caught) {
                 setMessage({
                   tone: "bad",
-                  text: caught instanceof Error ? caught.message : "That class could not be deleted.",
+                  text: caught instanceof Error ? caught.message : t("deleteFailed"),
                 });
               }
             }}
@@ -332,9 +350,7 @@ function Classes({ organization }: { organization: OrganizationRow }) {
         rowKey={(row) => row._id}
         toolbar={
           <>
-            <span className="text-sm text-muted-foreground">
-              Classes split an organisation into groups with their own admins and join requests.
-            </span>
+            <span className="text-sm text-muted-foreground">{t("toolbarNote")}</span>
             <Button
               className="ml-auto"
               size="sm"
@@ -345,15 +361,15 @@ function Classes({ organization }: { organization: OrganizationRow }) {
                 setError(null);
               }}
             >
-              New class
+              {t("create")}
             </Button>
           </>
         }
-        emptyTitle="No classes"
-        emptyDescription={`${organization.name} has one flat membership list.`}
+        emptyTitle={t("emptyTitle")}
+        emptyDescription={t("emptyDescription", { name: organization.name })}
         emptyAction={
           <Button variant="secondary" onClick={() => setDraft({ ...EMPTY_CLASS })}>
-            New class
+            {t("create")}
           </Button>
         }
       />
@@ -361,16 +377,20 @@ function Classes({ organization }: { organization: OrganizationRow }) {
       <RecordDialog
         open={draft !== null}
         onOpenChange={(next) => (next ? undefined : setDraft(null))}
-        title={draft?.originalSlug ? `Edit ${draft.name}` : `New class in ${organization.name}`}
+        title={
+          draft?.originalSlug
+            ? t("dialogEditTitle", { name: draft.name })
+            : t("dialogCreateTitle", { organization: organization.name })
+        }
         onSubmit={save}
         reason={reason}
         onReasonChange={setReason}
         busy={busy}
         error={error}
-        submitLabel={draft?.originalSlug ? "Save class" : "Create class"}
+        submitLabel={draft?.originalSlug ? t("dialogEditSubmit") : t("dialogCreateSubmit")}
       >
         <FieldGroup columns={2}>
-          <Field label="Name">
+          <Field label={t("name")}>
             <Input
               value={draft?.name ?? ""}
               onChange={(event) =>
@@ -378,7 +398,7 @@ function Classes({ organization }: { organization: OrganizationRow }) {
               }
             />
           </Field>
-          <Field label="Slug" hint="Used in the class URL.">
+          <Field label={t("slug")} hint={t("slugHint")}>
             <Input
               mono
               value={draft?.slug ?? ""}
@@ -387,10 +407,7 @@ function Classes({ organization }: { organization: OrganizationRow }) {
               }
             />
           </Field>
-          <Field
-            label="Class admins"
-            hint="Usernames, comma separated. They can review this class's requests."
-          >
+          <Field label={t("admins")} hint={t("adminsHint")}>
             <Input
               mono
               value={draft?.adminUsernames ?? ""}
@@ -401,7 +418,7 @@ function Classes({ organization }: { organization: OrganizationRow }) {
               }
             />
           </Field>
-          <Field label="Access code" optional=" (optional)" hint="Needed to join this class directly.">
+          <Field label={t("accessCode")} optional={t("optional")} hint={t("accessCodeHint")}>
             <Input
               mono
               value={draft?.accessCode ?? ""}
@@ -411,7 +428,7 @@ function Classes({ organization }: { organization: OrganizationRow }) {
             />
           </Field>
         </FieldGroup>
-        <Field label="Description" optional=" (optional)">
+        <Field label={t("description")} optional={t("optional")}>
           <Textarea
             rows={3}
             value={draft?.description ?? ""}
@@ -421,11 +438,7 @@ function Classes({ organization }: { organization: OrganizationRow }) {
           />
         </Field>
         {draft?.originalSlug ? (
-          <Field
-            label="Members"
-            optional=" (optional)"
-            hint="Usernames, comma separated. Leave blank to keep the class's current members."
-          >
+          <Field label={t("members")} optional={t("optional")} hint={t("membersHint")}>
             <Input
               mono
               value={draft.memberUsernames}
@@ -442,7 +455,7 @@ function Classes({ organization }: { organization: OrganizationRow }) {
           onCheckedChange={(value) =>
             setDraft((current) => (current ? { ...current, isActive: value } : current))
           }
-          label="Active — members can still join it"
+          label={t("active")}
         />
       </RecordDialog>
     </div>
@@ -460,13 +473,14 @@ type RequestRow = {
 };
 
 const REQUEST_TABS = [
-  { value: "pending", label: "Pending" },
-  { value: "approved", label: "Approved" },
-  { value: "rejected", label: "Rejected" },
-  { value: "log", label: "Everything reviewed" },
-];
+  { value: "pending", labelKey: "tabPending" },
+  { value: "approved", labelKey: "tabApproved" },
+  { value: "rejected", labelKey: "tabRejected" },
+  { value: "log", labelKey: "tabLog" },
+] as const;
 
 function Requests({ organization }: { organization: OrganizationRow }) {
+  const t = useTranslations("admin.organizations.requests");
   const [tab, setTab] = useState<"pending" | "approved" | "rejected" | "log">("pending");
   const data = useQuery(api.organizations.reviewRequests, { slug: organization.slug, tab });
   const approve = useMutation(api.organizations.approve);
@@ -478,27 +492,31 @@ function Requests({ organization }: { organization: OrganizationRow }) {
       await action();
       setMessage({ tone: "ok", text: ok });
     } catch (caught) {
-      setMessage({ tone: "bad", text: caught instanceof Error ? caught.message : "That did not work." });
+      setMessage({ tone: "bad", text: caught instanceof Error ? caught.message : t("failed") });
     }
   }
 
   const columns: AdminColumn<RequestRow>[] = [
-    { key: "user", header: "Member", cell: (row) => row.displayName },
-    { key: "class", header: "Class", cell: (row) => row.className ?? DASH },
-    { key: "reason", header: "Reason given", cell: (row) => row.reason || DASH },
-    { key: "time", header: "Requested", numeric: true, cell: (row) => formatDateTime(row.time) },
+    { key: "user", header: t("columnMember"), cell: (row) => row.displayName },
+    { key: "class", header: t("columnClass"), cell: (row) => row.className ?? DASH },
+    { key: "reason", header: t("columnReason"), cell: (row) => row.reason || DASH },
+    { key: "time", header: t("columnRequested"), numeric: true, cell: (row) => formatDateTime(row.time) },
     {
       key: "state",
-      header: "State",
+      header: t("columnState"),
       cell: (row) => (
         <Badge variant={row.state === "P" ? "warn" : row.state === "A" ? "good" : "bad"} shape="square">
-          {row.state === "P" ? "Pending" : row.state === "A" ? "Approved" : "Rejected"}
+          {row.state === "P"
+            ? t("statePending")
+            : row.state === "A"
+              ? t("stateApproved")
+              : t("stateRejected")}
         </Badge>
       ),
     },
     {
       key: "actions",
-      header: <span className="sr-only">Actions</span>,
+      header: <span className="sr-only">{t("columnActions")}</span>,
       cell: (row) =>
         row.state === "P" ? (
           <span className="flex items-center justify-end gap-1">
@@ -506,22 +524,22 @@ function Requests({ organization }: { organization: OrganizationRow }) {
               variant="secondary"
               size="sm"
               onClick={() =>
-                run(() => approve({ requestId: row._id }), `${row.displayName} has been let in.`)
+                run(() => approve({ requestId: row._id }), t("approved", { name: row.displayName }))
               }
             >
-              Approve
+              {t("approve")}
             </Button>
             <ConfirmAction
               trigger={
                 <Button variant="ghost" size="sm">
-                  Reject
+                  {t("reject")}
                 </Button>
               }
-              title={`Reject ${row.displayName}?`}
-              description="They can ask again; nothing stops them."
-              confirmLabel="Reject request"
+              title={t("rejectTitle", { name: row.displayName })}
+              description={t("rejectDescription")}
+              confirmLabel={t("rejectConfirm")}
               onConfirm={() =>
-                run(() => reject({ requestId: row._id }), `${row.displayName}'s request has been rejected.`)
+                run(() => reject({ requestId: row._id }), t("rejected", { name: row.displayName }))
               }
             />
           </span>
@@ -541,25 +559,25 @@ function Requests({ organization }: { organization: OrganizationRow }) {
         toolbar={
           <>
             <Select
-              options={REQUEST_TABS}
+              options={REQUEST_TABS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
               value={tab}
               onValueChange={(value) => setTab(value as typeof tab)}
-              ariaLabel="Request state"
+              ariaLabel={t("stateAria")}
               size="sm"
               className="w-[200px]"
             />
             <span className="ml-auto font-mono text-mono tabular-nums text-muted-foreground">
               {data?.slotsRemaining === null || data?.slotsRemaining === undefined
                 ? ""
-                : `${data.slotsRemaining} places left`}
+                : t("slotsRemaining", { count: data.slotsRemaining })}
             </span>
           </>
         }
-        emptyTitle={tab === "pending" ? "Nothing waiting" : "Nothing here"}
+        emptyTitle={tab === "pending" ? t("emptyPendingTitle") : t("emptyTitle")}
         emptyDescription={
           tab === "pending"
-            ? `Nobody is asking to join ${organization.name}.`
-            : "No request has reached that state yet."
+            ? t("emptyPendingDescription", { name: organization.name })
+            : t("emptyDescription")
         }
       />
     </div>

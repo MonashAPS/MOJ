@@ -20,6 +20,7 @@ import {
 import { useQuery } from "convex/react";
 import { Trophy } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { formatDateTime, formatPoints } from "@/lib/format";
@@ -42,6 +43,9 @@ export function RankByProblemClient({
   initial: RankByProblemPayload;
   viewerUsername: string | null;
 }) {
+  const t = useTranslations("contests.rankByProblem");
+  const columns = useTranslations("contests.columns");
+  const tabLabels = useTranslations("contests.tabs");
   const [languageKeys, setLanguageKeys] = useState<string[]>([]);
   const live = useQuery(api.contestRankings.rankByProblem, {
     key: contestKey,
@@ -63,8 +67,12 @@ export function RankByProblemClient({
     <>
       <TitleRow
         breadcrumb={<Link href={`/contest/${contestKey}/`}>{detail.contest?.name ?? contestKey}</Link>}
-        title={data ? `${data.label}. ${data.problemName}` : `Best solutions for ${problemCode}`}
-        tabs={contestTabs(detail, contestKey, viewerUsername)}
+        title={
+          data
+            ? t("title", { label: data.label, name: data.problemName })
+            : t("metaTitle", { name: problemCode })
+        }
+        tabs={contestTabs(detail, contestKey, viewerUsername, tabLabels)}
         active="ranking"
         action={
           joinKind ? <JoinControl contestKey={contestKey} kind={joinKind} long size="default" /> : undefined
@@ -74,20 +82,20 @@ export function RankByProblemClient({
       {data === null ? (
         <EmptyState
           icon={<Trophy aria-hidden />}
-          title="Not available"
-          description="The best solutions for this problem are only listed once the full scoreboard is visible to you."
+          title={t("notAvailableTitle")}
+          description={t("notAvailableBody")}
         />
       ) : data === undefined ? null : (
         <div className="grid min-w-0 gap-4">
           {languageOptions.length > 1 ? (
             <div className="grid max-w-[320px] gap-1">
-              <MicroLabel>Languages</MicroLabel>
+              <MicroLabel>{t("languages")}</MicroLabel>
               <MultiSelect
                 options={languageOptions}
                 values={languageKeys}
                 onChange={setLanguageKeys}
-                searchPlaceholder="Filter languages…"
-                emptyText="No languages."
+                searchPlaceholder={t("filterLanguages")}
+                emptyText={t("noLanguages")}
               />
             </div>
           ) : null}
@@ -95,8 +103,8 @@ export function RankByProblemClient({
           {data.rows.length === 0 ? (
             <EmptyState
               icon={<Trophy aria-hidden />}
-              title="No solutions"
-              description={`Nobody scored on ${data.problemName} during this contest.`}
+              title={t("noSolutionsTitle")}
+              description={t("noSolutionsBody", { name: data.problemName })}
             />
           ) : (
             <Table>
@@ -105,13 +113,13 @@ export function RankByProblemClient({
                   <TableHead numeric className="w-12">
                     #
                   </TableHead>
-                  <TableHead className="w-full">User</TableHead>
-                  <TableHead numeric>Score</TableHead>
-                  <TableHead>Verdict</TableHead>
-                  <TableHead>Language</TableHead>
-                  <TableHead numeric>Time</TableHead>
-                  <TableHead numeric>Memory</TableHead>
-                  <TableHead numeric>Submitted</TableHead>
+                  <TableHead className="w-full">{columns("user")}</TableHead>
+                  <TableHead numeric>{columns("score")}</TableHead>
+                  <TableHead>{columns("verdict")}</TableHead>
+                  <TableHead>{columns("language")}</TableHead>
+                  <TableHead numeric>{columns("time")}</TableHead>
+                  <TableHead numeric>{columns("memory")}</TableHead>
+                  <TableHead numeric>{columns("submitted")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

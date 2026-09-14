@@ -5,6 +5,7 @@ import type { ContestProblemEntry } from "@convex/contests";
 import { Button, EmptyState, Panel, Select, Textarea, toast } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { MessageSquareWarning } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { formatDateTime } from "@/lib/format";
 
@@ -22,6 +23,8 @@ export function Clarifications({
   canPost: boolean;
   problems: ContestProblemEntry[];
 }) {
+  const t = useTranslations("contests.clarifications");
+  const columns = useTranslations("contests.columns");
   const rows = useQuery(api.contests.clarifications, { key: contestKey });
   const add = useMutation(api.contests.addClarification);
   const [problemCode, setProblemCode] = useState(problems[0]?.code ?? "");
@@ -32,7 +35,7 @@ export function Clarifications({
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!body.trim()) {
-      setError("A clarification needs a body.");
+      setError(t("bodyRequired"));
       return;
     }
     setBusy(true);
@@ -40,9 +43,9 @@ export function Clarifications({
     try {
       await add({ key: contestKey, problemCode, description: body.trim() });
       setBody("");
-      toast.success("Clarification posted");
+      toast.success(t("posted"));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The clarification could not be posted.");
+      setError(caught instanceof Error ? caught.message : t("failed"));
     } finally {
       setBusy(false);
     }
@@ -50,13 +53,13 @@ export function Clarifications({
 
   return (
     <section id="clarifications" className="mt-8 grid gap-3 scroll-mt-24">
-      <Panel title="Clarifications" icon={<MessageSquareWarning size={14} aria-hidden />} bodyClassName="p-0">
+      <Panel title={t("title")} icon={<MessageSquareWarning size={14} aria-hidden />} bodyClassName="p-0">
         {rows === undefined ? null : rows === null || rows.length === 0 ? (
           <EmptyState
             className="border-0 bg-transparent"
             icon={<MessageSquareWarning aria-hidden />}
-            title="No clarifications"
-            description="Nothing has been clarified for this contest."
+            title={t("emptyTitle")}
+            description={t("emptyBody")}
           />
         ) : (
           <ul>
@@ -77,28 +80,28 @@ export function Clarifications({
       </Panel>
 
       {canPost && problems.length > 0 ? (
-        <Panel title="Post a clarification" bodyClassName="p-3">
+        <Panel title={t("postTitle")} bodyClassName="p-3">
           <form className="grid gap-3" onSubmit={submit}>
             <Select
-              ariaLabel="Problem"
+              ariaLabel={columns("problem")}
               value={problemCode}
               onValueChange={setProblemCode}
               options={problems.map((problem) => ({
                 value: problem.code,
-                label: `${problem.label}. ${problem.name}`,
+                label: t("problemOption", { label: problem.label, name: problem.name }),
               }))}
             />
             <Textarea
               rows={3}
               value={body}
               invalid={!!error}
-              placeholder="What needs clarifying?"
+              placeholder={t("placeholder")}
               onChange={(event) => setBody(event.target.value)}
             />
             {error ? <p className="text-sm text-bad">{error}</p> : null}
             <div className="flex justify-end">
               <Button type="submit" busy={busy}>
-                Post clarification
+                {t("submit")}
               </Button>
             </div>
           </form>

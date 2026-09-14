@@ -14,6 +14,7 @@ import {
   Panel,
 } from "@moj/ui";
 import { CheckCircle2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { type FormEvent, type ReactNode, useEffect, useId } from "react";
 
 /**
@@ -31,12 +32,12 @@ export function AdminForm({
   reason,
   onReasonChange,
   reasonRequired = true,
-  reasonLabel = "Reason for change",
-  reasonHint = "Recorded on the revision so the next person can see why this changed.",
+  reasonLabel,
+  reasonHint,
   dirty = false,
   busy = false,
-  busyLabel = "Saving\u2026",
-  submitLabel = "Save",
+  busyLabel,
+  submitLabel,
   error,
   saved,
   actions,
@@ -57,6 +58,7 @@ export function AdminForm({
   saved?: string | null;
   actions?: ReactNode;
 }) {
+  const t = useTranslations("admin.components.form");
   const reasonId = useId();
   const managed = onReasonChange !== undefined;
 
@@ -95,14 +97,18 @@ export function AdminForm({
       <div className="grid gap-4">{children}</div>
 
       <div className="mt-4">
-        <Field label={reasonLabel} htmlFor={reasonId} hint={reasonHint}>
+        <Field
+          label={reasonLabel ?? t("reasonLabel")}
+          htmlFor={reasonId}
+          hint={reasonHint ?? t("reasonHint")}
+        >
           <Input
             id={reasonId}
             value={reason ?? ""}
             required={reasonRequired}
             maxLength={200}
             onChange={(event) => onReasonChange?.(event.target.value)}
-            placeholder="Describe the change"
+            placeholder={t("reasonPlaceholder")}
           />
         </Field>
       </div>
@@ -191,28 +197,27 @@ export function ReasonField({
   value,
   onChange,
   error,
-  entity = "change",
+  hint,
 }: {
   value: string;
   onChange: (value: string) => void;
   error?: string;
-  entity?: string;
+  /** The finished sentence, from the page that knows what is being edited. A
+   *  bare noun dropped into a frame here comes out in the wrong case, or in the
+   *  wrong place, once either half is translated. */
+  hint: string;
 }) {
+  const t = useTranslations("admin.components.form");
   const id = useId();
   return (
-    <Panel title="History" bodyClassName="p-4">
-      <Field
-        label="Reason for change"
-        htmlFor={id}
-        error={error}
-        hint={`Kept with the revision so the next person can see why this ${entity} moved.`}
-      >
+    <Panel title={t("historyPanel")} bodyClassName="p-4">
+      <Field label={t("reasonLabel")} htmlFor={id} error={error} hint={hint}>
         <Input
           id={id}
           value={value}
           invalid={!!error}
           onChange={(event) => onChange(event.target.value)}
-          placeholder="Describe the change"
+          placeholder={t("reasonPlaceholder")}
         />
       </Field>
     </Panel>
@@ -223,8 +228,8 @@ export function ReasonField({
 export function AdminFormFooter({
   dirty,
   busy,
-  submitLabel = "Save",
-  busyLabel = "Saving…",
+  submitLabel,
+  busyLabel,
   secondary,
   note,
 }: {
@@ -235,11 +240,12 @@ export function AdminFormFooter({
   secondary?: ReactNode;
   note?: ReactNode;
 }) {
+  const t = useTranslations("admin.components.form");
   return (
-    <FormFooter note={note ?? (dirty ? "Unsaved changes" : undefined)}>
+    <FormFooter note={note ?? (dirty ? t("unsaved") : undefined)}>
       {secondary}
       <Button type="submit" busy={busy}>
-        {busy ? busyLabel : submitLabel}
+        {busy ? (busyLabel ?? t("busy")) : (submitLabel ?? t("submit"))}
       </Button>
     </FormFooter>
   );
@@ -247,10 +253,11 @@ export function AdminFormFooter({
 
 /** What a mutation said when it refused, on the page rather than in a toast. */
 export function AdminFormError({ message }: { message: string | null }) {
+  const t = useTranslations("admin.components.form");
   if (!message) return null;
   return (
     <Alert variant="danger">
-      <AlertTitle>The change was not saved</AlertTitle>
+      <AlertTitle>{t("errorTitle")}</AlertTitle>
       <AlertDescription>{message}</AlertDescription>
     </Alert>
   );

@@ -5,6 +5,7 @@ import { cn, InputGroup, InputGroupInput, Label, Select } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type FormEvent, useId, useState } from "react";
 
 export type OrganizationOption = { slug: string; name: string };
@@ -24,6 +25,7 @@ export function LeaderboardToolbar({
   organizationSlug: string | null;
   params: string;
 }) {
+  const t = useTranslations("users.toolbar");
   const router = useRouter();
   const searchId = useId();
   const filterId = useId();
@@ -60,7 +62,7 @@ export function LeaderboardToolbar({
   return (
     <div className="mb-4 flex flex-wrap items-end gap-4">
       <form onSubmit={onSubmit} className="min-w-0 flex-1 basis-64">
-        <Label htmlFor={searchId}>Search by handle</Label>
+        <Label htmlFor={searchId}>{t("handle")}</Label>
         <div className="relative mt-1">
           <InputGroup leading={<Search className="size-4" aria-hidden />}>
             <InputGroupInput
@@ -68,7 +70,7 @@ export function LeaderboardToolbar({
               name="handle"
               type="search"
               autoComplete="off"
-              placeholder="Search by handle…"
+              placeholder={t("handlePlaceholder")}
               value={term}
               onChange={(event) => {
                 setTerm(event.target.value);
@@ -105,15 +107,15 @@ export function LeaderboardToolbar({
 
       {organizations.length > 0 ? (
         <div className="w-56 shrink-0">
-          <Label htmlFor={filterId}>Organization</Label>
+          <Label htmlFor={filterId}>{t("organization")}</Label>
           <div className="mt-1">
             <Select
               id={filterId}
-              ariaLabel="Filter by organization"
+              ariaLabel={t("filterByOrganization")}
               value={organizationSlug ?? "all"}
               onValueChange={onOrganization}
               options={[
-                { value: "all", label: "All organizations" },
+                { value: "all", label: t("allOrganizations") },
                 ...organizations.map((organization) => ({
                   value: organization.slug,
                   label: organization.name,

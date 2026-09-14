@@ -20,6 +20,7 @@ import {
 } from "@moj/ui";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 
 /** `KickUserWidgetView`: DMOJ hides this behind a per-row button on the member
@@ -36,6 +37,9 @@ export function KickMemberForm({
   backHref: string;
   members: { value: string; label: string }[];
 }) {
+  const t = useTranslations("organizations.kick");
+  const shared = useTranslations("organizations.common");
+  const actions = useTranslations("common.actions");
   const router = useRouter();
   const kick = useMutation(api.organizations.kick);
   const pickerId = useId();
@@ -44,45 +48,36 @@ export function KickMemberForm({
 
   return (
     <div className="grid max-w-[40rem] gap-4">
-      <Panel title="Remove a member" bodyClassName="grid gap-4 p-4">
-        <Field label="Member" htmlFor={pickerId} hint={`Everyone listed in ${name}.`}>
+      <Panel title={t("panel")} bodyClassName="grid gap-4 p-4">
+        <Field label={t("member")} htmlFor={pickerId} hint={t("memberHint", { organization: name })}>
           <Combobox
             id={pickerId}
             options={members}
             value={username}
             onValueChange={setUsername}
-            searchPlaceholder="Filter members…"
-            emptyText="No member by that name."
+            searchPlaceholder={t("filter")}
+            emptyText={t("noMatch")}
           />
         </Field>
-        <p className="text-sm text-muted-foreground">
-          Kicking someone removes them from {name} and from every class inside it. They keep their submissions
-          and their points.
-        </p>
+        <p className="text-sm text-muted-foreground">{t("body", { organization: name })}</p>
       </Panel>
       <FormFooter>
         <Button variant="secondary" asChild>
-          <a href={backHref}>Cancel</a>
+          <a href={backHref}>{actions("cancel")}</a>
         </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button
-              variant="danger"
-              disabled={!username}
-              title={username ? undefined : "Pick a member first."}
-            >
-              Kick member
+            <Button variant="danger" disabled={!username} title={username ? undefined : t("pickMember")}>
+              {t("submit")}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Kick {username}?</AlertDialogTitle>
-              <AlertDialogDescription>
-                They lose their place in {name} and every class inside it, and will have to join again.
-              </AlertDialogDescription>
+              <AlertDialogTitle>{t("confirmTitle", { username: username ?? "" })}</AlertDialogTitle>
+              <AlertDialogDescription>{t("confirmBody", { organization: name })}</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{actions("cancel")}</AlertDialogCancel>
               <AlertDialogAction
                 disabled={busy}
                 onClick={async (event) => {
@@ -91,17 +86,17 @@ export function KickMemberForm({
                   setBusy(true);
                   try {
                     await kick({ slug, username });
-                    toast.success(`${username} is no longer a member.`);
+                    toast.success(t("kicked", { username }));
                     setUsername(undefined);
                     router.refresh();
                   } catch (error) {
-                    toast.error(error instanceof Error ? error.message : "That did not work.");
+                    toast.error(error instanceof Error ? error.message : shared("failed"));
                   } finally {
                     setBusy(false);
                   }
                 }}
               >
-                {busy ? "Kicking…" : "Kick member"}
+                {busy ? t("kicking") : t("submit")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

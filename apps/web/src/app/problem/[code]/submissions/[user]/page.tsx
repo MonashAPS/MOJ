@@ -1,13 +1,15 @@
 import { api } from "@convex/_generated/api";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { type SearchParams, SubmissionListPage } from "@/components/submissions/SubmissionListPage";
 import { queryAsViewer } from "@/lib/convex-server";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string; user: string }> }) {
+  const t = await getTranslations("problems.detail");
   const { code, user } = await params;
-  return { title: `${user}'s submissions for ${code}` };
+  return { title: t("userSubmissionsFor", { user, code }) };
 }
 
 export default async function UserProblemSubmissionsPage({

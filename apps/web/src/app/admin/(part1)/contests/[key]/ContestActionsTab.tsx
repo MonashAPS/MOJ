@@ -28,6 +28,7 @@ import {
 import { useMutation } from "convex/react";
 import { Users } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import { AdminFormError, JobProgress } from "@/components/admin";
 import type { ContestEdit } from "./types";
@@ -37,6 +38,8 @@ type Action = "rate" | "rescore" | "lock" | "unlock";
 /** `ContestAdmin`'s admin actions, plus the disqualify list from
  *  `ContestParticipationDisqualify`. */
 export function ContestActionsTab({ contest }: { contest: ContestEdit }) {
+  const t = useTranslations("admin.contests.actions");
+  const actions = useTranslations("common.actions");
   const router = useRouter();
   const rate = useMutation(api.admin.contests.rate);
   const rescore = useMutation(api.admin.contests.rescore);
@@ -57,7 +60,7 @@ export function ContestActionsTab({ contest }: { contest: ContestEdit }) {
     try {
       await work();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The action was refused.");
+      setError(caught instanceof Error ? caught.message : t("refused"));
     }
   }
 
@@ -67,18 +70,18 @@ export function ContestActionsTab({ contest }: { contest: ContestEdit }) {
       if (action === "rate") {
         const result = await rate({ key: contest.key, reason: reason.trim() || undefined });
         setJobId(result.jobId);
-        toast.success("Rating queued");
+        toast.success(t("rateQueued"));
       } else if (action === "rescore") {
         const result = await rescore({ key: contest.key, reason: reason.trim() || undefined });
         setJobId(result.jobId);
-        toast.success("Rescore queued");
+        toast.success(t("rescoreQueued"));
       } else {
         await setLocked({
           key: contest.key,
           lockedAfter: action === "lock" ? Date.now() : null,
           reason: reason.trim() || undefined,
         });
-        toast.success(action === "lock" ? "Contest locked." : "Contest unlocked.");
+        toast.success(action === "lock" ? t("lockedToast") : t("unlockedToast"));
       }
     });
   }
@@ -91,57 +94,53 @@ export function ContestActionsTab({ contest }: { contest: ContestEdit }) {
       {jobId ? <JobProgress jobId={jobId} title={contest.key} onDismiss={() => setJobId(null)} /> : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Rating" bodyClassName="grid gap-3 p-4">
+        <Panel title={t("ratingTitle")} bodyClassName="grid gap-3 p-4">
           <p className="text-sm text-muted-foreground">
-            {contest.isRated
-              ? "Recomputes every rating from this contest onwards, in order. Run it once the scores are final."
-              : "This contest is not rated, so rating it would change nothing. Turn rating on in General first."}
+            {contest.isRated ? t("ratingRated") : t("ratingNotRated")}
           </p>
           <Button
             variant="secondary"
             className="w-fit"
             disabled={!contest.permissions.contestRating}
-            title={contest.permissions.contestRating ? undefined : "You do not have judge.contest_rating."}
+            title={
+              contest.permissions.contestRating
+                ? undefined
+                : t("missingPermission", { permission: "judge.contest_rating" })
+            }
             onClick={() => setConfirm("rate")}
           >
-            Rate this contest
+            {t("rateButton")}
           </Button>
         </Panel>
 
-        <Panel title="Scores" bodyClassName="grid gap-3 p-4">
-          <p className="text-sm text-muted-foreground">
-            Recalculates every participation from the submissions already on record, using the current format
-            and the current problem points. Nothing is regraded.
-          </p>
+        <Panel title={t("scoresTitle")} bodyClassName="grid gap-3 p-4">
+          <p className="text-sm text-muted-foreground">{t("scoresBody")}</p>
           <Button variant="secondary" className="w-fit" onClick={() => setConfirm("rescore")}>
-            Rescore the contest
+            {t("rescoreButton")}
           </Button>
         </Panel>
 
-        <Panel title="Lock" bodyClassName="grid gap-3 p-4">
-          <p className="text-sm text-muted-foreground">
-            {locked
-              ? "Submissions to this contest cannot be edited or rejudged."
-              : "Locking freezes the contest's submissions against edits and rejudges from now on."}
-          </p>
+        <Panel title={t("lockTitle")} bodyClassName="grid gap-3 p-4">
+          <p className="text-sm text-muted-foreground">{locked ? t("lockLocked") : t("lockUnlocked")}</p>
           <Button
             variant="secondary"
             className="w-fit"
             disabled={!contest.permissions.lockContest}
-            title={contest.permissions.lockContest ? undefined : "You do not have judge.lock_contest."}
+            title={
+              contest.permissions.lockContest
+                ? undefined
+                : t("missingPermission", { permission: "judge.lock_contest" })
+            }
             onClick={() => setConfirm(locked ? "unlock" : "lock")}
           >
-            {locked ? "Unlock the contest" : "Lock the contest"}
+            {locked ? t("unlockButton") : t("lockButton")}
           </Button>
         </Panel>
 
-        <Panel title="Clone" bodyClassName="grid gap-3 p-4">
-          <p className="text-sm text-muted-foreground">
-            Copies the settings and the problem list under a new id. The copy is hidden, has you as its only
-            author, and starts with no participants.
-          </p>
+        <Panel title={t("cloneTitle")} bodyClassName="grid gap-3 p-4">
+          <p className="text-sm text-muted-foreground">{t("cloneBody")}</p>
           <div className="flex flex-wrap items-end gap-3">
-            <Field label="New contest id" htmlFor={cloneId} className="w-[200px]">
+            <Field label={t("cloneKey")} htmlFor={cloneId} className="w-[200px]">
               <Input
                 id={cloneId}
                 mono
@@ -158,8 +157,8 @@ export function ContestActionsTab({ contest }: { contest: ContestEdit }) {
                 contest.permissions.cloneContest
                   ? cloneKey.trim()
                     ? undefined
-                    : "Give the copy an id first."
-                  : "You do not have judge.clone_contest."
+                    : t("cloneKeyMissing")
+                  : t("missingPermission", { permission: "judge.clone_contest" })
               }
               onClick={() =>
                 guard(async () => {
@@ -168,28 +167,28 @@ export function ContestActionsTab({ contest }: { contest: ContestEdit }) {
                 })
               }
             >
-              Clone contest
+              {t("cloneButton")}
             </Button>
           </div>
         </Panel>
       </div>
 
-      <Panel title={`Contestants (${contest.contestants.length})`} bodyClassName="p-0">
+      <Panel title={t("contestantsTitle", { count: contest.contestants.length })} bodyClassName="p-0">
         {contest.contestants.length === 0 ? (
           <EmptyState
             className="m-3"
             icon={<Users aria-hidden />}
-            title="Nobody has entered yet"
-            description="Live participations appear here once members join the contest."
+            title={t("contestantsEmptyTitle")}
+            description={t("contestantsEmptyDescription")}
           />
         ) : (
           <Table dense className="group/table" scrollable={false}>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead numeric>Score</TableHead>
-                <TableHead numeric>Penalty</TableHead>
-                <TableHead>State</TableHead>
+                <TableHead>{t("columnUser")}</TableHead>
+                <TableHead numeric>{t("columnScore")}</TableHead>
+                <TableHead numeric>{t("columnPenalty")}</TableHead>
+                <TableHead>{t("columnState")}</TableHead>
                 <TableHead className="w-32" />
               </TableRow>
             </TableHeader>
@@ -201,7 +200,7 @@ export function ContestActionsTab({ contest }: { contest: ContestEdit }) {
                   <TableCell numeric>{row.cumtime}</TableCell>
                   <TableCell>
                     <Badge variant={row.isDisqualified ? "bad" : "neutral"} shape="square">
-                      {row.isDisqualified ? "Disqualified" : "Competing"}
+                      {row.isDisqualified ? t("disqualified") : t("competing")}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -217,13 +216,13 @@ export function ContestActionsTab({ contest }: { contest: ContestEdit }) {
                           });
                           toast.success(
                             row.isDisqualified
-                              ? `${row.username} was reinstated.`
-                              : `${row.username} was disqualified.`,
+                              ? t("reinstatedToast", { username: row.username })
+                              : t("disqualifiedToast", { username: row.username }),
                           );
                         })
                       }
                     >
-                      {row.isDisqualified ? "Reinstate" : "Disqualify"}
+                      {row.isDisqualified ? t("reinstate") : t("disqualify")}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -233,17 +232,13 @@ export function ContestActionsTab({ contest }: { contest: ContestEdit }) {
         )}
       </Panel>
 
-      <Panel title="History" bodyClassName="p-4">
-        <Field
-          label="Reason for change"
-          htmlFor={reasonId}
-          hint="Kept with the revision every action above writes."
-        >
+      <Panel title={t("historyTitle")} bodyClassName="p-4">
+        <Field label={t("reason")} htmlFor={reasonId} hint={t("reasonHint")}>
           <Input
             id={reasonId}
             value={reason}
             onChange={(event) => setReason(event.target.value)}
-            placeholder="Describe the change"
+            placeholder={t("reasonPlaceholder")}
           />
         </Field>
       </Panel>
@@ -252,34 +247,16 @@ export function ContestActionsTab({ contest }: { contest: ContestEdit }) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirm === "rate"
-                ? `Rate ${contest.name}?`
-                : confirm === "rescore"
-                  ? `Rescore ${contest.name}?`
-                  : confirm === "lock"
-                    ? `Lock ${contest.name}?`
-                    : `Unlock ${contest.name}?`}
+              {confirm ? t(`confirm.${confirm}.title`, { name: contest.name }) : null}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {confirm === "rate"
-                ? `Every rating from this contest onwards is recomputed. ${contest.contestants.length} participations are involved.`
-                : confirm === "rescore"
-                  ? `All ${contest.contestants.length} participations are recalculated from their submissions.`
-                  : confirm === "lock"
-                    ? "Submissions to this contest stop being editable and rejudgeable from now on."
-                    : "Submissions to this contest become editable and rejudgeable again."}
+              {confirm ? t(`confirm.${confirm}.body`, { count: contest.contestants.length }) : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{actions("cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={() => confirm && run(confirm)}>
-              {confirm === "rate"
-                ? "Rate"
-                : confirm === "rescore"
-                  ? "Rescore"
-                  : confirm === "lock"
-                    ? "Lock"
-                    : "Unlock"}
+              {confirm ? t(`confirm.${confirm}.action`) : null}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

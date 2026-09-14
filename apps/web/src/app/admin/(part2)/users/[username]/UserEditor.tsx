@@ -22,6 +22,7 @@ import {
 } from "@moj/ui";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useMemo, useState, useTransition } from "react";
 import { AdminForm } from "@/components/admin/AdminForm";
 import { RevisionsPanel } from "@/components/admin/RevisionsPanel";
@@ -102,10 +103,10 @@ type Account = {
 };
 
 const RANKS = [
-  { value: "user", label: "User" },
-  { value: "setter", label: "Problem setter" },
-  { value: "admin", label: "Admin" },
-];
+  { value: "user", labelKey: "rankUser" },
+  { value: "setter", labelKey: "rankSetter" },
+  { value: "admin", labelKey: "rankAdmin" },
+] as const;
 
 /** DMOJ groups its permission codes by the model they act on. */
 function groupPermissions(codes: string[]): Array<{ group: string; codes: string[] }> {
@@ -113,18 +114,18 @@ function groupPermissions(codes: string[]): Array<{ group: string; codes: string
   for (const code of codes) {
     const tail = code.split(".")[1] ?? code;
     const group = tail.includes("problem")
-      ? "Problems"
+      ? "groupProblems"
       : tail.includes("contest")
-        ? "Contests"
+        ? "groupContests"
         : tail.includes("submission")
-          ? "Submissions"
+          ? "groupSubmissions"
           : tail.includes("organization")
-            ? "Organizations"
+            ? "groupOrganizations"
             : tail.includes("post") || tail.includes("comment")
-              ? "Community"
+              ? "groupCommunity"
               : tail.includes("profile") || tail.includes("totp")
-                ? "Accounts"
-                : "Site";
+                ? "groupAccounts"
+                : "groupSite";
     const bucket = buckets.get(group);
     if (bucket) bucket.push(code);
     else buckets.set(group, [code]);
@@ -153,10 +154,11 @@ export function UserEditor({
   viewerIsSuperuser: boolean;
   viewerUsername: string;
 }) {
+  const t = useTranslations("admin.users.editor");
   const panels = [
     {
       key: "profile",
-      label: "Profile",
+      label: t("tabProfile"),
       content: (
         <ProfileForm
           user={user}
@@ -169,7 +171,7 @@ export function UserEditor({
     },
     {
       key: "permissions",
-      label: "Permissions",
+      label: t("tabPermissions"),
       content: (
         <PermissionsForm
           user={user}
@@ -180,7 +182,7 @@ export function UserEditor({
     },
     {
       key: "account",
-      label: "Account",
+      label: t("tabAccount"),
       content: (
         <AccountPanel
           user={user}
@@ -192,13 +194,18 @@ export function UserEditor({
     },
     {
       key: "keys",
-      label: "API keys",
+      label: t("tabKeys"),
       content: <KeysPanel rows={extras?.apiKeys ?? null} username={user.username} />,
     },
     {
       key: "history",
-      label: "History",
-      content: <RevisionsPanel rows={extras?.revisions ?? null} title={`Changes to ${user.username}`} />,
+      label: t("tabHistory"),
+      content: (
+        <RevisionsPanel
+          rows={extras?.revisions ?? null}
+          title={t("historyTitle", { username: user.username })}
+        />
+      ),
     },
   ];
 
@@ -211,27 +218,29 @@ export function UserEditor({
 }
 
 function Summary({ user, account }: { user: UserRow; account: Account }) {
+  const t = useTranslations("admin.users.summary");
+
   return (
-    <Panel title="At a glance" bodyClassName="grid gap-3 p-3 sm:grid-cols-4">
-      <Stat label="Points" value={user.points.toFixed(0)} />
-      <Stat label="Performance points" value={user.performancePoints.toFixed(0)} />
-      <Stat label="Problems solved" value={String(user.problemCount)} />
-      <Stat label="Rating" value={user.rating === undefined ? DASH : String(user.rating)} />
-      <Stat label="Joined" value={formatDate(user.joinDate)} />
-      <Stat label="Last seen" value={user.lastAccess ? formatDate(user.lastAccess) : DASH} />
-      <Stat label="Email" value={account.account?.email ?? DASH} mono />
+    <Panel title={t("title")} bodyClassName="grid gap-3 p-3 sm:grid-cols-4">
+      <Stat label={t("points")} value={user.points.toFixed(0)} />
+      <Stat label={t("performancePoints")} value={user.performancePoints.toFixed(0)} />
+      <Stat label={t("problemsSolved")} value={String(user.problemCount)} />
+      <Stat label={t("rating")} value={user.rating === undefined ? DASH : String(user.rating)} />
+      <Stat label={t("joined")} value={formatDate(user.joinDate)} />
+      <Stat label={t("lastSeen")} value={user.lastAccess ? formatDate(user.lastAccess) : DASH} />
+      <Stat label={t("email")} value={account.account?.email ?? DASH} mono />
       <div className="grid gap-1">
         <span className="font-sans text-xs font-semibold uppercase tracking-label text-muted-foreground">
-          State
+          {t("state")}
         </span>
         <Flags
           flags={[
-            { on: user.isSuperuser, label: "Superuser", tone: "accent" },
-            { on: user.isStaff && !user.isSuperuser, label: "Staff", tone: "accent" },
-            { on: user.isUnlisted, label: "Unlisted", tone: "warn" },
-            { on: user.mute, label: "Muted", tone: "warn" },
-            { on: !user.isActive, label: "Deactivated", tone: "bad" },
-            { on: account.account?.banned ?? false, label: "Banned", tone: "bad" },
+            { on: user.isSuperuser, label: t("flagSuperuser"), tone: "accent" },
+            { on: user.isStaff && !user.isSuperuser, label: t("flagStaff"), tone: "accent" },
+            { on: user.isUnlisted, label: t("flagUnlisted"), tone: "warn" },
+            { on: user.mute, label: t("flagMuted"), tone: "warn" },
+            { on: !user.isActive, label: t("flagDeactivated"), tone: "bad" },
+            { on: account.account?.banned ?? false, label: t("flagBanned"), tone: "bad" },
           ]}
         />
       </div>
@@ -267,6 +276,7 @@ function ProfileForm({
   organizations: Array<{ slug: string; name: string }>;
   timezones: string[];
 }) {
+  const t = useTranslations("admin.users.profile");
   const edit = useMutation(api.admin.users.edit);
   const setMemberships = useMutation(api.pages.admin2.setUserMemberships);
   const router = useRouter();
@@ -302,7 +312,7 @@ function ProfileForm({
 
   async function save() {
     if (reason.trim().length === 0) {
-      setStatus({ error: "Give a reason for the change; it is recorded on the revision." });
+      setStatus({ error: t("reasonRequired") });
       return;
     }
     setBusy(true);
@@ -326,11 +336,11 @@ function ProfileForm({
         organizationSlugs: form.organizationSlugs,
         reason,
       });
-      setStatus({ saved: `${user.username} has been updated.` });
+      setStatus({ saved: t("saved", { username: user.username }) });
       setReason("");
       router.refresh();
     } catch (error) {
-      setStatus({ error: error instanceof Error ? error.message : "That could not be saved." });
+      setStatus({ error: error instanceof Error ? error.message : t("saveFailed") });
     } finally {
       setBusy(false);
     }
@@ -345,44 +355,44 @@ function ProfileForm({
       busy={busy}
       error={status.error ?? null}
       saved={status.saved ?? null}
-      submitLabel="Save profile"
+      submitLabel={t("submit")}
     >
       <FieldGroup columns={2}>
-        <Field label="Display rank" hint="DMOJ's rank badge on the username.">
+        <Field label={t("displayRank")} hint={t("displayRankHint")}>
           <Select
-            options={RANKS}
+            options={RANKS.map((rank) => ({ value: rank.value, label: t(rank.labelKey) }))}
             value={form.displayRank}
             onValueChange={(value) => change("displayRank", value)}
-            ariaLabel="Display rank"
+            ariaLabel={t("displayRank")}
           />
         </Field>
-        <Field label="Display name" optional=" (optional)" hint="Shown instead of the username.">
+        <Field label={t("displayName")} optional={t("optional")} hint={t("displayNameHint")}>
           <Input
             value={form.usernameDisplayOverride}
             onChange={(event) => change("usernameDisplayOverride", event.target.value)}
             placeholder={user.username}
           />
         </Field>
-        <Field label="Timezone">
+        <Field label={t("timezone")}>
           <Select
             options={timezones.map((zone) => ({ value: zone, label: zone }))}
             value={form.timezone}
             onValueChange={(value) => change("timezone", value)}
-            ariaLabel="Timezone"
+            ariaLabel={t("timezone")}
           />
         </Field>
-        <Field label="Preferred language" hint="The language the submit page opens with.">
+        <Field label={t("preferredLanguage")} hint={t("preferredLanguageHint")}>
           <Select
             options={[
-              { value: "", label: "No preference" },
+              { value: "", label: t("noPreference") },
               ...languages.map((language) => ({ value: language.key, label: language.name })),
             ]}
             value={form.languageKey}
             onValueChange={(value) => change("languageKey", value)}
-            ariaLabel="Preferred language"
+            ariaLabel={t("preferredLanguage")}
           />
         </Field>
-        <Field label="Rating" optional=" (optional)" hint="Blank means unrated.">
+        <Field label={t("rating")} optional={t("optional")} hint={t("ratingHint")}>
           <Input
             type="number"
             mono
@@ -390,7 +400,7 @@ function ProfileForm({
             onChange={(event) => change("rating", event.target.value)}
           />
         </Field>
-        <Field label="Organizations" hint="Membership is written straight to the organisation.">
+        <Field label={t("organizations")} hint={t("organizationsHint")}>
           <MultiSelect
             options={organizations.map((organization) => ({
               value: organization.slug,
@@ -398,13 +408,13 @@ function ProfileForm({
             }))}
             values={form.organizationSlugs}
             onChange={(values) => change("organizationSlugs", values)}
-            searchPlaceholder="Find an organization"
-            emptyText="No organization by that name."
+            searchPlaceholder={t("organizationSearchPlaceholder")}
+            emptyText={t("organizationEmpty")}
           />
         </Field>
       </FieldGroup>
 
-      <Field label="About" hint="Markdown, rendered on the member's profile page.">
+      <Field label={t("about")} hint={t("aboutHint")}>
         <Textarea
           mono
           rows={6}
@@ -413,7 +423,7 @@ function ProfileForm({
         />
       </Field>
 
-      <Field label="Staff notes" hint="Only staff ever see this.">
+      <Field label={t("staffNotes")} hint={t("staffNotesHint")}>
         <Textarea rows={3} value={form.notes} onChange={(event) => change("notes", event.target.value)} />
       </Field>
 
@@ -421,17 +431,17 @@ function ProfileForm({
         <Checkbox
           checked={form.mute}
           onCheckedChange={(value) => change("mute", value === true)}
-          label="Muted — comments and tickets are hidden from everyone else"
+          label={t("muted")}
         />
         <Checkbox
           checked={form.isUnlisted}
           onCheckedChange={(value) => change("isUnlisted", value === true)}
-          label="Unlisted — kept off the leaderboard and the user list"
+          label={t("unlisted")}
         />
         <Checkbox
           checked={form.isBannedFromProblemVoting}
           onCheckedChange={(value) => change("isBannedFromProblemVoting", value === true)}
-          label="Banned from voting on problem points"
+          label={t("votingBanned")}
         />
       </FieldGroup>
     </AdminForm>
@@ -447,6 +457,7 @@ function PermissionsForm({
   permissionCodes: string[];
   viewerIsSuperuser: boolean;
 }) {
+  const t = useTranslations("admin.users.permissions");
   const edit = useMutation(api.admin.users.edit);
   const router = useRouter();
 
@@ -468,10 +479,9 @@ function PermissionsForm({
 
   if (!viewerIsSuperuser) {
     return (
-      <Panel title="Permissions" bodyClassName="p-3">
+      <Panel title={t("title")} bodyClassName="p-3">
         <p className="text-sm text-muted-foreground">
-          Only a superuser may change staff flags or permission codes. {user.username} currently holds{" "}
-          {user.permissions.length === 0 ? "no permissions" : `${user.permissions.length} permissions`}.
+          {t("readOnly", { username: user.username, count: user.permissions.length })}
         </p>
         {user.permissions.length > 0 ? (
           <ul className="mt-2 flex flex-wrap gap-1">
@@ -500,7 +510,7 @@ function PermissionsForm({
 
   async function save() {
     if (reason.trim().length === 0) {
-      setStatus({ error: "Give a reason for the change; it is recorded on the revision." });
+      setStatus({ error: t("reasonRequired") });
       return;
     }
     setBusy(true);
@@ -512,11 +522,11 @@ function PermissionsForm({
         permissions: form.permissions,
         reason,
       });
-      setStatus({ saved: `Permissions for ${user.username} have been updated.` });
+      setStatus({ saved: t("saved", { username: user.username }) });
       setReason("");
       router.refresh();
     } catch (error) {
-      setStatus({ error: error instanceof Error ? error.message : "That could not be saved." });
+      setStatus({ error: error instanceof Error ? error.message : t("saveFailed") });
     } finally {
       setBusy(false);
     }
@@ -531,15 +541,15 @@ function PermissionsForm({
       busy={busy}
       error={status.error ?? null}
       saved={status.saved ?? null}
-      submitLabel="Save permissions"
+      submitLabel={t("submit")}
     >
       <FieldGroup columns={2}>
         <Checkbox
           checked={form.isStaff || form.isSuperuser}
           disabled={form.isSuperuser}
-          title={form.isSuperuser ? "A superuser is always staff." : undefined}
+          title={form.isSuperuser ? t("staffLocked") : undefined}
           onCheckedChange={(value) => setForm((current) => ({ ...current, isStaff: value === true }))}
-          label="Staff — may open the console"
+          label={t("staff")}
         />
         <Checkbox
           checked={form.isSuperuser}
@@ -550,19 +560,19 @@ function PermissionsForm({
               isStaff: value === true || current.isStaff,
             }))
           }
-          label="Superuser — every permission, whatever the checklist says"
+          label={t("superuser")}
         />
       </FieldGroup>
 
       <div className="grid gap-3 sm:grid-cols-2">
         {groups.map((group) => (
-          <Panel key={group.group} title={group.group} bodyClassName="grid gap-2 p-3">
+          <Panel key={group.group} title={t(group.group)} bodyClassName="grid gap-2 p-3">
             {group.codes.map((code) => (
               <Checkbox
                 key={code}
                 checked={form.isSuperuser || form.permissions.includes(code)}
                 disabled={form.isSuperuser}
-                title={form.isSuperuser ? "A superuser already holds every permission." : undefined}
+                title={form.isSuperuser ? t("codeLocked") : undefined}
                 onCheckedChange={(value) => toggle(code, value === true)}
                 label={<span className="font-mono text-mono">{code}</span>}
               />
@@ -585,6 +595,8 @@ function AccountPanel({
   viewerIsSuperuser: boolean;
   viewerUsername: string;
 }) {
+  const t = useTranslations("admin.users.account");
+  const common = useTranslations("common.actions");
   const recalculate = useMutation(api.admin.users.recalculatePoints);
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -601,15 +613,15 @@ function AccountPanel({
     <div className="grid gap-4">
       {message ? <StatusLine tone={message.tone}>{message.text}</StatusLine> : null}
 
-      <Panel title="Sign-in" bodyClassName="grid gap-3 p-3">
+      <Panel title={t("signIn")} bodyClassName="grid gap-3 p-3">
         <div className="grid gap-2 sm:grid-cols-3">
-          <Stat label="Email" value={account.account?.email ?? DASH} mono />
-          <Stat label="Verified" value={account.account?.emailVerified ? "Yes" : "No"} />
-          <Stat label="Active sessions" value={String(account.sessions)} />
+          <Stat label={t("email")} value={account.account?.email ?? DASH} mono />
+          <Stat label={t("verified")} value={account.account?.emailVerified ? common("yes") : common("no")} />
+          <Stat label={t("sessions")} value={String(account.sessions)} />
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={account.account?.twoFactorEnabled ? "good" : "neutral"}>
-            {account.account?.twoFactorEnabled ? "Two-factor on" : "Two-factor off"}
+            {account.account?.twoFactorEnabled ? t("twoFactorOn") : t("twoFactorOff")}
           </Badge>
           <ConfirmAction
             trigger={
@@ -617,44 +629,38 @@ function AccountPanel({
                 variant="secondary"
                 size="sm"
                 disabled={!viewerIsSuperuser}
-                title={viewerIsSuperuser ? undefined : "Only a superuser may reset a member's factors."}
+                title={viewerIsSuperuser ? undefined : t("resetTwoFactorDenied")}
               >
-                Reset two-factor
+                {t("resetTwoFactor")}
               </Button>
             }
-            title={`Reset two-factor for ${user.username}?`}
-            description="Every TOTP secret and backup code on the account is removed and the sessions are revoked. The member enrols again on their next sign-in."
-            confirmLabel="Reset two-factor"
+            title={t("resetTwoFactorTitle", { username: user.username })}
+            description={t("resetTwoFactorDescription")}
+            confirmLabel={t("resetTwoFactor")}
             onConfirm={async () => {
               const result = await resetTwoFactorAction(user.userId);
-              report(result, `Two-factor has been reset for ${user.username}.`);
+              report(result, t("resetTwoFactorDone", { username: user.username }));
             }}
           />
           <ConfirmAction
             trigger={
               <Button variant="secondary" size="sm">
-                Sign out everywhere
+                {t("signOutEverywhere")}
               </Button>
             }
-            title={`Revoke every session for ${user.username}?`}
-            description={`${account.sessions} ${account.sessions === 1 ? "session is" : "sessions are"} open. The member has to sign in again.`}
-            confirmLabel="Revoke sessions"
+            title={t("revokeSessionsTitle", { username: user.username })}
+            description={t("revokeSessionsDescription", { count: account.sessions })}
+            confirmLabel={t("revokeSessionsConfirm")}
             onConfirm={async () => {
               const result = await revokeSessionsAction(user.userId);
-              report(result, `Sessions for ${user.username} have been revoked.`);
+              report(result, t("revokeSessionsDone", { username: user.username }));
             }}
           />
           <Button
             variant="secondary"
             size="sm"
             disabled={!viewerIsSuperuser || self}
-            title={
-              self
-                ? "You are already signed in as yourself."
-                : viewerIsSuperuser
-                  ? undefined
-                  : "Only a superuser may impersonate a member."
-            }
+            title={self ? t("impersonateSelf") : viewerIsSuperuser ? undefined : t("impersonateDenied")}
             onClick={() =>
               startTransition(async () => {
                 const result = await impersonateAction(user.userId);
@@ -663,33 +669,35 @@ function AccountPanel({
               })
             }
           >
-            Impersonate
+            {t("impersonate")}
           </Button>
         </div>
       </Panel>
 
-      <Panel title="Passkeys" bodyClassName="p-0">
+      <Panel title={t("passkeys")} bodyClassName="p-0">
         {account.passkeys.length === 0 ? (
-          <p className="p-3 text-sm text-muted-foreground">{user.username} has not registered a passkey.</p>
+          <p className="p-3 text-sm text-muted-foreground">
+            {t("passkeysNone", { username: user.username })}
+          </p>
         ) : (
           <Table dense scrollable={false}>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Device</TableHead>
-                <TableHead>Backed up</TableHead>
-                <TableHead numeric>Added</TableHead>
+                <TableHead>{t("passkeyName")}</TableHead>
+                <TableHead>{t("passkeyDevice")}</TableHead>
+                <TableHead>{t("passkeyBackedUp")}</TableHead>
+                <TableHead numeric>{t("passkeyAdded")}</TableHead>
                 <TableHead>
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{t("passkeyActions")}</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {account.passkeys.map((passkey) => (
                 <TableRow key={passkey.id}>
-                  <TableCell>{passkey.name ?? "Unnamed passkey"}</TableCell>
+                  <TableCell>{passkey.name ?? t("passkeyUnnamed")}</TableCell>
                   <TableCell className="font-mono text-mono">{passkey.deviceType}</TableCell>
-                  <TableCell>{passkey.backedUp ? "Yes" : "No"}</TableCell>
+                  <TableCell>{passkey.backedUp ? common("yes") : common("no")}</TableCell>
                   <TableCell numeric>{passkey.createdAt ? formatDate(passkey.createdAt) : DASH}</TableCell>
                   <TableCell>
                     <ConfirmAction
@@ -698,17 +706,24 @@ function AccountPanel({
                           variant="ghost"
                           size="sm"
                           disabled={!viewerIsSuperuser}
-                          title={viewerIsSuperuser ? undefined : "Only a superuser may remove a passkey."}
+                          title={viewerIsSuperuser ? undefined : t("passkeyRemoveDenied")}
                         >
-                          Remove
+                          {t("passkeyRemove")}
                         </Button>
                       }
-                      title="Remove this passkey?"
-                      description={`${passkey.name ?? "This passkey"} stops working immediately. ${user.username} can register another one.`}
-                      confirmLabel="Remove passkey"
+                      title={t("passkeyRemoveTitle")}
+                      description={
+                        passkey.name
+                          ? t("passkeyRemoveDescription", {
+                              name: passkey.name,
+                              username: user.username,
+                            })
+                          : t("passkeyRemoveDescriptionUnnamed", { username: user.username })
+                      }
+                      confirmLabel={t("passkeyRemoveConfirm")}
                       onConfirm={async () => {
                         const result = await removePasskeyAction(user.userId, passkey.id);
-                        report(result, "The passkey has been removed.");
+                        report(result, t("passkeyRemoveDone"));
                       }}
                     />
                   </TableCell>
@@ -719,18 +734,14 @@ function AccountPanel({
         )}
       </Panel>
 
-      <Panel title="Standing" bodyClassName="grid gap-3 p-3">
-        <Field
-          label="Reason for change"
-          htmlFor="account-reason"
-          hint="Recorded on the revision with whatever you do below."
-        >
+      <Panel title={t("standing")} bodyClassName="grid gap-3 p-3">
+        <Field label={t("reason")} htmlFor="account-reason" hint={t("reasonHint")}>
           <Input
             id="account-reason"
             value={reason}
             maxLength={200}
             onChange={(event) => setReason(event.target.value)}
-            placeholder="Repeated abuse in comments"
+            placeholder={t("reasonPlaceholder")}
           />
         </Field>
         <div className="flex flex-wrap items-center gap-2">
@@ -745,20 +756,24 @@ function AccountPanel({
                   setMessage({
                     tone: "ok",
                     text: first
-                      ? `${first.username} now has ${first.points.toFixed(0)} points and ${first.performancePoints.toFixed(0)} performance points.`
-                      : "Points have been recalculated.",
+                      ? t("recalculated", {
+                          username: first.username,
+                          points: first.points.toFixed(0),
+                          performancePoints: first.performancePoints.toFixed(0),
+                        })
+                      : t("recalculatedPlain"),
                   });
                   router.refresh();
                 } catch (error) {
                   setMessage({
                     tone: "bad",
-                    text: error instanceof Error ? error.message : "Points could not be recalculated.",
+                    text: error instanceof Error ? error.message : t("recalculateFailed"),
                   });
                 }
               })
             }
           >
-            Recalculate points
+            {t("recalculate")}
           </Button>
 
           {user.isActive ? (
@@ -768,38 +783,40 @@ function AccountPanel({
                   variant="danger"
                   size="sm"
                   disabled={self}
-                  title={self ? "You cannot deactivate your own account." : undefined}
+                  title={self ? t("deactivateSelf") : undefined}
                 >
-                  Deactivate
+                  {t("deactivate")}
                 </Button>
               }
-              title={`Deactivate ${user.username}?`}
-              description="The account is banned in Better Auth, every session is revoked and the profile is hidden from the leaderboard. Nothing is deleted."
-              confirmLabel="Deactivate"
+              title={t("deactivateTitle", { username: user.username })}
+              description={t("deactivateDescription")}
+              confirmLabel={t("deactivate")}
               onConfirm={async () => {
                 const result = await setAccountActiveAction(user.username, false, reason);
-                report(result, `${user.username} has been deactivated.`);
+                report(result, t("deactivateDone", { username: user.username }));
               }}
             />
           ) : (
             <ConfirmAction
               trigger={
                 <Button variant="secondary" size="sm">
-                  Reactivate
+                  {t("reactivate")}
                 </Button>
               }
-              title={`Reactivate ${user.username}?`}
-              description="The ban is lifted and the member can sign in again. They stay unlisted until you clear that on the profile tab."
-              confirmLabel="Reactivate"
+              title={t("reactivateTitle", { username: user.username })}
+              description={t("reactivateDescription")}
+              confirmLabel={t("reactivate")}
               onConfirm={async () => {
                 const result = await setAccountActiveAction(user.username, true, reason);
-                report(result, `${user.username} has been reactivated.`);
+                report(result, t("reactivateDone", { username: user.username }));
               }}
             />
           )}
         </div>
         {account.account?.banned && account.account.banReason ? (
-          <p className="text-sm text-muted-foreground">Ban reason: {account.account.banReason}</p>
+          <p className="text-sm text-muted-foreground">
+            {t("banReason", { reason: account.account.banReason })}
+          </p>
         ) : null}
       </Panel>
     </div>
@@ -807,33 +824,33 @@ function AccountPanel({
 }
 
 function KeysPanel({ rows, username }: { rows: KeyRow[] | null; username: string }) {
+  const t = useTranslations("admin.users.keys");
+
   if (rows === null) {
     return (
-      <Panel title="API keys" bodyClassName="p-3">
-        <p className="text-sm text-muted-foreground">
-          The key table could not be read. A key is issued from the console&apos;s API keys section.
-        </p>
+      <Panel title={t("title")} bodyClassName="p-3">
+        <p className="text-sm text-muted-foreground">{t("unreadable")}</p>
       </Panel>
     );
   }
   if (rows.length === 0) {
     return (
-      <Panel title="API keys" bodyClassName="p-3">
-        <p className="text-sm text-muted-foreground">{username} has not issued an API key.</p>
+      <Panel title={t("title")} bodyClassName="p-3">
+        <p className="text-sm text-muted-foreground">{t("none", { username })}</p>
       </Panel>
     );
   }
   return (
-    <Panel title="API keys" bodyClassName="p-0">
+    <Panel title={t("title")} bodyClassName="p-0">
       <Table dense scrollable={false}>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Prefix</TableHead>
-            <TableHead>Scopes</TableHead>
-            <TableHead numeric>Created</TableHead>
-            <TableHead numeric>Expires</TableHead>
-            <TableHead numeric>Last used</TableHead>
+            <TableHead>{t("columnName")}</TableHead>
+            <TableHead>{t("columnPrefix")}</TableHead>
+            <TableHead>{t("columnScopes")}</TableHead>
+            <TableHead numeric>{t("columnCreated")}</TableHead>
+            <TableHead numeric>{t("columnExpires")}</TableHead>
+            <TableHead numeric>{t("columnLastUsed")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -843,7 +860,7 @@ function KeysPanel({ rows, username }: { rows: KeyRow[] | null; username: string
               <TableCell className="font-mono text-mono">{row.prefix ?? DASH}</TableCell>
               <TableCell className="font-mono text-mono">{row.scopes.join(", ")}</TableCell>
               <TableCell numeric>{formatDateTime(row.createdAt)}</TableCell>
-              <TableCell numeric>{row.expiresAt ? formatDateTime(row.expiresAt) : "Never"}</TableCell>
+              <TableCell numeric>{row.expiresAt ? formatDateTime(row.expiresAt) : t("never")}</TableCell>
               <TableCell numeric>{row.lastUsedAt ? formatDateTime(row.lastUsedAt) : DASH}</TableCell>
             </TableRow>
           ))}

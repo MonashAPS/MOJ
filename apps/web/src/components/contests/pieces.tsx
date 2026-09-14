@@ -1,6 +1,7 @@
 import { Badge, cn, Tooltip } from "@moj/ui";
 import { BarChart3, Check, CircleDashed, CircleSlash2, EyeOff, Lock, Users } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { formatDateTime } from "@/lib/format";
 
 export type ProblemState = "solved" | "partial" | "attempted" | "untouched";
@@ -55,12 +56,14 @@ export function ContestChips({
   organizations: OrganizationRef[];
   tags: TagRef[];
 }) {
+  const t = useTranslations("contests.chips");
+
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5 align-middle">
       {!isVisible ? (
         <Badge variant="neutral" shape="pill" mono>
           <EyeOff size={11} aria-hidden />
-          hidden
+          {t("hidden")}
         </Badge>
       ) : null}
       {isOrganizationPrivate ? (
@@ -73,13 +76,13 @@ export function ContestChips({
       ) : isPrivate ? (
         <Badge variant="neutral" shape="pill" mono>
           <Lock size={11} aria-hidden />
-          private
+          {t("private")}
         </Badge>
       ) : null}
       {isRated ? (
         <Badge variant="warn" shape="pill" mono>
           <BarChart3 size={11} aria-hidden />
-          rated
+          {t("rated")}
         </Badge>
       ) : null}
       {tags.map((tag) => (
@@ -89,21 +92,26 @@ export function ContestChips({
   );
 }
 
-/** `timedelta('localized-no-seconds')`: "3 hours", "2 hours, 30 minutes", "1 day". */
-export function humanDuration(ms: number): string {
-  const total = Math.max(0, Math.round(ms / 1000));
-  const days = Math.floor(total / 86400);
-  const hours = Math.floor((total % 86400) / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-  const parts: string[] = [];
-  const push = (value: number, unit: string) => {
-    if (value > 0) parts.push(`${value} ${unit}${value === 1 ? "" : "s"}`);
+/** `timedelta('localized-no-seconds')`: "3 hours", "2 hours, 30 minutes", "1 day".
+ *  The two coarsest units are one message each and are joined by a message of
+ *  their own, because a language may order or punctuate the pair differently. */
+export function useHumanDuration(): (ms: number) => string {
+  const t = useTranslations("contests.duration");
+
+  return (ms: number) => {
+    const total = Math.max(0, Math.round(ms / 1000));
+    const [first, second] = (
+      [
+        ["days", Math.floor(total / 86400)],
+        ["hours", Math.floor((total % 86400) / 3600)],
+        ["minutes", Math.floor((total % 3600) / 60)],
+      ] as const
+    )
+      .filter(([, value]) => value > 0)
+      .map(([unit, value]) => t(unit, { count: value }));
+    if (first === undefined) return t("underAMinute");
+    return second === undefined ? first : t("pair", { first, second });
   };
-  push(days, "day");
-  push(hours, "hour");
-  push(minutes, "minute");
-  if (parts.length === 0) return "under a minute";
-  return parts.slice(0, 2).join(", ");
 }
 
 /** DMOJ's open-ended tutorial contests run to the year 9999; past this a length
@@ -122,6 +130,9 @@ export function ContestWindow({
   timeLimit: number | null;
   className?: string;
 }) {
+  const t = useTranslations("contests.duration");
+  const humanDuration = useHumanDuration();
+
   return (
     <div className={cn("font-mono text-sm tabular-nums text-muted-foreground", className)}>
       <div>
@@ -129,25 +140,27 @@ export function ContestWindow({
       </div>
       <div>
         {timeLimit
-          ? `${humanDuration(timeLimit * 1000)} window`
+          ? t("window", { duration: humanDuration(timeLimit * 1000) })
           : endTime - startTime > OPEN_ENDED
-            ? "Open-ended"
-            : `${humanDuration(endTime - startTime)} long`}
+            ? t("openEnded")
+            : t("length", { duration: humanDuration(endTime - startTime) })}
       </div>
     </div>
   );
 }
 
 const STATE_ICON = {
-  solved: { Icon: Check, className: "text-(--state-solved)", label: "Solved" },
-  partial: { Icon: CircleSlash2, className: "text-(--state-partial)", label: "Partially solved" },
-  attempted: { Icon: CircleDashed, className: "text-(--state-attempted)", label: "Attempted" },
-  untouched: { Icon: CircleDashed, className: "text-transparent", label: "Not attempted" },
+  solved: { Icon: Check, className: "text-(--state-solved)" },
+  partial: { Icon: CircleSlash2, className: "text-(--state-partial)" },
+  attempted: { Icon: CircleDashed, className: "text-(--state-attempted)" },
+  untouched: { Icon: CircleDashed, className: "text-transparent" },
 } as const;
 
 /** Section 12.1's state column, so a contest problem reads like a list problem. */
 export function ProblemStateIcon({ state, title }: { state: ProblemState; title?: string }) {
-  const { Icon, className, label } = STATE_ICON[state];
+  const t = useTranslations("contests.problemState");
+  const { Icon, className } = STATE_ICON[state];
+  const label = t(state);
   if (state === "untouched") return <span className="sr-only">{label}</span>;
   return (
     <Tooltip content={title ?? label}>

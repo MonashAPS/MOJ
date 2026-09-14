@@ -2,12 +2,14 @@
 
 import { UserX } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { authClient } from "@/auth/client";
 
 /** django-impersonate paints a bar across the top of every page so a staff
  *  member cannot forget whose account they are looking at. This is that bar. */
 export function ImpersonationBar({ username }: { username: string }) {
+  const t = useTranslations("common");
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
@@ -18,7 +20,10 @@ export function ImpersonationBar({ username }: { username: string }) {
     >
       <UserX size={15} aria-hidden className="shrink-0" />
       <span className="min-w-0 flex-1 truncate text-base font-semibold">
-        You are impersonating <span className="font-mono">{username}</span>.
+        {t.rich("impersonation.banner", {
+          username,
+          name: (chunks) => <span className="font-mono">{chunks}</span>,
+        })}
       </span>
       <button
         type="button"
@@ -35,7 +40,7 @@ export function ImpersonationBar({ username }: { username: string }) {
           }
         }}
       >
-        {busy ? "Stopping…" : "Stop impersonating"}
+        {busy ? t("impersonation.stopping") : t("nav.stopImpersonating")}
       </button>
     </div>
   );

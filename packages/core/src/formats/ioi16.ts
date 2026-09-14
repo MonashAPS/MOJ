@@ -18,7 +18,7 @@
 import { participationStart } from "../contestTiming";
 import type { ContestSubmissionRow, FormatData } from "../types";
 import { pyRound } from "../util/number";
-import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from "./base";
+import type { ContestFormat, ParticipationUpdate, ScoringLine, UpdateParticipationInput } from "./base";
 import {
   breakdown,
   buildParticipationResult,
@@ -133,12 +133,8 @@ export const ioi16Format: ContestFormat = {
 
   getShortFormDisplay(config) {
     const resolved = resolveLegacyIoiConfig(config);
-    const lines = ["The maximum score for each problem batch will be used."];
-    lines.push(
-      resolved.cumtime
-        ? "Ties will be broken by the sum of the last score altering submission time on problems with a non-zero score."
-        : "Ties by score will **not** be broken.",
-    );
+    const lines: ScoringLine[] = [{ key: "maxScoreBatch" }];
+    lines.push({ key: resolved.cumtime ? "tiesByScoreAltering" : "tiesNotBroken" });
     return lines;
   },
 };

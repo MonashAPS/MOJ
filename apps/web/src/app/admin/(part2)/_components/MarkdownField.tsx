@@ -1,6 +1,7 @@
 "use client";
 
 import { ContentDescription, Field, Skeleton, Textarea, ToggleGroup, ToggleGroupItem } from "@moj/ui";
+import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 import { previewAction } from "../flatpages/actions";
 
@@ -28,6 +29,7 @@ export function MarkdownField({
   rows?: number;
   optional?: string;
 }) {
+  const t = useTranslations("admin.shell.markdown");
   const [mode, setMode] = useState<"write" | "preview">("write");
   const [html, setHtml] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -62,8 +64,8 @@ export function MarkdownField({
           onValueChange={(next) => next && setMode(next as "write" | "preview")}
           className="w-auto justify-self-start"
         >
-          <ToggleGroupItem value="write">Write</ToggleGroupItem>
-          <ToggleGroupItem value="preview">Preview</ToggleGroupItem>
+          <ToggleGroupItem value="write">{t("write")}</ToggleGroupItem>
+          <ToggleGroupItem value="preview">{t("preview")}</ToggleGroupItem>
         </ToggleGroup>
 
         {mode === "write" ? (
@@ -78,7 +80,7 @@ export function MarkdownField({
           </div>
         ) : html === "" ? (
           <p className="rounded-md border border-border p-3 text-sm text-muted-foreground">
-            There is nothing to preview yet.
+            {t("nothingToPreview")}
           </p>
         ) : (
           <ContentDescription html={html} className="rounded-md border border-border p-3" />

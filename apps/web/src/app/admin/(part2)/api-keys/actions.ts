@@ -3,6 +3,7 @@
 import { createHash } from "node:crypto";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth/server";
 import { mutateAsViewer, queryAsViewer } from "@/lib/convex-server";
 import { type ActionResult, authHeaders, failed, requireConsoleViewer } from "../_lib/guard";
@@ -44,6 +45,7 @@ function millis(value: unknown): number | null {
 export async function listKeysAction(): Promise<ActionResult<ConsoleKeyRow[]>> {
   try {
     await requireConsoleViewer();
+    const t = await getTranslations("admin.apiKeys");
     const listed = await auth.api.listApiKeys({ headers: await authHeaders() });
     const keys = Array.isArray(listed) ? listed : ((listed as { apiKeys?: unknown[] }).apiKeys ?? []);
     const mirrored = await queryAsViewer(api.pages.admin2.myApiKeys, {});
@@ -54,7 +56,7 @@ export async function listKeysAction(): Promise<ActionResult<ConsoleKeyRow[]>> {
       const match = start ? byPrefix.get(start) : undefined;
       return {
         id: String(key.id),
-        name: (key.name as string | null) ?? "Unnamed key",
+        name: (key.name as string | null) ?? t("unnamedKey"),
         start,
         scopes: fromPermissions(key.permissions),
         enabled: key.enabled !== false,
@@ -89,9 +91,10 @@ export async function createKeyAction(input: {
 }): Promise<ActionResult<{ key: string; row: ConsoleKeyRow; warning?: string }>> {
   try {
     const viewer = await requireConsoleViewer();
+    const t = await getTranslations("admin.apiKeys");
     const name = input.name.trim();
-    if (name.length === 0) return { ok: false, error: "A key needs a name." };
-    if (input.scopes.length === 0) return { ok: false, error: "Choose at least one scope." };
+    if (name.length === 0) return { ok: false, error: t("nameRequired") };
+    if (input.scopes.length === 0) return { ok: false, error: t("scopeRequired") };
 
     const expiresIn = input.expiresInDays ? input.expiresInDays * 24 * 60 * 60 : undefined;
     const created = await auth.api.createApiKey({
@@ -118,9 +121,9 @@ export async function createKeyAction(input: {
       });
     } catch (error) {
       mirrored = false;
-      warning = `The key works against this site, but it could not be mirrored into the judge's key table: ${
-        error instanceof Error ? error.message : String(error)
-      }`;
+      warning = t("mirrorWarning", {
+        reason: error instanceof Error ? error.message : String(error),
+      });
     }
 
     return {

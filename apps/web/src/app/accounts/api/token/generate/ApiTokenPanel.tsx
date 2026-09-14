@@ -31,18 +31,10 @@ import {
 } from "@moj/ui";
 import { AlertCircle, Check, Copy, KeyRound, Terminal, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { formatDateTime } from "@/lib/format";
 import { type ApiKeySummary, generateApiToken, type TokenScope } from "./actions";
-
-const SCOPES: Array<{ value: TokenScope; label: string; hint: string }> = [
-  { value: "read", label: "read", hint: "Read the API v2 endpoints, limited to what you can already see." },
-  {
-    value: "problems:write",
-    label: "problems:write",
-    hint: "Create and update problems through the problems API. What a problem repository's CI needs.",
-  },
-];
 
 export function ApiTokenPanel({
   tokens,
@@ -51,6 +43,8 @@ export function ApiTokenPanel({
   tokens: ApiKeySummary[];
   legacy: { present: boolean; hint: string | null };
 }) {
+  const t = useTranslations("auth.apiToken");
+  const tError = useTranslations("auth.errors");
   const router = useRouter();
   const [name, setName] = useState("");
   const [scopes, setScopes] = useState<TokenScope[]>(["read"]);
@@ -80,7 +74,7 @@ export function ApiTokenPanel({
       setName("");
       router.refresh();
     } catch {
-      setError("Something went wrong. Try again.");
+      setError(tError("generic"));
     } finally {
       setBusy(false);
     }
@@ -97,14 +91,14 @@ export function ApiTokenPanel({
       });
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
-        setError(body?.error?.message ?? "That token could not be revoked.");
+        setError(body?.error?.message ?? t("revokeFailed"));
         return;
       }
       setPendingDelete(null);
       setRevokingLegacy(false);
       router.refresh();
     } catch {
-      setError("Something went wrong. Try again.");
+      setError(tError("generic"));
     } finally {
       setWorking(false);
     }
@@ -118,6 +112,11 @@ export function ApiTokenPanel({
     });
   }
 
+  const scopeOptions = [
+    { value: "read" as TokenScope, label: "read", hint: t("scopeRead") },
+    { value: "problems:write" as TokenScope, label: "problems:write", hint: t("scopeProblemsWrite") },
+  ];
+
   return (
     <div className="grid gap-4">
       {error ? (
@@ -128,15 +127,12 @@ export function ApiTokenPanel({
       ) : null}
 
       {issued ? (
-        <Panel title="Your new token" framed>
+        <Panel title={t("issuedPanel")} framed>
           <div className="grid gap-3">
             <Alert variant="warning">
               <AlertCircle className="size-3.5" aria-hidden />
-              <AlertTitle>Copy it now.</AlertTitle>
-              <AlertDescription>
-                Only a hash is kept, so this is the one time it is shown. A lost token is replaced, not
-                recovered.
-              </AlertDescription>
+              <AlertTitle>{t("copyNowTitle")}</AlertTitle>
+              <AlertDescription>{t("copyNowDescription")}</AlertDescription>
             </Alert>
             <code className="block select-all break-all rounded-xs bg-secondary px-2 py-1.5 font-mono text-mono text-foreground">
               {issued}
@@ -148,36 +144,32 @@ export function ApiTokenPanel({
                 icon={copied ? <Check aria-hidden /> : <Copy aria-hidden />}
                 onClick={copyToken}
               >
-                {copied ? "Copied" : "Copy"}
+                {copied ? t("copied") : t("copy")}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setIssued(null)}>
-                I have saved it
+                {t("savedIt")}
               </Button>
             </div>
           </div>
         </Panel>
       ) : null}
 
-      <Panel title="Generate a token">
+      <Panel title={t("generatePanel")}>
         <form onSubmit={generate} noValidate className="grid gap-4">
-          <Field
-            label="Name"
-            htmlFor="token-name"
-            hint="What it is for, so you know which one to revoke later."
-          >
+          <Field label={t("nameLabel")} htmlFor="token-name" hint={t("nameHint")}>
             <Input
               id="token-name"
               name="name"
               maxLength={100}
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Problem repository CI"
+              placeholder={t("namePlaceholder")}
             />
           </Field>
 
           <fieldset className="grid gap-2">
-            <legend className="mb-1 text-sm font-semibold text-subtle">Scopes</legend>
-            {SCOPES.map((scope) => (
+            <legend className="mb-1 text-sm font-semibold text-subtle">{t("scopesLegend")}</legend>
+            {scopeOptions.map((scope) => (
               <div key={scope.value} className="grid gap-0.5">
                 <Checkbox
                   id={`scope-${scope.value}`}
@@ -192,31 +184,29 @@ export function ApiTokenPanel({
 
           <div className="flex justify-end">
             <Button type="submit" busy={busy} icon={<KeyRound aria-hidden />}>
-              {busy ? "Generating…" : "Generate token"}
+              {busy ? t("generateBusy") : t("generate")}
             </Button>
           </div>
         </form>
       </Panel>
 
-      <Panel title="Your tokens" bodyClassName={tokens.length > 0 ? "p-0" : undefined}>
+      <Panel title={t("listPanel")} bodyClassName={tokens.length > 0 ? "p-0" : undefined}>
         {tokens.length === 0 ? (
           <Empty>
             <EmptyMedia>
               <Terminal aria-hidden />
             </EmptyMedia>
-            <EmptyTitle>No tokens yet</EmptyTitle>
-            <EmptyDescription>
-              Generate one above to call the API from a script or a problem repository.
-            </EmptyDescription>
+            <EmptyTitle>{t("emptyTitle")}</EmptyTitle>
+            <EmptyDescription>{t("emptyDescription")}</EmptyDescription>
           </Empty>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Scopes</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Last used</TableHead>
+                <TableHead>{t("columnName")}</TableHead>
+                <TableHead>{t("columnScopes")}</TableHead>
+                <TableHead>{t("columnCreated")}</TableHead>
+                <TableHead>{t("columnLastUsed")}</TableHead>
                 <TableHead className="w-px" />
               </TableRow>
             </TableHeader>
@@ -252,8 +242,8 @@ export function ApiTokenPanel({
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      aria-label={`Revoke ${token.name}`}
-                      title={`Revoke ${token.name}`}
+                      aria-label={t("revoke", { name: token.name })}
+                      title={t("revoke", { name: token.name })}
                       onClick={() => setPendingDelete(token)}
                     >
                       <Trash2 aria-hidden />
@@ -267,21 +257,19 @@ export function ApiTokenPanel({
       </Panel>
 
       {legacy.present ? (
-        <Panel title="Token from the old site">
+        <Panel title={t("legacyPanel")}>
           <div className="grid gap-3">
             <p className="text-base text-subtle">
-              An API token imported from DMOJ is still valid on this account
-              {legacy.hint ? (
-                <>
-                  {" "}
-                  (<code className="font-mono text-mono">{legacy.hint}</code>)
-                </>
-              ) : null}
-              . Revoke it once your scripts use a token from above.
+              {legacy.hint
+                ? t.rich("legacyDescriptionWithHint", {
+                    hint: legacy.hint,
+                    code: (chunks) => <code className="font-mono text-mono">{chunks}</code>,
+                  })
+                : t("legacyDescription")}
             </p>
             <div className="flex justify-start">
               <Button variant="secondary" onClick={() => setRevokingLegacy(true)}>
-                Revoke the old token
+                {t("revokeLegacy")}
               </Button>
             </div>
           </div>
@@ -291,13 +279,13 @@ export function ApiTokenPanel({
       <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Revoke {pendingDelete?.name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Anything using it stops working straight away. This cannot be undone.
-            </AlertDialogDescription>
+            <AlertDialogTitle>
+              {t("confirmRevokeTitle", { name: pendingDelete?.name ?? "" })}
+            </AlertDialogTitle>
+            <AlertDialogDescription>{t("confirmRevokeDescription")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep it</AlertDialogCancel>
+            <AlertDialogCancel>{t("keepIt")}</AlertDialogCancel>
             <AlertDialogAction
               aria-busy={working || undefined}
               onClick={(event) => {
@@ -305,7 +293,7 @@ export function ApiTokenPanel({
                 if (pendingDelete) void revoke({ keyId: pendingDelete.id });
               }}
             >
-              {working ? "Revoking…" : "Revoke"}
+              {working ? t("revoking") : t("confirmRevoke")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -314,13 +302,11 @@ export function ApiTokenPanel({
       <AlertDialog open={revokingLegacy} onOpenChange={setRevokingLegacy}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Revoke the token from the old site?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Any script still using the DMOJ token stops working straight away.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t("confirmRevokeLegacyTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("confirmRevokeLegacyDescription")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep it</AlertDialogCancel>
+            <AlertDialogCancel>{t("keepIt")}</AlertDialogCancel>
             <AlertDialogAction
               aria-busy={working || undefined}
               onClick={(event) => {
@@ -328,7 +314,7 @@ export function ApiTokenPanel({
                 void revoke({ legacy: true });
               }}
             >
-              {working ? "Revoking…" : "Revoke"}
+              {working ? t("revoking") : t("confirmRevoke")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

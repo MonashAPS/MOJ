@@ -28,3 +28,7 @@ docs/.vitepress/cache/
 
 # Machine-specific compose overrides (see infra/compose.override.local.example.yml).
 infra/compose.override.local.yml
+
+# SplashKit artifacts for Dockerfile.splashkit-prebuilt: a build input, produced
+# from the source build rather than committed.
+apps/judge/splashkit/

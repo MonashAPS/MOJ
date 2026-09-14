@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth/server";
 
 /** DMOJ's `remove_api_token`, POST only. `{"legacy": true}` revokes the token
@@ -11,6 +12,8 @@ export async function POST(request: NextRequest) {
     body = {};
   }
 
+  const t = await getTranslations("auth.apiToken");
+
   if (body.legacy) {
     const { api } = await import("@convex/_generated/api");
     const { mutateAsViewer } = await import("@/lib/convex-server");
@@ -18,12 +21,12 @@ export async function POST(request: NextRequest) {
       await mutateAsViewer(api.profiles.revokeLegacyApiToken, {});
       return NextResponse.json({ status: true });
     } catch {
-      return NextResponse.json({ error: { message: "That token could not be revoked." } }, { status: 400 });
+      return NextResponse.json({ error: { message: t("revokeFailed") } }, { status: 400 });
     }
   }
 
   if (!body.keyId) {
-    return NextResponse.json({ error: { message: "No token was named." } }, { status: 400 });
+    return NextResponse.json({ error: { message: t("noTokenNamed") } }, { status: 400 });
   }
 
   try {
@@ -32,7 +35,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const status = (error as { statusCode?: number }).statusCode ?? 400;
     return NextResponse.json(
-      { error: { message: "That token could not be revoked." } },
+      { error: { message: t("revokeFailed") } },
       { status: status === 401 ? 401 : 400 },
     );
   }

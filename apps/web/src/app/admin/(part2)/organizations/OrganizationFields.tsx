@@ -1,6 +1,7 @@
 "use client";
 
 import { Checkbox, Field, FieldGroup, Input } from "@moj/ui";
+import { useTranslations } from "next-intl";
 import { MarkdownField } from "../_components/MarkdownField";
 
 export type OrganizationDraft = {
@@ -46,28 +47,25 @@ export function OrganizationFields({
   onChange: (patch: Partial<OrganizationDraft>) => void;
   lockSlug?: boolean;
 }) {
+  const t = useTranslations("admin.organizations.fields");
+
   return (
     <>
       <FieldGroup columns={2}>
-        <Field label="Name" hint="The full name members see.">
+        <Field label={t("name")} hint={t("nameHint")}>
           <Input value={draft.name} onChange={(event) => onChange({ name: event.target.value })} />
         </Field>
-        <Field label="Short name" hint="At most 20 characters, shown beside a username.">
+        <Field label={t("shortName")} hint={t("shortNameHint")}>
           <Input
             maxLength={20}
             value={draft.shortName}
             onChange={(event) => onChange({ shortName: event.target.value })}
           />
         </Field>
-        <Field
-          label="Slug"
-          hint={
-            lockSlug ? "Changing this breaks every existing link." : "Lowercase letters, digits and hyphens."
-          }
-        >
+        <Field label={t("slug")} hint={lockSlug ? t("slugHintLocked") : t("slugHint")}>
           <Input mono value={draft.slug} onChange={(event) => onChange({ slug: event.target.value })} />
         </Field>
-        <Field label="Administrators" hint="Usernames, comma separated. At least one is required.">
+        <Field label={t("admins")} hint={t("adminsHint")}>
           <Input
             mono
             value={draft.adminUsernames}
@@ -75,7 +73,7 @@ export function OrganizationFields({
             placeholder="glipR, suisei"
           />
         </Field>
-        <Field label="Member limit" optional=" (optional)" hint="Blank means no limit.">
+        <Field label={t("memberLimit")} optional={t("optional")} hint={t("memberLimitHint")}>
           <Input
             type="number"
             mono
@@ -83,11 +81,7 @@ export function OrganizationFields({
             onChange={(event) => onChange({ slots: event.target.value })}
           />
         </Field>
-        <Field
-          label="Access code"
-          optional=" (optional)"
-          hint="At most 7 characters; needed to join a closed organisation."
-        >
+        <Field label={t("accessCode")} optional={t("optional")} hint={t("accessCodeHint")}>
           <Input
             mono
             maxLength={7}
@@ -98,8 +92,8 @@ export function OrganizationFields({
       </FieldGroup>
 
       <MarkdownField
-        label="About"
-        hint="Markdown, shown on the organisation's own page."
+        label={t("about")}
+        hint={t("aboutHint")}
         preset="organization-about"
         rows={10}
         value={draft.about}
@@ -112,22 +106,18 @@ export function OrganizationFields({
           onCheckedChange={(value) =>
             onChange({ isOpen: value, classRequired: value ? false : draft.classRequired })
           }
-          label="Open enrollment — anyone can join without a request"
+          label={t("openEnrollment")}
         />
         <Checkbox
           checked={draft.classRequired}
           disabled={draft.isOpen}
-          title={draft.isOpen ? "Class membership cannot be enforced on an open organisation." : undefined}
+          title={draft.isOpen ? t("classRequiredLocked") : undefined}
           onCheckedChange={(value) => onChange({ classRequired: value })}
-          label="Members must belong to a class"
+          label={t("classRequired")}
         />
       </FieldGroup>
 
-      <Field
-        label="Logo"
-        optional=" (optional)"
-        hint="A URL that replaces the site wordmark for this organisation's members."
-      >
+      <Field label={t("logo")} optional={t("optional")} hint={t("logoHint")}>
         <Input
           mono
           value={draft.logoOverrideImage}

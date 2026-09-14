@@ -4,6 +4,7 @@ import { Alert, AlertTitle, Button, Field, Input, Panel } from "@moj/ui";
 import { AlertCircle, KeyRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { authClient } from "@/auth/client";
 import { QrCode } from "@/components/accounts/QrCode";
@@ -25,6 +26,9 @@ function secretFrom(totpUri: string): string {
  *  codes once. Better Auth wants the password before it will mint a secret, so
  *  that is the first step rather than a hidden one. */
 export function EnableTotpForm({ next }: { next: string }) {
+  const t = useTranslations("auth.twoFactor.enable");
+  const tError = useTranslations("auth.errors");
+  const tPassword = useTranslations("auth.password");
   const router = useRouter();
   const [stage, setStage] = useState<Stage>("password");
   const [password, setPassword] = useState("");
@@ -42,18 +46,14 @@ export function EnableTotpForm({ next }: { next: string }) {
       const result = await authClient.twoFactor.enable({ password, issuer: "MOJ" });
       const enrolment = result.data as { totpURI?: string; backupCodes?: string[] } | null;
       if (result.error || !enrolment?.totpURI) {
-        setError(
-          result.error?.status === 400
-            ? "That password is not right."
-            : "Two factor authentication could not be set up. Try again.",
-        );
+        setError(result.error?.status === 400 ? tPassword("wrong") : t("setupFailed"));
         return;
       }
       setTotpUri(enrolment.totpURI);
       setScratchCodes(enrolment.backupCodes ?? []);
       setStage("scan");
     } catch {
-      setError("Something went wrong. Try again.");
+      setError(tError("generic"));
     } finally {
       setBusy(false);
     }
@@ -66,7 +66,7 @@ export function EnableTotpForm({ next }: { next: string }) {
     try {
       const result = await authClient.twoFactor.verifyTotp({ code: value });
       if (result.error) {
-        setError("That code is not right. Wait for the next one and try again.");
+        setError(t("wrongCode"));
         return;
       }
       // No `router.refresh()` here: the page guard sends an account that already
@@ -74,7 +74,7 @@ export function EnableTotpForm({ next }: { next: string }) {
       // codes away before they had been read. The refresh happens on the way out.
       setStage("codes");
     } catch {
-      setError("Something went wrong. Try again.");
+      setError(tError("generic"));
     } finally {
       setBusy(false);
     }
@@ -90,18 +90,16 @@ export function EnableTotpForm({ next }: { next: string }) {
   if (stage === "password") {
     return (
       <AuthCard
-        title="Enable two factor authentication"
-        subtitle="Confirm your password to start."
+        title={t("passwordTitle")}
+        subtitle={t("passwordSubtitle")}
         footer={
-          <span>
-            Changed your mind? <Link href="/accounts/2fa/">Back to two factor authentication</Link>
-          </span>
+          <span>{t.rich("footer", { link: (chunks) => <Link href="/accounts/2fa/">{chunks}</Link> })}</span>
         }
       >
         <form onSubmit={start} noValidate>
           {strip}
           <div className="grid gap-4">
-            <Field label="Password" htmlFor="enable-password">
+            <Field label={t("passwordLabel")} htmlFor="enable-password">
               <Input
                 id="enable-password"
                 name="password"
@@ -116,7 +114,7 @@ export function EnableTotpForm({ next }: { next: string }) {
               />
             </Field>
             <Button type="submit" full busy={busy}>
-              {busy ? "Checking…" : "Continue"}
+              {busy ? t("checking") : t("continue")}
             </Button>
           </div>
         </form>
@@ -127,11 +125,7 @@ export function EnableTotpForm({ next }: { next: string }) {
   if (stage === "scan") {
     const secret = secretFrom(totpUri);
     return (
-      <AuthCard
-        title="Scan this code"
-        subtitle="Add it to your authenticator app, then type the code it shows."
-        footer={<span>No camera? Type the key above into your app by hand instead.</span>}
-      >
+      <AuthCard title={t("scanTitle")} subtitle={t("scanSubtitle")} footer={<span>{t("scanFooter")}</span>}>
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -142,18 +136,18 @@ export function EnableTotpForm({ next }: { next: string }) {
           {strip}
           <div className="grid gap-4">
             <div className="flex justify-center">
-              <QrCode value={totpUri} label="Two factor authentication setup code" />
+              <QrCode value={totpUri} label={t("qrLabel")} />
             </div>
 
-            <Panel title="Or enter this key">
+            <Panel title={t("keyPanel")}>
               <code className="block select-all break-all font-mono text-mono tracking-[.06em] text-foreground">
                 {secret}
               </code>
             </Panel>
 
             <OneTimeCode
-              label="Code from your app"
-              hint="Six digits. The boxes advance as you type and submit on the last one."
+              label={t("codeLabel")}
+              hint={t("codeHint")}
               value={code}
               onChange={setCode}
               onComplete={(value) => void confirm(value)}
@@ -162,7 +156,7 @@ export function EnableTotpForm({ next }: { next: string }) {
             />
 
             <Button type="submit" full busy={busy}>
-              {busy ? "Checking…" : "Enable two factor authentication"}
+              {busy ? t("checking") : t("submit")}
             </Button>
           </div>
         </form>
@@ -172,13 +166,10 @@ export function EnableTotpForm({ next }: { next: string }) {
 
   return (
     <AuthCard
-      title="Two factor authentication is on"
-      subtitle="Save these scratch codes before you go."
+      title={t("doneTitle")}
+      subtitle={t("doneSubtitle")}
       footer={
-        <span>
-          You can generate a new set any time from{" "}
-          <Link href="/accounts/2fa/">two factor authentication</Link>.
-        </span>
+        <span>{t.rich("doneFooter", { link: (chunks) => <Link href="/accounts/2fa/">{chunks}</Link> })}</span>
       }
     >
       <div className="grid gap-5">
@@ -190,7 +181,7 @@ export function EnableTotpForm({ next }: { next: string }) {
             router.refresh();
           }}
         >
-          I have saved them
+          {t("saved")}
         </Button>
       </div>
     </AuthCard>

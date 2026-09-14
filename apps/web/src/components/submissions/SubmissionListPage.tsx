@@ -3,6 +3,7 @@ import { RatingName, type TabItem, TitleRow } from "@moj/ui";
 import { BarChart3, List, User } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { ErrorScreen } from "@/components/ErrorScreen";
 import { queryAsViewer } from "@/lib/convex-server";
@@ -43,12 +44,13 @@ export async function SubmissionListPage({
   bestSubmissionsHref?: string;
   breadcrumb?: ReactNode;
 }) {
+  const t = await getTranslations("submissions.list");
   const context = await loadListContext(filters);
   if (!context.found) notFound();
   // `authInterrupts` is not enabled, so an access failure renders DMOJ's 403
   // page in place rather than throwing an interrupt.
   if (!context.allowed) {
-    return <ErrorScreen code={403} id="AccessDenied" description="Access denied" />;
+    return <ErrorScreen code={403} id="AccessDenied" description={t("accessDenied")} />;
   }
 
   const status = listOf(searchParams.status);
@@ -83,13 +85,13 @@ export async function SubmissionListPage({
       : `/submissions/user/${me}/`
     : null;
   const tabs: TabItem[] = [
-    { key: "all", label: "All", href: allHref, icon: <List aria-hidden /> },
-    ...(myHref ? [{ key: "mine", label: "Mine", href: myHref, icon: <User aria-hidden /> }] : []),
+    { key: "all", label: t("tabAll"), href: allHref, icon: <List aria-hidden /> },
+    ...(myHref ? [{ key: "mine", label: t("tabMine"), href: myHref, icon: <User aria-hidden /> }] : []),
     ...(bestSubmissionsHref
       ? [
           {
             key: "best",
-            label: "Best",
+            label: t("tabBest"),
             href: bestSubmissionsHref,
             icon: <BarChart3 aria-hidden />,
           },
@@ -99,7 +101,7 @@ export async function SubmissionListPage({
       ? [
           {
             key: "user",
-            label: `${context.user.username}'s`,
+            label: t("tabUser", { username: context.user.username }),
             icon: <User aria-hidden />,
           },
         ]
@@ -109,7 +111,7 @@ export async function SubmissionListPage({
   return (
     <>
       <TitleRow
-        title={contentTitle(context, filters, isOwn)}
+        title={await contentTitle(context, filters, isOwn)}
         breadcrumb={breadcrumb}
         tabs={tabs}
         active={tab === "user" ? "user" : tab === "mine" ? "mine" : "all"}
@@ -125,7 +127,7 @@ export async function SubmissionListPage({
           results={results}
           now={Date.now()}
           myHref={myHref}
-          {...emptyCopy(context, isOwn)}
+          {...(await emptyCopy(context, isOwn))}
         />
       </div>
     </>
@@ -133,91 +135,87 @@ export async function SubmissionListPage({
 }
 
 /** DMOJ's `get_content_title`, with the same links inside it. */
-function contentTitle(
+async function contentTitle(
   context: Awaited<ReturnType<typeof loadListContext>>,
   filters: SubmissionListFilters,
   isOwn: boolean,
-): ReactNode {
-  const user = context.user ? (
-    <RatingName
-      username={context.user.username}
-      rating={context.user.rating}
-      href={`/user/${context.user.username}`}
-      isAdmin={context.user.displayRank === "admin"}
-      className="text-h1"
-    />
-  ) : null;
-  const problem = context.problem ? (
-    <Link href={`/problem/${context.problem.code}`} className="text-link hover:text-link-hover">
-      {context.problem.name}
-    </Link>
-  ) : null;
-  const contest = context.contest ? (
-    <Link href={`/contest/${context.contest.key}`} className="text-link hover:text-link-hover">
-      {context.contest.name}
-    </Link>
-  ) : null;
+): Promise<ReactNode> {
+  const t = await getTranslations("submissions.list");
+  const viewedUser = context.user;
+  const viewedProblem = context.problem;
+  const viewedContest = context.contest;
+  const user = viewedUser
+    ? () => (
+        <RatingName
+          username={viewedUser.username}
+          rating={viewedUser.rating}
+          href={`/user/${viewedUser.username}`}
+          isAdmin={viewedUser.displayRank === "admin"}
+          className="text-h1"
+        />
+      )
+    : null;
+  const problem = viewedProblem
+    ? () => (
+        <Link href={`/problem/${viewedProblem.code}`} className="text-link hover:text-link-hover">
+          {viewedProblem.name}
+        </Link>
+      )
+    : null;
+  const contest = viewedContest
+    ? () => (
+        <Link href={`/contest/${viewedContest.key}`} className="text-link hover:text-link-hover">
+          {viewedContest.name}
+        </Link>
+      )
+    : null;
 
   if (contest && problem && user) {
-    return (
-      <>
-        {user}'s submissions for {problem} in {contest}
-      </>
-    );
+    return t.rich("titleUserProblemContest", { user, problem, contest });
   }
   if (contest && user) {
-    return isOwn ? (
-      <>My submissions in {contest}</>
-    ) : (
-      <>
-        {user}'s submissions in {contest}
-      </>
-    );
+    return isOwn ? t.rich("titleMineContest", { contest }) : t.rich("titleUserContest", { user, contest });
   }
   if (problem && user) {
-    return isOwn ? (
-      <>My submissions for {problem}</>
-    ) : (
-      <>
-        {user}'s submissions for {problem}
-      </>
-    );
+    return isOwn ? t.rich("titleMineProblem", { problem }) : t.rich("titleUserProblem", { user, problem });
   }
-  if (problem) return <>All submissions for {problem}</>;
+  if (problem) return t.rich("titleProblem", { problem });
   if (user) {
-    return isOwn ? <>All my submissions</> : <>All submissions by {user}</>;
+    return isOwn ? t("titleMine") : t.rich("titleUser", { user });
   }
-  if (filters.contestKey) return <>Contest submissions</>;
-  return <>All submissions</>;
+  if (filters.contestKey) return t("titleContest");
+  return t("titleAll");
 }
 
 /** Section 20.1: an empty state says what would fill this space. */
-function emptyCopy(
+async function emptyCopy(
   context: Awaited<ReturnType<typeof loadListContext>>,
   isOwn: boolean,
-): { emptyTitle: string; emptyDescription: string; emptyAction?: { label: string; href: string } } {
+): Promise<{ emptyTitle: string; emptyDescription: string; emptyAction?: { label: string; href: string } }> {
+  const t = await getTranslations("submissions.list");
+  const browse = { label: t("browseProblems"), href: "/problems/" };
   if (isOwn) {
     return {
-      emptyTitle: "No submissions yet",
-      emptyDescription: "You haven't submitted anything yet.",
-      emptyAction: { label: "Browse problems", href: "/problems/" },
+      emptyTitle: t("emptyTitle"),
+      emptyDescription: t("emptyMine"),
+      emptyAction: browse,
     };
   }
   if (context.user) {
     return {
-      emptyTitle: "No submissions yet",
-      emptyDescription: `${context.user.username} hasn't submitted anything yet.`,
+      emptyTitle: t("emptyTitle"),
+      emptyDescription: t("emptyUser", { username: context.user.username }),
     };
   }
   if (context.problem) {
     return {
-      emptyTitle: "No submissions yet",
-      emptyDescription: `Nobody has submitted a solution to ${context.problem.name} yet.`,
+      emptyTitle: t("emptyTitle"),
+      emptyDescription: t("emptyProblem", { problem: context.problem.name }),
     };
   }
   return {
-    emptyTitle: "No submissions yet",
-    emptyDescription: "Nothing has been submitted to the judge yet.",
-    emptyAction: { label: "Browse problems", href: "/problems/" },
+    emptyTitle: t("emptyTitle"),
+    emptyDescription: t("emptyAny"),
+    emptyAction: browse,
   };
 }

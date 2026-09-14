@@ -1,7 +1,12 @@
+import { getTranslations } from "next-intl/server";
 import { ErrorScreen } from "@/components/ErrorScreen";
 
-export const metadata = { title: "Page not found" };
+export async function generateMetadata() {
+  const t = await getTranslations("common.error");
+  return { title: t("notFound") };
+}
 
-export default function NotFound() {
-  return <ErrorScreen code={404} id="PageNotFound" description="Page not found" />;
+export default async function NotFound() {
+  const t = await getTranslations("common.error");
+  return <ErrorScreen code={404} id="PageNotFound" description={t("notFound")} />;
 }

@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import { cn, ToggleGroup, ToggleGroupItem, Tooltip } from "@moj/ui";
 import { useMutation } from "convex/react";
 import { Monitor, Moon, Sun } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { THEME_STORAGE_KEY, THEME_SYSTEM, writeThemeCookie } from "@/lib/theme";
 
@@ -90,26 +91,27 @@ export function ThemeSegmented({
   initial?: ThemeChoice;
   className?: string;
 }) {
+  const t = useTranslations("common.nav");
   const [theme, choose] = useTheme(initial);
   return (
     <ToggleGroup
       type="single"
       value={theme}
       onValueChange={(value) => value && choose(value as ThemeChoice)}
-      aria-label="Theme"
+      aria-label={t("theme")}
       className={className}
     >
-      <ToggleGroupItem value="auto" aria-label="Follow the system">
+      <ToggleGroupItem value="auto" aria-label={t("themeFollowSystem")}>
         <Monitor aria-hidden />
-        System
+        {t("themeSystem")}
       </ToggleGroupItem>
-      <ToggleGroupItem value="light" aria-label="Light">
+      <ToggleGroupItem value="light" aria-label={t("themeLight")}>
         <Sun aria-hidden />
-        Light
+        {t("themeLight")}
       </ToggleGroupItem>
-      <ToggleGroupItem value="dark" aria-label="Dark">
+      <ToggleGroupItem value="dark" aria-label={t("themeDark")}>
         <Moon aria-hidden />
-        Dark
+        {t("themeDark")}
       </ToggleGroupItem>
     </ToggleGroup>
   );
@@ -129,10 +131,11 @@ export function ThemeToggle({
   tone?: "surface" | "nav";
   className?: string;
 }) {
+  const t = useTranslations("common.nav");
   const [theme, choose] = useTheme(initial);
   const next: ThemeChoice = theme === "dark" ? "light" : theme === "light" ? "auto" : "dark";
   const Icon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
-  const title = `Theme: ${theme === "auto" ? "system" : theme}. Switch to ${next === "auto" ? "system" : next}.`;
+  const title = t("themeSwitch", { current: theme, next });
 
   return (
     <Tooltip content={title}>
@@ -151,7 +154,7 @@ export function ThemeToggle({
         )}
       >
         <Icon size={16} aria-hidden />
-        {label ? <span>Theme</span> : null}
+        {label ? <span>{t("theme")}</span> : null}
       </button>
     </Tooltip>
   );

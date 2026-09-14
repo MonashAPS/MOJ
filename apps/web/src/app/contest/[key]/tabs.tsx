@@ -1,15 +1,21 @@
 import type { ContestDetail } from "@convex/contests";
 import type { TabItem } from "@moj/ui";
 import { BarChart3, Copy, FileText, Gavel, Info, Pencil, PieChart, Users } from "lucide-react";
+import type { TabLabels } from "@/app/contests/tabs";
 
 /**
  * `contest/contest-tabs.html`, in DMOJ's order: Info, Statistics, Rankings,
  * Participation, MOSS, Edit, Clone — with Submissions added for the contest's
  * own submission list (SPEC section 8's `contest_all_user_submissions`).
  */
-export function contestTabs(detail: ContestDetail, key: string, viewerUsername: string | null): TabItem[] {
+export function contestTabs(
+  detail: ContestDetail,
+  key: string,
+  viewerUsername: string | null,
+  t: TabLabels,
+): TabItem[] {
   const tabs: TabItem[] = [
-    { key: "detail", label: "Info", href: `/contest/${key}/`, icon: <Info aria-hidden /> },
+    { key: "detail", label: t("info"), href: `/contest/${key}/`, icon: <Info aria-hidden /> },
   ];
   const viewer = detail.viewer;
   const started = detail.timing.started;
@@ -17,7 +23,7 @@ export function contestTabs(detail: ContestDetail, key: string, viewerUsername: 
   if (detail.timing.ended || viewer.canEdit) {
     tabs.push({
       key: "stats",
-      label: "Statistics",
+      label: t("statistics"),
       href: `/contest/${key}/stats/`,
       icon: <PieChart aria-hidden />,
     });
@@ -27,27 +33,27 @@ export function contestTabs(detail: ContestDetail, key: string, viewerUsername: 
     if (viewer.canSeeOwnScoreboard) {
       tabs.push({
         key: "ranking",
-        label: "Rankings",
+        label: t("rankings"),
         href: `/contest/${key}/ranking/`,
         icon: <BarChart3 aria-hidden />,
       });
       if (viewer.isAuthenticated) {
         tabs.push({
           key: "participation",
-          label: "Participation",
+          label: t("participation"),
           href: `/contest/${key}/participations/`,
           icon: <Users aria-hidden />,
         });
       }
     } else {
-      tabs.push({ key: "ranking", label: "Hidden rankings", icon: <BarChart3 aria-hidden /> });
+      tabs.push({ key: "ranking", label: t("hiddenRankings"), icon: <BarChart3 aria-hidden /> });
     }
   }
 
   if (viewerUsername) {
     tabs.push({
       key: "submissions",
-      label: "Submissions",
+      label: t("submissions"),
       href: `/contest/${key}/submissions/${viewerUsername}/`,
       icon: <FileText aria-hidden />,
     });
@@ -55,18 +61,28 @@ export function contestTabs(detail: ContestDetail, key: string, viewerUsername: 
 
   if (viewer.canEdit) {
     if (viewer.canMoss) {
-      tabs.push({ key: "moss", label: "MOSS", href: `/contest/${key}/moss/`, icon: <Gavel aria-hidden /> });
+      tabs.push({
+        key: "moss",
+        label: t("moss"),
+        href: `/contest/${key}/moss/`,
+        icon: <Gavel aria-hidden />,
+      });
     }
     tabs.push({
       key: "edit",
-      label: "Edit",
+      label: t("edit"),
       href: `/admin/contests/${key}/`,
       icon: <Pencil aria-hidden />,
     });
   }
 
   if (viewer.canClone) {
-    tabs.push({ key: "clone", label: "Clone", href: `/contest/${key}/clone/`, icon: <Copy aria-hidden /> });
+    tabs.push({
+      key: "clone",
+      label: t("clone"),
+      href: `/contest/${key}/clone/`,
+      icon: <Copy aria-hidden />,
+    });
   }
 
   return tabs;

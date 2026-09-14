@@ -2,6 +2,7 @@ import { api } from "@convex/_generated/api";
 import { Button, cn, EmptyState, RatingName, TitleRow, TwoColumn } from "@moj/ui";
 import { ArrowRight, MessageSquare, Newspaper, Pin, Rss } from "lucide-react";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { getServerSession } from "@/auth/session";
 import { HomeTopSlot } from "@/components/home/HomeTopSlot";
 import { ContestsBox, NewProblemsBox, RecentCommentsBox, TopUsersBox } from "@/components/home/SideBoxes";
@@ -9,12 +10,17 @@ import { query, queryAsViewer } from "@/lib/convex-server";
 import { formatDate, formatRelative } from "@/lib/format";
 import { renderContent } from "@/lib/markdown";
 
-export const metadata = { title: "Home" };
+export async function generateMetadata() {
+  const t = await getTranslations("common.nav");
+  return { title: t("home") };
+}
+
 export const dynamic = "force-dynamic";
 
 const DAY = 24 * 3600_000;
 
 export default async function HomePage() {
+  const t = await getTranslations("common.home");
   const [misc, posts, session] = await Promise.all([
     query(api.site.miscConfig, {}).catch(() => ({}) as Record<string, string>),
     queryAsViewer(api.blog.list, { limit: 10 }).catch(() => []),
@@ -32,7 +38,7 @@ export default async function HomePage() {
   return (
     <>
       <TitleRow
-        title="News"
+        title={t("news")}
         action={
           <>
             <Button asChild variant="ghost" size="sm" icon={<Rss aria-hidden />}>
@@ -60,8 +66,8 @@ export default async function HomePage() {
         {posts.length === 0 ? (
           <EmptyState
             icon={<Newspaper aria-hidden />}
-            title="No announcements yet"
-            description="Club news, contest calls and post-mortems will show up here."
+            title={t("emptyTitle")}
+            description={t("emptyDescription")}
           />
         ) : (
           <div className="grid gap-4">
@@ -77,7 +83,7 @@ export default async function HomePage() {
               >
                 <h2 className="flex items-start gap-2">
                   {post.sticky ? (
-                    <Pin size={14} aria-label="Pinned" className="mt-1.5 shrink-0 text-royal" />
+                    <Pin size={14} aria-label={t("pinned")} className="mt-1.5 shrink-0 text-royal" />
                   ) : null}
                   <Link
                     href={post.href}
@@ -110,7 +116,7 @@ export default async function HomePage() {
                       : formatDate(post.publishOn)}
                   </time>
                   <span aria-hidden>·</span>
-                  <span>{plural(post.commentCount, "comment")}</span>
+                  <span>{t("comments", { count: post.commentCount })}</span>
                 </p>
 
                 {summaries[index] ? (
@@ -133,7 +139,7 @@ export default async function HomePage() {
                       "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-royal/45",
                     )}
                   >
-                    read more
+                    {t("readMore")}
                     <ArrowRight
                       size={14}
                       aria-hidden
@@ -146,7 +152,7 @@ export default async function HomePage() {
                   >
                     <MessageSquare size={14} aria-hidden />
                     <span className="font-mono tabular-nums">{post.commentCount}</span>
-                    <span className="sr-only">{plural(post.commentCount, "comment")}</span>
+                    <span className="sr-only">{t("comments", { count: post.commentCount })}</span>
                   </Link>
                 </div>
               </article>
@@ -156,10 +162,6 @@ export default async function HomePage() {
       </TwoColumn>
     </>
   );
-}
-
-function plural(count: number, noun: string): string {
-  return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }
 
 function firstParagraph(content: string): string {

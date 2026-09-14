@@ -4,17 +4,18 @@ import { api } from "@convex/_generated/api";
 import { ConvexError } from "convex/values";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { mutateAsViewer } from "@/lib/convex-server";
 
 export type JoinResult = { error: string } | never;
 
-function messageOf(error: unknown): string {
+function messageOf(error: unknown, fallback: string): string {
   if (error instanceof ConvexError) {
     const data = error.data as { message?: string; reason?: string } | string;
     if (typeof data === "string") return data;
-    return data.message ?? "You are not able to join this contest.";
+    return data.message ?? fallback;
   }
-  return error instanceof Error ? error.message : "You are not able to join this contest.";
+  return error instanceof Error ? error.message : fallback;
 }
 
 function reasonOf(error: unknown): string | null {
@@ -32,9 +33,10 @@ function reasonOf(error: unknown): string | null {
  * DMOJ redirects back to `request.path`.
  */
 export async function joinContest(_state: JoinResult | null, formData: FormData): Promise<JoinResult> {
+  const t = await getTranslations("contests.actions");
   const key = String(formData.get("key") ?? "");
   const accessCode = formData.get("accessCode");
-  if (!key) return { error: "No such contest." };
+  if (!key) return { error: t("noSuchContest") };
 
   try {
     await mutateAsViewer(api.contests.join, {
@@ -43,10 +45,10 @@ export async function joinContest(_state: JoinResult | null, formData: FormData)
     });
   } catch (error) {
     if (reasonOf(error) === "accessCodeRequired") {
-      if (typeof accessCode === "string" && accessCode) return { error: "Invalid access code." };
+      if (typeof accessCode === "string" && accessCode) return { error: t("invalidAccessCode") };
       redirect(`/contest/${key}/join/`);
     }
-    return { error: messageOf(error) };
+    return { error: messageOf(error, t("cannotJoin")) };
   }
 
   revalidatePath("/contests");
@@ -56,12 +58,13 @@ export async function joinContest(_state: JoinResult | null, formData: FormData)
 
 /** `ContestLeave.post` (contests.py:468): back to the contest page. */
 export async function leaveContest(_state: JoinResult | null, formData: FormData): Promise<JoinResult> {
+  const t = await getTranslations("contests.actions");
   const key = String(formData.get("key") ?? "");
-  if (!key) return { error: "No such contest." };
+  if (!key) return { error: t("noSuchContest") };
   try {
     await mutateAsViewer(api.contests.leave, { key });
   } catch (error) {
-    return { error: messageOf(error) };
+    return { error: messageOf(error, t("cannotJoin")) };
   }
   revalidatePath(`/contest/${key}`);
   redirect(`/contest/${key}/`);
@@ -71,13 +74,14 @@ export type CloneResult = { error: string } | never;
 
 /** `ContestClone.form_valid` (contests.py:317): the clone opens in the admin. */
 export async function cloneContest(_state: CloneResult | null, formData: FormData): Promise<CloneResult> {
+  const t = await getTranslations("contests.actions");
   const key = String(formData.get("key") ?? "");
   const newKey = String(formData.get("newKey") ?? "").trim();
-  if (!newKey) return { error: "Enter a new id for the cloned contest." };
+  if (!newKey) return { error: t("newKeyRequired") };
   try {
     await mutateAsViewer(api.contests.clone, { key, newKey });
   } catch (error) {
-    return { error: messageOf(error) };
+    return { error: messageOf(error, t("cannotJoin")) };
   }
   redirect(`/admin/contests/${newKey}/`);
 }

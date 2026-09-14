@@ -1,6 +1,7 @@
 import { api } from "@convex/_generated/api";
 import { EmptyState, TitleRow } from "@moj/ui";
 import { Building2 } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { queryAsViewer } from "@/lib/convex-server";
 import { Crumbs } from "../../_components/Crumbs";
 import { OrganizationEditor } from "./OrganizationEditor";
@@ -14,13 +15,13 @@ export default async function AdminOrganizationPage({ params }: { params: Promis
   const { slug: raw } = await params;
   const slug = decodeURIComponent(raw);
 
-  const organization = await queryAsViewer(api.admin.organizations.get, { slug }).catch(() => null);
+  const [t, organization] = await Promise.all([
+    getTranslations("admin.organizations.detail"),
+    queryAsViewer(api.admin.organizations.get, { slug }).catch(() => null),
+  ]);
   const crumbs = (
     <Crumbs
-      items={[
-        { label: "Organizations", href: "/admin/organizations/" },
-        { label: organization?.name ?? slug },
-      ]}
+      items={[{ label: t("crumb"), href: "/admin/organizations/" }, { label: organization?.name ?? slug }]}
     />
   );
 
@@ -30,8 +31,8 @@ export default async function AdminOrganizationPage({ params }: { params: Promis
         <TitleRow title={slug} breadcrumb={crumbs} />
         <EmptyState
           icon={<Building2 aria-hidden />}
-          title="No such organization"
-          description={`Nothing on this site has the slug ${slug}.`}
+          title={t("notFoundTitle")}
+          description={t("notFoundDescription", { slug })}
         />
       </>
     );

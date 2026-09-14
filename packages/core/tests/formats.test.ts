@@ -443,20 +443,24 @@ describe("bestSolutionState", () => {
 describe("getShortFormDisplay", () => {
   it("describes each format", () => {
     expect(getFormat("default").getShortFormDisplay()).toHaveLength(2);
-    expect(getFormat("ioi").getShortFormDisplay({ cumtime: false })).toContain(
-      "Ties by score will **not** be broken.",
-    );
-    expect(getFormat("ioi16").getShortFormDisplay()[0]).toBe(
-      "The maximum score for each problem batch will be used.",
-    );
-    expect(getFormat("icpc").getShortFormDisplay({ penalty: 1 })[1]).toContain("1 minute**");
-    expect(getFormat("atcoder").getShortFormDisplay()[1]).toContain("5 minutes**");
+    expect(getFormat("ioi").getShortFormDisplay({ cumtime: false })).toContainEqual({
+      key: "tiesNotBroken",
+    });
+    expect(getFormat("ioi16").getShortFormDisplay()[0]).toEqual({ key: "maxScoreBatch" });
+    expect(getFormat("icpc").getShortFormDisplay({ penalty: 1 })[1]).toEqual({
+      key: "penalty",
+      values: { minutes: 1 },
+    });
+    expect(getFormat("atcoder").getShortFormDisplay()[1]).toEqual({
+      key: "penalty",
+      values: { minutes: 5 },
+    });
     expect(getFormat("atcoder").getShortFormDisplay({ penalty: 0 })).toHaveLength(2);
     expect(getFormat("ecoo").getShortFormDisplay()).toEqual([
-      "The score on your **last** non-CE submission for each problem will be used.",
-      "There is a **10 bonus** for fully solving on your first non-CE submission.",
-      "For every **5 minutes** you submit before the end of your window, there will be a **1** point bonus.",
-      "Ties by score will **not** be broken.",
+      { key: "lastNonCeSubmission" },
+      { key: "firstAcBonus", values: { bonus: 10 } },
+      { key: "timeBonus", values: { minutes: 5 } },
+      { key: "tiesNotBroken" },
     ]);
   });
 });

@@ -2,21 +2,24 @@ import { api } from "@convex/_generated/api";
 import { Button, TitleRow } from "@moj/ui";
 import { CalendarPlus } from "lucide-react";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { queryAsViewer } from "@/lib/convex-server";
 import { ContestListClient } from "./ContestListClient";
 import { type ContestListArgs, PAST_PER_PAGE } from "./shared";
 import { contestListTabs } from "./tabs";
 
-export const metadata: Metadata = {
-  title: "Contests",
-  description: "The MAPS Online Judge's contest list — past, present, and future.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("contests.list");
+  return { title: t("title"), description: t("description") };
+}
 
 export default async function ContestsPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const t = await getTranslations("contests.list");
+  const tabs = await getTranslations("contests.tabs");
   const params = await searchParams;
   const single = (name: string): string | undefined => {
     const value = params[name];
@@ -55,16 +58,17 @@ export default async function ContestsPage({
   return (
     <>
       <TitleRow
-        title="Contests"
+        title={t("title")}
         tabs={contestListTabs({
           year: now.getFullYear(),
           month: now.getMonth() + 1,
           canEdit: canEditContests,
+          t: tabs,
         })}
         active="list"
         action={
           <Button asChild variant="secondary" size="sm" icon={<CalendarPlus aria-hidden />}>
-            <a href="/contests.ics">Subscribe</a>
+            <a href="/contests.ics">{t("subscribe")}</a>
           </Button>
         }
       />

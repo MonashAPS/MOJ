@@ -23,8 +23,9 @@ import {
 import { useQuery } from "convex/react";
 import { BookOpen, CircleHelp, Clock } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { JoinControl } from "@/components/contests/JoinControls";
-import { ContestChips, humanDuration, OPEN_ENDED, ProblemStateIcon } from "@/components/contests/pieces";
+import { ContestChips, OPEN_ENDED, ProblemStateIcon, useHumanDuration } from "@/components/contests/pieces";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { formatDateTime, formatPoints } from "@/lib/format";
 import { Clarifications } from "./Clarifications";
@@ -34,6 +35,9 @@ const DASH = "—";
 
 /** DMOJ's `#banner`: one sentence saying where the viewer stands in the clock. */
 function Banner({ detail }: { detail: ContestDetail }) {
+  const t = useTranslations("contests.detail");
+  const windowCopy = useTranslations("contests.duration");
+  const humanDuration = useHumanDuration();
   const contest = detail.contest;
   const participation = detail.participation;
   const live = detail.liveParticipation;
@@ -57,14 +61,13 @@ function Banner({ detail }: { detail: ContestDetail }) {
   const clock = readable ? formatDuration(remaining) : null;
 
   let sentence: string;
-  if (spectating) sentence = clock ? `Spectating, contest ends in ${clock}.` : "Spectating.";
-  else if (virtual)
-    sentence = clock ? `Participating virtually, ${clock} remaining.` : "Participating virtually.";
-  else if (!detail.timing.started) sentence = clock ? `Starting in ${clock}.` : "Not started yet.";
-  else if (detail.timing.ended) sentence = "Contest is over.";
-  else if (live?.ended) sentence = clock ? `Your time is up! Contest ends in ${clock}.` : "Your time is up!";
-  else if (live) sentence = clock ? `You have ${clock} remaining.` : "Participating.";
-  else sentence = clock ? `Contest ends in ${clock}.` : "Contest is running.";
+  if (spectating) sentence = clock ? t("spectatingEndsIn", { time: clock }) : t("spectating");
+  else if (virtual) sentence = clock ? t("virtualRemaining", { time: clock }) : t("virtual");
+  else if (!detail.timing.started) sentence = clock ? t("startingIn", { time: clock }) : t("notStarted");
+  else if (detail.timing.ended) sentence = t("over");
+  else if (live?.ended) sentence = clock ? t("timeUpEndsIn", { time: clock }) : t("timeUp");
+  else if (live) sentence = clock ? t("remaining", { time: clock }) : t("participating");
+  else sentence = clock ? t("endsIn", { time: clock }) : t("running");
 
   const urgent = readable && remaining !== null && remaining < 300_000 && !detail.timing.ended;
 
@@ -77,10 +80,17 @@ function Banner({ detail }: { detail: ContestDetail }) {
       {contest ? (
         <span className="font-mono text-sm tabular-nums text-muted-foreground">
           {contest.timeLimit
-            ? `${humanDuration(contest.timeLimit * 1000)} window between ${formatDateTime(contest.startTime)} and ${formatDateTime(contest.endTime)}`
+            ? windowCopy("windowBetween", {
+                duration: humanDuration(contest.timeLimit * 1000),
+                start: formatDateTime(contest.startTime),
+                end: formatDateTime(contest.endTime),
+              })
             : contest.endTime - contest.startTime > OPEN_ENDED
-              ? `Open-ended, starting on ${formatDateTime(contest.startTime)}`
-              : `${humanDuration(contest.endTime - contest.startTime)} long, starting on ${formatDateTime(contest.startTime)}`}
+              ? windowCopy("openEndedStarting", { start: formatDateTime(contest.startTime) })
+              : windowCopy("lengthStarting", {
+                  duration: humanDuration(contest.endTime - contest.startTime),
+                  start: formatDateTime(contest.startTime),
+                })}
         </span>
       ) : null}
     </div>
@@ -102,18 +112,22 @@ function ProblemRow({
   ended: boolean;
   precision: number;
 }) {
+  const t = useTranslations("contests.detail");
+  const states = useTranslations("contests.problemState");
+  const columns = useTranslations("contests.columns");
+
   const solvedNote =
     problem.state === "solved"
       ? ended && problem.solvedSinceContest
-        ? "Solved since the contest"
+        ? t("solvedSince")
         : problem.solvedDuringContest
-          ? "Solved during the contest"
-          : "Solved"
+          ? t("solvedDuring")
+          : states("solved")
       : problem.state === "partial"
-        ? "Partially solved"
+        ? states("partial")
         : problem.state === "attempted"
-          ? "Attempted"
-          : "Not attempted";
+          ? states("attempted")
+          : states("untouched");
 
   return (
     <TableRow className="group">
@@ -138,7 +152,7 @@ function ProblemRow({
           <span className="font-mono text-sm text-muted-foreground">{problem.code}</span>
           {problem.isPretested ? (
             <Badge variant="neutral" shape="square" mono>
-              pretested
+              {t("pretested")}
             </Badge>
           ) : null}
         </span>
@@ -152,7 +166,11 @@ function ProblemRow({
           {problem.state === "untouched" ? (
             <span className="text-muted-foreground">{DASH}</span>
           ) : ended && problem.contestBestScore !== problem.bestScore ? (
-            <Tooltip content={`${formatPoints(problem.contestBestScore, precision)} during the contest`}>
+            <Tooltip
+              content={t("scoreDuringContest", {
+                points: formatPoints(problem.contestBestScore, precision),
+              })}
+            >
               <span>
                 {formatPoints(problem.bestScore, precision)}
                 <span className="text-muted-foreground">{` / ${formatPoints(problem.points, precision)}`}</span>
@@ -177,10 +195,10 @@ function ProblemRow({
       {showEditorials ? (
         <TableCell className="relative z-1 w-20">
           {problem.isAccessible && problem.hasPublicEditorial ? (
-            <Tooltip content="Editorial">
+            <Tooltip content={columns("editorial")}>
               <Link href={`/problem/${problem.code}/editorial/`} className="text-good">
                 <BookOpen size={14} aria-hidden />
-                <span className="sr-only">Editorial</span>
+                <span className="sr-only">{columns("editorial")}</span>
               </Link>
             </Tooltip>
           ) : (
@@ -222,76 +240,82 @@ function UserList({
   );
 }
 
-const SCOREBOARD_COPY: Record<string, string> = {
-  V: "Visible for the duration of the contest.",
-  C: "Hidden until your window is over.",
-  P: "Hidden for the entire duration of the contest.",
-  H: "Hidden, even after the contest is over.",
+const SCOREBOARD_KEYS: Record<string, string> = {
+  V: "scoreboardVisible",
+  C: "scoreboardAfterWindow",
+  P: "scoreboardHidden",
+  H: "scoreboardAlwaysHidden",
 };
 
 function Sidebar({ detail }: { detail: ContestDetail }) {
+  const t = useTranslations("contests.detail");
+  const duration = useTranslations("contests.duration");
+  const scoring = useTranslations("contests.scoring");
+  const humanDuration = useHumanDuration();
   const contest = detail.contest;
   if (!contest) return null;
 
+  // The bounds go in as text: they are ratings, not quantities, and a
+  // thousands separator in "rated between 1,200 and 1,800" reads as a mistake.
   const ratingLine = !contest.isRated
-    ? "This contest will not be rated."
+    ? t("notRated")
     : contest.ratingFloor !== null && contest.ratingCeiling !== null
-      ? `Rated for participants rated between ${contest.ratingFloor} and ${contest.ratingCeiling}.`
+      ? t("ratedBetween", { floor: String(contest.ratingFloor), ceiling: String(contest.ratingCeiling) })
       : contest.ratingFloor !== null
-        ? `Rated for participants rated at least ${contest.ratingFloor}.`
+        ? t("ratedAtLeast", { floor: String(contest.ratingFloor) })
         : contest.ratingCeiling !== null
-          ? `Rated for participants rated at most ${contest.ratingCeiling}.`
-          : "This contest is rated.";
+          ? t("ratedAtMost", { ceiling: String(contest.ratingCeiling) })
+          : t("isRated");
 
   return (
     <>
-      <Panel title="Contest" bodyClassName="p-0">
-        <InfoRow label="Starts">
+      <Panel title={t("panelContest")} bodyClassName="p-0">
+        <InfoRow label={t("starts")}>
           <span className="font-mono text-sm tabular-nums">{formatDateTime(contest.startTime)}</span>
         </InfoRow>
-        <InfoRow label="Ends">
+        <InfoRow label={t("ends")}>
           <span className="font-mono text-sm tabular-nums">
             {contest.endTime - contest.startTime > OPEN_ENDED ? DASH : formatDateTime(contest.endTime)}
           </span>
         </InfoRow>
-        <InfoRow label={contest.timeLimit ? "Window" : "Duration"}>
+        <InfoRow label={contest.timeLimit ? t("window") : t("duration")}>
           <span className="font-mono text-sm tabular-nums">
             {contest.timeLimit
               ? humanDuration(contest.timeLimit * 1000)
               : contest.endTime - contest.startTime > OPEN_ENDED
-                ? "Open-ended"
+                ? duration("openEnded")
                 : humanDuration(contest.endTime - contest.startTime)}
           </span>
         </InfoRow>
-        <InfoRow label="Format">
+        <InfoRow label={t("format")}>
           <span>{detail.format.displayName}</span>
         </InfoRow>
-        <InfoRow label="Rated">{ratingLine}</InfoRow>
-        <InfoRow label="Scoreboard">
-          {SCOREBOARD_COPY[contest.scoreboardVisibility] ?? "Visible for the duration of the contest."}
+        <InfoRow label={t("rated")}>{ratingLine}</InfoRow>
+        <InfoRow label={t("scoreboard")}>
+          {t(SCOREBOARD_KEYS[contest.scoreboardVisibility] ?? "scoreboardVisible")}
         </InfoRow>
         {contest.freezeMinutes > 0 ? (
-          <InfoRow label="Freeze">
+          <InfoRow label={t("freeze")}>
             <span className="font-mono text-sm tabular-nums">
-              {contest.freezeMinutes} minutes before the end
+              {t("freezeBeforeEnd", { count: contest.freezeMinutes })}
             </span>
           </InfoRow>
         ) : null}
-        <InfoRow label="Users">
+        <InfoRow label={t("users")}>
           <Link href={`/contest/${contest.key}/ranking/`} className="font-mono text-sm tabular-nums">
             {contest.userCount}
           </Link>
         </InfoRow>
         {detail.viewer.requiresAccessCode ? (
-          <InfoRow label="Access">An access code is required to join.</InfoRow>
+          <InfoRow label={t("access")}>{t("accessCodeRequired")}</InfoRow>
         ) : null}
       </Panel>
 
       {detail.format.shortFormDisplay.length > 0 ? (
-        <Panel title="Scoring" bodyClassName="p-3">
+        <Panel title={t("panelScoring")} bodyClassName="p-3">
           <ul className="grid gap-2 text-sm text-subtle">
             {detail.format.shortFormDisplay.map((line) => (
-              <li key={line}>{emphasise(line)}</li>
+              <li key={line.key}>{emphasise(scoring(line.key, line.values))}</li>
             ))}
           </ul>
         </Panel>
@@ -301,24 +325,24 @@ function Sidebar({ detail }: { detail: ContestDetail }) {
       contest.testers.length > 0 ||
       contest.curators.length > 0 ||
       contest.spectators.length > 0 ? (
-        <Panel title="People" bodyClassName="p-0">
+        <Panel title={t("panelPeople")} bodyClassName="p-0">
           {contest.authors.length > 0 ? (
-            <InfoRow label={contest.authors.length === 1 ? "Author" : "Authors"}>
+            <InfoRow label={t("authors", { count: contest.authors.length })}>
               <UserList users={contest.authors} />
             </InfoRow>
           ) : null}
           {contest.curators.length > 0 ? (
-            <InfoRow label={contest.curators.length === 1 ? "Curator" : "Curators"}>
+            <InfoRow label={t("curators", { count: contest.curators.length })}>
               <UserList users={contest.curators} />
             </InfoRow>
           ) : null}
           {contest.testers.length > 0 ? (
-            <InfoRow label={contest.testers.length === 1 ? "Tester" : "Testers"}>
+            <InfoRow label={t("testers", { count: contest.testers.length })}>
               <UserList users={contest.testers} />
             </InfoRow>
           ) : null}
           {contest.spectators.length > 0 ? (
-            <InfoRow label={contest.spectators.length === 1 ? "Spectator" : "Spectators"}>
+            <InfoRow label={t("spectators", { count: contest.spectators.length })}>
               <UserList users={contest.spectators} />
             </InfoRow>
           ) : null}
@@ -339,6 +363,9 @@ export function ContestDetailClient({
   descriptionHtml: string;
   viewerUsername: string | null;
 }) {
+  const t = useTranslations("contests.detail");
+  const columns = useTranslations("contests.columns");
+  const tabLabels = useTranslations("contests.tabs");
   const live = useQuery(api.contests.get, { key: contestKey });
   const detail = live?.contest ? live : initial;
   const contest = detail.contest;
@@ -371,7 +398,7 @@ export function ContestDetailClient({
             />
           </span>
         }
-        tabs={contestTabs(detail, contestKey, viewerUsername)}
+        tabs={contestTabs(detail, contestKey, viewerUsername, tabLabels)}
         active="detail"
         action={
           joinKind ? (
@@ -395,25 +422,25 @@ export function ContestDetailClient({
           <section className="mt-8 grid gap-2">
             <h2 className="flex items-center gap-2 font-display text-h2 font-semibold">
               <CircleHelp size={18} className="text-muted-foreground" aria-hidden />
-              Problems
+              {t("problems")}
             </h2>
             <Table>
               <TableHeader>
                 <TableRow>
                   {showState ? <TableHead className="w-7" /> : null}
-                  <TableHead className="w-full">Problem</TableHead>
-                  <TableHead numeric>Points</TableHead>
-                  {showState ? <TableHead numeric>Your score</TableHead> : null}
-                  <TableHead numeric>AC rate</TableHead>
-                  <TableHead numeric>Users</TableHead>
+                  <TableHead className="w-full">{columns("problem")}</TableHead>
+                  <TableHead numeric>{columns("points")}</TableHead>
+                  {showState ? <TableHead numeric>{columns("yourScore")}</TableHead> : null}
+                  <TableHead numeric>{columns("acRate")}</TableHead>
+                  <TableHead numeric>{columns("users")}</TableHead>
                   {detail.metadata.hasPublicEditorials ? (
-                    <TableHead className="w-20">Editorial</TableHead>
+                    <TableHead className="w-20">{columns("editorial")}</TableHead>
                   ) : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {detail.problems.length === 0 ? (
-                  <EmptyRow colSpan={7}>This contest has no problems.</EmptyRow>
+                  <EmptyRow colSpan={7}>{t("noProblems")}</EmptyRow>
                 ) : (
                   detail.problems.map((problem) => (
                     <ProblemRow
@@ -432,10 +459,7 @@ export function ContestDetailClient({
             {detail.timing.ended &&
             showState &&
             detail.problems.some((problem) => problem.state !== "untouched") ? (
-              <p className="text-sm text-muted-foreground">
-                A tick marks a problem you have solved; hover it to see whether the solve landed during the
-                contest or since.
-              </p>
+              <p className="text-sm text-muted-foreground">{t("tickNote")}</p>
             ) : null}
           </section>
         ) : null}

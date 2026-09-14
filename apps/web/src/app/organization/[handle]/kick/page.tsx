@@ -2,6 +2,7 @@ import { api } from "@convex/_generated/api";
 import { TitleRow } from "@moj/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { ErrorScreen } from "@/components/ErrorScreen";
 import { queryAsViewer } from "@/lib/convex-server";
 import { organizationHref, slugFromHandle } from "@/lib/organizations";
@@ -11,17 +12,22 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
-  return { title: `Remove a member from ${slugFromHandle(handle)}` };
+  const t = await getTranslations("organizations.kick");
+  return { title: t("title", { organization: slugFromHandle(handle) }) };
 }
 
 export default async function KickMemberPage({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
   const slug = slugFromHandle(handle);
+  const [t, shared] = await Promise.all([
+    getTranslations("organizations.kick"),
+    getTranslations("organizations.common"),
+  ]);
 
   const organization = await queryAsViewer(api.organizations.get, { slug });
   if (!organization) notFound();
   if (!organization.viewer.canEdit) {
-    return <ErrorScreen code={403} id="AccessDenied" description="Access denied" />;
+    return <ErrorScreen code={403} id="AccessDenied" description={shared("accessDenied")} />;
   }
 
   const members = await queryAsViewer(api.organizations.members, { slug, page: 1 }).catch(() => null);
@@ -30,7 +36,7 @@ export default async function KickMemberPage({ params }: { params: Promise<{ han
   return (
     <>
       <TitleRow
-        title={`Remove a member from ${organization.name}`}
+        title={t("title", { organization: organization.name })}
         breadcrumb={
           <Link href={base} className="hover:underline">
             {organization.name}

@@ -29,6 +29,7 @@ import {
 } from "@moj/ui";
 import { AlertCircle, Fingerprint, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import type { PasskeySummary } from "@/auth/account-state";
 import { authClient } from "@/auth/client";
@@ -44,6 +45,8 @@ export function PasskeyManager({
   passkeys: PasskeySummary[];
   lastFactorLocked: boolean;
 }) {
+  const t = useTranslations("auth.twoFactor");
+  const tError = useTranslations("auth.errors");
   const router = useRouter();
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -68,11 +71,11 @@ export function PasskeyManager({
     try {
       const result = await authClient.passkey.addPasskey({ name: name.trim() || "Passkey" });
       if (result?.error) {
-        setError("That passkey could not be registered. Try again.");
+        setError(t("passkeys.registerFailed"));
         return;
       }
       setName("");
-      setNotice("Your passkey is registered.");
+      setNotice(t("passkeys.registered"));
       router.refresh();
     } catch {
       // A cancelled browser prompt is a decision, not a failure.
@@ -89,14 +92,14 @@ export function PasskeyManager({
       const response = await fetch(`/accounts/2fa/webauthn/delete/${passkey.id}/`, { method: "POST" });
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
-        setError(body?.error?.message ?? "That passkey could not be removed.");
+        setError(body?.error?.message ?? t("passkeys.removeFailed"));
         return;
       }
       setPendingDelete(null);
-      setNotice(`${passkey.name} has been removed.`);
+      setNotice(t("passkeys.removed", { name: passkey.name }));
       router.refresh();
     } catch {
-      setError("Something went wrong. Try again.");
+      setError(tError("generic"));
     } finally {
       setDeleting(false);
     }
@@ -117,20 +120,16 @@ export function PasskeyManager({
         </Alert>
       ) : null}
 
-      <Panel title="Register a passkey">
+      <Panel title={t("passkeys.registerPanel")}>
         <form onSubmit={register} noValidate className="grid gap-4">
-          <Field
-            label="Name"
-            htmlFor="passkey-name"
-            hint="Something you will recognise later, like “work laptop” or “YubiKey”."
-          >
+          <Field label={t("passkeys.nameLabel")} htmlFor="passkey-name" hint={t("passkeys.nameHint")}>
             <Input
               id="passkey-name"
               name="name"
               maxLength={100}
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Work laptop"
+              placeholder={t("passkeys.namePlaceholder")}
             />
           </Field>
           <div className="flex flex-wrap items-center gap-2">
@@ -139,34 +138,32 @@ export function PasskeyManager({
               busy={busy}
               icon={<Fingerprint aria-hidden />}
               disabled={!supported}
-              title={supported ? undefined : "This browser does not support passkeys."}
+              title={supported ? undefined : t("passkeys.unsupported")}
             >
-              {busy ? "Waiting for your device…" : "Register a passkey"}
+              {busy ? t("passkeys.registerBusy") : t("passkeys.register")}
             </Button>
             {!supported ? (
-              <span className="text-sm text-muted-foreground">This browser does not support passkeys.</span>
+              <span className="text-sm text-muted-foreground">{t("passkeys.unsupported")}</span>
             ) : null}
           </div>
         </form>
       </Panel>
 
-      <Panel title="Your passkeys" bodyClassName={passkeys.length > 0 ? "p-0" : undefined}>
+      <Panel title={t("passkeys.listPanel")} bodyClassName={passkeys.length > 0 ? "p-0" : undefined}>
         {passkeys.length === 0 ? (
           <Empty>
             <EmptyMedia>
               <Fingerprint aria-hidden />
             </EmptyMedia>
-            <EmptyTitle>No passkeys yet</EmptyTitle>
-            <EmptyDescription>
-              Register one above and you can sign in with your fingerprint, face or hardware key.
-            </EmptyDescription>
+            <EmptyTitle>{t("passkeys.emptyTitle")}</EmptyTitle>
+            <EmptyDescription>{t("passkeys.emptyDescription")}</EmptyDescription>
           </Empty>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Registered</TableHead>
+                <TableHead>{t("passkeys.columnName")}</TableHead>
+                <TableHead>{t("passkeys.columnRegistered")}</TableHead>
                 <TableHead className="w-px" />
               </TableRow>
             </TableHeader>
@@ -183,11 +180,9 @@ export function PasskeyManager({
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        aria-label={`Remove ${passkey.name}`}
+                        aria-label={t("passkeys.remove", { name: passkey.name })}
                         title={
-                          locked
-                            ? "Staff accounts must keep at least one second factor."
-                            : `Remove ${passkey.name}`
+                          locked ? t("passkeys.removeLocked") : t("passkeys.remove", { name: passkey.name })
                         }
                         disabled={locked}
                         onClick={() => setPendingDelete(passkey)}
@@ -206,13 +201,13 @@ export function PasskeyManager({
       <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove {pendingDelete?.name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              That device will no longer sign you in. You can register it again later.
-            </AlertDialogDescription>
+            <AlertDialogTitle>
+              {t("passkeys.confirmRemoveTitle", { name: pendingDelete?.name ?? "" })}
+            </AlertDialogTitle>
+            <AlertDialogDescription>{t("passkeys.confirmRemoveDescription")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep it</AlertDialogCancel>
+            <AlertDialogCancel>{t("passkeys.keepIt")}</AlertDialogCancel>
             <AlertDialogAction
               aria-busy={deleting || undefined}
               onClick={(event) => {
@@ -220,7 +215,7 @@ export function PasskeyManager({
                 if (pendingDelete) void remove(pendingDelete);
               }}
             >
-              {deleting ? "Removing…" : "Remove"}
+              {deleting ? t("passkeys.removing") : t("passkeys.confirmRemove")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -229,8 +224,8 @@ export function PasskeyManager({
       {lastFactorLocked ? (
         <Alert variant="info">
           <AlertCircle className="size-3.5" aria-hidden />
-          <AlertTitle>Staff accounts must keep two factor authentication enabled.</AlertTitle>
-          <AlertDescription>Your last remaining factor cannot be removed.</AlertDescription>
+          <AlertTitle>{t("staffRequired")}</AlertTitle>
+          <AlertDescription>{t("passkeys.staffRequiredDescription")}</AlertDescription>
         </Alert>
       ) : null}
     </div>

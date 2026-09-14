@@ -28,6 +28,7 @@ import { useMutation, useQuery } from "convex/react";
 import { Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import {
   type AdminColumn,
@@ -42,15 +43,15 @@ import { formatDateTime, formatRelative } from "@/lib/format";
 
 const RESULTS = ["AC", "WA", "TLE", "MLE", "OLE", "IR", "RTE", "CE", "IE", "SC", "AB"];
 const STATUSES = [
-  { value: "any", label: "Any status" },
-  { value: "QU", label: "Queued" },
-  { value: "P", label: "Processing" },
-  { value: "G", label: "Grading" },
-  { value: "D", label: "Done" },
-  { value: "CE", label: "Compile error" },
-  { value: "IE", label: "Internal error" },
-  { value: "AB", label: "Aborted" },
-];
+  { value: "any", labelKey: "any" },
+  { value: "QU", labelKey: "queued" },
+  { value: "P", labelKey: "processing" },
+  { value: "G", labelKey: "grading" },
+  { value: "D", labelKey: "done" },
+  { value: "CE", labelKey: "compileError" },
+  { value: "IE", labelKey: "internalError" },
+  { value: "AB", labelKey: "aborted" },
+] as const;
 const PAGE_SIZE = 50;
 
 type Row = {
@@ -73,16 +74,19 @@ type Row = {
   isLocked: boolean;
 };
 
-function memoryText(kb: number | null): string {
-  if (kb === null) return "—";
-  if (kb >= 1024) return `${(kb / 1024).toFixed(1)} MB`;
-  return `${kb} KB`;
-}
-
 export function SubmissionsAdmin() {
+  const t = useTranslations("admin.submissions");
+  const shell = useTranslations("admin.shell");
+  const actions = useTranslations("common.actions");
   const router = useRouter();
   const pathname = usePathname() ?? "/admin/submissions/";
   const params = useSearchParams();
+
+  function memoryText(kb: number | null): string {
+    if (kb === null) return "—";
+    if (kb >= 1024) return t("units.megabytes", { value: (kb / 1024).toFixed(1) });
+    return t("units.kilobytes", { value: kb });
+  }
 
   const username = params.get("user") ?? "";
   const problemCode = params.get("problem") ?? "";
@@ -174,32 +178,36 @@ export function SubmissionsAdmin() {
     try {
       await work();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The action was refused.");
+      setError(caught instanceof Error ? caught.message : t("refused"));
     }
   }
 
   const columns: AdminColumn<Row>[] = [
     {
       key: "id",
-      header: "Id",
+      header: t("columns.id"),
       numeric: true,
       cell: (row) => String(row.displayId),
     },
     {
       key: "verdict",
-      header: "Verdict",
+      header: t("columns.verdict"),
       cell: (row) =>
         row.result ? (
           <VerdictPill verdict={row.result} judging={row.status === "G" || row.status === "P"} />
         ) : (
           <Badge variant="run" shape="square">
-            {row.status === "QU" ? "Queued" : row.status === "G" ? "Grading" : row.status}
+            {row.status === "QU"
+              ? t("statuses.queued")
+              : row.status === "G"
+                ? t("statuses.grading")
+                : row.status}
           </Badge>
         ),
     },
     {
       key: "score",
-      header: "Score",
+      header: t("columns.score"),
       numeric: true,
       cell: (row) =>
         row.points === null ? (
@@ -213,7 +221,7 @@ export function SubmissionsAdmin() {
     },
     {
       key: "problem",
-      header: "Problem",
+      header: t("columns.problem"),
       cell: (row) => (
         <div className="flex min-w-0 items-center gap-2">
           <span className="font-mono text-mono text-muted-foreground">{row.problemCode}</span>
@@ -221,27 +229,31 @@ export function SubmissionsAdmin() {
         </div>
       ),
     },
-    { key: "user", header: "User", cell: (row) => <span className="font-mono text-sm">{row.username}</span> },
+    {
+      key: "user",
+      header: t("columns.user"),
+      cell: (row) => <span className="font-mono text-sm">{row.username}</span>,
+    },
     {
       key: "language",
-      header: "Language",
+      header: t("columns.language"),
       cell: (row) => <span className="font-mono text-sm">{row.language}</span>,
     },
     {
       key: "time",
-      header: "Time",
+      header: t("columns.time"),
       numeric: true,
-      cell: (row) => (row.time === null ? "—" : `${row.time.toFixed(2)}s`),
+      cell: (row) => (row.time === null ? "—" : t("units.seconds", { value: row.time.toFixed(2) })),
     },
-    { key: "memory", header: "Memory", numeric: true, cell: (row) => memoryText(row.memory) },
+    { key: "memory", header: t("columns.memory"), numeric: true, cell: (row) => memoryText(row.memory) },
     {
       key: "judge",
-      header: "Judge",
+      header: t("columns.judge"),
       cell: (row) => <span className="font-mono text-sm">{row.judge ?? "—"}</span>,
     },
     {
       key: "date",
-      header: "When",
+      header: t("columns.when"),
       numeric: true,
       cell: (row) => (
         <time dateTime={new Date(row.date).toISOString()} title={formatDateTime(row.date)}>
@@ -255,7 +267,7 @@ export function SubmissionsAdmin() {
       cell: (row) => (
         <div className="text-right">
           <Button variant="ghost" size="sm" onClick={() => setOpen(row)}>
-            Manage
+            {t("manage")}
           </Button>
         </div>
       ),
@@ -264,31 +276,31 @@ export function SubmissionsAdmin() {
 
   return (
     <AdminShell
-      title="Submissions"
-      breadcrumb={[{ label: "Staff console", href: "/admin/" }, { label: "Submissions" }]}
+      title={t("title")}
+      breadcrumb={[{ label: shell("consoleName"), href: "/admin/" }, { label: t("title") }]}
     >
       <div className="grid gap-4">
         <AdminFormError message={error} />
-        {jobId ? <JobProgress jobId={jobId} title="Batch rejudge" onDismiss={() => setJobId(null)} /> : null}
+        {jobId ? (
+          <JobProgress jobId={jobId} title={t("batch.title")} onDismiss={() => setJobId(null)} />
+        ) : null}
 
         <AdminTable
           columns={columns}
           rows={rows}
           rowKey={(row) => row.id}
           loading={data === undefined}
-          caption="Every submission on the site"
+          caption={t("caption")}
           empty={{
-            title: filtered ? "No submissions match" : "No submissions yet",
-            description: filtered
-              ? "No submissions match these filters."
-              : "Submissions appear here as members solve problems.",
+            title: filtered ? t("emptyFilteredTitle") : t("emptyTitle"),
+            description: filtered ? t("emptyFilteredDescription") : t("emptyDescription"),
             action: filtered ? (
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={() => router.replace(pathname, { scroll: false })}
               >
-                Clear filters
+                {t("filters.clear")}
               </Button>
             ) : undefined,
           }}
@@ -305,8 +317,8 @@ export function SubmissionsAdmin() {
                     icon={<Search aria-hidden />}
                     value={userDraft}
                     onChange={(event) => setUserDraft(event.target.value)}
-                    placeholder="Username"
-                    aria-label="Filter by user"
+                    placeholder={t("filters.userPlaceholder")}
+                    aria-label={t("filters.userLabel")}
                     className="h-(--control-h-sm) w-[170px]"
                   />
                 </form>
@@ -320,26 +332,29 @@ export function SubmissionsAdmin() {
                     icon={<Search aria-hidden />}
                     value={problemDraft}
                     onChange={(event) => setProblemDraft(event.target.value)}
-                    placeholder="Problem code"
-                    aria-label="Filter by problem"
+                    placeholder={t("filters.problemPlaceholder")}
+                    aria-label={t("filters.problemLabel")}
                     className="h-(--control-h-sm) w-[170px]"
                   />
                 </form>
                 <Select
                   size="sm"
-                  ariaLabel="Status"
+                  ariaLabel={t("filters.status")}
                   value={status}
                   onValueChange={(value) => go({ status: value === "any" ? null : value })}
-                  options={STATUSES}
+                  options={STATUSES.map((option) => ({
+                    value: option.value,
+                    label: t(`statuses.${option.labelKey}`),
+                  }))}
                   className="w-[150px]"
                 />
                 <Select
                   size="sm"
-                  ariaLabel="Judge"
+                  ariaLabel={t("filters.judge")}
                   value={judgeName || "any"}
                   onValueChange={(value) => go({ judge: value === "any" ? null : value })}
                   options={[
-                    { value: "any", label: "Any judge" },
+                    { value: "any", label: t("filters.anyJudge") },
                     ...judgeNames.map((judge) => ({ value: judge, label: judge })),
                   ]}
                   className="w-[150px]"
@@ -351,8 +366,8 @@ export function SubmissionsAdmin() {
                     values={results}
                     onChange={(next) => go({ results: next.join(",") })}
                     options={RESULTS.map((code) => ({ value: code, label: code }))}
-                    placeholder="Any result"
-                    ariaLabel="Results"
+                    placeholder={t("filters.anyResult")}
+                    ariaLabel={t("filters.results")}
                   />
                 </div>
                 <div className="w-[220px]">
@@ -360,8 +375,8 @@ export function SubmissionsAdmin() {
                     values={languageKeys}
                     onChange={(next) => go({ languages: next.join(",") })}
                     options={(languages ?? []).map((row) => ({ value: row.key, label: row.name }))}
-                    placeholder="Any language"
-                    ariaLabel="Languages"
+                    placeholder={t("filters.anyLanguage")}
+                    ariaLabel={t("filters.languages")}
                   />
                 </div>
                 <form
@@ -376,8 +391,8 @@ export function SubmissionsAdmin() {
                     inputMode="numeric"
                     value={fromDraft}
                     onChange={(event) => setFromDraft(event.target.value)}
-                    placeholder="From id"
-                    aria-label="From submission id"
+                    placeholder={t("filters.fromPlaceholder")}
+                    aria-label={t("filters.fromLabel")}
                     className="h-(--control-h-sm) w-[100px]"
                   />
                   <span aria-hidden className="text-muted-foreground">
@@ -388,12 +403,12 @@ export function SubmissionsAdmin() {
                     inputMode="numeric"
                     value={toDraft}
                     onChange={(event) => setToDraft(event.target.value)}
-                    placeholder="To id"
-                    aria-label="To submission id"
+                    placeholder={t("filters.toPlaceholder")}
+                    aria-label={t("filters.toLabel")}
                     className="h-(--control-h-sm) w-[100px]"
                   />
                   <Button type="submit" size="sm" variant="secondary">
-                    Apply
+                    {t("filters.apply")}
                   </Button>
                 </form>
               </AdminToolbar>
@@ -404,24 +419,25 @@ export function SubmissionsAdmin() {
               page={page}
               pageSize={PAGE_SIZE}
               total={data?.total ?? 0}
-              noun="submission"
+              summary={(range) => t("pagerSummary", range)}
               hrefFor={(next) => withParams({ page: String(next) })}
             />
           }
         />
 
-        <Panel title="Batch rejudge" bodyClassName="grid gap-3 p-4">
+        <Panel title={t("batch.title")} bodyClassName="grid gap-3 p-4">
           {problemCode ? (
             <>
-              <p className="text-sm text-muted-foreground">
-                The filters above become the batch. Only a single problem can be rejudged at a time, so a
-                problem code is required.
-              </p>
+              <p className="text-sm text-muted-foreground">{t("batch.intro")}</p>
               <div className="flex flex-wrap items-center gap-3">
                 <span className="font-mono text-sm tabular-nums text-subtle">
                   {preview === undefined
-                    ? "Counting…"
-                    : `${preview.count.toLocaleString("en-AU")} of ${preview.total.toLocaleString("en-AU")} submissions to ${problemCode} would be rejudged`}
+                    ? t("batch.counting")
+                    : t("batch.preview", {
+                        count: preview.count.toLocaleString("en-AU"),
+                        total: preview.total.toLocaleString("en-AU"),
+                        code: problemCode,
+                      })}
                 </span>
                 <div className="ml-auto flex items-center gap-2">
                   <Button
@@ -431,27 +447,25 @@ export function SubmissionsAdmin() {
                       guard(async () => {
                         const result = await rescoreProblem({ problemCode });
                         setJobId(result.jobId);
-                        toast.success("Rescore queued");
+                        toast.success(t("toasts.rescoreQueued"));
                       })
                     }
                   >
-                    Rescore {problemCode}
+                    {t("batch.rescore", { code: problemCode })}
                   </Button>
                   <Button
                     size="sm"
                     disabled={(preview?.count ?? 0) === 0}
-                    title={(preview?.count ?? 0) === 0 ? "Nothing matches this filter." : undefined}
+                    title={(preview?.count ?? 0) === 0 ? t("batch.nothingMatches") : undefined}
                     onClick={() => setConfirmBatch(true)}
                   >
-                    Rejudge these
+                    {t("batch.rejudge")}
                   </Button>
                 </div>
               </div>
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              Filter by a problem code to rejudge or rescore a batch of its submissions.
-            </p>
+            <p className="text-sm text-muted-foreground">{t("batch.needProblem")}</p>
           )}
         </Panel>
       </div>
@@ -459,46 +473,42 @@ export function SubmissionsAdmin() {
       <Sheet open={open !== null} onOpenChange={(next) => !next && setOpen(null)}>
         <SheetContent side="right" className="w-[420px] max-w-[92vw] gap-0">
           <SheetHeader>
-            <SheetTitle>Submission {open ? String(open.displayId) : ""}</SheetTitle>
+            <SheetTitle>{t("detail.title", { id: open ? String(open.displayId) : "" })}</SheetTitle>
           </SheetHeader>
           {open ? (
             <div className="grid gap-4 overflow-y-auto p-4">
               <dl className="grid grid-cols-[minmax(0,110px)_minmax(0,1fr)] gap-x-3 gap-y-2 text-base">
-                <dt className="text-subtle">Problem</dt>
+                <dt className="text-subtle">{t("detail.problem")}</dt>
                 <dd className="min-w-0">
                   <Link className="text-link hover:underline" href={`/admin/problems/${open.problemCode}/`}>
                     {open.problemName}
                   </Link>
                 </dd>
-                <dt className="text-subtle">User</dt>
+                <dt className="text-subtle">{t("detail.user")}</dt>
                 <dd className="font-mono text-mono">{open.username}</dd>
-                <dt className="text-subtle">Verdict</dt>
+                <dt className="text-subtle">{t("detail.verdict")}</dt>
                 <dd>{open.result ? <VerdictPill verdict={open.result} /> : open.status}</dd>
-                <dt className="text-subtle">Score</dt>
+                <dt className="text-subtle">{t("detail.score")}</dt>
                 <dd className="font-mono text-mono tabular-nums">
                   {open.points === null ? "—" : `${open.points} / ${open.total}`}
                 </dd>
-                <dt className="text-subtle">Language</dt>
+                <dt className="text-subtle">{t("detail.language")}</dt>
                 <dd className="font-mono text-mono">{open.language}</dd>
-                <dt className="text-subtle">Time</dt>
+                <dt className="text-subtle">{t("detail.time")}</dt>
                 <dd className="font-mono text-mono tabular-nums">
-                  {open.time === null ? "—" : `${open.time.toFixed(2)}s`}
+                  {open.time === null ? "—" : t("units.seconds", { value: open.time.toFixed(2) })}
                 </dd>
-                <dt className="text-subtle">Memory</dt>
+                <dt className="text-subtle">{t("detail.memory")}</dt>
                 <dd className="font-mono text-mono tabular-nums">{memoryText(open.memory)}</dd>
-                <dt className="text-subtle">Judge</dt>
+                <dt className="text-subtle">{t("detail.judge")}</dt>
                 <dd className="font-mono text-mono">{open.judge ?? "—"}</dd>
-                <dt className="text-subtle">Contest</dt>
+                <dt className="text-subtle">{t("detail.contest")}</dt>
                 <dd className="font-mono text-mono">{open.contestKey ?? "—"}</dd>
-                <dt className="text-subtle">Submitted</dt>
+                <dt className="text-subtle">{t("detail.submitted")}</dt>
                 <dd className="font-mono text-mono tabular-nums">{formatDateTime(open.date)}</dd>
               </dl>
 
-              {open.isLocked ? (
-                <p className="text-sm text-warn">
-                  This submission is locked by its contest. Only a superuser may rejudge it.
-                </p>
-              ) : null}
+              {open.isLocked ? <p className="text-sm text-warn">{t("detail.locked")}</p> : null}
 
               <div className="flex flex-wrap gap-2 border-t border-border pt-4">
                 <Button
@@ -506,11 +516,11 @@ export function SubmissionsAdmin() {
                   onClick={() =>
                     guard(async () => {
                       await rejudgeOne({ submissionId: open.id });
-                      toast.success(`Submission ${open.displayId} queued for rejudging`);
+                      toast.success(t("toasts.queuedOne", { id: String(open.displayId) }));
                     })
                   }
                 >
-                  Rejudge
+                  {t("detail.rejudge")}
                 </Button>
                 <Button
                   size="sm"
@@ -519,16 +529,16 @@ export function SubmissionsAdmin() {
                   title={
                     open.status === "P" || open.status === "G" || open.status === "QU"
                       ? undefined
-                      : "Only a submission still being judged can be aborted."
+                      : t("detail.abortDisabled")
                   }
                   onClick={() =>
                     guard(async () => {
                       await abort({ submissionId: open.id });
-                      toast.success(`Submission ${open.displayId} was aborted`);
+                      toast.success(t("toasts.abortedOne", { id: String(open.displayId) }));
                     })
                   }
                 >
-                  Abort
+                  {t("detail.abort")}
                 </Button>
                 <Button
                   size="sm"
@@ -537,14 +547,14 @@ export function SubmissionsAdmin() {
                     guard(async () => {
                       const result = await rescoreProblem({ problemCode: open.problemCode });
                       setJobId(result.jobId);
-                      toast.success("Rescore queued");
+                      toast.success(t("toasts.rescoreQueued"));
                     })
                   }
                 >
-                  Rescore the problem
+                  {t("detail.rescoreProblem")}
                 </Button>
                 <Button asChild size="sm" variant="ghost">
-                  <Link href={`/submission/${open.displayId}/`}>Open the status page</Link>
+                  <Link href={`/submission/${open.displayId}/`}>{t("detail.openStatus")}</Link>
                 </Button>
               </div>
             </div>
@@ -555,16 +565,13 @@ export function SubmissionsAdmin() {
       <AlertDialog open={confirmBatch} onOpenChange={setConfirmBatch}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Rejudge {preview?.count ?? 0} {preview?.count === 1 ? "submission" : "submissions"}?
-            </AlertDialogTitle>
+            <AlertDialogTitle>{t("batch.confirmTitle", { count: preview?.count ?? 0 })}</AlertDialogTitle>
             <AlertDialogDescription>
-              Every submission to {problemCode} matching the current filters goes back in the queue at
-              batch-rejudge priority, so live judging is unaffected.
+              {t("batch.confirmDescription", { code: problemCode })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{actions("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 setConfirmBatch(false);
@@ -576,11 +583,11 @@ export function SubmissionsAdmin() {
                     results: results.length > 0 ? results : undefined,
                   });
                   setJobId(result.jobId);
-                  toast.success("Rejudge queued");
+                  toast.success(t("toasts.rejudgeQueued"));
                 });
               }}
             >
-              Rejudge
+              {t("batch.confirmAction")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

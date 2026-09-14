@@ -16,6 +16,7 @@ import {
 } from "@moj/ui";
 import { useMutation } from "convex/react";
 import { AlertTriangle, Upload } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo, useRef, useState } from "react";
 import { AdminForm } from "@/components/admin/AdminForm";
 import { StatusLine } from "../../_components/console";
@@ -35,9 +36,9 @@ type Branding = {
 } | null;
 
 const THEME_OPTIONS = [
-  { value: "system", label: "Follow the visitor's system" },
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
+  { value: "system", labelKey: "system" },
+  { value: "light", labelKey: "light" },
+  { value: "dark", labelKey: "dark" },
 ];
 
 const DEFAULT_ACCENT = "#2941a5";
@@ -77,6 +78,7 @@ function lighten(value: string, ratio: number): string {
 }
 
 export function BrandingForm({ branding }: { branding: Branding }) {
+  const t = useTranslations("admin.branding");
   const update = useMutation(api.pages.admin2.updateBranding);
   const uploadUrl = useMutation(api.pages.admin2.generateBrandingUploadUrl);
 
@@ -125,25 +127,23 @@ export function BrandingForm({ branding }: { branding: Branding }) {
         headers: { "Content-Type": file.type },
         body: file,
       });
-      if (!response.ok) throw new Error(`The upload was refused (${response.status}).`);
+      if (!response.ok) throw new Error(t("uploadRefused", { status: response.status }));
       const { storageId } = (await response.json()) as { storageId: string };
       const objectUrl = URL.createObjectURL(file);
       if (kind === "logo") setLogo({ url: objectUrl, storageId });
       else setFavicon({ url: objectUrl, storageId });
     } catch (error) {
-      setUploadError(
-        error instanceof Error ? error.message : "That file could not be uploaded to the judge.",
-      );
+      setUploadError(error instanceof Error ? error.message : t("uploadFailed"));
     }
   }
 
   async function save() {
     if (reason.trim().length === 0) {
-      setStatus({ error: "Give a reason for the change; it is recorded on the revision." });
+      setStatus({ error: t("reasonRequired") });
       return;
     }
     if (!accentValid || !navValid) {
-      setStatus({ error: "A colour must be a hex value like #2941a5." });
+      setStatus({ error: t("colourInvalid") });
       return;
     }
     setBusy(true);
@@ -163,10 +163,10 @@ export function BrandingForm({ branding }: { branding: Branding }) {
       // and the unsaved-changes guard must stop firing.
       setLogo(null);
       setFavicon(null);
-      setStatus({ saved: "The branding has been saved. Reload to see it applied across the site." });
+      setStatus({ saved: t("saved") });
       setReason("");
     } catch (error) {
-      setStatus({ error: error instanceof Error ? error.message : "The branding could not be saved." });
+      setStatus({ error: error instanceof Error ? error.message : t("saveFailed") });
     } finally {
       setBusy(false);
     }
@@ -181,9 +181,16 @@ export function BrandingForm({ branding }: { branding: Branding }) {
       });
       if (kind === "logo") setLogo(null);
       else setFavicon(null);
-      setStatus({ saved: `The ${kind} has been removed; the bundled one is back.` });
+      setStatus({ saved: kind === "logo" ? t("logoRemoved") : t("faviconRemoved") });
     } catch (error) {
-      setStatus({ error: error instanceof Error ? error.message : `The ${kind} could not be removed.` });
+      setStatus({
+        error:
+          error instanceof Error
+            ? error.message
+            : kind === "logo"
+              ? t("logoRemoveFailed")
+              : t("faviconRemoveFailed"),
+      });
     } finally {
       setBusy(false);
     }
@@ -202,18 +209,18 @@ export function BrandingForm({ branding }: { branding: Branding }) {
         busy={busy}
         error={status.error ?? null}
         saved={status.saved ?? null}
-        submitLabel="Save branding"
+        submitLabel={t("submit")}
       >
-        <Panel title="Names" bodyClassName="grid gap-4 p-3">
+        <Panel title={t("names")} bodyClassName="grid gap-4 p-3">
           <FieldGroup columns={2}>
-            <Field label="Site name" hint="The short name in the browser tab.">
+            <Field label={t("siteName")} hint={t("siteNameHint")}>
               <Input
                 value={form.siteName}
                 maxLength={40}
                 onChange={(event) => change("siteName", event.target.value)}
               />
             </Field>
-            <Field label="Long name" hint="Used in the tab template, emails and metadata.">
+            <Field label={t("longName")} hint={t("longNameHint")}>
               <Input
                 value={form.siteLongName}
                 onChange={(event) => change("siteLongName", event.target.value)}
@@ -222,14 +229,10 @@ export function BrandingForm({ branding }: { branding: Branding }) {
           </FieldGroup>
         </Panel>
 
-        <Panel title="Marks" bodyClassName="grid gap-4 p-3">
+        <Panel title={t("marks")} bodyClassName="grid gap-4 p-3">
           {uploadError ? <StatusLine tone="bad">{uploadError}</StatusLine> : null}
           <FieldGroup columns={2}>
-            <Field
-              label="Wordmark"
-              optional=" (optional)"
-              hint="SVG or PNG, shown in the nav and on the sign-in pages. Left empty, the bundled MOJ wordmark stays."
-            >
+            <Field label={t("wordmark")} optional={t("optional")} hint={t("wordmarkHint")}>
               <div className="flex items-center gap-3">
                 <span className="flex h-10 w-[132px] shrink-0 items-center justify-center rounded-md border border-border bg-titlebar px-2">
                   {logoSrc ? (
@@ -255,17 +258,17 @@ export function BrandingForm({ branding }: { branding: Branding }) {
                   icon={<Upload aria-hidden />}
                   onClick={() => logoInput.current?.click()}
                 >
-                  Upload
+                  {t("upload")}
                 </Button>
                 {branding?.logoUrl || logo ? (
                   <Button type="button" variant="ghost" size="sm" onClick={() => void clearUpload("logo")}>
-                    Remove
+                    {t("remove")}
                   </Button>
                 ) : null}
               </div>
             </Field>
 
-            <Field label="Favicon" optional=" (optional)" hint="A square PNG or SVG for the browser tab.">
+            <Field label={t("favicon")} optional={t("optional")} hint={t("faviconHint")}>
               <div className="flex items-center gap-3">
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-md border border-border bg-card">
                   <img src={faviconSrc ?? "/icon.svg"} alt="" className="size-6" />
@@ -287,11 +290,11 @@ export function BrandingForm({ branding }: { branding: Branding }) {
                   icon={<Upload aria-hidden />}
                   onClick={() => faviconInput.current?.click()}
                 >
-                  Upload
+                  {t("upload")}
                 </Button>
                 {branding?.faviconUrl || favicon ? (
                   <Button type="button" variant="ghost" size="sm" onClick={() => void clearUpload("favicon")}>
-                    Remove
+                    {t("remove")}
                   </Button>
                 ) : null}
               </div>
@@ -299,12 +302,12 @@ export function BrandingForm({ branding }: { branding: Branding }) {
           </FieldGroup>
         </Panel>
 
-        <Panel title="Colours" bodyClassName="grid gap-4 p-3">
+        <Panel title={t("colours")} bodyClassName="grid gap-4 p-3">
           <FieldGroup columns={2}>
             <Field
-              label="Accent"
-              hint="Buttons, links and the focus ring. Dark mode lifts it automatically."
-              error={accentValid ? undefined : "A colour must be a hex value like #2941a5."}
+              label={t("accent")}
+              hint={t("accentHint")}
+              error={accentValid ? undefined : t("colourInvalid")}
             >
               <div className="flex items-center gap-2">
                 <span
@@ -321,11 +324,7 @@ export function BrandingForm({ branding }: { branding: Branding }) {
               </div>
             </Field>
 
-            <Field
-              label="Nav"
-              hint="The bar at the top, and every panel titlebar and table header with it."
-              error={navValid ? undefined : "A colour must be a hex value like #101a3d."}
-            >
+            <Field label={t("nav")} hint={t("navHint")} error={navValid ? undefined : t("colourInvalidNav")}>
               <div className="flex items-center gap-2">
                 <span
                   aria-hidden
@@ -345,39 +344,34 @@ export function BrandingForm({ branding }: { branding: Branding }) {
           {accentContrast !== null && accentContrast < 4.5 ? (
             <Alert variant="warning">
               <AlertTriangle className="size-3.5" aria-hidden />
-              <AlertTitle>White text on that accent is hard to read</AlertTitle>
+              <AlertTitle>{t("accentContrastTitle")}</AlertTitle>
               <AlertDescription>
-                It contrasts {accentContrast.toFixed(2)}:1 against white; a button label needs 4.5:1. Pick
-                something darker.
+                {t("accentContrastBody", { ratio: accentContrast.toFixed(2) })}
               </AlertDescription>
             </Alert>
           ) : null}
           {navContrast !== null && navContrast < 4.5 ? (
             <Alert variant="warning">
               <AlertTriangle className="size-3.5" aria-hidden />
-              <AlertTitle>The nav labels will be hard to read</AlertTitle>
-              <AlertDescription>
-                That nav colour contrasts {navContrast.toFixed(2)}:1 against white, and the bar&rsquo;s text
-                is white. Pick something darker.
-              </AlertDescription>
+              <AlertTitle>{t("navContrastTitle")}</AlertTitle>
+              <AlertDescription>{t("navContrastBody", { ratio: navContrast.toFixed(2) })}</AlertDescription>
             </Alert>
           ) : null}
         </Panel>
 
-        <Panel title="Theme and custom CSS" bodyClassName="grid gap-4 p-3">
-          <Field label="Default theme" hint="What a visitor with no stored preference gets.">
+        <Panel title={t("themeAndCss")} bodyClassName="grid gap-4 p-3">
+          <Field label={t("defaultTheme")} hint={t("defaultThemeHint")}>
             <Select
-              options={THEME_OPTIONS}
+              options={THEME_OPTIONS.map((option) => ({
+                value: option.value,
+                label: t(`themeOptions.${option.labelKey}`),
+              }))}
               value={form.themeDefault}
               onValueChange={(value) => change("themeDefault", value as "system" | "light" | "dark")}
-              ariaLabel="Default theme"
+              ariaLabel={t("defaultTheme")}
             />
           </Field>
-          <Field
-            label="Custom CSS"
-            optional=" (optional)"
-            hint="Appended after everything else, so it wins. Different faces go here as @font-face rules."
-          >
+          <Field label={t("customCss")} optional={t("optional")} hint={t("customCssHint")}>
             <Textarea
               mono
               rows={10}
@@ -412,9 +406,11 @@ function Preview({
   accent: string;
   nav: string;
 }) {
+  const t = useTranslations("admin.branding");
+
   return (
     <div className="lg:sticky lg:top-(--sticky-top) lg:self-start">
-      <Panel title="Preview" bodyClassName="grid gap-3 p-3">
+      <Panel title={t("preview")} bodyClassName="grid gap-3 p-3">
         <div className="overflow-hidden rounded-md border border-border">
           <div className="flex h-11 items-center gap-3 px-3" style={{ backgroundColor: nav }}>
             {logoSrc ? (
@@ -422,8 +418,8 @@ function Preview({
             ) : (
               <img src="/logo.svg" alt="" className="h-5 w-auto" />
             )}
-            <span className="text-sm text-white/85">Problems</span>
-            <span className="text-sm text-white/85">Contests</span>
+            <span className="text-sm text-white/85">{t("previewNavProblems")}</span>
+            <span className="text-sm text-white/85">{t("previewNavContests")}</span>
           </div>
           <div aria-hidden className="h-[3px]" style={{ backgroundColor: accent }} />
           <div className="grid gap-3 bg-card p-3">
@@ -433,10 +429,10 @@ function Preview({
                 className="inline-flex h-8 items-center rounded-md px-3 text-base font-medium text-white"
                 style={{ backgroundColor: accent }}
               >
-                Submit
+                {t("previewButton")}
               </span>
               <span className="text-base" style={{ color: accent }}>
-                A link
+                {t("previewLink")}
               </span>
             </div>
             <div className="overflow-hidden rounded-md border border-border">
@@ -444,14 +440,14 @@ function Preview({
                 className="flex h-7 items-center px-3 font-sans text-xs font-semibold uppercase tracking-label text-white/90"
                 style={{ backgroundColor: nav }}
               >
-                A table header
+                {t("previewTableHeader")}
               </div>
-              <div className="px-3 py-2 text-base text-subtle">and a row under it</div>
+              <div className="px-3 py-2 text-base text-subtle">{t("previewTableRow")}</div>
             </div>
           </div>
         </div>
         <p className="text-sm text-muted-foreground">
-          Dark mode lifts the accent to {lighten(accent, 0.45)} and keeps the nav as it is.
+          {t("previewDarkNote", { colour: lighten(accent, 0.45) })}
         </p>
       </Panel>
     </div>

@@ -16,6 +16,7 @@ import {
 } from "@moj/ui";
 import { Inbox } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 export type AdminColumn<Row> = {
@@ -51,6 +52,7 @@ export function AdminTable<Row>({
   emptyDescription,
   emptyAction,
   selection,
+  selectAllLabel = "Select every row on this page",
   bulkActions,
   toolbar,
   footer,
@@ -69,12 +71,18 @@ export function AdminTable<Row>({
   emptyDescription?: string;
   emptyAction?: ReactNode;
   selection?: { selected: string[]; onChange: (next: string[]) => void };
+  /** The one piece of text the table names itself. It is a prop carrying the
+   *  English rather than something read from context, so a caller rendering
+   *  outside the message provider still gets a labelled checkbox, the same
+   *  reason `PageTabs` and `Pagination` take theirs. */
+  selectAllLabel?: string;
   bulkActions?: AdminBulkAction[];
   toolbar?: ReactNode;
   footer?: ReactNode;
   caption?: string;
   className?: string;
 }) {
+  const t = useTranslations("admin.components.table");
   const selectable = !!selection;
   const data = rows ?? [];
   const pending = loading || rows == null;
@@ -97,7 +105,7 @@ export function AdminTable<Row>({
                 <TableHead className="w-8 px-2">
                   <Checkbox
                     id="admin-table-select-all"
-                    aria-label="Select every row on this page"
+                    aria-label={selectAllLabel}
                     checked={allSelected ? true : someSelected ? "indeterminate" : false}
                     onCheckedChange={(checked) => selection?.onChange(checked ? allKeys : [])}
                   />
@@ -136,7 +144,7 @@ export function AdminTable<Row>({
                         <TableCell className="px-2">
                           <Checkbox
                             id={`admin-table-select-${key}`}
-                            aria-label={`Select ${key}`}
+                            aria-label={t("selectRow", { key })}
                             checked={selectedSet.has(key)}
                             onCheckedChange={(checked) => {
                               const next = new Set(selectedSet);
@@ -174,7 +182,7 @@ export function AdminTable<Row>({
                   <EmptyState
                     className="m-3"
                     icon={<Inbox aria-hidden />}
-                    title={empty?.title ?? emptyTitle ?? "Nothing here"}
+                    title={empty?.title ?? emptyTitle ?? t("empty")}
                     description={empty?.description ?? emptyDescription}
                     action={empty?.action ?? emptyAction}
                   />
@@ -187,7 +195,7 @@ export function AdminTable<Row>({
         {selectable && selection.selected.length > 0 && bulkActions && bulkActions.length > 0 ? (
           <div className="sticky bottom-0 z-(--z-sticky) mt-px flex flex-wrap items-center gap-2 rounded-b-md border border-t-0 border-border bg-secondary px-3 py-2">
             <span className="font-mono text-sm tabular-nums text-subtle">
-              {selection.selected.length} selected
+              {t("selected", { count: selection.selected.length })}
             </span>
             <div className="ml-auto flex flex-wrap items-center gap-2">
               {bulkActions.map((action) => (
@@ -201,7 +209,7 @@ export function AdminTable<Row>({
                 </Button>
               ))}
               <Button size="sm" variant="ghost" onClick={() => selection.onChange([])}>
-                Clear
+                {t("clearSelection")}
               </Button>
             </div>
           </div>
@@ -237,24 +245,25 @@ export function AdminPager({
   pageSize,
   total,
   hrefFor,
-  noun = "row",
-  pluralNoun,
+  summary,
 }: {
   page: number;
   pageSize: number;
   total: number;
   hrefFor: (page: number) => string;
-  noun?: string;
-  pluralNoun?: string;
+  /** The whole count sentence, from the caller, which knows what it counts.
+   *  The pager hands over the range it worked out and nothing else: the noun
+   *  inflects with the number in front of it and does not always follow that
+   *  number, so there is no frame here for a bare noun to drop into. */
+  summary: (range: { from: number; to: number; total: number }) => ReactNode;
 }) {
   const totalPages = Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
-  const first = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const last = Math.min(total, page * pageSize);
-  const plural = pluralNoun ?? `${noun}s`;
+  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = Math.min(total, page * pageSize);
   return (
     <div className="flex flex-wrap items-center gap-3">
       <span className="font-mono text-sm tabular-nums text-muted-foreground">
-        {total === 0 ? `No ${plural}` : `${first} to ${last} of ${total} ${total === 1 ? noun : plural}`}
+        {summary({ from, to, total })}
       </span>
       <div className="ml-auto">
         <Pagination page={page} totalPages={totalPages} hrefFor={hrefFor} />

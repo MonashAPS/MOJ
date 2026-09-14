@@ -15,6 +15,7 @@ import {
 } from "@moj/ui";
 import { useMutation } from "convex/react";
 import { Check, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { UserLink } from "@/components/users/UserLink";
 import { formatDateTime } from "@/lib/format";
@@ -29,16 +30,18 @@ export type RequestRow = {
   className: string | null;
 };
 
-const STATE: Record<RequestRow["state"], { label: string; variant: "run" | "good" | "bad" }> = {
-  P: { label: "Pending", variant: "run" },
-  A: { label: "Approved", variant: "good" },
-  R: { label: "Rejected", variant: "bad" },
+const STATE: Record<RequestRow["state"], { message: string; variant: "run" | "good" | "bad" }> = {
+  P: { message: "statePending", variant: "run" },
+  A: { message: "stateApproved", variant: "good" },
+  R: { message: "stateRejected", variant: "bad" },
 };
 
 /** `organization/requests/pending.html` and `log.html`, as one table: approve and
  *  reject act on a single row, which is what `OrganizationRequestView.post` does
  *  once the formset is applied. */
 export function RequestsTable({ rows, showActions }: { rows: RequestRow[]; showActions: boolean }) {
+  const t = useTranslations("organizations.requests");
+  const shared = useTranslations("organizations.common");
   const approve = useMutation(api.organizations.approve);
   const reject = useMutation(api.organizations.reject);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -48,11 +51,9 @@ export function RequestsTable({ rows, showActions }: { rows: RequestRow[]; showA
     try {
       if (action === "approve") await approve({ requestId: id as never });
       else await reject({ requestId: id as never });
-      toast.success(
-        action === "approve" ? `${username} is now a member.` : `${username}'s request was rejected.`,
-      );
+      toast.success(action === "approve" ? t("approved", { username }) : t("rejected", { username }));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "That did not work.");
+      toast.error(error instanceof Error ? error.message : shared("failed"));
     } finally {
       setBusyId(null);
     }
@@ -62,17 +63,17 @@ export function RequestsTable({ rows, showActions }: { rows: RequestRow[]; showA
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>User</TableHead>
-          <TableHead>Time</TableHead>
-          <TableHead>Class</TableHead>
-          <TableHead>State</TableHead>
-          <TableHead>Reason</TableHead>
+          <TableHead>{t("user")}</TableHead>
+          <TableHead>{t("time")}</TableHead>
+          <TableHead>{t("class")}</TableHead>
+          <TableHead>{t("state")}</TableHead>
+          <TableHead>{t("reason")}</TableHead>
           {showActions ? <TableHead className="w-44" /> : null}
         </TableRow>
       </TableHeader>
       <TableBody>
         {rows.length === 0 ? (
-          <EmptyRow colSpan={showActions ? 6 : 5}>There are no requests to approve.</EmptyRow>
+          <EmptyRow colSpan={showActions ? 6 : 5}>{t("empty")}</EmptyRow>
         ) : (
           rows.map((row) => (
             <TableRow key={row._id}>
@@ -84,7 +85,7 @@ export function RequestsTable({ rows, showActions }: { rows: RequestRow[]; showA
               </TableCell>
               <TableCell className="text-subtle">{row.className ?? "—"}</TableCell>
               <TableCell>
-                <Badge variant={STATE[row.state].variant}>{STATE[row.state].label}</Badge>
+                <Badge variant={STATE[row.state].variant}>{t(STATE[row.state].message)}</Badge>
               </TableCell>
               <TableCell className="max-w-[28rem] text-subtle">{row.reason}</TableCell>
               {showActions ? (
@@ -97,7 +98,7 @@ export function RequestsTable({ rows, showActions }: { rows: RequestRow[]; showA
                         busy={busyId === row._id}
                         onClick={() => act(row._id, "approve", row.username)}
                       >
-                        Approve
+                        {t("approve")}
                       </Button>
                       <Button
                         variant="ghost"
@@ -106,7 +107,7 @@ export function RequestsTable({ rows, showActions }: { rows: RequestRow[]; showA
                         disabled={busyId === row._id}
                         onClick={() => act(row._id, "reject", row.username)}
                       >
-                        Reject
+                        {t("reject")}
                       </Button>
                     </span>
                   ) : null}
