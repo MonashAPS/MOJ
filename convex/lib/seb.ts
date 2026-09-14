@@ -35,7 +35,11 @@ async function keysFor(ctx: AnySebCtx, contestId: Doc<"contests">["_id"]): Promi
     .query("contestSebKeys")
     .withIndex("by_contest", (q) => q.eq("contestId", contestId))
     .unique();
-  return row ? { configKeys: row.configKeys, browserExamKeys: row.browserExamKeys } : NO_KEYS;
+  if (!row) return NO_KEYS;
+  // The generated configuration's key counts alongside anything pasted by hand,
+  // so a contest that has only ever used MOJ's own file still verifies.
+  const configKeys = row.generatedKey ? [...row.configKeys, row.generatedKey] : row.configKeys;
+  return { configKeys, browserExamKeys: row.browserExamKeys };
 }
 
 /**

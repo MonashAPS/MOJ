@@ -493,6 +493,33 @@ async function listRow(
  * The cursor is an offset into the filtered list, because contest visibility
  * cannot be expressed as an index range.
  */
+/**
+ * Where the generated Safe Exam Browser configuration points, for the route
+ * that serves it. Null when this contest has never had one generated.
+ *
+ * Public on purpose: a competitor has to be able to fetch the file before they
+ * are in SEB, which is the whole point of handing them a link to it.
+ */
+export const sebConfig = query({
+  args: { key: v.string() },
+  handler: async (ctx, { key }): Promise<{ startUrl: string; quitUrl: string } | null> => {
+    const contest = await contestByKey(ctx, key);
+    if (!contest?.sebRequired) return null;
+
+    const row = await ctx.db
+      .query("contestSebKeys")
+      .withIndex("by_contest", (q) => q.eq("contestId", contest._id))
+      .unique();
+    const origin = row?.generatedOrigin;
+    if (!origin) return null;
+
+    return {
+      startUrl: `${origin}/contest/${contest.key}/`,
+      quitUrl: `${origin}/contests/`,
+    };
+  },
+});
+
 export const list = query({
   args: {
     paginationOpts: v.optional(v.object({ numItems: v.number(), cursor: v.union(v.string(), v.null()) })),

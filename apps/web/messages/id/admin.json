@@ -627,7 +627,14 @@
       "browserExamKeys": "Browser Exam Keys",
       "browserExamKeysHint": "Opsional, dan satu untuk tiap build SEB: Browser Exam Key juga mencakup tanda tangan kode klien.",
       "saved": "Pengaturan Safe Exam Browser tersimpan",
-      "refused": "Juri menolak perubahan ini."
+      "refused": "Juri menolak perubahan ini.",
+      "generate": "Buat konfigurasi",
+      "generateIntro": "MOJ bisa menulis berkas .seb untuk kontes ini dan menyajikannya, jadi tidak ada yang perlu membuat atau menghostingnya. Berkas itu membuka kontes ini dan mengirim header kuncinya.",
+      "generateUnverified": "Config Key dihitung dari berkas itu dengan resep yang diterbitkan SEB. Tidak ada vektor uji resmi untuk resep tersebut, jadi cocokkan dengan SEB Configuration Tool sebelum kontes yang penting, dan tempelkan kunci dari alat itu di bawah bila berbeda.",
+      "generatedFor": "Dibuat untuk {origin}.",
+      "downloadGenerated": "Unduh",
+      "regenerate": "Buat ulang",
+      "generated": "Konfigurasi dibuat"
     },
     "actions": {
       "refused": "Aksi ditolak.",
