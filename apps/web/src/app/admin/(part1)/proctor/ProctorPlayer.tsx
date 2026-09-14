@@ -6,7 +6,7 @@ import { Badge, Button } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { Radio, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatDateTime } from "@/lib/format";
 
 /** A slice boundary wider than this is a gap rather than the usual few frames. */
@@ -39,11 +39,17 @@ export function ProctorPlayer({
   const chunks = data?.chunks ?? [];
   const live = data?.session.live ?? false;
 
-  // Opening at a particular moment means looking at that moment, not at now.
+  // Opening at a particular moment means looking at that moment, not at now —
+  // but only when it is asked for, once. `chunks` is a fresh array every time a
+  // slice lands, so without the guard this fired on every new slice and threw
+  // the viewer out of following a second after they chose it.
+  const jumped = useRef<number | null>(null);
   useEffect(() => {
     if (startAt === undefined || chunks.length === 0) return;
+    if (jumped.current === startAt) return;
     const index = chunks.findIndex((chunk) => chunk.index === startAt);
     if (index >= 0) {
+      jumped.current = startAt;
       setFollowing(false);
       setAt(index);
     }
