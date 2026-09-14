@@ -488,6 +488,9 @@
     "tiesNotBroken": "Los empates por puntuación **no** se resolverán."
   },
   "seb": {
+    "dialogBody": "Este concurso está bloqueado. Inicia Safe Exam Browser con su configuración y el concurso se abrirá allí.",
+    "dialogLink": "Safe Exam Browser es un navegador de bloqueo gratuito para Windows y macOS. <seb>Más información</seb>.",
+    "downloadConfig": "Descargar configuración",
     "title": "Se requiere Safe Exam Browser",
     "body": "Solo se puede entrar a {name} desde Safe Exam Browser.",
     "wrongConfiguration": "Safe Exam Browser está en ejecución, pero no con la configuración que este concurso espera.",

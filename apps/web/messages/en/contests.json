@@ -488,6 +488,9 @@
     "tiesNotBroken": "Ties by score will **not** be broken."
   },
   "seb": {
+    "dialogBody": "This contest is locked. Start Safe Exam Browser with its configuration and the contest opens there.",
+    "dialogLink": "Safe Exam Browser is a free lockdown browser for Windows and macOS. <seb>Read about it</seb>.",
+    "downloadConfig": "Download configuration",
     "title": "Safe Exam Browser required",
     "body": "{name} can only be entered from Safe Exam Browser.",
     "wrongConfiguration": "Safe Exam Browser is running, but not with the configuration this contest expects.",

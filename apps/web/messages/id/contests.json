@@ -488,6 +488,9 @@
     "tiesNotBroken": "Hasil seri berdasarkan skor **tidak** akan diputuskan."
   },
   "seb": {
+    "dialogBody": "Kontes ini terkunci. Jalankan Safe Exam Browser dengan konfigurasinya dan kontesnya akan terbuka di sana.",
+    "dialogLink": "Safe Exam Browser adalah peramban terkunci gratis untuk Windows dan macOS. <seb>Selengkapnya</seb>.",
+    "downloadConfig": "Unduh konfigurasi",
     "title": "Safe Exam Browser diperlukan",
     "body": "{name} hanya bisa dimasuki dari Safe Exam Browser.",
     "wrongConfiguration": "Safe Exam Browser sedang berjalan, tetapi bukan dengan konfigurasi yang diharapkan kontes ini.",

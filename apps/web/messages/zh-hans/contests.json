@@ -488,6 +488,9 @@
     "tiesNotBroken": "得分并列的名次**不会**被进一步区分。"
   },
   "seb": {
+    "dialogBody": "本场比赛已锁定。用它的配置启动 Safe Exam Browser，比赛就会在那里打开。",
+    "dialogLink": "Safe Exam Browser 是适用于 Windows 和 macOS 的免费锁定浏览器。<seb>了解详情</seb>。",
+    "downloadConfig": "下载配置",
     "title": "需要 Safe Exam Browser",
     "body": "只能通过 Safe Exam Browser 进入 {name}。",
     "wrongConfiguration": "Safe Exam Browser 正在运行，但使用的不是本场比赛要求的配置。",
