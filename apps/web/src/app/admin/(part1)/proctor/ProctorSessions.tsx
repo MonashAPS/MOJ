@@ -1,34 +1,26 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { Badge, Button, EmptyState, Field, Select } from "@moj/ui";
+import { Badge, Button, Combobox, EmptyState, Field } from "@moj/ui";
 import { useQuery } from "convex/react";
-import { MonitorOff } from "lucide-react";
+import { ChevronLeft, ChevronRight, MonitorOff, Trophy, User, ZoomIn, ZoomOut } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { AdminShell } from "@/components/admin";
 import { formatDateTime } from "@/lib/format";
 
-/** Windows the timeline can show, as milliseconds back from now. */
-const WINDOWS = [
-  { value: "3600000", hours: 1 },
-  { value: "21600000", hours: 6 },
-  { value: "86400000", hours: 24 },
-  { value: "604800000", hours: 168 },
-];
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
 
-/** Recordings are megabytes, always, so one unit keeps the column comparable. */
-function megabytes(bytes: number): string {
-  return `${(bytes / 1_000_000).toFixed(1)} MB`;
-}
+/** How many ticks fit across the axis without crowding. */
+const TICKS = 6;
 
 /**
- * A colour per contest, stable across renders and rows.
+ * A colour per contest, stable across rows.
  *
  * Which hue a contest gets does not matter; that two rows agree does, because
- * the whole point of the strip is seeing that two people were in the same place
- * at the same time.
+ * the point of the chart is seeing two people in the same place at once.
  */
 function hue(key: string): number {
   let total = 0;
@@ -36,157 +28,246 @@ function hue(key: string): number {
   return total;
 }
 
+function colourFor(contestKey: string | null): string {
+  return contestKey ? `hsl(${hue(contestKey)} 70% 45%)` : "hsl(215 12% 58%)";
+}
+
+/** Ticks a person can read: the label tightens as the window does. */
+function ticksFor(from: number, to: number): { at: number; label: string }[] {
+  const span = to - from;
+  const showDate = span > 12 * HOUR;
+  const out: { at: number; label: string }[] = [];
+  for (let i = 0; i <= TICKS; i += 1) {
+    const at = from + (span * i) / TICKS;
+    const date = new Date(at);
+    const time = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    out.push({
+      at,
+      label: showDate
+        ? `${date.toLocaleDateString(undefined, { day: "numeric", month: "short" })} ${time}`
+        : time,
+    });
+  }
+  return out;
+}
+
 /**
  * Who was being watched, and when.
  *
- * Proctoring is not a contest's to own — a session spans whatever the person
- * happens to do — so this is drawn against time, and the contest is a property
- * of the moment rather than of the session.
+ * One chart: time across, people down. Proctoring is not a contest's to own —
+ * a session spans whatever the person happens to do — so the contest is a
+ * property of each moment and shows as its colour, which is what makes two
+ * people being in the same contest at the same time visible at a glance.
  */
 export function ProctorSessions() {
   const t = useTranslations("admin.proctor");
   const states = useTranslations("common.states");
 
-  const [since, setSince] = useState("86400000");
+  // The window is held as a span and an end, so zooming keeps the right edge
+  // still and panning moves both together.
+  const [span, setSpan] = useState(24 * HOUR);
+  const [endOffset, setEndOffset] = useState(0);
   const [username, setUsername] = useState("");
   const [contestKey, setContestKey] = useState("");
 
+  const to = Date.now() - endOffset;
+  const from = to - span;
+
   const data = useQuery(api.proctor.timeline, {
-    sinceMs: Number(since),
+    from,
+    to,
     ...(username ? { username } : {}),
     ...(contestKey ? { contestKey } : {}),
   });
 
-  const people = useMemo(() => [...new Set((data?.rows ?? []).map((row) => row.username))].sort(), [data]);
+  /** One row per person, however many sessions they had. */
+  const people = useMemo(() => {
+    const byUser = new Map<string, { displayName: string; rows: NonNullable<typeof data>["rows"] }>();
+    for (const row of data?.rows ?? []) {
+      const entry = byUser.get(row.username) ?? { displayName: row.displayName, rows: [] };
+      entry.rows.push(row);
+      byUser.set(row.username, entry);
+    }
+    return [...byUser.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [data]);
 
   const breadcrumb = [{ label: t("breadcrumbConsole"), href: "/admin/" }, { label: t("title") }];
-  const span = data ? Math.max(1, data.to - data.from) : 1;
+  const width = Math.max(1, (data?.to ?? to) - (data?.from ?? from));
+  const ticks = ticksFor(data?.from ?? from, data?.to ?? to);
 
   return (
     <AdminShell title={t("title")} breadcrumb={breadcrumb}>
       <div className="grid gap-4">
         <div className="flex flex-wrap items-end gap-3">
-          <Field label={t("window")} className="w-40">
-            <Select
-              value={since}
-              onValueChange={setSince}
-              options={WINDOWS.map((w) => ({ value: w.value, label: t("lastHours", { count: w.hours }) }))}
-            />
-          </Field>
-          <Field label={t("user")} className="w-48">
-            <Select
-              value={username || "__all__"}
-              onValueChange={(value) => setUsername(value === "__all__" ? "" : value)}
+          <Field label={t("user")} className="w-56">
+            <Combobox
+              value={username}
+              onValueChange={setUsername}
+              placeholder={t("everyone")}
+              searchPlaceholder={t("searchUser")}
               options={[
-                { value: "__all__", label: t("everyone") },
-                ...people.map((name) => ({ value: name, label: name })),
+                { value: "", label: t("everyone") },
+                ...people.map(([name, entry]) => ({
+                  value: name,
+                  label: entry.displayName,
+                  hint: <User size={14} aria-hidden />,
+                })),
               ]}
             />
           </Field>
-          <Field label={t("contest")} className="w-56">
-            <Select
-              value={contestKey || "__all__"}
-              onValueChange={(value) => setContestKey(value === "__all__" ? "" : value)}
+          <Field label={t("contest")} className="w-64">
+            <Combobox
+              value={contestKey}
+              onValueChange={setContestKey}
+              placeholder={t("anyContest")}
+              searchPlaceholder={t("searchContest")}
               options={[
-                { value: "__all__", label: t("anyContest") },
-                ...(data?.contests ?? []).map((c) => ({ value: c.key, label: c.name })),
+                { value: "", label: t("anyContest") },
+                ...(data?.contests ?? []).map((contest) => ({
+                  value: contest.key,
+                  label: contest.name,
+                  hint: <Trophy size={14} aria-hidden style={{ color: colourFor(contest.key) }} />,
+                })),
               ]}
             />
           </Field>
+
+          <div className="flex items-end gap-1">
+            <Button size="sm" variant="secondary" onClick={() => setEndOffset((o) => o + span / 4)}>
+              <ChevronLeft size={14} aria-hidden />
+              <span className="sr-only">{t("panBack")}</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setSpan((s) => Math.min(s * 2, 30 * 24 * HOUR))}
+            >
+              <ZoomOut size={14} aria-hidden />
+              <span className="sr-only">{t("zoomOut")}</span>
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => setSpan((s) => Math.max(s / 2, 5 * MINUTE))}>
+              <ZoomIn size={14} aria-hidden />
+              <span className="sr-only">{t("zoomIn")}</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setEndOffset((o) => Math.max(0, o - span / 4))}
+              disabled={endOffset === 0}
+            >
+              <ChevronRight size={14} aria-hidden />
+              <span className="sr-only">{t("panForward")}</span>
+            </Button>
+            <Button
+              size="sm"
+              variant={endOffset === 0 ? "primary" : "secondary"}
+              onClick={() => setEndOffset(0)}
+            >
+              {t("now")}
+            </Button>
+          </div>
         </div>
 
         {data === undefined ? (
           <p className="text-sm text-muted-foreground">{states("loading")}</p>
-        ) : data.rows.length === 0 ? (
+        ) : people.length === 0 ? (
           <EmptyState
             icon={<MonitorOff aria-hidden />}
             title={t("emptyTitle")}
             description={t("emptyBody")}
           />
         ) : (
-          <div className="grid gap-2">
-            <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
-              <span>{formatDateTime(data.from)}</span>
-              <span>{formatDateTime(data.to)}</span>
-            </div>
-
-            {data.rows.map((row) => (
-              <div key={row.sessionId} className="rounded-md border border-border bg-card p-3">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="font-medium">{row.displayName}</span>
-                  {row.live ? (
-                    <Badge variant="good" shape="square">
-                      {t("live")}
-                    </Badge>
-                  ) : (
-                    <Badge variant="neutral" shape="square">
-                      {row.endedReason ?? t("lapsed")}
-                    </Badge>
-                  )}
-                  <span className="text-sm text-muted-foreground tabular-nums">
-                    {t("slices", { count: row.slices.length })} · {megabytes(row.bytes)}
-                  </span>
-                  <Button asChild size="sm" variant="secondary" className="ml-auto">
-                    <Link href={`/admin/proctor/${row.sessionId}/`}>
-                      {row.live ? t("watchLive") : t("watch")}
-                    </Link>
-                  </Button>
-                </div>
-
-                {/* Each slice drawn where it happened. A gap in the strip is a
-                    gap in the recording, which is the thing worth seeing. */}
-                <div className="relative h-7 overflow-hidden rounded bg-secondary">
-                  {row.slices.map((slice) => {
-                    const left = ((slice.startedAt - data.from) / span) * 100;
-                    const width = Math.max((slice.durationMs / span) * 100, 0.35);
-                    const label = slice.contestKey
-                      ? `${formatDateTime(slice.startedAt)} · ${slice.contestKey}`
-                      : formatDateTime(slice.startedAt);
-                    return (
-                      <Link
-                        key={slice.index}
-                        href={`/admin/proctor/${row.sessionId}/?at=${slice.index}`}
-                        title={label}
-                        aria-label={label}
-                        className="absolute top-0 h-full"
-                        style={{
-                          left: `${left}%`,
-                          width: `${width}%`,
-                          backgroundColor: slice.contestKey
-                            ? `hsl(${hue(slice.contestKey)} 70% 45%)`
-                            : "hsl(215 15% 55%)",
-                        }}
-                      />
-                    );
-                  })}
-                </div>
+          <div className="rounded-md border border-border bg-card">
+            {/* The axis, drawn once above every row. */}
+            <div className="flex border-b border-border">
+              <div className="w-32 shrink-0 border-r border-border px-2 py-1 text-xs text-muted-foreground">
+                {t("whenLabel")}
               </div>
-            ))}
-
-            {(data.contests.length > 0 || data.rows.length > 0) && (
-              <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-muted-foreground">
-                {data.contests.map((contest) => (
-                  <span key={contest.key} className="flex items-center gap-1.5">
-                    <span
-                      aria-hidden
-                      className="size-3 rounded-xs"
-                      style={{ backgroundColor: `hsl(${hue(contest.key)} 70% 45%)` }}
-                    />
-                    {contest.name}
+              <div className="relative h-6 flex-1">
+                {ticks.map((tick) => (
+                  <span
+                    key={tick.at}
+                    className="absolute top-1 -translate-x-1/2 whitespace-nowrap text-xs tabular-nums text-muted-foreground"
+                    style={{ left: `${((tick.at - (data.from ?? from)) / width) * 100}%` }}
+                  >
+                    {tick.label}
                   </span>
                 ))}
-                <span className="flex items-center gap-1.5">
-                  <span
-                    aria-hidden
-                    className="size-3 rounded-xs"
-                    style={{ backgroundColor: "hsl(215 15% 55%)" }}
-                  />
-                  {t("noContest")}
-                </span>
               </div>
-            )}
+            </div>
+
+            {/* People down, scrolling when there are more than fit. */}
+            <div className="max-h-[28rem] overflow-y-auto scroll-quiet">
+              {people.map(([name, entry]) => (
+                <div key={name} className="flex border-b border-border last:border-b-0">
+                  <div className="flex w-32 shrink-0 items-center gap-1.5 overflow-hidden border-r border-border px-2 py-1.5">
+                    <span className="truncate text-sm font-medium" title={entry.displayName}>
+                      {entry.displayName}
+                    </span>
+                    {entry.rows.some((row) => row.live) ? (
+                      <Badge variant="good" shape="square">
+                        {t("live")}
+                      </Badge>
+                    ) : null}
+                  </div>
+
+                  <div className="relative h-9 flex-1 bg-secondary/40">
+                    {ticks.map((tick) => (
+                      <span
+                        key={tick.at}
+                        aria-hidden
+                        className="absolute inset-y-0 w-px bg-border"
+                        style={{ left: `${((tick.at - (data.from ?? from)) / width) * 100}%` }}
+                      />
+                    ))}
+                    {entry.rows.flatMap((row) =>
+                      row.slices.map((slice) => {
+                        const left = ((slice.startedAt - (data.from ?? from)) / width) * 100;
+                        const w = Math.max((slice.durationMs / width) * 100, 0.3);
+                        const label = slice.contestKey
+                          ? `${entry.displayName} · ${formatDateTime(slice.startedAt)} · ${slice.contestKey}`
+                          : `${entry.displayName} · ${formatDateTime(slice.startedAt)}`;
+                        return (
+                          <Link
+                            key={`${row.sessionId}-${slice.index}`}
+                            href={`/admin/proctor/${row.sessionId}/?at=${slice.index}`}
+                            title={label}
+                            aria-label={label}
+                            className="absolute inset-y-1.5 rounded-xs transition-opacity hover:opacity-75"
+                            style={{
+                              left: `${left}%`,
+                              width: `${w}%`,
+                              backgroundColor: colourFor(slice.contestKey),
+                            }}
+                          />
+                        );
+                      }),
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
+
+        {data && data.contests.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            {data.contests.map((contest) => (
+              <span key={contest.key} className="flex items-center gap-1.5">
+                <span
+                  aria-hidden
+                  className="size-3 rounded-xs"
+                  style={{ backgroundColor: colourFor(contest.key) }}
+                />
+                {contest.name}
+              </span>
+            ))}
+            <span className="flex items-center gap-1.5">
+              <span aria-hidden className="size-3 rounded-xs" style={{ backgroundColor: colourFor(null) }} />
+              {t("noContest")}
+            </span>
+          </div>
+        ) : null}
       </div>
     </AdminShell>
   );

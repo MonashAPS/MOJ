@@ -2081,9 +2081,16 @@
     "noRecording": "尚未录制任何内容。",
     "watch": "查看",
     "watchLive": "实时查看",
-    "window": "时间范围",
-    "lastHours": "{count, plural, =168 {最近一周} other {最近 # 小时}}",
     "everyone": "所有人",
-    "anyContest": "任意比赛"
+    "anyContest": "任意比赛",
+    "searchUser": "搜索用户",
+    "searchContest": "搜索比赛",
+    "whenLabel": "时间",
+    "panBack": "更早",
+    "panForward": "更晚",
+    "zoomIn": "放大",
+    "zoomOut": "缩小",
+    "now": "现在",
+    "followingNow": "跟随中"
   }
 }

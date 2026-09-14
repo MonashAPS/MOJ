@@ -34,11 +34,18 @@ export function ProctorReplay({ sessionId }: { sessionId: Id<"proctorSessions"> 
   const chunks = data?.chunks ?? [];
   const live = data?.session.live ?? false;
 
-  // Following means the newest slice, which is what "watch this person now"
-  // means. Any manual jump stops it, so a click does not fight the stream.
+  // Following means the newest slice and only the newest. Playing forward from
+  // wherever the recording started, racing to catch up, is not watching
+  // somebody — it holds the last frame and swaps when the next slice lands.
   useEffect(() => {
     if (following && chunks.length > 0) setAt(chunks.length - 1);
   }, [following, chunks.length]);
+
+  // Following a session that has ended means nothing; drop back to playback so
+  // the controls do not lie about what they do.
+  useEffect(() => {
+    if (!live) setFollowing(false);
+  }, [live]);
 
   const current = chunks[at] ?? null;
 
@@ -120,9 +127,9 @@ export function ProctorReplay({ sessionId }: { sessionId: Id<"proctorSessions"> 
                 muted
                 className="w-full rounded-md border border-border bg-black"
                 onEnded={() => {
-                  // Roll into the next slice, or sit on the last one and wait
-                  // for the person being watched to produce another.
-                  if (at + 1 < chunks.length) setAt(at + 1);
+                  // Following holds on the final frame until the next slice
+                  // arrives. Playback rolls into the next one.
+                  if (!following && at + 1 < chunks.length) setAt(at + 1);
                 }}
               />
 
@@ -134,7 +141,7 @@ export function ProctorReplay({ sessionId }: { sessionId: Id<"proctorSessions"> 
                   disabled={!live}
                 >
                   <Radio size={14} aria-hidden />
-                  {t("follow")}
+                  {following ? t("followingNow") : t("follow")}
                 </Button>
                 <span className="text-sm text-muted-foreground tabular-nums">
                   {current ? formatDateTime(current.startedAt) : ""}

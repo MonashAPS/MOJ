@@ -2081,9 +2081,16 @@
     "noRecording": "Пока ничего не записано.",
     "watch": "Смотреть",
     "watchLive": "Смотреть в эфире",
-    "window": "Период",
-    "lastHours": "{count, plural, one {Последний час} =168 {Последняя неделя} few {Последние # часа} many {Последние # часов} other {Последние # часов}}",
     "everyone": "Все",
-    "anyContest": "Любой контест"
+    "anyContest": "Любой контест",
+    "searchUser": "Поиск людей",
+    "searchContest": "Поиск контестов",
+    "whenLabel": "Когда",
+    "panBack": "Раньше",
+    "panForward": "Позже",
+    "zoomIn": "Приблизить",
+    "zoomOut": "Отдалить",
+    "now": "Сейчас",
+    "followingNow": "Слежу"
   }
 }

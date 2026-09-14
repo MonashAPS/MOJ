@@ -2081,9 +2081,16 @@
     "noRecording": "Nothing recorded yet.",
     "watch": "Watch",
     "watchLive": "Watch live",
-    "window": "Window",
-    "lastHours": "{count, plural, one {Last hour} =168 {Last week} other {Last # hours}}",
     "everyone": "Everyone",
-    "anyContest": "Any contest"
+    "anyContest": "Any contest",
+    "searchUser": "Search people",
+    "searchContest": "Search contests",
+    "whenLabel": "When",
+    "panBack": "Earlier",
+    "panForward": "Later",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "now": "Now",
+    "followingNow": "Following"
   }
 }

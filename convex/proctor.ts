@@ -297,15 +297,17 @@ export type Timeline = {
  */
 export const timeline = query({
   args: {
-    /** How far back to look. Defaults to the last day. */
-    sinceMs: v.optional(v.number()),
+    /** The window to draw. Defaults to the last day. */
+    from: v.optional(v.number()),
+    to: v.optional(v.number()),
     username: v.optional(v.string()),
     contestKey: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<Timeline> => {
     const now = Date.now();
-    const from = now - (args.sinceMs ?? 24 * 60 * 60 * 1000);
-    if (!(await staffOnly(ctx))) return { from, to: now, rows: [], contests: [] };
+    const to = args.to ?? now;
+    const from = args.from ?? to - 24 * 60 * 60 * 1000;
+    if (!(await staffOnly(ctx))) return { from, to, rows: [], contests: [] };
 
     const wanted = args.contestKey
       ? await ctx.db
@@ -316,7 +318,7 @@ export const timeline = query({
 
     const chunks = await ctx.db
       .query("proctorChunks")
-      .withIndex("by_started", (q) => q.gte("startedAt", from))
+      .withIndex("by_started", (q) => q.gte("startedAt", from).lte("startedAt", to))
       .take(20_000);
 
     const contestNames = new Map<string, { key: string; name: string }>();
@@ -375,7 +377,7 @@ export const timeline = query({
 
     return {
       from,
-      to: now,
+      to,
       rows,
       contests: [...contestNames.values()].sort((a, b) => a.name.localeCompare(b.name)),
     };

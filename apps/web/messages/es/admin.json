@@ -2081,9 +2081,16 @@
     "noRecording": "Todavía no hay nada grabado.",
     "watch": "Ver",
     "watchLive": "Ver en directo",
-    "window": "Periodo",
-    "lastHours": "{count, plural, one {Última hora} =168 {Última semana} other {Últimas # horas}}",
     "everyone": "Todos",
-    "anyContest": "Cualquier concurso"
+    "anyContest": "Cualquier concurso",
+    "searchUser": "Buscar personas",
+    "searchContest": "Buscar concursos",
+    "whenLabel": "Cuándo",
+    "panBack": "Antes",
+    "panForward": "Después",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "now": "Ahora",
+    "followingNow": "Siguiendo"
   }
 }

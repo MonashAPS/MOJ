@@ -2081,9 +2081,16 @@
     "noRecording": "Belum ada yang terekam.",
     "watch": "Tonton",
     "watchLive": "Tonton langsung",
-    "window": "Rentang",
-    "lastHours": "{count, plural, =1 {1 jam terakhir} =168 {Seminggu terakhir} other {# jam terakhir}}",
     "everyone": "Semua orang",
-    "anyContest": "Kontes apa pun"
+    "anyContest": "Kontes apa pun",
+    "searchUser": "Cari orang",
+    "searchContest": "Cari kontes",
+    "whenLabel": "Kapan",
+    "panBack": "Lebih awal",
+    "panForward": "Lebih akhir",
+    "zoomIn": "Perbesar",
+    "zoomOut": "Perkecil",
+    "now": "Sekarang",
+    "followingNow": "Mengikuti"
   }
 }
