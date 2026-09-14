@@ -1,0 +1,45 @@
+{
+  "tabs": {
+    "judges": "Jueces",
+    "runtimes": "Runtimes",
+    "matrix": "Versiones"
+  },
+  "judges": {
+    "title": "Estado",
+    "loading": "Cargando jueces",
+    "emptyTitle": "Sin jueces",
+    "emptyDescription": "No hay jueces en línea.",
+    "judge": "Juez",
+    "status": "Estado",
+    "uptime": "Tiempo de actividad",
+    "ping": "Ping",
+    "load": "Carga",
+    "tier": "Nivel",
+    "runtimes": "Runtimes"
+  },
+  "runtimes": {
+    "title": "Runtimes",
+    "emptyTitle": "Sin runtimes",
+    "emptyDescription": "No hay jueces en línea, así que el juez no sabe qué puede ejecutar.",
+    "id": "ID",
+    "name": "Nombre",
+    "info": "Información del runtime"
+  },
+  "matrix": {
+    "title": "Matriz de versiones",
+    "emptyTitle": "Sin jueces",
+    "emptyDescription": "No hay jueces en línea, así que no hay versiones de runtimes que comparar.",
+    "language": "Lenguaje",
+    "key": "Clave",
+    "newest": "Runtime más reciente",
+    "behind": "Por detrás de otro juez",
+    "missing": "No instalado"
+  },
+  "languageStats": {
+    "title": "Estadísticas",
+    "metaTitle": "Estadísticas de lenguajes",
+    "tab": "Lenguaje",
+    "counted": "Calculado a partir de los <count>{scanned, plural, one {# envío} other {# envíos}}</count> más recientes, actualizado por última vez <when>{updated}</when>.",
+    "countedCapped": "Calculado a partir de los <count>{scanned, plural, one {# envío} other {# envíos}}</count> más recientes (el conteo tiene un límite), actualizado por última vez <when>{updated}</when>."
+  }
+}

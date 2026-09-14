@@ -1,0 +1,45 @@
+{
+  "tabs": {
+    "judges": "评测机",
+    "runtimes": "运行环境",
+    "matrix": "版本"
+  },
+  "judges": {
+    "title": "状态",
+    "loading": "正在加载评测机",
+    "emptyTitle": "暂无评测机",
+    "emptyDescription": "当前没有在线的评测机。",
+    "judge": "评测机",
+    "status": "状态",
+    "uptime": "运行时间",
+    "ping": "延迟",
+    "load": "负载",
+    "tier": "等级",
+    "runtimes": "运行环境"
+  },
+  "runtimes": {
+    "title": "运行环境",
+    "emptyTitle": "暂无运行环境",
+    "emptyDescription": "当前没有在线的评测机，因此无法得知可运行的环境。",
+    "id": "ID",
+    "name": "名称",
+    "info": "运行环境信息"
+  },
+  "matrix": {
+    "title": "版本矩阵",
+    "emptyTitle": "暂无评测机",
+    "emptyDescription": "当前没有在线的评测机，因此没有可比较的运行环境版本。",
+    "language": "语言",
+    "key": "标识",
+    "newest": "最新运行环境",
+    "behind": "落后于其他评测机",
+    "missing": "未安装"
+  },
+  "languageStats": {
+    "title": "统计",
+    "metaTitle": "语言统计",
+    "tab": "语言",
+    "counted": "统计基于最近 <count>{scanned, plural, other {# 次提交}}</count>，最后更新于 <when>{updated}</when>。",
+    "countedCapped": "统计基于最近 <count>{scanned, plural, other {# 次提交}}</count>（已达统计上限），最后更新于 <when>{updated}</when>。"
+  }
+}

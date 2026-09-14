@@ -1,0 +1,45 @@
+{
+  "tabs": {
+    "judges": "Judge",
+    "runtimes": "Runtime",
+    "matrix": "Versi"
+  },
+  "judges": {
+    "title": "Status",
+    "loading": "Memuat judge",
+    "emptyTitle": "Tidak ada judge",
+    "emptyDescription": "Tidak ada judge yang online.",
+    "judge": "Judge",
+    "status": "Status",
+    "uptime": "Uptime",
+    "ping": "Ping",
+    "load": "Beban",
+    "tier": "Tingkat",
+    "runtimes": "Runtime"
+  },
+  "runtimes": {
+    "title": "Runtime",
+    "emptyTitle": "Tidak ada runtime",
+    "emptyDescription": "Tidak ada judge yang online, sehingga judge tidak tahu apa yang bisa dijalankannya.",
+    "id": "ID",
+    "name": "Nama",
+    "info": "Info runtime"
+  },
+  "matrix": {
+    "title": "Matriks versi",
+    "emptyTitle": "Tidak ada judge",
+    "emptyDescription": "Tidak ada judge yang online, sehingga tidak ada versi runtime untuk dibandingkan.",
+    "language": "Bahasa",
+    "key": "Kunci",
+    "newest": "Runtime terbaru",
+    "behind": "Tertinggal dari judge lain",
+    "missing": "Tidak terpasang"
+  },
+  "languageStats": {
+    "title": "Statistik",
+    "metaTitle": "Statistik bahasa",
+    "tab": "Bahasa",
+    "counted": "Dihitung dari <count>{scanned, plural, other {# pengiriman}}</count> terbaru, terakhir diperbarui <when>{updated}</when>.",
+    "countedCapped": "Dihitung dari <count>{scanned, plural, other {# pengiriman}}</count> terbaru (jumlah ini dibatasi), terakhir diperbarui <when>{updated}</when>."
+  }
+}
