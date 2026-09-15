@@ -90,9 +90,6 @@ python3 apps/judge/tests/e2e.py            # against an already built moj-judge:
 python3 apps/judge/tests/e2e.py --build    # build first
 ```
 
-The browser smoke test is Playwright in `apps/web`. It is not part of `npm test`, because it needs the compose
-stack up. In CI it is gated on a repository variable, so it runs when you ask for it rather than on every push.
-
 ## Working in a worktree
 
 Several checkouts of the repository, each running its own dev server on its own port, is the normal way to work on
@@ -241,6 +238,6 @@ does not exist.
 
 `.github/workflows/ci.yml` runs on pull requests and on pushes to the main branches: `npm ci`, `npm run lint`,
 `npm run typecheck`, `npm test`, a web build, and, in a second job, the tier 1 judge image build followed by the
-judge end-to-end test against its mock. The browser smoke test is a third job, gated on a repository variable.
+judge end-to-end test against its mock.
 
 `.github/workflows/pages.yml` builds `docs/` and deploys it to GitHub Pages on a push to the main branch.

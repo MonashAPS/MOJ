@@ -13,9 +13,6 @@ infra/problems/*
 !infra/problems/aplusb/
 tools/import/out/
 tools/import/*.sql*
-.playwright-mcp/
-test-results/
-playwright-report/
 __pycache__/
 infra/media/
 tools/import/dump*.sql.gz

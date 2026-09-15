@@ -21,6 +21,7 @@ infra/data
 infra/media
 infra/problems/*
 !infra/problems/aplusb
+infra/compose.override.local.yml
 
 # Imported production data and its secrets.
 tools/import/out
@@ -30,12 +31,5 @@ tools/import/secrets*
 # Test and docs artefacts.
 docs/.vitepress/dist
 docs/.vitepress/cache
-playwright-report
-test-results
-.playwright-mcp
 **/__pycache__
 **/*.log
-
-# Working notes that never belong in an image.
-INTEGRATION_NOTES.local.md
-infra/compose.override.local.yml
