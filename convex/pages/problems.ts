@@ -24,12 +24,6 @@ export const filterOptions = query({
   handler: async (ctx, args) => {
     const viewer = await loadViewerContext(ctx);
 
-    // Inside a contest DMOJ drops the filter form entirely, so the panel has
-    // nothing to draw and this query has nothing to count.
-    if (viewer.inContest) {
-      return { inContest: true, types: [], groups: [], contests: [], points: { min: 0, max: 0 } };
-    }
-
     const visible = (await ctx.db.query("problems").take(MAX_SCAN)).filter((row) =>
       problemIsVisibleTo(toCoreProblem(row), viewer.core),
     );
@@ -92,7 +86,6 @@ export const filterOptions = query({
     }
 
     return {
-      inContest: false,
       types,
       groups,
       contests,

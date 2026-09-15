@@ -492,6 +492,8 @@
       "clarificationsHint": "Участники могут задавать вопросы.",
       "hideProblemTags": "Скрыть теги задач",
       "hideProblemAuthors": "Скрыть авторов задач",
+      "hideNonContestProblems": "Скрывать задачи вне соревнования",
+      "hideNonContestProblemsHint": "Размывает список задач для участников этого соревнования и возвращает их к нему.",
       "pretestsOnly": "Только претесты",
       "pretestsOnlyHint": "Оценивать по претестам во время соревнования.",
       "shortDisplay": "Компактный вид",

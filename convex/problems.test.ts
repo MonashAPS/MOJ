@@ -270,41 +270,41 @@ describe("problems.list", () => {
     ]);
   });
 
-  test("contest mode shows only the contest's problems, with contest points and no tags", async () => {
-    const t = setupTest();
+  /** Being in a contest no longer rewrites this list. The contest's own page is
+   *  where its problems live; all this query does is say when the catalogue
+   *  should be drawn out of reach. */
+  async function inContest(t: ReturnType<typeof setupTest>, hideNonContestProblems: boolean) {
     await t.run(async (ctx) => {
       const { groupId, typeId } = await insertTaxonomy(ctx);
       const viewer = await insertProfile(ctx, { username: "player" });
-
-      const inside = await insertProblem(ctx, {
-        code: "inside",
-        groupId,
-        typeIds: [typeId],
-        points: 100,
-      });
-
+      const inside = await insertProblem(ctx, { code: "inside", groupId, typeIds: [typeId] });
       await insertProblem(ctx, { code: "outside", groupId, typeIds: [typeId] });
 
-      const contest = await insertContest(ctx, { key: "live" });
-      await insertContestProblem(ctx, {
-        contestId: contest,
-        problemId: inside,
-        order: 0,
-        points: 42,
-      });
+      const contest = await insertContest(ctx, { key: "live", hideNonContestProblems });
+      await insertContestProblem(ctx, { contestId: contest, problemId: inside, order: 0, points: 42 });
       const participation = await insertParticipation(ctx, { contestId: contest, profileId: viewer });
       await ctx.db.patch(viewer, { currentParticipationId: participation });
     });
 
-    const result = await asUser(t, "player").query(api.problems.list, { showTypes: true });
+    return await asUser(t, "player").query(api.problems.list, { showTypes: true });
+  }
 
-    expect(result.inContest).toBe(true);
-    expect(result.contest?.key).toBe("live");
-    expect(result.items).toHaveLength(1);
-    expect(result.items[0]?.code).toBe("inside");
-    expect(result.items[0]?.points).toBe(42);
-    expect(result.items[0]?.types).toBeNull();
-    expect(result.items[0]?.contestLabel).toBe("A");
+  test("contest mode leaves the catalogue alone", async () => {
+    const t = setupTest();
+
+    const result = await inContest(t, false);
+
+    expect(result.items.map((row) => row.code).sort()).toEqual(["inside", "outside"]);
+    expect(result.contestLock).toBeNull();
+  });
+
+  test("a contest that hides the catalogue still sends it, with a way back in", async () => {
+    const t = setupTest();
+
+    const result = await inContest(t, true);
+
+    expect(result.items.map((row) => row.code).sort()).toEqual(["inside", "outside"]);
+    expect(result.contestLock).toEqual({ key: "live", name: "LIVE" });
   });
 });
 

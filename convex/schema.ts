@@ -570,6 +570,9 @@ export default defineSchema({
     privateContestantProfileIds: v.array(v.id("profiles")),
     hideProblemTags: v.boolean(),
     hideProblemAuthors: v.boolean(),
+    /** Blurs the rest of the catalogue away while a contestant is inside this
+     *  contest, so the problems list stops being a side door out of it. */
+    hideNonContestProblems: v.optional(v.boolean()),
     runPretestsOnly: v.boolean(),
     showShortDisplay: v.boolean(),
     isOrganizationPrivate: v.boolean(),

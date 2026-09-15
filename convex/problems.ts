@@ -464,13 +464,6 @@ type ListItem = {
   contestLabel: string | null;
 };
 
-/** The point-filter facet the list returns alongside its items. */
-type PointValues = {
-  min: number;
-  max: number;
-  values: number[];
-};
-
 export const list = query({
   args: {
     search: v.optional(v.string()),
@@ -499,83 +492,6 @@ export const list = query({
     const language = args.language ?? "";
     const page = Math.max(1, Math.floor(args.page ?? 1));
     const pageSize = Math.max(1, Math.min(Math.floor(args.pageSize ?? DEFAULT_PAGE_SIZE), 200));
-
-    // DMOJ's contest mode: only the contest's own problems, with contest points
-    // and no tags, ordered by ContestProblem.order (get_contest_queryset).
-    if (viewer.inContest && viewer.contest) {
-      const contest = viewer.contest;
-
-      const links = await ctx.db
-        .query("contestProblems")
-        .withIndex("by_contest_order", (q) => q.eq("contestId", contest._id))
-        .collect();
-
-      links.sort((a, b) => a.order - b.order);
-
-      const items: ListItem[] = [];
-
-      for (const [index, link] of links.entries()) {
-        const problem = await ctx.db.get(link.problemId);
-
-        if (!problem) continue;
-        const translation = await translationFor(ctx, problem._id, language);
-        const group = await ctx.db.get(problem.groupId);
-
-        const problemSubmissions = await ctx.db
-          .query("submissions")
-          .withIndex("by_problem_date", (q) => q.eq("problemId", problem._id))
-          .take(MAX_SCAN);
-
-        const distinct = new Set<Id<"contestParticipations">>();
-
-        for (const row of problemSubmissions) {
-          if (row.contestId === contest._id && row.participationId) {
-            distinct.add(row.participationId);
-          }
-        }
-
-        const { state, bestPoints } = stateFor(problem._id, link.points, sets);
-        items.push({
-          id: problem._id,
-          code: problem.code,
-          name: problem.name,
-          i18nName: translation?.name ?? problem.name,
-          group: group ? { name: group.name, fullName: group.fullName } : null,
-          types: null,
-          points: link.points,
-          partial: link.partial,
-          acRate: problem.acRate,
-          userCount: distinct.size,
-          date: problem.date,
-          hasPublicEditorial: false,
-          state,
-          bestPoints,
-          contestLabel: labelFor(contest, index),
-        });
-      }
-
-      // Contest mode hides the point filter, so its facet is empty.
-      const contestPointValues: PointValues = { min: 0, max: 0, values: [] };
-
-      return {
-        inContest: true,
-        contest: {
-          key: contest.key,
-          name: contest.name,
-          hideProblemTags: contest.hideProblemTags,
-          hideProblemAuthors: contest.hideProblemAuthors,
-          hideScoreboard: ["C", "P", "H"].includes(contest.scoreboardVisibility),
-        },
-        items,
-        groups: null,
-        total: items.length,
-        page: 1,
-        pageSize: items.length,
-        totalPages: 1,
-        hasMore: false,
-        pointValues: contestPointValues,
-      };
-    }
 
     // --- Candidate set ----------------------------------------------------
     const search = (args.search ?? "").trim();
@@ -866,8 +782,12 @@ export const list = query({
     const pointValues = [...new Set(prepoint.map((row) => row.points))].sort((a, b) => a - b);
 
     return {
-      inContest: false,
-      contest: null,
+      /** Set while the viewer is inside a contest that hides the rest of the
+       *  catalogue: the page draws the list blurred behind a way back in. */
+      contestLock:
+        viewer.inContest && viewer.contest?.hideNonContestProblems === true
+          ? { key: viewer.contest.key, name: viewer.contest.name }
+          : null,
       items,
       groups: grouped,
       total,

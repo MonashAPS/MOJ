@@ -23,7 +23,10 @@
     "emptyTitle": "Nothing here",
     "emptyFiltered": "No problems match these filters.",
     "emptyUnpublished": "No problems have been published yet.",
-    "hotProblems": "Hot problems"
+    "hotProblems": "Hot problems",
+    "contestLockTitle": "You are currently in a competition and cannot see these problems.",
+    "contestLockHint": "The contest's own problems are below.",
+    "contestLockAction": "Go to the contest"
   },
   "filters": {
     "title": "Filters",
@@ -138,7 +141,9 @@
   },
   "statement": {
     "copied": "Copied to clipboard.",
-    "copyUnavailable": "Copying is not available in this browser."
+    "copyUnavailable": "Copying is not available in this browser.",
+    "expand": "Expand",
+    "collapse": "Collapse"
   },
   "editorial": {
     "titleFor": "Editorial for {name}",

@@ -23,7 +23,10 @@
     "emptyTitle": "Nada por aquí",
     "emptyFiltered": "Ningún problema coincide con estos filtros.",
     "emptyUnpublished": "Todavía no se ha publicado ningún problema.",
-    "hotProblems": "Problemas populares"
+    "hotProblems": "Problemas populares",
+    "contestLockTitle": "Actualmente estás en una competición y no puedes ver estos problemas.",
+    "contestLockHint": "Los problemas del concurso están abajo.",
+    "contestLockAction": "Ir al concurso"
   },
   "filters": {
     "title": "Filtros",
@@ -138,7 +141,9 @@
   },
   "statement": {
     "copied": "Copiado al portapapeles.",
-    "copyUnavailable": "Copiar no está disponible en este navegador."
+    "copyUnavailable": "Copiar no está disponible en este navegador.",
+    "expand": "Expandir",
+    "collapse": "Contraer"
   },
   "editorial": {
     "titleFor": "Editorial de {name}",

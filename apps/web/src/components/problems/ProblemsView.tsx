@@ -36,6 +36,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
+import { ContestLock } from "@/components/problems/ContestLock";
 import { ActiveFilters, type FilterOptions, FilterPanel } from "@/components/problems/FilterPanel";
 import { HotProblemsBox } from "@/components/problems/HotProblemsBox";
 import { formatDate } from "@/lib/format";
@@ -150,19 +151,7 @@ function EditorialCell({ item }: { item: ListItem }) {
   );
 }
 
-function Row({
-  item,
-  query,
-  username,
-  inContest,
-  hideScoreboard,
-}: {
-  item: ListItem;
-  query: ProblemQuery;
-  username: string | null;
-  inContest: boolean;
-  hideScoreboard: boolean;
-}) {
+function Row({ item, query, username }: { item: ListItem; query: ProblemQuery; username: string | null }) {
   return (
     <TableRow className="group">
       {username ? (
@@ -204,52 +193,34 @@ function Row({
         {formatPoints(item.points)}
         {item.partial ? <span className="text-muted-foreground">p</span> : null}
       </TableCell>
-      {inContest ? null : (
-        <>
-          <TableCell numeric className="align-middle">
-            <span className="inline-flex flex-col items-end gap-1">
-              <span>{item.acRate.toFixed(1)}%</span>
-              <span aria-hidden className="block h-[3px] w-10 rounded-full bg-well">
-                <span
-                  className="block h-full rounded-full"
-                  style={{
-                    width: `${Math.min(100, Math.max(0, item.acRate))}%`,
-                    background: "var(--heat-2)",
-                  }}
-                />
-              </span>
-            </span>
-          </TableCell>
-          <TableCell className="w-8 text-center">
-            <EditorialCell item={item} />
-          </TableCell>
-        </>
-      )}
+      <TableCell numeric className="align-middle">
+        <span className="inline-flex flex-col items-end gap-1">
+          <span>{item.acRate.toFixed(1)}%</span>
+          <span aria-hidden className="block h-[3px] w-10 rounded-full bg-well">
+            <span
+              className="block h-full rounded-full"
+              style={{
+                width: `${Math.min(100, Math.max(0, item.acRate))}%`,
+                background: "var(--heat-2)",
+              }}
+            />
+          </span>
+        </span>
+      </TableCell>
+      <TableCell className="w-8 text-center">
+        <EditorialCell item={item} />
+      </TableCell>
       <TableCell numeric>
-        {hideScoreboard ? (
-          "???"
-        ) : (
-          <Link href={`/problem/${item.code}/rank/`} className="relative z-1 hover:text-link">
-            {item.userCount.toLocaleString("en-AU")}
-          </Link>
-        )}
+        <Link href={`/problem/${item.code}/rank/`} className="relative z-1 hover:text-link">
+          {item.userCount.toLocaleString("en-AU")}
+        </Link>
       </TableCell>
     </TableRow>
   );
 }
 
 /** Under 700px the list reflows into stacked rows rather than scrolling. */
-function StackedRow({
-  item,
-  username,
-  inContest,
-  hideScoreboard,
-}: {
-  item: ListItem;
-  username: string | null;
-  inContest: boolean;
-  hideScoreboard: boolean;
-}) {
+function StackedRow({ item, username }: { item: ListItem; username: string | null }) {
   const t = useTranslations("problems.list");
 
   return (
@@ -270,11 +241,11 @@ function StackedRow({
         <p className="mt-1 font-mono text-sm tabular-nums text-muted-foreground">
           {formatPoints(item.points)}
           {item.partial ? "p" : ""}
-          {inContest ? null : <> · {item.acRate.toFixed(1)}%</>} ·{" "}
-          {hideScoreboard ? "???" : t("users", { count: item.userCount })}
+          {" · "}
+          {item.acRate.toFixed(1)}% · {t("users", { count: item.userCount })}
         </p>
       </div>
-      {!inContest && item.hasPublicEditorial ? (
+      {item.hasPublicEditorial ? (
         <BookOpen size={14} aria-label={t("editorialAvailable")} style={{ color: "var(--v-good)" }} />
       ) : null}
     </li>
@@ -353,11 +324,9 @@ export function ProblemsView({
     startTransition(() => router.push(problemHref(next), { scroll: false }));
   };
 
-  const inContest = data.inContest;
-  const hideScoreboard = inContest && data.contest?.hideScoreboard === true;
+  const columns = (username ? 1 : 0) + 5 + (query.showTypes ? 1 : 0);
 
-  const columns =
-    (username ? 1 : 0) + 3 + (query.showTypes ? 1 : 0) + (inContest ? 0 : 2) + (inContest ? 0 : 0);
+  const lock = data.contestLock;
 
   const renderPanel = (bare: boolean) => (
     <FilterPanel
@@ -388,7 +357,7 @@ export function ProblemsView({
 
   const body = (
     <>
-      {inContest ? null : <ActiveFilters query={query} options={options} onApply={apply} />}
+      <ActiveFilters query={query} options={options} onApply={apply} />
 
       {data.items.length === 0 && !loading ? (
         <EmptyState
@@ -413,67 +382,31 @@ export function ProblemsView({
               <TableHeader>
                 <TableRow>
                   {username ? (
-                    inContest ? (
-                      <TableHead className="w-7 pr-0">
-                        <span className="sr-only">{t("columnStatus")}</span>
-                      </TableHead>
-                    ) : (
-                      <SortHead
-                        label={<CheckCircle2 size={12} aria-hidden />}
-                        srLabel={t("sortByStatus")}
-                        sort="solved"
-                        query={query}
-                        onApply={apply}
-                        className="w-7"
-                      />
-                    )
+                    <SortHead
+                      label={<CheckCircle2 size={12} aria-hidden />}
+                      srLabel={t("sortByStatus")}
+                      sort="solved"
+                      query={query}
+                      onApply={apply}
+                      className="w-7"
+                    />
                   ) : null}
-                  {inContest ? (
-                    <>
-                      <TableHead>{t("columnProblem")}</TableHead>
-                      <TableHead>{t("columnCategory")}</TableHead>
-                      {query.showTypes ? <TableHead>{t("columnTypes")}</TableHead> : null}
-                      <TableHead numeric>{t("columnPoints")}</TableHead>
-                      <TableHead numeric>{t("columnUsers")}</TableHead>
-                    </>
-                  ) : (
-                    <>
-                      <SortHead label={t("columnProblem")} sort="name" query={query} onApply={apply} />
-                      <SortHead label={t("columnCategory")} sort="group" query={query} onApply={apply} />
-                      {query.showTypes ? (
-                        <SortHead label={t("columnTypes")} sort="type" query={query} onApply={apply} />
-                      ) : null}
-                      <SortHead
-                        label={t("columnPoints")}
-                        sort="points"
-                        query={query}
-                        onApply={apply}
-                        numeric
-                      />
-                      <SortHead
-                        label={t("columnAcRate")}
-                        sort="acRate"
-                        query={query}
-                        onApply={apply}
-                        numeric
-                      />
-                      <SortHead
-                        label={<BookOpen size={12} aria-hidden />}
-                        srLabel={t("sortByEditorial")}
-                        sort="editorial"
-                        query={query}
-                        onApply={apply}
-                        className="w-8"
-                      />
-                      <SortHead
-                        label={t("columnUsers")}
-                        sort="userCount"
-                        query={query}
-                        onApply={apply}
-                        numeric
-                      />
-                    </>
-                  )}
+                  <SortHead label={t("columnProblem")} sort="name" query={query} onApply={apply} />
+                  <SortHead label={t("columnCategory")} sort="group" query={query} onApply={apply} />
+                  {query.showTypes ? (
+                    <SortHead label={t("columnTypes")} sort="type" query={query} onApply={apply} />
+                  ) : null}
+                  <SortHead label={t("columnPoints")} sort="points" query={query} onApply={apply} numeric />
+                  <SortHead label={t("columnAcRate")} sort="acRate" query={query} onApply={apply} numeric />
+                  <SortHead
+                    label={<BookOpen size={12} aria-hidden />}
+                    srLabel={t("sortByEditorial")}
+                    sort="editorial"
+                    query={query}
+                    onApply={apply}
+                    className="w-8"
+                  />
+                  <SortHead label={t("columnUsers")} sort="userCount" query={query} onApply={apply} numeric />
                 </TableRow>
               </TableHeader>
               {loading ? (
@@ -503,20 +436,11 @@ export function ProblemsView({
                             item={item}
                             query={query}
                             username={username}
-                            inContest={inContest}
-                            hideScoreboard={hideScoreboard}
                           />
                         )),
                       ])
                     : data.items.map((item) => (
-                        <Row
-                          key={item.id}
-                          item={item}
-                          query={query}
-                          username={username}
-                          inContest={inContest}
-                          hideScoreboard={hideScoreboard}
-                        />
+                        <Row key={item.id} item={item} query={query} username={username} />
                       ))}
                 </TableBody>
               )}
@@ -525,29 +449,13 @@ export function ProblemsView({
 
           <ol className="overflow-hidden rounded-md border border-border bg-card md:hidden">
             {data.items.map((item) => (
-              <StackedRow
-                key={item.id}
-                item={item}
-                username={username}
-                inContest={inContest}
-                hideScoreboard={hideScoreboard}
-              />
+              <StackedRow key={item.id} item={item} username={username} />
             ))}
           </ol>
         </>
       )}
     </>
   );
-
-  if (inContest) {
-    return (
-      <div id="content-body">
-        {pager ? <div className="mb-4 flex justify-center">{pager}</div> : null}
-        {body}
-        {pager ? <div className="mt-4 flex justify-center">{pager}</div> : null}
-      </div>
-    );
-  }
 
   return (
     <div id="content-body">
@@ -578,9 +486,18 @@ export function ProblemsView({
       </div>
 
       <div className="grid gap-6 min-[900px]:grid-cols-[1fr_17rem]">
-        <div className="min-w-0">
-          {body}
-          {pager ? <div className="mt-4 flex justify-center">{pager}</div> : null}
+        <div className="relative min-w-0">
+          {/* The list is still sent — it is public either way — so this is a
+              guard against wandering off mid-contest, not a secret. */}
+          <div
+            className={lock ? "pointer-events-none select-none blur-[5px]" : undefined}
+            aria-hidden={lock ? true : undefined}
+            inert={lock ? true : undefined}
+          >
+            {body}
+            {pager ? <div className="mt-4 flex justify-center">{pager}</div> : null}
+          </div>
+          {lock ? <ContestLock contestKey={lock.key} contestName={lock.name} /> : null}
         </div>
         <aside className="max-[899px]:hidden">
           <div className="sticky top-[70px] grid gap-4">
