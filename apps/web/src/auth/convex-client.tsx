@@ -1,20 +1,9 @@
 "use client";
 
 import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
-import { type ReactNode, useCallback, useMemo } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { usePublicConfig } from "@/lib/public-config";
 import { authClient } from "./client";
-
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL ?? "http://127.0.0.1:3210";
-
-let client: ConvexReactClient | undefined;
-
-function getClient(): ConvexReactClient {
-  if (!client) {
-    client = new ConvexReactClient(convexUrl, { skipConvexDeploymentUrlCheck: true });
-  }
-
-  return client;
-}
 
 type AuthClient = typeof authClient;
 
@@ -69,8 +58,14 @@ function useBetterAuthForConvex() {
 }
 
 export function ConvexClientProvider({ children }: { children: ReactNode }) {
+  const { convexUrl } = usePublicConfig();
+
+  // The client holds the websocket, so it has to outlive a re-render; the
+  // origin is fixed for the life of the document, so one instance is enough.
+  const [client] = useState(() => new ConvexReactClient(convexUrl, { skipConvexDeploymentUrlCheck: true }));
+
   return (
-    <ConvexProviderWithAuth client={getClient()} useAuth={useBetterAuthForConvex}>
+    <ConvexProviderWithAuth client={client} useAuth={useBetterAuthForConvex}>
       {children}
     </ConvexProviderWithAuth>
   );

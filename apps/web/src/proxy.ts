@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { COMPROMISED_COOKIE } from "@/auth/password-compromised";
 import { readJsonBody } from "@/lib/json-body";
+import { convexSiteUrl } from "@/lib/public-config.server";
 
 /** Gates that must run before any page renders.
  *
@@ -14,6 +15,29 @@ import { readJsonBody } from "@/lib/json-body";
  *     sets a cookie on a hit. This gate turns that cookie into DMOJ's forced
  *     password change; completing one clears the cookie.
  */
+
+const PROBLEMS_API = "/api/problems";
+
+/** The problems API is a Convex HTTP action, but operators should not have to
+ *  publish a second hostname or teach a CI secret about it. `/api/problems/*`
+ *  on the web origin is proxied to the Convex site origin, so `JUDGE_URL` is
+ *  just the address of the site. Caddy has the same route in front of a
+ *  deployment (infra/Caddyfile) for the case where the web app is not in the
+ *  request path.
+ *
+ *  The route is here and not a `rewrites()` entry in next.config.ts because a
+ *  rewrite destination is fixed when the image is built, and one published
+ *  image serves any host. */
+function problemsApiTarget(request: NextRequest): URL | null {
+  const { pathname, search } = request.nextUrl;
+
+  if (pathname !== PROBLEMS_API && !pathname.startsWith(`${PROBLEMS_API}/`)) return null;
+
+  const target = new URL(`${convexSiteUrl()}${pathname}`);
+  target.search = search;
+
+  return target;
+}
 
 const EXEMPT_PREFIXES = [
   "/accounts/2fa",
@@ -67,6 +91,10 @@ async function fetchSession(request: NextRequest): Promise<SessionResponse | nul
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  const problemsApi = problemsApiTarget(request);
+
+  if (problemsApi) return NextResponse.rewrite(problemsApi);
 
   // DMOJ's URLs all end in a slash and old links must keep working. Next's own
   // redirect is disabled (skipTrailingSlashRedirect) so it does not fire on the

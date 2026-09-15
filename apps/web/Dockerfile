@@ -7,10 +7,9 @@
 #
 #   docker build -f apps/web/Dockerfile -t moj-web:local .
 #
-# The NEXT_PUBLIC_* values are baked into the client bundle at build time, so
-# they are build arguments, not just runtime environment. An image built with
-# the defaults below only works against a local stack; pass the real origins
-# when building for a deployment (compose.prod.yml does).
+# The site's public origins are not build arguments. They are read from the
+# container's environment on each request (src/lib/public-config.server.ts), so
+# one image serves any host and a deployment names its own hostnames.
 
 ARG NODE_VERSION=24
 ARG TYPST_VERSION=0.15.1
@@ -68,15 +67,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # workspace whenever a version cannot be hoisted; then the sources on top.
 COPY --from=deps /repo ./
 COPY . .
-
-ARG NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:3210
-ARG NEXT_PUBLIC_CONVEX_SITE_URL=http://127.0.0.1:3211
-ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
-ARG NEXT_PUBLIC_SITE_URL=
-ENV NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL} \
-    NEXT_PUBLIC_CONVEX_SITE_URL=${NEXT_PUBLIC_CONVEX_SITE_URL} \
-    NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL} \
-    NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
 
 # Placeholders so `next build` can collect page data without a live database;
 # the runtime stage receives the real values from the environment.

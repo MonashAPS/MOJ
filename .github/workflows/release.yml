@@ -70,15 +70,16 @@ jobs:
       - name: The image starts and answers its healthcheck
         run: |
           docker run -d --name moj-web-release -p 3000:3000 \
-            -e NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:3210 \
-            -e NEXT_PUBLIC_CONVEX_SITE_URL=http://127.0.0.1:3211 \
-            -e NEXT_PUBLIC_APP_URL=http://localhost:3000 \
+            -e NEXT_PUBLIC_CONVEX_URL=https://runtime.example/convex \
+            -e NEXT_PUBLIC_CONVEX_SITE_URL=https://runtime.example \
+            -e NEXT_PUBLIC_APP_URL=https://runtime.example \
             -e DATABASE_URL=postgresql://moj:moj@127.0.0.1:5433/moj_auth \
             -e AUTH_SECRET=ci-run-only-not-a-real-secret \
             moj-web:release
           for _ in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:3000/api/health; then
               echo
+              curl -fsS http://127.0.0.1:3000/ | grep -q 'https://runtime.example'
               docker rm -f moj-web-release
               exit 0
             fi
