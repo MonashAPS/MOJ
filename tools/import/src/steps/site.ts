@@ -1,35 +1,35 @@
 import type { Step } from "./types.ts";
 
-const SHIKI_ALIASES: Record<string, string> = {
-  "c++": "cpp",
-  "c#": "csharp",
-  cs: "csharp",
-  python3: "python",
-  objc: "objective-c",
-  objectivec: "objective-c",
-  "objective-c++": "objective-cpp",
-  fortran: "fortran-free-form",
-  coffeescript: "coffee",
-  common_lisp: "lisp",
-  commonlisp: "lisp",
-  js: "javascript",
-  ts: "typescript",
-  nasm: "asm",
-  gas: "asm",
-  text: "plaintext",
-  turing: "plaintext",
-  brainfuck: "plaintext",
-  bf: "plaintext",
-  pike: "plaintext",
-  sed: "plaintext",
-};
+const SHIKI_ALIASES = new Map<string, string>([
+  ["c++", "cpp"],
+  ["c#", "csharp"],
+  ["cs", "csharp"],
+  ["python3", "python"],
+  ["objc", "objective-c"],
+  ["objectivec", "objective-c"],
+  ["objective-c++", "objective-cpp"],
+  ["fortran", "fortran-free-form"],
+  ["coffeescript", "coffee"],
+  ["common_lisp", "lisp"],
+  ["commonlisp", "lisp"],
+  ["js", "javascript"],
+  ["ts", "typescript"],
+  ["nasm", "asm"],
+  ["gas", "asm"],
+  ["text", "plaintext"],
+  ["turing", "plaintext"],
+  ["brainfuck", "plaintext"],
+  ["bf", "plaintext"],
+  ["pike", "plaintext"],
+  ["sed", "plaintext"],
+]);
 
 export function shikiLangFor(pygments: string): string {
   const key = pygments.trim().toLowerCase();
 
   if (key === "") return "plaintext";
 
-  return SHIKI_ALIASES[key] ?? key;
+  return SHIKI_ALIASES.get(key) ?? key;
 }
 
 export const languagesStep: Step = {

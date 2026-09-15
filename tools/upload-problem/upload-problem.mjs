@@ -326,7 +326,7 @@ function positiveNumber(raw, field) {
 }
 
 function boolean(raw, field) {
-  if (typeof raw === "boolean") return raw;
+  if (raw === true || raw === false) return raw;
   const text = String(raw).trim().toLowerCase();
 
   if (["1", "true", "yes", "on"].includes(text)) return true;
@@ -393,7 +393,7 @@ export async function buildRequest(problemDir, { statementOnly = false } = {}) {
       throw new UploadError(`Invalid JSON in ${configPath}: ${error.message}`);
     }
 
-    if (!config || typeof config !== "object" || Array.isArray(config)) {
+    if (config === null || Array.isArray(config) || !(config instanceof Object)) {
       throw new UploadError(`Expected a JSON object in ${configPath}`);
     }
   }

@@ -292,11 +292,11 @@ export const ticketMessagesStep: Step = {
   },
 };
 
-const REVISION_MODELS: Record<string, string> = {
-  problem: "problems",
-  contest: "contests",
-  comment: "comments",
-};
+const REVISION_MODELS = new Map<string, string>([
+  ["problem", "problems"],
+  ["contest", "contests"],
+  ["comment", "comments"],
+]);
 
 export const revisionsStep: Step = {
   table: "revisions",
@@ -322,7 +322,7 @@ export const revisionsStep: Step = {
     for await (const row of ctx.rows("reversion_version")) {
       ctx.report.counts("revisions").read++;
       const contentType = contentTypes.get(row.n("content_type_id"));
-      const entityType = contentType ? REVISION_MODELS[contentType.model] : undefined;
+      const entityType = contentType ? REVISION_MODELS.get(contentType.model) : undefined;
 
       if (!contentType || !entityType || contentType.app !== "judge") {
         ctx.report.skip(

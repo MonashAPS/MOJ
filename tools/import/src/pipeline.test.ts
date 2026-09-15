@@ -2,18 +2,34 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { ImportContext } from "./context.ts";
-import type { DryRunLoader, Loader } from "./loader.ts";
+import { isJsonArray, isJsonObject, type JsonObject, type JsonValue, parseJson } from "./json.ts";
+import { DryRunLoader, type Loader } from "./loader.ts";
 import { runPipeline, type StateFile } from "./pipeline.ts";
 import { reportToJson } from "./report.ts";
 import { makeFixtureContext } from "./test.fixtures.ts";
 
-function docs(dir: string, table: string): Record<string, unknown>[] {
+function parseDoc(line: string): JsonObject {
+  const parsed = parseJson(line);
+
+  if (!isJsonObject(parsed)) throw new Error(`not a document: ${line}`);
+
+  return parsed;
+}
+
+/** Fails the test outright when a field the assertion counts is not a list. */
+function list(value: JsonValue | undefined): JsonValue[] {
+  if (!isJsonArray(value)) throw new Error(`expected a list, got ${JSON.stringify(value)}`);
+
+  return value;
+}
+
+function docs(dir: string, table: string): JsonObject[] {
   const file = path.join(dir, "docs", `${table}.jsonl`);
   const text = readFileSync(file, "utf8").trim();
 
   if (text === "") return [];
 
-  return text.split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+  return text.split("\n").map(parseDoc);
 }
 
 describe("full transform over a fixture dump", () => {
@@ -76,7 +92,7 @@ describe("full transform over a fixture dump", () => {
   it("keeps organisation membership order and counts members", () => {
     const [organization] = docs(dir, "organizations");
     expect(organization).toMatchObject({ slug: "maps", memberCount: 2 });
-    expect(organization?.adminProfileIds as string[]).toHaveLength(1);
+    expect(list(organization?.adminProfileIds)).toHaveLength(1);
     const memberships = docs(dir, "organizationMemberships");
     expect(memberships.map((m) => m.order)).toEqual([3, 0]);
   });
@@ -93,9 +109,9 @@ describe("full transform over a fixture dump", () => {
       submissionSourceVisibility: "A",
       date: Date.UTC(2023, 2, 4, 5, 6, 7),
     });
-    expect(aplusb?.authorProfileIds as string[]).toHaveLength(1);
-    expect(aplusb?.typeIds as string[]).toHaveLength(1);
-    expect(aplusb?.allowedLanguageIds as string[]).toHaveLength(1);
+    expect(list(aplusb?.authorProfileIds)).toHaveLength(1);
+    expect(list(aplusb?.typeIds)).toHaveLength(1);
+    expect(list(aplusb?.allowedLanguageIds)).toHaveLength(1);
     expect(aplusb?.licenseId).toBeDefined();
 
     const orphan = problems[1];
@@ -207,7 +223,11 @@ describe("full transform over a fixture dump", () => {
   });
 
   it("patches the deferred current participation pointer", () => {
-    expect((loader as DryRunLoader).patched.get("profiles")).toBe(1);
+    expect(loader).toBeInstanceOf(DryRunLoader);
+
+    if (!(loader instanceof DryRunLoader)) throw new Error("the fixture did not use a dry run loader");
+
+    expect(loader.patched.get("profiles")).toBe(1);
   });
 
   it("reports the columns it never read", () => {

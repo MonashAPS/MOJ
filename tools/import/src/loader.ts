@@ -1,20 +1,45 @@
-import { existsSync } from "node:fs";
+import { createReadStream, existsSync } from "node:fs";
 import path from "node:path";
+import { createInterface } from "node:readline";
 import { ConvexHttpClient } from "convex/browser";
+import type { FunctionArgs, FunctionReference, FunctionReturnType } from "convex/server";
 import { makeFunctionReference } from "convex/server";
-import { readRows } from "./rows.ts";
+import { isJsonNumber, isJsonObject, type JsonValue, parseJson } from "./json.ts";
 
-export type ImportDoc = Record<string, unknown>;
+/** A field of a document bound for Convex: any JSON value, or absent. */
+type DocValue = JsonValue | undefined;
+
+/** One document for a Convex table. `legacyId` carries the DMOJ primary key it came from. */
+export interface ImportDoc {
+  legacyId?: number;
+  [field: string]: DocValue;
+}
+
+export interface DocPatch {
+  id: string;
+  fields: ImportDoc;
+}
 
 export interface InsertedId {
   legacyId: number | null;
   id: string;
 }
 
+export interface ClearResult {
+  deleted: number;
+  isDone: boolean;
+}
+
+export interface MappingPage {
+  page: InsertedId[];
+  continueCursor: string | null;
+  isDone: boolean;
+}
+
 export interface Loader {
   readonly name: string;
   insert(table: string, docs: ImportDoc[]): Promise<InsertedId[]>;
-  patch(table: string, patches: { id: string; fields: ImportDoc }[]): Promise<number>;
+  patch(table: string, patches: DocPatch[]): Promise<number>;
   clear(table: string): Promise<number>;
   mapping(table: string): Promise<InsertedId[]>;
 }
@@ -23,27 +48,34 @@ const insertBatchRef = makeFunctionReference<"mutation", { table: string; docs: 
   "importer:insertBatch",
 );
 
-const patchBatchRef = makeFunctionReference<
-  "mutation",
-  { table: string; patches: { id: string; fields: ImportDoc }[] },
-  number
->("importer:patchBatch");
+const patchBatchRef = makeFunctionReference<"mutation", { table: string; patches: DocPatch[] }, number>(
+  "importer:patchBatch",
+);
 
-const clearTableRef = makeFunctionReference<
-  "mutation",
-  { table: string; limit?: number },
-  { deleted: number; isDone: boolean }
->("importer:clearTable");
+const clearTableRef = makeFunctionReference<"mutation", { table: string; limit?: number }, ClearResult>(
+  "importer:clearTable",
+);
 
 const mappingRef = makeFunctionReference<
   "query",
   { table: string; cursor: string | null; numItems?: number },
-  { page: InsertedId[]; continueCursor: string | null; isDone: boolean }
+  MappingPage
 >("importer:mapping");
 
+/**
+ * The part of ConvexHttpClient the loader uses. Every call carries the argument
+ * and return types its function reference declares, so a response never has to
+ * be narrowed by hand.
+ */
 export interface ConvexClientLike {
-  mutation(reference: unknown, args: unknown): Promise<unknown>;
-  query(reference: unknown, args: unknown): Promise<unknown>;
+  mutation<Mutation extends FunctionReference<"mutation">>(
+    reference: Mutation,
+    args: FunctionArgs<Mutation>,
+  ): Promise<FunctionReturnType<Mutation>>;
+  query<Query extends FunctionReference<"query">>(
+    reference: Query,
+    args: FunctionArgs<Query>,
+  ): Promise<FunctionReturnType<Query>>;
 }
 
 /**
@@ -70,8 +102,8 @@ export class ConvexLoader implements Loader {
     for (let attempt = 0; ; attempt++) {
       try {
         return await run();
-      } catch (error) {
-        const message = (error as Error).message ?? String(error);
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : String(cause);
 
         const transient =
           message.includes("TooManyWrites") ||
@@ -82,7 +114,7 @@ export class ConvexLoader implements Loader {
           message.includes("ECONNRESET") ||
           message.includes("fetch failed");
 
-        if (!transient || attempt >= this.retries) throw error;
+        if (!transient || attempt >= this.retries) throw cause;
         process.stderr.write(`  ${what}: ${message.split("\n")[0]}, retrying in ${wait}ms\n`);
         await new Promise((resolve) => setTimeout(resolve, wait));
         wait = Math.min(wait * 2, 8000);
@@ -91,28 +123,29 @@ export class ConvexLoader implements Loader {
   }
 
   static fromAdminKey(url: string, adminKey: string): ConvexLoader {
-    // setAdminAuth is how the self-hosted admin key reaches internal functions.
-    // It exists on the client but is not part of its published typings.
+    // SAFETY: setAdminAuth is how the self-hosted admin key reaches internal
+    // functions. It exists on the client but is not part of its published
+    // typings, so the intersection only names a method that is already there.
     const client = new ConvexHttpClient(url) as ConvexHttpClient & {
       setAdminAuth(key: string): void;
     };
 
     client.setAdminAuth(adminKey);
 
-    return new ConvexLoader(client as unknown as ConvexClientLike);
+    return new ConvexLoader(client);
   }
 
   async insert(table: string, docs: ImportDoc[]): Promise<InsertedId[]> {
     return await this.withRetry(
       `insert ${table}`,
-      async () => (await this.client.mutation(insertBatchRef, { table, docs })) as InsertedId[],
+      async () => await this.client.mutation(insertBatchRef, { table, docs }),
     );
   }
 
-  async patch(table: string, patches: { id: string; fields: ImportDoc }[]): Promise<number> {
+  async patch(table: string, patches: DocPatch[]): Promise<number> {
     return await this.withRetry(
       `patch ${table}`,
-      async () => (await this.client.mutation(patchBatchRef, { table, patches })) as number,
+      async () => await this.client.mutation(patchBatchRef, { table, patches }),
     );
   }
 
@@ -122,11 +155,7 @@ export class ConvexLoader implements Loader {
     for (;;) {
       const result = await this.withRetry(
         `clear ${table}`,
-        async () =>
-          (await this.client.mutation(clearTableRef, { table, limit: 2000 })) as {
-            deleted: number;
-            isDone: boolean;
-          },
+        async () => await this.client.mutation(clearTableRef, { table, limit: 2000 }),
       );
 
       deleted += result.deleted;
@@ -142,12 +171,7 @@ export class ConvexLoader implements Loader {
     for (;;) {
       const page = await this.withRetry(
         `mapping ${table}`,
-        async () =>
-          (await this.client.query(mappingRef, { table, cursor, numItems: 512 })) as {
-            page: InsertedId[];
-            continueCursor: string | null;
-            isDone: boolean;
-          },
+        async () => await this.client.query(mappingRef, { table, cursor, numItems: 512 }),
       );
 
       out.push(...page.page);
@@ -156,6 +180,16 @@ export class ConvexLoader implements Loader {
       cursor = page.continueCursor;
     }
   }
+}
+
+/** The legacy id a written document carries, or null when it never had one. */
+function docLegacyId(line: string): number | null {
+  const parsed = parseJson(line);
+
+  if (!isJsonObject(parsed)) return null;
+  const legacyId = parsed.legacyId;
+
+  return isJsonNumber(legacyId) ? legacyId : null;
 }
 
 /**
@@ -179,7 +213,7 @@ export class DryRunLoader implements Loader {
     const out: InsertedId[] = [];
 
     for (const doc of docs) {
-      const legacyId = typeof doc.legacyId === "number" ? doc.legacyId : null;
+      const legacyId = doc.legacyId ?? null;
       out.push({ legacyId, id: DryRunLoader.fakeId(table, legacyId, ordinal) });
       ordinal++;
     }
@@ -189,7 +223,7 @@ export class DryRunLoader implements Loader {
     return out;
   }
 
-  async patch(table: string, patches: { id: string; fields: ImportDoc }[]): Promise<number> {
+  async patch(table: string, patches: DocPatch[]): Promise<number> {
     this.patched.set(table, (this.patched.get(table) ?? 0) + patches.length);
 
     return patches.length;
@@ -209,10 +243,12 @@ export class DryRunLoader implements Loader {
     if (!existsSync(file)) return [];
     const out: InsertedId[] = [];
     let ordinal = 0;
-    const seen = new Set<string>();
+    const stream = createReadStream(file, { encoding: "utf8" });
+    const lines = createInterface({ input: stream, crlfDelay: Number.POSITIVE_INFINITY });
 
-    for await (const row of readRows(file, seen)) {
-      const legacyId = typeof row.data.legacyId === "number" ? (row.data.legacyId as number) : null;
+    for await (const line of lines) {
+      if (line.trim() === "") continue;
+      const legacyId = docLegacyId(line);
       out.push({ legacyId, id: DryRunLoader.fakeId(table, legacyId, ordinal) });
       ordinal++;
     }

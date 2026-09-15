@@ -1,21 +1,41 @@
+import { isJsonNumber, isJsonObject, isJsonText, type JsonValue } from "../json.ts";
+
 export interface HexBlob {
   $hex: string;
 }
 
+/** One column value as the dump parser produces it, and as the raw JSONL carries it. */
 export type SqlValue = string | number | null | HexBlob;
 
-export function isHexBlob(value: unknown): value is HexBlob {
-  return typeof value === "object" && value !== null && typeof (value as HexBlob).$hex === "string";
+export function isSqlText(value: SqlValue): value is string {
+  return typeof value === "string";
+}
+
+export function isSqlNumber(value: SqlValue): value is number {
+  return typeof value === "number";
+}
+
+/** Narrows one JSON value back to the column value `bufferToBlob` and `readValue` wrote. */
+export function sqlValueFromJson(value: JsonValue | undefined): SqlValue {
+  if (isJsonText(value) || isJsonNumber(value)) return value;
+
+  if (isJsonObject(value)) {
+    const hex = value.$hex;
+
+    return isJsonText(hex) ? { $hex: hex } : null;
+  }
+
+  return null;
 }
 
 export function blobToBuffer(value: SqlValue): Buffer | null {
   if (value === null) return null;
 
-  if (isHexBlob(value)) return Buffer.from(value.$hex, "hex");
+  if (isSqlText(value)) return Buffer.from(value, "utf8");
 
-  if (typeof value === "string") return Buffer.from(value, "utf8");
+  if (isSqlNumber(value)) return null;
 
-  return null;
+  return Buffer.from(value.$hex, "hex");
 }
 
 export function bufferToBlob(buf: Buffer): HexBlob {
@@ -243,7 +263,7 @@ export function* readTuples(text: string, pos: number): Generator<SqlValue[]> {
     // Skip the separator between tuples, and stop at the statement terminator.
     let i = at;
 
-    while (i < text.length && /\s/.test(text[i] as string)) i++;
+    while (i < text.length && /\s/.test(text.charAt(i))) i++;
 
     if (text[i] === ",") {
       at = i + 1;

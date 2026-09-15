@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { getFormatOrDefault } from "@moj/core";
 import type { ImportContext } from "../context.ts";
 import { groupM2M } from "../context.ts";
+import { isJsonObject, type JsonObject, type JsonValue } from "../json.ts";
 import type { Step } from "./types.ts";
 
 const SCOREBOARD_VISIBILITY = new Set(["V", "C", "P", "H"]);
@@ -23,13 +24,13 @@ export function labelSchemeFor(formatName: string, labelScript: string): "letter
  * mean nothing once the rows are in Convex. Rewrite them to the new ids;
  * anything that no longer resolves is dropped, as its contest problem was.
  */
-export function remapFormatData(ctx: ImportContext, formatData: unknown, rowId: number): unknown {
-  if (formatData === null || formatData === undefined) return null;
+export function remapFormatData(ctx: ImportContext, formatData: JsonValue, rowId: number): JsonValue {
+  if (formatData === null) return null;
 
-  if (typeof formatData !== "object" || Array.isArray(formatData)) return formatData;
-  const out: Record<string, unknown> = {};
+  if (!isJsonObject(formatData)) return formatData;
+  const out: JsonObject = {};
 
-  for (const [key, value] of Object.entries(formatData as Record<string, unknown>)) {
+  for (const [key, value] of Object.entries(formatData)) {
     const legacyId = Number(key);
 
     if (!Number.isInteger(legacyId)) {

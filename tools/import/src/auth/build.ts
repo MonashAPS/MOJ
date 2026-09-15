@@ -1,4 +1,5 @@
 import type { ImportContext } from "../context.ts";
+import type { JsonValue } from "../json.ts";
 import type {
   AuthAccountRow,
   AuthPasskeyRow,
@@ -212,7 +213,7 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
 
       if (totp.scratchCodes) {
         const decoded = fernetDecryptString(fernetKey, totp.scratchCodes);
-        const parsed = JSON.parse(decoded) as unknown;
+        const parsed: JsonValue = JSON.parse(decoded);
 
         if (Array.isArray(parsed)) codes = parsed.map((code) => String(code));
       }
@@ -228,11 +229,11 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
         locked_until: null,
       });
       stats.twoFactors++;
-    } catch (error) {
+    } catch (cause) {
       stats.twoFactorFailures++;
       ctx.report.warn(
         "betterAuth.twoFactor",
-        `could not decrypt TOTP data: ${(error as Error).message}`,
+        `could not decrypt TOTP data: ${cause instanceof Error ? cause.message : String(cause)}`,
         legacyUserId,
       );
     }

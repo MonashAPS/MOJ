@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { isJsonObject, parseJson } from "../json.ts";
 import { reportToJson } from "../report.ts";
 import { makeFixtureContext } from "../test.fixtures.ts";
 import {
@@ -6,6 +7,7 @@ import {
   buildUpsert,
   PASSKEY_COLUMNS,
   type SqlExecutor,
+  type SqlParameter,
   TWO_FACTOR_COLUMNS,
   USER_COLUMNS,
   writeBetterAuthRows,
@@ -15,17 +17,17 @@ import { deriveFernetKey, fernetEncrypt } from "./fernet.ts";
 import { decodeBackupCodes, symmetricDecrypt } from "./secretbox.ts";
 
 class FakeDatabase implements SqlExecutor {
-  readonly statements: { text: string; values: unknown[] }[] = [];
+  readonly statements: { text: string; values: SqlParameter[] }[] = [];
 
   constructor(private readonly columns: Record<string, string[]>) {}
 
-  async query(text: string, values: unknown[] = []) {
+  async query(text: string, values: SqlParameter[] = []) {
     if (text.startsWith("SELECT column_name")) {
-      const table = values[0] as string;
+      const present = this.columns[String(values[0])] ?? [];
 
       return {
-        rows: (this.columns[table] ?? []).map((column_name) => ({ column_name })),
-        rowCount: (this.columns[table] ?? []).length,
+        rows: present.map((column_name) => ({ column_name })),
+        rowCount: present.length,
       };
     }
 
@@ -269,7 +271,9 @@ describe("buildAuthRows", () => {
       .trim()
       .split("\n")
       .map((line) => {
-        const row = JSON.parse(line) as Record<string, unknown>;
+        const row = parseJson(line);
+
+        if (!isJsonObject(row)) throw new Error(`not a fixture row: ${line}`);
 
         if (row.id === 1) {
           row.is_totp_enabled = 1;
@@ -301,7 +305,9 @@ describe("buildAuthRows", () => {
       .trim()
       .split("\n")
       .map((line) => {
-        const row = JSON.parse(line) as Record<string, unknown>;
+        const row = parseJson(line);
+
+        if (!isJsonObject(row)) throw new Error(`not a fixture row: ${line}`);
 
         if (row.id === 1) {
           row.is_totp_enabled = 1;

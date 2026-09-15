@@ -1,11 +1,18 @@
-export interface SqlExecutor {
-  query(
-    text: string,
-    values?: unknown[],
-  ): Promise<{ rows: Record<string, unknown>[]; rowCount: number | null }>;
+/** A value Postgres can take as a bound parameter of a Better Auth column. */
+export type SqlParameter = string | number | boolean | Date | null;
+
+/** Any Better Auth row on its way to Postgres, keyed by column name. */
+export type AuthRow = Record<string, SqlParameter>;
+
+interface ColumnNameRow {
+  column_name: string;
 }
 
-export interface AuthUserRow {
+export interface SqlExecutor {
+  query(text: string, values?: SqlParameter[]): Promise<{ rows: ColumnNameRow[]; rowCount: number | null }>;
+}
+
+export type AuthUserRow = {
   id: string;
   name: string;
   email: string;
@@ -25,9 +32,9 @@ export interface AuthUserRow {
   timezone: string | null;
   preferred_language: string | null;
   organization_slugs: string | null;
-}
+};
 
-export interface AuthAccountRow {
+export type AuthAccountRow = {
   id: string;
   account_id: string;
   provider_id: string;
@@ -35,9 +42,9 @@ export interface AuthAccountRow {
   password: string;
   created_at: Date;
   updated_at: Date;
-}
+};
 
-export interface AuthTwoFactorRow {
+export type AuthTwoFactorRow = {
   id: string;
   secret: string;
   backup_codes: string;
@@ -45,9 +52,9 @@ export interface AuthTwoFactorRow {
   verified: boolean;
   failed_verification_count: number;
   locked_until: Date | null;
-}
+};
 
-export interface AuthPasskeyRow {
+export type AuthPasskeyRow = {
   id: string;
   name: string;
   public_key: string;
@@ -59,7 +66,7 @@ export interface AuthPasskeyRow {
   transports: string;
   created_at: Date;
   aaguid: string | null;
-}
+};
 
 /**
  * Column lists taken from apps/web/drizzle/0000_aberrant_rage.sql, which is the
@@ -124,12 +131,12 @@ export const PASSKEY_COLUMNS = [
   "aaguid",
 ] as const;
 
-export const REQUIRED_COLUMNS: Record<string, string[]> = {
-  user: ["id", "name", "email", "email_verified", "created_at", "updated_at"],
-  account: ["id", "account_id", "provider_id", "user_id", "created_at", "updated_at"],
-  two_factor: ["id", "user_id", "secret", "backup_codes"],
-  passkey: ["id", "public_key", "user_id", "credential_id", "counter", "device_type", "backed_up"],
-};
+export const REQUIRED_COLUMNS = new Map<string, readonly string[]>([
+  ["user", ["id", "name", "email", "email_verified", "created_at", "updated_at"]],
+  ["account", ["id", "account_id", "provider_id", "user_id", "created_at", "updated_at"]],
+  ["two_factor", ["id", "user_id", "secret", "backup_codes"]],
+  ["passkey", ["id", "public_key", "user_id", "credential_id", "counter", "device_type", "backed_up"]],
+]);
 
 function quote(identifier: string): string {
   if (identifier.includes('"')) throw new Error(`invalid identifier ${identifier}`);
@@ -137,17 +144,28 @@ function quote(identifier: string): string {
   return `"${identifier}"`;
 }
 
-export function buildUpsert(
-  table: string,
-  columns: readonly string[],
-  values: Record<string, unknown>,
-): { text: string; values: unknown[] } {
-  const used = columns.filter((column) => values[column] !== undefined);
+export interface UpsertStatement {
+  text: string;
+  values: SqlParameter[];
+}
+
+export function buildUpsert(table: string, columns: readonly string[], values: AuthRow): UpsertStatement {
+  const used: string[] = [];
+  const parameters: SqlParameter[] = [];
+
+  for (const column of columns) {
+    const value = values[column];
+
+    if (value === undefined) continue;
+    used.push(column);
+    parameters.push(value);
+  }
+
   const placeholders = used.map((_, index) => `$${index + 1}`);
 
-  const updates = used
-    .filter((column) => column !== "id")
-    .map((column) => `${quote(column)} = EXCLUDED.${quote(column)}`);
+  const updates = used.flatMap((column) =>
+    column === "id" ? [] : [`${quote(column)} = EXCLUDED.${quote(column)}`],
+  );
 
   const text =
     `INSERT INTO ${quote(table)} (${used.map(quote).join(", ")}) VALUES (${placeholders.join(", ")})` +
@@ -155,7 +173,7 @@ export function buildUpsert(
       ? ` ON CONFLICT (id) DO UPDATE SET ${updates.join(", ")}`
       : " ON CONFLICT (id) DO NOTHING");
 
-  return { text, values: used.map((column) => values[column]) };
+  return { text, values: parameters };
 }
 
 export async function introspectColumns(client: SqlExecutor, table: string): Promise<Set<string>> {
@@ -164,7 +182,7 @@ export async function introspectColumns(client: SqlExecutor, table: string): Pro
     [table],
   );
 
-  return new Set(result.rows.map((row) => String(row.column_name)));
+  return new Set(result.rows.map((row) => row.column_name));
 }
 
 export interface AuthWriteInput {
@@ -186,7 +204,7 @@ async function writeTable(
   client: SqlExecutor,
   table: string,
   columns: readonly string[],
-  rows: Record<string, unknown>[],
+  rows: readonly AuthRow[],
   dropped: string[],
 ): Promise<number> {
   if (rows.length === 0) return 0;
@@ -198,7 +216,7 @@ async function writeTable(
     );
   }
 
-  for (const column of REQUIRED_COLUMNS[table] ?? []) {
+  for (const column of REQUIRED_COLUMNS.get(table) ?? []) {
     if (!present.has(column)) throw new Error(`table "${table}" is missing the required column "${column}"`);
   }
 
@@ -225,37 +243,18 @@ export async function writeBetterAuthRows(
 ): Promise<AuthWriteResult> {
   const droppedColumns: string[] = [];
 
-  const users = await writeTable(
-    client,
-    "user",
-    USER_COLUMNS,
-    input.users as unknown as Record<string, unknown>[],
-    droppedColumns,
-  );
-
-  const accounts = await writeTable(
-    client,
-    "account",
-    ACCOUNT_COLUMNS,
-    input.accounts as unknown as Record<string, unknown>[],
-    droppedColumns,
-  );
+  const users = await writeTable(client, "user", USER_COLUMNS, input.users, droppedColumns);
+  const accounts = await writeTable(client, "account", ACCOUNT_COLUMNS, input.accounts, droppedColumns);
 
   const twoFactors = await writeTable(
     client,
     "two_factor",
     TWO_FACTOR_COLUMNS,
-    input.twoFactors as unknown as Record<string, unknown>[],
+    input.twoFactors,
     droppedColumns,
   );
 
-  const passkeys = await writeTable(
-    client,
-    "passkey",
-    PASSKEY_COLUMNS,
-    input.passkeys as unknown as Record<string, unknown>[],
-    droppedColumns,
-  );
+  const passkeys = await writeTable(client, "passkey", PASSKEY_COLUMNS, input.passkeys, droppedColumns);
 
   return { users, accounts, twoFactors, passkeys, droppedColumns };
 }

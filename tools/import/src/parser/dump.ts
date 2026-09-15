@@ -25,8 +25,9 @@ const INSERT_RE = /^INSERT\s+(?:IGNORE\s+)?INTO\s+`([^`]+)`\s*(?:\(([^)]*)\))?\s
 
 export function parseCreateTable(stmt: string): TableDef | null {
   const head = CREATE_RE.exec(stmt);
+  const tableName = head?.[1];
 
-  if (!head) return null;
+  if (!head || tableName === undefined) return null;
   const columns: ColumnDef[] = [];
   const body = stmt.slice(head[0].length);
 
@@ -48,16 +49,23 @@ export function parseCreateTable(stmt: string): TableDef | null {
     columns.push({ name, type, definition });
   }
 
-  return { name: head[1] as string, columns };
+  return { name: tableName, columns };
 }
 
-export function parseInsert(stmt: string): { table: string; columns: string[] | null; at: number } | null {
-  const head = INSERT_RE.exec(stmt);
+export interface InsertHead {
+  table: string;
+  columns: string[] | null;
+  at: number;
+}
 
-  if (!head) return null;
+export function parseInsert(stmt: string): InsertHead | null {
+  const head = INSERT_RE.exec(stmt);
+  const table = head?.[1];
+
+  if (!head || table === undefined) return null;
   const columns = head[2] ? head[2].split(",").map((c) => c.trim().replace(/`/g, "")) : null;
 
-  return { table: head[1] as string, columns, at: head[0].length };
+  return { table, columns, at: head[0].length };
 }
 
 export function isBooleanColumn(column: ColumnDef): boolean {
@@ -110,7 +118,8 @@ export async function* readDump(path: string): AsyncGenerator<DumpEvent> {
   };
 
   for await (const chunk of stream) {
-    const text = decoder.write(chunk as Buffer);
+    // A stream opened without an encoding yields buffers; a decoded one needs no decoding.
+    const text = Buffer.isBuffer(chunk) ? decoder.write(chunk) : String(chunk);
 
     if (text.length === 0) continue;
     yield* handle(splitter.push(text));

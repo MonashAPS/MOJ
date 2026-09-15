@@ -1,15 +1,16 @@
 import { createReadStream, existsSync } from "node:fs";
 import { createInterface } from "node:readline";
-import { blobToBuffer, type SqlValue } from "./parser/values.ts";
+import { isJsonObject, type JsonValue, parseJson } from "./json.ts";
+import { blobToBuffer, isSqlNumber, isSqlText, type SqlValue, sqlValueFromJson } from "./parser/values.ts";
 
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,6}))?)?/;
 
 export function parseSqlDate(value: SqlValue): number | undefined {
-  if (value === null || value === undefined) return undefined;
+  if (value === null) return undefined;
 
-  if (typeof value === "number") return value;
+  if (isSqlNumber(value)) return value;
 
-  if (typeof value !== "string") return undefined;
+  if (!isSqlText(value)) return undefined;
   const m = DATE_RE.exec(value.trim());
 
   if (!m) return undefined;
@@ -19,24 +20,36 @@ export function parseSqlDate(value: SqlValue): number | undefined {
   return Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h ?? 0), Number(mi ?? 0), Number(s ?? 0), ms);
 }
 
+/** Turns one line of a raw JSONL file back into the columns extract() wrote. */
+function parseSqlRow(line: string): Map<string, SqlValue> {
+  const columns = new Map<string, SqlValue>();
+  const parsed = parseJson(line);
+
+  if (!isJsonObject(parsed)) return columns;
+
+  for (const [column, value] of Object.entries(parsed)) columns.set(column, sqlValueFromJson(value));
+
+  return columns;
+}
+
 /**
  * One row of a MySQL table. Every accessor records the column it read so that
  * the report can list columns the importer never looked at.
  */
 export class Row {
   constructor(
-    readonly data: Record<string, SqlValue>,
+    private readonly columns: Map<string, SqlValue>,
     private readonly seen: Set<string>,
   ) {}
 
   raw(column: string): SqlValue {
     this.seen.add(column);
 
-    return this.data[column] ?? null;
+    return this.columns.get(column) ?? null;
   }
 
   has(column: string): boolean {
-    return column in this.data;
+    return this.columns.has(column);
   }
 
   id(): number {
@@ -48,9 +61,9 @@ export class Row {
 
     if (value === null) return "";
 
-    if (typeof value === "string") return value;
+    if (isSqlText(value)) return value;
 
-    if (typeof value === "number") return String(value);
+    if (isSqlNumber(value)) return String(value);
 
     return blobToBuffer(value)?.toString("utf8") ?? "";
   }
@@ -62,17 +75,7 @@ export class Row {
   }
 
   n(column: string): number {
-    const value = this.raw(column);
-
-    if (typeof value === "number") return value;
-
-    if (typeof value === "string" && value.trim() !== "") {
-      const num = Number(value);
-
-      if (!Number.isNaN(num)) return num;
-    }
-
-    return 0;
+    return this.nOpt(column) ?? 0;
   }
 
   nOpt(column: string): number | undefined {
@@ -80,9 +83,9 @@ export class Row {
 
     if (value === null) return undefined;
 
-    if (typeof value === "number") return value;
+    if (isSqlNumber(value)) return value;
 
-    if (typeof value === "string" && value.trim() !== "") {
+    if (isSqlText(value) && value.trim() !== "") {
       const num = Number(value);
 
       if (!Number.isNaN(num)) return num;
@@ -96,9 +99,9 @@ export class Row {
 
     if (value === null) return false;
 
-    if (typeof value === "number") return value !== 0;
+    if (isSqlNumber(value)) return value !== 0;
 
-    if (typeof value === "string") return value !== "" && value !== "0";
+    if (isSqlText(value)) return value !== "" && value !== "0";
 
     return true;
   }
@@ -115,16 +118,12 @@ export class Row {
     return blobToBuffer(this.raw(column));
   }
 
-  json(column: string): unknown {
+  json(column: string): JsonValue {
     const text = this.s(column);
 
     if (text.trim() === "") return null;
 
-    try {
-      return JSON.parse(text);
-    } catch {
-      return null;
-    }
+    return parseJson(text);
   }
 }
 
@@ -135,7 +134,7 @@ export async function* readRows(file: string, seen: Set<string>): AsyncGenerator
 
   for await (const line of lines) {
     if (line.trim() === "") continue;
-    yield new Row(JSON.parse(line) as Record<string, SqlValue>, seen);
+    yield new Row(parseSqlRow(line), seen);
   }
 }
 

@@ -62,7 +62,7 @@ function parseArgs(argv: string[]): Options {
   };
 
   for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i] as string;
+    const arg = argv[i] ?? "";
 
     const next = () => {
       const value = argv[++i];
@@ -270,7 +270,8 @@ async function main(): Promise<void> {
   log(`report written to ${path.join(options.out, "report.json")}`);
 }
 
-main().catch((error: unknown) => {
-  process.stderr.write(`${(error as Error).stack ?? String(error)}\n`);
+main().catch((cause: unknown) => {
+  const trace = cause instanceof Error ? cause.stack : undefined;
+  process.stderr.write(`${trace ?? String(cause)}\n`);
   process.exit(1);
 });

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { xchacha20poly1305 } from "@noble/ciphers/chacha.js";
 import { bytesToHex, hexToBytes, managedNonce, utf8ToBytes } from "@noble/ciphers/utils.js";
+import type { JsonValue } from "../json.ts";
 
 /**
  * Better Auth 1.7 stores the TOTP secret and the backup codes with
@@ -36,7 +37,7 @@ export function encodeBackupCodes(secret: string, codes: string[]): string {
 }
 
 export function decodeBackupCodes(secret: string, value: string): string[] {
-  const parsed = JSON.parse(symmetricDecrypt(secret, value)) as unknown;
+  const parsed: JsonValue = JSON.parse(symmetricDecrypt(secret, value));
 
-  return Array.isArray(parsed) ? (parsed as string[]) : [];
+  return Array.isArray(parsed) ? parsed.map((code) => String(code)) : [];
 }

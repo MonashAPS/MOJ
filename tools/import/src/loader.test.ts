@@ -1,37 +1,58 @@
+import type { FunctionReference } from "convex/server";
 import { getFunctionName } from "convex/server";
 import { describe, expect, it } from "vitest";
 import { BATCH_SIZE } from "./context.ts";
-import { type ConvexClientLike, ConvexLoader, type InsertedId } from "./loader.ts";
+import {
+  type ClearResult,
+  type ConvexClientLike,
+  ConvexLoader,
+  type DocPatch,
+  type ImportDoc,
+  type InsertedId,
+  type MappingPage,
+} from "./loader.ts";
 import { runPipeline, type StateFile } from "./pipeline.ts";
 import { makeFixtureContext } from "./test.fixtures.ts";
 
+/** The arguments of the four importer functions the loader calls, in one record. */
+interface ImporterArgs {
+  table: string;
+  docs?: ImportDoc[];
+  patches?: DocPatch[];
+  limit?: number;
+  cursor?: string | null;
+  numItems?: number;
+}
+
+type ImporterResult = InsertedId[] | number | ClearResult | MappingPage;
+
 interface Call {
   name: string;
-  args: Record<string, unknown>;
+  args: ImporterArgs;
 }
 
 /** Stands in for ConvexHttpClient so the loader can be tested without a backend. */
 class FakeConvexClient implements ConvexClientLike {
   readonly calls: Call[] = [];
-  readonly rows = new Map<string, { legacyId: number | null; id: string }[]>();
+  readonly rows = new Map<string, InsertedId[]>();
   private counter = 0;
 
-  private record(reference: unknown, args: unknown): Call {
-    const call = { name: getFunctionName(reference as never), args: args as Record<string, unknown> };
+  private record(name: string, args: ImporterArgs): Call {
+    const call = { name, args };
     this.calls.push(call);
 
     return call;
   }
 
-  async mutation(reference: unknown, args: unknown): Promise<unknown> {
-    const call = this.record(reference, args);
-    const table = call.args.table as string;
+  async mutation(reference: FunctionReference<"mutation">, args: ImporterArgs): Promise<ImporterResult> {
+    const call = this.record(getFunctionName(reference), args);
+    const { table } = call.args;
 
     if (call.name === "importer:insertBatch") {
-      const docs = call.args.docs as { legacyId?: number }[];
+      const docs = call.args.docs ?? [];
 
       const inserted: InsertedId[] = docs.map((doc) => ({
-        legacyId: typeof doc.legacyId === "number" ? doc.legacyId : null,
+        legacyId: doc.legacyId ?? null,
         id: `id_${++this.counter}`,
       }));
 
@@ -41,12 +62,12 @@ class FakeConvexClient implements ConvexClientLike {
     }
 
     if (call.name === "importer:patchBatch") {
-      return (call.args.patches as unknown[]).length;
+      return (call.args.patches ?? []).length;
     }
 
     if (call.name === "importer:clearTable") {
       const remaining = this.rows.get(table) ?? [];
-      const limit = (call.args.limit as number) ?? 2000;
+      const limit = call.args.limit ?? 2000;
       const deleted = remaining.splice(0, limit).length;
       this.rows.set(table, remaining);
 
@@ -56,13 +77,13 @@ class FakeConvexClient implements ConvexClientLike {
     throw new Error(`unexpected mutation ${call.name}`);
   }
 
-  async query(reference: unknown, args: unknown): Promise<unknown> {
-    const call = this.record(reference, args);
-    const table = call.args.table as string;
+  async query(reference: FunctionReference<"query">, args: ImporterArgs): Promise<ImporterResult> {
+    const call = this.record(getFunctionName(reference), args);
+    const { table } = call.args;
 
     if (call.name !== "importer:mapping") throw new Error(`unexpected query ${call.name}`);
     const all = this.rows.get(table) ?? [];
-    const cursor = call.args.cursor as string | null;
+    const cursor = call.args.cursor ?? null;
     const start = cursor === null ? 0 : Number(cursor);
     const numItems = 2;
     const page = all.slice(start, start + numItems);
@@ -136,18 +157,20 @@ describe("pipeline against a fake Convex", () => {
     expect(inserts.length).toBeGreaterThan(0);
 
     for (const call of inserts) {
-      expect((call.args.docs as unknown[]).length).toBeLessThanOrEqual(BATCH_SIZE);
+      const docs = call.args.docs ?? [];
+      expect(docs.length).toBeGreaterThan(0);
+      expect(docs.length).toBeLessThanOrEqual(BATCH_SIZE);
     }
 
     const problemInsert = inserts.find((call) => call.args.table === "problems");
-    const problems = problemInsert?.args.docs as Record<string, unknown>[];
+    const problems = problemInsert?.args.docs ?? [];
     expect(problems[0]?.groupId).toBe(fixture.ctx.ids.get("problemGroups", 1));
 
     // The deferred profile pointer is patched once every table is in.
     const patches = client.calls.filter((call) => call.name === "importer:patchBatch");
     expect(patches).toHaveLength(1);
     expect(patches[0]?.args.table).toBe("profiles");
-    const patchList = patches[0]?.args.patches as { fields: Record<string, unknown> }[];
+    const patchList = patches[0]?.args.patches ?? [];
     expect(patchList[0]?.fields).toEqual({
       currentParticipationId: fixture.ctx.ids.get("contestParticipations", 1),
     });

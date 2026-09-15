@@ -1,8 +1,13 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-export function parseDotEnv(contents: string): Record<string, string> {
-  const out: Record<string, string> = {};
+/** Environment variables by name, as a .env file and `process.env` both carry them. */
+export interface EnvVars {
+  [name: string]: string;
+}
+
+export function parseDotEnv(contents: string): EnvVars {
+  const out: EnvVars = {};
 
   for (const rawLine of contents.split("\n")) {
     const line = rawLine.trim();
@@ -29,8 +34,8 @@ export function parseDotEnv(contents: string): Record<string, string> {
 }
 
 /** Walks up from `from` looking for .env.local and .env, without overriding real env vars. */
-export function loadEnvFiles(from: string): Record<string, string> {
-  const found: Record<string, string> = {};
+export function loadEnvFiles(from: string): EnvVars {
+  const found: EnvVars = {};
   let dir = path.resolve(from);
 
   for (;;) {
@@ -50,5 +55,11 @@ export function loadEnvFiles(from: string): Record<string, string> {
     dir = parent;
   }
 
-  return { ...found, ...(process.env as Record<string, string>) };
+  const merged: EnvVars = { ...found };
+
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value !== undefined) merged[key] = value;
+  }
+
+  return merged;
 }

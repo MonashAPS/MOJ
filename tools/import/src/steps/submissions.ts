@@ -1,4 +1,5 @@
 import type { ImportContext } from "../context.ts";
+import type { ImportDoc } from "../loader.ts";
 import type { Step } from "./types.ts";
 
 const STATUSES = new Set(["QU", "P", "G", "D", "IE", "CE", "AB"]);
@@ -57,7 +58,7 @@ export const submissionsStep: Step = {
 
       const contest = contestRows.get(id);
 
-      const doc: Record<string, unknown> = {
+      const doc: ImportDoc = {
         profileId,
         problemId,
         date: row.t("date"),

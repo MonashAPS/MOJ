@@ -190,7 +190,7 @@ export class TableEmitter {
   async emit(doc: ImportDoc): Promise<void> {
     this.batch.push(doc);
 
-    if (typeof doc.legacyId === "number") this.pending.add(doc.legacyId);
+    if (doc.legacyId !== undefined) this.pending.add(doc.legacyId);
     this.buffered += `${JSON.stringify(doc)}\n`;
 
     if (this.buffered.length > 1 << 20) {

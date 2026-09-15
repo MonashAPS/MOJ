@@ -2,22 +2,51 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ImportContext } from "./context.ts";
 import { BATCH_SIZE } from "./context.ts";
+import { isJsonNumber, isJsonObject, isJsonText, parseJson } from "./json.ts";
+import type { DocPatch } from "./loader.ts";
 import { MAP_TARGETS, STEPS, type Step } from "./steps/index.ts";
+
+interface FinishedTable {
+  docs: number;
+  at: string;
+}
 
 export interface StateFile {
   mode: "dry-run" | "load";
   dump: string;
   startedAt: string;
-  finished: Record<string, { docs: number; at: string }>;
+  finished: Record<string, FinishedTable>;
 }
 
 export function statePath(outDir: string): string {
   return path.join(outDir, "state.json");
 }
 
+/** A state file that does not describe a run of this importer is treated as no state at all. */
+function parseState(text: string): StateFile | null {
+  const parsed = parseJson(text);
+
+  if (!isJsonObject(parsed)) return null;
+  const { mode, dump, startedAt, finished } = parsed;
+
+  if (mode !== "dry-run" && mode !== "load") return null;
+
+  if (!isJsonText(dump) || !isJsonText(startedAt) || !isJsonObject(finished)) return null;
+  const state: StateFile = { mode, dump, startedAt, finished: {} };
+
+  for (const [table, entry] of Object.entries(finished)) {
+    if (!isJsonObject(entry)) continue;
+    const { docs, at } = entry;
+
+    if (isJsonNumber(docs) && isJsonText(at)) state.finished[table] = { docs, at };
+  }
+
+  return state;
+}
+
 export async function readState(outDir: string): Promise<StateFile | null> {
   try {
-    return JSON.parse(await readFile(statePath(outDir), "utf8")) as StateFile;
+    return parseState(await readFile(statePath(outDir), "utf8"));
   } catch {
     return null;
   }
@@ -84,7 +113,7 @@ export async function runPipeline(
 
 async function patchProfileParticipations(ctx: ImportContext, log: (message: string) => void): Promise<void> {
   if (!ctx.selected("profiles")) return;
-  const patches: { id: string; fields: Record<string, unknown> }[] = [];
+  const patches: DocPatch[] = [];
 
   for await (const row of ctx.rows("judge_profile")) {
     const participationLegacyId = row.nOpt("current_contest_id");
