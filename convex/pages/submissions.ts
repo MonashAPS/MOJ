@@ -238,10 +238,14 @@ export const listContext = query({
       };
 
       // `UserAllContestSubmissions.access_check`: the user has to have taken
-      // part, and someone else's list needs the full scoreboard.
-      if (!isParticipant) return { ...base, found: false };
+      // part, and someone else's list needs the full scoreboard. Both are about
+      // whose list this is, so neither applies when no user was named — that is
+      // the contest's own list, gated by the contest's visibility above.
+      if (listedUser) {
+        if (!isParticipant) return { ...base, found: false };
 
-      if (!base.user?.isSelf && !full) return { ...base, allowed: false };
+        if (!base.user?.isSelf && !full) return { ...base, allowed: false };
+      }
     }
 
     return base;
