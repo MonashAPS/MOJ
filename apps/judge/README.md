@@ -13,8 +13,8 @@ apps/judge/
   tests/              a mock of MOJ's judge API and an end to end test against a real container
 ```
 
-The protocol itself is documented in [architecture](https://monashaps.github.io/MOJ/guide/architecture), the
-problem format in [problem format](https://monashaps.github.io/MOJ/problems/format).
+The protocol itself is documented in [architecture](https://binder.monashaps.com/MOJ/reference/architecture), the
+problem format in [problem format](https://binder.monashaps.com/MOJ/problems/format).
 
 ## Tiers
 
