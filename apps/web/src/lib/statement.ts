@@ -27,7 +27,18 @@ const COPY_ICON =
 const CHECK_ICON =
   '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="check"><path d="M20 6 9 17l-5-5"/></svg>';
 
-export const STATEMENT_COPY_ICONS = { copy: COPY_ICON, check: CHECK_ICON };
+const EXPAND_ICON =
+  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="expand"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>';
+
+const COLLAPSE_ICON =
+  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="collapse"><path d="m7 20 5-5 5 5"/><path d="m7 4 5 5 5-5"/></svg>';
+
+export const STATEMENT_COPY_ICONS = {
+  copy: COPY_ICON,
+  check: CHECK_ICON,
+  expand: EXPAND_ICON,
+  collapse: COLLAPSE_ICON,
+};
 
 type Block = { start: number; end: number; html: string };
 
@@ -81,12 +92,20 @@ function escapeAttribute(value: string): string {
 
 function frame(inner: string, label: string, role: string, index: number): string {
   const name = escapeAttribute(`Copy ${label.toLowerCase()} ${index}`);
+  const expandName = escapeAttribute(`Expand ${label.toLowerCase()} ${index}`);
 
   return [
     `<figure class="${FRAME}" data-sample-role="${role}">`,
     `<figcaption class="${BAR}">`,
     `<span class="${BAR_LABEL}">${label} ${index}</span>`,
+    '<span class="flex items-center">',
+    // Hidden until the client finds something to expand: whether the body
+    // overflows its cap is a rendered height, which the server cannot know.
+    // The inline style is what keeps it hidden — `hidden` would lose to the
+    // button's own `inline-flex`.
+    `<button type="button" style="display:none" class="${COPY_BUTTON}" data-statement-expand aria-label="${expandName}" title="${expandName}">${EXPAND_ICON}</button>`,
     `<button type="button" class="${COPY_BUTTON}" data-statement-copy aria-label="${name}" title="${name}">${COPY_ICON}</button>`,
+    "</span>",
     "</figcaption>",
     `<div class="max-h-[320px] overflow-auto bg-code" data-statement-code>${inner}</div>`,
     "</figure>",
