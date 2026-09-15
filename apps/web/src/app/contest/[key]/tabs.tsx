@@ -8,12 +8,7 @@ import type { TabLabels } from "@/app/contests/tabs";
  * Participation, MOSS, Edit, Clone — with Submissions added for the contest's
  * own submission list (SPEC section 8's `contest_all_user_submissions`).
  */
-export function contestTabs(
-  detail: ContestDetail,
-  key: string,
-  viewerUsername: string | null,
-  t: TabLabels,
-): TabItem[] {
+export function contestTabs(detail: ContestDetail, key: string, t: TabLabels): TabItem[] {
   const tabs: TabItem[] = [
     { key: "detail", label: t("info"), href: `/contest/${key}/`, icon: <Info aria-hidden /> },
   ];
@@ -52,21 +47,13 @@ export function contestTabs(
     }
   }
 
+  // One entry, not two: whose submissions to show is a choice inside the page.
   tabs.push({
-    key: "allSubmissions",
-    label: t("allSubmissions"),
+    key: "submissions",
+    label: t("submissions"),
     href: `/contest/${key}/submissions/`,
     icon: <FileText aria-hidden />,
   });
-
-  if (viewerUsername) {
-    tabs.push({
-      key: "submissions",
-      label: t("submissions"),
-      href: `/contest/${key}/submissions/${viewerUsername}/`,
-      icon: <FileText aria-hidden />,
-    });
-  }
 
   if (viewer.canEdit) {
     if (viewer.canMoss) {

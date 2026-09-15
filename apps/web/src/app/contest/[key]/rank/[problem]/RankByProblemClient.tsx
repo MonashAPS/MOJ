@@ -74,7 +74,7 @@ export function RankByProblemClient({
             ? t("title", { label: data.label, name: data.problemName })
             : t("metaTitle", { name: problemCode })
         }
-        tabs={contestTabs(detail, contestKey, viewerUsername, tabLabels)}
+        tabs={contestTabs(detail, contestKey, tabLabels)}
         active="ranking"
         action={
           joinKind ? <JoinControl contestKey={contestKey} kind={joinKind} long size="default" /> : undefined

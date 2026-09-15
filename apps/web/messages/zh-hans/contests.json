@@ -60,8 +60,7 @@
     "submissions": "提交",
     "moss": "MOSS",
     "edit": "编辑",
-    "clone": "克隆",
-    "allSubmissions": "全部提交"
+    "clone": "克隆"
   },
   "list": {
     "title": "比赛",
@@ -382,8 +381,7 @@
     "disqualifiedBadge": "DQ",
     "stillRunning": "{time} · 进行中",
     "disqualifiedNote": "已取消资格：此次提交不计分。",
-    "points": "{points} 分",
-    "metaAllSubmissions": "{key} 的全部提交"
+    "points": "{points} 分"
   },
   "stats": {
     "metaTitle": "{name} 统计",
@@ -535,5 +533,10 @@
   "progress": {
     "solvedCount": "已解决 {solved}/{total}",
     "solvedOne": "已解决"
+  },
+  "submissions": {
+    "metaTitle": "{key} 的提交",
+    "scopeAll": "所有人",
+    "scopeMine": "我的"
   }
 }

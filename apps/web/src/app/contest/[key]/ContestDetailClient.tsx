@@ -360,12 +360,10 @@ export function ContestDetailClient({
   contestKey,
   initial,
   descriptionHtml,
-  viewerUsername,
 }: {
   contestKey: string;
   initial: ContestDetail;
   descriptionHtml: string;
-  viewerUsername: string | null;
 }) {
   const t = useTranslations("contests.detail");
   const columns = useTranslations("contests.columns");
@@ -405,7 +403,7 @@ export function ContestDetailClient({
             />
           </span>
         }
-        tabs={contestTabs(detail, contestKey, viewerUsername, tabLabels)}
+        tabs={contestTabs(detail, contestKey, tabLabels)}
         active="detail"
         action={
           joinKind ? (

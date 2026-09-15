@@ -101,12 +101,10 @@ export function StatsClient({
   contestKey,
   detail,
   stats,
-  viewerUsername,
 }: {
   contestKey: string;
   detail: ContestDetail;
   stats: ContestStats;
-  viewerUsername: string | null;
 }) {
   const t = useTranslations("contests.stats");
   const tabLabels = useTranslations("contests.tabs");
@@ -137,7 +135,7 @@ export function StatsClient({
             ) : null}
           </span>
         }
-        tabs={contestTabs(detail, contestKey, viewerUsername, tabLabels)}
+        tabs={contestTabs(detail, contestKey, tabLabels)}
         active="stats"
         action={
           joinKind ? <JoinControl contestKey={contestKey} kind={joinKind} long size="default" /> : undefined

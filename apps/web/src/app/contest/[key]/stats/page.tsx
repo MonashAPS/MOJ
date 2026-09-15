@@ -16,22 +16,14 @@ export async function generateMetadata({ params }: { params: Promise<{ key: stri
 export default async function ContestStatsPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
 
-  const [detail, stats, viewerState] = await Promise.all([
+  const [detail, stats] = await Promise.all([
     queryAsViewer(api.contests.get, { key }).catch(() => null),
     queryAsViewer(api.contests.stats, { key }).catch(() => null),
-    queryAsViewer(api.viewer.current, {}).catch(() => null),
   ]);
 
   if (!detail || detail.access.kind === "notFound" || detail.access.kind === "inaccessible") notFound();
 
   if (!detail.contest) notFound();
 
-  return (
-    <StatsClient
-      contestKey={key}
-      detail={detail}
-      stats={stats}
-      viewerUsername={viewerState?.profile?.username ?? null}
-    />
-  );
+  return <StatsClient contestKey={key} detail={detail} stats={stats} />;
 }

@@ -60,8 +60,7 @@
     "submissions": "Pengiriman",
     "moss": "MOSS",
     "edit": "Edit",
-    "clone": "Klon",
-    "allSubmissions": "Semua pengiriman"
+    "clone": "Klon"
   },
   "list": {
     "title": "Kontes",
@@ -382,8 +381,7 @@
     "disqualifiedBadge": "DQ",
     "stillRunning": "{time} · masih berjalan",
     "disqualifiedNote": "Didiskualifikasi: run ini tidak menghasilkan skor.",
-    "points": "{points} poin",
-    "metaAllSubmissions": "Semua pengiriman untuk {key}"
+    "points": "{points} poin"
   },
   "stats": {
     "metaTitle": "Statistik {name}",
@@ -535,5 +533,10 @@
   "progress": {
     "solvedCount": "{solved}/{total} terselesaikan",
     "solvedOne": "terselesaikan"
+  },
+  "submissions": {
+    "metaTitle": "Pengiriman untuk {key}",
+    "scopeAll": "Semua orang",
+    "scopeMine": "Milik saya"
   }
 }

@@ -17,10 +17,9 @@ export async function generateMetadata({ params }: { params: Promise<{ key: stri
 export default async function ContestRankingPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
 
-  const [detail, ranking, viewerState] = await Promise.all([
+  const [detail, ranking] = await Promise.all([
     queryAsViewer(api.contests.get, { key }).catch(() => null),
     queryAsViewer(api.contests.rankings.ranking, { key }).catch(() => null),
-    queryAsViewer(api.viewer.current, {}).catch(() => null),
   ]);
 
   if (!detail || detail.access.kind === "notFound" || detail.access.kind === "inaccessible") notFound();
@@ -47,7 +46,6 @@ export default async function ContestRankingPage({ params }: { params: Promise<{
       contestKey={key}
       detail={detail}
       initial={ranking}
-      viewerUsername={viewerState?.profile?.username ?? null}
       classOptions={classGroups.flat()}
       initialFrozenCells={frozenCells}
     />

@@ -341,14 +341,12 @@ export function RankingClient({
   contestKey,
   detail,
   initial,
-  viewerUsername,
   classOptions,
   initialFrozenCells,
 }: {
   contestKey: string;
   detail: ContestDetail;
   initial: RankingPayload;
-  viewerUsername: string | null;
   classOptions: { _id: Id<"classes">; name: string }[];
   initialFrozenCells: FrozenCells;
 }) {
@@ -443,7 +441,7 @@ export function RankingClient({
             ) : null}
           </span>
         }
-        tabs={contestTabs(detail, contestKey, viewerUsername, tabLabels)}
+        tabs={contestTabs(detail, contestKey, tabLabels)}
         active="ranking"
         action={
           joinKind ? <JoinControl contestKey={contestKey} kind={joinKind} long size="default" /> : undefined

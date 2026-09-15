@@ -3,11 +3,12 @@
 import { api } from "@convex/_generated/api";
 import { cn, Toaster, TooltipProvider } from "@moj/ui";
 import { useQuery } from "convex/react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect, useLayoutEffect, useRef } from "react";
 import { ProfileBootstrap } from "@/components/auth/ProfileBootstrap";
 import { CommandPalette, useCommandPalette } from "@/components/shell/CommandPalette";
+import { isInsideContest } from "@/lib/contest-lockdown";
 import type { NavNode } from "@/lib/nav";
 import { Announcement } from "./Announcement";
 import { BackdropDrift } from "./BackdropDrift";
@@ -58,14 +59,26 @@ export function SiteShell({
 }) {
   const t = useTranslations("common.nav");
   const pathname = usePathname() ?? "/";
+  const router = useRouter();
   const isHome = pathname === "/";
   const [paletteOpen, setPaletteOpen] = useCommandPalette();
   const headerRef = useRef<HTMLElement | null>(null);
 
-  /** SPEC section 20: on a contest route the bar is the contest in the URL, not
-   *  whichever contest the viewer happens to be inside. */
+  /**
+   * Two subscriptions, because they answer different questions.
+   *
+   * `joined` asks which contest the viewer is inside. Its arguments never change,
+   * so it survives a navigation and the chrome does not blink: keying the only
+   * query on the route meant every page change re-subscribed, and for the moment
+   * that took, a locked-down contestant got the nav back.
+   *
+   * SPEC section 20: on a contest route the bar is the contest in the URL, not
+   * whichever contest the viewer happens to be inside — that is `routed`.
+   */
   const routeKey = /^\/contest\/([a-z0-9._-]+)/i.exec(pathname)?.[1];
-  const contest = useQuery(api.contests.navBar, routeKey ? { key: routeKey } : {});
+  const joined = useQuery(api.contests.navBar, {});
+  const routed = useQuery(api.contests.navBar, routeKey ? { key: routeKey } : "skip");
+  const contest = routeKey ? routed : joined;
   const problemCode = /^\/problem\/([a-z0-9._-]+)/.exec(pathname)?.[1];
 
   const onContestPage =
@@ -80,7 +93,20 @@ export function SiteShell({
    * contest is the point, the contest is the chrome, and its own pages are one
    * click away in the bar rather than two through a nav that led elsewhere.
    */
-  const lockedDown = !!contest && contest.contest.isLockedDown;
+  const lockedDown = !!joined && joined.contest.isLockedDown;
+
+  const strayFromContest =
+    lockedDown &&
+    !!joined &&
+    !isInsideContest(
+      pathname,
+      joined.contest.key,
+      joined.problems.map((problem) => problem.code),
+    );
+
+  useEffect(() => {
+    if (strayFromContest && joined) router.replace(`/contest/${joined.contest.key}/`);
+  }, [strayFromContest, joined, router]);
 
   /** The chrome publishes its own height so a sticky table header never has to
    *  guess. One ResizeObserver, writing a custom property, no React state. */
@@ -150,8 +176,8 @@ export function SiteShell({
         )}
         {/* The royal, carried across the top of every page. */}
         <div aria-hidden className="h-[3px] bg-royal" />
-        {lockedDown && contest ? (
-          <ContestBar data={contest} currentCode={problemCode} viewerUsername={viewer?.username ?? null} />
+        {lockedDown && joined ? (
+          <ContestBar data={joined} currentCode={problemCode} viewerUsername={viewer?.username ?? null} />
         ) : onContestPage && contest ? (
           <ContestBar data={contest} currentCode={problemCode} viewerUsername={viewer?.username ?? null} />
         ) : routeKey && contest === undefined ? (
