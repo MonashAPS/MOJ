@@ -51,6 +51,22 @@ describe("decorateStatement", () => {
     expect(first.slice(0, first.indexOf("</figure>"))).toContain("1 2");
   });
 
+  it("drops the Input heading of a pair while keeping the Example above it", () => {
+    const html = decorateStatement(
+      "<h2>Example 1</h2><h3>Input</h3><pre>10 15</pre><h3>Output</h3><pre>25</pre>",
+    );
+
+    expect(html).toContain("<h2>Example 1</h2>");
+    expect(html).not.toContain("<h3>Input</h3>");
+    expect(html).not.toContain("<h3>Output</h3>");
+  });
+
+  it("keeps the Input heading of a sample that has no output beside it", () => {
+    const html = decorateStatement("<h3>Input</h3><pre>10 15</pre><p>And that is all.</p>");
+
+    expect(html).toContain("<h3>Input</h3>");
+  });
+
   it("leaves a statement with no code blocks alone", () => {
     expect(decorateStatement("<p>No samples here.</p>")).toBe("<p>No samples here.</p>");
     expect(decorateStatement("")).toBe("");
