@@ -2,17 +2,6 @@ import path from "node:path";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
-/** The problems API is a Convex HTTP action, but operators should not have to
- *  publish a second hostname or teach a CI secret about it. `/api/problems/*`
- *  on the web origin is proxied to the Convex site origin, so `JUDGE_URL` is
- *  just the address of the site. Caddy has the same route in front of a
- *  deployment (infra/Caddyfile) for the case where the web app is not in the
- *  request path. */
-const convexSiteUrl = (process.env.NEXT_PUBLIC_CONVEX_SITE_URL ?? "http://127.0.0.1:3211").replace(
-  /\/+$/,
-  "",
-);
-
 const config: NextConfig = {
   reactStrictMode: true,
   // Everything the server needs, traced into `.next/standalone`, is what
@@ -37,11 +26,17 @@ const config: NextConfig = {
   // A dev server reached on another host than the one it was started on has its
   // HMR handshake refused as cross-origin, and the page never hydrates.
   allowedDevOrigins: ["127.0.0.1"],
-  // `src/app/forbidden.tsx` is only reachable with this on: without it Next's
-  // `forbidden()` throws instead of rendering the 403 page.
-  experimental: { authInterrupts: true },
-  async rewrites() {
-    return [{ source: "/api/problems/:path*", destination: `${convexSiteUrl}/api/problems/:path*` }];
+  experimental: {
+    // `src/app/forbidden.tsx` is only reachable with this on: without it Next's
+    // `forbidden()` throws instead of rendering the 403 page.
+    authInterrupts: true,
+    // The proxy copies a request body through to its rewrite destination and
+    // truncates whatever is over this, 10MB by default. `/api/problems/*` is
+    // rewritten to Convex (src/proxy.ts) and a statement image may be
+    // MAX_IMAGE_BYTES (10MB) on its own, so the default cuts one short at its
+    // multipart envelope. The ceiling is the largest body that API accepts,
+    // MAX_VALIDATED_ARCHIVE_BYTES.
+    proxyClientMaxBodySize: "64mb",
   },
 };
 

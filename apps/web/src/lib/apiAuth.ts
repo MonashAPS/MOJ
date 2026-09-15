@@ -27,8 +27,7 @@ import { fetchQuery } from "convex/nextjs";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/auth/db";
 import { auth } from "@/auth/server";
-
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL ?? "http://127.0.0.1:3210";
+import { convexUrl } from "./public-config.server";
 
 /** DMOJ's header pattern, verbatim. */
 export const BEARER_PATTERN = /^Bearer ([a-zA-Z0-9_-]{48})$/;
@@ -144,7 +143,7 @@ async function verifyLegacyToken(token: string): Promise<ApiIdentity | null> {
   const profile = await fetchQuery(
     api.profiles.apiTokens.verifyLegacy,
     { legacyUserId: decoded.legacyUserId, digest: decoded.digest },
-    { url: convexUrl },
+    { url: convexUrl() },
   );
 
   if (!profile) return null;
@@ -202,10 +201,10 @@ export type ConvexCallOptions = { url: string; token?: string };
 
 /** Convex options for a request: the caller's identity, or anonymous. */
 export async function convexOptionsFor(outcome: BearerOutcome): Promise<ConvexCallOptions> {
-  if (outcome.status !== "ok") return { url: convexUrl };
+  if (outcome.status !== "ok") return { url: convexUrl() };
   const token = await mintConvexToken(outcome.identity);
 
-  return { url: convexUrl, token };
+  return { url: convexUrl(), token };
 }
 
 /* -------------------------------------------------------------------------- */

@@ -1,6 +1,7 @@
 import { TitleRow } from "@moj/ui";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { appUrl } from "@/lib/public-config.server";
 import { JudgesTable } from "./JudgesTable";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -11,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function AdminJudgesPage() {
   const t = await getTranslations("admin.judges");
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const siteUrl = appUrl();
 
   return (
     <>

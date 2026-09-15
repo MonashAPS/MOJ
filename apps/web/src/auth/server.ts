@@ -7,6 +7,7 @@ import { hashPassword, verifyPassword } from "better-auth/crypto";
 import { admin, bearer, jwt, twoFactor, username } from "better-auth/plugins";
 import { haveIBeenPwned, isPasswordCompromised } from "better-auth/plugins/haveibeenpwned";
 import { eq } from "drizzle-orm";
+import { appUrl as publicAppUrl } from "@/lib/public-config.server";
 import { db, schema } from "./db";
 import { DISPOSABLE_EMAIL_KEY, isDisposableEmail } from "./disposable-email";
 import { isDjangoHash, isUnusablePassword, verifyDjangoPassword } from "./django-hash";
@@ -21,7 +22,7 @@ import {
 } from "./mail";
 import { COMPROMISED_COOKIE } from "./password-compromised";
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const appUrl = publicAppUrl();
 
 const issuer = process.env.AUTH_ISSUER ?? appUrl;
 

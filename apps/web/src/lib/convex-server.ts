@@ -1,10 +1,11 @@
 import { fetchMutation, fetchQuery } from "convex/nextjs";
 import type { FunctionReference } from "convex/server";
 import { getConvexToken } from "@/auth/session";
-
-const url = process.env.NEXT_PUBLIC_CONVEX_URL ?? "http://127.0.0.1:3210";
+import { convexUrl } from "./public-config.server";
 
 function convexOptions(token?: string | null) {
+  const url = convexUrl();
+
   return token ? { url, token } : { url };
 }
 

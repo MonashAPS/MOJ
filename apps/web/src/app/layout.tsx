@@ -12,6 +12,8 @@ import { UiText } from "@/components/shell/UiText";
 import { query, queryAsViewer } from "@/lib/convex-server";
 import { gravatarUrl } from "@/lib/gravatar";
 import { viewerLanguage } from "@/lib/language.server";
+import { PublicConfigProvider } from "@/lib/public-config";
+import { publicConfig } from "@/lib/public-config.server";
 import { resolveTheme, THEME_COOKIE } from "@/lib/theme";
 import "./globals.css";
 
@@ -45,6 +47,10 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Read here rather than in the bundle: the published image carries no
+  // hostnames, and the layout is rendered on every request.
+  const config = publicConfig();
+
   const [shell, viewerState, session, language, branding, jar] = await Promise.all([
     query(api.site.shell, {}).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
@@ -93,19 +99,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             carries it into the client components below. */}
         <NextIntlClientProvider>
           <UiText>
-            <ConvexClientProvider>
-              <SiteShell
-                nav={shell?.nav ?? []}
-                misc={shell?.misc ?? {}}
-                viewer={viewer}
-                registrationOpen={shell?.settings?.registrationOpen ?? true}
-                language={language}
-                logoUrl={branding?.logoUrl ?? null}
-                siteName={branding?.siteLongName ?? "MAPS Online Judge"}
-              >
-                {children}
-              </SiteShell>
-            </ConvexClientProvider>
+            <PublicConfigProvider config={config}>
+              <ConvexClientProvider>
+                <SiteShell
+                  nav={shell?.nav ?? []}
+                  misc={shell?.misc ?? {}}
+                  viewer={viewer}
+                  registrationOpen={shell?.settings?.registrationOpen ?? true}
+                  language={language}
+                  logoUrl={branding?.logoUrl ?? null}
+                  siteName={branding?.siteLongName ?? "MAPS Online Judge"}
+                >
+                  {children}
+                </SiteShell>
+              </ConvexClientProvider>
+            </PublicConfigProvider>
           </UiText>
         </NextIntlClientProvider>
       </body>
