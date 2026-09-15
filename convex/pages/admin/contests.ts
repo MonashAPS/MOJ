@@ -138,6 +138,7 @@ export const edit = query({
       pointsPrecision: contest.pointsPrecision,
       proctorRequired: contest.proctorRequired ?? false,
       hideProblemTags: contest.hideProblemTags,
+      hideNonContestProblems: contest.hideNonContestProblems ?? false,
       hideProblemAuthors: contest.hideProblemAuthors,
       runPretestsOnly: contest.runPretestsOnly,
       showShortDisplay: contest.showShortDisplay,

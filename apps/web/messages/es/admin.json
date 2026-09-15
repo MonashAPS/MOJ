@@ -492,6 +492,8 @@
       "clarificationsHint": "Los participantes pueden hacer preguntas.",
       "hideProblemTags": "Ocultar etiquetas de problemas",
       "hideProblemAuthors": "Ocultar autores de problemas",
+      "hideNonContestProblems": "Ocultar problemas ajenos al concurso",
+      "hideNonContestProblemsHint": "Difumina la lista de problemas para quienes estén en este concurso y los remite a él.",
       "pretestsOnly": "Solo pretests",
       "pretestsOnlyHint": "Calificar contra los pretests durante el concurso.",
       "shortDisplay": "Vista compacta",

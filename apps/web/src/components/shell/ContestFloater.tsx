@@ -1,5 +1,6 @@
 "use client";
 
+import type { ContestBarProblem } from "@convex/contests";
 import { cn } from "@moj/ui";
 import { GripHorizontal, X } from "lucide-react";
 import Link from "next/link";
@@ -18,11 +19,13 @@ export function ContestFloater({
   contestName,
   endsAt,
   mode,
+  problems,
 }: {
   contestKey: string;
   contestName: string;
   endsAt: number | null;
   mode: "live" | "spectating" | "virtual";
+  problems: ContestBarProblem[];
 }) {
   const t = useTranslations("common.contestBar");
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -83,7 +86,7 @@ export function ContestFloater({
       ref={boxRef}
       style={position ?? undefined}
       className={cn(
-        "fixed z-(--z-floater) w-[220px] overflow-hidden rounded-md border border-border bg-card shadow-2",
+        "fixed z-(--z-floater) w-[240px] overflow-hidden rounded-md border border-border bg-card shadow-2",
         position ? undefined : "bottom-4 right-4",
       )}
     >
@@ -127,6 +130,37 @@ export function ContestFloater({
               : formatDuration(remaining)}
         </span>
       </div>
+
+      {/* The problems, so that being out on another page is not a reason to have
+          to navigate back to find them. */}
+      {problems.length > 0 ? (
+        <ol className="grid border-t border-border">
+          {problems.map((problem) => (
+            <li key={problem.code} className="border-b border-border last:border-b-0">
+              <Link
+                href={`/problem/${problem.code}/`}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-secondary"
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    "size-2 shrink-0 rounded-xs",
+                    problem.state === "solved"
+                      ? "bg-good"
+                      : problem.state === "partial"
+                        ? "bg-warn"
+                        : problem.state === "attempted"
+                          ? "bg-bad"
+                          : "bg-well",
+                  )}
+                />
+                <span className="font-mono text-sm text-muted-foreground">{problem.label}</span>
+                <span className="min-w-0 flex-1 truncate">{problem.name}</span>
+              </Link>
+            </li>
+          ))}
+        </ol>
+      ) : null}
     </div>
   );
 }

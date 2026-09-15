@@ -290,7 +290,12 @@
       }
     },
     "banned": "Anda telah dinyatakan sebagai persona non grata untuk kontes ini. Anda dilarang secara permanen untuk bergabung.",
-    "blocked": "Anda tidak dapat bergabung dengan kontes ini."
+    "blocked": "Anda tidak dapat bergabung dengan kontes ini.",
+    "switch": {
+      "title": "Keluar dari kontes Anda saat ini?",
+      "body": "Anda sedang berada di \"{contest}\". Bergabung dengan kontes ini akan mengeluarkan Anda dari sana.",
+      "action": "Keluar dan gabung"
+    }
   },
   "actions": {
     "noSuchContest": "Kontes tidak ditemukan.",

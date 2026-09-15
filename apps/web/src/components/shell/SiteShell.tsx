@@ -201,6 +201,7 @@ export function SiteShell({
           contestName={contest.contest.name}
           endsAt={contest.isSpectating ? null : contest.endsAt}
           mode={contest.isSpectating ? "spectating" : contest.isVirtual ? "virtual" : "live"}
+          problems={contest.problems}
         />
       ) : null}
 

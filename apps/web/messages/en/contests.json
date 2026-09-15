@@ -290,7 +290,12 @@
       }
     },
     "banned": "You have been declared persona non grata for this contest. You are permanently barred from joining it.",
-    "blocked": "You cannot join this contest."
+    "blocked": "You cannot join this contest.",
+    "switch": {
+      "title": "Leave your current contest?",
+      "body": "You are in \"{contest}\". Joining this contest leaves it.",
+      "action": "Leave and join"
+    }
   },
   "actions": {
     "noSuchContest": "No such contest.",

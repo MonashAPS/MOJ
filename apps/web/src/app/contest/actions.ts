@@ -7,11 +7,11 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { mutateAsViewer } from "@/lib/convex-server";
 
-export type JoinResult = { error: string } | never;
+export type JoinResult = { error: string } | { alreadyIn: string } | never;
 
 /** `convex/lib/errors.ts` throws `ConvexError({code, message})` and the join
  *  path adds a `reason`; a few throws carry the sentence on its own instead. */
-type Refusal = { message?: string; reason?: string };
+type Refusal = { message?: string; reason?: string; contestName?: string };
 
 function isRefusalText(value: unknown): value is string {
   return typeof value === "string";
@@ -21,6 +21,8 @@ function isRefusal(value: unknown): value is Refusal {
   if (typeof value !== "object" || value === null) return false;
 
   if ("message" in value && typeof value.message !== "string") return false;
+
+  if ("contestName" in value && typeof value.contestName !== "string") return false;
 
   return !("reason" in value) || typeof value.reason === "string";
 }
@@ -39,6 +41,13 @@ function reasonOf(cause: unknown): string | null {
   if (!(cause instanceof ConvexError) || !isRefusal(cause.data)) return null;
 
   return cause.data.reason || null;
+}
+
+/** The contest named by an `alreadyInContest` refusal, for the switch dialog. */
+function contestNameOf(cause: unknown): string {
+  if (!(cause instanceof ConvexError) || !isRefusal(cause.data)) return "";
+
+  return cause.data.contestName ?? "";
 }
 
 /** `FormData.get` answers with a `File` for a file field and `null` for a field
@@ -63,6 +72,7 @@ export async function joinContest(_state: JoinResult | null, formData: FormData)
   const t = await getTranslations("contests.actions");
   const key = textField(formData, "key");
   const accessCode = textField(formData, "accessCode");
+  const confirmSwitch = textField(formData, "confirmSwitch") === "1";
 
   if (!key) return { error: t("noSuchContest") };
 
@@ -70,6 +80,7 @@ export async function joinContest(_state: JoinResult | null, formData: FormData)
     await mutateAsViewer(api.contests.participation.join, {
       key,
       accessCode: accessCode || undefined,
+      confirmSwitch: confirmSwitch || undefined,
     });
   } catch (error) {
     if (reasonOf(error) === "accessCodeRequired") {
@@ -77,12 +88,19 @@ export async function joinContest(_state: JoinResult | null, formData: FormData)
       redirect(`/contest/${key}/join/`);
     }
 
+    // Not a refusal: the viewer is in another contest and has not been asked yet.
+    if (reasonOf(error) === "alreadyInContest") {
+      return { alreadyIn: contestNameOf(error) };
+    }
+
     return { error: messageOf(error, t("cannotJoin")) };
   }
 
   revalidatePath("/contests");
   revalidatePath(`/contest/${key}`);
-  redirect("/problems/");
+  // The contest's own page, not the problems list: the problems list is the
+  // catalogue again, and a contestant who just joined wants the contest.
+  redirect(`/contest/${key}/`);
 }
 
 /** `ContestLeave.post` (contests.py:468): back to the contest page. */

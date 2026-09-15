@@ -399,18 +399,16 @@ export const navBar = query({
     let participation: Doc<"contestParticipations"> | null = null;
     let contest: Doc<"contests"> | null = null;
 
+    // The bar says one thing: you are in this contest now. It used to fall back
+    // to any participation row the viewer had ever had here, so leaving a contest
+    // left the bar up and its clock running on a contest they were no longer in.
     if (key) {
       contest = await contestByKey(ctx, key);
 
-      if (contest && profile) {
-        const rows = await participationsOf(ctx, contest._id, profile._id);
+      if (!contest || !profile?.currentParticipationId) return null;
+      participation = await ctx.db.get(profile.currentParticipationId);
 
-        const current = profile.currentParticipationId
-          ? (rows.find((row) => row._id === profile.currentParticipationId) ?? null)
-          : null;
-
-        participation = current ?? rows.sort((a, b) => b.virtual - a.virtual)[0] ?? null;
-      }
+      if (!participation || participation.contestId !== contest._id) return null;
     } else if (profile?.currentParticipationId) {
       participation = await ctx.db.get(profile.currentParticipationId);
 
@@ -421,11 +419,8 @@ export const navBar = query({
 
     const viewer = await toViewerRowInContest(ctx, profile);
     const contestRow = toContestRow(contest);
-    const isCurrent = !!participation && profile?.currentParticipationId === participation._id;
 
-    if (!isCurrent && contestAccessCheck(contestRow, viewer).kind !== "ok") return null;
-
-    const contestProblems = problemsReleasedFor(contest, profile, isCurrent, Date.now())
+    const contestProblems = problemsReleasedFor(contest, profile, true, Date.now())
       ? await loadContestProblems(ctx, contest._id)
       : [];
 

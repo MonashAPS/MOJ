@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { joinContest } from "@/app/contest/actions";
 import { useHumanDuration } from "@/components/contests/pieces";
+import { joinErrorOf } from "@/lib/join-result";
 
 /** `contest/access_code.html`, plus the confirmation DMOJ raises in JavaScript
  *  for a contest that needs no code. */
@@ -41,7 +42,7 @@ export function JoinPanel({
           <form action={formAction} className="grid gap-4">
             <input type="hidden" name="key" value={contestKey} />
             {requiresAccessCode ? (
-              <Field label={t("accessCodeLabel")} htmlFor="accessCode" error={state?.error}>
+              <Field label={t("accessCodeLabel")} htmlFor="accessCode" error={joinErrorOf(state)}>
                 <Input
                   id="accessCode"
                   name="accessCode"
@@ -49,7 +50,7 @@ export function JoinPanel({
                   required
                   autoComplete="off"
                   autoFocus
-                  invalid={!!state?.error}
+                  invalid={!!joinErrorOf(state)}
                   className="text-[16px] md:text-base"
                 />
               </Field>
@@ -66,7 +67,7 @@ export function JoinPanel({
                         ? t("windowStarts", { duration: humanDuration(timeLimit * 1000) })
                         : t("firstTime")}
                 </p>
-                {state?.error ? <p className="text-sm text-bad">{state.error}</p> : null}
+                {joinErrorOf(state) ? <p className="text-sm text-bad">{joinErrorOf(state)}</p> : null}
               </>
             )}
             <FormFooter

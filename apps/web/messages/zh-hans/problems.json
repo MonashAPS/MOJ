@@ -23,7 +23,10 @@
     "emptyTitle": "暂无内容",
     "emptyFiltered": "没有符合筛选条件的题目。",
     "emptyUnpublished": "还没有发布任何题目。",
-    "hotProblems": "热门题目"
+    "hotProblems": "热门题目",
+    "contestLockTitle": "你正在参加比赛，无法查看这些题目。",
+    "contestLockHint": "该比赛的题目见下方。",
+    "contestLockAction": "前往比赛"
   },
   "filters": {
     "title": "筛选",
@@ -138,7 +141,9 @@
   },
   "statement": {
     "copied": "已复制到剪贴板。",
-    "copyUnavailable": "此浏览器不支持复制功能。"
+    "copyUnavailable": "此浏览器不支持复制功能。",
+    "expand": "展开",
+    "collapse": "收起"
   },
   "editorial": {
     "titleFor": "{name} 的题解",

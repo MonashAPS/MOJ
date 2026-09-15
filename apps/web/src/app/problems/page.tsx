@@ -36,10 +36,10 @@ export default async function ProblemsPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <TitleRow title={t("title")} tabs={initial.inContest ? undefined : tabs} active="list" />
+      <TitleRow title={t("title")} tabs={tabs} active="list" />
       <ProblemsView
         initial={initial}
-        initialOptions={options && !options.inContest ? options : null}
+        initialOptions={options}
         query={query}
         username={profile?.username ?? null}
         randomSeed={Math.floor(Math.random() * 1_000_000)}

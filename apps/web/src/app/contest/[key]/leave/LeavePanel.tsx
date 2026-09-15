@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { leaveContest } from "@/app/contest/actions";
+import { joinErrorOf } from "@/lib/join-result";
 
 export function LeavePanel({
   contestKey,
@@ -32,7 +33,7 @@ export function LeavePanel({
           <form action={formAction} className="grid gap-4">
             <input type="hidden" name="key" value={contestKey} />
             <p className="text-base text-subtle">{spectating ? t("spectatingBody") : t("leaveBody")}</p>
-            {state?.error ? <p className="text-sm text-bad">{state.error}</p> : null}
+            {joinErrorOf(state) ? <p className="text-sm text-bad">{joinErrorOf(state)}</p> : null}
             <FormFooter
               note={
                 <Link href={`/contest/${contestKey}/`} className="text-muted-foreground hover:text-subtle">

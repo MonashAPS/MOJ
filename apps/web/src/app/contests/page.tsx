@@ -47,9 +47,8 @@ export default async function ContestsPage({
 
   if (tagName) args.tagName = tagName;
 
-  const [initial, viewerState, permissions] = await Promise.all([
+  const [initial, permissions] = await Promise.all([
     queryAsViewer(api.contests.list, args).catch(() => null),
-    queryAsViewer(api.viewer.current, {}).catch(() => null),
     queryAsViewer(api.viewer.permissions, {
       codes: ["judge.edit_all_contest", "judge.edit_own_contest"],
     }).catch((): Record<string, boolean> => ({})),
@@ -85,7 +84,6 @@ export default async function ContestsPage({
         tagName={tagName}
         sort={sort}
         descending={descending}
-        inContest={viewerState?.inContest ?? false}
       />
     </>
   );

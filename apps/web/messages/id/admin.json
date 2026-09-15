@@ -492,6 +492,8 @@
       "clarificationsHint": "Peserta dapat mengajukan pertanyaan.",
       "hideProblemTags": "Sembunyikan tag soal",
       "hideProblemAuthors": "Sembunyikan penulis soal",
+      "hideNonContestProblems": "Sembunyikan soal di luar kontes",
+      "hideNonContestProblemsHint": "Mengaburkan daftar soal bagi peserta kontes ini dan mengarahkan mereka kembali.",
       "pretestsOnly": "Hanya pretest",
       "pretestsOnlyHint": "Nilai berdasarkan pretest selama kontes berlangsung.",
       "shortDisplay": "Tampilan ringkas",

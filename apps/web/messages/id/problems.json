@@ -23,7 +23,10 @@
     "emptyTitle": "Tidak ada apa pun di sini",
     "emptyFiltered": "Tidak ada soal yang cocok dengan filter ini.",
     "emptyUnpublished": "Belum ada soal yang dipublikasikan.",
-    "hotProblems": "Soal populer"
+    "hotProblems": "Soal populer",
+    "contestLockTitle": "Anda sedang mengikuti kompetisi dan tidak dapat melihat soal-soal ini.",
+    "contestLockHint": "Soal-soal kontes ada di bawah.",
+    "contestLockAction": "Buka kontes"
   },
   "filters": {
     "title": "Filter",
@@ -138,7 +141,9 @@
   },
   "statement": {
     "copied": "Disalin ke clipboard.",
-    "copyUnavailable": "Penyalinan tidak tersedia di browser ini."
+    "copyUnavailable": "Penyalinan tidak tersedia di browser ini.",
+    "expand": "Perluas",
+    "collapse": "Ciutkan"
   },
   "editorial": {
     "titleFor": "Pembahasan untuk {name}",

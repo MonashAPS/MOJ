@@ -7,13 +7,30 @@ import { STATEMENT_COPY_ICONS } from "@/lib/statement";
 
 /**
  * The statement body. The markup is produced on the server (`decorateStatement`)
- * so nothing reflows after hydration; this component only wires the Copy buttons,
- * which announce through a polite live region and never raise a toast.
+ * so nothing reflows after hydration; this component only wires the titlebar
+ * buttons. Copy announces through a polite live region and never raises a toast.
+ *
+ * Expand is offered only where there is something to expand, which is a rendered
+ * height and so has to be measured here.
  */
 export function Statement({ html, className }: { html: string; className?: string }) {
   const t = useTranslations("problems.statement");
   const root = useRef<HTMLDivElement>(null);
   const [announcement, setAnnouncement] = useState("");
+
+  // Whether a sample overflows its cap is a rendered height, so the offer to
+  // expand can only be made once this markup is on the page.
+  useEffect(() => {
+    const node = root.current;
+
+    if (!node || !html) return;
+
+    for (const body of node.querySelectorAll<HTMLElement>("[data-statement-code]")) {
+      const toggle = body.closest("figure")?.querySelector<HTMLElement>("[data-statement-expand]");
+
+      if (toggle && body.scrollHeight > body.clientHeight + 1) toggle.style.display = "inline-flex";
+    }
+  }, [html]);
 
   useEffect(() => {
     const node = root.current;
@@ -23,6 +40,26 @@ export function Statement({ html, className }: { html: string; className?: strin
 
     async function onClick(event: MouseEvent) {
       const target = event.target instanceof HTMLElement ? event.target : null;
+      const toggle = target?.closest<HTMLButtonElement>("[data-statement-expand]");
+
+      if (toggle) {
+        const body = toggle.closest("figure")?.querySelector<HTMLElement>("[data-statement-code]");
+
+        if (!body) return;
+        const open = body.dataset.expanded === "true";
+        body.dataset.expanded = open ? "false" : "true";
+        // Off the cap entirely, so a long sample scrolls with the page rather
+        // than trapping the wheel in a box.
+        body.style.maxHeight = open ? "" : "none";
+        body.style.overflow = open ? "" : "visible";
+        toggle.innerHTML = open ? STATEMENT_COPY_ICONS.expand : STATEMENT_COPY_ICONS.collapse;
+        const name = open ? t("expand") : t("collapse");
+        toggle.setAttribute("aria-label", name);
+        toggle.setAttribute("title", name);
+
+        return;
+      }
+
       const button = target?.closest<HTMLButtonElement>("[data-statement-copy]");
 
       if (!button) return;

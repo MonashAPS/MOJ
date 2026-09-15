@@ -492,6 +492,8 @@
       "clarificationsHint": "Contestants may ask questions.",
       "hideProblemTags": "Hide problem tags",
       "hideProblemAuthors": "Hide problem authors",
+      "hideNonContestProblems": "Hide non-contest problems",
+      "hideNonContestProblemsHint": "Blurs the problems list for anyone inside this contest, and points them back to it.",
       "pretestsOnly": "Pretests only",
       "pretestsOnlyHint": "Grade against pretests during the contest.",
       "shortDisplay": "Short display",

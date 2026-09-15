@@ -22,7 +22,6 @@ describe("pages/problems.filterOptions", () => {
     });
 
     const options = await t.query(api.pages.problems.filterOptions, {});
-    expect(options.inContest).toBe(false);
 
     const graphs = options.types.find((row) => row.name === "graphs");
     const uncategorised = options.types.find((row) => row.name === "uncategorized");

@@ -84,10 +84,15 @@ async function updateUserCount(ctx: MutationCtx, contestId: Id<"contests">): Pro
  * both win.
  */
 export const join = mutation({
-  args: { key: v.string(), accessCode: v.optional(v.string()) },
+  args: {
+    key: v.string(),
+    accessCode: v.optional(v.string()),
+    /** Set once the viewer has agreed to leave whichever contest holds them. */
+    confirmSwitch: v.optional(v.boolean()),
+  },
   handler: async (
     ctx,
-    { key, accessCode },
+    { key, accessCode, confirmSwitch },
   ): Promise<{ participationId: Id<"contestParticipations">; virtual: number }> => {
     const profile = await requireViewer(ctx);
     const contest = await requireAccessibleContest(ctx, key, profile);
@@ -132,6 +137,25 @@ export const join = mutation({
 
     if (decision.kind === "cannotEnter") {
       throw forbidden("You are not able to join this contest.");
+    }
+
+    // One contest at a time. Joining a second used to move the viewer silently,
+    // so the page they were competing on simply stopped being the contest they
+    // were in. Switching is still allowed, but only as an answer to the ask.
+    const held = profile.currentParticipationId ? await ctx.db.get(profile.currentParticipationId) : null;
+
+    if (held && held.contestId !== contest._id && !confirmSwitch) {
+      const heldContest = await ctx.db.get(held.contestId);
+
+      throw new ConvexError({
+        code: "INVALID",
+        message: heldContest
+          ? `You are already in "${heldContest.name}".`
+          : "You are already in another contest.",
+        reason: "alreadyInContest",
+        contestName: heldContest?.name ?? "",
+        contestKey: heldContest?.key ?? "",
+      });
     }
 
     let participation: Doc<"contestParticipations"> | null = null;
