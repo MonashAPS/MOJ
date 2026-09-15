@@ -35,6 +35,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Unused files, dependencies and exports
+        run: npm run knip
+
       - name: Test
         run: npm test
 

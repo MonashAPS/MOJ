@@ -265,7 +265,7 @@ does not exist.
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on pull requests and on pushes to the main branches: `npm ci`, `npm run lint`,
-`npm run typecheck`, `npm test`, a web build, and, in a second job, the tier 1 judge image build followed by the
+`npm run typecheck`, `npm run knip`, `npm test`, a web build, and, in a second job, the tier 1 judge image build followed by the
 judge end-to-end test against its mock.
 
 `.github/workflows/pages.yml` builds `docs/` and deploys it to GitHub Pages on a push to the main branch.
