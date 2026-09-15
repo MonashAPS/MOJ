@@ -101,6 +101,7 @@
     "tabVote": "Voting",
     "tabTestData": "Data uji",
     "tabManage": "Kelola pengiriman",
+    "tabEdit": "Edit",
     "tabClone": "Klon",
     "contestMode": "Mode kontes — soal <mono>{label}</mono>",
     "contestModePretested": "Mode kontes — soal <mono>{label}</mono> · pretest",

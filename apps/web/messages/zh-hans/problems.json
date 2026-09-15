@@ -101,6 +101,7 @@
     "tabVote": "投票",
     "tabTestData": "测试数据",
     "tabManage": "管理提交",
+    "tabEdit": "编辑",
     "tabClone": "克隆",
     "contestMode": "比赛模式——题目 <mono>{label}</mono>",
     "contestModePretested": "比赛模式——题目 <mono>{label}</mono>· 预测试",

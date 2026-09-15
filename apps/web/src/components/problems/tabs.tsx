@@ -1,5 +1,16 @@
 import type { TabItem } from "@moj/ui";
-import { BookOpen, Copy, Database, FileText, ListChecks, Send, Settings, Trophy, Vote } from "lucide-react";
+import {
+  BookOpen,
+  Copy,
+  Database,
+  FileText,
+  ListChecks,
+  Pencil,
+  Send,
+  Settings,
+  Trophy,
+  Vote,
+} from "lucide-react";
 import type { useTranslations } from "next-intl";
 import type { ProblemDetail } from "@/components/problems/ProblemInfoBox";
 
@@ -61,6 +72,14 @@ export function problemTabs(problem: ProblemDetail, t: ReturnType<typeof useTran
   }
 
   if (problem.canEdit) {
+    // The editor lives in the staff console, the way the contest tabs send an
+    // editor to `/admin/contests/<key>/` rather than to a page under the contest.
+    tabs.push({
+      key: "edit",
+      label: t("tabEdit"),
+      href: `/admin/problems/${problem.code}/`,
+      icon: <Pencil />,
+    });
     tabs.push({ key: "clone", label: t("tabClone"), href: `${base}/clone`, icon: <Copy /> });
   }
 
