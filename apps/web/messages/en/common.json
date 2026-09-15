@@ -115,7 +115,8 @@
     "virtual": "virtual",
     "floater": "In contest",
     "hideTimer": "Hide the contest timer",
-    "hideTimerHint": "Hide the contest timer until you reload"
+    "hideTimerHint": "Hide the contest timer",
+    "showTimer": "Show the contest timer"
   },
   "error": {
     "internal": "Internal error",

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { getServerSession } from "@/auth/session";
 import { AuthCard } from "@/components/auth/AuthCard";
+import { SessionReset } from "@/components/auth/SessionReset";
 import { logOut } from "./actions";
 
 export async function generateMetadata() {
@@ -27,6 +28,7 @@ export default async function LogoutPage({ searchParams }: { searchParams: Promi
         footer={<span>{t.rich("doneFooter", { link: (chunks) => <Link href="/">{chunks}</Link> })}</span>}
       >
         <div className="grid gap-4">
+          <SessionReset />
           <Alert variant="success">
             <LogOut className="size-3.5" aria-hidden />
             <AlertTitle>{t("doneAlert")}</AlertTitle>

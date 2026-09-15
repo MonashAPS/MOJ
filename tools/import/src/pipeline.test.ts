@@ -59,6 +59,24 @@ describe("full transform over a fixture dump", () => {
     });
   });
 
+  it("adds the judge's languages that the source never offered", () => {
+    const keys = docs(dir, "languages").map((row) => row.key);
+
+    expect(keys).toContain("NODEJS");
+    expect(keys).toContain("CPP20");
+    // Backfilled rows are not from the source, so they carry no legacy id.
+    const node = docs(dir, "languages").find((row) => row.key === "NODEJS");
+    expect(node).toMatchObject({ name: "Node.js", extension: "js", shikiLang: "javascript" });
+    expect(node?.legacyId).toBeUndefined();
+  });
+
+  it("leaves a language the source did provide alone", () => {
+    const rows = docs(dir, "languages").filter((row) => row.key === "PY3");
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.legacyId).toBe(5);
+  });
+
   it("joins auth_user and judge_profile, with permissions from both groups and direct grants", () => {
     const profiles = docs(dir, "profiles");
     expect(profiles).toHaveLength(3);
@@ -244,7 +262,7 @@ describe("selected tables", () => {
     const state: StateFile = { mode: "dry-run", dump: "fixture", startedAt: "", finished: {} };
     await runPipeline(fixture.ctx, state, { resume: false, log: () => {} });
     await fixture.ctx.closeEmitters();
-    expect(docs(fixture.dir, "languages")).toHaveLength(1);
+    expect(docs(fixture.dir, "languages").length).toBeGreaterThan(1);
     expect(() => docs(fixture.dir, "profiles")).toThrow();
   });
 });

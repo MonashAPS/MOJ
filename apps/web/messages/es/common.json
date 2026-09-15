@@ -115,7 +115,8 @@
     "virtual": "virtual",
     "floater": "En el concurso",
     "hideTimer": "Ocultar el cronómetro del concurso",
-    "hideTimerHint": "Ocultar el cronómetro del concurso hasta que vuelvas a cargar la página"
+    "hideTimerHint": "Ocultar el temporizador del concurso",
+    "showTimer": "Mostrar el temporizador del concurso"
   },
   "error": {
     "internal": "Error interno",
