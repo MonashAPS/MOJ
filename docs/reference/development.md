@@ -46,9 +46,11 @@ name the consumer must render it with, and the web layer renders it.
 | `npm run build` | Builds every workspace that has a build script. |
 | `npm test` | Vitest across the workspaces. |
 | `npm run test:watch` | The same, in watch mode. |
-| `npm run lint` | Biome check. |
+| `npm run lint` | Biome check, then oxlint with the anti-slop rules. |
+| `npm run lint:fix` | The same, writing the fixes both tools can make. |
 | `npm run format` | Biome format, writing changes. |
-| `npm run typecheck` | `tsc --noEmit` for the Convex functions and each workspace. |
+| `npm run knip` | Unused files, dependencies and exports across the workspaces. |
+| `npm run typecheck` | `tsc --noEmit` in each workspace. |
 | `npm run seed` | Re-runs the seed against a running deployment. |
 | `npm run convex:codegen` | Regenerates `convex/_generated`. Needs a reachable deployment. |
 | `npm run convex:deploy` | Pushes the Convex functions to the configured deployment. |
@@ -74,7 +76,7 @@ npm run test:watch              # watch mode
 ```
 
 Convex functions are tested with `convex-test`, which runs the real function code against an in-memory database.
-Those files carry `// @vitest-environment edge-runtime` at the top, because the root project runs `node`.
+Those files carry `// @vitest-environment edge-runtime` at the top, because the convex project runs `node`.
 
 Two naming rules matter under `convex/`. Convex's bundler skips any file whose basename has more than one dot, so
 test files (`*.test.ts`) and their helpers (`*.fixtures.ts`, `*.setup.ts`) never reach a deployment. A
@@ -208,7 +210,11 @@ committed. Commit the regenerated files with your change. A module path with a s
 ## Conventions
 
 - TypeScript with `strict: true`, ESM everywhere. No `any` that is not commented.
-- Biome for formatting and linting. Run `npm run format` before committing; CI runs `npm run lint`.
+- Biome for formatting and general linting, oxlint for the vendored anti-slop rules in `tools/anti-slop`
+  (`tools/anti-slop/UPSTREAM.md` records where they come from). `npm run lint` runs both; CI runs it.
+- lefthook runs biome and oxlint on the staged files before a commit and checks the commit message against
+  Conventional Commits. `LEFTHOOK=0` skips the hooks. `BIOME` and `OXLINT` override how the binaries are run,
+  for example `BIOME="steam-run npx biome"` on NixOS.
 - Field names in Convex are camelCase versions of DMOJ's names, so a reviewer can find the original.
 - Every imported table has `legacyId` and an index on it. Keep that true for new tables that could be imported.
 - Timestamps are milliseconds since the epoch as `v.number()`. Durations are seconds unless the field name says
