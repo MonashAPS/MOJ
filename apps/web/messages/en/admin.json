@@ -2087,5 +2087,8 @@
     "now": "Now",
     "followingNow": "Following",
     "close": "Close"
+  },
+  "statementPreview": {
+    "tooLong": "This statement is too long to preview; it must contain at most {count, number} characters."
   }
 }

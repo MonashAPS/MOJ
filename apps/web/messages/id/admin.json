@@ -2087,5 +2087,8 @@
     "now": "Sekarang",
     "followingNow": "Mengikuti",
     "close": "Tutup"
+  },
+  "statementPreview": {
+    "tooLong": "Deskripsi ini terlalu panjang untuk dipratinjau; maksimal boleh berisi {count, number} karakter."
   }
 }

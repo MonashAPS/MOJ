@@ -2087,5 +2087,8 @@
     "now": "Ahora",
     "followingNow": "Siguiendo",
     "close": "Cerrar"
+  },
+  "statementPreview": {
+    "tooLong": "Este enunciado es demasiado largo para previsualizarlo; debe contener como máximo {count, number} caracteres."
   }
 }

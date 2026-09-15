@@ -26,6 +26,13 @@ export type MarkdownEditorProps = {
   /** DMOJ's Martor flow asks for a preview before the post button works. The
    *  parent owns the button, so it is told whether the current text was seen. */
   onPreviewedChange?: (previewed: boolean) => void;
+  /** Renders the body instead of `renderUserMarkdown`, for a caller whose preset
+   *  the public, unauthenticated preview refuses. */
+  renderPreview?: (source: string) => Promise<string>;
+  /** Wraps the rendered HTML the way the page that will publish it does, rather
+   *  than in the plain content container. The preview owns no typography of its
+   *  own, so whatever this returns is the only wrapper the HTML gets. */
+  renderPreviewHtml?: (html: string) => React.ReactNode;
 };
 
 /** The placeholder is inserted into the body as markdown source, so it stays in
@@ -62,6 +69,8 @@ export function MarkdownEditor({
   autoFocus = false,
   className,
   onPreviewedChange,
+  renderPreview,
+  renderPreviewHtml,
 }: MarkdownEditorProps) {
   const t = useTranslations("common.markdown");
   const states = useTranslations("common.states");
@@ -82,6 +91,10 @@ export function MarkdownEditor({
     notify.current?.(previewed);
   }, [previewed]);
 
+  // Same reason: an inline renderer must not re-key the preview callback.
+  const render = useRef(renderPreview);
+  render.current = renderPreview;
+
   const preview = useCallback(async () => {
     const source = value;
 
@@ -95,7 +108,8 @@ export function MarkdownEditor({
     setRendering(true);
 
     try {
-      const rendered = await renderUserMarkdown(source, preset);
+      const custom = render.current;
+      const rendered = custom ? await custom(source) : await renderUserMarkdown(source, preset);
       setHtml(rendered);
       setPreviewedSource(source);
     } finally {
@@ -219,10 +233,12 @@ export function MarkdownEditor({
         <div className="px-3 py-2" style={{ minHeight: `${rows * 20 + 16}px` }}>
           {value.trim().length === 0 ? (
             <p className="text-sm text-muted-foreground">{t("nothingToPreview")}</p>
-          ) : html ? (
-            <ContentDescription html={html} />
-          ) : (
+          ) : html === "" ? (
             <p className="text-sm text-muted-foreground">{states("rendering")}</p>
+          ) : renderPreviewHtml ? (
+            renderPreviewHtml(html)
+          ) : (
+            <ContentDescription html={html} />
           )}
         </div>
       )}

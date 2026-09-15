@@ -2087,5 +2087,8 @@
     "now": "现在",
     "followingNow": "跟随中",
     "close": "关闭"
+  },
+  "statementPreview": {
+    "tooLong": "该题面太长，无法预览；最多只能包含 {count, number} 个字符。"
   }
 }
