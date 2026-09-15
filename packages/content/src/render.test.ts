@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
-import { disposeHighlighters, renderMarkdown } from "../src/index.js";
-import { countTildePairs, loadFixtures } from "./helpers.js";
+import { disposeHighlighters, renderMarkdown } from "./index.js";
+import { countTildePairs, loadFixtures } from "./test.helpers.js";
 
 const fixtures = await loadFixtures();
 

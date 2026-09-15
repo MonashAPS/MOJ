@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import type { ClaimableSubmission, JudgeRow } from "../src/judging";
+import type { ClaimableSubmission, JudgeRow } from "./judging";
 import {
   BATCH_REJUDGE_PRIORITY,
   CONTEST_SUBMISSION_PRIORITY,
@@ -23,8 +23,8 @@ import {
   selectClaim,
   shouldReserveJudge,
   submissionPriority,
-} from "../src/judging";
-import type { SubmissionTestCaseRow } from "../src/types";
+} from "./judging";
+import type { SubmissionTestCaseRow } from "./types";
 
 describe("decodeCaseStatus", () => {
   it("decodes single bits", () => {

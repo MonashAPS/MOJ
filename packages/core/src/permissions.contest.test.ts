@@ -13,8 +13,8 @@ import {
   participationIsSpectating,
   participationStart,
   participationTimeRemaining,
-} from "../src/contestTiming";
-import { getContestLabelForProblem } from "../src/formats/index";
+} from "./contestTiming";
+import { getContestLabelForProblem } from "./formats/index";
 import {
   contestAccessCheck,
   contestCanSeeFullScoreboard,
@@ -29,14 +29,7 @@ import {
   contestIsVisibleTo,
   contestShowScoreboard,
   contestStarted,
-} from "../src/permissions";
-import {
-  type ContestParticipationRow,
-  type ContestRow,
-  type Id,
-  PARTICIPATION_SPECTATE,
-  type Viewer,
-} from "../src/types";
+} from "./permissions";
 import {
   commonUsers,
   createContest,
@@ -46,7 +39,14 @@ import {
   HOUR,
   NOW,
   withOrganizations,
-} from "./fixtures";
+} from "./test.fixtures";
+import {
+  type ContestParticipationRow,
+  type ContestRow,
+  type Id,
+  PARTICIPATION_SPECTATE,
+  type Viewer,
+} from "./types";
 
 const METHODS = [
   "can_see_own_scoreboard",

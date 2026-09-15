@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { base64urlToBase64 } from "../src/auth/build.ts";
+import { base64urlToBase64 } from "./build.ts";
 import {
   deriveFernetKey,
   fernetDecrypt,
@@ -8,13 +8,8 @@ import {
   fernetEncrypt,
   fernetKeyToBase64,
   parseSecretKeyFile,
-} from "../src/auth/fernet.ts";
-import {
-  decodeBackupCodes,
-  encodeBackupCodes,
-  symmetricDecrypt,
-  symmetricEncrypt,
-} from "../src/auth/secretbox.ts";
+} from "./fernet.ts";
+import { decodeBackupCodes, encodeBackupCodes, symmetricDecrypt, symmetricEncrypt } from "./secretbox.ts";
 
 // Everything here uses throwaway keys generated in the test. No production
 // secret or value appears in this file.

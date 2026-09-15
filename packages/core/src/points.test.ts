@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { shouldLeaveContest } from "../src/contestTiming";
+import { shouldLeaveContest } from "./contestTiming";
 import {
   calculateProfilePoints,
   computeProblemStats,
@@ -14,9 +14,9 @@ import {
   PP_TABLE,
   ppBonus,
   ranker,
-} from "../src/points";
-import { getUserCssClass } from "../src/ratings";
-import { commonUsers, createContest, createParticipation, createUser, DAY, NOW } from "./fixtures";
+} from "./points";
+import { getUserCssClass } from "./ratings";
+import { commonUsers, createContest, createParticipation, createUser, DAY, NOW } from "./test.fixtures";
 
 describe("ProfileTestCase", () => {
   const users = commonUsers();

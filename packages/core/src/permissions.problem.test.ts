@@ -17,8 +17,7 @@ import {
   voteCanView,
   voteCanVote,
   votePermissionForUser,
-} from "../src/permissions";
-import type { ProblemRow, ProfileRow, Viewer } from "../src/types";
+} from "./permissions";
 import {
   commonUsers,
   createProblem,
@@ -28,7 +27,8 @@ import {
   NOW,
   withOrganizationAdmin,
   withOrganizations,
-} from "./fixtures";
+} from "./test.fixtures";
+import type { ProblemRow, ProfileRow, Viewer } from "./types";
 
 type Matrix = Record<
   string,

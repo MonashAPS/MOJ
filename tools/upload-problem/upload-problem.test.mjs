@@ -16,7 +16,7 @@ import {
   problemCodesFromChanged,
   publishPlan,
   run,
-} from "../upload-problem.mjs";
+} from "./upload-problem.mjs";
 
 let workdir;
 

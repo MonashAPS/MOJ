@@ -65,9 +65,11 @@ workspaces, so they need `-w`.
 
 ## Tests
 
-Unit tests are Vitest and live beside the code as `*.test.ts`. The parts of the system worth testing hardest are
-in `packages/core`, because they are pure: the contest formats, the rating calculation, the permission rules, the
-verdict ordering and the freeze logic all take data and return data.
+Unit tests are Vitest and live beside the code as `*.test.ts`. Test-only helpers sit beside them as `test.*.ts`
+or `*.fixtures.ts`, fixture data goes in `__fixtures__/`, and file snapshots go in `__snapshots__/` next to the
+test that owns them. The parts of the system worth testing hardest are in `packages/core`, because they are pure:
+the contest formats, the rating calculation, the permission rules, the verdict ordering and the freeze logic all
+take data and return data.
 
 ```bash
 npm test                        # everything

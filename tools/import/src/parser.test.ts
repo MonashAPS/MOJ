@@ -3,9 +3,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { gzipSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
-import { parseCreateTable, parseInsert, readDump } from "../src/parser/dump.ts";
-import { StatementSplitter } from "../src/parser/statements.ts";
-import { readTuples } from "../src/parser/values.ts";
+import { parseCreateTable, parseInsert, readDump } from "./parser/dump.ts";
+import { StatementSplitter } from "./parser/statements.ts";
+import { readTuples } from "./parser/values.ts";
 
 // Every fixture below is written by hand. Nothing here comes from a real dump.
 const CREATE = [

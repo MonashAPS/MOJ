@@ -25,7 +25,7 @@ import {
   VALID_RANGE,
   VAR_INIT,
   VAR_PER_CONTEST,
-} from "../src/ratings";
+} from "./ratings";
 
 const PRECISION = 9;
 

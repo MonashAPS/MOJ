@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
-import type { ImportContext } from "../src/context.ts";
-import type { DryRunLoader, Loader } from "../src/loader.ts";
-import { runPipeline, type StateFile } from "../src/pipeline.ts";
-import { reportToJson } from "../src/report.ts";
-import { makeFixtureContext } from "./fixtures.ts";
+import type { ImportContext } from "./context.ts";
+import type { DryRunLoader, Loader } from "./loader.ts";
+import { runPipeline, type StateFile } from "./pipeline.ts";
+import { reportToJson } from "./report.ts";
+import { makeFixtureContext } from "./test.fixtures.ts";
 
 function docs(dir: string, table: string): Record<string, unknown>[] {
   const file = path.join(dir, "docs", `${table}.jsonl`);

@@ -5,9 +5,9 @@
  */
 
 import { afterAll, describe, expect, it } from "vitest";
-import { disposeHighlighters, PRESET_NAMES, presetAllowsRawHtml, renderMarkdown } from "../src/index.js";
-import { filterStyle } from "../src/plugins/rehype-style-allowlist.js";
-import { loadFixtures } from "./helpers.js";
+import { disposeHighlighters, PRESET_NAMES, presetAllowsRawHtml, renderMarkdown } from "./index.js";
+import { filterStyle } from "./plugins/rehype-style-allowlist.js";
+import { loadFixtures } from "./test.helpers.js";
 
 afterAll(async () => {
   await disposeHighlighters();

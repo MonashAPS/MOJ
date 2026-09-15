@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { reportToJson } from "../report.ts";
+import { makeFixtureContext } from "../test.fixtures.ts";
 import {
   ACCOUNT_COLUMNS,
   buildUpsert,
@@ -7,12 +9,10 @@ import {
   TWO_FACTOR_COLUMNS,
   USER_COLUMNS,
   writeBetterAuthRows,
-} from "../src/auth/betterauth.ts";
-import { buildAuthRows } from "../src/auth/build.ts";
-import { deriveFernetKey, fernetEncrypt } from "../src/auth/fernet.ts";
-import { decodeBackupCodes, symmetricDecrypt } from "../src/auth/secretbox.ts";
-import { reportToJson } from "../src/report.ts";
-import { makeFixtureContext } from "./fixtures.ts";
+} from "./betterauth.ts";
+import { buildAuthRows } from "./build.ts";
+import { deriveFernetKey, fernetEncrypt } from "./fernet.ts";
+import { decodeBackupCodes, symmetricDecrypt } from "./secretbox.ts";
 
 class FakeDatabase implements SqlExecutor {
   readonly statements: { text: string; values: unknown[] }[] = [];

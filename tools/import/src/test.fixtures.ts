@@ -1,9 +1,9 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { ImportContext } from "../src/context.ts";
-import { extract } from "../src/extract.ts";
-import { DryRunLoader, type Loader } from "../src/loader.ts";
+import { ImportContext } from "./context.ts";
+import { extract } from "./extract.ts";
+import { DryRunLoader, type Loader } from "./loader.ts";
 
 /**
  * A tiny hand written dump covering every table the pipeline needs. It is not

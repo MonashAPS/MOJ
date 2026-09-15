@@ -3,10 +3,8 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { computeContestSubmissionPoints } from "../src/judging";
-import { canSeeSubmissionDetail, resolveSubmissionSourceVisibility } from "../src/permissions";
-import type { ProblemRow, Viewer } from "../src/types";
-import { isGraded, isLocked, longStatus, resultClass, shortStatus } from "../src/verdicts";
+import { computeContestSubmissionPoints } from "./judging";
+import { canSeeSubmissionDetail, resolveSubmissionSourceVisibility } from "./permissions";
 import {
   commonUsers,
   createContest,
@@ -15,7 +13,9 @@ import {
   createUser,
   DAY,
   NOW,
-} from "./fixtures";
+} from "./test.fixtures";
+import type { ProblemRow, Viewer } from "./types";
+import { isGraded, isLocked, longStatus, resultClass, shortStatus } from "./verdicts";
 
 const users = commonUsers();
 users.staff_submission_view_all = createUser("staff_submission_view_all", {

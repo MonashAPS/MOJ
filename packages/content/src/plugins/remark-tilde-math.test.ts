@@ -11,8 +11,8 @@ import remarkRehype from "remark-rehype";
 import { unified } from "unified";
 import { visit } from "unist-util-visit";
 import { describe, expect, it } from "vitest";
-import remarkTildeMath from "../src/plugins/remark-tilde-math.js";
-import { countTildePairs, loadFixtures } from "./helpers.js";
+import { countTildePairs, loadFixtures } from "../test.helpers.js";
+import remarkTildeMath from "./remark-tilde-math.js";
 
 const processor = unified()
   .use(remarkParse)

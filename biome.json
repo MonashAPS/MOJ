@@ -17,7 +17,7 @@
       "!apps/web/public",
       "!docs/public",
       "!docs/.vitepress/cache",
-      "!packages/content/test/__snapshots__",
+      "!packages/content/src/__snapshots__",
       "!infra/data",
       "!**/*.json"
     ]

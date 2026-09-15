@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { extractSummary, renderPlain } from "../src/index.js";
-import { loadFixtures } from "./helpers.js";
+import { extractSummary, renderPlain } from "./index.js";
+import { loadFixtures } from "./test.helpers.js";
 
 describe("renderPlain", () => {
   it("strips markup and keeps the maths source", () => {

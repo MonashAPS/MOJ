@@ -13,8 +13,7 @@ import {
   organizationCanReviewClassRequests,
   organizationIsAdmin,
   organizationIsEditableBy,
-} from "../src/permissions";
-import type { Viewer } from "../src/types";
+} from "./permissions";
 import {
   commonUsers,
   createBlogPost,
@@ -25,7 +24,8 @@ import {
   DAY,
   NOW,
   OPEN_ORGANIZATION,
-} from "./fixtures";
+} from "./test.fixtures";
+import type { Viewer } from "./types";
 
 const users = commonUsers();
 users.staff_blogpost_edit_own = createUser("staff_blogpost_edit_own", {

@@ -1,8 +1,8 @@
 import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import type { ProblemMeta } from "../src/typst/statement.js";
+import type { ProblemMeta } from "./typst/statement.js";
 
-export const FIXTURE_DIR = new URL("./fixtures/", import.meta.url);
+export const FIXTURE_DIR = new URL("./__fixtures__/", import.meta.url);
 export const STATEMENT_DIR = new URL("./statements/", FIXTURE_DIR);
 
 export interface Fixture {
@@ -13,7 +13,7 @@ export interface Fixture {
 
 let cache: Fixture[] | undefined;
 
-/** Every real MAPS statement kept under `test/fixtures/statements`. */
+/** Every real MAPS statement kept under `src/__fixtures__/statements`. */
 export async function loadFixtures(): Promise<Fixture[]> {
   if (cache) return cache;
   const metas = JSON.parse(await readFile(new URL("problems.json", FIXTURE_DIR), "utf8")) as Record<

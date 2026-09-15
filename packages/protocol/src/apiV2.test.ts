@@ -19,7 +19,7 @@ import {
   listResponse,
   parseApiBoolean,
   parsePageNumber,
-} from "../src/apiV2.js";
+} from "./apiV2.js";
 
 describe("the envelope", () => {
   test("a list response is DMOJ's `get_base_response` plus `get_api_data`", () => {

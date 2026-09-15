@@ -1,9 +1,9 @@
 import { getFunctionName } from "convex/server";
 import { describe, expect, it } from "vitest";
-import { BATCH_SIZE } from "../src/context.ts";
-import { type ConvexClientLike, ConvexLoader, type InsertedId } from "../src/loader.ts";
-import { runPipeline, type StateFile } from "../src/pipeline.ts";
-import { makeFixtureContext } from "./fixtures.ts";
+import { BATCH_SIZE } from "./context.ts";
+import { type ConvexClientLike, ConvexLoader, type InsertedId } from "./loader.ts";
+import { runPipeline, type StateFile } from "./pipeline.ts";
+import { makeFixtureContext } from "./test.fixtures.ts";
 
 interface Call {
   name: string;

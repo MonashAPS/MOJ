@@ -4,6 +4,8 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { createContest, createContestProblem, createParticipation, NOW } from "../test.fixtures";
+import type { ContestSubmissionRow, SubmissionTestCaseRow } from "../types";
 import {
   bestSolutionState,
   FORMATS,
@@ -19,9 +21,7 @@ import {
   UnknownContestFormatError,
   updateParticipation,
   validateContestFormatConfig,
-} from "../src/formats/index";
-import type { ContestSubmissionRow, SubmissionTestCaseRow } from "../src/types";
-import { createContest, createContestProblem, createParticipation, NOW } from "./fixtures";
+} from "./index";
 
 const START = NOW;
 const HOURS = 3_600_000;

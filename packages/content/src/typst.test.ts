@@ -8,9 +8,9 @@ import {
   renderPdf,
   typstAvailable,
   typstEscapeString,
-} from "../src/index.js";
-import { loadFixtures, placeholderAssets } from "./helpers.js";
-import { pdfText } from "./pdf.js";
+} from "./index.js";
+import { loadFixtures, placeholderAssets } from "./test.helpers.js";
+import { pdfText } from "./test.pdf.js";
 
 const fixtures = await loadFixtures();
 const byCode = new Map(fixtures.map((fixture) => [fixture.code, fixture]));

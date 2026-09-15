@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import type { Attempt, ScoreboardRow } from "../src/scoreboard";
+import type { Attempt, ScoreboardRow } from "./scoreboard";
 import {
   applyFreeze,
   attemptAccepted,
@@ -41,8 +41,7 @@ import {
   SOLVED,
   startReveal,
   toAttempt,
-} from "../src/scoreboard";
-import type { ContestSubmissionRow } from "../src/types";
+} from "./scoreboard";
 import {
   commonUsers,
   createContest,
@@ -52,7 +51,8 @@ import {
   HOUR,
   MINUTE,
   NOW,
-} from "./fixtures";
+} from "./test.fixtures";
+import type { ContestSubmissionRow } from "./types";
 
 const START = NOW;
 const END = START + 5 * HOUR;
