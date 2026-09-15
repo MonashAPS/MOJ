@@ -2,8 +2,11 @@
 #   docker compose -f infra/compose.prod.yml --project-directory . --env-file .env.prod up -d
 #
 # Differences from compose.dev.yml: Caddy terminates TLS in front of everything,
-# the web app runs as a built image instead of `next dev`, the Convex origins are
-# public hostnames, and nothing binds to a host port except Caddy.
+# the web app runs as a published image instead of `next dev`, the Convex origins
+# are public hostnames, and nothing binds to a host port except Caddy.
+#
+# MOJ_IMAGE_TAG picks the release to pull; `--build web` builds the checkout
+# under the same tag instead.
 
 name: moj-prod
 
@@ -83,17 +86,13 @@ services:
       convex-backend:
         condition: service_healthy
 
+  # `image` names what `pull` fetches and what a local `build` is tagged as, so
+  # an operator can run the published release or build the checkout in place.
   web:
+    image: ghcr.io/monashaps/moj-web:${MOJ_IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: apps/web/Dockerfile
-      # NEXT_PUBLIC_* is inlined into the client bundle at build time, so these
-      # have to be build arguments as well as environment. Rebuild the image
-      # after changing MOJ_DOMAIN.
-      args:
-        NEXT_PUBLIC_CONVEX_URL: https://convex.${MOJ_DOMAIN}
-        NEXT_PUBLIC_CONVEX_SITE_URL: https://convex-site.${MOJ_DOMAIN}
-        NEXT_PUBLIC_APP_URL: https://${MOJ_DOMAIN}
     restart: unless-stopped
     <<: *host-gateway
     environment:
@@ -137,9 +136,12 @@ services:
   # and layer it in with a second `-f`. Nothing here assumes a core count.
   judge:
     profiles: ["judge"]
+    image: ghcr.io/monashaps/moj-judge:${MOJ_IMAGE_TAG:-latest}-${JUDGE_TIER:-tier1}
     build:
       context: ./apps/judge
       dockerfile: Dockerfile
+      args:
+        TIER: ${JUDGE_TIER:-tier1}
     restart: unless-stopped
     cap_add:
       - SYS_PTRACE
