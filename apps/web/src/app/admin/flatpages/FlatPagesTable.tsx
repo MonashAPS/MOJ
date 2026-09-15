@@ -9,9 +9,9 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
-import { ConfirmAction, Flags, StatusLine } from "../_components/console";
-import { MarkdownField } from "../_components/MarkdownField";
-import { RecordDialog } from "../_components/RecordDialog";
+import { ConfirmAction, Flags, StatusLine } from "@/components/admin/console";
+import { MarkdownField } from "@/components/admin/MarkdownField";
+import { RecordDialog } from "@/components/admin/RecordDialog";
 
 type FlatPageRow = {
   _id: Id<"flatPages">;

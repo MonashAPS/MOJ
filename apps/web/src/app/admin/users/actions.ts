@@ -3,17 +3,11 @@
 import { api } from "@convex/_generated/api";
 import { and, eq, ilike, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { requirePermission, requireSuperuser } from "@/auth/console";
 import { db, schema } from "@/auth/db";
 import { auth } from "@/auth/server";
+import { type ActionResult, applySetCookies, authHeaders, failed } from "@/lib/actions";
 import { mutateAsViewer } from "@/lib/convex-server";
-import {
-  type ActionResult,
-  applySetCookies,
-  authHeaders,
-  failed,
-  requirePermission,
-  requireSuperuser,
-} from "../_lib/guard";
 
 const CHANGE_PROFILE = "judge.change_profile";
 

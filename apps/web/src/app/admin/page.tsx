@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { ADMIN_SECTIONS, AdminShell } from "@/components/admin";
-import { RecentJobs } from "./(part1)/jobs/RecentJobs";
+import { RecentJobs } from "./jobs/RecentJobs";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.shell.overview");

@@ -8,8 +8,8 @@ import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { AdminForm } from "@/components/admin/AdminForm";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
-import { ConfirmAction, StatusLine } from "../_components/console";
-import { RecordDialog } from "../_components/RecordDialog";
+import { ConfirmAction, StatusLine } from "@/components/admin/console";
+import { RecordDialog } from "@/components/admin/RecordDialog";
 
 type Settings = {
   siteName: string;

@@ -3,10 +3,10 @@ import { EmptyState, TitleRow } from "@moj/ui";
 import { UserX } from "lucide-react";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { consoleViewer } from "@/auth/console";
+import { Crumbs } from "@/components/admin/Crumbs";
 import { queryAsViewer } from "@/lib/convex-server";
 import { timezoneList } from "@/lib/timezones";
-import { Crumbs } from "../../_components/Crumbs";
-import { consoleViewer } from "../../_lib/guard";
 import { accountForUserAction } from "../actions";
 import { UserEditor } from "./UserEditor";
 

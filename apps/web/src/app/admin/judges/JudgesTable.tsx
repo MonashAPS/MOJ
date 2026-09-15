@@ -32,9 +32,9 @@ import { MoreHorizontal, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
+import { CopyButton, DASH, Flags, StatusLine } from "@/components/admin/console";
+import { RecordDialog } from "@/components/admin/RecordDialog";
 import { formatRelative } from "@/lib/format";
-import { CopyButton, DASH, Flags, StatusLine } from "../_components/console";
-import { RecordDialog } from "../_components/RecordDialog";
 
 type JudgeRow = {
   _id: Id<"judges">;

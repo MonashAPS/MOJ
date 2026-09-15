@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
-import { Flags } from "../_components/console";
+import { Flags } from "@/components/admin/console";
 
 type ClassRow = {
   _id: Id<"classes">;

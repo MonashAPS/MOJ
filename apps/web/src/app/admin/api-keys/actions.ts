@@ -4,9 +4,10 @@ import { createHash } from "node:crypto";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { getTranslations } from "next-intl/server";
+import { requireConsoleViewer } from "@/auth/console";
 import { auth } from "@/auth/server";
+import { type ActionResult, authHeaders, failed } from "@/lib/actions";
 import { mutateAsViewer, queryAsViewer } from "@/lib/convex-server";
-import { type ActionResult, authHeaders, failed, requireConsoleViewer } from "../_lib/guard";
 import type { ConsoleKeyRow } from "./scopes";
 
 /** Better Auth models a scope as `{resource: [action]}`; the wire form is

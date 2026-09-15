@@ -9,11 +9,11 @@ import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { AdminForm } from "@/components/admin/AdminForm";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
+import { ConfirmAction, DASH, Flags, StatusLine } from "@/components/admin/console";
+import { QueryBoundary } from "@/components/admin/QueryBoundary";
+import { RecordDialog } from "@/components/admin/RecordDialog";
 import { type RevisionRow, RevisionsPanel } from "@/components/admin/RevisionsPanel";
 import { formatDateTime } from "@/lib/format";
-import { ConfirmAction, DASH, Flags, StatusLine } from "../../_components/console";
-import { QueryBoundary } from "../../_components/QueryBoundary";
-import { RecordDialog } from "../../_components/RecordDialog";
 import { type OrganizationDraft, OrganizationFields, parseUsernames } from "../OrganizationFields";
 
 type OrganizationRow = {

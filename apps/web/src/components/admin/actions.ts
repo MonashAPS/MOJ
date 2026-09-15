@@ -1,7 +1,8 @@
 "use server";
 
+import { requireConsoleViewer } from "@/auth/console";
+import { type ActionResult, failed } from "@/lib/actions";
 import { renderContent } from "@/lib/markdown";
-import { type ActionResult, failed, requireConsoleViewer } from "../_lib/guard";
 
 /**
  * The editor's preview. `@moj/content` runs Shiki and KaTeX in process, so it

@@ -8,8 +8,8 @@ import { Copy, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
-import { ConfirmAction, DASH, SearchBox, StatusLine } from "../_components/console";
-import { RecordDialog } from "../_components/RecordDialog";
+import { ConfirmAction, DASH, SearchBox, StatusLine } from "@/components/admin/console";
+import { RecordDialog } from "@/components/admin/RecordDialog";
 
 type LanguageRow = {
   _id: Id<"languages">;

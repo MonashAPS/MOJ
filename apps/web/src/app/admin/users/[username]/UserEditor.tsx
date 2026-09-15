@@ -25,9 +25,9 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo, useState, useTransition } from "react";
 import { AdminForm } from "@/components/admin/AdminForm";
+import { ConfirmAction, DASH, Flags, StatusLine } from "@/components/admin/console";
 import { RevisionsPanel } from "@/components/admin/RevisionsPanel";
 import { formatDate, formatDateTime } from "@/lib/format";
-import { ConfirmAction, DASH, Flags, StatusLine } from "../../_components/console";
 import {
   impersonateAction,
   removePasskeyAction,

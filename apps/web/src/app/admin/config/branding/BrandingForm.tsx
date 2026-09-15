@@ -19,7 +19,7 @@ import { AlertTriangle, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useRef, useState } from "react";
 import { AdminForm } from "@/components/admin/AdminForm";
-import { StatusLine } from "../../_components/console";
+import { StatusLine } from "@/components/admin/console";
 
 type Branding = {
   siteName: string;

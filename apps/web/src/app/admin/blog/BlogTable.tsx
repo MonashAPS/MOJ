@@ -9,10 +9,10 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
+import { ConfirmAction, DASH, Flags, SearchBox, StatusLine } from "@/components/admin/console";
+import { MarkdownField } from "@/components/admin/MarkdownField";
+import { RecordDialog } from "@/components/admin/RecordDialog";
 import { formatDateTime } from "@/lib/format";
-import { ConfirmAction, DASH, Flags, SearchBox, StatusLine } from "../_components/console";
-import { MarkdownField } from "../_components/MarkdownField";
-import { RecordDialog } from "../_components/RecordDialog";
 
 type PostRow = {
   _id: Id<"blogPosts">;

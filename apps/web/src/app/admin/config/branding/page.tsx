@@ -2,8 +2,8 @@ import { api } from "@convex/_generated/api";
 import { TitleRow } from "@moj/ui";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { Crumbs } from "@/components/admin/Crumbs";
 import { query } from "@/lib/convex-server";
-import { Crumbs } from "../../_components/Crumbs";
 import { BrandingForm } from "./BrandingForm";
 
 export async function generateMetadata(): Promise<Metadata> {

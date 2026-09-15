@@ -1,7 +1,7 @@
 import { TitleRow } from "@moj/ui";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { consoleViewer } from "../_lib/guard";
+import { consoleViewer } from "@/auth/console";
 import { ApiKeysPanel } from "./ApiKeysPanel";
 
 export async function generateMetadata(): Promise<Metadata> {

@@ -8,9 +8,9 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
+import { ConfirmAction, SearchBox, StatusLine } from "@/components/admin/console";
+import { RecordDialog } from "@/components/admin/RecordDialog";
 import { formatDateTime } from "@/lib/format";
-import { ConfirmAction, SearchBox, StatusLine } from "../_components/console";
-import { RecordDialog } from "../_components/RecordDialog";
 
 type TicketRow = {
   _id: Id<"tickets">;

@@ -3,7 +3,7 @@
 import { ContentDescription, Field, Skeleton, Textarea, ToggleGroup, ToggleGroupItem } from "@moj/ui";
 import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
-import { previewAction } from "../flatpages/actions";
+import { previewAction } from "./actions";
 
 type Preset = "flatpage" | "blog" | "self-description" | "license" | "organization-about";
 

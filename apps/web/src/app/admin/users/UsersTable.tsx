@@ -21,8 +21,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
+import { DASH, Flags, SearchBox, StatusLine } from "@/components/admin/console";
 import { formatDate } from "@/lib/format";
-import { DASH, Flags, SearchBox, StatusLine } from "../_components/console";
 import { type AccountRow, searchAccountsAction } from "./actions";
 
 const PER_PAGE = 50;
