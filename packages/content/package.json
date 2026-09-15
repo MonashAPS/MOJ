@@ -2,7 +2,7 @@
   "name": "@moj/content",
   "version": "0.1.0",
   "description": "Markdown pipeline, sanitiser presets and markdown-to-Typst for MOJ",
-  "license": "AGPL-3.0-or-later",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "sideEffects": false,
   "files": [
