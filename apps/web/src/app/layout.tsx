@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { ConvexClientProvider } from "@/auth/convex-client";
 import { getServerSession } from "@/auth/session";
-import { BrandingStyle } from "@/components/BrandingStyle";
+import { BrandingStyle } from "@/components/shell/BrandingStyle";
 import { SiteShell } from "@/components/shell/SiteShell";
 import { ThemeScript } from "@/components/shell/ThemeScript";
 import { UiText } from "@/components/shell/UiText";

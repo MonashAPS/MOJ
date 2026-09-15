@@ -5,7 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { ErrorScreen } from "@/components/ErrorScreen";
+import { ErrorScreen } from "@/components/shell/ErrorScreen";
 import { queryAsViewer } from "@/lib/convex-server";
 import { loadListContext } from "@/lib/submissionsData";
 import { SubmissionList, type SubmissionListFilters } from "./SubmissionList";

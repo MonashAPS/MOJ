@@ -3,7 +3,7 @@ import { TitleRow } from "@moj/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { ErrorScreen } from "@/components/ErrorScreen";
+import { ErrorScreen } from "@/components/shell/ErrorScreen";
 import { queryAsViewer } from "@/lib/convex-server";
 import { organizationHref, slugFromHandle } from "@/lib/organizations";
 import { KickMemberForm } from "./KickMemberForm";

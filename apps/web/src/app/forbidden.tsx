@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { ErrorScreen } from "@/components/ErrorScreen";
+import { ErrorScreen } from "@/components/shell/ErrorScreen";
 
 export async function generateMetadata() {
   const t = await getTranslations("common.error");

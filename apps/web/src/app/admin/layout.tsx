@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { consoleViewer } from "@/auth/console";
 import { AdminChrome } from "@/components/admin";
-import { ErrorScreen } from "@/components/ErrorScreen";
+import { ErrorScreen } from "@/components/shell/ErrorScreen";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.shell");
