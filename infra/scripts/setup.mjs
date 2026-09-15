@@ -7,7 +7,7 @@
  *   1. docker compose up for postgres, the Convex backend and the dashboard
  *   2. wait for the backend to answer /version
  *   3. generate the Convex admin key
- *   4. write .env.local (root and apps/web), keeping any existing AUTH_SECRET
+ *   4. write .env.local and link apps/web/.env.local to it, keeping any existing AUTH_SECRET
  *   5. drizzle migrations for the Better Auth database
  *   6. push the Convex functions and set the deployment's env vars
  *   7. seed languages, nav bar, misc config, groups/types and the sample problem
@@ -16,7 +16,7 @@
 
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -253,8 +253,9 @@ async function main() {
   };
   const rendered = renderEnvFile(env);
   writeFileSync(ENV_LOCAL, rendered);
-  writeFileSync(WEB_ENV_LOCAL, rendered);
-  info(".env.local and apps/web/.env.local written");
+  rmSync(WEB_ENV_LOCAL, { force: true });
+  symlinkSync(join("..", "..", ".env.local"), WEB_ENV_LOCAL);
+  info(".env.local written, apps/web/.env.local linked to it");
 
   // Everything below wants these in the environment, not just the file.
   Object.assign(process.env, env);
