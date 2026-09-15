@@ -7,10 +7,13 @@ This page is for people changing MOJ itself. If you only want to run it, read th
 
 ```
 MOJ/
-  package.json          npm workspaces: apps/*, packages/*, tools/*, docs
+  package.json          npm workspaces: convex, apps/*, packages/*, tools/*, docs
   tsconfig.base.json
   biome.json
-  vitest.config.mts     one vitest project per workspace, plus the convex tests
+  oxlint.config.ts      the anti-slop rules, vendored in tools/anti-slop
+  lefthook.yml          pre-commit lint and the commit message check
+  knip.json
+  vitest.config.mts     one vitest project per workspace
   convex/               schema.ts, auth.config.ts, function modules, crons.ts, _generated/
     contests/           participation, clarifications, rankings, tools, formats
     problems/           votes, pdf, data, testData
@@ -26,6 +29,7 @@ MOJ/
   packages/content/     markdown pipeline, tilde maths, sanitiser presets, Shiki, markdown to Typst
   packages/protocol/    zod schemas shared by the judge API, the problems API and API v2
   packages/ui/          tokens.css and the shared components
+  tools/anti-slop/      the vendored oxlint rules, see its UPSTREAM.md
   tools/import/         the DMOJ importer
   tools/upload-problem/ upload-problem.mjs, used by problem repositories
   actions/upload-problems/  the reusable GitHub Action problem repositories call
