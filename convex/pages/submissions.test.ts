@@ -336,3 +336,57 @@ describe("sourceView", () => {
     expect(asStranger?.source).toBe("");
   });
 });
+
+describe("listContext for a contest's own submissions", () => {
+  async function pastContest(t: T) {
+    const now = Date.now();
+
+    return await insertContest(t, {
+      key: "open",
+      startTime: now - 7200_000,
+      endTime: now - 3600_000,
+      isVisible: true,
+    });
+  }
+
+  it("answers for the contest when no user is named", async () => {
+    const t = setupTest();
+    await pastContest(t);
+
+    const context = await t.query(api.pages.submissions.listContext, { contestKey: "open" });
+
+    // The per-user participation check is about whose list it is, and nobody's
+    // was asked for. It used to reject this outright.
+    expect(context.found).toBe(true);
+    expect(context.allowed).toBe(true);
+    expect(context.contest?.key).toBe("open");
+  });
+
+  it("still refuses a non-participant's own list in that contest", async () => {
+    const t = setupTest();
+    await pastContest(t);
+    await insertProfile(t, { username: "onlooker" });
+
+    const context = await asUser(t, "onlooker").query(api.pages.submissions.listContext, {
+      contestKey: "open",
+      username: "onlooker",
+    });
+
+    expect(context.found).toBe(false);
+  });
+
+  it("still answers for a participant's own list", async () => {
+    const t = setupTest();
+    const contestId = await pastContest(t);
+    const playerId = await insertProfile(t, { username: "player" });
+    await t.run(async (ctx) => insertParticipation(ctx, { contestId, profileId: playerId }));
+
+    const context = await asUser(t, "player").query(api.pages.submissions.listContext, {
+      contestKey: "open",
+      username: "player",
+    });
+
+    expect(context.found).toBe(true);
+    expect(context.allowed).toBe(true);
+  });
+});
