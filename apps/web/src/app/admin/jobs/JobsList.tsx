@@ -68,7 +68,7 @@ export function JobsList() {
   const type = params.get("type") ?? "any";
   const status = params.get("status") ?? "any";
 
-  const jobs = useQuery(api.pages.admin1.jobsList, {
+  const jobs = useQuery(api.pages.admin.jobs.list, {
     limit: 100,
     type: type === "any" ? undefined : type,
     status: status === "any" ? undefined : status,

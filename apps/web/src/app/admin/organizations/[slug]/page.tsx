@@ -38,7 +38,7 @@ export default async function AdminOrganizationPage({ params }: { params: Promis
     );
   }
 
-  const revisions = await queryAsViewer(api.pages.admin2.revisions, {
+  const revisions = await queryAsViewer(api.pages.admin.revisions.byId, {
     entityType: "organizations",
     entityId: organization._id,
   }).catch(() => null);

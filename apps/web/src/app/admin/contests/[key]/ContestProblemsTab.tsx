@@ -62,7 +62,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
   const [pendingRejudge, setPendingRejudge] = useState<ContestProblem | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
 
-  const matches = useQuery(api.pages.admin1.problemSearch, pickerOpen ? { term, limit: 10 } : "skip");
+  const matches = useQuery(api.pages.admin.problems.search, pickerOpen ? { term, limit: 10 } : "skip");
   const candidates = (matches ?? []).filter(
     (row) => !contest.problems.some((problem) => problem.code === row.code),
   );

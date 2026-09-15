@@ -16,7 +16,7 @@ export default async function ContestParticipationsPage({ params }: { params: Pr
   const { key } = await params;
   const [detail, rows, viewerState] = await Promise.all([
     queryAsViewer(api.contests.get, { key }).catch(() => null),
-    queryAsViewer(api.contests.participations, { key }).catch(() => null),
+    queryAsViewer(api.contests.participation.participations, { key }).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
   ]);
 

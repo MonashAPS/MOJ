@@ -278,7 +278,7 @@ function ProfileForm({
 }) {
   const t = useTranslations("admin.users.profile");
   const edit = useMutation(api.admin.users.edit);
-  const setMemberships = useMutation(api.pages.admin2.setUserMemberships);
+  const setMemberships = useMutation(api.pages.admin.users.setMemberships);
   const router = useRouter();
 
   const initial = useMemo(

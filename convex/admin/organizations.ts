@@ -13,30 +13,11 @@ import type { Doc, Id } from "./../_generated/dataModel";
 import { type MutationCtx, mutation, type QueryCtx, query } from "./../_generated/server";
 import { requireStaff } from "./../lib/auth";
 import { forbidden, invalid, notFound } from "./../lib/errors";
+import { asOrganizationRow, asViewerRow } from "./../organizations";
+import { usernamesToIds } from "./../profiles";
 
 const CHANGE = "judge.change_organization";
 const EDIT_ALL = "judge.edit_all_organization";
-
-function asViewerRow(profile: Doc<"profiles">) {
-  return {
-    id: profile._id,
-    username: profile.username,
-    isStaff: profile.isStaff,
-    isSuperuser: profile.isSuperuser,
-    permissions: profile.permissions,
-  };
-}
-
-function asOrganizationRow(organization: Doc<"organizations">) {
-  return {
-    id: organization._id,
-    slug: organization.slug,
-    name: organization.name,
-    adminProfileIds: organization.adminProfileIds,
-    isOpen: organization.isOpen,
-    classRequired: organization.classRequired,
-  };
-}
 
 async function requireOrganizationAdmin(ctx: QueryCtx | MutationCtx): Promise<Doc<"profiles">> {
   const staff = await requireStaff(ctx);
@@ -149,19 +130,6 @@ function validateSlug(slug: string): void {
     throw invalid("A slug is lowercase letters, digits and hyphens.");
   }
   if (slug.length > 128) throw invalid("That slug is too long.");
-}
-
-async function usernamesToIds(ctx: MutationCtx, usernames: readonly string[]): Promise<Id<"profiles">[]> {
-  const ids: Id<"profiles">[] = [];
-  for (const username of usernames) {
-    const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_username", (q) => q.eq("username", username))
-      .unique();
-    if (!profile) throw notFound(`User ${username}`);
-    ids.push(profile._id);
-  }
-  return ids;
 }
 
 export const create = mutation({

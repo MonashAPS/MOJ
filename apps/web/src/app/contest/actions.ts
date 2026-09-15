@@ -39,7 +39,7 @@ export async function joinContest(_state: JoinResult | null, formData: FormData)
   if (!key) return { error: t("noSuchContest") };
 
   try {
-    await mutateAsViewer(api.contests.join, {
+    await mutateAsViewer(api.contests.participation.join, {
       key,
       accessCode: typeof accessCode === "string" && accessCode ? accessCode : undefined,
     });
@@ -62,7 +62,7 @@ export async function leaveContest(_state: JoinResult | null, formData: FormData
   const key = String(formData.get("key") ?? "");
   if (!key) return { error: t("noSuchContest") };
   try {
-    await mutateAsViewer(api.contests.leave, { key });
+    await mutateAsViewer(api.contests.participation.leave, { key });
   } catch (error) {
     return { error: messageOf(error, t("cannotJoin")) };
   }
@@ -86,7 +86,7 @@ export async function cloneContest(_state: CloneResult | null, formData: FormDat
   const newKey = String(formData.get("newKey") ?? "").trim();
   if (!newKey) return { error: t("newKeyRequired") };
   try {
-    await mutateAsViewer(api.contests.clone, { key, newKey });
+    await mutateAsViewer(api.contests.tools.clone, { key, newKey });
   } catch (error) {
     return { error: messageOf(error, t("cannotJoin")) };
   }

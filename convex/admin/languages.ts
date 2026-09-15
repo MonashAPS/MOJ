@@ -7,6 +7,15 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation, query } from "../_generated/server";
 import { requirePerm, requireSuperuser } from "../lib/auth";
 import { writeRevision } from "../lib/community";
+import {
+  type Budget,
+  DEDUPE_PAGE,
+  type DedupeReport,
+  type DedupeState,
+  dedupeReportValidator,
+  newBudget,
+  nextPage,
+} from "../lib/dedupe";
 import { invalid, notFound } from "../lib/errors";
 
 const LANGUAGE_PERM = "judge.change_language";
@@ -260,12 +269,6 @@ export const copyLanguage = mutation({
 
 /** What the revisions read when nobody said why. */
 const DEDUPE_REASON = "Merged duplicate languages by key";
-/** Documents one page reads from a table. */
-const DEDUPE_PAGE = 200;
-/** Rows one pass rewrites before handing over to the next scheduled pass. */
-const DEDUPE_WRITE_BUDGET = 500;
-/** Documents one pass reads, for the tables it has to scan to find references. */
-const DEDUPE_READ_BUDGET = 2000;
 
 /**
  * Every table in convex/schema.ts with a field that names a language, in the
@@ -284,22 +287,6 @@ const dedupeTableValidator = v.union(
   v.literal("profiles"),
   v.literal("problems"),
 );
-
-/**
- * Where a pass got to: the table it was walking and, for the tables it has to
- * scan, the `_creationTime` it had reached. Convex allows only one `.paginate()`
- * per function execution, so the scans walk the built in `by_creation_time`
- * index instead, which also survives a patch: repointing a row does not move it.
- */
-interface DedupeState {
-  table: DedupeTable;
-  cursor: number | null;
-}
-
-interface Budget {
-  reads: number;
-  writes: number;
-}
 
 type SurvivorMap = Map<Id<"languages">, Id<"languages">>;
 
@@ -366,13 +353,6 @@ async function scanPage(
   ).take(DEDUPE_PAGE);
 }
 
-/** Where the next page of a scan starts, and whether there is one. */
-function advance(rows: { _creationTime: number }[]): { cursor: number | null; isDone: boolean } {
-  const last = rows[rows.length - 1];
-  if (rows.length < DEDUPE_PAGE || last === undefined) return { cursor: null, isDone: true };
-  return { cursor: last._creationTime, isDone: false };
-}
-
 /**
  * One page of one table. `submissions` and `runtimeVersions` are drained
  * through their index on `languageId`, so a repointed row leaves the range and
@@ -426,7 +406,7 @@ async function rewriteTablePage(
       rewritten += 1;
     }
     budget.writes -= rewritten;
-    return { rewritten, ...advance(rows) };
+    return { rewritten, ...nextPage(rows) };
   }
 
   if (table === "profiles") {
@@ -441,7 +421,7 @@ async function rewriteTablePage(
       rewritten += 1;
     }
     budget.writes -= rewritten;
-    return { rewritten, ...advance(rows) };
+    return { rewritten, ...nextPage(rows) };
   }
 
   const rows = await scanPage(ctx, "problems", cursor);
@@ -458,16 +438,16 @@ async function rewriteTablePage(
     rewritten += 1;
   }
   budget.writes -= rewritten;
-  return { rewritten, ...advance(rows) };
+  return { rewritten, ...nextPage(rows) };
 }
 
 /** Walks the reference tables from `from` until the budget runs out. */
 async function rewriteReferences(
   ctx: MutationCtx,
   survivorOf: SurvivorMap,
-  from: DedupeState,
+  from: DedupeState<DedupeTable>,
   budget: Budget,
-): Promise<{ rewritten: number; next: DedupeState | null }> {
+): Promise<{ rewritten: number; next: DedupeState<DedupeTable> | null }> {
   const start = Math.max(DEDUPE_TABLES.indexOf(from.table), 0);
   let rewritten = 0;
   for (let i = start; i < DEDUPE_TABLES.length; i++) {
@@ -484,22 +464,6 @@ async function rewriteReferences(
   return { rewritten, next: null };
 }
 
-export interface DedupeReport {
-  keys: string[];
-  keysRepaired: number;
-  rowsDeleted: number;
-  referencesRewritten: number;
-  isDone: boolean;
-}
-
-const dedupeReportValidator = v.object({
-  keys: v.array(v.string()),
-  keysRepaired: v.number(),
-  rowsDeleted: v.number(),
-  referencesRewritten: v.number(),
-  isDone: v.boolean(),
-});
-
 /**
  * One bounded pass. Recomputes the plan from the table every time, which is
  * what makes a resumed or repeated run safe: the losers are only deleted once
@@ -507,10 +471,10 @@ const dedupeReportValidator = v.object({
  */
 async function dedupePass(
   ctx: MutationCtx,
-  from: DedupeState,
+  from: DedupeState<DedupeTable>,
   editorProfileId: Id<"profiles"> | undefined,
   reason: string,
-): Promise<{ report: DedupeReport; next: DedupeState | null }> {
+): Promise<{ report: DedupeReport; next: DedupeState<DedupeTable> | null }> {
   const rows = await ctx.db.query("languages").collect();
   const { keys, survivorOf } = planDuplicates(rows);
   if (keys.length === 0) {
@@ -520,7 +484,7 @@ async function dedupePass(
     };
   }
 
-  const budget: Budget = { reads: DEDUPE_READ_BUDGET, writes: DEDUPE_WRITE_BUDGET };
+  const budget = newBudget();
   const { rewritten, next } = await rewriteReferences(ctx, survivorOf, from, budget);
   if (next) {
     return {

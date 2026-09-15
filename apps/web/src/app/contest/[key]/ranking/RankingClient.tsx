@@ -165,7 +165,7 @@ function Row({
   precision: number;
 }) {
   const t = useTranslations("contests.ranking");
-  const disqualify = useMutation(api.contests.disqualify);
+  const disqualify = useMutation(api.contests.participation.disqualify);
   const [busy, setBusy] = useState(false);
 
   const toggle = async () => {

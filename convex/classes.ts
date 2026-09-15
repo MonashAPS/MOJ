@@ -10,32 +10,12 @@
 import { organizationCanEdit, ranker } from "@moj/core";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
-import { type MutationCtx, mutation, type QueryCtx, query } from "./_generated/server";
+import { mutation, type QueryCtx, query } from "./_generated/server";
 import { optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, invalid, notFound } from "./lib/errors";
-import { organizationBySlug } from "./organizations";
-
-function asOrganizationRow(organization: Doc<"organizations">) {
-  return {
-    id: organization._id,
-    slug: organization.slug,
-    name: organization.name,
-    adminProfileIds: organization.adminProfileIds,
-    isOpen: organization.isOpen,
-    classRequired: organization.classRequired,
-  };
-}
-
-function asViewerRow(profile: Doc<"profiles"> | null) {
-  if (!profile) return null;
-  return {
-    id: profile._id,
-    username: profile.username,
-    isStaff: profile.isStaff,
-    isSuperuser: profile.isSuperuser,
-    permissions: profile.permissions,
-  };
-}
+import { asOrganizationRow, asViewerRow, organizationBySlug } from "./organizations";
+import { usernamesToIds } from "./profiles";
+import { type LeaderboardRow, userSort } from "./rankings";
 
 async function classBySlug(
   ctx: QueryCtx,
@@ -74,17 +54,7 @@ function canManage(
   return klass.adminProfileIds.includes(profile._id);
 }
 
-export type ClassMemberRow = {
-  _id: Id<"profiles">;
-  username: string;
-  displayName: string;
-  displayRank: string;
-  points: number;
-  performancePoints: number;
-  problemCount: number;
-  rating?: number;
-  rank: number;
-};
+export type ClassMemberRow = LeaderboardRow;
 
 export type ClassDetail = {
   _id: Id<"classes">;
@@ -173,14 +143,7 @@ export const members = query({
   args: {
     organizationSlug: v.string(),
     classSlug: v.string(),
-    sort: v.optional(
-      v.union(
-        v.literal("performancePoints"),
-        v.literal("problemCount"),
-        v.literal("rating"),
-        v.literal("points"),
-      ),
-    ),
+    sort: v.optional(userSort),
     descending: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<ClassMemberRow[]> => {
@@ -281,19 +244,6 @@ export const leave = mutation({
 /* -------------------------------------------------------------------------- */
 /* Administration                                                             */
 /* -------------------------------------------------------------------------- */
-
-async function usernamesToIds(ctx: MutationCtx, usernames: readonly string[]): Promise<Id<"profiles">[]> {
-  const ids: Id<"profiles">[] = [];
-  for (const username of usernames) {
-    const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_username", (q) => q.eq("username", username))
-      .unique();
-    if (!profile) throw notFound(`User ${username}`);
-    ids.push(profile._id);
-  }
-  return ids;
-}
 
 export const create = mutation({
   args: {

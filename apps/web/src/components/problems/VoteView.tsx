@@ -9,7 +9,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { formatPoints } from "@/lib/units";
 
-type Stats = NonNullable<(typeof api.problems.voteStats)["_returnType"]>;
+type Stats = NonNullable<(typeof api.problems.votes.voteStats)["_returnType"]>;
 
 /** DMOJ's vote-stats canvas, drawn as bars: one column per point value between
  *  the smallest and largest vote the site allows. */
@@ -50,9 +50,9 @@ export function VoteView({
   currentPoints: number;
 }) {
   const t = useTranslations("problems.vote");
-  const stats = useQuery(api.problems.voteStats, { code });
-  const castVote = useMutation(api.problems.vote);
-  const deleteVote = useMutation(api.problems.deleteVote);
+  const stats = useQuery(api.problems.votes.voteStats, { code });
+  const castVote = useMutation(api.problems.votes.vote);
+  const deleteVote = useMutation(api.problems.votes.deleteVote);
 
   const [points, setPoints] = useState(initialVote ? String(initialVote.points) : "");
   const [note, setNote] = useState(initialVote?.note ?? "");

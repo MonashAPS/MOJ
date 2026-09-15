@@ -1,8 +1,8 @@
 // @vitest-environment edge-runtime
 
 /**
- * `convex/pages/admin2.ts`: the reads and writes the part-2 console pages need
- * on top of `convex/admin/*`. The gates are the same Django ones the rest of
+ * `convex/pages/admin/{revisions,users,apiKeys,branding}.ts`: the reads and
+ * writes the console pages need on top of `convex/admin/*`. The gates are the same Django ones the rest of
  * the section uses, and the API-key rows are the fallback `http/problemsApi`
  * verifies a presented key against.
  */
@@ -34,13 +34,13 @@ async function seed() {
   return { t, ids };
 }
 
-describe("pages/admin2 revisions", () => {
+describe("pages/admin revisions by id", () => {
   test("a member cannot read the history", async () => {
     const { t } = await seed();
     await expect(
       t
         .withIdentity({ subject: "user_member" })
-        .query(api.pages.admin2.revisions, { entityType: "profiles", entityId: "x" }),
+        .query(api.pages.admin.revisions.byId, { entityType: "profiles", entityId: "x" }),
     ).rejects.toThrow(/Staff only/);
   });
 
@@ -75,13 +75,13 @@ describe("pages/admin2 revisions", () => {
 
     const rows = await t
       .withIdentity({ subject: "user_root" })
-      .query(api.pages.admin2.revisions, { entityType: "organizations", entityId: ids.school });
+      .query(api.pages.admin.revisions.byId, { entityType: "organizations", entityId: ids.school });
     expect(rows.map((row) => row.reason)).toEqual(["Opened enrollment", "Renamed it"]);
     expect(rows[0]?.author).toBe("root");
   });
 });
 
-describe("pages/admin2 user extras", () => {
+describe("pages/admin user extras", () => {
   test("the editor's extra fields come back with the memberships and keys", async () => {
     const { t, ids } = await seed();
     await t.run(async (ctx) => {
@@ -108,7 +108,7 @@ describe("pages/admin2 user extras", () => {
 
     const extras = await t
       .withIdentity({ subject: "user_clerk" })
-      .query(api.pages.admin2.userExtras, { username: "member" });
+      .query(api.pages.admin.users.extras, { username: "member" });
     expect(extras).not.toBeNull();
     expect(extras?.about).toBe("Likes graphs.");
     expect(extras?.usernameDisplayOverride).toBe("Member");
@@ -121,7 +121,7 @@ describe("pages/admin2 user extras", () => {
   test("a member cannot read another account's extras", async () => {
     const { t } = await seed();
     await expect(
-      t.withIdentity({ subject: "user_member" }).query(api.pages.admin2.userExtras, { username: "root" }),
+      t.withIdentity({ subject: "user_member" }).query(api.pages.admin.users.extras, { username: "root" }),
     ).rejects.toThrow(/Staff only/);
   });
 
@@ -129,17 +129,17 @@ describe("pages/admin2 user extras", () => {
     const { t } = await seed();
     const extras = await t
       .withIdentity({ subject: "user_clerk" })
-      .query(api.pages.admin2.userExtras, { username: "nobody" });
+      .query(api.pages.admin.users.extras, { username: "nobody" });
     expect(extras).toBeNull();
   });
 });
 
-describe("pages/admin2 memberships", () => {
+describe("pages/admin memberships", () => {
   test("setting the organisations adds, removes and keeps the counts straight", async () => {
     const { t, ids } = await seed();
     const asClerk = t.withIdentity({ subject: "user_clerk" });
 
-    await asClerk.mutation(api.pages.admin2.setUserMemberships, {
+    await asClerk.mutation(api.pages.admin.users.setMemberships, {
       username: "member",
       organizationSlugs: ["school", "club"],
       reason: "Joined both",
@@ -150,7 +150,7 @@ describe("pages/admin2 memberships", () => {
     }));
     expect(counts).toEqual({ school: 1, club: 1 });
 
-    await asClerk.mutation(api.pages.admin2.setUserMemberships, {
+    await asClerk.mutation(api.pages.admin.users.setMemberships, {
       username: "member",
       organizationSlugs: ["club"],
       reason: "Left school",
@@ -161,7 +161,7 @@ describe("pages/admin2 memberships", () => {
     }));
     expect(counts).toEqual({ school: 0, club: 1 });
 
-    const extras = await asClerk.query(api.pages.admin2.userExtras, { username: "member" });
+    const extras = await asClerk.query(api.pages.admin.users.extras, { username: "member" });
     expect(extras?.organizationSlugs).toEqual(["club"]);
   });
 
@@ -169,22 +169,22 @@ describe("pages/admin2 memberships", () => {
     const { t } = await seed();
     const asClerk = t.withIdentity({ subject: "user_clerk" });
 
-    await asClerk.mutation(api.pages.admin2.setUserMemberships, {
+    await asClerk.mutation(api.pages.admin.users.setMemberships, {
       username: "member",
       languageKey: "CPP20",
       reason: "Asked for C++",
     });
-    expect((await asClerk.query(api.pages.admin2.userExtras, { username: "member" }))?.languageKey).toBe(
+    expect((await asClerk.query(api.pages.admin.users.extras, { username: "member" }))?.languageKey).toBe(
       "CPP20",
     );
 
-    await asClerk.mutation(api.pages.admin2.setUserMemberships, {
+    await asClerk.mutation(api.pages.admin.users.setMemberships, {
       username: "member",
       languageKey: null,
       reason: "Cleared it",
     });
     expect(
-      (await asClerk.query(api.pages.admin2.userExtras, { username: "member" }))?.languageKey,
+      (await asClerk.query(api.pages.admin.users.extras, { username: "member" }))?.languageKey,
     ).toBeNull();
   });
 
@@ -192,10 +192,10 @@ describe("pages/admin2 memberships", () => {
     const { t } = await seed();
     const asClerk = t.withIdentity({ subject: "user_clerk" });
     await expect(
-      asClerk.mutation(api.pages.admin2.setUserMemberships, { username: "member", languageKey: "NOPE" }),
+      asClerk.mutation(api.pages.admin.users.setMemberships, { username: "member", languageKey: "NOPE" }),
     ).rejects.toThrow(/NOPE/);
     await expect(
-      asClerk.mutation(api.pages.admin2.setUserMemberships, {
+      asClerk.mutation(api.pages.admin.users.setMemberships, {
         username: "member",
         organizationSlugs: ["nowhere"],
       }),
@@ -207,14 +207,14 @@ describe("pages/admin2 memberships", () => {
     await expect(
       t
         .withIdentity({ subject: "user_clerk" })
-        .mutation(api.pages.admin2.setUserMemberships, { username: "root", languageKey: "PY3" }),
+        .mutation(api.pages.admin.users.setMemberships, { username: "root", languageKey: "PY3" }),
     ).rejects.toThrow(/superuser/i);
   });
 
   test("the change is recorded with the reason it was given", async () => {
     const { t } = await seed();
     const asClerk = t.withIdentity({ subject: "user_clerk" });
-    await asClerk.mutation(api.pages.admin2.setUserMemberships, {
+    await asClerk.mutation(api.pages.admin.users.setMemberships, {
       username: "member",
       organizationSlugs: ["club"],
       reason: "Moved to another organisation",
@@ -224,12 +224,12 @@ describe("pages/admin2 memberships", () => {
   });
 });
 
-describe("pages/admin2 api keys", () => {
+describe("pages/admin api keys", () => {
   test("a key is recorded against the staff member who minted it", async () => {
     const { t, ids } = await seed();
     const asRoot = t.withIdentity({ subject: "user_root" });
 
-    const id = await asRoot.mutation(api.pages.admin2.recordApiKey, {
+    const id = await asRoot.mutation(api.pages.admin.apiKeys.record, {
       keyHash: KEY_HASH,
       prefix: "moj123",
       name: "problem repo",
@@ -243,7 +243,7 @@ describe("pages/admin2 api keys", () => {
     expect(row?.enabled).toBe(true);
     expect(row?.expiresAt).toBeUndefined();
 
-    const mine = await asRoot.query(api.pages.admin2.myApiKeys, {});
+    const mine = await asRoot.query(api.pages.admin.apiKeys.mine, {});
     expect(mine.map((entry) => entry.name)).toEqual(["problem repo"]);
   });
 
@@ -252,7 +252,7 @@ describe("pages/admin2 api keys", () => {
     const asRoot = t.withIdentity({ subject: "user_root" });
 
     await expect(
-      asRoot.mutation(api.pages.admin2.recordApiKey, {
+      asRoot.mutation(api.pages.admin.apiKeys.record, {
         keyHash: "not-a-hash",
         name: "bad",
         scopes: ["problems:write"],
@@ -260,16 +260,16 @@ describe("pages/admin2 api keys", () => {
     ).rejects.toThrow(/sha256/);
 
     await expect(
-      asRoot.mutation(api.pages.admin2.recordApiKey, { keyHash: KEY_HASH, name: "bad", scopes: [] }),
+      asRoot.mutation(api.pages.admin.apiKeys.record, { keyHash: KEY_HASH, name: "bad", scopes: [] }),
     ).rejects.toThrow(/scope/);
 
-    await asRoot.mutation(api.pages.admin2.recordApiKey, {
+    await asRoot.mutation(api.pages.admin.apiKeys.record, {
       keyHash: KEY_HASH,
       name: "first",
       scopes: ["problems:write"],
     });
     await expect(
-      asRoot.mutation(api.pages.admin2.recordApiKey, {
+      asRoot.mutation(api.pages.admin.apiKeys.record, {
         keyHash: KEY_HASH,
         name: "again",
         scopes: ["problems:write"],
@@ -280,9 +280,9 @@ describe("pages/admin2 api keys", () => {
   test("a member cannot mint or list keys", async () => {
     const { t } = await seed();
     const asMember = t.withIdentity({ subject: "user_member" });
-    await expect(asMember.query(api.pages.admin2.myApiKeys, {})).rejects.toThrow(/Staff only/);
+    await expect(asMember.query(api.pages.admin.apiKeys.mine, {})).rejects.toThrow(/Staff only/);
     await expect(
-      asMember.mutation(api.pages.admin2.recordApiKey, {
+      asMember.mutation(api.pages.admin.apiKeys.record, {
         keyHash: KEY_HASH,
         name: "mine",
         scopes: ["problems:write"],
@@ -305,10 +305,10 @@ describe("pages/admin2 api keys", () => {
     );
 
     await expect(
-      t.withIdentity({ subject: "user_clerk" }).mutation(api.pages.admin2.revokeApiKey, { id }),
+      t.withIdentity({ subject: "user_clerk" }).mutation(api.pages.admin.apiKeys.revoke, { id }),
     ).rejects.toThrow(/your own keys/);
 
-    await t.withIdentity({ subject: "user_root" }).mutation(api.pages.admin2.revokeApiKey, { id });
+    await t.withIdentity({ subject: "user_root" }).mutation(api.pages.admin.apiKeys.revoke, { id });
     expect(await t.run(async (ctx) => await ctx.db.get(id))).toBeNull();
   });
 });
@@ -351,7 +351,7 @@ describe("branding", () => {
 
   test("a superuser sets the colours and the dark accent is derived from them", async () => {
     const { t } = await withSettings();
-    await t.withIdentity({ subject: "user_root" }).mutation(api.pages.admin2.updateBranding, {
+    await t.withIdentity({ subject: "user_root" }).mutation(api.pages.admin.branding.update, {
       siteName: "Winter Cup",
       accentColor: "#B3001B",
       navColor: "#1A1A2E",
@@ -379,7 +379,7 @@ describe("branding", () => {
     const { t } = await withSettings();
     // The form offers these two; saving it unchanged stores them, and that must
     // not start overriding the token file.
-    await t.withIdentity({ subject: "user_root" }).mutation(api.pages.admin2.updateBranding, {
+    await t.withIdentity({ subject: "user_root" }).mutation(api.pages.admin.branding.update, {
       accentColor: "#2941a5",
       navColor: "#101a3d",
       reason: "Opened the page and saved it",
@@ -392,7 +392,7 @@ describe("branding", () => {
 
   test("custom CSS is a customisation on its own, without making the colours one", async () => {
     const { t } = await withSettings();
-    await t.withIdentity({ subject: "user_root" }).mutation(api.pages.admin2.updateBranding, {
+    await t.withIdentity({ subject: "user_root" }).mutation(api.pages.admin.branding.update, {
       accentColor: "#2941A5",
       customCss: ":root { --radius: 2px; }",
       reason: "A tweak, not a repaint",
@@ -406,8 +406,8 @@ describe("branding", () => {
   test("an empty colour puts the default back", async () => {
     const { t } = await withSettings();
     const asRoot = t.withIdentity({ subject: "user_root" });
-    await asRoot.mutation(api.pages.admin2.updateBranding, { accentColor: "#B3001B", reason: "Trying it" });
-    await asRoot.mutation(api.pages.admin2.updateBranding, { accentColor: "", reason: "Back to default" });
+    await asRoot.mutation(api.pages.admin.branding.update, { accentColor: "#B3001B", reason: "Trying it" });
+    await asRoot.mutation(api.pages.admin.branding.update, { accentColor: "", reason: "Back to default" });
     expect((await t.query(api.site.branding, {})).accentColor).toBe("#2941a5");
   });
 
@@ -415,10 +415,10 @@ describe("branding", () => {
     const { t } = await withSettings();
     const asRoot = t.withIdentity({ subject: "user_root" });
     await expect(
-      asRoot.mutation(api.pages.admin2.updateBranding, { accentColor: "red", reason: "No" }),
+      asRoot.mutation(api.pages.admin.branding.update, { accentColor: "red", reason: "No" }),
     ).rejects.toThrow(/hex value/);
     await expect(
-      asRoot.mutation(api.pages.admin2.updateBranding, { siteName: "   ", reason: "No" }),
+      asRoot.mutation(api.pages.admin.branding.update, { siteName: "   ", reason: "No" }),
     ).rejects.toThrow(/needs a name/);
   });
 
@@ -427,7 +427,7 @@ describe("branding", () => {
     await expect(
       t
         .withIdentity({ subject: "user_clerk" })
-        .mutation(api.pages.admin2.updateBranding, { siteName: "Mine", reason: "No" }),
+        .mutation(api.pages.admin.branding.update, { siteName: "Mine", reason: "No" }),
     ).rejects.toThrow(/Superusers only/);
   });
 
@@ -435,7 +435,7 @@ describe("branding", () => {
     const { t } = await withSettings();
     await t
       .withIdentity({ subject: "user_root" })
-      .mutation(api.pages.admin2.updateBranding, { navColor: "#123456", reason: "Club colours" });
+      .mutation(api.pages.admin.branding.update, { navColor: "#123456", reason: "Club colours" });
     const rows = await t.run(
       async (ctx) =>
         await ctx.db

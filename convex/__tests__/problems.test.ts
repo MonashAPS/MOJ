@@ -550,12 +550,12 @@ describe("problem point voting", () => {
     });
 
     const asLurker = t.withIdentity({ subject: "user_lurker" });
-    await expect(asLurker.mutation(api.problems.vote, { code: "aplusb", points: 5 })).rejects.toThrow();
+    await expect(asLurker.mutation(api.problems.votes.vote, { code: "aplusb", points: 5 })).rejects.toThrow();
 
     const asSolver = t.withIdentity({ subject: "user_solver" });
-    await asSolver.mutation(api.problems.vote, { code: "aplusb", points: 5, note: "Fair." });
+    await asSolver.mutation(api.problems.votes.vote, { code: "aplusb", points: 5, note: "Fair." });
 
-    const stats = await asSolver.query(api.problems.voteStats, { code: "aplusb" });
+    const stats = await asSolver.query(api.problems.votes.voteStats, { code: "aplusb" });
     expect(stats?.votes).toEqual([5]);
     expect(stats?.mean).toBe(5);
     expect(stats?.median).toBe(5);
@@ -579,16 +579,20 @@ describe("problem point voting", () => {
     });
 
     const asSolver = t.withIdentity({ subject: "user_solver" });
-    await asSolver.mutation(api.problems.vote, { code: "aplusb", points: 5 });
-    await asSolver.mutation(api.problems.vote, { code: "aplusb", points: 9 });
-    expect((await asSolver.query(api.problems.voteStats, { code: "aplusb" }))?.votes).toEqual([9]);
+    await asSolver.mutation(api.problems.votes.vote, { code: "aplusb", points: 5 });
+    await asSolver.mutation(api.problems.votes.vote, { code: "aplusb", points: 9 });
+    expect((await asSolver.query(api.problems.votes.voteStats, { code: "aplusb" }))?.votes).toEqual([9]);
 
-    await expect(asSolver.mutation(api.problems.vote, { code: "aplusb", points: 0 })).rejects.toThrow();
-    await expect(asSolver.mutation(api.problems.vote, { code: "aplusb", points: 51 })).rejects.toThrow();
-    await expect(asSolver.mutation(api.problems.vote, { code: "aplusb", points: 2.5 })).rejects.toThrow();
+    await expect(asSolver.mutation(api.problems.votes.vote, { code: "aplusb", points: 0 })).rejects.toThrow();
+    await expect(
+      asSolver.mutation(api.problems.votes.vote, { code: "aplusb", points: 51 }),
+    ).rejects.toThrow();
+    await expect(
+      asSolver.mutation(api.problems.votes.vote, { code: "aplusb", points: 2.5 }),
+    ).rejects.toThrow();
 
-    await asSolver.mutation(api.problems.deleteVote, { code: "aplusb" });
-    expect((await asSolver.query(api.problems.voteStats, { code: "aplusb" }))?.votes).toEqual([]);
+    await asSolver.mutation(api.problems.votes.deleteVote, { code: "aplusb" });
+    expect((await asSolver.query(api.problems.votes.voteStats, { code: "aplusb" }))?.votes).toEqual([]);
   });
 
   test("a banned voter may look but not vote, and a contestant sees nothing", async () => {
@@ -617,11 +621,11 @@ describe("problem point voting", () => {
     });
 
     const asBanned = t.withIdentity({ subject: "user_banned" });
-    await expect(asBanned.mutation(api.problems.vote, { code: "aplusb", points: 5 })).rejects.toThrow();
-    expect(await asBanned.query(api.problems.voteStats, { code: "aplusb" })).not.toBeNull();
+    await expect(asBanned.mutation(api.problems.votes.vote, { code: "aplusb", points: 5 })).rejects.toThrow();
+    expect(await asBanned.query(api.problems.votes.voteStats, { code: "aplusb" })).not.toBeNull();
 
     const asPlayer = t.withIdentity({ subject: "user_player" });
-    expect(await asPlayer.query(api.problems.voteStats, { code: "aplusb" })).toBeNull();
+    expect(await asPlayer.query(api.problems.votes.voteStats, { code: "aplusb" })).toBeNull();
   });
 });
 

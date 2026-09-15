@@ -9,8 +9,9 @@ import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
 import { requirePerm } from "../lib/auth";
-import { generateJudgeKey, sha256Hex, writeRevision } from "../lib/community";
+import { generateJudgeKey, writeRevision } from "../lib/community";
 import { invalid, notFound } from "../lib/errors";
+import { sha256Hex } from "../lib/hash";
 
 const JUDGE_PERM = "judge.change_judge";
 

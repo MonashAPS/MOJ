@@ -1,7 +1,8 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import type { ContestDetail, ParticipationRow } from "@convex/contests";
+import type { ContestDetail } from "@convex/contests";
+import type { ParticipationRow } from "@convex/contests/participation";
 import {
   Badge,
   cn,
@@ -57,9 +58,9 @@ export function ParticipationsClient({
   const tabLabels = useTranslations("contests.tabs");
   const router = useRouter();
   const [lookup, setLookup] = useState("");
-  const live = useQuery(api.contests.participations, isOwn ? { key: contestKey } : "skip");
+  const live = useQuery(api.contests.participation.participations, isOwn ? { key: contestKey } : "skip");
   const liveOther = useQuery(
-    api.contests.participationsOfUser,
+    api.contests.participation.participationsOfUser,
     !isOwn && subject ? { key: contestKey, username: subject } : "skip",
   );
   const rows = (isOwn ? live : liveOther) ?? initial;

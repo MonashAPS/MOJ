@@ -49,7 +49,7 @@ export async function listKeysAction(): Promise<ActionResult<ConsoleKeyRow[]>> {
     const t = await getTranslations("admin.apiKeys");
     const listed = await auth.api.listApiKeys({ headers: await authHeaders() });
     const keys = Array.isArray(listed) ? listed : ((listed as { apiKeys?: unknown[] }).apiKeys ?? []);
-    const mirrored = await queryAsViewer(api.pages.admin2.myApiKeys, {});
+    const mirrored = await queryAsViewer(api.pages.admin.apiKeys.mine, {});
     const byPrefix = new Map(mirrored.map((row) => [row.prefix ?? "", row]));
 
     const rows: ConsoleKeyRow[] = (keys as Record<string, unknown>[]).map((key) => {
@@ -113,7 +113,7 @@ export async function createKeyAction(input: {
     let mirrored = true;
     let warning: string | undefined;
     try {
-      await mutateAsViewer(api.pages.admin2.recordApiKey, {
+      await mutateAsViewer(api.pages.admin.apiKeys.record, {
         keyHash: sha256Hex(created.key),
         prefix: start,
         name,
@@ -159,7 +159,7 @@ export async function revokeKeyAction(
     await requireConsoleViewer();
     await auth.api.deleteApiKey({ body: { keyId }, headers: await authHeaders() });
     if (convexId) {
-      await mutateAsViewer(api.pages.admin2.revokeApiKey, {
+      await mutateAsViewer(api.pages.admin.apiKeys.revoke, {
         id: convexId as Id<"apiKeys">,
       }).catch(() => undefined);
     }

@@ -25,7 +25,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ user
   const t = await getTranslations("admin.users.detail");
   const [user, extras, permissionCodes, languages, organizations] = await Promise.all([
     queryAsViewer(api.admin.users.get, { username }).catch(() => null),
-    queryAsViewer(api.pages.admin2.userExtras, { username }),
+    queryAsViewer(api.pages.admin.users.extras, { username }),
     queryAsViewer(api.admin.users.permissionCodes, {}).catch(() => [] as string[]),
     queryAsViewer(api.languages.list, {}).catch(() => []),
     queryAsViewer(api.admin.organizations.list, {}).catch(() => []),

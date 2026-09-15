@@ -12,14 +12,14 @@
  * spoil the frozen grid or the reveal.
  */
 
-import { type Attempt, classifyEvent, freezeOffsetFor } from "@moj/core";
+import { type Attempt, classifyEvent, freezeOffsetFor, PARTICIPATION_LIVE } from "@moj/core";
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
 import { labelForProblem, loadContestProblems } from "../contests/formats";
 import { isStaff, optionalViewer } from "../lib/auth";
+import { eventByKey } from "../scoreboard";
 
-const LIVE = 0;
 const DEFAULT_LIMIT = 60;
 const MAX_LIMIT = 200;
 
@@ -44,13 +44,6 @@ export type FeedItem = {
   masked: boolean;
 };
 
-async function eventByKey(ctx: QueryCtx, key: string): Promise<Doc<"scoreboardEvents"> | null> {
-  return await ctx.db
-    .query("scoreboardEvents")
-    .withIndex("by_key", (q) => q.eq("key", key))
-    .unique();
-}
-
 async function divisionFeed(
   ctx: QueryCtx,
   contest: Doc<"contests">,
@@ -72,7 +65,9 @@ async function divisionFeed(
 
   const participations = await ctx.db
     .query("contestParticipations")
-    .withIndex("by_contest_virtual_score", (q) => q.eq("contestId", contest._id).eq("virtual", LIVE))
+    .withIndex("by_contest_virtual_score", (q) =>
+      q.eq("contestId", contest._id).eq("virtual", PARTICIPATION_LIVE),
+    )
     .collect();
   const live = new Map<string, Doc<"contestParticipations">>();
   for (const participation of participations) {

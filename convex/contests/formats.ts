@@ -15,7 +15,6 @@ import {
   formatChoices,
   getContestLabelForProblem,
   getFormatOrDefault,
-  type ProblemRow,
   type ProfileRow,
   type ScoringLine,
   type SubmissionTestCaseRow,
@@ -27,6 +26,9 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { query } from "../_generated/server";
 
 export type AnyCtx = QueryCtx | MutationCtx;
+
+/** `Contest.key`: DMOJ's slug field, lowercase letters and digits. */
+export const CONTEST_KEY_PATTERN = /^[a-z0-9]+$/;
 
 /* -------------------------------------------------------------------------- */
 /* Row adapters                                                               */
@@ -106,24 +108,6 @@ export function toParticipationRow(participation: Doc<"contestParticipations">):
     isDisqualified: participation.isDisqualified,
     virtual: participation.virtual,
     formatData: participation.formatData ?? {},
-  };
-}
-
-export function toProblemRow(problem: Doc<"problems">): ProblemRow {
-  return {
-    id: problem._id,
-    code: problem.code,
-    name: problem.name,
-    isPublic: problem.isPublic,
-    isOrganizationPrivate: problem.isOrganizationPrivate,
-    organizationIds: problem.organizationIds,
-    authorProfileIds: problem.authorProfileIds,
-    curatorProfileIds: problem.curatorProfileIds,
-    testerProfileIds: problem.testerProfileIds,
-    bannedProfileIds: problem.bannedProfileIds,
-    points: problem.points,
-    partial: problem.partial,
-    submissionSourceVisibility: problem.submissionSourceVisibility,
   };
 }
 

@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const { api } = await import("@convex/_generated/api");
     const { mutateAsViewer } = await import("@/lib/convex-server");
     try {
-      await mutateAsViewer(api.profiles.revokeLegacyApiToken, {});
+      await mutateAsViewer(api.profiles.apiTokens.revokeLegacy, {});
       return NextResponse.json({ status: true });
     } catch {
       return NextResponse.json({ error: { message: t("revokeFailed") } }, { status: 400 });

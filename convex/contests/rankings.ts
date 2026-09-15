@@ -28,8 +28,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation, type QueryCtx, query } from "../_generated/server";
-import type { OrganizationRef, ParticipationCell, UserRef } from "../contests";
-import { safeDisplay } from "../contests";
+import type { OrganizationRef, UserRef } from "../contests";
 import {
   contestByKey,
   contestSubmissionRows,
@@ -43,6 +42,8 @@ import {
 } from "../contests/formats";
 import { optionalViewer, requireViewer } from "../lib/auth";
 import { forbidden, notFound } from "../lib/errors";
+import type { ParticipationCell } from "./participation";
+import { safeDisplay } from "./participation";
 
 /* -------------------------------------------------------------------------- */
 /* Shapes                                                                     */

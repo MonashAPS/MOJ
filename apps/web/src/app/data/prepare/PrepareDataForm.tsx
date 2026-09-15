@@ -40,8 +40,8 @@ function duration(ms: number) {
 /** `user/prepare-data.html`: pick what goes in the archive, watch the job, then
  *  take the link. */
 export function PrepareDataForm() {
-  const status = useQuery(api.profiles.dataExportStatus, {});
-  const prepare = useMutation(api.profiles.prepareDataExport);
+  const status = useQuery(api.profiles.dataExport.status, {});
+  const prepare = useMutation(api.profiles.dataExport.prepare);
 
   const [comments, setComments] = useState(true);
   const [submissions, setSubmissions] = useState(true);

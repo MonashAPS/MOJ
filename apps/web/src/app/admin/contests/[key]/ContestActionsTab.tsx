@@ -44,8 +44,8 @@ export function ContestActionsTab({ contest }: { contest: ContestEdit }) {
   const rate = useMutation(api.admin.contests.rate);
   const rescore = useMutation(api.admin.contests.rescore);
   const setLocked = useMutation(api.admin.contests.setLocked);
-  const clone = useMutation(api.contests.clone);
-  const disqualify = useMutation(api.contests.disqualify);
+  const clone = useMutation(api.contests.tools.clone);
+  const disqualify = useMutation(api.contests.participation.disqualify);
 
   const cloneId = useId();
   const reasonId = useId();

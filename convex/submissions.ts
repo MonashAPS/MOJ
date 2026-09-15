@@ -11,14 +11,12 @@
 import {
   blindDuringFreeze,
   type ContestParticipationRow,
-  type ContestRow,
   type Viewer as CoreViewer,
   canSeeSubmissionDetail,
   contestCanSeeFullScoreboard,
   hasPerm as coreHasPerm,
   isSuperuser as coreIsSuperuser,
   isLocked,
-  type ProblemRow,
   type ProfileRow,
   participationIsLive,
   problemIsAccessibleBy,
@@ -30,12 +28,14 @@ import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, type QueryCtx, query } from "./_generated/server";
+import { toContestRow } from "./contests/formats";
 import { allocateSubmissionNumber, queueSubmission, resolveSubmission } from "./judging";
 import { optionalViewer, requireViewer } from "./lib/auth";
 import { globalSourceVisibility, siteSettings } from "./lib/community";
 import { forbidden, invalid, mojError, notFound } from "./lib/errors";
 import { proctorBlocksContestProblems, requireProctored } from "./lib/proctor";
 import { rateLimiter } from "./lib/rateLimiter";
+import { hasSolvedProblem, toCoreProblem } from "./problems";
 
 /* -------------------------------------------------------------------------- */
 /* DMOJ settings                                                              */
@@ -59,58 +59,6 @@ const PAGE_SCAN_MULTIPLIER = 2;
 /* -------------------------------------------------------------------------- */
 /* Row adapters for @moj/core                                                 */
 /* -------------------------------------------------------------------------- */
-
-export function coreProblem(problem: Doc<"problems">): ProblemRow {
-  return {
-    id: problem._id,
-    code: problem.code,
-    name: problem.name,
-    isPublic: problem.isPublic,
-    isOrganizationPrivate: problem.isOrganizationPrivate,
-    organizationIds: problem.organizationIds,
-    authorProfileIds: problem.authorProfileIds,
-    curatorProfileIds: problem.curatorProfileIds,
-    testerProfileIds: problem.testerProfileIds,
-    bannedProfileIds: problem.bannedProfileIds,
-    points: problem.points,
-    partial: problem.partial,
-    submissionSourceVisibility: problem.submissionSourceVisibility,
-  };
-}
-
-export function coreContest(contest: Doc<"contests">): ContestRow {
-  return {
-    id: contest._id,
-    key: contest.key,
-    name: contest.name,
-    startTime: contest.startTime,
-    endTime: contest.endTime,
-    timeLimit: contest.timeLimit ?? null,
-    isVisible: contest.isVisible,
-    isPrivate: contest.isPrivate,
-    isOrganizationPrivate: contest.isOrganizationPrivate,
-    authorProfileIds: contest.authorProfileIds,
-    curatorProfileIds: contest.curatorProfileIds,
-    testerProfileIds: contest.testerProfileIds,
-    spectatorProfileIds: contest.spectatorProfileIds,
-    testerSeeScoreboard: contest.testerSeeScoreboard,
-    testerSeeSubmissions: contest.testerSeeSubmissions,
-    viewContestScoreboardProfileIds: contest.viewContestScoreboardProfileIds,
-    viewContestSubmissionsProfileIds: contest.viewContestSubmissionsProfileIds,
-    privateContestantProfileIds: contest.privateContestantProfileIds,
-    organizationIds: contest.organizationIds,
-    classIds: contest.classIds,
-    bannedProfileIds: contest.bannedProfileIds,
-    scoreboardVisibility: contest.scoreboardVisibility,
-    formatName: contest.formatName,
-    formatConfig: contest.formatConfig,
-    pointsPrecision: contest.pointsPrecision,
-    runPretestsOnly: contest.runPretestsOnly,
-    freezeMinutes: contest.freezeMinutes,
-    blindDuringFreeze: contest.blindDuringFreeze,
-    lockedAfter: contest.lockedAfter ?? null,
-  };
-}
 
 export function coreParticipation(row: Doc<"contestParticipations">): ContestParticipationRow {
   return {
@@ -299,13 +247,7 @@ async function hasSolved(
 ): Promise<boolean> {
   const cached = caches.solved.get(problemId);
   if (cached !== undefined) return cached;
-  const rows = await ctx.db
-    .query("submissions")
-    .withIndex("by_profile_problem", (q) => q.eq("profileId", profileId).eq("problemId", problemId))
-    .collect();
-  const solved = rows.some(
-    (row) => row.result === "AC" && row.casePoints >= row.caseTotal && !row.isArchived,
-  );
+  const solved = await hasSolvedProblem(ctx, profileId, problemId);
   caches.solved.set(problemId, solved);
   return solved;
 }
@@ -330,8 +272,8 @@ async function buildRow(
         ? false
         : await hasSolved(ctx, caches, viewer.id as Id<"profiles">, submission.problemId);
     canSee = canSeeSubmissionDetail({ profileId: submission.profileId }, viewer, {
-      problem: coreProblem(problem),
-      contest: contest ? coreContest(contest) : null,
+      problem: toCoreProblem(problem),
+      contest: contest ? toContestRow(contest) : null,
       hasSolvedProblem: solved,
       globalSubmissionSourceVisibility: globalSourceVisibility(await siteSettings(ctx)),
     });
@@ -350,7 +292,7 @@ async function buildRow(
   if (contest) {
     const blinded = blindDuringFreeze(
       { profileId: submission.profileId as string, date: submission.date, ...view },
-      coreContest(contest),
+      toContestRow(contest),
       viewer,
       { now },
     );
@@ -462,7 +404,7 @@ export const list = query({
     const contestFilter = viewerCtx.inContest ? viewerCtx.contest : requestedContest;
     let profileFilter = author;
     if (viewerCtx.inContest && viewerCtx.contest && viewerCtx.profile) {
-      const full = contestCanSeeFullScoreboard(coreContest(viewerCtx.contest), viewer, { now });
+      const full = contestCanSeeFullScoreboard(toContestRow(viewerCtx.contest), viewer, { now });
       if (!full) profileFilter = viewerCtx.profile;
     }
 
@@ -557,7 +499,7 @@ async function isListable(
 
   const problem = await cachedGet(ctx, caches.problems, submission.problemId);
   if (!problem) return false;
-  if (!problemIsVisibleTo(coreProblem(problem), viewer)) return false;
+  if (!problemIsVisibleTo(toCoreProblem(problem), viewer)) return false;
 
   if (!submission.contestId) return true;
   if (viewer && submission.profileId === viewer.id) return true;
@@ -792,7 +734,7 @@ export const submit = mutation({
     }
 
     if (
-      !problemIsAccessibleBy(coreProblem(problem), viewer, {
+      !problemIsAccessibleBy(toCoreProblem(problem), viewer, {
         inCurrentContest: contestProblem !== null,
       })
     ) {
@@ -836,7 +778,7 @@ export const submit = mutation({
     let judgePin: Id<"judges"> | undefined;
     if (args.judgePin) {
       // DMOJ only offers the judge picker to a problem's editors.
-      if (!problemIsEditableBy(coreProblem(problem), viewer)) {
+      if (!problemIsEditableBy(toCoreProblem(problem), viewer)) {
         throw forbidden("You may not pin a submission to a judge.");
       }
       const judge = await ctx.db

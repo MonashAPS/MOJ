@@ -19,6 +19,7 @@ import {
   firstSolves,
   freezeOffsetFor,
   nextRevealTarget,
+  PARTICIPATION_LIVE,
   penaltyMinutesFor,
   rankRows,
   type ScoreboardCell,
@@ -39,8 +40,6 @@ import {
 } from "./contests/formats";
 import { isStaff, optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, invalid, notFound } from "./lib/errors";
-
-const LIVE = 0;
 
 /* -------------------------------------------------------------------------- */
 /* Shapes                                                                     */
@@ -122,7 +121,10 @@ export type ScoreboardEventPayload = {
 /* Loading                                                                    */
 /* -------------------------------------------------------------------------- */
 
-async function eventByKey(ctx: QueryCtx | MutationCtx, key: string): Promise<Doc<"scoreboardEvents"> | null> {
+export async function eventByKey(
+  ctx: QueryCtx | MutationCtx,
+  key: string,
+): Promise<Doc<"scoreboardEvents"> | null> {
   return await ctx.db
     .query("scoreboardEvents")
     .withIndex("by_key", (q) => q.eq("key", key))
@@ -270,7 +272,9 @@ async function buildDivision(
   const participations = (
     await ctx.db
       .query("contestParticipations")
-      .withIndex("by_contest_virtual_score", (q) => q.eq("contestId", contest._id).eq("virtual", LIVE))
+      .withIndex("by_contest_virtual_score", (q) =>
+        q.eq("contestId", contest._id).eq("virtual", PARTICIPATION_LIVE),
+      )
       .collect()
   ).filter((row) => !row.isDisqualified);
 
@@ -678,7 +682,7 @@ export const setTag = mutation({
         .query("contestParticipations")
         .withIndex("by_profile_contest", (q) => q.eq("profileId", profile._id).eq("contestId", contest._id))
         .collect();
-      if (rows.some((entry) => entry.virtual === LIVE && !entry.isDisqualified)) {
+      if (rows.some((entry) => entry.virtual === PARTICIPATION_LIVE && !entry.isDisqualified)) {
         competes = true;
         break;
       }

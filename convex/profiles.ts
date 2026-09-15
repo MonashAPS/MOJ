@@ -1,10 +1,11 @@
 /**
- * User accounts: `/user/[user]`, `/user/[user]/solved`, `/edit/profile/`,
- * `/accounts/api/token/generate/` and `/data/prepare/`.
+ * User accounts: `/user/[user]`, `/user/[user]/solved` and `/edit/profile/`.
+ * The API token and the data export are beside it in `profiles/apiTokens.ts`
+ * and `profiles/dataExport.ts`.
  *
- * Ports `UserPage`, `UserAboutPage`, `UserProblemsPage`, `edit_profile`,
- * `UserPrepareData` and `generate_api_token` from judge/views/user.py, and
- * `Profile.calculate_points` / `get_pp_breakdown` through `@moj/core`.
+ * Ports `UserPage`, `UserAboutPage`, `UserProblemsPage` and `edit_profile`
+ * from judge/views/user.py, and `Profile.calculate_points` /
+ * `get_pp_breakdown` through `@moj/core`.
  *
  * Markdown is not rendered here. `@moj/content` pulls in Shiki's WASM engine,
  * which does not belong in a Convex isolate, so `about` comes back as source
@@ -21,11 +22,10 @@ import {
   resultClassFromCode,
 } from "@moj/core";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation, type QueryCtx, query } from "./_generated/server";
 import { optionalViewer, requireStaff, requireViewer } from "./lib/auth";
-import { forbidden, invalid, mojError, notFound } from "./lib/errors";
+import { forbidden, invalid, notFound } from "./lib/errors";
 import { insertProfileAggregates, patchProfile } from "./rankings";
 import { siteTheme } from "./schema";
 
@@ -33,9 +33,6 @@ export const DEFAULT_TIMEZONE = "Australia/Melbourne";
 
 /** `settings.DMOJ_USER_MAX_ORGANIZATION_COUNT`. */
 export const MAX_OPEN_ORGANIZATIONS = 3;
-
-/** `settings.DMOJ_USER_DATA_DOWNLOAD_RATELIMIT`. */
-export const DATA_DOWNLOAD_RATELIMIT_MS = 24 * 60 * 60 * 1000;
 
 /** `UserProblemsPage.get_context_data` asks for the first ten weights. */
 const PP_PREVIEW_ENTRIES = 10;
@@ -75,11 +72,28 @@ async function languageIdForKey(
   return language?._id;
 }
 
-async function profileByUsername(ctx: QueryCtx, username: string): Promise<Doc<"profiles"> | null> {
+export async function profileByUsername(
+  ctx: QueryCtx | MutationCtx,
+  username: string,
+): Promise<Doc<"profiles"> | null> {
   return await ctx.db
     .query("profiles")
     .withIndex("by_username", (q) => q.eq("username", username))
     .unique();
+}
+
+/** The profile ids behind a list of usernames, refusing one that does not exist. */
+export async function usernamesToIds(
+  ctx: QueryCtx | MutationCtx,
+  usernames: readonly string[],
+): Promise<Id<"profiles">[]> {
+  const ids: Id<"profiles">[] = [];
+  for (const username of usernames) {
+    const profile = await profileByUsername(ctx, username);
+    if (!profile) throw notFound(`User ${username}`);
+    ids.push(profile._id);
+  }
+  return ids;
 }
 
 export const byUsername = query({
@@ -816,205 +830,6 @@ export const listStaff = query({
     await requireStaff(ctx);
     const rows = await ctx.db.query("profiles").collect();
     return rows.filter((row) => row.isStaff || row.isSuperuser);
-  },
-});
-
-/* -------------------------------------------------------------------------- */
-/* API tokens                                                                 */
-/* -------------------------------------------------------------------------- */
-
-export type ApiTokenInfo = {
-  /** A legacy DMOJ token is still on the account and still works. */
-  hasLegacyToken: boolean;
-  /** Keys minted by Better Auth's api-key plugin live in Postgres, not here. */
-  legacyTokenHint: string | null;
-};
-
-/**
- * `/accounts/api/token/generate/`. New tokens come from Better Auth's api-key
- * plugin in the web layer; this only reports on the imported DMOJ token, which
- * the API still accepts until the user replaces it.
- */
-export const myApiToken = query({
-  args: {},
-  handler: async (ctx): Promise<ApiTokenInfo> => {
-    const profile = await requireViewer(ctx);
-    return {
-      hasLegacyToken: !!profile.legacyApiTokenHash,
-      legacyTokenHint: profile.legacyApiTokenHash ? `${profile.legacyApiTokenHash.slice(0, 8)}...` : null,
-    };
-  },
-});
-
-/**
- * The legacy DMOJ Bearer token, checked from the API layer.
- *
- * DMOJ's token is `base64url(struct.pack('>I32s', user_id, secret))` and the
- * profile stores `hmac_sha256(SECRET_KEY, secret).hexdigest()`
- * (judge/models/profile.py:269, judge/middleware.py:117). The web layer decodes
- * the token and computes the digest with `LEGACY_SECRET_KEY`; this compares it
- * against the stored hash without ever handing the hash out.
- */
-export const verifyLegacyApiToken = query({
-  args: { legacyUserId: v.number(), digest: v.string() },
-  handler: async (
-    ctx,
-    { legacyUserId, digest },
-  ): Promise<{ userId: string; username: string; isStaff: boolean } | null> => {
-    const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_legacyUserId", (q) => q.eq("legacyUserId", legacyUserId))
-      .unique();
-    if (!profile?.legacyApiTokenHash) return null;
-    if (profile.isActive === false) return null;
-    if (!constantTimeEquals(profile.legacyApiTokenHash, digest)) return null;
-    return {
-      userId: profile.userId,
-      username: profile.username,
-      isStaff: profile.isStaff || profile.isSuperuser,
-    };
-  },
-});
-
-function constantTimeEquals(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let difference = 0;
-  for (let i = 0; i < a.length; i++) difference |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return difference === 0;
-}
-
-/** `remove_api_token`. */
-export const revokeLegacyApiToken = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const profile = await requireViewer(ctx);
-    await ctx.db.patch(profile._id, { legacyApiTokenHash: undefined });
-    return true;
-  },
-});
-
-/** Used by the import tool and by the token page after a rotation. */
-export const setLegacyApiTokenHash = internalMutation({
-  args: { profileId: v.id("profiles"), hash: v.optional(v.string()) },
-  handler: async (ctx, { profileId, hash }) => {
-    await ctx.db.patch(profileId, { legacyApiTokenHash: hash });
-  },
-});
-
-/* -------------------------------------------------------------------------- */
-/* Data export                                                                */
-/* -------------------------------------------------------------------------- */
-
-export const dataExportOptions = v.object({
-  submissionDownload: v.boolean(),
-  commentDownload: v.boolean(),
-  submissionProblemGlob: v.optional(v.string()),
-  submissionResults: v.optional(v.array(v.string())),
-});
-
-export type DataExportStatus = {
-  canPrepare: boolean;
-  msUntilCanPrepare: number;
-  rateLimitMs: number;
-  job: {
-    _id: Id<"jobs">;
-    status: "queued" | "running" | "done" | "failed";
-    progress: { done: number; total: number; stage: string };
-    error?: string;
-    createdAt: number;
-    finishedAt?: number;
-  } | null;
-  download: { storageId: Id<"_storage">; name: string; createdAt: number } | null;
-};
-
-async function latestExportJob(ctx: QueryCtx, profileId: Id<"profiles">): Promise<Doc<"jobs"> | null> {
-  return await ctx.db
-    .query("jobs")
-    .withIndex("by_creator_type_createdAt", (q) =>
-      q.eq("createdByProfileId", profileId).eq("type", "userExport"),
-    )
-    .order("desc")
-    .first();
-}
-
-export const dataExportStatus = query({
-  args: {},
-  handler: async (ctx): Promise<DataExportStatus> => {
-    const profile = await requireViewer(ctx);
-    const job = await latestExportJob(ctx, profile._id);
-    const now = Date.now();
-
-    const last = profile.dataLastDownloaded;
-    const msUntilCanPrepare = last === undefined ? 0 : Math.max(0, last + DATA_DOWNLOAD_RATELIMIT_MS - now);
-    const running = job?.status === "queued" || job?.status === "running";
-
-    let download: DataExportStatus["download"] = null;
-    if (job?.status === "done" && job.result?.storageId) {
-      download = {
-        storageId: job.result.storageId as Id<"_storage">,
-        name: `${profile.username}-data.zip`,
-        createdAt: job.finishedAt ?? job.createdAt,
-      };
-    }
-
-    return {
-      canPrepare: !profile.mute && msUntilCanPrepare === 0 && !running,
-      msUntilCanPrepare,
-      rateLimitMs: DATA_DOWNLOAD_RATELIMIT_MS,
-      job: job
-        ? {
-            _id: job._id,
-            status: job.status,
-            progress: job.progress,
-            error: job.error,
-            createdAt: job.createdAt,
-            finishedAt: job.finishedAt,
-          }
-        : null,
-      download,
-    };
-  },
-});
-
-/** `UserPrepareData.form_valid`, with `DownloadDataForm`'s validation. */
-export const prepareDataExport = mutation({
-  args: { options: dataExportOptions },
-  handler: async (ctx, { options }): Promise<Id<"jobs">> => {
-    const profile = await requireViewer(ctx);
-    if (profile.mute) throw forbidden("Your part is silent, little toad.");
-    if (!options.submissionDownload && !options.commentDownload) {
-      throw invalid("Please select at least one thing to download.");
-    }
-
-    const now = Date.now();
-    const last = profile.dataLastDownloaded;
-    if (last !== undefined && last + DATA_DOWNLOAD_RATELIMIT_MS > now) {
-      throw mojError("RATE_LIMITED", "You may only prepare your data once a day.");
-    }
-
-    const existing = await latestExportJob(ctx, profile._id);
-    if (existing && (existing.status === "queued" || existing.status === "running")) {
-      throw mojError("CONFLICT", "Your data is already being prepared.");
-    }
-
-    const jobId = await ctx.db.insert("jobs", {
-      type: "userExport",
-      status: "queued",
-      progress: { done: 0, total: 2, stage: "Applying filters" },
-      args: {
-        profileId: profile._id,
-        submissionDownload: options.submissionDownload,
-        commentDownload: options.commentDownload,
-        submissionProblemGlob: options.submissionDownload ? (options.submissionProblemGlob ?? "*") : "*",
-        submissionResults: options.submissionDownload ? (options.submissionResults ?? []) : [],
-      },
-      createdByProfileId: profile._id,
-      createdAt: now,
-    });
-
-    await ctx.db.patch(profile._id, { dataLastDownloaded: now });
-    await ctx.scheduler.runAfter(0, internal.jobs.users.run, { jobId });
-    return jobId;
   },
 });
 

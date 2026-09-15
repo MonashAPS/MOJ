@@ -10,11 +10,12 @@ import { hasPerm as coreHasPerm, isLocked, problemIsEditableBy } from "@moj/core
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { mutation } from "../_generated/server";
-import { problemByCode, type RejudgeFilter, startRejudgeJob, startRescoreJob } from "../jobs";
+import { type RejudgeFilter, startRejudgeJob, startRescoreJob } from "../jobs";
 import { queueSubmission, resolveSubmission } from "../judging";
 import { requireViewer } from "../lib/auth";
 import { forbidden, invalid, notFound } from "../lib/errors";
-import { coreProblem, coreProfile } from "../submissions";
+import { requireProblem, toCoreProblem } from "../problems";
+import { coreProfile } from "../submissions";
 
 /**
  * `Problem.is_subs_manageable_by(user)`: staff, with `rejudge_submission`, who
@@ -23,13 +24,13 @@ import { coreProblem, coreProfile } from "../submissions";
 async function requireSubsManageable(ctx: Parameters<typeof requireViewer>[0], problemCode: string) {
   const profile = await requireViewer(ctx);
   const viewer = await coreProfile(ctx, profile);
-  const problem = await problemByCode(ctx, problemCode);
+  const problem = await requireProblem(ctx, problemCode);
 
   const staff = profile.isStaff || profile.isSuperuser;
   if (
     !staff ||
     !coreHasPerm(viewer, "judge.rejudge_submission") ||
-    !problemIsEditableBy(coreProblem(problem), viewer)
+    !problemIsEditableBy(toCoreProblem(problem), viewer)
   ) {
     throw forbidden("You may not manage submissions for this problem.");
   }

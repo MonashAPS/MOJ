@@ -79,8 +79,8 @@ function lighten(value: string, ratio: number): string {
 
 export function BrandingForm({ branding }: { branding: Branding }) {
   const t = useTranslations("admin.branding");
-  const update = useMutation(api.pages.admin2.updateBranding);
-  const uploadUrl = useMutation(api.pages.admin2.generateBrandingUploadUrl);
+  const update = useMutation(api.pages.admin.branding.update);
+  const uploadUrl = useMutation(api.pages.admin.branding.generateUploadUrl);
 
   const initial = useMemo(
     () => ({

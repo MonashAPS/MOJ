@@ -19,7 +19,7 @@ export default async function ApiTokenPage() {
   await requireAccount("/accounts/api/token/generate/");
   const [tokens, legacy] = await Promise.all([
     listApiTokens(),
-    queryAsViewer(api.profiles.myApiToken, {}).catch(() => null),
+    queryAsViewer(api.profiles.apiTokens.mine, {}).catch(() => null),
   ]);
   const t = await getTranslations("auth.apiToken");
 

@@ -41,7 +41,7 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
   const actions = useTranslations("common.actions");
   const router = useRouter();
   const existing = useQuery(api.admin.scoreboards.get, eventKey ? { key: eventKey } : "skip");
-  const options = useQuery(api.pages.admin1.scoreboardOptions, {});
+  const options = useQuery(api.pages.admin.scoreboards.options, {});
   const create = useMutation(api.admin.scoreboards.create);
   const update = useMutation(api.admin.scoreboards.update);
   const remove = useMutation(api.admin.scoreboards.remove);

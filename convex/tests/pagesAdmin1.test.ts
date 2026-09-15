@@ -1,7 +1,7 @@
 // @vitest-environment edge-runtime
 
 /**
- * The staff console's read models (`convex/pages/admin1.ts`).
+ * The staff console's read models (`convex/pages/admin/*.ts`).
  *
  * The mutations they sit next to are covered by `admin.test.ts`; what matters
  * here is that every one of these is staff-gated, that the list filters are the
@@ -113,36 +113,36 @@ async function seed() {
 const asRoot = { subject: "user_root" };
 const asMember = { subject: "user_member" };
 
-describe("pages/admin1 gating", () => {
+describe("pages/admin console gating", () => {
   test("a member sees nothing at all", async () => {
     const { t } = await seed();
     const viewer = t.withIdentity(asMember);
-    expect(await viewer.query(api.pages.admin1.consoleViewer, {})).toBeNull();
-    expect((await viewer.query(api.pages.admin1.problemsList, { page: 1 })).items).toEqual([]);
-    expect(await viewer.query(api.pages.admin1.problemEdit, { code: "alpha" })).toBeNull();
-    expect(await viewer.query(api.pages.admin1.contestEdit, { key: "winter" })).toBeNull();
-    expect(await viewer.query(api.pages.admin1.jobsList, {})).toEqual([]);
-    expect((await viewer.query(api.pages.admin1.submissionsList, {})).items).toEqual([]);
+    expect(await viewer.query(api.pages.admin.console.viewer, {})).toBeNull();
+    expect((await viewer.query(api.pages.admin.problems.list, { page: 1 })).items).toEqual([]);
+    expect(await viewer.query(api.pages.admin.problems.edit, { code: "alpha" })).toBeNull();
+    expect(await viewer.query(api.pages.admin.contests.edit, { key: "winter" })).toBeNull();
+    expect(await viewer.query(api.pages.admin.jobs.list, {})).toEqual([]);
+    expect((await viewer.query(api.pages.admin.submissions.list, {})).items).toEqual([]);
   });
 
   test("the console reports the viewer's permissions", async () => {
     const { t } = await seed();
-    const root = await t.withIdentity(asRoot).query(api.pages.admin1.consoleViewer, {});
+    const root = await t.withIdentity(asRoot).query(api.pages.admin.console.viewer, {});
     expect(root?.username).toBe("root");
     expect(root?.permissions.changePublicVisibility).toBe(true);
 
-    const setter = await t.withIdentity({ subject: "user_setter" }).query(api.pages.admin1.consoleViewer, {});
+    const setter = await t.withIdentity({ subject: "user_setter" }).query(api.pages.admin.console.viewer, {});
     expect(setter?.permissions.editOwnProblem).toBe(true);
     expect(setter?.permissions.changePublicVisibility).toBe(false);
   });
 });
 
-describe("pages/admin1 problems", () => {
+describe("pages/admin problems", () => {
   test("the list carries the columns and honours DMOJ's filters", async () => {
     const { t } = await seed();
     const viewer = t.withIdentity(asRoot);
 
-    const all = await viewer.query(api.pages.admin1.problemsList, { page: 1 });
+    const all = await viewer.query(api.pages.admin.problems.list, { page: 1 });
     expect(all.items.map((row) => row.code)).toEqual(["alpha", "beta"]);
     expect(all.total).toBe(2);
     const alpha = all.items[0];
@@ -151,31 +151,31 @@ describe("pages/admin1 problems", () => {
     expect(alpha?.group).toBe("uncategorized");
 
     expect(
-      (await viewer.query(api.pages.admin1.problemsList, { isPublic: false })).items.map((row) => row.code),
+      (await viewer.query(api.pages.admin.problems.list, { isPublic: false })).items.map((row) => row.code),
     ).toEqual(["beta"]);
     expect(
-      (await viewer.query(api.pages.admin1.problemsList, { group: "graphs" })).items.map((row) => row.code),
+      (await viewer.query(api.pages.admin.problems.list, { group: "graphs" })).items.map((row) => row.code),
     ).toEqual(["beta"]);
     expect(
-      (await viewer.query(api.pages.admin1.problemsList, { type: "dp" })).items.map((row) => row.code),
+      (await viewer.query(api.pages.admin.problems.list, { type: "dp" })).items.map((row) => row.code),
     ).toEqual(["alpha"]);
     expect(
-      (await viewer.query(api.pages.admin1.problemsList, { author: "setter" })).items.map((row) => row.code),
+      (await viewer.query(api.pages.admin.problems.list, { author: "setter" })).items.map((row) => row.code),
     ).toEqual(["alpha"]);
-    expect((await viewer.query(api.pages.admin1.problemsList, { search: "bet" })).items).toHaveLength(1);
+    expect((await viewer.query(api.pages.admin.problems.list, { search: "bet" })).items).toHaveLength(1);
   });
 
   test("a setter only sees the problems they may edit", async () => {
     const { t } = await seed();
     const rows = await t
       .withIdentity({ subject: "user_setter" })
-      .query(api.pages.admin1.problemsList, { page: 1 });
+      .query(api.pages.admin.problems.list, { page: 1 });
     expect(rows.items.map((row) => row.code)).toEqual(["alpha"]);
   });
 
   test("the edit form gets names, limits, translations and the editorial", async () => {
     const { t } = await seed();
-    const problem = await t.withIdentity(asRoot).query(api.pages.admin1.problemEdit, { code: "alpha" });
+    const problem = await t.withIdentity(asRoot).query(api.pages.admin.problems.edit, { code: "alpha" });
     expect(problem).not.toBeNull();
     expect(problem?.authors).toEqual(["setter"]);
     expect(problem?.types).toEqual(["dp"]);
@@ -190,7 +190,7 @@ describe("pages/admin1 problems", () => {
 
   test("the option lists are what the selects offer", async () => {
     const { t } = await seed();
-    const options = await t.withIdentity(asRoot).query(api.pages.admin1.problemOptions, {});
+    const options = await t.withIdentity(asRoot).query(api.pages.admin.problems.options, {});
     expect(options.groups.map((row) => row.name).sort()).toEqual(["graphs", "uncategorized"]);
     expect(options.types.map((row) => row.name)).toEqual(["dp"]);
     expect(options.languages.map((row) => row.key)).toEqual(["PY3"]);
@@ -202,15 +202,15 @@ describe("pages/admin1 problems", () => {
     await expect(
       t
         .withIdentity({ subject: "user_setter" })
-        .mutation(api.pages.admin1.cloneProblem, { code: "alpha", newCode: "alpha2" }),
+        .mutation(api.pages.admin.problems.clone, { code: "alpha", newCode: "alpha2" }),
     ).rejects.toThrow(/clone_problem/);
 
     const result = await t
       .withIdentity(asRoot)
-      .mutation(api.pages.admin1.cloneProblem, { code: "alpha", newCode: "alpha2" });
+      .mutation(api.pages.admin.problems.clone, { code: "alpha", newCode: "alpha2" });
     expect(result.code).toBe("alpha2");
 
-    const clone = await t.withIdentity(asRoot).query(api.pages.admin1.problemEdit, { code: "alpha2" });
+    const clone = await t.withIdentity(asRoot).query(api.pages.admin.problems.edit, { code: "alpha2" });
     expect(clone?.isPublic).toBe(false);
     expect(clone?.authors).toEqual(["root"]);
     expect(clone?.languageLimits).toHaveLength(1);
@@ -219,15 +219,15 @@ describe("pages/admin1 problems", () => {
   test("a clone cannot take a code that is already used", async () => {
     const { t } = await seed();
     await expect(
-      t.withIdentity(asRoot).mutation(api.pages.admin1.cloneProblem, { code: "alpha", newCode: "beta" }),
+      t.withIdentity(asRoot).mutation(api.pages.admin.problems.clone, { code: "alpha", newCode: "beta" }),
     ).rejects.toThrow(/already exists/);
   });
 });
 
-describe("pages/admin1 contests", () => {
+describe("pages/admin contests", () => {
   test("the edit form resolves every profile list to usernames", async () => {
     const { t } = await seed();
-    const contest = await t.withIdentity(asRoot).query(api.pages.admin1.contestEdit, { key: "winter" });
+    const contest = await t.withIdentity(asRoot).query(api.pages.admin.contests.edit, { key: "winter" });
     expect(contest?.authors).toEqual(["root"]);
     expect(contest?.testers).toEqual(["setter"]);
     expect(contest?.bannedUsers).toEqual(["member"]);
@@ -239,7 +239,7 @@ describe("pages/admin1 contests", () => {
     const { t } = await seed();
     const resolved = await t
       .withIdentity(asRoot)
-      .query(api.pages.admin1.resolveProfiles, { usernames: ["root", "nobody"] });
+      .query(api.pages.admin.console.resolveProfiles, { usernames: ["root", "nobody"] });
     expect(Object.keys(resolved.ids)).toEqual(["root"]);
     expect(resolved.missing).toEqual(["nobody"]);
   });
@@ -247,37 +247,37 @@ describe("pages/admin1 contests", () => {
   test("the problem picker searches by code and by name", async () => {
     const { t } = await seed();
     const viewer = t.withIdentity(asRoot);
-    expect((await viewer.query(api.pages.admin1.problemSearch, { term: "alph" }))[0]?.code).toBe("alpha");
-    expect((await viewer.query(api.pages.admin1.problemSearch, { term: "Beta" }))[0]?.code).toBe("beta");
+    expect((await viewer.query(api.pages.admin.problems.search, { term: "alph" }))[0]?.code).toBe("alpha");
+    expect((await viewer.query(api.pages.admin.problems.search, { term: "Beta" }))[0]?.code).toBe("beta");
   });
 });
 
-describe("pages/admin1 submissions and jobs", () => {
+describe("pages/admin submissions and jobs", () => {
   test("the submission list filters by problem, result and id range", async () => {
     const { t } = await seed();
     const viewer = t.withIdentity(asRoot);
 
-    const all = await viewer.query(api.pages.admin1.submissionsList, {});
+    const all = await viewer.query(api.pages.admin.submissions.list, {});
     expect(all.total).toBe(2);
     expect(all.items[0]?.username).toBe("member");
 
-    expect((await viewer.query(api.pages.admin1.submissionsList, { problemCode: "beta" })).total).toBe(1);
-    expect((await viewer.query(api.pages.admin1.submissionsList, { results: ["AC"] })).total).toBe(1);
-    expect((await viewer.query(api.pages.admin1.submissionsList, { idFrom: 8, idTo: 8 })).total).toBe(1);
-    expect((await viewer.query(api.pages.admin1.submissionsList, { username: "nobody" })).total).toBe(0);
+    expect((await viewer.query(api.pages.admin.submissions.list, { problemCode: "beta" })).total).toBe(1);
+    expect((await viewer.query(api.pages.admin.submissions.list, { results: ["AC"] })).total).toBe(1);
+    expect((await viewer.query(api.pages.admin.submissions.list, { idFrom: 8, idTo: 8 })).total).toBe(1);
+    expect((await viewer.query(api.pages.admin.submissions.list, { username: "nobody" })).total).toBe(0);
   });
 
   test("the job list names who started each one", async () => {
     const { t } = await seed();
-    const jobs = await t.withIdentity(asRoot).query(api.pages.admin1.jobsList, {});
+    const jobs = await t.withIdentity(asRoot).query(api.pages.admin.jobs.list, {});
     expect(jobs).toHaveLength(1);
     expect(jobs[0]?.createdBy).toBe("root");
     expect(jobs[0]?.type).toBe("rejudge");
-    expect(await t.withIdentity(asRoot).query(api.pages.admin1.jobsList, { status: "failed" })).toEqual([]);
+    expect(await t.withIdentity(asRoot).query(api.pages.admin.jobs.list, { status: "failed" })).toEqual([]);
   });
 });
 
-describe("pages/admin1 revisions", () => {
+describe("pages/admin revisions", () => {
   test("a problem's revisions come back newest first with their reason", async () => {
     const { t, ids } = await seed();
     await t.run(async (ctx) => {
@@ -301,7 +301,7 @@ describe("pages/admin1 revisions", () => {
 
     const rows = await t
       .withIdentity(asRoot)
-      .query(api.pages.admin1.revisionsFor, { entityType: "problem", key: "alpha" });
+      .query(api.pages.admin.revisions.byKey, { entityType: "problem", key: "alpha" });
     expect(rows.map((row) => row.reason)).toEqual(["Second", "First"]);
     expect(rows[0]?.author).toBe("root");
   });

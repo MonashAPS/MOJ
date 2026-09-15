@@ -26,10 +26,12 @@ import {
 } from "@moj/core";
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
-import { type QueryCtx, query } from "../_generated/server";
+import { query } from "../_generated/server";
+import { toContestRow } from "../contests/formats";
 import { resolveSubmission } from "../judging";
 import { globalSourceVisibility, siteSettings } from "../lib/community";
-import { coreContest, coreProblem, viewerContext } from "../submissions";
+import { hasSolvedProblem, toCoreProblem } from "../problems";
+import { viewerContext } from "../submissions";
 
 /* -------------------------------------------------------------------------- */
 /* Filter options                                                             */
@@ -152,13 +154,13 @@ export const listContext = query({
         .unique();
       if (!problem) return { ...base, found: false };
       // `ProblemSubmissionsBase.access_check`.
-      if (!problemIsAccessibleBy(coreProblem(problem), viewer)) {
+      if (!problemIsAccessibleBy(toCoreProblem(problem), viewer)) {
         return { ...base, allowed: false };
       }
       base.problem = {
         code: problem.code,
         name: problem.name,
-        editable: problemIsEditableBy(coreProblem(problem), viewer),
+        editable: problemIsEditableBy(toCoreProblem(problem), viewer),
       };
     }
 
@@ -204,7 +206,7 @@ export const listContext = query({
         }
       }
 
-      const full = contestCanSeeFullScoreboard(coreContest(contest), viewer, { now });
+      const full = contestCanSeeFullScoreboard(toContestRow(contest), viewer, { now });
       base.contest = {
         key: contest.key,
         name: contest.name,
@@ -279,14 +281,14 @@ export const statusExtras = query({
     const solved = await hasSolvedProblem(ctx, viewer?.id as Id<"profiles"> | undefined, problem._id);
     const canSeeDetail = viewer
       ? canSeeSubmissionDetail({ profileId: submission.profileId }, viewer, {
-          problem: coreProblem(problem),
-          contest: contest ? coreContest(contest) : null,
+          problem: toCoreProblem(problem),
+          contest: contest ? toContestRow(contest) : null,
           hasSolvedProblem: viewer.id === submission.profileId ? false : solved,
           globalSubmissionSourceVisibility: globalSourceVisibility(await siteSettings(ctx)),
         })
       : false;
 
-    const problemEditable = problemIsEditableBy(coreProblem(problem), viewer);
+    const problemEditable = problemIsEditableBy(toCoreProblem(problem), viewer);
     const locked = isLocked({ lockedAfter: submission.lockedAfter ?? null }, now);
 
     // `SubmissionStatus.get_context_data`: the language limit wins over the
@@ -316,10 +318,10 @@ export const statusExtras = query({
       solveToView:
         !canSeeDetail &&
         resolveSubmissionSourceVisibility(
-          coreProblem(problem),
+          toCoreProblem(problem),
           globalSourceVisibility(await siteSettings(ctx)),
         ) === "S" &&
-        problemIsAccessibleBy(coreProblem(problem), viewer),
+        problemIsAccessibleBy(toCoreProblem(problem), viewer),
       id: submission.legacyId ?? submission._id,
       problem: { code: problem.code, name: problem.name, points: problem.points },
       user: {
@@ -365,20 +367,6 @@ export const statusExtras = query({
   },
 });
 
-/** `Problem.is_solved_by(user)`: an AC with full case points. */
-async function hasSolvedProblem(
-  ctx: QueryCtx,
-  profileId: Id<"profiles"> | undefined,
-  problemId: Id<"problems">,
-): Promise<boolean> {
-  if (!profileId) return false;
-  const rows = await ctx.db
-    .query("submissions")
-    .withIndex("by_profile_problem", (q) => q.eq("profileId", profileId).eq("problemId", problemId))
-    .collect();
-  return rows.some((row) => row.result === "AC" && row.casePoints >= row.caseTotal && !row.isArchived);
-}
-
 /* -------------------------------------------------------------------------- */
 /* Source page                                                                */
 /* -------------------------------------------------------------------------- */
@@ -422,20 +410,20 @@ export const sourceView = query({
     const author = await ctx.db.get(submission.profileId);
     const language = await ctx.db.get(submission.languageId);
     if (!problem || !author) return null;
-    if (!problemIsVisibleTo(coreProblem(problem), viewer)) return null;
+    if (!problemIsVisibleTo(toCoreProblem(problem), viewer)) return null;
 
     const contest = submission.contestId ? await ctx.db.get(submission.contestId) : null;
     const solved = await hasSolvedProblem(ctx, viewer?.id as Id<"profiles"> | undefined, problem._id);
     const canSee = viewer
       ? canSeeSubmissionDetail({ profileId: submission.profileId }, viewer, {
-          problem: coreProblem(problem),
-          contest: contest ? coreContest(contest) : null,
+          problem: toCoreProblem(problem),
+          contest: contest ? toContestRow(contest) : null,
           hasSolvedProblem: viewer.id === submission.profileId ? false : solved,
           globalSubmissionSourceVisibility: globalSourceVisibility(await siteSettings(ctx)),
         })
       : false;
 
-    const problemEditable = problemIsEditableBy(coreProblem(problem), viewer);
+    const problemEditable = problemIsEditableBy(toCoreProblem(problem), viewer);
     const locked = isLocked({ lockedAfter: submission.lockedAfter ?? null }, now);
     const isOwn = viewerCtx.profile?._id === submission.profileId;
 
@@ -451,10 +439,10 @@ export const sourceView = query({
       solveToView:
         !canSee &&
         resolveSubmissionSourceVisibility(
-          coreProblem(problem),
+          toCoreProblem(problem),
           globalSourceVisibility(await siteSettings(ctx)),
         ) === "S" &&
-        problemIsAccessibleBy(coreProblem(problem), viewer),
+        problemIsAccessibleBy(toCoreProblem(problem), viewer),
       id: submission.legacyId ?? submission._id,
       source: (stored?.source ?? "").replace(/\n+$/, ""),
       problem: { code: problem.code, name: problem.name },

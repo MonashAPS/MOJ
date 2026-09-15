@@ -1,7 +1,8 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import type { ContestDetail, MossPayload } from "@convex/contests";
+import type { ContestDetail } from "@convex/contests";
+import type { MossPayload } from "@convex/contests/tools";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,7 +52,7 @@ export function MossClient({
   const common = useTranslations("common.actions");
   const tabLabels = useTranslations("contests.tabs");
   const router = useRouter();
-  const live = useQuery(api.contests.moss, { key: contestKey });
+  const live = useQuery(api.contests.tools.moss, { key: contestKey });
   const data = live ?? moss;
   const deleteResults = useMutation(api.pages.contests.deleteMossResults);
   const [busy, setBusy] = useState(false);

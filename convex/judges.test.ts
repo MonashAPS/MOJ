@@ -4,7 +4,7 @@ import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { sha256Hex } from "./lib/community";
+import { sha256Hex } from "./lib/hash";
 import {
   judgeRow,
   languageRow,

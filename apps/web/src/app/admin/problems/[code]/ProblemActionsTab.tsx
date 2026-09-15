@@ -45,7 +45,7 @@ export function ProblemActionsTab({
   const rejudgeAll = useMutation(api.admin.problems.rejudgeAll);
   const rescoreAll = useMutation(api.admin.problems.rescoreAll);
   const setVisibility = useMutation(api.admin.problems.setVisibility);
-  const cloneProblem = useMutation(api.pages.admin1.cloneProblem);
+  const cloneProblem = useMutation(api.pages.admin.problems.clone);
 
   const ids = { idFrom: useId(), idTo: useId(), languages: useId(), results: useId(), clone: useId() };
   const [idFrom, setIdFrom] = useState("");

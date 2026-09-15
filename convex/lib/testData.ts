@@ -58,9 +58,3 @@ export function unsafeArchiveMember(names: readonly string[]): string | null {
   }
   return null;
 }
-
-/** sha256 of raw bytes, lowercase hex, the form `problemTestData.hash` holds. */
-export async function sha256OfBytes(bytes: ArrayBuffer): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}

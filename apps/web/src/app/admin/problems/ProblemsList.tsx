@@ -65,8 +65,8 @@ export function ProblemsList() {
   const [selected, setSelected] = useState<string[]>([]);
   const [pendingVisibility, setPendingVisibility] = useState<boolean | null>(null);
 
-  const options = useQuery(api.pages.admin1.problemOptions, {});
-  const data = useQuery(api.pages.admin1.problemsList, {
+  const options = useQuery(api.pages.admin.problems.options, {});
+  const data = useQuery(api.pages.admin.problems.list, {
     search: search || undefined,
     isPublic: visibility === "any" ? undefined : visibility === "public",
     group: group || undefined,

@@ -27,8 +27,8 @@ export function NewProblemForm() {
   const shared = useTranslations("admin.problems.shared");
   const commonActions = useTranslations("common.actions");
   const router = useRouter();
-  const options = useQuery(api.pages.admin1.problemOptions, {});
-  const viewer = useQuery(api.pages.admin1.consoleViewer, {});
+  const options = useQuery(api.pages.admin.problems.options, {});
+  const viewer = useQuery(api.pages.admin.console.viewer, {});
   const create = useMutation(api.admin.problems.create);
   const ids = {
     code: useId(),

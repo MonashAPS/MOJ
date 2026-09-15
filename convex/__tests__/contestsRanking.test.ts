@@ -285,7 +285,7 @@ describe("recomputing", () => {
     const t = harness();
     const fixture = await frozenContest(t);
 
-    await t.withIdentity(identityOf("editor")).mutation(api.contests.disqualify, {
+    await t.withIdentity(identityOf("editor")).mutation(api.contests.participation.disqualify, {
       key: "icpc",
       participationId: fixture.adaParticipation,
       disqualified: true,

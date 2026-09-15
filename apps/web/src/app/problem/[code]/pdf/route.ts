@@ -55,7 +55,7 @@ export async function GET(
   const requested = request.nextUrl.searchParams.get("language");
   const language = requested ? normaliseLanguage(requested) : await viewerLanguage();
 
-  const source = await queryAsViewer(api.problems.pdfSource, { code, language });
+  const source = await queryAsViewer(api.problems.pdf.source, { code, language });
   // `problems.pdfSource` returns null for a problem the viewer may not see, so
   // a private problem is indistinguishable from a missing one, as in DMOJ.
   if (!source) return notFound();
@@ -92,7 +92,7 @@ export async function GET(
 
   // Cache it for the next reader. A failure here must not fail the download.
   try {
-    const uploadUrl = await mutateAsViewer(api.problems.pdfUploadUrl, { code });
+    const uploadUrl = await mutateAsViewer(api.problems.pdf.uploadUrl, { code });
     const stored = await fetch(uploadUrl, {
       method: "POST",
       headers: { "content-type": "application/pdf" },
@@ -100,7 +100,7 @@ export async function GET(
     });
     if (stored.ok) {
       const { storageId } = (await stored.json()) as { storageId: string };
-      await mutateAsViewer(api.problems.savePdf, {
+      await mutateAsViewer(api.problems.pdf.save, {
         code,
         language: source.language,
         sourceHash,

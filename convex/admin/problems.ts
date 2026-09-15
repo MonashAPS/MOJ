@@ -13,16 +13,24 @@ import { makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation, type QueryCtx, query } from "../_generated/server";
+import { writeRevision } from "../lib/community";
 import { forbidden, invalid, notFound } from "../lib/errors";
-import { labelFor, loadViewerContext, problemByCode, solutionFor, toCoreProblem } from "../problems";
+import {
+  labelFor,
+  loadViewerContext,
+  PROBLEM_CODE_PATTERN,
+  problemByCode,
+  solutionFor,
+  toCoreProblem,
+} from "../problems";
 
 /* -------------------------------------------------------------------------- */
 /* Permission gates                                                           */
 /* -------------------------------------------------------------------------- */
 
-type Editor = { profile: Doc<"profiles">; viewer: Awaited<ReturnType<typeof loadViewerContext>> };
+export type Editor = { profile: Doc<"profiles">; viewer: Awaited<ReturnType<typeof loadViewerContext>> };
 
-async function requireStaffViewer(ctx: QueryCtx): Promise<Editor> {
+export async function requireStaffViewer(ctx: QueryCtx): Promise<Editor> {
   const viewer = await loadViewerContext(ctx);
   if (!viewer.profile) throw forbidden("You must be logged in to do that.");
   if (!viewer.profile.isStaff && !viewer.profile.isSuperuser) throw forbidden("Staff only.");
@@ -180,21 +188,21 @@ export async function snapshotProblem(ctx: QueryCtx, problemId: Id<"problems">) 
   };
 }
 
-export async function writeRevision(
+/** A problem revision always carries the whole problem, so it can be diffed. */
+export async function writeProblemRevision(
   ctx: MutationCtx,
   problemId: Id<"problems">,
   authorProfileId: Id<"profiles"> | undefined,
   reason: string,
 ): Promise<void> {
-  const snapshot = await snapshotProblem(ctx, problemId);
-  await ctx.db.insert("revisions", {
-    entityType: "problem",
-    entityId: problemId,
-    snapshot,
+  await writeRevision(
+    ctx,
+    "problem",
+    problemId,
+    await snapshotProblem(ctx, problemId),
     authorProfileId,
     reason,
-    createdAt: Date.now(),
-  });
+  );
 }
 
 /* -------------------------------------------------------------------------- */
@@ -270,8 +278,6 @@ async function languageIdsByKey(ctx: QueryCtx, keys: readonly string[]): Promise
 /* create / update                                                            */
 /* -------------------------------------------------------------------------- */
 
-const CODE_PATTERN = /^[a-z.0-9]+$/;
-
 export const create = mutation({
   args: {
     code: v.string(),
@@ -303,7 +309,7 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const { profile, viewer } = await requireProblemCreator(ctx);
 
-    if (!CODE_PATTERN.test(args.code) || args.code.length > 20) {
+    if (!PROBLEM_CODE_PATTERN.test(args.code) || args.code.length > 20) {
       throw invalid("Problem codes may only contain lowercase letters, digits and dots.");
     }
     if (await problemByCode(ctx, args.code)) {
@@ -372,7 +378,7 @@ export const create = mutation({
       isOrganizationPrivate,
     });
 
-    await writeRevision(ctx, problemId, profile._id, args.reason ?? "Created the problem.");
+    await writeProblemRevision(ctx, problemId, profile._id, args.reason ?? "Created the problem.");
     return {
       id: problemId,
       code: args.code,
@@ -475,7 +481,7 @@ export const update = mutation({
     }
 
     await ctx.db.patch(problem._id, patch);
-    await writeRevision(ctx, problem._id, profile._id, args.reason ?? "Edited the problem.");
+    await writeProblemRevision(ctx, problem._id, profile._id, args.reason ?? "Edited the problem.");
 
     // `save_model` rescores when any of these change.
     const rescoreFields: (keyof Doc<"problems">)[] = ["isPublic", "organizationIds", "points", "partial"];
@@ -501,7 +507,7 @@ export const setVisibility = mutation({
         continue;
       }
       await ctx.db.patch(problem._id, { isPublic: args.isPublic });
-      await writeRevision(
+      await writeProblemRevision(
         ctx,
         problem._id,
         profile._id,
@@ -542,7 +548,7 @@ export const setOwnership = mutation({
       warnings.push(...resolved.missing);
     }
     await ctx.db.patch(problem._id, patch);
-    await writeRevision(ctx, problem._id, profile._id, args.reason ?? "Changed ownership.");
+    await writeProblemRevision(ctx, problem._id, profile._id, args.reason ?? "Changed ownership.");
     return { ok: true, warnings };
   },
 });
@@ -553,7 +559,7 @@ export const setBannedUsers = mutation({
     const { profile, problem } = await requireProblemEditor(ctx, args.code);
     const resolved = await profileIdsFor(ctx, args.usernames);
     await ctx.db.patch(problem._id, { bannedProfileIds: resolved.ids });
-    await writeRevision(ctx, problem._id, profile._id, args.reason ?? "Changed banned users.");
+    await writeProblemRevision(ctx, problem._id, profile._id, args.reason ?? "Changed banned users.");
     return { ok: true, warnings: resolved.missing };
   },
 });
@@ -591,7 +597,7 @@ export const setLanguageLimits = mutation({
         memoryLimit: limit.memoryLimit,
       });
     }
-    await writeRevision(ctx, problem._id, profile._id, args.reason ?? "Changed language limits.");
+    await writeProblemRevision(ctx, problem._id, profile._id, args.reason ?? "Changed language limits.");
     return { ok: true };
   },
 });
@@ -620,7 +626,7 @@ export const setTranslation = mutation({
         description: args.description,
       });
     }
-    await writeRevision(
+    await writeProblemRevision(
       ctx,
       problem._id,
       profile._id,
@@ -639,7 +645,7 @@ export const deleteTranslation = mutation({
       .withIndex("by_problem_language", (q) => q.eq("problemId", problem._id).eq("language", args.language))
       .unique();
     if (existing) await ctx.db.delete(existing._id);
-    await writeRevision(
+    await writeProblemRevision(
       ctx,
       problem._id,
       profile._id,
@@ -663,7 +669,7 @@ export const addClarification = mutation({
       description: args.description,
       date: args.date ?? Date.now(),
     });
-    await writeRevision(ctx, problem._id, profile._id, args.reason ?? "Added a clarification.");
+    await writeProblemRevision(ctx, problem._id, profile._id, args.reason ?? "Added a clarification.");
     return { id };
   },
 });
@@ -679,7 +685,7 @@ export const deleteClarification = mutation({
     const existing = await ctx.db.get(args.clarificationId);
     if (!existing || existing.problemId !== problem._id) throw notFound("Clarification");
     await ctx.db.delete(args.clarificationId);
-    await writeRevision(ctx, problem._id, profile._id, args.reason ?? "Removed a clarification.");
+    await writeProblemRevision(ctx, problem._id, profile._id, args.reason ?? "Removed a clarification.");
     return { ok: true };
   },
 });
@@ -713,7 +719,7 @@ export const setEditorial = mutation({
         content: args.content,
       });
     }
-    await writeRevision(ctx, problem._id, profile._id, args.reason ?? "Edited the editorial.");
+    await writeProblemRevision(ctx, problem._id, profile._id, args.reason ?? "Edited the editorial.");
     return { ok: true, warnings: authors?.missing ?? [] };
   },
 });
@@ -724,158 +730,7 @@ export const deleteEditorial = mutation({
     const { profile, problem } = await requireProblemEditor(ctx, args.code);
     const existing = await solutionFor(ctx, problem._id);
     if (existing) await ctx.db.delete(existing._id);
-    await writeRevision(ctx, problem._id, profile._id, args.reason ?? "Removed the editorial.");
-    return { ok: true };
-  },
-});
-
-/* -------------------------------------------------------------------------- */
-/* Taxonomy and licenses                                                      */
-/* -------------------------------------------------------------------------- */
-
-async function requireTaxonomyEditor(ctx: QueryCtx, code: string): Promise<Editor> {
-  const editor = await requireStaffViewer(ctx);
-  if (!hasPerm(editor.viewer.core, code)) throw forbidden(`Missing permission ${code}.`);
-  return editor;
-}
-
-export const createType = mutation({
-  args: { name: v.string(), fullName: v.string() },
-  handler: async (ctx, args) => {
-    await requireTaxonomyEditor(ctx, "judge.add_problemtype");
-    const existing = await ctx.db
-      .query("problemTypes")
-      .withIndex("by_name", (q) => q.eq("name", args.name))
-      .first();
-    if (existing) throw invalid(`A problem type named "${args.name}" already exists.`);
-    return { id: await ctx.db.insert("problemTypes", args) };
-  },
-});
-
-export const updateType = mutation({
-  args: { id: v.id("problemTypes"), name: v.optional(v.string()), fullName: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    await requireTaxonomyEditor(ctx, "judge.change_problemtype");
-    const patch: Partial<Doc<"problemTypes">> = {};
-    if (args.name !== undefined) patch.name = args.name;
-    if (args.fullName !== undefined) patch.fullName = args.fullName;
-    await ctx.db.patch(args.id, patch);
-    return { ok: true };
-  },
-});
-
-export const deleteType = mutation({
-  args: { id: v.id("problemTypes") },
-  handler: async (ctx, { id }) => {
-    await requireTaxonomyEditor(ctx, "judge.delete_problemtype");
-    const inUse = (await ctx.db.query("problems").take(20_000)).some((row) => row.typeIds.includes(id));
-    if (inUse) throw invalid("This problem type is still in use.");
-    await ctx.db.delete(id);
-    return { ok: true };
-  },
-});
-
-export const createGroup = mutation({
-  args: { name: v.string(), fullName: v.string() },
-  handler: async (ctx, args) => {
-    await requireTaxonomyEditor(ctx, "judge.add_problemgroup");
-    const existing = await ctx.db
-      .query("problemGroups")
-      .withIndex("by_name", (q) => q.eq("name", args.name))
-      .first();
-    if (existing) throw invalid(`A problem group named "${args.name}" already exists.`);
-    return { id: await ctx.db.insert("problemGroups", args) };
-  },
-});
-
-export const updateGroup = mutation({
-  args: {
-    id: v.id("problemGroups"),
-    name: v.optional(v.string()),
-    fullName: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    await requireTaxonomyEditor(ctx, "judge.change_problemgroup");
-    const patch: Partial<Doc<"problemGroups">> = {};
-    if (args.name !== undefined) patch.name = args.name;
-    if (args.fullName !== undefined) patch.fullName = args.fullName;
-    await ctx.db.patch(args.id, patch);
-    return { ok: true };
-  },
-});
-
-export const deleteGroup = mutation({
-  args: { id: v.id("problemGroups") },
-  handler: async (ctx, { id }) => {
-    await requireTaxonomyEditor(ctx, "judge.delete_problemgroup");
-    const inUse = await ctx.db
-      .query("problems")
-      .withIndex("by_group", (q) => q.eq("groupId", id))
-      .first();
-    if (inUse) throw invalid("This problem group is still in use.");
-    await ctx.db.delete(id);
-    return { ok: true };
-  },
-});
-
-export const createLicense = mutation({
-  args: {
-    key: v.string(),
-    link: v.string(),
-    name: v.string(),
-    display: v.optional(v.string()),
-    icon: v.optional(v.string()),
-    text: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    await requireTaxonomyEditor(ctx, "judge.add_license");
-    const existing = await ctx.db
-      .query("licenses")
-      .withIndex("by_key", (q) => q.eq("key", args.key))
-      .first();
-    if (existing) throw invalid(`A license with the key "${args.key}" already exists.`);
-    return {
-      id: await ctx.db.insert("licenses", {
-        key: args.key,
-        link: args.link,
-        name: args.name,
-        display: args.display ?? "",
-        icon: args.icon ?? "",
-        text: args.text ?? "",
-      }),
-    };
-  },
-});
-
-export const updateLicense = mutation({
-  args: {
-    id: v.id("licenses"),
-    link: v.optional(v.string()),
-    name: v.optional(v.string()),
-    display: v.optional(v.string()),
-    icon: v.optional(v.string()),
-    text: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    await requireTaxonomyEditor(ctx, "judge.change_license");
-    const patch: Partial<Doc<"licenses">> = {};
-    if (args.link !== undefined) patch.link = args.link;
-    if (args.name !== undefined) patch.name = args.name;
-    if (args.display !== undefined) patch.display = args.display;
-    if (args.icon !== undefined) patch.icon = args.icon;
-    if (args.text !== undefined) patch.text = args.text;
-    await ctx.db.patch(args.id, patch);
-    return { ok: true };
-  },
-});
-
-export const deleteLicense = mutation({
-  args: { id: v.id("licenses") },
-  handler: async (ctx, { id }) => {
-    await requireTaxonomyEditor(ctx, "judge.delete_license");
-    const inUse = (await ctx.db.query("problems").take(20_000)).some((row) => row.licenseId === id);
-    if (inUse) throw invalid("This license is still in use.");
-    await ctx.db.delete(id);
+    await writeProblemRevision(ctx, problem._id, profile._id, args.reason ?? "Removed the editorial.");
     return { ok: true };
   },
 });
@@ -885,9 +740,9 @@ export const deleteLicense = mutation({
 /* -------------------------------------------------------------------------- */
 
 /**
- * The job runners live in `convex/jobs.ts`, which another agent owns and which
- * may not exist on this branch yet. Scheduling by name keeps this module
- * compiling either way; `jobs.run` picks the runner off the `type` field.
+ * `jobs.run` reads the row's `type` and schedules the runner that owns it.
+ * Naming the function rather than importing it keeps `convex/jobs.ts` out of
+ * this module's imports.
  */
 const jobsRun = makeFunctionReference<"mutation">("jobs:run");
 
@@ -940,7 +795,7 @@ export const rejudgeAll = mutation({
       },
       profile._id,
     );
-    await writeRevision(
+    await writeProblemRevision(
       ctx,
       problem._id,
       profile._id,
@@ -959,7 +814,7 @@ export const rescoreAll = mutation({
       throw forbidden("Missing permission judge.rejudge_submission.");
     }
     const jobId = await scheduleJob(ctx, "rescore", { problemCode: problem.code }, profile._id);
-    await writeRevision(
+    await writeProblemRevision(
       ctx,
       problem._id,
       profile._id,

@@ -49,7 +49,7 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
     ...viewScoreboard,
     ...viewSubmissions,
   ];
-  const profiles = useQuery(api.pages.admin1.resolveProfiles, { usernames });
+  const profiles = useQuery(api.pages.admin.console.resolveProfiles, { usernames });
 
   function idsFor(list: string[]): Id<"profiles">[] {
     const map = profiles?.ids ?? {};

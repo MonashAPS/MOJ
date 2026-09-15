@@ -25,8 +25,8 @@ export function Clarifications({
 }) {
   const t = useTranslations("contests.clarifications");
   const columns = useTranslations("contests.columns");
-  const rows = useQuery(api.contests.clarifications, { key: contestKey });
-  const add = useMutation(api.contests.addClarification);
+  const rows = useQuery(api.contests.clarifications.list, { key: contestKey });
+  const add = useMutation(api.contests.clarifications.add);
   const [problemCode, setProblemCode] = useState(problems[0]?.code ?? "");
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);

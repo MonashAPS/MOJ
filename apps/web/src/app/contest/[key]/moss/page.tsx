@@ -16,7 +16,7 @@ export default async function ContestMossPage({ params }: { params: Promise<{ ke
   const { key } = await params;
   const [detail, moss, viewerState] = await Promise.all([
     queryAsViewer(api.contests.get, { key }).catch(() => null),
-    queryAsViewer(api.contests.moss, { key }).catch(() => null),
+    queryAsViewer(api.contests.tools.moss, { key }).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
   ]);
 

@@ -1,50 +1,18 @@
 /**
- * Chunked job runners for contests (SPEC section 12).
- *
- * `convex/jobs.ts` (the generic `create` / `status` helpers) belongs to another
- * agent; until it lands these runners own their `jobs` rows themselves. When it
- * arrives, replace the three small helpers at the top with calls into it; the
- * runners below do not otherwise change.
+ * Chunked job runners for contests (SPEC section 12): rescoring, rating,
+ * rejudging one contest problem and MOSS. The `jobs` row itself is kept by the
+ * helpers in `convex/jobs.ts`; each runner does a bounded amount of work and
+ * schedules the next chunk.
  */
 
 import { shouldLeaveContest } from "@moj/core";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { internalMutation, type MutationCtx } from "../_generated/server";
+import { internalMutation } from "../_generated/server";
 import { toContestRow, toParticipationRow, toViewerRowInContest } from "../contests/formats";
 import { RESCORE_CHUNK, recompute } from "../contests/rankings";
-
-async function startJob(ctx: MutationCtx, jobId: Id<"jobs">, stage: string): Promise<void> {
-  const job = await ctx.db.get(jobId);
-  if (!job) return;
-  if (job.status === "queued") {
-    await ctx.db.patch(jobId, { status: "running", progress: { ...job.progress, stage } });
-  }
-}
-
-async function advance(ctx: MutationCtx, jobId: Id<"jobs">, done: number): Promise<void> {
-  const job = await ctx.db.get(jobId);
-  if (!job) return;
-  await ctx.db.patch(jobId, { progress: { ...job.progress, done } });
-}
-
-async function finishJob(
-  ctx: MutationCtx,
-  jobId: Id<"jobs">,
-  result: unknown,
-  error?: string,
-): Promise<void> {
-  const job = await ctx.db.get(jobId);
-  if (!job) return;
-  await ctx.db.patch(jobId, {
-    status: error ? "failed" : "done",
-    result,
-    error,
-    finishedAt: Date.now(),
-    progress: { ...job.progress, done: job.progress.total },
-  });
-}
+import { advance, failJob, finishJob, startJob } from "../jobs";
+import { queueSubmission } from "../judging";
 
 /**
  * `rescore_contest` (judge/tasks/contest.py:14): recompute every participation
@@ -57,7 +25,7 @@ export const rescoreChunk = internalMutation({
 
     const contest = await ctx.db.get(contestId);
     if (!contest) {
-      await finishJob(ctx, jobId, null, "The contest no longer exists.");
+      await failJob(ctx, jobId, "The contest no longer exists.");
       return null;
     }
 
@@ -93,7 +61,7 @@ export const rateContestJob = internalMutation({
     await startJob(ctx, jobId, "Rating contests");
     const contest = await ctx.db.get(contestId);
     if (!contest) {
-      await finishJob(ctx, jobId, null, "The contest no longer exists.");
+      await failJob(ctx, jobId, "The contest no longer exists.");
       return null;
     }
     const result = await ctx.runMutation(internal.ratings.rateContestInternal, { contestId });
@@ -105,10 +73,9 @@ export const rateContestJob = internalMutation({
 export const REJUDGE_CHUNK = 100;
 
 /**
- * Rejudge every submission to one contest problem. The reset itself is the
- * judging agent's `admin/submissions.rejudge`; until that exists this runner
- * does the same field reset inline, which is what DMOJ's
- * `Submission.judge(rejudge=True)` amounts to.
+ * Rejudge every submission to one contest problem, `REJUDGE_CHUNK` at a time.
+ * Each one goes back through `queueSubmission`, so it is queued exactly as
+ * DMOJ's `Submission.judge(rejudge=True)` queues it.
  */
 export const rejudgeContestProblemChunk = internalMutation({
   args: {
@@ -122,7 +89,7 @@ export const rejudgeContestProblemChunk = internalMutation({
 
     const contestProblem = await ctx.db.get(contestProblemId);
     if (!contestProblem) {
-      await finishJob(ctx, jobId, null, "The contest problem no longer exists.");
+      await failJob(ctx, jobId, "The contest problem no longer exists.");
       return null;
     }
 
@@ -133,35 +100,10 @@ export const rejudgeContestProblemChunk = internalMutation({
         .collect()
     ).filter((row) => row.contestProblemId === contestProblemId);
 
-    const slice = submissions.slice(cursor, cursor + REJUDGE_CHUNK);
-    for (const submission of slice) {
-      // A submission already on a judge is left alone, as DMOJ does.
-      if (submission.status === "P" || submission.status === "G") continue;
-      const cases = await ctx.db
-        .query("submissionTestCases")
-        .withIndex("by_submission_case", (q) => q.eq("submissionId", submission._id))
-        .collect();
-      for (const row of cases) await ctx.db.delete(row._id);
-
-      await ctx.db.patch(submission._id, {
-        status: "QU",
-        result: undefined,
-        error: undefined,
-        currentTestcase: 0,
-        batch: false,
-        casePoints: 0,
-        caseTotal: 0,
-        points: undefined,
-        time: undefined,
-        memory: undefined,
-        judgedOnJudgeId: undefined,
-        judgedDate: undefined,
-        rejudgedDate: Date.now(),
-        claimedByJudgeId: undefined,
-        claimedAt: undefined,
-        retryCount: 0,
-        priority: 3,
-      });
+    // A submission already on a judge is left alone, as DMOJ does; that is
+    // what `queueSubmission` refusing it means.
+    for (const submission of submissions.slice(cursor, cursor + REJUDGE_CHUNK)) {
+      await queueSubmission(ctx, submission._id, { batchRejudge: true });
     }
 
     const done = Math.min(cursor + REJUDGE_CHUNK, submissions.length);
@@ -196,7 +138,7 @@ export const mossJob = internalMutation({
       .withIndex("by_singleton", (q) => q.eq("singleton", "site"))
       .unique();
     if (!settings?.mossApiKey) {
-      await finishJob(ctx, jobId, null, "MOSS is not configured.");
+      await failJob(ctx, jobId, "MOSS is not configured.");
       return null;
     }
     const contest = await ctx.db.get(contestId);

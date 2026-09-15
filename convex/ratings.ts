@@ -8,7 +8,13 @@
  * history inconsistent.
  */
 
-import { rateContest as computeRatings, MEAN_INIT, RATING_INIT, type RatingInputRow } from "@moj/core";
+import {
+  rateContest as computeRatings,
+  MEAN_INIT,
+  PARTICIPATION_LIVE,
+  RATING_INIT,
+  type RatingInputRow,
+} from "@moj/core";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -16,8 +22,6 @@ import { internalMutation, type MutationCtx, mutation, query } from "./_generate
 import { contestByKey, toViewerRowInContest } from "./contests/formats";
 import { hasPerm, optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, notFound } from "./lib/errors";
-
-const LIVE = 0;
 
 type History = {
   performances: number[];
@@ -61,7 +65,9 @@ export async function rateOne(ctx: MutationCtx, contest: Doc<"contests">): Promi
 
   const participations = await ctx.db
     .query("contestParticipations")
-    .withIndex("by_contest_virtual_score", (q) => q.eq("contestId", contest._id).eq("virtual", LIVE))
+    .withIndex("by_contest_virtual_score", (q) =>
+      q.eq("contestId", contest._id).eq("virtual", PARTICIPATION_LIVE),
+    )
     .collect();
 
   const rows: RatingInputRow[] = [];

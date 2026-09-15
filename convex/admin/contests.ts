@@ -12,6 +12,7 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation, query } from "../_generated/server";
 import {
+  CONTEST_KEY_PATTERN,
   contestByKey,
   describeFormatError,
   loadContestProblems,
@@ -19,10 +20,9 @@ import {
   toViewerRowInContest,
 } from "../contests/formats";
 import { hasPerm, optionalViewer, requireViewer } from "../lib/auth";
+import { writeRevision } from "../lib/community";
 import { forbidden, invalid, mojError, notFound } from "../lib/errors";
 import { labelScheme, scoreboardVisibility } from "../schema";
-
-const KEY_PATTERN = /^[a-z0-9]+$/;
 
 /* -------------------------------------------------------------------------- */
 /* Field validators                                                           */
@@ -122,24 +122,6 @@ async function requireEditable(ctx: MutationCtx, key: string) {
   const viewer = await toViewerRowInContest(ctx, profile);
   if (!contestIsEditableBy(toContestRow(contest), viewer)) throw forbidden();
   return { profile, contest, viewer };
-}
-
-async function writeRevision(
-  ctx: MutationCtx,
-  entityType: string,
-  entityId: string,
-  snapshot: unknown,
-  authorProfileId: Id<"profiles">,
-  reason: string,
-): Promise<void> {
-  await ctx.db.insert("revisions", {
-    entityType,
-    entityId,
-    snapshot,
-    authorProfileId,
-    reason: reason.trim() || "Edited from the staff console",
-    createdAt: Date.now(),
-  });
 }
 
 /** Guard the fields DMOJ gates behind their own permission. */
@@ -339,7 +321,7 @@ export const create = mutation({
     }
 
     const key = args.key.trim();
-    if (!KEY_PATTERN.test(key) || key.length > 20) {
+    if (!CONTEST_KEY_PATTERN.test(key) || key.length > 20) {
       throw invalid("Contest id must be lowercase letters and digits, at most 20 characters.");
     }
     if (await contestByKey(ctx, key)) throw mojError("CONFLICT", "That contest id is already taken.");

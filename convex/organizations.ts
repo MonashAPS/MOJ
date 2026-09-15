@@ -23,6 +23,7 @@ import { type MutationCtx, mutation, type QueryCtx, query } from "./_generated/s
 import { optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, invalid, notFound } from "./lib/errors";
 import { bumpMemberCount, MAX_OPEN_ORGANIZATIONS } from "./profiles";
+import { type LeaderboardRow, userSort } from "./rankings";
 
 /** `OrganizationUsers.paginate_by`. */
 export const MEMBERS_PER_PAGE = 100;
@@ -46,7 +47,7 @@ type ViewerRow = {
   permissions: readonly string[];
 } | null;
 
-function asOrganizationRow(organization: Doc<"organizations">): OrganizationRow {
+export function asOrganizationRow(organization: Doc<"organizations">): OrganizationRow {
   return {
     id: organization._id,
     slug: organization.slug,
@@ -57,7 +58,7 @@ function asOrganizationRow(organization: Doc<"organizations">): OrganizationRow 
   };
 }
 
-function asViewerRow(profile: Doc<"profiles"> | null): ViewerRow {
+export function asViewerRow(profile: Doc<"profiles"> | null): ViewerRow {
   if (!profile) return null;
   return {
     id: profile._id,
@@ -296,31 +297,14 @@ export const get = query({
   },
 });
 
-export type OrganizationMemberRow = {
-  _id: Id<"profiles">;
-  username: string;
-  displayName: string;
-  displayRank: string;
-  points: number;
-  performancePoints: number;
-  problemCount: number;
-  rating?: number;
-  rank: number;
-};
+export type OrganizationMemberRow = LeaderboardRow;
 
 /** `OrganizationUsers`: listed members only, ranked, 100 per page. */
 export const members = query({
   args: {
     slug: v.string(),
     page: v.optional(v.number()),
-    sort: v.optional(
-      v.union(
-        v.literal("performancePoints"),
-        v.literal("problemCount"),
-        v.literal("rating"),
-        v.literal("points"),
-      ),
-    ),
+    sort: v.optional(userSort),
     descending: v.optional(v.boolean()),
   },
   handler: async (

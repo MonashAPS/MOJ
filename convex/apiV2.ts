@@ -21,7 +21,6 @@ import {
   contestIsVisibleTo,
   getContestFormat,
   getContestLabelForProblem,
-  isFullSolve,
   participationEndTime,
   participationStart,
   problemIsAccessibleBy,
@@ -47,9 +46,11 @@ import { API_PAGE_SIZE } from "@moj/protocol";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { type QueryCtx, query } from "./_generated/server";
+import { toContestRow } from "./contests/formats";
 import { optionalViewer } from "./lib/auth";
 import { globalSourceVisibility, siteSettings } from "./lib/community";
 import { forbidden, notFound } from "./lib/errors";
+import { hasSolvedProblem, toCoreProblem } from "./problems";
 
 /**
  * How many rows a list endpoint reads before paginating. DMOJ paginates in SQL;
@@ -148,65 +149,6 @@ async function apiViewer(ctx: QueryCtx): Promise<{ profile: Doc<"profiles"> | nu
   };
 }
 
-function contestRow(contest: Doc<"contests">) {
-  return {
-    id: contest._id as string,
-    key: contest.key,
-    name: contest.name,
-    startTime: contest.startTime,
-    endTime: contest.endTime,
-    timeLimit: contest.timeLimit ?? null,
-    isVisible: contest.isVisible,
-    isPrivate: contest.isPrivate,
-    isOrganizationPrivate: contest.isOrganizationPrivate,
-    authorProfileIds: contest.authorProfileIds as unknown as string[],
-    curatorProfileIds: contest.curatorProfileIds as unknown as string[],
-    testerProfileIds: contest.testerProfileIds as unknown as string[],
-    spectatorProfileIds: contest.spectatorProfileIds as unknown as string[],
-    testerSeeScoreboard: contest.testerSeeScoreboard,
-    testerSeeSubmissions: contest.testerSeeSubmissions,
-    viewContestScoreboardProfileIds: contest.viewContestScoreboardProfileIds as unknown as string[],
-    viewContestSubmissionsProfileIds: contest.viewContestSubmissionsProfileIds as unknown as string[],
-    privateContestantProfileIds: contest.privateContestantProfileIds as unknown as string[],
-    organizationIds: contest.organizationIds as unknown as string[],
-    classIds: contest.classIds as unknown as string[],
-    bannedProfileIds: contest.bannedProfileIds as unknown as string[],
-    scoreboardVisibility: contest.scoreboardVisibility,
-    formatName: contest.formatName,
-    formatConfig: contest.formatConfig,
-    labelScheme: contest.labelScheme,
-    customLabels: contest.customLabels,
-    pointsPrecision: contest.pointsPrecision,
-    runPretestsOnly: contest.runPretestsOnly,
-    isRated: contest.isRated,
-    rateAll: contest.rateAll,
-    ratingFloor: contest.ratingFloor ?? null,
-    ratingCeiling: contest.ratingCeiling ?? null,
-    performanceCeilingOverride: contest.performanceCeilingOverride ?? null,
-    freezeMinutes: contest.freezeMinutes,
-    blindDuringFreeze: contest.blindDuringFreeze,
-    lockedAfter: contest.lockedAfter ?? null,
-  };
-}
-
-function problemRow(problem: Doc<"problems">) {
-  return {
-    id: problem._id as string,
-    code: problem.code,
-    name: problem.name,
-    isPublic: problem.isPublic,
-    isOrganizationPrivate: problem.isOrganizationPrivate,
-    organizationIds: problem.organizationIds as unknown as string[],
-    authorProfileIds: problem.authorProfileIds as unknown as string[],
-    curatorProfileIds: problem.curatorProfileIds as unknown as string[],
-    testerProfileIds: problem.testerProfileIds as unknown as string[],
-    bannedProfileIds: problem.bannedProfileIds as unknown as string[],
-    points: problem.points,
-    partial: problem.partial,
-    submissionSourceVisibility: problem.submissionSourceVisibility,
-  };
-}
-
 /* -------------------------------------------------------------------------- */
 /* Contests                                                                   */
 /* -------------------------------------------------------------------------- */
@@ -241,7 +183,7 @@ export const contests = query({
 
     const objects: ApiContestListObject[] = [];
     for (const contest of rows) {
-      if (!contestIsVisibleTo(contestRow(contest), viewer)) continue;
+      if (!contestIsVisibleTo(toContestRow(contest), viewer)) continue;
       if (args.is_rated !== undefined && contest.isRated !== args.is_rated) continue;
       if (args.key && !args.key.includes(contest.key)) continue;
       if (
@@ -286,7 +228,7 @@ export const contest = query({
     if (!contestDoc) throw notFound("Contest");
 
     const { row: viewer } = await apiViewer(ctx);
-    const core = contestRow(contestDoc);
+    const core = toContestRow(contestDoc);
     if (!contestIsAccessibleBy(core, viewer)) throw notFound("Contest");
 
     const now = Date.now();
@@ -470,7 +412,7 @@ export const participations = query({
     const allContests = await ctx.db.query("contests").collect();
     const visibleContests = new Map<Id<"contests">, Doc<"contests">>();
     for (const contestDoc of allContests) {
-      const core = contestRow(contestDoc);
+      const core = toContestRow(contestDoc);
       if (!contestIsVisibleTo(core, viewer)) continue;
       if (!seesPrivate) {
         // `APIContestParticipationList.get_unfiltered_queryset`.
@@ -512,7 +454,7 @@ export const participations = query({
       if (!owner) continue;
       if (args.user && owner.username !== args.user) continue;
 
-      const core = contestRow(contestDoc);
+      const core = toContestRow(contestDoc);
       const timing = {
         id: participation._id as string,
         contestId: participation.contestId as string,
@@ -575,7 +517,7 @@ export const problems = query({
 
     const objects: ApiProblemListObject[] = [];
     for (const problem of rows) {
-      if (!problemIsVisibleTo(problemRow(problem), viewer)) continue;
+      if (!problemIsVisibleTo(toCoreProblem(problem), viewer)) continue;
       if (args.partial !== undefined && problem.partial !== args.partial) continue;
       if (args.code && !args.code.includes(problem.code)) continue;
       if (
@@ -622,7 +564,7 @@ export const problem = query({
     if (!problemDoc) throw notFound("Problem");
 
     const { row: viewer } = await apiViewer(ctx);
-    if (!problemIsAccessibleBy(problemRow(problemDoc), viewer, { skipContestProblemCheck: true })) {
+    if (!problemIsAccessibleBy(toCoreProblem(problemDoc), viewer, { skipContestProblemCheck: true })) {
       throw notFound("Problem");
     }
 
@@ -793,7 +735,7 @@ export const user = query({
       const contestDoc = await ctx.db.get(participation.contestId);
       if (!contestDoc) continue;
       if (contestDoc.endTime >= now) continue;
-      if (!contestIsVisibleTo(contestRow(contestDoc), viewer)) continue;
+      if (!contestIsVisibleTo(toContestRow(contestDoc), viewer)) continue;
       const entry = ratingRows.find((row) => row.participationId === participation._id) ?? null;
       history.push({
         key: contestDoc.key,
@@ -924,7 +866,7 @@ export const submissions = query({
         problemCache.set(submission.problemId, problemDoc);
       }
       if (!problemDoc) continue;
-      if (!problemIsVisibleTo(problemRow(problemDoc), viewer)) continue;
+      if (!problemIsVisibleTo(toCoreProblem(problemDoc), viewer)) continue;
 
       const owner = await ctx.db.get(submission.profileId);
       const language = await ctx.db.get(submission.languageId);
@@ -1034,8 +976,8 @@ export const submission = query({
 
     const viewerSolved = await hasSolvedProblem(ctx, profile._id, problemDoc._id);
     const allowed = canSeeSubmissionDetail({ profileId: submissionDoc.profileId as string }, viewer, {
-      problem: problemRow(problemDoc),
-      contest: contestDoc ? contestRow(contestDoc) : null,
+      problem: toCoreProblem(problemDoc),
+      contest: contestDoc ? toContestRow(contestDoc) : null,
       hasSolvedProblem: viewerSolved,
       globalSubmissionSourceVisibility: globalSourceVisibility(await siteSettings(ctx)),
     });
@@ -1066,18 +1008,6 @@ export const submission = query({
     };
   },
 });
-
-async function hasSolvedProblem(
-  ctx: QueryCtx,
-  profileId: Id<"profiles">,
-  problemId: Id<"problems">,
-): Promise<boolean> {
-  const rows = await ctx.db
-    .query("submissions")
-    .withIndex("by_profile_problem", (q) => q.eq("profileId", profileId).eq("problemId", problemId))
-    .take(500);
-  return rows.some((row) => isFullSolve(row));
-}
 
 /* -------------------------------------------------------------------------- */
 /* Organizations, languages, judges                                           */

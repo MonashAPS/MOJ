@@ -1,6 +1,18 @@
+/**
+ * Problems: the list, the problem page, the random pick, the editorial, the
+ * ranked submissions and the small reads the problem pages hang off.
+ *
+ * The viewer and access helpers here are what the other problem modules share:
+ * `problems/votes.ts`, `problems/pdf.ts`, `problems/data.ts`,
+ * `problems/testData.ts`, `admin/problems.ts` and the pages that read a
+ * problem all go through `loadViewerContext`, `problemByCode` and
+ * `canAccessProblem` rather than repeating the rules.
+ */
+
 import {
   hasPerm as coreHasPerm,
   DEFAULT_SUBMISSION_SOURCE_VISIBILITY,
+  isFullSolve,
   problemIsAccessibleBy,
   problemIsEditableBy,
   problemIsVisibleTo,
@@ -12,16 +24,18 @@ import {
 import type { ProblemRow, ProfileRow } from "@moj/core/types";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
-import { mutation, type QueryCtx, query } from "./_generated/server";
-import { optionalViewer, requireViewer } from "./lib/auth";
-import { forbidden, invalid, notFound } from "./lib/errors";
+import { type MutationCtx, type QueryCtx, query } from "./_generated/server";
+import { optionalViewer } from "./lib/auth";
+import { notFound } from "./lib/errors";
 import { proctorBlocksContestProblems } from "./lib/proctor";
+import { profileByUsername } from "./profiles";
 
-export const MIN_USER_POINTS_VOTE = 1;
-export const MAX_USER_POINTS_VOTE = 50;
 export const HOT_PROBLEM_COUNT = 7;
 export const HOT_PROBLEM_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const DEFAULT_PAGE_SIZE = 50;
+
+/** `Problem.code`: DMOJ's slug field, lowercase letters, digits and dots. */
+export const PROBLEM_CODE_PATTERN = /^[a-z.0-9]+$/;
 
 /** Cap on how far a single list query will scan. */
 const MAX_SCAN = 20_000;
@@ -124,11 +138,35 @@ export function toCoreProblem(problem: Doc<"problems">): ProblemRow {
   };
 }
 
-export async function problemByCode(ctx: QueryCtx, code: string): Promise<Doc<"problems"> | null> {
+export async function problemByCode(
+  ctx: QueryCtx | MutationCtx,
+  code: string,
+): Promise<Doc<"problems"> | null> {
   return await ctx.db
     .query("problems")
     .withIndex("by_code", (q) => q.eq("code", code))
     .unique();
+}
+
+/** `problemByCode` for the callers that have nothing to say about a miss. */
+export async function requireProblem(ctx: QueryCtx | MutationCtx, code: string): Promise<Doc<"problems">> {
+  const problem = await problemByCode(ctx, code);
+  if (!problem) throw notFound("Problem");
+  return problem;
+}
+
+/** `Problem.is_solved_by(user)`: an AC with full case points, archives aside. */
+export async function hasSolvedProblem(
+  ctx: QueryCtx,
+  profileId: Id<"profiles"> | undefined,
+  problemId: Id<"problems">,
+): Promise<boolean> {
+  if (!profileId) return false;
+  const rows = await ctx.db
+    .query("submissions")
+    .withIndex("by_profile_problem", (q) => q.eq("profileId", profileId).eq("problemId", problemId))
+    .collect();
+  return rows.some((row) => !row.isArchived && isFullSolve(row));
 }
 
 export async function contestProblemFor(
@@ -295,13 +333,6 @@ async function profileSummaries(ctx: QueryCtx, ids: readonly Id<"profiles">[]) {
   return out;
 }
 
-async function profileByUsername(ctx: QueryCtx, username: string) {
-  return await ctx.db
-    .query("profiles")
-    .withIndex("by_username", (q) => q.eq("username", username))
-    .unique();
-}
-
 export async function solutionFor(ctx: QueryCtx, problemId: Id<"problems">) {
   return await ctx.db
     .query("solutions")
@@ -318,7 +349,7 @@ async function typesFor(ctx: QueryCtx, problem: Doc<"problems">) {
   return out;
 }
 
-async function translationFor(ctx: QueryCtx, problemId: Id<"problems">, language: string) {
+export async function translationFor(ctx: QueryCtx, problemId: Id<"problems">, language: string) {
   if (!language) return null;
   return await ctx.db
     .query("problemTranslations")
@@ -1284,116 +1315,6 @@ export const ranks = query({
 });
 
 /* -------------------------------------------------------------------------- */
-/* Points voting                                                              */
-/* -------------------------------------------------------------------------- */
-
-async function voteContext(ctx: QueryCtx, code: string) {
-  const problem = await problemByCode(ctx, code);
-  if (!problem) throw notFound("Problem");
-  const viewer = await loadViewerContext(ctx);
-  if (!(await canAccessProblem(ctx, problem, viewer))) throw notFound("Problem");
-  const sets = await solveSetsFor(ctx, viewer);
-  const permission = votePermissionForUser(toCoreProblem(problem), viewer.core, {
-    hasSolvedProblem: sets.solved.has(problem._id),
-  });
-  return { problem, viewer, permission };
-}
-
-export const vote = mutation({
-  args: { code: v.string(), points: v.number(), note: v.optional(v.string()) },
-  handler: async (ctx, { code, points, note }) => {
-    const profile = await requireViewer(ctx);
-    const { problem, permission } = await voteContext(ctx, code);
-    if (!voteCanVote(permission)) {
-      throw forbidden("Not allowed to vote on this problem.");
-    }
-    if (!Number.isInteger(points)) {
-      throw invalid("Proposed points must be a whole number.");
-    }
-    if (points < MIN_USER_POINTS_VOTE || points > MAX_USER_POINTS_VOTE) {
-      throw invalid(`Proposed points must be between ${MIN_USER_POINTS_VOTE} and ${MAX_USER_POINTS_VOTE}.`);
-    }
-    const body = note ?? "";
-    if (body.length > 8192) throw invalid("The note is too long.");
-
-    // DMOJ deletes any pre-existing vote inside the transaction, then inserts.
-    const existing = await ctx.db
-      .query("problemPointsVotes")
-      .withIndex("by_voter_problem", (q) => q.eq("voterProfileId", profile._id).eq("problemId", problem._id))
-      .unique();
-    if (existing) await ctx.db.delete(existing._id);
-
-    await ctx.db.insert("problemPointsVotes", {
-      points,
-      voterProfileId: profile._id,
-      problemId: problem._id,
-      voteTime: Date.now(),
-      note: body,
-    });
-    return { points };
-  },
-});
-
-export const deleteVote = mutation({
-  args: { code: v.string() },
-  handler: async (ctx, { code }) => {
-    const profile = await requireViewer(ctx);
-    const { problem, permission } = await voteContext(ctx, code);
-    if (!voteCanVote(permission)) {
-      throw forbidden("Not allowed to delete votes on this problem.");
-    }
-    const existing = await ctx.db
-      .query("problemPointsVotes")
-      .withIndex("by_voter_problem", (q) => q.eq("voterProfileId", profile._id).eq("problemId", problem._id))
-      .unique();
-    if (existing) await ctx.db.delete(existing._id);
-    return { ok: true };
-  },
-});
-
-export const voteStats = query({
-  args: { code: v.string() },
-  handler: async (ctx, { code }) => {
-    const problem = await problemByCode(ctx, code);
-    if (!problem) return null;
-    const viewer = await loadViewerContext(ctx);
-    if (!(await canAccessProblem(ctx, problem, viewer))) return null;
-
-    const sets = await solveSetsFor(ctx, viewer);
-    const permission = votePermissionForUser(toCoreProblem(problem), viewer.core, {
-      hasSolvedProblem: sets.solved.has(problem._id),
-    });
-    if (!voteCanView(permission)) return null;
-
-    const rows = await ctx.db
-      .query("problemPointsVotes")
-      .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
-      .collect();
-    const votes = rows.map((row) => row.points).sort((a, b) => a - b);
-
-    let meanValue: number | null = null;
-    let medianValue: number | null = null;
-    if (votes.length > 0) {
-      meanValue = votes.reduce((sum, value) => sum + value, 0) / votes.length;
-      const mid = Math.floor(votes.length / 2);
-      medianValue =
-        votes.length % 2 === 1
-          ? (votes[mid] as number)
-          : ((votes[mid - 1] as number) + (votes[mid] as number)) / 2;
-    }
-
-    return {
-      votes,
-      mean: meanValue,
-      median: medianValue,
-      minPossibleVote: MIN_USER_POINTS_VOTE,
-      maxPossibleVote: MAX_USER_POINTS_VOTE,
-      currentPoints: problem.points,
-    };
-  },
-});
-
-/* -------------------------------------------------------------------------- */
 /* hotProblems, recent, languageTemplate, clarifications                      */
 /* -------------------------------------------------------------------------- */
 
@@ -1530,144 +1451,5 @@ export const clarifications = query({
       .collect();
     rows.sort((a, b) => b.date - a.date);
     return rows.map((row) => ({ id: row._id, description: row.description, date: row.date }));
-  },
-});
-
-/* -------------------------------------------------------------------------- */
-/* PDF cache                                                                  */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Everything `/problem/[code]/pdf` needs in one read: the statement to render,
- * the info-box values the Typst template prints, and whatever is already in the
- * `pdfCache` for this problem and language.
- *
- * The route hashes `statement + meta` itself and compares against
- * `cached.sourceHash`, so a statement edit invalidates the cache without the
- * query having to hash anything (which would make it non-deterministic to
- * re-run when the template changes).
- */
-export const pdfSource = query({
-  args: { code: v.string(), language: v.optional(v.string()) },
-  handler: async (ctx, { code, language }) => {
-    const problem = await problemByCode(ctx, code);
-    if (!problem) return null;
-
-    const viewer = await loadViewerContext(ctx);
-    if (!(await canAccessProblem(ctx, problem, viewer))) return null;
-
-    const lang = language ?? "en";
-    const translation = await translationFor(ctx, problem._id, lang);
-
-    const authors: string[] = [];
-    for (const id of problem.authorProfileIds) {
-      const row = await ctx.db.get(id);
-      if (row) authors.push(row.username);
-    }
-
-    // The Typst template prints a python time limit when there is one.
-    const limits = await ctx.db
-      .query("languageLimits")
-      .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
-      .collect();
-    let pythonTimeLimit: number | null = null;
-    for (const limit of limits) {
-      const lang3 = await ctx.db.get(limit.languageId);
-      if (lang3 && (lang3.key === "PY3" || lang3.key.toLowerCase().startsWith("py"))) {
-        pythonTimeLimit = limit.timeLimit;
-        break;
-      }
-    }
-
-    const cached = await ctx.db
-      .query("pdfCache")
-      .withIndex("by_problem_language", (q) => q.eq("problemCode", problem.code).eq("language", lang))
-      .unique();
-
-    return {
-      code: problem.code,
-      language: lang,
-      statement: translation?.description ?? problem.description,
-      meta: {
-        name: translation?.name ?? problem.name,
-        code: problem.code,
-        points: problem.points,
-        timeLimit: problem.timeLimit,
-        memoryLimit: problem.memoryLimit,
-        pythonTimeLimit,
-        authors,
-        inputType: "standard input",
-        outputType: "standard output",
-      },
-      cached: cached
-        ? {
-            sourceHash: cached.sourceHash,
-            url: await ctx.storage.getUrl(cached.storageId),
-            renderedAt: cached.renderedAt,
-          }
-        : null,
-    };
-  },
-});
-
-/** An upload slot for a freshly rendered PDF; access-checked like the read. */
-export const pdfUploadUrl = mutation({
-  args: { code: v.string() },
-  handler: async (ctx, { code }) => {
-    const problem = await problemByCode(ctx, code);
-    if (!problem) throw notFound("Problem");
-    const viewer = await loadViewerContext(ctx);
-    if (!(await canAccessProblem(ctx, problem, viewer))) throw notFound("Problem");
-    return await ctx.storage.generateUploadUrl();
-  },
-});
-
-export const savePdf = mutation({
-  args: {
-    code: v.string(),
-    language: v.string(),
-    sourceHash: v.string(),
-    storageId: v.id("_storage"),
-  },
-  handler: async (ctx, args) => {
-    const problem = await problemByCode(ctx, args.code);
-    if (!problem) throw notFound("Problem");
-    const viewer = await loadViewerContext(ctx);
-    if (!(await canAccessProblem(ctx, problem, viewer))) throw notFound("Problem");
-
-    const existing = await ctx.db
-      .query("pdfCache")
-      .withIndex("by_problem_language", (q) =>
-        q.eq("problemCode", problem.code).eq("language", args.language),
-      )
-      .unique();
-
-    if (existing) {
-      if (existing.storageId !== args.storageId) await ctx.storage.delete(existing.storageId);
-      await ctx.db.patch(existing._id, {
-        storageId: args.storageId,
-        sourceHash: args.sourceHash,
-        renderedAt: Date.now(),
-      });
-    } else {
-      await ctx.db.insert("pdfCache", {
-        problemCode: problem.code,
-        language: args.language,
-        storageId: args.storageId,
-        sourceHash: args.sourceHash,
-        renderedAt: Date.now(),
-      });
-    }
-
-    await ctx.db.insert("uploads", {
-      storageId: args.storageId,
-      uploaderProfileId: viewer.profile?._id,
-      kind: "pdf",
-      name: `${problem.code}.${args.language}.pdf`,
-      createdAt: Date.now(),
-      cacheKey: `pdf:${problem.code}:${args.language}:${args.sourceHash}`,
-    });
-
-    return { ok: true };
   },
 });

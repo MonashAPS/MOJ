@@ -10,6 +10,8 @@ import {
 } from "@moj/core";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { contestByKey } from "../contests/formats";
+import { problemByCode } from "../problems";
 
 export type AnyCtx = QueryCtx | MutationCtx;
 
@@ -195,20 +197,6 @@ export function blogPostHref(post: Doc<"blogPosts">): string {
   return `/post/${post.legacyId ?? post._id}-${post.slug}`;
 }
 
-async function problemByCode(ctx: AnyCtx, code: string): Promise<Doc<"problems"> | null> {
-  return await ctx.db
-    .query("problems")
-    .withIndex("by_code", (q) => q.eq("code", code))
-    .unique();
-}
-
-async function contestByKey(ctx: AnyCtx, key: string): Promise<Doc<"contests"> | null> {
-  return await ctx.db
-    .query("contests")
-    .withIndex("by_key", (q) => q.eq("key", key))
-    .unique();
-}
-
 /** Accepts either a Convex id or the imported DMOJ id for a blog post. */
 export async function blogPostByKey(ctx: AnyCtx, key: string): Promise<Doc<"blogPosts"> | null> {
   const numeric = Number(key);
@@ -288,6 +276,13 @@ export async function loadCommentTarget(
 /* Revisions                                                                  */
 /* -------------------------------------------------------------------------- */
 
+/** What a revision reads when nobody said why. */
+export const DEFAULT_REVISION_REASON = "Edited from the staff console";
+
+/**
+ * The one writer of the `revisions` table. A blank reason (the console's box,
+ * left empty) is stored as `DEFAULT_REVISION_REASON` rather than as nothing.
+ */
 export async function writeRevision(
   ctx: MutationCtx,
   entityType: string,
@@ -301,7 +296,7 @@ export async function writeRevision(
     entityId,
     snapshot,
     authorProfileId,
-    reason,
+    reason: reason.trim() || DEFAULT_REVISION_REASON,
     createdAt: Date.now(),
   });
 }
@@ -330,11 +325,6 @@ export function generateJudgeKey(length = 64): string {
   let out = "";
   for (const byte of bytes) out += KEY_ALPHABET[byte % KEY_ALPHABET.length];
   return out;
-}
-
-export async function sha256Hex(text: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 /* -------------------------------------------------------------------------- */

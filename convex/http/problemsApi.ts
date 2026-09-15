@@ -40,8 +40,9 @@ import {
   internalQuery,
   type MutationCtx,
 } from "../_generated/server";
-import { groupIdByName, typeIdsByName, writeRevision } from "../admin/problems";
-import { problemByCode, toCoreProblem } from "../problems";
+import { groupIdByName, typeIdsByName, writeProblemRevision } from "../admin/problems";
+import { sha256Hex } from "../lib/hash";
+import { PROBLEM_CODE_PATTERN, problemByCode, toCoreProblem } from "../problems";
 import { inspectArchive } from "../problems/data";
 import { MAX_VALIDATED_ARCHIVE_BYTES } from "../problems/testData";
 
@@ -69,11 +70,6 @@ export type ApiKeyIdentity = {
   scopes: string[];
   source: "better-auth" | "table";
 };
-
-async function sha256Hex(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
 
 function bearerToken(request: Request): string | null {
   const header = request.headers.get("authorization") ?? request.headers.get("Authorization");
@@ -190,8 +186,6 @@ async function authenticate(ctx: ActionCtx, request: Request): Promise<ApiKeyIde
 /* The upsert                                                                 */
 /* -------------------------------------------------------------------------- */
 
-const CODE_PATTERN = /^[a-z.0-9]+$/;
-
 const languageLimitValidator = v.object({
   timeLimit: v.number(),
   memoryLimit: v.number(),
@@ -249,7 +243,7 @@ export const upsertProblem = internalMutation({
     const warnings: string[] = [];
 
     if (created) {
-      if (!CODE_PATTERN.test(code) || code.length > 20) {
+      if (!PROBLEM_CODE_PATTERN.test(code) || code.length > 20) {
         return {
           status: "invalid" as const,
           message: "Problem codes may only contain lowercase letters, digits and dots.",
@@ -406,7 +400,7 @@ export const upsertProblem = internalMutation({
       }
     }
 
-    await writeRevision(
+    await writeProblemRevision(
       ctx,
       problemId,
       actorProfileId,

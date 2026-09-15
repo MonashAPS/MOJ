@@ -477,21 +477,21 @@ describe("profiles.verifyLegacyApiToken", () => {
     });
 
     expect(
-      await t.query(api.profiles.verifyLegacyApiToken, {
+      await t.query(api.profiles.apiTokens.verifyLegacy, {
         legacyUserId: 42,
         digest: "a".repeat(64),
       }),
     ).toMatchObject({ username: "legacy", isStaff: false });
 
     expect(
-      await t.query(api.profiles.verifyLegacyApiToken, {
+      await t.query(api.profiles.apiTokens.verifyLegacy, {
         legacyUserId: 42,
         digest: "b".repeat(64),
       }),
     ).toBeNull();
 
     expect(
-      await t.query(api.profiles.verifyLegacyApiToken, {
+      await t.query(api.profiles.apiTokens.verifyLegacy, {
         legacyUserId: 7,
         digest: "a".repeat(64),
       }),

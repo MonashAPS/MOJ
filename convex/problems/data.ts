@@ -33,7 +33,8 @@ import {
 } from "../_generated/server";
 import { requireViewer } from "../lib/auth";
 import { forbidden, invalid, notFound } from "../lib/errors";
-import { publishedTestData, sha256OfBytes, testDataRow, unsafeArchiveMember } from "../lib/testData";
+import { sha256OfBytes } from "../lib/hash";
+import { publishedTestData, testDataRow, unsafeArchiveMember } from "../lib/testData";
 import { loadViewerContext, problemByCode, toCoreProblem } from "../problems";
 
 /* -------------------------------------------------------------------------- */

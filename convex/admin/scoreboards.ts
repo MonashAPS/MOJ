@@ -10,6 +10,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation, query } from "../_generated/server";
 import { hasPerm, isStaff, optionalViewer, requireViewer } from "../lib/auth";
+import { writeRevision } from "../lib/community";
 import { forbidden, invalid, mojError, notFound } from "../lib/errors";
 
 const KEY_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
@@ -21,23 +22,6 @@ async function requireScoreboardEditor(ctx: MutationCtx) {
     throw forbidden("Missing permission judge.edit_all_contest.");
   }
   return profile;
-}
-
-async function writeRevision(
-  ctx: MutationCtx,
-  entityId: string,
-  snapshot: unknown,
-  authorProfileId: Id<"profiles">,
-  reason: string,
-): Promise<void> {
-  await ctx.db.insert("revisions", {
-    entityType: "scoreboardEvent",
-    entityId,
-    snapshot,
-    authorProfileId,
-    reason: reason.trim() || "Edited from the staff console",
-    createdAt: Date.now(),
-  });
 }
 
 async function resolveContests(ctx: MutationCtx, keys: readonly string[]): Promise<Id<"contests">[]> {
@@ -141,7 +125,14 @@ export const create = mutation({
       isPublic: args.isPublic ?? true,
     });
 
-    await writeRevision(ctx, id, { key, name: args.name }, profile._id, args.reason ?? "Created scoreboard");
+    await writeRevision(
+      ctx,
+      "scoreboardEvent",
+      id,
+      { key, name: args.name },
+      profile._id,
+      args.reason ?? "Created scoreboard",
+    );
     return id;
   },
 });
@@ -196,7 +187,14 @@ export const update = mutation({
     if (Object.keys(patch).length === 0) return null;
 
     await ctx.db.patch(row._id, patch);
-    await writeRevision(ctx, row._id, patch, profile._id, args.reason ?? "Edited scoreboard");
+    await writeRevision(
+      ctx,
+      "scoreboardEvent",
+      row._id,
+      patch,
+      profile._id,
+      args.reason ?? "Edited scoreboard",
+    );
     return null;
   },
 });
@@ -211,7 +209,14 @@ export const remove = mutation({
       .unique();
     if (!row) throw notFound(`Scoreboard "${key}"`);
     await ctx.db.delete(row._id);
-    await writeRevision(ctx, row._id, { key: row.key }, profile._id, reason ?? "Deleted scoreboard");
+    await writeRevision(
+      ctx,
+      "scoreboardEvent",
+      row._id,
+      { key: row.key },
+      profile._id,
+      reason ?? "Deleted scoreboard",
+    );
     return null;
   },
 });

@@ -9,6 +9,16 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../_generated/server";
 import { requireSuperuser } from "../lib/auth";
 import { writeRevision } from "../lib/community";
+import {
+  type Budget,
+  DEDUPE_PAGE,
+  type DedupeReport,
+  type DedupeState,
+  dedupeReportValidator,
+  emptyDedupeReport,
+  newBudget,
+  nextPage,
+} from "../lib/dedupe";
 
 /**
  * `npm run setup` seeds the reference tables and an older `npm run import`
@@ -26,12 +36,6 @@ import { writeRevision } from "../lib/community";
 
 /** What the revisions read when nobody said why. */
 const DEDUPE_REASON = "Merged duplicate rows by natural key";
-/** Documents one page reads from a table. */
-const DEDUPE_PAGE = 200;
-/** Rows one pass rewrites before handing over to the next scheduled pass. */
-const DEDUPE_WRITE_BUDGET = 500;
-/** Documents one pass reads, for the tables it has to scan to find references. */
-const DEDUPE_READ_BUDGET = 2000;
 
 /**
  * The tables convex/importer.ts keys naturally, minus `languages`, which
@@ -64,16 +68,6 @@ const dedupeTableValidator = v.union(v.literal("problems"), v.literal("navigatio
  * per function execution, so the scans walk the built in `by_creation_time`
  * index instead, which also survives a patch: repointing a row does not move it.
  */
-interface DedupeState {
-  table: DedupeTable;
-  cursor: number | null;
-}
-
-interface Budget {
-  reads: number;
-  writes: number;
-}
-
 /** The fields the ranking reads; every keyed table carries all three. */
 interface KeyedRow {
   _id: Id<KeyedTable>;
@@ -196,13 +190,6 @@ async function problemsPage(ctx: MutationCtx, cursor: number | null): Promise<Do
   ).take(DEDUPE_PAGE);
 }
 
-/** Where the next page of a scan starts, and whether there is one. */
-function advance(rows: { _creationTime: number }[]): { cursor: number | null; isDone: boolean } {
-  const last = rows[rows.length - 1];
-  if (rows.length < DEDUPE_PAGE || last === undefined) return { cursor: null, isDone: true };
-  return { cursor: last._creationTime, isDone: false };
-}
-
 /**
  * One page of one reference table. `problems` holds all three of its keyed
  * references in one row, so a page repoints the types, the group and the
@@ -259,16 +246,16 @@ async function rewriteTablePage(
     rewritten += 1;
   }
   budget.writes -= rewritten;
-  return { rewritten, ...advance(rows) };
+  return { rewritten, ...nextPage(rows) };
 }
 
 /** Walks the reference tables from `from` until the budget runs out. */
 async function rewriteReferences(
   ctx: MutationCtx,
   plan: DedupePlan,
-  from: DedupeState,
+  from: DedupeState<DedupeTable>,
   budget: Budget,
-): Promise<{ rewritten: number; next: DedupeState | null }> {
+): Promise<{ rewritten: number; next: DedupeState<DedupeTable> | null }> {
   const start = Math.max(DEDUPE_TABLES.indexOf(from.table), 0);
   let rewritten = 0;
   for (let i = start; i < DEDUPE_TABLES.length; i++) {
@@ -285,30 +272,6 @@ async function rewriteReferences(
   return { rewritten, next: null };
 }
 
-export interface DedupeReport {
-  keys: string[];
-  keysRepaired: number;
-  rowsDeleted: number;
-  referencesRewritten: number;
-  isDone: boolean;
-}
-
-const dedupeReportValidator = v.object({
-  keys: v.array(v.string()),
-  keysRepaired: v.number(),
-  rowsDeleted: v.number(),
-  referencesRewritten: v.number(),
-  isDone: v.boolean(),
-});
-
-const emptyReport: DedupeReport = {
-  keys: [],
-  keysRepaired: 0,
-  rowsDeleted: 0,
-  referencesRewritten: 0,
-  isDone: true,
-};
-
 /**
  * One bounded pass. Recomputes the plan from the tables every time, which is
  * what makes a resumed or repeated run safe: the losers are only deleted once
@@ -316,14 +279,14 @@ const emptyReport: DedupeReport = {
  */
 async function dedupePass(
   ctx: MutationCtx,
-  from: DedupeState,
+  from: DedupeState<DedupeTable>,
   editorProfileId: Id<"profiles"> | undefined,
   reason: string,
-): Promise<{ report: DedupeReport; next: DedupeState | null }> {
+): Promise<{ report: DedupeReport; next: DedupeState<DedupeTable> | null }> {
   const plan = await buildPlan(ctx);
-  if (plan.merges.length === 0) return { report: emptyReport, next: null };
+  if (plan.merges.length === 0) return { report: emptyDedupeReport, next: null };
 
-  const budget: Budget = { reads: DEDUPE_READ_BUDGET, writes: DEDUPE_WRITE_BUDGET };
+  const budget = newBudget();
   const { rewritten, next } = await rewriteReferences(ctx, plan, from, budget);
   if (next) {
     return {

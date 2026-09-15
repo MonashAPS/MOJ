@@ -140,7 +140,7 @@ async function verifyLegacyToken(token: string): Promise<ApiIdentity | null> {
   if (!decoded) return null;
 
   const profile = await fetchQuery(
-    api.profiles.verifyLegacyApiToken,
+    api.profiles.apiTokens.verifyLegacy,
     { legacyUserId: decoded.legacyUserId, digest: decoded.digest },
     { url: convexUrl },
   );

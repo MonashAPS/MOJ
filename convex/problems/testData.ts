@@ -16,7 +16,7 @@ import { problemIsEditableBy } from "@moj/core";
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery } from "../_generated/server";
-import { writeRevision } from "../admin/problems";
+import { writeProblemRevision } from "../admin/problems";
 import { authenticateJudge } from "../judgeApi";
 import { publishedTestData, testDataRow } from "../lib/testData";
 import { problemByCode, toCoreProblem } from "../problems";
@@ -106,7 +106,7 @@ export const record = internalMutation({
 
     const actor: Doc<"profiles"> | null = args.actorProfileId ? await ctx.db.get(args.actorProfileId) : null;
     const where = args.source === "api" ? "the problems API" : "the test data editor";
-    await writeRevision(
+    await writeProblemRevision(
       ctx,
       args.problemId,
       args.actorProfileId,

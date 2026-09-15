@@ -21,10 +21,10 @@ export function ContestEditor({ contestKey }: { contestKey: string }) {
   const params = useSearchParams();
   const active = TABS.some((tab) => tab === params.get("tab")) ? (params.get("tab") as string) : "general";
 
-  const contest = useQuery(api.pages.admin1.contestEdit, { key: contestKey });
-  const options = useQuery(api.pages.admin1.contestOptions, {});
+  const contest = useQuery(api.pages.admin.contests.edit, { key: contestKey });
+  const options = useQuery(api.pages.admin.contests.options, {});
   const revisions = useQuery(
-    api.pages.admin1.revisionsFor,
+    api.pages.admin.revisions.byKey,
     active === "revisions" ? { entityType: "contest" as const, key: contestKey } : "skip",
   );
 

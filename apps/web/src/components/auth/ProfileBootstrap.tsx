@@ -13,7 +13,7 @@ export function ProfileBootstrap() {
   const { isAuthenticated } = useConvexAuth();
   const viewer = useQuery(api.viewer.current, isAuthenticated ? {} : "skip");
   const ensureProfile = useMutation(api.profiles.ensureProfile);
-  const clearStaleContest = useMutation(api.contests.clearStaleContest);
+  const clearStaleContest = useMutation(api.contests.participation.clearStaleContest);
   const { data: session } = authClient.useSession();
   /** Keyed by the account, so signing in as somebody else tries again. */
   const attempted = useRef<string | null>(null);

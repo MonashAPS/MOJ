@@ -70,7 +70,7 @@ async function runExport(
 ) {
   const jobId = (await t
     .withIdentity({ subject: "user_downloader" })
-    .mutation(api.profiles.prepareDataExport, { options })) as Id<"jobs">;
+    .mutation(api.profiles.dataExport.prepare, { options })) as Id<"jobs">;
   await t.finishAllScheduledFunctions(async () => {});
   return jobId;
 }
@@ -170,7 +170,7 @@ describe("prepareDataExport", () => {
   test("at least one thing has to be selected", async () => {
     const t = await seed();
     await expect(
-      t.withIdentity({ subject: "user_downloader" }).mutation(api.profiles.prepareDataExport, {
+      t.withIdentity({ subject: "user_downloader" }).mutation(api.profiles.dataExport.prepare, {
         options: { submissionDownload: false, commentDownload: false },
       }),
     ).rejects.toThrow(/at least one thing/);
@@ -181,14 +181,14 @@ describe("prepareDataExport", () => {
     await runExport(t, { submissionDownload: true, commentDownload: false });
 
     await expect(
-      t.withIdentity({ subject: "user_downloader" }).mutation(api.profiles.prepareDataExport, {
+      t.withIdentity({ subject: "user_downloader" }).mutation(api.profiles.dataExport.prepare, {
         options: { submissionDownload: true, commentDownload: false },
       }),
     ).rejects.toThrow(/once a day/);
 
     const status = await t
       .withIdentity({ subject: "user_downloader" })
-      .query(api.profiles.dataExportStatus, {});
+      .query(api.profiles.dataExport.status, {});
     expect(status.canPrepare).toBe(false);
     expect(status.msUntilCanPrepare).toBeGreaterThan(0);
     expect(status.rateLimitMs).toBe(24 * 60 * 60 * 1000);
@@ -202,7 +202,7 @@ describe("prepareDataExport", () => {
       await makeProfile(ctx, "toad", { mute: true });
     });
     await expect(
-      t.withIdentity({ subject: "user_toad" }).mutation(api.profiles.prepareDataExport, {
+      t.withIdentity({ subject: "user_toad" }).mutation(api.profiles.dataExport.prepare, {
         options: { submissionDownload: true, commentDownload: false },
       }),
     ).rejects.toThrow(/silent, little toad/);

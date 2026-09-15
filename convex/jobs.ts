@@ -18,7 +18,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx, query } from "./_generated/server";
 import { queueSubmission, recomputeParticipation, recomputeProfilePoints } from "./judging";
 import { optionalViewer } from "./lib/auth";
-import { forbidden, notFound } from "./lib/errors";
+import { forbidden } from "./lib/errors";
 
 /** How many submissions one scheduled step touches, per SPEC section 6. */
 export const JOB_CHUNK_SIZE = 100;
@@ -70,7 +70,16 @@ export async function createJob(
   });
 }
 
-async function advance(
+/** Marks a queued job running under the stage it is about to work through. */
+export async function startJob(ctx: MutationCtx, jobId: Id<"jobs">, stage: string): Promise<void> {
+  const job = await ctx.db.get(jobId);
+  if (!job) return;
+  if (job.status === "queued") {
+    await ctx.db.patch(jobId, { status: "running", progress: { ...job.progress, stage } });
+  }
+}
+
+export async function advance(
   ctx: MutationCtx,
   jobId: Id<"jobs">,
   done: number,
@@ -89,18 +98,20 @@ async function advance(
   return job;
 }
 
-async function finishJob(ctx: MutationCtx, jobId: Id<"jobs">, result: unknown): Promise<void> {
+/** A finished job reads as complete: the bar is filled to its own total. */
+export async function finishJob(ctx: MutationCtx, jobId: Id<"jobs">, result: unknown): Promise<void> {
   const job = await ctx.db.get(jobId);
   if (!job) return;
+  const total = Math.max(job.progress.total, job.progress.done);
   await ctx.db.patch(jobId, {
     status: "done",
     result,
     finishedAt: Date.now(),
-    progress: { ...job.progress, total: Math.max(job.progress.total, job.progress.done) },
+    progress: { ...job.progress, total, done: total },
   });
 }
 
-async function failJob(ctx: MutationCtx, jobId: Id<"jobs">, error: string): Promise<void> {
+export async function failJob(ctx: MutationCtx, jobId: Id<"jobs">, error: string): Promise<void> {
   await ctx.db.patch(jobId, { status: "failed", error, finishedAt: Date.now() });
 }
 
@@ -433,16 +444,6 @@ export const rescoreProfilesChunk = internalMutation({
     return null;
   },
 });
-
-/** Used by the admin mutations to fail fast on a problem code that does not exist. */
-export async function problemByCode(ctx: QueryCtx, code: string): Promise<Doc<"problems">> {
-  const problem = await ctx.db
-    .query("problems")
-    .withIndex("by_code", (q) => q.eq("code", code))
-    .unique();
-  if (!problem) throw notFound("Problem");
-  return problem;
-}
 
 /* -------------------------------------------------------------------------- */
 /* Dispatch                                                                   */

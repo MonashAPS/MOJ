@@ -114,7 +114,7 @@ describe("joining and leaving", () => {
     });
 
     const asAda = t.withIdentity(identityOf("ada"));
-    const joined = await asAda.mutation(api.contests.join, { key: "live" });
+    const joined = await asAda.mutation(api.contests.participation.join, { key: "live" });
     expect(joined.virtual).toBe(0);
 
     const viewer = await asAda.query(api.viewer.current, {});
@@ -130,7 +130,7 @@ describe("joining and leaving", () => {
       expect(contest?.userCount).toBe(1);
     });
 
-    await asAda.mutation(api.contests.leave, { key: "live" });
+    await asAda.mutation(api.contests.participation.leave, { key: "live" });
     expect((await asAda.query(api.viewer.current, {})).inContest).toBe(false);
   });
 
@@ -145,11 +145,11 @@ describe("joining and leaving", () => {
     });
 
     const asAda = t.withIdentity(identityOf("ada"));
-    expect((await asAda.mutation(api.contests.join, { key: "past" })).virtual).toBe(1);
-    expect((await asAda.mutation(api.contests.join, { key: "past" })).virtual).toBe(2);
-    expect((await asAda.mutation(api.contests.join, { key: "past" })).virtual).toBe(3);
+    expect((await asAda.mutation(api.contests.participation.join, { key: "past" })).virtual).toBe(1);
+    expect((await asAda.mutation(api.contests.participation.join, { key: "past" })).virtual).toBe(2);
+    expect((await asAda.mutation(api.contests.participation.join, { key: "past" })).virtual).toBe(3);
 
-    const rows = await asAda.query(api.contests.participations, { key: "past" });
+    const rows = await asAda.query(api.contests.participation.participations, { key: "past" });
     expect(rows?.map((row) => row.virtual)).toEqual([3, 2, 1]);
   });
 
@@ -165,18 +165,20 @@ describe("joining and leaving", () => {
     });
 
     await expect(
-      t.withIdentity(identityOf("banned")).mutation(api.contests.join, { key: "gated" }),
+      t.withIdentity(identityOf("banned")).mutation(api.contests.participation.join, { key: "gated" }),
     ).rejects.toThrow(/persona non grata/);
 
     const asCoder = t.withIdentity(identityOf("coder"));
-    await expect(asCoder.mutation(api.contests.join, { key: "gated" })).rejects.toThrow(/access code/i);
-    const joined = await asCoder.mutation(api.contests.join, {
+    await expect(asCoder.mutation(api.contests.participation.join, { key: "gated" })).rejects.toThrow(
+      /access code/i,
+    );
+    const joined = await asCoder.mutation(api.contests.participation.join, {
       key: "gated",
       accessCode: "opensesame",
     });
     expect(joined.virtual).toBe(0);
     // The code is only asked for when a participation would be created.
-    expect((await asCoder.mutation(api.contests.join, { key: "gated" })).participationId).toBe(
+    expect((await asCoder.mutation(api.contests.participation.join, { key: "gated" })).participationId).toBe(
       joined.participationId,
     );
   });
@@ -188,7 +190,9 @@ describe("joining and leaving", () => {
       await insertContest(ctx.db, "spec", { authorProfileIds: [authorId] });
     });
 
-    const joined = await t.withIdentity(identityOf("author")).mutation(api.contests.join, { key: "spec" });
+    const joined = await t
+      .withIdentity(identityOf("author"))
+      .mutation(api.contests.participation.join, { key: "spec" });
     expect(joined.virtual).toBe(-1);
   });
 
@@ -213,7 +217,7 @@ describe("joining and leaving", () => {
     expect(state.contestModeStale).toBe(true);
     expect(state.participation?._id).toBe(participationId);
 
-    expect(await asAda.mutation(api.contests.clearStaleContest, {})).toEqual({ cleared: true });
+    expect(await asAda.mutation(api.contests.participation.clearStaleContest, {})).toEqual({ cleared: true });
     expect((await asAda.query(api.viewer.current, {})).participation).toBeNull();
   });
 });
@@ -355,20 +359,20 @@ describe("clarifications and statistics", () => {
     });
 
     await expect(
-      t.withIdentity(identityOf("ada")).mutation(api.contests.addClarification, {
+      t.withIdentity(identityOf("ada")).mutation(api.contests.clarifications.add, {
         key: "live",
         problemCode: "aplus",
         description: "N is at most 10^5.",
       }),
     ).rejects.toThrow();
 
-    await t.withIdentity(identityOf("author")).mutation(api.contests.addClarification, {
+    await t.withIdentity(identityOf("author")).mutation(api.contests.clarifications.add, {
       key: "live",
       problemCode: "aplus",
       description: "N is at most 10^5.",
     });
 
-    const rows = await t.withIdentity(identityOf("ada")).query(api.contests.clarifications, {
+    const rows = await t.withIdentity(identityOf("ada")).query(api.contests.clarifications.list, {
       key: "live",
     });
     expect(rows?.length).toBe(1);
@@ -444,7 +448,7 @@ describe("cloning", () => {
     });
 
     const asCloner = t.withIdentity(identityOf("cloner"));
-    const cloned = await asCloner.mutation(api.contests.clone, {
+    const cloned = await asCloner.mutation(api.contests.tools.clone, {
       key: "original",
       newKey: "copy",
     });
@@ -465,9 +469,9 @@ describe("cloning", () => {
       expect(revisions[0]?.reason).toBe("Cloned contest from original");
     });
 
-    await expect(asCloner.mutation(api.contests.clone, { key: "original", newKey: "copy" })).rejects.toThrow(
-      /already taken/,
-    );
+    await expect(
+      asCloner.mutation(api.contests.tools.clone, { key: "original", newKey: "copy" }),
+    ).rejects.toThrow(/already taken/);
   });
 
   test("cloning needs the permission", async () => {
@@ -477,7 +481,7 @@ describe("cloning", () => {
       await insertContest(ctx.db, "original");
     });
     await expect(
-      t.withIdentity(identityOf("nobody")).mutation(api.contests.clone, {
+      t.withIdentity(identityOf("nobody")).mutation(api.contests.tools.clone, {
         key: "original",
         newKey: "copy",
       }),
@@ -495,7 +499,9 @@ describe("moss", () => {
       await insertContest(ctx.db, "live", { authorProfileIds: [authorId] });
     });
 
-    const payload = await t.withIdentity(identityOf("author")).query(api.contests.moss, { key: "live" });
+    const payload = await t
+      .withIdentity(identityOf("author"))
+      .query(api.contests.tools.moss, { key: "live" });
     expect(payload).toEqual({ configured: false, message: "MOSS is not configured.", results: [] });
   });
 });

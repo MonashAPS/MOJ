@@ -114,7 +114,7 @@ export function SubmissionsAdmin() {
   const languages = useQuery(api.languages.list, {});
   const judges = useQuery(api.judges.list, {});
   const judgeNames = Array.isArray(judges) ? [] : (judges?.judges ?? []).map((judge) => judge.name);
-  const data = useQuery(api.pages.admin1.submissionsList, {
+  const data = useQuery(api.pages.admin.submissions.list, {
     username: username || undefined,
     problemCode: problemCode || undefined,
     contestKey: contestKey || undefined,

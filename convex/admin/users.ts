@@ -21,6 +21,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./../_generated/dataModel";
 import { type MutationCtx, mutation, type QueryCtx, query } from "./../_generated/server";
 import { requireStaff } from "./../lib/auth";
+import { writeRevision } from "./../lib/community";
 import { forbidden, invalid, notFound } from "./../lib/errors";
 import { recalculateProfilePoints } from "./../profiles";
 import { deleteProfileAggregates, patchProfile } from "./../rankings";
@@ -28,7 +29,7 @@ import { displayRank } from "./../schema";
 
 const CHANGE_PROFILE = "judge.change_profile";
 
-async function requireProfileAdmin(ctx: QueryCtx | MutationCtx): Promise<Doc<"profiles">> {
+export async function requireProfileAdmin(ctx: QueryCtx | MutationCtx): Promise<Doc<"profiles">> {
   const staff = await requireStaff(ctx);
   if (!staff.isSuperuser && !staff.permissions.includes(CHANGE_PROFILE)) {
     throw forbidden(`Missing permission ${CHANGE_PROFILE}.`);
@@ -236,26 +237,10 @@ export const edit = mutation({
     if (args.rating !== undefined) patch.rating = args.rating === null ? undefined : args.rating;
 
     const updated = await patchProfile(ctx, target._id, patch);
-    await writeRevision(ctx, staff, updated, args.reason ?? "Edited from admin");
+    await writeRevision(ctx, "profiles", updated._id, updated, staff._id, args.reason ?? "Edited from admin");
     return updated._id;
   },
 });
-
-async function writeRevision(
-  ctx: MutationCtx,
-  staff: Doc<"profiles">,
-  profile: Doc<"profiles">,
-  reason: string,
-): Promise<void> {
-  await ctx.db.insert("revisions", {
-    entityType: "profiles",
-    entityId: profile._id,
-    snapshot: profile,
-    authorProfileId: staff._id,
-    reason,
-    createdAt: Date.now(),
-  });
-}
 
 /** judge/admin/profile.py "Recalculate scores". */
 export const recalculatePoints = mutation({
@@ -298,8 +283,10 @@ export const deactivate = mutation({
     });
     await writeRevision(
       ctx,
-      staff,
+      "profiles",
+      updated._id,
       updated,
+      staff._id,
       args.reason ?? (active ? "Reactivated from admin" : "Deactivated from admin"),
     );
     return { userId: target.userId, username: target.username, isActive: active };

@@ -11,7 +11,15 @@ MOJ/
   tsconfig.base.json
   biome.json
   vitest.config.mts     one vitest project per workspace, plus the convex tests
-  convex/               schema.ts, auth.config.ts, function modules, crons.ts, http/, _generated/
+  convex/               schema.ts, auth.config.ts, function modules, crons.ts, _generated/
+    contests/           participation, clarifications, rankings, tools, formats
+    problems/           votes, pdf, data, testData
+    profiles/           apiTokens, dataExport
+    jobs/               the chunked job runners
+    admin/              staff mutations, one file per area
+    pages/              reads that serve one page; pages/admin/ is the staff console
+    http/               the judge protocol and the problems API
+    lib/                auth, errors, hashing, pagination, rate limits, shared helpers
   apps/web/             the Next.js app: src/app, src/components, src/lib, src/auth, drizzle/
   apps/judge/           Dockerfile, entrypoint, judge.yml template, judge-server/ (a git subtree), tests/
   packages/core/        permissions, contest formats, ratings, points, verdicts, scoreboard freeze
@@ -161,7 +169,10 @@ domain query with page-shaped fields.
 ## Adding a Convex function
 
 Functions go in the file for their area: problems in `convex/problems.ts`, contests in `convex/contests.ts`, staff
-mutations under `convex/admin/`, page-only reads under `convex/pages/`.
+mutations under `convex/admin/`, page-only reads under `convex/pages/`. A cohesive group that is not the area's
+core reads goes in a module beside it, named after the group: contest joining is `convex/contests/participation.ts`
+and problem voting is `convex/problems/votes.ts`. Drop the group's name from the function when the module carries
+it: `convex/pages/admin/problems.ts` exports `list`, not `problemsList`.
 
 ```ts
 // convex/problems.ts

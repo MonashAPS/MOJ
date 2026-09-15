@@ -133,8 +133,8 @@ export function ContestGeneralTab({
   );
 
   const usernames = [...privateContestants, ...rateExclude, ...bannedUsers];
-  const profiles = useQuery(api.pages.admin1.resolveProfiles, { usernames });
-  const refs = useQuery(api.pages.admin1.resolveContestRefs, {
+  const profiles = useQuery(api.pages.admin.console.resolveProfiles, { usernames });
+  const refs = useQuery(api.pages.admin.console.resolveContestRefs, {
     organizationSlugs,
     joinOrganizationSlugs,
     classNames,

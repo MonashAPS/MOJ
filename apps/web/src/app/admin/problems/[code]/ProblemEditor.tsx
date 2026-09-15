@@ -36,10 +36,10 @@ export function ProblemEditor({ code }: { code: string }) {
   const params = useSearchParams();
   const active = TABS.some((tab) => tab === params.get("tab")) ? (params.get("tab") as string) : "general";
 
-  const problem = useQuery(api.pages.admin1.problemEdit, { code });
-  const options = useQuery(api.pages.admin1.problemOptions, {});
+  const problem = useQuery(api.pages.admin.problems.edit, { code });
+  const options = useQuery(api.pages.admin.problems.options, {});
   const revisions = useQuery(
-    api.pages.admin1.revisionsFor,
+    api.pages.admin.revisions.byKey,
     active === "revisions" ? { entityType: "problem" as const, key: code } : "skip",
   );
 

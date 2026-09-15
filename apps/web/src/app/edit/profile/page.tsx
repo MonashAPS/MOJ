@@ -27,7 +27,7 @@ export default async function EditProfilePage() {
     query(api.languages.list, {}).catch(() => []),
     query(api.site.openOrganizations, {}).catch(() => []),
     queryAsViewer(api.profiles.userPage, { username: account.username }).catch(() => null),
-    queryAsViewer(api.profiles.myApiToken, {}).catch(() => null),
+    queryAsViewer(api.profiles.apiTokens.mine, {}).catch(() => null),
     listApiTokens().catch(() => []),
   ]);
 
