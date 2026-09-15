@@ -52,6 +52,13 @@ export function contestTabs(
     }
   }
 
+  tabs.push({
+    key: "allSubmissions",
+    label: t("allSubmissions"),
+    href: `/contest/${key}/submissions/`,
+    icon: <FileText aria-hidden />,
+  });
+
   if (viewerUsername) {
     tabs.push({
       key: "submissions",

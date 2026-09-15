@@ -60,7 +60,8 @@
     "submissions": "Посылки",
     "moss": "MOSS",
     "edit": "Изменить",
-    "clone": "Клонировать"
+    "clone": "Клонировать",
+    "allSubmissions": "Все посылки"
   },
   "list": {
     "title": "Соревнования",
@@ -381,7 +382,8 @@
     "disqualifiedBadge": "DQ",
     "stillRunning": "{time} · ещё идёт",
     "disqualifiedNote": "Дисквалифицировано: эта попытка не засчитывается.",
-    "points": "{points} баллов"
+    "points": "{points} баллов",
+    "metaAllSubmissions": "Все посылки: {key}"
   },
   "stats": {
     "metaTitle": "Статистика — {name}",

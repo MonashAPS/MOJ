@@ -56,7 +56,7 @@ const writable = {
   privateContestantProfileIds: v.optional(v.array(v.id("profiles"))),
   hideProblemTags: v.optional(v.boolean()),
   hideProblemAuthors: v.optional(v.boolean()),
-  hideNonContestProblems: v.optional(v.boolean()),
+  disableLockdown: v.optional(v.boolean()),
   runPretestsOnly: v.optional(v.boolean()),
   showShortDisplay: v.optional(v.boolean()),
   isOrganizationPrivate: v.optional(v.boolean()),

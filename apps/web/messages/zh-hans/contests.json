@@ -60,7 +60,8 @@
     "submissions": "提交",
     "moss": "MOSS",
     "edit": "编辑",
-    "clone": "克隆"
+    "clone": "克隆",
+    "allSubmissions": "全部提交"
   },
   "list": {
     "title": "比赛",
@@ -381,7 +382,8 @@
     "disqualifiedBadge": "DQ",
     "stillRunning": "{time} · 进行中",
     "disqualifiedNote": "已取消资格：此次提交不计分。",
-    "points": "{points} 分"
+    "points": "{points} 分",
+    "metaAllSubmissions": "{key} 的全部提交"
   },
   "stats": {
     "metaTitle": "{name} 统计",

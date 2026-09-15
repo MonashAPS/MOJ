@@ -60,7 +60,8 @@
     "submissions": "Pengiriman",
     "moss": "MOSS",
     "edit": "Edit",
-    "clone": "Klon"
+    "clone": "Klon",
+    "allSubmissions": "Semua pengiriman"
   },
   "list": {
     "title": "Kontes",
@@ -381,7 +382,8 @@
     "disqualifiedBadge": "DQ",
     "stillRunning": "{time} · masih berjalan",
     "disqualifiedNote": "Didiskualifikasi: run ini tidak menghasilkan skor.",
-    "points": "{points} poin"
+    "points": "{points} poin",
+    "metaAllSubmissions": "Semua pengiriman untuk {key}"
   },
   "stats": {
     "metaTitle": "Statistik {name}",

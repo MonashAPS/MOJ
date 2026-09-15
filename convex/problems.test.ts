@@ -273,14 +273,14 @@ describe("problems.list", () => {
   /** Being in a contest no longer rewrites this list. The contest's own page is
    *  where its problems live; all this query does is say when the catalogue
    *  should be drawn out of reach. */
-  async function inContest(t: ReturnType<typeof setupTest>, hideNonContestProblems: boolean) {
+  async function inContest(t: ReturnType<typeof setupTest>, disableLockdown: boolean) {
     await t.run(async (ctx) => {
       const { groupId, typeId } = await insertTaxonomy(ctx);
       const viewer = await insertProfile(ctx, { username: "player" });
       const inside = await insertProblem(ctx, { code: "inside", groupId, typeIds: [typeId] });
       await insertProblem(ctx, { code: "outside", groupId, typeIds: [typeId] });
 
-      const contest = await insertContest(ctx, { key: "live", hideNonContestProblems });
+      const contest = await insertContest(ctx, { key: "live", disableLockdown });
       await insertContestProblem(ctx, { contestId: contest, problemId: inside, order: 0, points: 42 });
       const participation = await insertParticipation(ctx, { contestId: contest, profileId: viewer });
       await ctx.db.patch(viewer, { currentParticipationId: participation });
@@ -289,19 +289,19 @@ describe("problems.list", () => {
     return await asUser(t, "player").query(api.problems.list, { showTypes: true });
   }
 
-  test("contest mode leaves the catalogue alone", async () => {
+  test("leaves the catalogue alone for a contest that opted out of the lockdown", async () => {
     const t = setupTest();
 
-    const result = await inContest(t, false);
+    const result = await inContest(t, true);
 
     expect(result.items.map((row) => row.code).sort()).toEqual(["inside", "outside"]);
     expect(result.contestLock).toBeNull();
   });
 
-  test("a contest that hides the catalogue still sends it, with a way back in", async () => {
+  test("locks the catalogue by default, still sending it, with a way back in", async () => {
     const t = setupTest();
 
-    const result = await inContest(t, true);
+    const result = await inContest(t, false);
 
     expect(result.items.map((row) => row.code).sort()).toEqual(["inside", "outside"]);
     expect(result.contestLock).toEqual({ key: "live", name: "LIVE" });

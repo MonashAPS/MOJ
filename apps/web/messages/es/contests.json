@@ -60,7 +60,8 @@
     "submissions": "Envíos",
     "moss": "MOSS",
     "edit": "Editar",
-    "clone": "Clonar"
+    "clone": "Clonar",
+    "allSubmissions": "Todos los envíos"
   },
   "list": {
     "title": "Concursos",
@@ -381,7 +382,8 @@
     "disqualifiedBadge": "DQ",
     "stillRunning": "{time} · todavía en curso",
     "disqualifiedNote": "Descalificado: este envío no puntúa.",
-    "points": "{points} puntos"
+    "points": "{points} puntos",
+    "metaAllSubmissions": "Todos los envíos de {key}"
   },
   "stats": {
     "metaTitle": "Estadísticas de {name}",

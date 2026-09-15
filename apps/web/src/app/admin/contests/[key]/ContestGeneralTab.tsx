@@ -122,7 +122,7 @@ export function ContestGeneralTab({
   const [lockedAfter, setLockedAfter] = useState<number | null>(contest.lockedAfter);
   const [pointsPrecision, setPointsPrecision] = useState(String(contest.pointsPrecision));
   const [hideProblemTags, setHideProblemTags] = useState(contest.hideProblemTags);
-  const [hideNonContestProblems, setHideNonContestProblems] = useState(contest.hideNonContestProblems);
+  const [disableLockdown, setHideNonContestProblems] = useState(contest.disableLockdown);
   const [hideProblemAuthors, setHideProblemAuthors] = useState(contest.hideProblemAuthors);
   const [runPretestsOnly, setRunPretestsOnly] = useState(contest.runPretestsOnly);
   const [showShortDisplay, setShowShortDisplay] = useState(contest.showShortDisplay);
@@ -231,7 +231,7 @@ export function ContestGeneralTab({
         lockedAfter,
         pointsPrecision: Number(pointsPrecision) || 0,
         hideProblemTags,
-        hideNonContestProblems,
+        disableLockdown,
         hideProblemAuthors,
         runPretestsOnly,
         showShortDisplay,
@@ -344,9 +344,9 @@ export function ContestGeneralTab({
               onCheckedChange={setHideProblemAuthors}
             />
             <AdminCheckField
-              label={t("hideNonContestProblems")}
-              hint={t("hideNonContestProblemsHint")}
-              checked={hideNonContestProblems}
+              label={t("disableLockdown")}
+              hint={t("disableLockdownHint")}
+              checked={disableLockdown}
               onCheckedChange={setHideNonContestProblems}
             />
             <AdminCheckField

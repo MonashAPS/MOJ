@@ -77,6 +77,10 @@ export type ContestBarData = {
     endTime: number;
     useClarifications: boolean;
     freezeMinutes: number;
+    /** The site turns into this contest while the viewer is competing in it. */
+    /** The site turns into this contest while the viewer is competing in it.
+     *  On unless the contest opted out. */
+    isLockedDown: boolean;
   };
   problems: ContestBarProblem[];
   participationId: Id<"contestParticipations"> | null;
@@ -460,6 +464,7 @@ export const navBar = query({
         endTime: contest.endTime,
         useClarifications: contest.useClarifications,
         freezeMinutes: contest.freezeMinutes,
+        isLockedDown: contest.disableLockdown !== true,
       },
       problems,
       participationId: participation?._id ?? null,
