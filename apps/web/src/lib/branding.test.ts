@@ -21,6 +21,16 @@ const DEFAULTS: BrandingValues = {
   isCustomised: false,
 };
 
+/** `brandingCss` answers null for an instance with nothing to override; every
+ *  case that reads the stylesheet passes one that has something. */
+function styleSheetFor(branding: BrandingValues): string {
+  const css = brandingCss(branding);
+
+  if (css === null) throw new Error("brandingCss wrote no stylesheet for a branded instance");
+
+  return css;
+}
+
 const BRANDED: BrandingValues = {
   ...DEFAULTS,
   accentColor: "#b3001b",
@@ -59,14 +69,14 @@ describe("brandingCss", () => {
   });
 
   test("the overrides land on :root and on both dark selectors", () => {
-    const css = brandingCss(BRANDED) as string;
+    const css = styleSheetFor(BRANDED);
     expect(css).toContain(":root{--accent:#b3001b");
     expect(css).toContain('@media (prefers-color-scheme: dark){:root:not([data-theme="light"])');
     expect(css).toContain(':root[data-theme="dark"],.theme-dark{--accent:#f18a82');
   });
 
   test("the dark chrome is its own set of values, not the light ones repeated", () => {
-    const css = brandingCss(BRANDED) as string;
+    const css = styleSheetFor(BRANDED);
     const dark = css.slice(css.indexOf("@media"));
     expect(dark).toContain("--nav:#212137");
     expect(dark).toContain("--titlebar:#34344f");
@@ -75,7 +85,7 @@ describe("brandingCss", () => {
   });
 
   test("the filled primary follows the brand on dark, not the token royal", () => {
-    const css = brandingCss(BRANDED) as string;
+    const css = styleSheetFor(BRANDED);
     const dark = css.slice(css.indexOf("@media"));
     expect(dark).toContain("--accent-fill:#bf1b26");
     expect(dark).toContain("--accent-fill-hover:#d13235");
@@ -85,19 +95,19 @@ describe("brandingCss", () => {
   });
 
   test("the nav colour drives the band and the bar under it", () => {
-    const css = brandingCss(BRANDED) as string;
+    const css = styleSheetFor(BRANDED);
     expect(css).toContain(":root{--accent:#b3001b;--nav:#1a1a2e;--titlebar:#1a1a2e;--contest-bar:#23233a");
   });
 
   test("the royal follows the accent, so the keyline and the focus ring match it", () => {
-    const css = brandingCss(BRANDED) as string;
+    const css = styleSheetFor(BRANDED);
     expect(css).toContain(":root{--accent:#b3001b");
     expect(css.slice(0, css.indexOf("}"))).toContain("--brand-royal:#b3001b");
     expect(css.slice(css.indexOf("@media"))).toContain("--brand-royal:#f18a82");
   });
 
   test("custom CSS is appended after the overrides in both modes, so it wins", () => {
-    const css = brandingCss({ ...BRANDED, customCss: ":root { --radius: 2px; }" }) as string;
+    const css = styleSheetFor({ ...BRANDED, customCss: ":root { --radius: 2px; }" });
     expect(css.indexOf("--radius")).toBeGreaterThan(css.indexOf("--accent"));
     expect(css.indexOf("--radius")).toBeGreaterThan(css.indexOf("@media"));
     expect(css.indexOf("--radius")).toBeGreaterThan(css.indexOf('[data-theme="dark"]'));

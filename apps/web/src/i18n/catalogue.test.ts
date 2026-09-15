@@ -1,9 +1,9 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parse } from "@formatjs/icu-messageformat-parser";
+import { type MessageFormatElement, parse, TYPE } from "@formatjs/icu-messageformat-parser";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_LANGUAGE, SITE_LANGUAGES } from "@/lib/language";
-import { NAMESPACES } from "./messages";
+import { isMessages, type Messages, NAMESPACES } from "./messages";
 
 /**
  * The catalogue's own guard rails.
@@ -17,11 +17,11 @@ import { NAMESPACES } from "./messages";
 
 const ROOT = join(import.meta.dirname, "../../messages");
 
-type Messages = Record<string, unknown>;
-
 function read(locale: string, namespace: string): Messages | null {
   try {
-    return JSON.parse(readFileSync(join(ROOT, locale, `${namespace}.json`), "utf8"));
+    const parsed: unknown = JSON.parse(readFileSync(join(ROOT, locale, `${namespace}.json`), "utf8"));
+
+    return isMessages(parsed) ? parsed : null;
   } catch {
     return null;
   }
@@ -34,9 +34,9 @@ function flatten(messages: Messages, prefix = ""): Map<string, string> {
   for (const [key, value] of Object.entries(messages)) {
     const path = prefix ? `${prefix}.${key}` : key;
 
-    if (value && typeof value === "object" && !Array.isArray(value)) {
-      for (const [inner, text] of flatten(value as Messages, path)) flat.set(inner, text);
-    } else if (typeof value === "string") {
+    if (isMessages(value)) {
+      for (const [inner, text] of flatten(value, path)) flat.set(inner, text);
+    } else {
       flat.set(path, value);
     }
   }
@@ -48,24 +48,19 @@ function flatten(messages: Messages, prefix = ""): Map<string, string> {
 function placeholders(message: string): Set<string> {
   const found = new Set<string>();
 
-  const walk = (nodes: ReturnType<typeof parse>): void => {
+  const walk = (nodes: MessageFormatElement[]): void => {
     for (const node of nodes) {
-      if ("value" in node && typeof node.value === "string" && "type" in node && node.type === 8) {
+      if (node.type === TYPE.tag) {
         found.add(`<${node.value}>`);
-      } else if ("value" in node && typeof node.value === "string" && "type" in node && node.type === 1) {
         found.add(`{${node.value}}`);
-      }
-
-      if ("value" in node && typeof node.value === "string" && "type" in node && node.type >= 5) {
+        walk(node.children);
+      } else if (node.type === TYPE.argument) {
         found.add(`{${node.value}}`);
+      } else if (node.type === TYPE.select || node.type === TYPE.plural) {
+        found.add(`{${node.value}}`);
+
+        for (const option of Object.values(node.options)) walk(option.value);
       }
-
-      const children = (node as { children?: ReturnType<typeof parse> }).children;
-
-      if (children) walk(children);
-      const options = (node as { options?: Record<string, { value: ReturnType<typeof parse> }> }).options;
-
-      if (options) for (const option of Object.values(options)) walk(option.value);
     }
   };
 

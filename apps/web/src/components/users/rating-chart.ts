@@ -36,7 +36,10 @@ const MIN_SPAN = 200;
 
 const PAD_RATING = 50;
 
-const STEP_CANDIDATES = [50, 100, 200, 250, 500, 1000, 2000];
+/** The coarsest step, which is also what a span wider than every candidate uses. */
+const WIDEST_STEP = 2000;
+
+const STEP_CANDIDATES = [50, 100, 200, 250, 500, 1000, WIDEST_STEP];
 
 const MAX_Y_TICKS = 6;
 
@@ -101,7 +104,7 @@ function tickStep(span: number) {
     if (span / step <= MAX_Y_TICKS) return step;
   }
 
-  return STEP_CANDIDATES[STEP_CANDIDATES.length - 1] as number;
+  return WIDEST_STEP;
 }
 
 /** The whole chart as numbers: the component only turns these into elements, so

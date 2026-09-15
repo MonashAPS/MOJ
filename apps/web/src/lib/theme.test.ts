@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { resolveTheme, type ThemeDefault, themeBootstrap } from "./theme";
 
+type BootstrapTrace = { attribute: string | null; cookie: string };
+
 /** Runs the inline bootstrap the way a browser would, against a stand-in root
  *  element and a stand-in store, and reports what it left behind. */
 function run(
   stored: string | null,
   defaultTheme: ThemeDefault,
   { alreadyOn }: { alreadyOn?: string } = {},
-): { attribute: string | null; cookie: string } {
+): BootstrapTrace {
   let attribute: string | null = alreadyOn ?? null;
   let cookie = "";
 

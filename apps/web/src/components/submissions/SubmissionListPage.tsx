@@ -1,5 +1,6 @@
 import { api } from "@convex/_generated/api";
 import { RatingName, type TabItem, TitleRow } from "@moj/ui";
+import type { FunctionArgs } from "convex/server";
 import { BarChart3, List, User } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -12,6 +13,8 @@ import { SubmissionList, type SubmissionListFilters } from "./SubmissionList";
 
 /** DMOJ's `paginate_by`. */
 const PAGE_SIZE = 50;
+
+type SubmissionsQuery = FunctionArgs<typeof api.submissions.list>;
 
 export type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -64,13 +67,18 @@ export async function SubmissionListPage({
   // answer honestly.
   const wantsResults = !filters.username && !filters.contestKey;
 
+  // An unset filter is left out rather than sent as undefined.
+  const listArgs: SubmissionsQuery = {
+    paginationOpts: { numItems: PAGE_SIZE, cursor: null },
+    ...filters,
+  };
+
+  if (status.length > 0) listArgs.results = status;
+
+  if (language.length > 0) listArgs.languageKeys = language;
+
   const [page, results] = await Promise.all([
-    queryAsViewer(api.submissions.list, {
-      paginationOpts: { numItems: PAGE_SIZE, cursor: null },
-      ...filters,
-      ...(status.length > 0 ? { results: status } : {}),
-      ...(language.length > 0 ? { languageKeys: language } : {}),
-    }),
+    queryAsViewer(api.submissions.list, listArgs),
     wantsResults
       ? queryAsViewer(
           api.submissions.resultsForProblem,

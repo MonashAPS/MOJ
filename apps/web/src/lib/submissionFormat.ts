@@ -30,8 +30,10 @@ export function formatTime(seconds: number | null | undefined, places = 2): stri
   return `${floatformat(seconds, places)}s`;
 }
 
+export type FormattedScore = { earned: string; total: string };
+
 /** DMOJ prints a score as `case_points / case_total`, both rounded to whole points. */
-export function formatScore(points: number, total: number): { earned: string; total: string } {
+export function formatScore(points: number, total: number): FormattedScore {
   return { earned: floatformat(points, 0), total: floatformat(total, 0) };
 }
 

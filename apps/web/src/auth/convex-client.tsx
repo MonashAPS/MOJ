@@ -16,17 +16,23 @@ function getClient(): ConvexReactClient {
   return client;
 }
 
-type TokenAction = (options?: unknown) => Promise<{ data?: { token?: string } | null } | null>;
+type AuthClient = typeof authClient;
+
+type TokenAnswer = { data?: { token?: string } | null } | null;
+
+type TokenAction = () => Promise<TokenAnswer>;
+
+function hasTokenAction(client: AuthClient): client is AuthClient & { token: TokenAction } {
+  return "token" in client && typeof client.token === "function";
+}
 
 /** The jwt plugin exposes GET /token. The client proxy generates
  *  `authClient.token()` from the server plugin, but fall back to a raw fetch so
  *  a plugin rename cannot silently log everyone out. */
 async function fetchToken(): Promise<string | null> {
-  const candidate = (authClient as unknown as { token?: TokenAction }).token;
-
   try {
-    if (typeof candidate === "function") {
-      const result = await candidate();
+    if (hasTokenAction(authClient)) {
+      const result = await authClient.token();
       const token = result?.data?.token;
 
       if (token) return token;

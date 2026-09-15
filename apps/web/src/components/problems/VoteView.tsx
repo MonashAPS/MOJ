@@ -3,10 +3,10 @@
 import { api } from "@convex/_generated/api";
 import { Alert, AlertTitle, Button, Field, Input, Panel, Textarea } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { TriangleAlert } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { mutationError } from "@/lib/convex-error";
 import { formatPoints } from "@/lib/units";
 
 type Stats = NonNullable<(typeof api.problems.votes.voteStats)["_returnType"]>;
@@ -63,18 +63,14 @@ export function VoteView({
   const [busy, setBusy] = useState(false);
   const [voted, setVoted] = useState(initialVote !== null);
 
-  async function run(action: () => Promise<unknown>) {
+  async function run<TAnswer>(action: () => Promise<TAnswer>) {
     setBusy(true);
     setError(null);
 
     try {
       await action();
     } catch (thrown) {
-      setError(
-        thrown instanceof ConvexError && typeof thrown.data === "object" && thrown.data !== null
-          ? String((thrown.data as { message?: string }).message ?? t("saveFailed"))
-          : t("saveFailed"),
-      );
+      setError(mutationError(thrown, t("saveFailed")));
     } finally {
       setBusy(false);
     }

@@ -27,16 +27,12 @@ const FALLBACK = [
 ];
 
 export function timezoneList(): string[] {
-  const supported = (Intl as unknown as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf;
+  try {
+    const zones = Intl.supportedValuesOf("timeZone");
 
-  if (typeof supported === "function") {
-    try {
-      const zones = supported("timeZone");
-
-      if (zones.length > 0) return zones;
-    } catch {
-      // fall through
-    }
+    if (zones.length > 0) return zones;
+  } catch {
+    // A runtime that does not implement the canonical list.
   }
 
   return FALLBACK;

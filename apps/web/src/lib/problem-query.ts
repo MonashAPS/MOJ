@@ -9,27 +9,32 @@
  * `contest`, `group_by_contest`) follow the same spelling.
  */
 
-export type ProblemSort =
-  | "code"
-  | "name"
-  | "points"
-  | "acRate"
-  | "userCount"
-  | "date"
-  | "group"
-  | "solved"
-  | "type"
-  | "editorial";
+const PROBLEM_SORTS = [
+  "code",
+  "name",
+  "points",
+  "acRate",
+  "userCount",
+  "date",
+  "group",
+  "solved",
+  "type",
+  "editorial",
+] as const;
 
-export type ProblemStatus = "all" | "solved" | "attempted" | "unsolved";
+export type ProblemSort = (typeof PROBLEM_SORTS)[number];
+
+const PROBLEM_STATUSES = ["all", "solved", "attempted", "unsolved"] as const;
+
+export type ProblemStatus = (typeof PROBLEM_STATUSES)[number];
 
 /** DMOJ's `order` is one signed field name, e.g. `-points`. */
-const SORT_BY_PARAM: Record<string, ProblemSort> = {
+const PARAM_BY_SORT: Record<ProblemSort, string> = {
   code: "code",
   name: "name",
   points: "points",
-  ac_rate: "acRate",
-  user_count: "userCount",
+  acRate: "ac_rate",
+  userCount: "user_count",
   date: "date",
   group: "group",
   solved: "solved",
@@ -37,9 +42,19 @@ const SORT_BY_PARAM: Record<string, ProblemSort> = {
   editorial: "editorial",
 };
 
-const PARAM_BY_SORT = Object.fromEntries(
-  Object.entries(SORT_BY_PARAM).map(([param, sort]) => [sort, param]),
-) as Record<ProblemSort, string>;
+const SORT_BY_PARAM = new Map<string, ProblemSort>();
+
+for (const sort of PROBLEM_SORTS) SORT_BY_PARAM.set(PARAM_BY_SORT[sort], sort);
+
+/** The `status` parameter, and the radio group that writes it. */
+export function parseProblemStatus(value: string): ProblemStatus {
+  return PROBLEM_STATUSES.find((status) => status === value) ?? "all";
+}
+
+/** The `order` parameter without its sign, and the sort select that writes it. */
+export function parseProblemSort(value: string): ProblemSort {
+  return PROBLEM_SORTS.find((sort) => sort === value) ?? "code";
+}
 
 /** DMOJ's `default_desc`, extended with the two sorts the panel adds. */
 const DEFAULT_DESC = new Set<ProblemSort>(["points", "acRate", "userCount", "date", "solved"]);
@@ -122,14 +137,9 @@ export function parseProblemQuery(params: RawSearchParams | URLSearchParams): Pr
 
   const orderRaw = one(get("order")).trim();
   const orderKey = orderRaw.startsWith("-") ? orderRaw.slice(1) : orderRaw;
-  const sort = SORT_BY_PARAM[orderKey] ?? "code";
+  const sort = SORT_BY_PARAM.get(orderKey) ?? "code";
   const descending = orderRaw ? orderRaw.startsWith("-") : DEFAULT_DESC.has(sort) && sort !== "code";
-
-  const statusRaw = one(get("status")) as ProblemStatus;
-
-  const status: ProblemStatus = ["all", "solved", "attempted", "unsolved"].includes(statusRaw)
-    ? statusRaw
-    : "all";
+  const status = parseProblemStatus(one(get("status")));
 
   return {
     search: one(get("search")),
@@ -205,6 +215,8 @@ export function problemHref(query: ProblemQuery, base = "/problems/"): string {
 /** The args `problems.list` takes. `hide_solved` is DMOJ's spelling of
  *  `status=unsolved`, and it wins when both are set, as DMOJ's form does. */
 export function problemListArgs(query: ProblemQuery, pageSize = 50) {
+  const order: "asc" | "desc" = query.descending ? "desc" : "asc";
+
   return {
     search: query.search || undefined,
     fullText: query.fullText,
@@ -221,7 +233,7 @@ export function problemListArgs(query: ProblemQuery, pageSize = 50) {
     groupByContest: query.groupByContest || undefined,
     showTypes: query.showTypes,
     sort: query.sort,
-    order: (query.descending ? "desc" : "asc") as "asc" | "desc",
+    order,
     page: query.page,
     pageSize,
   };

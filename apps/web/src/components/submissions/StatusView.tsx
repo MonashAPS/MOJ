@@ -119,14 +119,14 @@ function statusStrip(
   return out;
 }
 
-const TONE_TEXT: Record<string, string> = {
-  good: "text-good",
-  bad: "text-bad",
-  warn: "text-warn",
-  neutral: "text-neutral",
-  run: "text-run",
-  ie: "text-ie",
-};
+const TONE_TEXT = new Map<string, string>([
+  ["good", "text-good"],
+  ["bad", "text-bad"],
+  ["warn", "text-warn"],
+  ["neutral", "text-neutral"],
+  ["run", "text-run"],
+  ["ie", "text-ie"],
+]);
 
 /**
  * `submission/status.html` and `submission/status-testcases.html`, live by
@@ -268,7 +268,7 @@ export function StatusView({
                   key={entry.key}
                   className={cn(
                     "inline-flex items-center gap-0.5 font-mono text-xs tabular-nums",
-                    TONE_TEXT[verdictTone(entry.status)] ?? "text-neutral",
+                    TONE_TEXT.get(verdictTone(entry.status)) ?? "text-neutral",
                   )}
                   title={entry.status}
                 >

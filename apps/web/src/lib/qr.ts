@@ -53,6 +53,15 @@ function blocksFor(version: number): readonly [number, number, number, number, n
   return row;
 }
 
+/** Typed-array read that fails loudly instead of yielding undefined out of range. */
+function byteAt(table: Int8Array | Uint8Array, index: number): number {
+  const value = table[index];
+
+  if (value === undefined) throw new RangeError(`QR table index ${index} is out of range.`);
+
+  return value;
+}
+
 const EXP = new Uint8Array(512);
 
 const LOG = new Uint8Array(256);
@@ -68,13 +77,13 @@ const LOG = new Uint8Array(256);
     if (value & 0x100) value ^= 0x11d;
   }
 
-  for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255] as number;
+  for (let i = 255; i < 512; i++) EXP[i] = byteAt(EXP, i - 255);
 }
 
 function multiply(a: number, b: number): number {
   if (a === 0 || b === 0) return 0;
 
-  return EXP[(LOG[a] as number) + (LOG[b] as number)] as number;
+  return byteAt(EXP, byteAt(LOG, a) + byteAt(LOG, b));
 }
 
 function generatorPolynomial(degree: number): Uint8Array {
@@ -84,9 +93,9 @@ function generatorPolynomial(degree: number): Uint8Array {
     const next = new Uint8Array(poly.length + 1);
 
     for (let j = 0; j < poly.length; j++) {
-      const coefficient = poly[j] as number;
-      next[j] = (next[j] as number) ^ coefficient;
-      next[j + 1] = (next[j + 1] as number) ^ multiply(coefficient, EXP[i] as number);
+      const coefficient = byteAt(poly, j);
+      next[j] = byteAt(next, j) ^ coefficient;
+      next[j + 1] = byteAt(next, j + 1) ^ multiply(coefficient, byteAt(EXP, i));
     }
 
     poly = next;
@@ -100,13 +109,13 @@ function remainder(data: Uint8Array, degree: number): Uint8Array {
   const result = new Uint8Array(degree);
 
   for (const byte of data) {
-    const factor = byte ^ (result[0] as number);
+    const factor = byte ^ byteAt(result, 0);
     result.copyWithin(0, 1);
     result[degree - 1] = 0;
 
     if (factor !== 0) {
       for (let i = 0; i < degree; i++) {
-        result[i] = (result[i] as number) ^ multiply(generator[i + 1] as number, factor);
+        result[i] = byteAt(result, i) ^ multiply(byteAt(generator, i + 1), factor);
       }
     }
   }
@@ -190,11 +199,11 @@ function encodeData(bytes: Uint8Array, version: number): Uint8Array {
   const longest = Math.max(d1, d2);
 
   for (let i = 0; i < longest; i++) {
-    for (const block of blocks) if (i < block.length) interleaved.push(block[i] as number);
+    for (const block of blocks) if (i < block.length) interleaved.push(byteAt(block, i));
   }
 
   for (let i = 0; i < ec; i++) {
-    for (const block of eccBlocks) interleaved.push(block[i] as number);
+    for (const block of eccBlocks) interleaved.push(byteAt(block, i));
   }
 
   return new Uint8Array(interleaved);
@@ -336,7 +345,7 @@ function applyMask(grid: Grid, mask: number) {
     for (let x = 0; x < size; x++) {
       if (grid.reserved[y * size + x]) continue;
 
-      if (maskCondition(mask, x, y)) grid.modules[y * size + x] = (grid.modules[y * size + x] as number) ^ 1;
+      if (maskCondition(mask, x, y)) grid.modules[y * size + x] = byteAt(grid.modules, y * size + x) ^ 1;
     }
   }
 }
@@ -369,7 +378,7 @@ function drawFormat(grid: Grid, mask: number) {
 
 function penalty(grid: Grid): number {
   const { size, modules } = grid;
-  const at = (x: number, y: number) => modules[y * size + x] as number;
+  const at = (x: number, y: number) => byteAt(modules, y * size + x);
   let score = 0;
 
   // Rule 1: runs of five or more.
@@ -422,7 +431,7 @@ function penalty(grid: Grid): number {
   // Rule 4: deviation from an even split of dark and light.
   let dark = 0;
 
-  for (let i = 0; i < size * size; i++) dark += modules[i] as number;
+  for (let i = 0; i < size * size; i++) dark += byteAt(modules, i);
   const percent = (dark * 100) / (size * size);
   score += Math.floor(Math.abs(percent - 50) / 5) * 10;
 
@@ -454,10 +463,12 @@ export function encodeQr(text: string): QrMatrix {
     drawFormat(grid, mask);
     const score = penalty(grid);
 
-    if (!best || score < best.score) best = { grid, score };
+    if (best === null || score < best.score) best = { grid, score };
   }
 
-  const grid = (best as { grid: Grid }).grid;
+  if (best === null) throw new Error("No mask was scored for the QR grid.");
+
+  const { grid } = best;
   const modules: boolean[][] = [];
 
   for (let y = 0; y < size; y++) {

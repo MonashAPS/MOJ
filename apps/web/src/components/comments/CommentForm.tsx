@@ -7,9 +7,10 @@ import { useState } from "react";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import { mutationError } from "@/lib/convex-error";
 
-export type CommentFormProps = {
-  /** Throws to put the message it was given under the editor. */
-  onSubmit: (body: string) => Promise<unknown>;
+export type CommentFormProps<TAnswer = void> = {
+  /** Throws to put the message it was given under the editor. The form reads
+   *  nothing of what the mutation answers, so its type is the caller's. */
+  onSubmit: (body: string) => Promise<TAnswer>;
   heading?: string;
   submitLabel?: string;
   placeholder?: string;
@@ -29,7 +30,7 @@ export type CommentFormProps = {
  * until the current text has been previewed, which is what Martor's
  * `editor_msg` asks for.
  */
-export function CommentForm({
+export function CommentForm<TAnswer>({
   onSubmit,
   heading,
   submitLabel,
@@ -42,7 +43,7 @@ export function CommentForm({
   onCancel,
   clearOnSuccess = true,
   className,
-}: CommentFormProps) {
+}: CommentFormProps<TAnswer>) {
   const t = useTranslations("blog.form");
   const common = useTranslations("common.actions");
   const [body, setBody] = useState(initialValue);

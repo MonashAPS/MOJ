@@ -113,14 +113,14 @@ export function CommentsClient({
   );
 }
 
-function NewComment({
+function NewComment<TAnswer>({
   data,
   signedIn,
   onSubmit,
 }: {
   data: CommentList;
   signedIn: boolean;
-  onSubmit: (body: string) => Promise<unknown>;
+  onSubmit: (body: string) => Promise<TAnswer>;
 }) {
   const t = useTranslations("blog.comments");
 

@@ -9,22 +9,22 @@ import path from "node:path";
  */
 const MEDIA_DIRNAME = path.join("infra", "media");
 
-const EXTENSION_TYPES: Record<string, string> = {
-  ".apng": "image/apng",
-  ".avif": "image/avif",
-  ".bmp": "image/bmp",
-  ".gif": "image/gif",
-  ".ico": "image/x-icon",
-  ".jpeg": "image/jpeg",
-  ".jpg": "image/jpeg",
-  ".pdf": "application/pdf",
-  ".png": "image/png",
-  ".svg": "image/svg+xml",
-  ".webp": "image/webp",
-};
+const EXTENSION_TYPES = new Map<string, string>([
+  [".apng", "image/apng"],
+  [".avif", "image/avif"],
+  [".bmp", "image/bmp"],
+  [".gif", "image/gif"],
+  [".ico", "image/x-icon"],
+  [".jpeg", "image/jpeg"],
+  [".jpg", "image/jpeg"],
+  [".pdf", "application/pdf"],
+  [".png", "image/png"],
+  [".svg", "image/svg+xml"],
+  [".webp", "image/webp"],
+]);
 
 export function mediaContentType(filePath: string): string {
-  return EXTENSION_TYPES[path.extname(filePath).toLowerCase()] ?? "application/octet-stream";
+  return EXTENSION_TYPES.get(path.extname(filePath).toLowerCase()) ?? "application/octet-stream";
 }
 
 let cachedRoot: string | null = null;

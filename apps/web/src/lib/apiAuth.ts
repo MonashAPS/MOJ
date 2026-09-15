@@ -98,7 +98,8 @@ async function verifyApiKeyToken(token: string): Promise<ApiIdentity | null> {
     const result = await auth.api.verifyApiKey({ body: { key: token } });
 
     if (!result?.valid || !result.key) return null;
-    const userId = (result.key as { userId?: string }).userId;
+    // `references` defaults to "user", so the key's owning entity is the account.
+    const userId = result.key.referenceId;
 
     if (!userId) return null;
 
@@ -118,25 +119,13 @@ async function verifyApiKeyToken(token: string): Promise<ApiIdentity | null> {
 
     if (!record || record.banned) return null;
 
-    let permissions: Record<string, string[]> = {};
-    const raw = (result.key as { permissions?: unknown }).permissions;
-
-    if (typeof raw === "string") {
-      try {
-        permissions = JSON.parse(raw) as Record<string, string[]>;
-      } catch {
-        permissions = {};
-      }
-    } else if (raw && typeof raw === "object") {
-      permissions = raw as Record<string, string[]>;
-    }
-
     return {
       kind: "api-key",
       userId,
       username: record.username ?? record.name,
       isStaff: Boolean(record.isStaff || record.isSuperuser),
-      permissions,
+      // The plugin decodes the stored scope column before it answers.
+      permissions: result.key.permissions ?? {},
     };
   } catch {
     return null;
@@ -176,9 +165,9 @@ export async function authenticateRequest(request: Request): Promise<BearerOutco
   if (!header) return { status: "anonymous" };
 
   const match = BEARER_PATTERN.exec(header);
+  const token = match?.[1];
 
-  if (!match) return { status: "malformed" };
-  const token = match[1] as string;
+  if (token === undefined) return { status: "malformed" };
 
   const identity = (await verifyApiKeyToken(token)) ?? (await verifyLegacyToken(token));
 
@@ -206,7 +195,7 @@ export async function mintConvexToken(identity: ApiIdentity): Promise<string> {
     },
   });
 
-  return (result as { token: string }).token;
+  return result.token;
 }
 
 export type ConvexCallOptions = { url: string; token?: string };
@@ -231,7 +220,7 @@ function baseResponse(request: Request) {
   };
 }
 
-export function apiJson(request: Request, data: unknown, status = 200): Response {
+export function apiJson<TData>(request: Request, data: TData, status = 200): Response {
   return Response.json({ ...baseResponse(request), data }, { status });
 }
 
@@ -251,17 +240,25 @@ export const API_ERRORS = {
 
 type ConvexErrorData = { code?: string; message?: string };
 
+/** convex/lib/errors.ts throws `ConvexError({code, message})`, and the Convex
+ *  client rethrows it carrying that payload. */
+function hasConvexErrorData(cause: unknown): cause is { data: ConvexErrorData } {
+  if (typeof cause !== "object" || cause === null || !("data" in cause)) return false;
+
+  return typeof cause.data === "object" && cause.data !== null;
+}
+
 /** Map a `ConvexError` thrown by convex/apiV2.ts onto DMOJ's error envelope. */
-export function errorResponse(request: Request, error: unknown): Response {
-  const data = (error as { data?: ConvexErrorData })?.data;
-  const code = data?.code;
+export function errorResponse(request: Request, cause: unknown): Response {
+  const data: ConvexErrorData = hasConvexErrorData(cause) ? cause.data : {};
+  const code = data.code;
 
   if (code === "NOT_FOUND") {
     return apiError(request, API_ERRORS.notFound.code, API_ERRORS.notFound.message);
   }
 
   if (code === "FORBIDDEN") {
-    const message = data?.message === "login required" ? "login required" : "permission denied";
+    const message = data.message === "login required" ? "login required" : "permission denied";
 
     return apiError(request, 403, message);
   }
@@ -274,7 +271,7 @@ export function errorResponse(request: Request, error: unknown): Response {
     return apiError(request, API_ERRORS.invalidFilter.code, API_ERRORS.invalidFilter.message);
   }
 
-  throw error;
+  throw cause;
 }
 
 /**
@@ -282,9 +279,9 @@ export function errorResponse(request: Request, error: unknown): Response {
  * reject a malformed or unknown token the way DMOJ's middleware does, and turn
  * a thrown `ConvexError` into the error envelope.
  */
-export async function handleApiRequest(
+export async function handleApiRequest<TData>(
   request: Request,
-  run: (options: ConvexCallOptions, identity: ApiIdentity | null) => Promise<unknown>,
+  run: (options: ConvexCallOptions, identity: ApiIdentity | null) => Promise<TData>,
 ): Promise<Response> {
   const outcome = await authenticateRequest(request);
 
@@ -304,8 +301,8 @@ export async function handleApiRequest(
     const data = await run(options, outcome.status === "ok" ? outcome.identity : null);
 
     return apiJson(request, data);
-  } catch (error) {
-    return errorResponse(request, error);
+  } catch (cause) {
+    return errorResponse(request, cause);
   }
 }
 
@@ -375,15 +372,15 @@ export function withFilters(request: Request, build: (url: URL) => Promise<Respo
     );
   }
 
-  return build(url).catch((error: unknown) => {
-    if (error instanceof RangeError) {
+  return build(url).catch((cause: unknown) => {
+    if (cause instanceof RangeError) {
       return apiError(request, API_ERRORS.notFound.code, API_ERRORS.notFound.message);
     }
 
-    if (error instanceof TypeError) {
+    if (cause instanceof TypeError) {
       return apiError(request, API_ERRORS.invalidFilter.code, API_ERRORS.invalidFilter.message);
     }
 
-    return errorResponse(request, error);
+    return errorResponse(request, cause);
   });
 }

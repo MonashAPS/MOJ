@@ -46,21 +46,64 @@ async function remainingFactorsAfterRemoval(
   return totpCount + passkeyCount;
 }
 
+type VerificationTarget = { email?: string; updateTo?: string };
+
+function isVerificationTarget(claims: unknown): claims is VerificationTarget {
+  if (typeof claims !== "object" || claims === null) return false;
+  const email = "email" in claims ? claims.email : undefined;
+  const updateTo = "updateTo" in claims ? claims.updateTo : undefined;
+
+  return (
+    (email === undefined || typeof email === "string") &&
+    (updateTo === undefined || typeof updateTo === "string")
+  );
+}
+
 /** Better Auth signs verification tokens as JWTs. A change-of-address token
  *  carries `updateTo`, which is how the mail callback tells the two apart. */
-function verificationTarget(token: string): { email?: string; updateTo?: string } {
+function verificationTarget(token: string): VerificationTarget {
   try {
     const payload = token.split(".")[1];
 
     if (!payload) return {};
 
-    return JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
-      email?: string;
-      updateTo?: string;
-    };
+    const claims: unknown = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+
+    return isVerificationTarget(claims) ? claims : {};
   } catch {
     return {};
   }
+}
+
+/** The fields Better Auth's own user type carries. `username` and `isStaff` reach
+ *  the row through a plugin and `user.additionalFields`, neither of which widens it. */
+type AuthUser = { id: string; name: string; email: string };
+
+function hasUsername(user: AuthUser): user is AuthUser & { username: string } {
+  return "username" in user && typeof user.username === "string";
+}
+
+function pluginUsername(user: AuthUser): string | null {
+  return hasUsername(user) ? user.username : null;
+}
+
+function isStaffAccount(user: AuthUser): boolean {
+  return "isStaff" in user && Boolean(user.isStaff);
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
+/** A hook runs after the handler answered; that answer sits on the context. */
+function isAnsweredWithStatus(returned: unknown): returned is { status: number } {
+  return (
+    typeof returned === "object" &&
+    returned !== null &&
+    "status" in returned &&
+    typeof returned.status === "number" &&
+    Boolean(returned.status)
+  );
 }
 
 /** DMOJ stored Django hashes. On the first successful legacy login we rewrite
@@ -197,9 +240,9 @@ export const auth = betterAuth({
 
       if (ctx.path === "/two-factor/disable" || ctx.path === "/passkey/delete-passkey") {
         const session = await getSessionFromCtx(ctx);
-        const user = session?.user as { id: string; isStaff?: boolean } | undefined;
+        const user = session?.user;
 
-        if (!user?.isStaff) return;
+        if (!user || !isStaffAccount(user)) return;
 
         const remaining =
           ctx.path === "/two-factor/disable"
@@ -218,12 +261,12 @@ export const auth = betterAuth({
       // DMOJ checks the password typed at the login prompt against Have I Been
       // Pwned and, on a hit, forces a change before anything else can be read.
       if (ctx.path === "/sign-in/email" || ctx.path === "/sign-in/username") {
-        const password = ctx.body?.password;
+        const password: unknown = ctx.body?.password;
 
-        if (typeof password !== "string" || !password) return;
-        const returned = ctx.context.returned as { status?: number } | undefined;
+        if (!isNonEmptyString(password)) return;
+        const returned: unknown = ctx.context.returned;
 
-        if (returned instanceof APIError || returned?.status) return;
+        if (returned instanceof APIError || isAnsweredWithStatus(returned)) return;
 
         try {
           if (await isPasswordCompromised(password)) {
@@ -253,18 +296,18 @@ export const auth = betterAuth({
       // makes first, so the owner is told out of band. A mail failure must not
       // turn a successful enrolment into an error.
       if (ctx.path === "/two-factor/enable" || ctx.path === "/two-factor/disable") {
-        const returned = ctx.context.returned as { status?: number } | undefined;
+        const returned: unknown = ctx.context.returned;
 
-        if (returned instanceof APIError || returned?.status) return;
+        if (returned instanceof APIError || isAnsweredWithStatus(returned)) return;
         const session = await getSessionFromCtx(ctx).catch(() => null);
-        const user = session?.user as { email?: string; name?: string; username?: string } | undefined;
+        const user = session?.user;
 
         if (!user?.email) return;
         const action = ctx.path === "/two-factor/enable" ? "enabled" : "disabled";
 
         try {
           await sendMail({
-            ...twoFactorNoticeEmail(user.username || user.name || user.email, action),
+            ...twoFactorNoticeEmail(pluginUsername(user) || user.name || user.email, action),
             to: user.email,
           });
         } catch (error) {
@@ -318,8 +361,8 @@ export const auth = betterAuth({
         expirationTime: "1h",
         getSubject: ({ user }) => user.id,
         definePayload: ({ user }) => ({
-          username: (user as { username?: string }).username ?? user.name,
-          isStaff: Boolean((user as { isStaff?: boolean }).isStaff),
+          username: pluginUsername(user) ?? user.name,
+          isStaff: isStaffAccount(user),
         }),
       },
     }),

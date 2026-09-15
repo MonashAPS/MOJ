@@ -18,17 +18,17 @@ import {
 } from "@/lib/submissionFormat";
 
 /** `--v-<verdict>` for the 3px rail, through the one tone resolver's families. */
-const RAIL: Record<string, string> = {
-  good: "bg-good",
-  bad: "bg-bad",
-  warn: "bg-warn",
-  neutral: "bg-neutral",
-  run: "bg-run",
-  ie: "bg-ie",
-};
+const RAIL = new Map<string, string>([
+  ["good", "bg-good"],
+  ["bad", "bg-bad"],
+  ["warn", "bg-warn"],
+  ["neutral", "bg-neutral"],
+  ["run", "bg-run"],
+  ["ie", "bg-ie"],
+]);
 
 function railClass(tone: string): string {
-  return RAIL[tone] ?? "bg-neutral";
+  return RAIL.get(tone) ?? "bg-neutral";
 }
 
 export type RowPermissions = {

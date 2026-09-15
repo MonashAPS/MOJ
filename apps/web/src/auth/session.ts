@@ -11,7 +11,7 @@ export async function getConvexToken(): Promise<string | null> {
   try {
     const result = await auth.api.getToken({ headers: await headers() });
 
-    return (result as { token?: string } | null)?.token ?? null;
+    return result?.token ?? null;
   } catch {
     return null;
   }

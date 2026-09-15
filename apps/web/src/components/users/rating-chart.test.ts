@@ -24,11 +24,16 @@ describe("buildRatingChart", () => {
     const chart = buildRatingChart(HISTORY);
 
     expect(chart.domain).toEqual({ low: 1200, high: 2300 });
+    const [first] = chart.dots;
+    const last = chart.dots.at(-1);
+
+    if (first === undefined || last === undefined) throw new Error("the chart drew no dots");
+
     // The first and last points sit on the ends of the plot.
-    expect(chart.dots[0]?.x).toBe(chart.plot.x);
-    expect(chart.dots[chart.dots.length - 1]?.x).toBe(chart.plot.x + chart.plot.width);
+    expect(first.x).toBe(chart.plot.x);
+    expect(last.x).toBe(chart.plot.x + chart.plot.width);
     // A higher rating is drawn further up.
-    expect(chart.dots[0]?.y).toBeGreaterThan(chart.dots[chart.dots.length - 1]?.y as number);
+    expect(first.y).toBeGreaterThan(last.y);
 
     for (const dot of chart.dots) {
       expect(dot.y).toBeGreaterThanOrEqual(chart.plot.y);

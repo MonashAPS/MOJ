@@ -27,6 +27,8 @@ import {
   EMPTY_QUERY,
   type ProblemQuery,
   type ProblemSort,
+  parseProblemSort,
+  parseProblemStatus,
   problemQueryString,
 } from "@/lib/problem-query";
 
@@ -225,7 +227,7 @@ export function FilterPanel({
           name={`${ids}-status`}
           ariaLabel={t("groupStatus")}
           value={query.hideSolved ? "unsolved" : query.status}
-          onValueChange={(value) => set({ status: value as ProblemQuery["status"], hideSolved: false })}
+          onValueChange={(value) => set({ status: parseProblemStatus(value), hideSolved: false })}
           options={[
             { value: "all", label: t("statusAll") },
             { value: "solved", label: t("statusSolved"), disabled: !authenticated },
@@ -302,12 +304,14 @@ export function FilterPanel({
               step={1}
               value={points}
               onValueChange={(value) => setPoints([value[0] ?? 0, value[1] ?? 0])}
-              onValueCommit={(value) =>
+              onValueCommit={(value) => {
+                const [low = pointValues.min, high = pointValues.max] = value;
+
                 set({
-                  pointStart: (value[0] ?? pointValues.min) > pointValues.min ? (value[0] as number) : null,
-                  pointEnd: (value[1] ?? pointValues.max) < pointValues.max ? (value[1] as number) : null,
-                })
-              }
+                  pointStart: low > pointValues.min ? low : null,
+                  pointEnd: high < pointValues.max ? high : null,
+                });
+              }}
             />
             <span className="w-9 shrink-0 rounded-sm border border-border bg-secondary px-1 text-center font-mono text-sm tabular-nums text-foreground">
               {points[1]}
@@ -408,7 +412,7 @@ export function FilterPanel({
         <Select
           ariaLabel={t("groupSort")}
           value={query.sort}
-          onValueChange={(value) => set({ sort: value as ProblemSort })}
+          onValueChange={(value) => set({ sort: parseProblemSort(value) })}
           options={sortOptions}
         />
         <Switch

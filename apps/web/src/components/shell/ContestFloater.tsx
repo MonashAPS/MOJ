@@ -53,7 +53,7 @@ export function ContestFloater({
     if (!box) return;
     const rect = box.getBoundingClientRect();
     dragOffset.current = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    event.currentTarget.setPointerCapture(event.pointerId);
   }, []);
 
   const onPointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
@@ -73,7 +73,7 @@ export function ContestFloater({
 
   const onPointerUp = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     dragOffset.current = null;
-    (event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId);
+    event.currentTarget.releasePointerCapture(event.pointerId);
   }, []);
 
   if (hidden) return null;

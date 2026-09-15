@@ -36,8 +36,10 @@ const PER_GROUP = 6;
 
 const DEBOUNCE_MS = 120;
 
+const KINDS = ["problem", "user", "contest", "organization"] as const;
+
 type Hit = {
-  kind: "problem" | "user" | "contest" | "organization";
+  kind: (typeof KINDS)[number];
   id: string;
   title: string;
   subtitle?: string;
@@ -65,14 +67,30 @@ const PAGES = [
   { message: "users", href: "/users/", icon: Users },
 ];
 
+/** What an older release, or another tab, may have left in storage. */
+function isHit(value: unknown): value is Hit {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "kind" in value &&
+    KINDS.some((kind) => kind === value.kind) &&
+    "id" in value &&
+    typeof value.id === "string" &&
+    "title" in value &&
+    typeof value.title === "string" &&
+    "href" in value &&
+    typeof value.href === "string"
+  );
+}
+
 function readRecents(): Hit[] {
   try {
     const raw = localStorage.getItem(RECENTS_KEY);
 
     if (!raw) return [];
-    const parsed = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(raw);
 
-    return Array.isArray(parsed) ? (parsed as Hit[]).slice(0, MAX_RECENTS) : [];
+    return Array.isArray(parsed) ? parsed.filter(isHit).slice(0, MAX_RECENTS) : [];
   } catch {
     return [];
   }
@@ -155,9 +173,7 @@ export function CommandPalette({
     return () => document.removeEventListener("keydown", onKeyDown, true);
   }, [open, onOpenChange]);
 
-  const results = useQuery(api.search.global, debounced.length > 0 ? { term: debounced } : "skip") as
-    | Hit[]
-    | undefined;
+  const results = useQuery(api.search.global, debounced.length > 0 ? { term: debounced } : "skip");
 
   const grouped = useMemo(() => {
     const map = new Map<Hit["kind"], Hit[]>();

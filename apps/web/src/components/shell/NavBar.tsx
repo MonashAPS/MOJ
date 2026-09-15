@@ -83,7 +83,10 @@ export function NavBar({
 
       setIsMobile(false);
 
-      const widths = Array.from(measure.children).map((child) => (child as HTMLElement).offsetWidth);
+      const widths = Array.from(measure.children).flatMap((child) =>
+        child instanceof HTMLElement ? [child.offsetWidth] : [],
+      );
+
       const available = list.clientWidth;
 
       let used = 0;

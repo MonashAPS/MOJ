@@ -8,11 +8,11 @@ import { ProblemTabLink } from "@/components/problems/EditorialLink";
 import { type ProblemDetail, ProblemInfoBox } from "@/components/problems/ProblemInfoBox";
 import { type ProblemTabKey, problemTabs } from "@/components/problems/tabs";
 
-const STATE_ICON = {
-  solved: { Icon: CheckCircle2, tone: "var(--state-solved)", label: "solved" },
-  partial: { Icon: CircleSlash2, tone: "var(--state-partial)", label: "partial" },
-  attempted: { Icon: CircleDashed, tone: "var(--state-attempted)", label: "attempted" },
-} as const;
+const STATE_ICON = new Map([
+  ["solved", { Icon: CheckCircle2, tone: "var(--state-solved)", label: "solved" }],
+  ["partial", { Icon: CircleSlash2, tone: "var(--state-partial)", label: "partial" }],
+  ["attempted", { Icon: CircleDashed, tone: "var(--state-attempted)", label: "attempted" }],
+]);
 
 /**
  * Every route under `/problem/<code>` wears the same chrome: DMOJ's title row,
@@ -38,7 +38,7 @@ export function ProblemPage({
 }) {
   const t = useTranslations("problems.detail");
   const states = useTranslations("problems.state");
-  const state = STATE_ICON[problem.viewer.state as keyof typeof STATE_ICON];
+  const state = STATE_ICON.get(problem.viewer.state);
 
   return (
     <>

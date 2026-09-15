@@ -27,7 +27,7 @@ export function RouteProgress() {
         return;
       }
 
-      const anchor = (event.target as HTMLElement | null)?.closest?.("a");
+      const anchor = event.target instanceof Element ? event.target.closest("a") : null;
 
       if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
       const href = anchor.getAttribute("href");

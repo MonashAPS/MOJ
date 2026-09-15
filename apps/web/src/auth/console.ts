@@ -31,9 +31,7 @@ export async function consoleViewer(): Promise<ConsoleViewer | null> {
     profile,
     isSuperuser: profile.isSuperuser,
     permissions: profile.permissions,
-    isImpersonating: Boolean(
-      (session?.session as { impersonatedBy?: string | null } | undefined)?.impersonatedBy,
-    ),
+    isImpersonating: Boolean(session?.session.impersonatedBy),
   };
 }
 

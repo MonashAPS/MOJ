@@ -10,22 +10,22 @@
  * and change the other, or a header will not match its own icon.
  */
 
-export const SPORT_COLOURS: Record<string, string> = {
-  archery: "#8338EC",
-  "artistic-gymnastics": "#ED3939",
-  athletics: "#3A86FF",
-  bouldering: "#FFBE0B",
-  cycling: "#46B2D9",
-  fencing: "#4AFA44",
-  golf: "#A8ED39",
-  pentathlon: "#39BD5C",
-  "rhythmic-gymnastics": "#E139ED",
-  sailing: "#FF006E",
-  skateboarding: "#FB5607",
-};
+export const SPORT_COLOURS = new Map<string, string>([
+  ["archery", "#8338EC"],
+  ["artistic-gymnastics", "#ED3939"],
+  ["athletics", "#3A86FF"],
+  ["bouldering", "#FFBE0B"],
+  ["cycling", "#46B2D9"],
+  ["fencing", "#4AFA44"],
+  ["golf", "#A8ED39"],
+  ["pentathlon", "#39BD5C"],
+  ["rhythmic-gymnastics", "#E139ED"],
+  ["sailing", "#FF006E"],
+  ["skateboarding", "#FB5607"],
+]);
 
 /** The order the fallback below walks, which is the order the files are named. */
-const SPORTS = Object.keys(SPORT_COLOURS);
+const SPORTS = [...SPORT_COLOURS.keys()];
 
 /**
  * Which sport each problem wears, per division.
@@ -34,21 +34,24 @@ const SPORTS = Object.keys(SPORT_COLOURS);
  * mapping survives the contest being reordered. The fork's own table is carried
  * over as it stands; add a division here when you dress one up.
  */
-export const PROBLEM_SPORTS: Record<string, Record<string, string>> = {
-  diva: {
-    slicktricks: "skateboarding",
-    polyathlon: "pentathlon",
-    golfroyale: "golf",
-    effortless: "rhythmic-gymnastics",
-    cyclingpreshow: "cycling",
-    polevaultexpress: "athletics",
-    fencingshortcuts: "fencing",
-    crossingsails: "sailing",
-    boulderingwall: "bouldering",
-    balancebeamlanding: "artistic-gymnastics",
-    archerybannerstrips: "archery",
-  },
-};
+export const PROBLEM_SPORTS = new Map<string, Map<string, string>>([
+  [
+    "diva",
+    new Map([
+      ["slicktricks", "skateboarding"],
+      ["polyathlon", "pentathlon"],
+      ["golfroyale", "golf"],
+      ["effortless", "rhythmic-gymnastics"],
+      ["cyclingpreshow", "cycling"],
+      ["polevaultexpress", "athletics"],
+      ["fencingshortcuts", "fencing"],
+      ["crossingsails", "sailing"],
+      ["boulderingwall", "bouldering"],
+      ["balancebeamlanding", "artistic-gymnastics"],
+      ["archerybannerstrips", "archery"],
+    ]),
+  ],
+]);
 
 export type Pictogram = { sport: string; src: string; colour: string };
 
@@ -61,11 +64,11 @@ export type Pictogram = { sport: string; src: string; colour: string };
  * dressed reads exactly as it was written.
  */
 export function pictogramFor(divisionKey: string, code: string, index: number): Pictogram | null {
-  const named = PROBLEM_SPORTS[divisionKey]?.[code];
+  const named = PROBLEM_SPORTS.get(divisionKey)?.get(code);
   const sport = named ?? SPORTS[index % SPORTS.length];
 
   if (!sport) return null;
-  const colour = SPORT_COLOURS[sport];
+  const colour = SPORT_COLOURS.get(sport);
 
   if (!colour) return null;
 

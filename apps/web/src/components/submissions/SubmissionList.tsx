@@ -18,7 +18,7 @@ import {
   toast,
   verdictTone,
 } from "@moj/ui";
-import { useConvex, useMutation, usePaginatedQuery } from "convex/react";
+import { type PaginatedQueryArgs, useConvex, useMutation, usePaginatedQuery } from "convex/react";
 import { Inbox, PlugZap } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -36,6 +36,8 @@ const PAGE_SIZE = 50;
 function same(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((value, index) => value === b[index]);
 }
+
+type SubmissionsQuery = PaginatedQueryArgs<typeof api.submissions.list>;
 
 export type SubmissionListFilters = {
   username?: string;
@@ -99,14 +101,17 @@ export function SubmissionList({
   const selectedStatuses = useMemo(() => searchParams.getAll("status"), [searchParams]);
   const selectedLanguages = useMemo(() => searchParams.getAll("language"), [searchParams]);
 
-  const queryArgs = useMemo(
-    () => ({
-      ...filters,
-      ...(selectedStatuses.length > 0 ? { results: selectedStatuses } : {}),
-      ...(selectedLanguages.length > 0 ? { languageKeys: selectedLanguages } : {}),
-    }),
-    [filters, selectedStatuses, selectedLanguages],
-  );
+  const queryArgs = useMemo(() => {
+    // An unset filter is left out rather than sent as undefined, so the query
+    // subscribes under the same key it would without the filter panel.
+    const args: SubmissionsQuery = { ...filters };
+
+    if (selectedStatuses.length > 0) args.results = selectedStatuses;
+
+    if (selectedLanguages.length > 0) args.languageKeys = selectedLanguages;
+
+    return args;
+  }, [filters, selectedStatuses, selectedLanguages]);
 
   const live = usePaginatedQuery(api.submissions.list, dynamic ? queryArgs : "skip", {
     initialNumItems: PAGE_SIZE,

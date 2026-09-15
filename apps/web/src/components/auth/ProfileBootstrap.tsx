@@ -37,9 +37,7 @@ export function ProfileBootstrap() {
 
     if (viewer === undefined || viewer.profile !== null) return;
 
-    const user = session?.user as
-      | { id?: string; name?: string; username?: string; timezone?: string; preferredLanguage?: string }
-      | undefined;
+    const user = session?.user;
 
     if (!user) return;
     const key = user.id ?? user.username ?? "user";

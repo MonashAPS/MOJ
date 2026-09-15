@@ -31,6 +31,8 @@ export const STATEMENT_COPY_ICONS = { copy: COPY_ICON, check: CHECK_ICON };
 
 type Block = { start: number; end: number; html: string };
 
+type PairedOutput = { html: string; end: number };
+
 /** The fenced and indented code blocks, in document order, without descending
  *  into one another: `.codehilite` already wraps its own `<pre>`. */
 function findBlocks(html: string): Block[] {
@@ -48,9 +50,11 @@ function findBlocks(html: string): Block[] {
 
 const HEADING = /<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/g;
 
+type BlockRole = { label: string; role: "input" | "output" | "code" };
+
 /** The role of a block is the nearest heading above it: DMOJ's statements put a
  *  `### Input` / `### Output` pair over each sample. */
-function roleFor(html: string, at: number): { label: string; role: "input" | "output" | "code" } {
+function roleFor(html: string, at: number): BlockRole {
   let heading: string | null = null;
   HEADING.lastIndex = 0;
   let match = HEADING.exec(html);
@@ -99,29 +103,35 @@ export function decorateStatement(html: string): string {
 
   if (blocks.length === 0) return html;
 
-  const counters: Record<string, number> = {};
+  const counters = new Map<string, number>();
 
   const frames = blocks.map((block) => {
     const { label, role } = roleFor(html, block.start);
-    counters[label] = (counters[label] ?? 0) + 1;
+    const count = (counters.get(label) ?? 0) + 1;
+    counters.set(label, count);
 
-    return { role, label, html: frame(block.html, label, role, counters[label] as number) };
+    return { role, label, html: frame(block.html, label, role, count) };
   });
 
-  /** Only the paired output's own heading may sit between the two frames. */
-  function pairs(index: number): boolean {
+  /** The output frame that pairs with the input frame at `index`: only that
+   *  output's own heading may sit between the two. */
+  function pairedOutput(index: number): PairedOutput | null {
     const left = frames[index];
     const right = frames[index + 1];
+    const leftBlock = blocks[index];
+    const rightBlock = blocks[index + 1];
 
-    if (!left || !right || left.role !== "input" || right.role !== "output") return false;
-    const between = html.slice((blocks[index] as Block).end, (blocks[index + 1] as Block).start);
+    if (!left || !right || !leftBlock || !rightBlock) return null;
+
+    if (left.role !== "input" || right.role !== "output") return null;
+    const between = html.slice(leftBlock.end, rightBlock.start);
 
     const text = between
       .replace(/<[^>]*>/g, " ")
       .replace(/output/gi, " ")
       .replace(/[\s\d:.\u2014-]+/g, "");
 
-    return text === "";
+    return text === "" ? { html: right.html, end: rightBlock.end } : null;
   }
 
   const out: string[] = [];
@@ -129,22 +139,23 @@ export function decorateStatement(html: string): string {
   let index = 0;
 
   while (index < frames.length) {
-    const block = blocks[index] as Block;
-    out.push(html.slice(cursor, block.start));
+    const current = frames[index];
+    const block = blocks[index];
 
-    if (pairs(index)) {
-      const next = blocks[index + 1] as Block;
-      out.push(
-        `<div class="not-prose my-4 grid items-start gap-3 min-[900px]:grid-cols-2 [&>figure]:my-0">${
-          (frames[index] as { html: string }).html
-        }${(frames[index + 1] as { html: string }).html}</div>`,
-      );
-      cursor = next.end;
-      index += 2;
-    } else {
-      out.push((frames[index] as { html: string }).html);
+    if (!current || !block) break;
+    out.push(html.slice(cursor, block.start));
+    const paired = pairedOutput(index);
+
+    if (paired === null) {
+      out.push(current.html);
       cursor = block.end;
       index += 1;
+    } else {
+      out.push(
+        `<div class="not-prose my-4 grid items-start gap-3 min-[900px]:grid-cols-2 [&>figure]:my-0">${current.html}${paired.html}</div>`,
+      );
+      cursor = paired.end;
+      index += 2;
     }
   }
 

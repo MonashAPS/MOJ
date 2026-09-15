@@ -23,10 +23,10 @@ import {
   Tooltip,
 } from "@moj/ui";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { ChevronDown, ChevronUp, Plus, Trash2, TriangleAlert, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
+import { mutationError } from "@/lib/convex-error";
 import { formatDateTime } from "@/lib/format";
 import { formatMemory } from "@/lib/submissionFormat";
 
@@ -51,7 +51,24 @@ const CASE_TYPES = [
 
 type Payload = NonNullable<(typeof api.problems.data.get)["_returnType"]>;
 
-type CaseRow = Payload["cases"][number] & { key: string };
+/** A row the editor holds. One the member has just added has no database id
+ *  yet, and `saveCases` rewrites the whole set anyway. */
+type CaseRow = Omit<Payload["cases"][number], "id"> & {
+  key: string;
+  id?: Payload["cases"][number]["id"];
+};
+
+/** Convex's upload endpoint answers `{storageId}`. The id's brand is nominal, so
+ *  a present string is as far as a runtime check can go. */
+function isUploadAnswer(body: unknown): body is { storageId: Id<"_storage"> } {
+  return (
+    typeof body === "object" && body !== null && "storageId" in body && typeof body.storageId === "string"
+  );
+}
+
+function caseType(value: string): CaseRow["type"] | null {
+  return CASE_TYPES.find((type) => type.value === value)?.value ?? null;
+}
 
 const OPTIONAL_COLUMNS = [
   "outputPrefix",
@@ -128,8 +145,10 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
       const target = index + delta;
 
       if (target < 0 || target >= next.length) return current;
-      const a = next[index] as CaseRow;
-      const b = next[target] as CaseRow;
+      const a = next[index];
+      const b = next[target];
+
+      if (a === undefined || b === undefined) return current;
       next[index] = b;
       next[target] = a;
 
@@ -145,11 +164,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
     try {
       await action();
     } catch (thrown) {
-      setError(
-        thrown instanceof ConvexError && typeof thrown.data === "object" && thrown.data !== null
-          ? String((thrown.data as { message?: string }).message ?? t("saveFailed"))
-          : t("saveFailed"),
-      );
+      setError(mutationError(thrown, t("saveFailed")));
     } finally {
       setBusy(false);
     }
@@ -171,7 +186,10 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
       });
 
       if (!response.ok) throw new Error("upload failed");
-      const { storageId } = (await response.json()) as { storageId: Id<"_storage"> };
+      const answer: unknown = await response.json();
+
+      if (!isUploadAnswer(answer)) throw new Error("the upload endpoint returned no storage id");
+      const { storageId } = answer;
       const result = await publishArchive({ code, zipfile: file.name, storageId });
       setFiles(result.files);
       setStatus(
@@ -466,7 +484,11 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                         size="sm"
                         ariaLabel={t("caseType", { index: index + 1 })}
                         value={row.type}
-                        onValueChange={(value) => patch(row.key, { type: value as CaseRow["type"] })}
+                        onValueChange={(value) => {
+                          const type = caseType(value);
+
+                          if (type) patch(row.key, { type });
+                        }}
                         options={caseTypes}
                       />
                     </TableCell>
@@ -663,7 +685,6 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                   ...current,
                   {
                     key: `new-${Date.now()}`,
-                    id: undefined as unknown as CaseRow["id"],
                     order: current.length + 1,
                     type: "C",
                     inputFile: "",

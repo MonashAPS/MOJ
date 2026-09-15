@@ -23,12 +23,12 @@ function moveBetweenChips(ref: { current: HTMLDivElement | null }) {
 
 /** The bar carries `data-chrome="dark"`, so `--v-*` here are the dark values
  *  whatever the page theme is. */
-const CHIP_STATE: Record<string, string> = {
-  solved: "border-transparent bg-good text-primary-foreground",
-  partial: "border-transparent bg-warn text-primary-foreground",
-  attempted: "border-bad bg-transparent text-bad",
-  untouched: "border-transparent bg-white/8 text-contest-bar-ink",
-};
+const CHIP_STATE = new Map<string, string>([
+  ["solved", "border-transparent bg-good text-primary-foreground"],
+  ["partial", "border-transparent bg-warn text-primary-foreground"],
+  ["attempted", "border-bad bg-transparent text-bad"],
+  ["untouched", "border-transparent bg-white/8 text-contest-bar-ink"],
+]);
 
 /** SPEC section 20. Sticky directly under the nav on any page that belongs to
  *  the contest; the DMOJ floater covers everywhere else, and never both. */
@@ -104,7 +104,7 @@ export function ContestBar({
                   "flex size-6 shrink-0 items-center justify-center rounded-xs border font-mono text-sm font-medium",
                   "transition-colors [scroll-snap-align:center]",
                   "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-royal/60",
-                  CHIP_STATE[problem.state],
+                  CHIP_STATE.get(problem.state),
                   isCurrent && "shadow-[inset_0_-2px_0_var(--brand-canary)]",
                 )}
               >

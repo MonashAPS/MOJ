@@ -38,15 +38,19 @@ function realDb(): Db {
 }
 
 function lazy<T extends object>(resolve: () => T): T {
-  return new Proxy({} as T, {
+  // SAFETY: no trap reads the target; each one answers from the resolved instance.
+  const placeholder = {} as T;
+
+  return new Proxy(placeholder, {
     get(_target, prop) {
       const instance = resolve();
-      const value = Reflect.get(instance, prop, instance);
+      // SAFETY: a key the instance does not carry reads as undefined here, exactly as it would on the instance.
+      const value = instance[prop as keyof T];
 
-      return typeof value === "function" ? value.bind(instance) : value;
+      return value instanceof Function ? value.bind(instance) : value;
     },
     has(_target, prop) {
-      return Reflect.has(resolve(), prop);
+      return prop in resolve();
     },
   });
 }

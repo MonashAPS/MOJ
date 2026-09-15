@@ -48,6 +48,22 @@ const MIN_CHROMIUM = 92;
 
 type BrowserCheck = { ok: boolean; name: string | null; version: number | null };
 
+/** Convex's upload endpoint answers `{storageId}`. The id's brand is nominal, so
+ *  a present string is as far as a runtime check can go. */
+function isUploadAnswer(body: unknown): body is { storageId: Id<"_storage"> } {
+  return (
+    typeof body === "object" && body !== null && "storageId" in body && typeof body.storageId === "string"
+  );
+}
+
+/** Screen-capture options newer than the DOM typings: they keep the picker on
+ *  whole screens rather than offering a tab or a window. */
+type ScreenCaptureOptions = DisplayMediaStreamOptions & {
+  monitorTypeSurfaces?: "include" | "exclude";
+  selfBrowserSurface?: "include" | "exclude";
+  surfaceSwitching?: "include" | "exclude";
+};
+
 /**
  * Which browser this is, and whether it can be proctored.
  *
@@ -55,14 +71,35 @@ type BrowserCheck = { ok: boolean; name: string | null; version: number | null }
  * frame rate, so neither can be held to sharing a whole screen. Rather than
  * accept a check that cannot fail, they are turned away and told what to use.
  */
+type UserAgentBrand = { brand: string; version: string };
+
+function isUserAgentBrand(value: unknown): value is UserAgentBrand {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "brand" in value &&
+    typeof value.brand === "string" &&
+    "version" in value &&
+    typeof value.version === "string"
+  );
+}
+
+function hasBrandList(data: unknown): data is { brands: unknown[] } {
+  return typeof data === "object" && data !== null && "brands" in data && Array.isArray(data.brands);
+}
+
+/** Chromium's user-agent client hints, which the DOM typings do not carry. */
+function userAgentBrands(): UserAgentBrand[] {
+  if (!("userAgentData" in navigator)) return [];
+  const data: unknown = navigator.userAgentData;
+
+  return hasBrandList(data) ? data.brands.filter(isUserAgentBrand) : [];
+}
+
 function checkBrowser(): BrowserCheck {
   const agent = navigator.userAgent;
 
-  const data = (
-    navigator as Navigator & { userAgentData?: { brands?: { brand: string; version: string }[] } }
-  ).userAgentData;
-
-  for (const brand of data?.brands ?? []) {
+  for (const brand of userAgentBrands()) {
     if (/microsoft edge/i.test(brand.brand)) {
       const version = Number.parseInt(brand.version, 10);
 
@@ -165,7 +202,10 @@ export function ProctorClient() {
           body: blob,
         });
 
-        const { storageId } = (await response.json()) as { storageId: Id<"_storage"> };
+        const answer: unknown = await response.json();
+
+        if (!isUploadAnswer(answer)) throw new Error("the upload endpoint returned no storage id");
+        const { storageId } = answer;
         await addChunk({
           sessionId,
           storageId,
@@ -189,7 +229,7 @@ export function ProctorClient() {
     let stream: MediaStream;
 
     try {
-      stream = await navigator.mediaDevices.getDisplayMedia({
+      const constraints: ScreenCaptureOptions = {
         // A hint only: the browser may still offer tabs and windows, so what
         // they actually picked is checked below rather than assumed.
         video: { displaySurface: "monitor" },
@@ -197,7 +237,9 @@ export function ProctorClient() {
         monitorTypeSurfaces: "include",
         selfBrowserSurface: "exclude",
         surfaceSwitching: "exclude",
-      } as DisplayMediaStreamOptions);
+      };
+
+      stream = await navigator.mediaDevices.getDisplayMedia(constraints);
     } catch {
       setPhase("denied");
 

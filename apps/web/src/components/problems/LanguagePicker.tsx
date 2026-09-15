@@ -77,18 +77,22 @@ export function LanguagePicker({
     const needle = deferred.trim().toLowerCase();
 
     return [...byName.entries()]
-      .map(([name, items]) => ({
-        name,
-        items: [...items].sort((a, b) => a.name.localeCompare(b.name)),
-      }))
-      .filter(({ name, items }) =>
-        needle.length === 0
-          ? true
-          : name.toLowerCase().includes(needle) ||
-            items.some(
-              (item) => item.name.toLowerCase().includes(needle) || item.key.toLowerCase().includes(needle),
-            ),
-      )
+      .flatMap(([name, items]) => {
+        const family = {
+          name,
+          items: [...items].sort((a, b) => a.name.localeCompare(b.name)),
+        };
+
+        if (needle.length === 0) return [family];
+
+        const matches =
+          name.toLowerCase().includes(needle) ||
+          family.items.some(
+            (item) => item.name.toLowerCase().includes(needle) || item.key.toLowerCase().includes(needle),
+          );
+
+        return matches ? [family] : [];
+      })
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [languages, deferred]);
 

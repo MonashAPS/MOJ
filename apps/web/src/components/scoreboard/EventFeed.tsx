@@ -9,17 +9,17 @@ import { contestClock } from "./hall";
 
 const SHIFT_MS = 420;
 
-const CHIP: Record<string, string> = {
-  correct: "chipCorrect",
-  incorrect: "chipIncorrect",
-  pending: "chipPending",
-};
+const CHIP = new Map<string, string>([
+  ["correct", "chipCorrect"],
+  ["incorrect", "chipIncorrect"],
+  ["pending", "chipPending"],
+]);
 
-const LINE: Record<string, string> = {
-  correct: "lineCorrect",
-  incorrect: "lineIncorrect",
-  pending: "linePending",
-};
+const LINE = new Map<string, string>([
+  ["correct", "lineCorrect"],
+  ["incorrect", "lineIncorrect"],
+  ["pending", "linePending"],
+]);
 
 function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -77,7 +77,7 @@ export function EventFeed({
       if (still || before === undefined) continue;
       const delta = before - top;
 
-      if (Math.abs(delta) < 2 || typeof node.animate !== "function") continue;
+      if (Math.abs(delta) < 2 || typeof node.animate === "undefined") continue;
       node.animate([{ transform: `translateY(${delta}px)` }, { transform: "none" }], {
         duration: SHIFT_MS,
         easing: `cubic-bezier(${EASE_OUT.join(",")})`,
@@ -118,9 +118,9 @@ export function EventFeed({
             <span className="hall-feed-division" title={entry.divisionName}>
               {entry.divisionName}
             </span>
-            <span className="hall-feed-chip">{t(CHIP[entry.state] ?? "chipPending")}</span>
+            <span className="hall-feed-chip">{t(CHIP.get(entry.state) ?? "chipPending")}</span>
             <span className="hall-feed-line">
-              {t.rich(LINE[entry.state] ?? "linePending", {
+              {t.rich(LINE.get(entry.state) ?? "linePending", {
                 name: entry.displayName,
                 problem: entry.problem,
                 who: (chunks) => <b>{chunks}</b>,

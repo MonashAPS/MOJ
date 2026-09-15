@@ -112,9 +112,7 @@ export function useHumanDuration(): (ms: number) => string {
         ["hours", Math.floor((total % 86400) / 3600)],
         ["minutes", Math.floor((total % 3600) / 60)],
       ] as const
-    )
-      .filter(([, value]) => value > 0)
-      .map(([unit, value]) => t(unit, { count: value }));
+    ).flatMap(([unit, value]) => (value > 0 ? [t(unit, { count: value })] : []));
 
     if (first === undefined) return t("underAMinute");
 

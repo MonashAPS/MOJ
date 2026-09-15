@@ -3,13 +3,13 @@
 import { api } from "@convex/_generated/api";
 import { Alert, AlertDescription, AlertTitle, Button, Kbd, KbdGroup, Select } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CodeEditor } from "@/components/problems/CodeEditor";
 import { LanguagePicker } from "@/components/problems/LanguagePicker";
+import { mutationError } from "@/lib/convex-error";
 
 const MAX_SOURCE_LENGTH = 65_536;
 
@@ -133,11 +133,7 @@ export function SubmitForm({
       router.push(`/submission/${created.id}`);
     } catch (thrown) {
       setBusy(false);
-      setError(
-        thrown instanceof ConvexError && typeof thrown.data === "object" && thrown.data !== null
-          ? String((thrown.data as { message?: string }).message ?? t("failed"))
-          : t("failed"),
-      );
+      setError(mutationError(thrown, t("failed")));
     }
   }, [busy, judgePin, languageKey, problemCode, router, source, submit, t]);
 

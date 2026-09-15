@@ -22,36 +22,46 @@ export const NAMESPACES = [
 
 export type Namespace = (typeof NAMESPACES)[number];
 
-type Messages = Record<string, unknown>;
+/** A catalogue file is a tree of message strings under grouping keys. */
+export type Messages = { [key: string]: Messages | string };
+
+export function isMessages(catalogue: unknown): catalogue is Messages {
+  if (typeof catalogue !== "object" || catalogue === null || Array.isArray(catalogue)) return false;
+
+  for (const value of Object.values(catalogue)) {
+    if (typeof value !== "string" && !isMessages(value)) return false;
+  }
+
+  return true;
+}
+
+function isGroup(value: Messages | string | undefined): value is Messages {
+  return typeof value === "object" && value !== null;
+}
 
 /** English under a translation, key by key, so a catalogue that is behind shows
  *  English for what it is missing rather than a blank or a raw key. */
 function fillGaps(base: Messages, over: Messages): Messages {
-  const merged: Messages = { ...base };
+  const merged = new Map(Object.entries(base));
 
   for (const [key, value] of Object.entries(over)) {
-    const existing = merged[key];
+    const existing = merged.get(key);
 
-    if (
-      value &&
-      typeof value === "object" &&
-      !Array.isArray(value) &&
-      existing &&
-      typeof existing === "object" &&
-      !Array.isArray(existing)
-    ) {
-      merged[key] = fillGaps(existing as Messages, value as Messages);
-    } else if (value !== undefined && value !== "") {
-      merged[key] = value;
+    if (isGroup(value) && isGroup(existing)) {
+      merged.set(key, fillGaps(existing, value));
+    } else if (value !== "") {
+      merged.set(key, value);
     }
   }
 
-  return merged;
+  return Object.fromEntries(merged);
 }
 
 async function read(language: string, namespace: Namespace): Promise<Messages> {
   try {
-    return (await import(`../../messages/${language}/${namespace}.json`)).default as Messages;
+    const loaded: unknown = (await import(`../../messages/${language}/${namespace}.json`)).default;
+
+    return isMessages(loaded) ? loaded : {};
   } catch {
     // A namespace a translation has not reached yet.
     return {};

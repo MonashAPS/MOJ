@@ -8,7 +8,15 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { THEME_STORAGE_KEY, THEME_SYSTEM, writeThemeCookie } from "@/lib/theme";
 
-export type ThemeChoice = "auto" | "light" | "dark";
+const THEME_CHOICES = ["auto", "light", "dark"] as const;
+
+export type ThemeChoice = (typeof THEME_CHOICES)[number];
+
+/** `ToggleGroup` hands back whatever string its item carried, and an empty one
+ *  when the pressed item was the current choice. */
+function themeChoice(value: string): ThemeChoice | null {
+  return THEME_CHOICES.find((choice) => choice === value) ?? null;
+}
 
 /** Reads the choice the viewer has made on this browser, or null if they never
  *  have. Following the system is a stored value, not an empty slot: the two have
@@ -106,7 +114,11 @@ export function ThemeSegmented({
     <ToggleGroup
       type="single"
       value={theme}
-      onValueChange={(value) => value && choose(value as ThemeChoice)}
+      onValueChange={(value) => {
+        const choice = themeChoice(value);
+
+        if (choice) choose(choice);
+      }}
       aria-label={t("theme")}
       className={className}
     >

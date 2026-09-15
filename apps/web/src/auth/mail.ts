@@ -102,27 +102,44 @@ export function smtpConfigFromEnv(env: Env = process.env): SmtpConfig {
   return { host, port, secure };
 }
 
+export type MailEnvelope = {
+  from: string;
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+};
+
 /** What a mail is on the wire, for either transport. */
-export function mailEnvelope(mail: OutgoingMail, from: string) {
-  return {
-    from,
-    to: mail.to,
-    subject: mail.subject,
-    text: mail.text,
-    ...(mail.html ? { html: mail.html } : {}),
-  };
+export function mailEnvelope(mail: OutgoingMail, from: string): MailEnvelope {
+  const envelope: MailEnvelope = { from, to: mail.to, subject: mail.subject, text: mail.text };
+
+  if (mail.html) envelope.html = mail.html;
+
+  return envelope;
 }
 
-export function sesSendInput(mail: OutgoingMail, from: string) {
+type SesContent = { Data: string; Charset: string };
+
+type SesBody = { Text: SesContent; Html?: SesContent };
+
+export type SesSendInput = {
+  Source: string;
+  Destination: { ToAddresses: string[] };
+  Message: { Subject: SesContent; Body: SesBody };
+};
+
+export function sesSendInput(mail: OutgoingMail, from: string): SesSendInput {
+  const body: SesBody = { Text: { Data: mail.text, Charset: "UTF-8" } };
+
+  if (mail.html) body.Html = { Data: mail.html, Charset: "UTF-8" };
+
   return {
     Source: from,
     Destination: { ToAddresses: [mail.to] },
     Message: {
       Subject: { Data: mail.subject, Charset: "UTF-8" },
-      Body: {
-        Text: { Data: mail.text, Charset: "UTF-8" },
-        ...(mail.html ? { Html: { Data: mail.html, Charset: "UTF-8" } } : {}),
-      },
+      Body: body,
     },
   };
 }
@@ -151,19 +168,51 @@ export function consoleTransport(log: (message: string) => void = console.info):
   };
 }
 
-export async function createSesTransport(config: SesConfig): Promise<MailTransport> {
+/** The one SES call this app makes. The AWS SDK sits behind it so a test can
+ *  drive the SES path with a client of its own instead of the network. */
+export interface SesClient {
+  send(input: SesSendInput): Promise<void>;
+}
+
+export type SesClientFactory = (config: SesConfig) => Promise<SesClient>;
+
+async function awsSesClient(config: SesConfig): Promise<SesClient> {
   const { SESClient, SendEmailCommand } = await import("@aws-sdk/client-ses");
   const client = new SESClient(config);
 
   return {
-    async send(mail, from) {
-      await client.send(new SendEmailCommand(sesSendInput(mail, from)));
+    async send(input) {
+      await client.send(new SendEmailCommand(input));
     },
   };
 }
 
+let sesClientFactory: SesClientFactory = awsSesClient;
+
+/** Point the SES transport at another client; `null` restores the AWS SDK one.
+ *  Nothing in the running app calls this. */
+export function setSesClientFactory(factory: SesClientFactory | null): void {
+  sesClientFactory = factory ?? awsSesClient;
+}
+
+export async function createSesTransport(
+  config: SesConfig,
+  createClient: SesClientFactory = sesClientFactory,
+): Promise<MailTransport> {
+  const client = await createClient(config);
+
+  return {
+    async send(mail, from) {
+      await client.send(sesSendInput(mail, from));
+    },
+  };
+}
+
+/** What nodemailer answers with. Nothing in the app reads more than this. */
+export type SentMail = { messageId?: string };
+
 export interface Transporter {
-  sendMail(message: ReturnType<typeof mailEnvelope>): Promise<unknown>;
+  sendMail(message: MailEnvelope): Promise<SentMail>;
 }
 
 /** Split out so a test can drive a nodemailer transport it made itself. */
@@ -178,7 +227,7 @@ export function smtpTransportFrom(transporter: Transporter): MailTransport {
 export async function createSmtpTransport(config: SmtpConfig): Promise<MailTransport> {
   const nodemailer = await import("nodemailer");
 
-  return smtpTransportFrom(nodemailer.createTransport(config) as Transporter);
+  return smtpTransportFrom(nodemailer.createTransport(config));
 }
 
 let transportPromise: Promise<MailTransport> | null = null;

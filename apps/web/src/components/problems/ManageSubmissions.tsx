@@ -22,10 +22,10 @@ import {
   Progress,
 } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { TriangleAlert } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { mutationError } from "@/lib/convex-error";
 
 /** DMOJ's `Submission.RESULT`, in its own order. */
 const RESULTS = ["AC", "WA", "TLE", "MLE", "OLE", "IR", "RTE", "CE", "IE", "SC", "AB"];
@@ -117,11 +117,7 @@ export function ManageSubmissions({
       const { jobId } = await action();
       set(jobId);
     } catch (thrown) {
-      setError(
-        thrown instanceof ConvexError && typeof thrown.data === "object" && thrown.data !== null
-          ? String((thrown.data as { message?: string }).message ?? t("jobNotStarted"))
-          : t("jobNotStarted"),
-      );
+      setError(mutationError(thrown, t("jobNotStarted")));
     } finally {
       setBusy(false);
       setConfirming(null);

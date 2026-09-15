@@ -24,13 +24,13 @@ const SHORTCUTS: Array<{ keys: string[]; message: string }> = [
   { keys: ["Esc"], message: "closeOverlay" },
 ];
 
-const GO_TO: Record<string, string> = {
-  p: "/problems/",
-  s: "/submissions/",
-  c: "/contests/",
-  u: "/users/",
-  h: "/",
-};
+const GO_TO = new Map<string, string>([
+  ["p", "/problems/"],
+  ["s", "/submissions/"],
+  ["c", "/contests/"],
+  ["u", "/users/"],
+  ["h", "/"],
+]);
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -67,7 +67,7 @@ export function ShortcutLayer() {
       }
 
       if (Date.now() - pending.current < 1000) {
-        const target = GO_TO[event.key.toLowerCase()];
+        const target = GO_TO.get(event.key.toLowerCase());
 
         if (target) {
           event.preventDefault();

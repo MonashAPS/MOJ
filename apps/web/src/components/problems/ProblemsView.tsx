@@ -54,16 +54,16 @@ type ListPayload = NonNullable<(typeof api.problems.list)["_returnType"]>;
 
 type ListItem = ListPayload["items"][number];
 
-const STATE_META = {
-  solved: { Icon: CheckCircle2, tone: "var(--state-solved)", label: "solved" },
-  partial: { Icon: CircleSlash2, tone: "var(--state-partial)", label: "partial" },
-  attempted: { Icon: CircleDashed, tone: "var(--state-attempted)", label: "attempted" },
-} as const;
+const STATE_META = new Map([
+  ["solved", { Icon: CheckCircle2, tone: "var(--state-solved)", label: "solved" }],
+  ["partial", { Icon: CircleSlash2, tone: "var(--state-partial)", label: "partial" }],
+  ["attempted", { Icon: CircleDashed, tone: "var(--state-attempted)", label: "attempted" }],
+]);
 
 function StateIcon({ state, code, username }: { state: string; code: string; username: string | null }) {
   const t = useTranslations("problems.list");
   const states = useTranslations("problems.state");
-  const meta = STATE_META[state as keyof typeof STATE_META];
+  const meta = STATE_META.get(state);
 
   if (!meta) return <span className="sr-only">{states("notAttempted")}</span>;
   const { Icon, tone } = meta;

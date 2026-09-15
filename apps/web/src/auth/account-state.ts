@@ -31,25 +31,21 @@ export async function readAccountSecurity(): Promise<AccountSecurity | null> {
 
   if (!session) return null;
 
-  const user = session.user as typeof session.user & {
-    username?: string | null;
-    isStaff?: boolean;
-    twoFactorEnabled?: boolean | null;
-  };
+  const { user } = session;
 
   const [passkeyRows, backupCodes] = await Promise.all([
     auth.api.listPasskeys({ headers: requestHeaders }).catch(() => []),
     auth.api
       .viewBackupCodes({ body: { userId: user.id } })
-      .then((result) => (result as { backupCodes?: string[] }).backupCodes ?? [])
+      .then((result) => result.backupCodes ?? [])
       .catch(() => []),
   ]);
 
-  const passkeys: PasskeySummary[] = (passkeyRows as Array<Record<string, unknown>>).map((row, index) => ({
-    id: String(row.id),
-    name: typeof row.name === "string" && row.name ? row.name : `Passkey ${index + 1}`,
-    createdAt: row.createdAt ? new Date(row.createdAt as string).getTime() : null,
-    deviceType: typeof row.deviceType === "string" ? row.deviceType : null,
+  const passkeys: PasskeySummary[] = passkeyRows.map((row, index) => ({
+    id: row.id,
+    name: row.name || `Passkey ${index + 1}`,
+    createdAt: row.createdAt ? new Date(row.createdAt).getTime() : null,
+    deviceType: row.deviceType ?? null,
     backedUp: Boolean(row.backedUp),
   }));
 

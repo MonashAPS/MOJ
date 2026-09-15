@@ -7,6 +7,15 @@ import { previewAction } from "./actions";
 
 type Preset = "flatpage" | "blog" | "self-description" | "license" | "organization-about";
 
+const EDITOR_MODES = ["write", "preview"] as const;
+
+type EditorMode = (typeof EDITOR_MODES)[number];
+
+/** `ToggleGroup` answers with the pressed item's value, or "" for the current one. */
+function editorMode(value: string): EditorMode | null {
+  return EDITOR_MODES.find((mode) => mode === value) ?? null;
+}
+
 /**
  * The console's markdown field: the source, and the same render the page itself
  * would produce, through `@moj/content`'s sanitiser preset. It is the stand-in
@@ -30,7 +39,7 @@ export function MarkdownField({
   optional?: string;
 }) {
   const t = useTranslations("admin.shell.markdown");
-  const [mode, setMode] = useState<"write" | "preview">("write");
+  const [mode, setMode] = useState<EditorMode>("write");
   const [html, setHtml] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -64,7 +73,11 @@ export function MarkdownField({
         <ToggleGroup
           type="single"
           value={mode}
-          onValueChange={(next) => next && setMode(next as "write" | "preview")}
+          onValueChange={(next) => {
+            const chosen = editorMode(next);
+
+            if (chosen) setMode(chosen);
+          }}
           className="w-auto justify-self-start"
         >
           <ToggleGroupItem value="write">{t("write")}</ToggleGroupItem>

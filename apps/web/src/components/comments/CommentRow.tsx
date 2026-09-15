@@ -41,7 +41,7 @@ const INDENT_STEP = 22;
 
 const MAX_INDENT_DEPTH = 6;
 
-export function CommentRow({
+export function CommentRow<TAnswer>({
   comment,
   html,
   signedIn,
@@ -54,7 +54,7 @@ export function CommentRow({
   signedIn: boolean;
   viewerUsername: string | null;
   maxLength: number;
-  onReply: (parentId: Id<"comments">, body: string) => Promise<unknown>;
+  onReply: (parentId: Id<"comments">, body: string) => Promise<TAnswer>;
 }) {
   const t = useTranslations("blog.comments");
   const common = useTranslations("common.actions");

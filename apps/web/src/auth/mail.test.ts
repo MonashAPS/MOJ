@@ -1,40 +1,37 @@
-import { createServer } from "node:net";
+import { type AddressInfo, createServer } from "node:net";
 import { afterEach, describe, expect, test, vi } from "vitest";
-
-const sesSend = vi.fn(async (_command: { input: ReturnType<typeof sesSendInput> }) => ({
-  MessageId: "ses-1",
-}));
-
-const sesClientConfig = vi.fn();
-
-vi.mock("@aws-sdk/client-ses", () => {
-  class SESClient {
-    constructor(config: unknown) {
-      sesClientConfig(config);
-    }
-    send = sesSend;
-  }
-
-  class SendEmailCommand {
-    constructor(readonly input: unknown) {}
-  }
-
-  return { SESClient, SendEmailCommand };
-});
-
 import {
   consoleTransport,
   createSesTransport,
+  type MailEnvelope,
   mailFrom,
   mailMode,
   resetMailTransport,
+  type SesClientFactory,
+  type SesConfig,
+  type SesSendInput,
   sendMail,
   sesConfigFromEnv,
   sesSendInput,
+  setSesClientFactory,
   smtpConfigFromEnv,
   smtpTransportFrom,
   type Transporter,
 } from "./mail";
+
+const sesSend = vi.fn(async (_input: SesSendInput) => {});
+
+const sesClientConfig = vi.fn((_config: SesConfig) => {});
+
+/** The SES seam: `mail.ts` builds its client through this, so the SES path runs
+ *  end to end without the AWS SDK or the network. */
+const fakeSesClient: SesClientFactory = async (config) => {
+  sesClientConfig(config);
+
+  return { send: sesSend };
+};
+
+setSesClientFactory(fakeSesClient);
 
 const ENV_KEYS = [
   "MAIL_MODE",
@@ -61,14 +58,20 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+function isNetworkAddress(address: AddressInfo | string | null): address is AddressInfo {
+  return typeof address === "object" && address !== null;
+}
+
 /** A throwaway TCP port, so a test never collides with a real service. */
 async function freePort(): Promise<number> {
   const server = createServer();
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const { port } = server.address() as { port: number };
+  const address = server.address();
   await new Promise<void>((resolve) => server.close(() => resolve()));
 
-  return port;
+  if (!isNetworkAddress(address)) throw new Error("the throwaway server bound to no port");
+
+  return address.port;
 }
 
 describe("mode and sender", () => {
@@ -156,11 +159,11 @@ describe("SES", () => {
       credentials: { accessKeyId: "AK", secretAccessKey: "SK" },
     });
     expect(sesSend).toHaveBeenCalledTimes(1);
-    const command = sesSend.mock.calls[0]?.[0];
+    const input = sesSend.mock.calls[0]?.[0];
 
-    if (!command) throw new Error("no SES command was sent");
-    expect(command.input.Destination.ToAddresses).toEqual(["a@example.org"]);
-    expect(command.input.Source).toBe("from@example.org");
+    if (!input) throw new Error("no SES command was sent");
+    expect(input.Destination.ToAddresses).toEqual(["a@example.org"]);
+    expect(input.Source).toBe("from@example.org");
   });
 
   test("MAIL_MODE=ses routes sendMail through the SES client", async () => {
@@ -174,11 +177,11 @@ describe("SES", () => {
     await sendMail({ to: "someone@example.org", subject: "Activate", text: "link" });
 
     expect(sesSend).toHaveBeenCalledTimes(1);
-    const command = sesSend.mock.calls[0]?.[0];
+    const input = sesSend.mock.calls[0]?.[0];
 
-    if (!command) throw new Error("no SES command was sent");
-    expect(command.input.Source).toBe("judge@example.org");
-    expect(command.input.Message.Subject.Data).toBe("Activate");
+    if (!input) throw new Error("no SES command was sent");
+    expect(input.Source).toBe("judge@example.org");
+    expect(input.Message.Subject.Data).toBe("Activate");
   });
 
   test("MAIL_MODE=ses without a region fails loudly, and recovers once it is set", async () => {
@@ -222,21 +225,34 @@ describe("SMTP", () => {
     // The stream transport is nodemailer's own local fake: it builds the real
     // MIME message and hands it back instead of opening a connection.
     const transporter = nodemailer.createTransport({ streamTransport: true, buffer: true });
-    const spy = vi.spyOn(transporter, "sendMail");
+    const envelopes: MailEnvelope[] = [];
+    const built: string[] = [];
 
-    await smtpTransportFrom(transporter as unknown as Transporter).send(
+    const recording: Transporter = {
+      async sendMail(message) {
+        envelopes.push(message);
+        const info = await transporter.sendMail(message);
+
+        if (Buffer.isBuffer(info.message)) built.push(info.message.toString("utf8"));
+
+        return info;
+      },
+    };
+
+    await smtpTransportFrom(recording).send(
       { to: "someone@example.org", subject: "Reset your password", text: "link" },
       "judge@example.org",
     );
 
-    expect(spy).toHaveBeenCalledWith({
-      from: "judge@example.org",
-      to: "someone@example.org",
-      subject: "Reset your password",
-      text: "link",
-    });
-    const info = (await spy.mock.results[0]?.value) as { message: Buffer };
-    const raw = info.message.toString("utf8");
+    expect(envelopes).toEqual([
+      {
+        from: "judge@example.org",
+        to: "someone@example.org",
+        subject: "Reset your password",
+        text: "link",
+      },
+    ]);
+    const raw = built.join("");
     expect(raw).toContain("From: judge@example.org");
     expect(raw).toContain("To: someone@example.org");
     expect(raw).toContain("Subject: Reset your password");

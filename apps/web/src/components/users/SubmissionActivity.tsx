@@ -124,11 +124,10 @@ function buildMonths(weeks: (Day | null)[][], names: string[]) {
     const last = labels[labels.length - 1];
 
     if (last && column - last.column < MONTH_LABEL_COLUMNS) continue;
-    labels.push({
-      key: `${day.date.getFullYear()}-${month}`,
-      column,
-      label: names[month] as string,
-    });
+    const label = names[month];
+
+    if (label === undefined) continue;
+    labels.push({ key: `${day.date.getFullYear()}-${month}`, column, label });
   }
 
   const spans: { key: string; span: number; label: string }[] = [];
@@ -184,7 +183,8 @@ export function SubmissionActivity({
   }
 
   function onCellOver(event: SyntheticEvent<HTMLTableSectionElement>) {
-    const cell = (event.target as HTMLElement).closest<HTMLElement>("[data-activity-label]");
+    const cell =
+      event.target instanceof HTMLElement ? event.target.closest<HTMLElement>("[data-activity-label]") : null;
 
     if (!cell) {
       setHint(null);

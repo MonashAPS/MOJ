@@ -1,12 +1,35 @@
 import { cookies, headers } from "next/headers";
 
 /** Server actions report failure as a value; nothing here throws at the client. */
-export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
+export type ActionFailure = { ok: false; error: string };
 
-export function failed(error: unknown): { ok: false; error: string } {
-  const message = error instanceof Error ? error.message : String(error);
+export type ActionResult<T = undefined> = { ok: true; data: T } | ActionFailure;
+
+export function failed(cause: unknown): ActionFailure {
+  const message = cause instanceof Error ? cause.message : String(cause);
 
   return { ok: false, error: message.replace(/^\[.*?\]\s*/, "") };
+}
+
+const SAME_SITE_POLICIES = ["lax", "strict", "none"] as const;
+
+type SameSitePolicy = (typeof SAME_SITE_POLICIES)[number];
+
+type CookieOptions = {
+  path?: string;
+  maxAge?: number;
+  expires?: Date;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: SameSitePolicy;
+  domain?: string;
+};
+
+/** The `SameSite` attribute Better Auth wrote, or undefined when it is not one Next accepts. */
+function sameSitePolicy(value: string): SameSitePolicy | undefined {
+  const lowered = value.toLowerCase();
+
+  return SAME_SITE_POLICIES.find((policy) => policy === lowered);
 }
 
 /**
@@ -25,15 +48,7 @@ export async function applySetCookies(responseHeaders: Headers): Promise<void> {
     const name = pair.slice(0, index).trim();
     const value = decodeURIComponent(pair.slice(index + 1).trim());
 
-    const options: {
-      path?: string;
-      maxAge?: number;
-      expires?: Date;
-      httpOnly?: boolean;
-      secure?: boolean;
-      sameSite?: "lax" | "strict" | "none";
-      domain?: string;
-    } = {};
+    const options: CookieOptions = {};
 
     for (const attribute of attributes) {
       const [key = "", attributeValue = ""] = attribute.split("=").map((part) => part.trim());
@@ -57,9 +72,12 @@ export async function applySetCookies(responseHeaders: Headers): Promise<void> {
         case "domain":
           options.domain = attributeValue;
           break;
-        case "samesite":
-          options.sameSite = attributeValue.toLowerCase() as "lax" | "strict" | "none";
+        case "samesite": {
+          const policy = sameSitePolicy(attributeValue);
+
+          if (policy !== undefined) options.sameSite = policy;
           break;
+        }
       }
     }
 
