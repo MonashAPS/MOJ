@@ -115,7 +115,8 @@
     "virtual": "virtual",
     "floater": "Dalam kontes",
     "hideTimer": "Sembunyikan pengatur waktu kontes",
-    "hideTimerHint": "Sembunyikan pengatur waktu kontes hingga Anda memuat ulang halaman"
+    "hideTimerHint": "Sembunyikan penghitung waktu kontes",
+    "showTimer": "Tampilkan penghitung waktu kontes"
   },
   "error": {
     "internal": "Kesalahan internal",

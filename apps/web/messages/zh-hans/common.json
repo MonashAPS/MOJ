@@ -115,7 +115,8 @@
     "virtual": "虚拟",
     "floater": "比赛中",
     "hideTimer": "隐藏比赛计时器",
-    "hideTimerHint": "隐藏比赛计时器，直到你刷新页面"
+    "hideTimerHint": "隐藏比赛计时器",
+    "showTimer": "显示比赛计时器"
   },
   "error": {
     "internal": "内部错误",

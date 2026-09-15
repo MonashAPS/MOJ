@@ -2,7 +2,7 @@
 
 import type { ContestBarProblem } from "@convex/contests";
 import { cn } from "@moj/ui";
-import { GripHorizontal, X } from "lucide-react";
+import { ChevronDown, GripHorizontal, X } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -53,7 +53,10 @@ export function ContestFloater({
   const onPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     const box = boxRef.current;
 
-    if (!box) return;
+    // The titlebar carries a button. Capturing the pointer for a drag retargets
+    // the click that follows to the bar itself, which is why pressing the close
+    // button did nothing at all.
+    if (!box || (event.target instanceof Element && event.target.closest("button"))) return;
     const rect = box.getBoundingClientRect();
     dragOffset.current = { x: event.clientX - rect.left, y: event.clientY - rect.top };
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -79,7 +82,38 @@ export function ContestFloater({
     event.currentTarget.releasePointerCapture(event.pointerId);
   }, []);
 
-  if (hidden) return null;
+  // Closed, the box does not go away: it parks under the nav as the contest's
+  // name, because being in a contest is not something to lose track of. The bar
+  // along its bottom pulls it back out.
+  if (hidden) {
+    return (
+      <div className="fixed right-4 top-[calc(var(--header-height,var(--nav-height))+var(--space-2))] z-(--z-floater) w-[200px] overflow-hidden rounded-md border border-border bg-card shadow-2">
+        <Link
+          href={`/contest/${contestKey}`}
+          className="block truncate px-3 py-2 text-sm font-medium text-link"
+        >
+          {contestName}
+        </Link>
+        <button
+          type="button"
+          aria-label={t("showTimer")}
+          title={t("showTimer")}
+          onClick={() => {
+            setHidden(false);
+
+            try {
+              sessionStorage.removeItem(DISMISS_KEY);
+            } catch {
+              // private mode
+            }
+          }}
+          className="flex h-6 w-full items-center justify-center border-t border-border bg-secondary text-muted-foreground hover:bg-well hover:text-foreground"
+        >
+          <ChevronDown size={14} aria-hidden />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div
