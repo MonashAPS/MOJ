@@ -10,11 +10,3 @@ export const renderContent = cache(async (source: string, preset: Preset = "defa
 
   return html;
 });
-
-export async function renderFlatPage(source: string): Promise<string> {
-  return renderContent(source, "flatpage");
-}
-
-export async function renderBlogSummary(source: string): Promise<string> {
-  return renderContent(source, "blog");
-}

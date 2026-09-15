@@ -899,9 +899,6 @@ export const updateProfile = mutation({
   },
 });
 
-/** Kept for the shell, which shipped against this name. */
-export const updatePreferences = updateProfile;
-
 export const setTheme = mutation({
   args: { siteTheme },
   handler: async (ctx, args) => {

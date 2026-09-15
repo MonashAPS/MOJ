@@ -10,7 +10,7 @@
  * and change the other, or a header will not match its own icon.
  */
 
-export const SPORT_COLOURS = new Map<string, string>([
+const SPORT_COLOURS = new Map<string, string>([
   ["archery", "#8338EC"],
   ["artistic-gymnastics", "#ED3939"],
   ["athletics", "#3A86FF"],
@@ -34,7 +34,7 @@ const SPORTS = [...SPORT_COLOURS.keys()];
  * mapping survives the contest being reordered. The fork's own table is carried
  * over as it stands; add a division here when you dress one up.
  */
-export const PROBLEM_SPORTS = new Map<string, Map<string, string>>([
+const PROBLEM_SPORTS = new Map<string, Map<string, string>>([
   [
     "diva",
     new Map([

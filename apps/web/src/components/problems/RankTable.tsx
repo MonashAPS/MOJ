@@ -5,7 +5,6 @@ import {
   EmptyState,
   Panel,
   RatingName,
-  Skeleton,
   Table,
   TableBody,
   TableCell,
@@ -109,8 +108,4 @@ export function RankTable({ code, initial }: { code: string; initial: Ranks }) {
       </div>
     </div>
   );
-}
-
-export function RankTableSkeleton() {
-  return <Skeleton className="h-64 w-full" />;
 }

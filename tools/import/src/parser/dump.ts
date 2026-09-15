@@ -68,14 +68,6 @@ export function parseInsert(stmt: string): InsertHead | null {
   return { table, columns, at: head[0].length };
 }
 
-export function isBooleanColumn(column: ColumnDef): boolean {
-  return column.type.startsWith("tinyint(1)");
-}
-
-export function isDateColumn(column: ColumnDef): boolean {
-  return /^(datetime|timestamp|date)/.test(column.type);
-}
-
 function openStream(path: string): NodeJS.ReadableStream {
   const file = createReadStream(path);
 

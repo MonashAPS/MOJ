@@ -111,7 +111,7 @@ export type MailEnvelope = {
 };
 
 /** What a mail is on the wire, for either transport. */
-export function mailEnvelope(mail: OutgoingMail, from: string): MailEnvelope {
+function mailEnvelope(mail: OutgoingMail, from: string): MailEnvelope {
   const envelope: MailEnvelope = { from, to: mail.to, subject: mail.subject, text: mail.text };
 
   if (mail.html) envelope.html = mail.html;
@@ -170,7 +170,7 @@ export function consoleTransport(log: (message: string) => void = console.info):
 
 /** The one SES call this app makes. The AWS SDK sits behind it so a test can
  *  drive the SES path with a client of its own instead of the network. */
-export interface SesClient {
+interface SesClient {
   send(input: SesSendInput): Promise<void>;
 }
 
@@ -209,7 +209,7 @@ export async function createSesTransport(
 }
 
 /** What nodemailer answers with. Nothing in the app reads more than this. */
-export type SentMail = { messageId?: string };
+type SentMail = { messageId?: string };
 
 export interface Transporter {
   sendMail(message: MailEnvelope): Promise<SentMail>;
@@ -224,7 +224,7 @@ export function smtpTransportFrom(transporter: Transporter): MailTransport {
   };
 }
 
-export async function createSmtpTransport(config: SmtpConfig): Promise<MailTransport> {
+async function createSmtpTransport(config: SmtpConfig): Promise<MailTransport> {
   const nodemailer = await import("nodemailer");
 
   return smtpTransportFrom(nodemailer.createTransport(config));
@@ -249,7 +249,7 @@ function buildTransport(mode: MailMode): Promise<MailTransport> {
   return Promise.resolve(consoleTransport());
 }
 
-export function mailTransport(): Promise<MailTransport> {
+function mailTransport(): Promise<MailTransport> {
   const mode = mailMode();
 
   if (!transportPromise || transportMode !== mode) {

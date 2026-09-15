@@ -69,7 +69,7 @@ const rehypeTidyTables: Plugin<[], Root> = function rehypeTidyTables() {
 
 /* --------------------------------------------------------------------------- links ----- */
 
-export interface NofollowOptions {
+interface NofollowOptions {
   /** Hosts that keep their links unannotated, DMOJ's `NOFOLLOW_EXCLUDED`. */
   readonly excluded?: readonly string[];
 }
@@ -263,7 +263,7 @@ const rehypeUserReferences: Plugin<[UserReferenceOptions], Root> = function rehy
 
 /* --------------------------------------------------------------------- absolutify ----- */
 
-export interface AbsolutifyOptions {
+interface AbsolutifyOptions {
   readonly base: string;
 }
 

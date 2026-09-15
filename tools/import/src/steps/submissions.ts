@@ -28,7 +28,7 @@ async function contestSubmissions(ctx: ImportContext): Promise<Map<number, Conte
   return map;
 }
 
-export const submissionsStep: Step = {
+const submissionsStep: Step = {
   table: "submissions",
   sources: ["judge_submission", "judge_contestsubmission"],
   async run(ctx) {
@@ -115,7 +115,7 @@ export const submissionsStep: Step = {
   },
 };
 
-export const submissionSourcesStep: Step = {
+const submissionSourcesStep: Step = {
   table: "submissionSources",
   sources: ["judge_submissionsource"],
   async run(ctx) {
@@ -146,7 +146,7 @@ export const submissionSourcesStep: Step = {
   },
 };
 
-export const submissionTestCasesStep: Step = {
+const submissionTestCasesStep: Step = {
   table: "submissionTestCases",
   sources: ["judge_submissiontestcase"],
   async run(ctx) {

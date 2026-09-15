@@ -2,7 +2,7 @@ import { api } from "@convex/_generated/api";
 import { TitleRow } from "@moj/ui";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { Crumbs } from "@/components/admin/Crumbs";
+import { Crumbs } from "@/components/admin";
 import { query } from "@/lib/convex-server";
 import { BrandingForm } from "./BrandingForm";
 

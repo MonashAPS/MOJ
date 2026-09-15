@@ -9,7 +9,7 @@ import { DryRunLoader, type Loader } from "./loader.ts";
  * A tiny hand written dump covering every table the pipeline needs. It is not
  * derived from any real database.
  */
-export const FIXTURE_DUMP = `
+const FIXTURE_DUMP = `
 CREATE TABLE \`django_content_type\` (
   \`id\` int(11) NOT NULL AUTO_INCREMENT,
   \`app_label\` varchar(100) NOT NULL,

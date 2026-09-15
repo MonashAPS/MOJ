@@ -17,7 +17,7 @@ export const USER_SORTS: { key: UserSortKey; message: string }[] = [
 /** `UserList.default_sort`. Every sort is descending first (`default_desc`). */
 const DEFAULT_USER_SORT: UserSortKey = "performance_points";
 
-export const DEFAULT_USER_ORDER = `-${DEFAULT_USER_SORT}`;
+const DEFAULT_USER_ORDER = `-${DEFAULT_USER_SORT}`;
 
 const CONVEX_SORT = {
   points: "points",

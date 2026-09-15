@@ -24,9 +24,7 @@ import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo, useState, useTransition } from "react";
-import { AdminForm } from "@/components/admin/AdminForm";
-import { ConfirmAction, DASH, Flags, StatusLine } from "@/components/admin/console";
-import { RevisionsPanel } from "@/components/admin/RevisionsPanel";
+import { AdminForm, ConfirmAction, DASH, Flags, RevisionsPanel, StatusLine } from "@/components/admin";
 import { chosenValue } from "@/lib/choices";
 import { formatDate, formatDateTime } from "@/lib/format";
 import {

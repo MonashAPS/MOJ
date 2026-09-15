@@ -7,11 +7,9 @@ import { cn } from "../cn";
 import { focusRing } from "../styles";
 import { useUiText } from "../ui-text";
 
-export const DialogRoot = (props: ComponentProps<typeof DialogPrimitive.Root>) => (
+export const Dialog = (props: ComponentProps<typeof DialogPrimitive.Root>) => (
   <DialogPrimitive.Root data-slot="dialog" {...props} />
 );
-
-export const Dialog = DialogRoot;
 
 export const DialogTrigger = (props: ComponentProps<typeof DialogPrimitive.Trigger>) => (
   <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />

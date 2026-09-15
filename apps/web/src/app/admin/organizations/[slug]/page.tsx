@@ -2,7 +2,7 @@ import { api } from "@convex/_generated/api";
 import { EmptyState, TitleRow } from "@moj/ui";
 import { Building2 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
-import { Crumbs } from "@/components/admin/Crumbs";
+import { Crumbs } from "@/components/admin";
 import { queryAsViewer } from "@/lib/convex-server";
 import { OrganizationEditor } from "./OrganizationEditor";
 

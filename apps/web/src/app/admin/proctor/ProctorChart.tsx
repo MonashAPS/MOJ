@@ -57,7 +57,7 @@ export type Segment = {
  * bar ends when they stop, when the recording drops, or when they move between
  * contests — each of which is a thing worth seeing as a boundary.
  */
-export function segmentsOf(data: Timeline): Segment[] {
+function segmentsOf(data: Timeline): Segment[] {
   const out: Segment[] = [];
 
   for (const row of data.rows) {

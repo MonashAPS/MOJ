@@ -186,21 +186,6 @@ export async function impersonateAction(userId: string): Promise<ActionResult<un
   }
 }
 
-export async function stopImpersonatingAction(): Promise<ActionResult<undefined>> {
-  try {
-    const { headers: responseHeaders } = await auth.api.stopImpersonating({
-      headers: await authHeaders(),
-      returnHeaders: true,
-    });
-
-    await applySetCookies(responseHeaders);
-
-    return { ok: true, data: undefined };
-  } catch (error) {
-    return failed(error);
-  }
-}
-
 /**
  * "Reset 2FA": drop every TOTP secret and backup-code set the account has and
  * clear the flag, so the member can enrol again. Staff 2FA is enforced by the

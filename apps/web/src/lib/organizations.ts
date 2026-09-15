@@ -5,7 +5,7 @@
 
 export type Addressable = { slug: string; legacyId?: number | null };
 
-export function organizationHandle(organization: Addressable): string {
+function organizationHandle(organization: Addressable): string {
   return organization.legacyId ? `${organization.legacyId}-${organization.slug}` : organization.slug;
 }
 

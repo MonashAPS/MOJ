@@ -12,7 +12,7 @@ MOJ/
   biome.json
   oxlint.config.ts      the anti-slop rules, vendored in tools/anti-slop
   lefthook.yml          pre-commit lint and the commit message check
-  knip.json
+  knip.ts               unused files, dependencies and exports
   vitest.config.mts     one vitest project per workspace
   convex/               schema.ts, auth.config.ts, function modules, crons.ts, _generated/
     contests/           participation, clarifications, rankings, tools, formats

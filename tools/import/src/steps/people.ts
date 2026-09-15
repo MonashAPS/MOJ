@@ -9,14 +9,14 @@ const SITE_THEMES = new Set(["auto", "light", "dark"]);
 
 const REQUEST_STATES = new Set(["P", "A", "R"]);
 
-export interface PermissionIndex {
+interface PermissionIndex {
   /** auth_user.id -> permission codes such as judge.edit_all_problem */
   permissions: Map<number, string[]>;
   /** auth_user.id -> group names */
   groups: Map<number, string[]>;
 }
 
-export async function buildPermissionIndex(ctx: ImportContext): Promise<PermissionIndex> {
+async function buildPermissionIndex(ctx: ImportContext): Promise<PermissionIndex> {
   const contentTypes = new Map<number, string>();
 
   for await (const row of ctx.rows("django_content_type")) {
@@ -81,7 +81,7 @@ export async function buildPermissionIndex(ctx: ImportContext): Promise<Permissi
   };
 }
 
-export async function loadAuthUsers(ctx: ImportContext): Promise<Map<number, Row>> {
+async function loadAuthUsers(ctx: ImportContext): Promise<Map<number, Row>> {
   const users = new Map<number, Row>();
 
   for await (const row of ctx.rows("auth_user")) users.set(row.id(), row);
@@ -89,7 +89,7 @@ export async function loadAuthUsers(ctx: ImportContext): Promise<Map<number, Row
   return users;
 }
 
-export const profilesStep: Step = {
+const profilesStep: Step = {
   table: "profiles",
   sources: [
     "judge_profile",
@@ -167,7 +167,7 @@ export const profilesStep: Step = {
   },
 };
 
-export const organizationsStep: Step = {
+const organizationsStep: Step = {
   table: "organizations",
   sources: ["judge_organization", "judge_organization_admins", "judge_profile_organizations"],
   async run(ctx) {
@@ -206,7 +206,7 @@ export const organizationsStep: Step = {
   },
 };
 
-export const organizationMembershipsStep: Step = {
+const organizationMembershipsStep: Step = {
   table: "organizationMemberships",
   sources: ["judge_profile_organizations"],
   async run(ctx) {
@@ -246,7 +246,7 @@ export const organizationMembershipsStep: Step = {
   },
 };
 
-export const classesStep: Step = {
+const classesStep: Step = {
   table: "classes",
   sources: ["judge_class", "judge_class_admins", "judge_class_members"],
   async run(ctx) {
@@ -296,7 +296,7 @@ export const classesStep: Step = {
   },
 };
 
-export const organizationRequestsStep: Step = {
+const organizationRequestsStep: Step = {
   table: "organizationRequests",
   sources: ["judge_organizationrequest"],
   async run(ctx) {

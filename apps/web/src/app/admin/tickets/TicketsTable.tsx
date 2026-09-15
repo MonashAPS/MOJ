@@ -8,9 +8,14 @@ import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
-import { ConfirmAction, SearchBox, StatusLine } from "@/components/admin/console";
-import { RecordDialog } from "@/components/admin/RecordDialog";
+import {
+  type AdminColumn,
+  AdminTable,
+  ConfirmAction,
+  RecordDialog,
+  SearchBox,
+  StatusLine,
+} from "@/components/admin";
 import { chosenIds } from "@/lib/choices";
 import { formatDateTime } from "@/lib/format";
 

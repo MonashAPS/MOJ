@@ -2,8 +2,6 @@ import type { TabItem } from "@moj/ui";
 import { KeyRound, Mail, ShieldCheck, Terminal, UserCog } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
-export type AccountTab = "profile" | "two-factor" | "passkeys" | "email" | "token";
-
 /** The account section's tab bar, in the order DMOJ puts these controls on its
  *  edit-profile page. */
 export async function accountTabs(): Promise<TabItem[]> {

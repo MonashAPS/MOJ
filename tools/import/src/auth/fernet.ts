@@ -28,7 +28,7 @@ function decodeToken(token: Buffer | string): Buffer {
   return Buffer.from(token, "base64url");
 }
 
-export class FernetError extends Error {}
+class FernetError extends Error {}
 
 export function fernetDecrypt(key: Buffer, token: Buffer | string): Buffer {
   const raw = decodeToken(token);

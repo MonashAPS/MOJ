@@ -12,7 +12,7 @@ import type { Element, ElementContent, Parent, Root } from "hast";
 import type { Plugin } from "unified";
 import { visit } from "unist-util-visit";
 
-export interface EscapeDisallowedOptions {
+interface EscapeDisallowedOptions {
   /** Element names that stay as elements. */
   readonly tagNames: readonly string[];
 }
@@ -198,7 +198,5 @@ const rehypeEscapeDisallowed: Plugin<[EscapeDisallowedOptions], Root> = function
     });
   };
 };
-
-export default rehypeEscapeDisallowed;
 
 export { rehypeEscapeDisallowed };

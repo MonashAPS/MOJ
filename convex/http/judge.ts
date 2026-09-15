@@ -15,13 +15,12 @@
 
 import {
   abortQuerySchema,
-  claimRequestSchema,
   DATA_HASH_HEADER,
   DATA_SIZE_HEADER,
-  disconnectRequestSchema,
   eventRequestSchema,
   handshakeRequestSchema,
   heartbeatRequestSchema,
+  judgeAuthSchema,
   judgeDataQuerySchema,
 } from "@moj/protocol/judge";
 import type { HttpRouter } from "convex/server";
@@ -143,7 +142,7 @@ export function registerJudgeRoutes(http: HttpRouter): void {
     path: "/judge/claim",
     method: "POST",
     handler: httpAction(async (ctx, request) => {
-      const parsed = claimRequestSchema.safeParse(await readJson(request));
+      const parsed = judgeAuthSchema.safeParse(await readJson(request));
 
       if (!parsed.success) return json({ error: "malformed claim" }, 400);
 
@@ -269,7 +268,7 @@ export function registerJudgeRoutes(http: HttpRouter): void {
     path: "/judge/disconnect",
     method: "POST",
     handler: httpAction(async (ctx, request) => {
-      const parsed = disconnectRequestSchema.safeParse(await readJson(request));
+      const parsed = judgeAuthSchema.safeParse(await readJson(request));
 
       if (!parsed.success) return json({ error: "malformed disconnect" }, 400);
 

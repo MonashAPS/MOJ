@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import type { ComponentType } from "react";
 
-export type AdminSection = {
+type AdminSection = {
   key: string;
   href: string;
   icon: ComponentType<{ className?: string; size?: number | string }>;
@@ -78,7 +78,3 @@ export const ADMIN_SECTIONS: AdminSectionGroup[] = [
     ],
   },
 ];
-
-export const ADMIN_SECTION_INDEX = new Map(
-  ADMIN_SECTIONS.flatMap((group) => group.items.map((item) => [item.key, item] as const)),
-);

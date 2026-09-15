@@ -13,7 +13,7 @@ const SCOREBOARD_VISIBILITY = new Set(["V", "C", "P", "H"]);
  * `str(index + 1)`. MOJ's contest row must carry a scheme, so the import writes
  * the one the format would have produced rather than assuming letters.
  */
-export function labelSchemeFor(formatName: string, labelScript: string): "letters" | "numbers" | "custom" {
+function labelSchemeFor(formatName: string, labelScript: string): "letters" | "numbers" | "custom" {
   if (labelScript.trim() !== "") return "custom";
 
   return getFormatOrDefault(formatName).defaultLabelScheme;
@@ -24,7 +24,7 @@ export function labelSchemeFor(formatName: string, labelScript: string): "letter
  * mean nothing once the rows are in Convex. Rewrite them to the new ids;
  * anything that no longer resolves is dropped, as its contest problem was.
  */
-export function remapFormatData(ctx: ImportContext, formatData: JsonValue, rowId: number): JsonValue {
+function remapFormatData(ctx: ImportContext, formatData: JsonValue, rowId: number): JsonValue {
   if (formatData === null) return null;
 
   if (!isJsonObject(formatData)) return formatData;
@@ -48,7 +48,7 @@ export function remapFormatData(ctx: ImportContext, formatData: JsonValue, rowId
 }
 
 /** Django DurationField is stored as microseconds on MariaDB. */
-export function durationToSeconds(micros: number | undefined): number | undefined {
+function durationToSeconds(micros: number | undefined): number | undefined {
   if (micros === undefined) return undefined;
 
   return micros / 1_000_000;
@@ -62,7 +62,7 @@ export async function problemCodeMap(ctx: ImportContext): Promise<Map<number, st
   return map;
 }
 
-export async function languageKeyMap(ctx: ImportContext): Promise<Map<number, string>> {
+async function languageKeyMap(ctx: ImportContext): Promise<Map<number, string>> {
   const map = new Map<number, string>();
 
   for await (const row of ctx.rows("judge_language")) map.set(row.id(), row.s("key"));
@@ -70,7 +70,7 @@ export async function languageKeyMap(ctx: ImportContext): Promise<Map<number, st
   return map;
 }
 
-export const judgesStep: Step = {
+const judgesStep: Step = {
   table: "judges",
   sources: ["judge_judge", "judge_judge_problems", "judge_judge_runtimes"],
   async run(ctx) {
@@ -113,7 +113,7 @@ export const judgesStep: Step = {
   },
 };
 
-export const runtimeVersionsStep: Step = {
+const runtimeVersionsStep: Step = {
   table: "runtimeVersions",
   sources: ["judge_runtimeversion"],
   async run(ctx) {
@@ -148,7 +148,7 @@ export const runtimeVersionsStep: Step = {
   },
 };
 
-export const contestTagsStep: Step = {
+const contestTagsStep: Step = {
   table: "contestTags",
   sources: ["judge_contesttag"],
   async run(ctx) {
@@ -166,7 +166,7 @@ export const contestTagsStep: Step = {
   },
 };
 
-export const contestsStep: Step = {
+const contestsStep: Step = {
   table: "contests",
   sources: [
     "judge_contest",
@@ -345,7 +345,7 @@ export const contestsStep: Step = {
   },
 };
 
-export const contestProblemsStep: Step = {
+const contestProblemsStep: Step = {
   table: "contestProblems",
   sources: ["judge_contestproblem"],
   async run(ctx) {
@@ -390,7 +390,7 @@ export const contestProblemsStep: Step = {
   },
 };
 
-export const contestParticipationsStep: Step = {
+const contestParticipationsStep: Step = {
   table: "contestParticipations",
   sources: ["judge_contestparticipation"],
   async run(ctx) {
@@ -436,7 +436,7 @@ export const contestParticipationsStep: Step = {
   },
 };
 
-export const ratingsStep: Step = {
+const ratingsStep: Step = {
   table: "ratings",
   sources: ["judge_rating"],
   async run(ctx) {
@@ -475,7 +475,7 @@ export const ratingsStep: Step = {
   },
 };
 
-export const contestMossStep: Step = {
+const contestMossStep: Step = {
   table: "contestMoss",
   sources: ["judge_contestmoss"],
   async run(ctx) {

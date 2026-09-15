@@ -141,6 +141,4 @@ const rehypeCodehilite: Plugin<[CodehiliteOptions], Root> = function rehypeCodeh
   };
 };
 
-export default rehypeCodehilite;
-
 export { rehypeCodehilite };

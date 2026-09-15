@@ -1,6 +1,6 @@
 import { isJsonNumber, isJsonObject, isJsonText, type JsonValue } from "../json.ts";
 
-export interface HexBlob {
+interface HexBlob {
   $hex: string;
 }
 
@@ -38,7 +38,7 @@ export function blobToBuffer(value: SqlValue): Buffer | null {
   return Buffer.from(value.$hex, "hex");
 }
 
-export function bufferToBlob(buf: Buffer): HexBlob {
+function bufferToBlob(buf: Buffer): HexBlob {
   return { $hex: buf.toString("hex") };
 }
 
@@ -215,7 +215,7 @@ function readValue(cur: Cursor): SqlValue {
   return token;
 }
 
-export function readTuple(text: string, pos: number): { values: SqlValue[]; next: number } | null {
+function readTuple(text: string, pos: number): { values: SqlValue[]; next: number } | null {
   const cur = new Cursor(text, pos);
   cur.skipSpace();
 

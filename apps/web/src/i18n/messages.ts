@@ -20,7 +20,7 @@ export const NAMESPACES = [
   "admin",
 ] as const;
 
-export type Namespace = (typeof NAMESPACES)[number];
+type Namespace = (typeof NAMESPACES)[number];
 
 /** A catalogue file is a tree of message strings under grouping keys. */
 export type Messages = { [key: string]: Messages | string };

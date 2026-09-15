@@ -4,7 +4,7 @@ import { getConvexToken } from "@/auth/session";
 
 const url = process.env.NEXT_PUBLIC_CONVEX_URL ?? "http://127.0.0.1:3210";
 
-export function convexOptions(token?: string | null) {
+function convexOptions(token?: string | null) {
   return token ? { url, token } : { url };
 }
 

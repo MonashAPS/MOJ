@@ -19,8 +19,7 @@ import type { FunctionArgs } from "convex/server";
 import { AlertTriangle, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useRef, useState } from "react";
-import { AdminForm } from "@/components/admin/AdminForm";
-import { StatusLine } from "@/components/admin/console";
+import { AdminForm, StatusLine } from "@/components/admin";
 import { chosenValue } from "@/lib/choices";
 import { readStorageId } from "@/lib/convex-upload";
 

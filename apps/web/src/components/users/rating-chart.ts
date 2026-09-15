@@ -8,7 +8,7 @@ export type RatingPoint = {
 
 /** `user-about.html`'s `yHighlight`: DMOJ's bands, drawn from the tokens so both
  *  themes get the right value without a second table. */
-export const RATING_BANDS: readonly { from: number; to: number; token: string }[] = [
+const RATING_BANDS: readonly { from: number; to: number; token: string }[] = [
   { from: 0, to: 1000, token: "--rating-newbie" },
   { from: 1000, to: 1300, token: "--rating-amateur" },
   { from: 1300, to: 1600, token: "--rating-expert" },
@@ -48,12 +48,12 @@ const MAX_X_TICKS = 5;
 /** A date label is about 90px wide, so this is the room two of them need. */
 const X_TICK_SPACING = 130;
 
-export type ChartBand = { token: string; y: number; height: number };
+type ChartBand = { token: string; y: number; height: number };
 
-export type ChartYTick = { value: number; y: number };
+type ChartYTick = { value: number; y: number };
 
 /** The end labels are anchored inwards so they cannot spill out of the panel. */
-export type ChartXTick = { value: number; x: number; anchor: "start" | "middle" | "end" };
+type ChartXTick = { value: number; x: number; anchor: "start" | "middle" | "end" };
 
 export type ChartDot = {
   key: string;

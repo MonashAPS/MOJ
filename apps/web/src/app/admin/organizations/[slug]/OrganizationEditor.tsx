@@ -8,12 +8,19 @@ import type { FunctionReturnType } from "convex/server";
 import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
-import { AdminForm } from "@/components/admin/AdminForm";
-import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
-import { ConfirmAction, DASH, Flags, StatusLine } from "@/components/admin/console";
-import { QueryBoundary } from "@/components/admin/QueryBoundary";
-import { RecordDialog } from "@/components/admin/RecordDialog";
-import { type RevisionRow, RevisionsPanel } from "@/components/admin/RevisionsPanel";
+import {
+  type AdminColumn,
+  AdminForm,
+  AdminTable,
+  ConfirmAction,
+  DASH,
+  Flags,
+  QueryBoundary,
+  RecordDialog,
+  type RevisionRow,
+  RevisionsPanel,
+  StatusLine,
+} from "@/components/admin";
 import { chosenValue } from "@/lib/choices";
 import { formatDateTime } from "@/lib/format";
 import { type OrganizationDraft, OrganizationFields, parseUsernames } from "../OrganizationFields";

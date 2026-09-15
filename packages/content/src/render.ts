@@ -311,7 +311,3 @@ export function extractSummary(source: string, options: SummaryOptions = {}): st
 export function normaliseCodeLanguage(language: string): string {
   return normaliseLanguage(language);
 }
-
-export type { CamoOptions, CollectedHeading, UserReference };
-
-export { presetConfig };

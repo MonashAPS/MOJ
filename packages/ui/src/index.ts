@@ -88,7 +88,6 @@ export {
   DialogHeader,
   DialogOverlay,
   DialogPortal,
-  DialogRoot,
   DialogTitle,
   DialogTrigger,
 } from "./components/dialog";
@@ -223,7 +222,7 @@ export { SkeletonPanel, SkeletonTable, SkeletonText } from "./components/skeleto
 
 export { Slider } from "./components/slider";
 
-export { Switch, type SwitchProps, Toggle } from "./components/switch";
+export { Switch, type SwitchProps } from "./components/switch";
 
 export {
   EmptyRow,

@@ -22,7 +22,7 @@ function themeChoice(value: string): ThemeChoice | null {
  *  have. Following the system is a stored value, not an empty slot: the two have
  *  to stay distinguishable, because only an empty slot lets the profile's theme
  *  be imposed. */
-export function storedTheme(): ThemeChoice | null {
+function storedTheme(): ThemeChoice | null {
   try {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
 

@@ -32,9 +32,15 @@ import type { FunctionReturnType } from "convex/server";
 import { MoreHorizontal, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
-import { CopyButton, DASH, Flags, StatusLine } from "@/components/admin/console";
-import { RecordDialog } from "@/components/admin/RecordDialog";
+import {
+  type AdminColumn,
+  AdminTable,
+  CopyButton,
+  DASH,
+  Flags,
+  RecordDialog,
+  StatusLine,
+} from "@/components/admin";
 import { formatRelative } from "@/lib/format";
 
 type JudgeRow = FunctionReturnType<typeof api.admin.judges.list>[number];

@@ -3,12 +3,12 @@ import { groupM2M } from "../context.ts";
 import { problemCodeMap } from "./contests.ts";
 import type { Step } from "./types.ts";
 
-export type CommentTarget =
+type CommentTarget =
   | { targetType: "problem" | "contest" | "solution"; key: string }
   | { targetType: "blog"; legacyBlogId: number };
 
 /** DMOJ stores the commented page as p:code, c:key, s:code or b:id. */
-export function parseCommentPage(page: string): CommentTarget | null {
+function parseCommentPage(page: string): CommentTarget | null {
   const value = page.slice(2);
 
   if (value === "") return null;
@@ -46,7 +46,7 @@ function resolveTarget(
   return { targetType: target.targetType, targetKey: target.key };
 }
 
-export const blogPostsStep: Step = {
+const blogPostsStep: Step = {
   table: "blogPosts",
   sources: ["judge_blogpost", "judge_blogpost_authors"],
   async run(ctx) {
@@ -77,7 +77,7 @@ export const blogPostsStep: Step = {
   },
 };
 
-export const commentsStep: Step = {
+const commentsStep: Step = {
   table: "comments",
   sources: ["judge_comment"],
   async run(ctx) {
@@ -128,7 +128,7 @@ export const commentsStep: Step = {
   },
 };
 
-export const commentVotesStep: Step = {
+const commentVotesStep: Step = {
   table: "commentVotes",
   sources: ["judge_commentvote"],
   async run(ctx) {
@@ -161,7 +161,7 @@ export const commentVotesStep: Step = {
   },
 };
 
-export const commentLocksStep: Step = {
+const commentLocksStep: Step = {
   table: "commentLocks",
   sources: ["judge_commentlock"],
   async run(ctx) {
@@ -203,7 +203,7 @@ async function contentTypeMap(ctx: ImportContext): Promise<Map<number, { app: st
   return map;
 }
 
-export const ticketsStep: Step = {
+const ticketsStep: Step = {
   table: "tickets",
   sources: ["judge_ticket", "judge_ticket_assignees", "django_content_type"],
   async run(ctx) {
@@ -265,7 +265,7 @@ export const ticketsStep: Step = {
   },
 };
 
-export const ticketMessagesStep: Step = {
+const ticketMessagesStep: Step = {
   table: "ticketMessages",
   sources: ["judge_ticketmessage"],
   async run(ctx) {

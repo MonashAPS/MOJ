@@ -7,9 +7,7 @@ import { useMutation, useQuery } from "convex/react";
 import { ChevronDown, ChevronRight, ChevronUp, CornerDownRight, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
-import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
-import { ConfirmAction, StatusLine } from "@/components/admin/console";
-import { RecordDialog } from "@/components/admin/RecordDialog";
+import { type AdminColumn, AdminTable, ConfirmAction, RecordDialog, StatusLine } from "@/components/admin";
 
 type NavRow = Doc<"navigationBar">;
 

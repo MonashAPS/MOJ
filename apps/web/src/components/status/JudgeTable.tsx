@@ -15,7 +15,7 @@ import { useTranslations } from "next-intl";
 import { DASH } from "@/lib/submissionFormat";
 
 /** `judge.uptime|timedelta('localized')`, compact. */
-export function formatUptime(ms: number | null): string {
+function formatUptime(ms: number | null): string {
   if (ms === null || ms <= 0) return DASH;
   const seconds = Math.floor(ms / 1000);
   const days = Math.floor(seconds / 86400);

@@ -8,14 +8,14 @@ import { loadRows, type Row, readRows } from "./rows.ts";
 
 export const BATCH_SIZE = 200;
 
-export interface SkipEntry {
+interface SkipEntry {
   table: string;
   reason: string;
   count: number;
   samples: number[];
 }
 
-export interface UnresolvedEntry {
+interface UnresolvedEntry {
   from: string;
   field: string;
   target: string;
@@ -23,14 +23,14 @@ export interface UnresolvedEntry {
   samples: number[];
 }
 
-export interface TableCounts {
+interface TableCounts {
   sources: string[];
   read: number;
   written: number;
   skipped: number;
 }
 
-export class Report {
+class Report {
   readonly tables = new Map<string, TableCounts>();
   readonly skips = new Map<string, SkipEntry>();
   readonly warnings = new Map<string, SkipEntry>();
@@ -109,7 +109,7 @@ export class Report {
   }
 }
 
-export class IdMap {
+class IdMap {
   private readonly maps = new Map<string, Map<number, string>>();
 
   private table(table: string): Map<number, string> {

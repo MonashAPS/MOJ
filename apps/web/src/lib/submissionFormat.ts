@@ -44,11 +44,6 @@ export function formatPoints(points: number | null | undefined): string {
   return floatformat(points, -3);
 }
 
-/** `1 submission` / `2 submissions`: every count is pluralised. */
-export function plural(count: number, one: string, many = `${one}s`): string {
-  return `${count.toLocaleString("en-AU")} ${count === 1 ? one : many}`;
-}
-
 const ABSOLUTE = new Intl.DateTimeFormat("en-AU", {
   day: "numeric",
   month: "short",
@@ -103,11 +98,6 @@ export function verdictCode(submission: {
   }
 
   return submission.result ?? submission.status;
-}
-
-/** `Submission.short_status`: the text inside the pill. */
-export function verdictLabel(code: string): string {
-  return code === "_AC" ? "AC" : code;
 }
 
 /** `Submission.is_graded`: `QU`, `P` and `G` are still in flight. */

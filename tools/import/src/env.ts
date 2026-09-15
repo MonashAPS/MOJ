@@ -6,7 +6,7 @@ export interface EnvVars {
   [name: string]: string;
 }
 
-export function parseDotEnv(contents: string): EnvVars {
+function parseDotEnv(contents: string): EnvVars {
   const out: EnvVars = {};
 
   for (const rawLine of contents.split("\n")) {

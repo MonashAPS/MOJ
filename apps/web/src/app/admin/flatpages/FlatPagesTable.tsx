@@ -9,10 +9,15 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
-import { ConfirmAction, Flags, StatusLine } from "@/components/admin/console";
-import { MarkdownField } from "@/components/admin/MarkdownField";
-import { RecordDialog } from "@/components/admin/RecordDialog";
+import {
+  type AdminColumn,
+  AdminTable,
+  ConfirmAction,
+  Flags,
+  MarkdownField,
+  RecordDialog,
+  StatusLine,
+} from "@/components/admin";
 
 type FlatPageRow = FunctionReturnType<typeof api.admin.site.flatPageRows>[number];
 

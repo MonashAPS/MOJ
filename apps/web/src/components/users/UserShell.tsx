@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { formatDate } from "@/lib/format";
 import { ratingTitleKey } from "./rating-title";
 
-export type UserShellProfile = {
+type UserShellProfile = {
   username: string;
   displayName: string;
   displayRank: string;

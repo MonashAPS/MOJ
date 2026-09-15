@@ -8,9 +8,14 @@ import type { FunctionReturnType } from "convex/server";
 import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
-import { ConfirmAction, DASH, StatusLine } from "@/components/admin/console";
-import { RecordDialog } from "@/components/admin/RecordDialog";
+import {
+  type AdminColumn,
+  AdminTable,
+  ConfirmAction,
+  DASH,
+  RecordDialog,
+  StatusLine,
+} from "@/components/admin";
 
 type LicenseRow = FunctionReturnType<typeof api.admin.licenses.list>[number];
 

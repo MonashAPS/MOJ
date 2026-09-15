@@ -4,7 +4,7 @@ import { UserX } from "lucide-react";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { consoleViewer } from "@/auth/console";
-import { Crumbs } from "@/components/admin/Crumbs";
+import { Crumbs } from "@/components/admin";
 import { queryAsViewer } from "@/lib/convex-server";
 import { timezoneList } from "@/lib/timezones";
 import { accountForUserAction } from "../actions";

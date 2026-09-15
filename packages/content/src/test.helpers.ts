@@ -2,9 +2,9 @@ import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import type { ProblemMeta } from "./typst/statement.js";
 
-export const FIXTURE_DIR = new URL("./__fixtures__/", import.meta.url);
+const FIXTURE_DIR = new URL("./__fixtures__/", import.meta.url);
 
-export const STATEMENT_DIR = new URL("./statements/", FIXTURE_DIR);
+const STATEMENT_DIR = new URL("./statements/", FIXTURE_DIR);
 
 export interface Fixture {
   readonly code: string;
@@ -59,7 +59,7 @@ const JPEG = Buffer.from(
  * supplies placeholders for whatever the converter asks for; that still exercises the image
  * path resolution, which is the part `@moj/content` is responsible for.
  */
-export function placeholderImage(path: string): Buffer {
+function placeholderImage(path: string): Buffer {
   return /\.jpe?g$/i.test(path) ? JPEG : PNG;
 }
 

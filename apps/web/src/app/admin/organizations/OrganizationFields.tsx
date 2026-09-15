@@ -2,7 +2,7 @@
 
 import { Checkbox, Field, FieldGroup, Input } from "@moj/ui";
 import { useTranslations } from "next-intl";
-import { MarkdownField } from "@/components/admin/MarkdownField";
+import { MarkdownField } from "@/components/admin";
 
 export type OrganizationDraft = {
   name: string;

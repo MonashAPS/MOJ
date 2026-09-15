@@ -7,7 +7,7 @@ import type { ColumnDef } from "./parser/dump.ts";
 import { readDump } from "./parser/dump.ts";
 import type { SqlValue } from "./parser/values.ts";
 
-export interface ExtractedTable {
+interface ExtractedTable {
   columns: ColumnDef[];
   rows: number;
 }
@@ -23,7 +23,7 @@ export interface ExtractManifest {
   tables: Record<string, ExtractedTable>;
 }
 
-export function rawDir(outDir: string): string {
+function rawDir(outDir: string): string {
   return path.join(outDir, "raw");
 }
 
@@ -89,7 +89,7 @@ function parseManifest(text: string): ExtractManifest | null {
   return manifest;
 }
 
-export async function readManifest(outDir: string): Promise<ExtractManifest | null> {
+async function readManifest(outDir: string): Promise<ExtractManifest | null> {
   try {
     return parseManifest(await readFile(manifestPath(outDir), "utf8"));
   } catch {

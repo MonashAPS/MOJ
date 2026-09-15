@@ -24,7 +24,7 @@ const SHIKI_ALIASES = new Map<string, string>([
   ["sed", "plaintext"],
 ]);
 
-export function shikiLangFor(pygments: string): string {
+function shikiLangFor(pygments: string): string {
   const key = pygments.trim().toLowerCase();
 
   if (key === "") return "plaintext";
@@ -32,7 +32,7 @@ export function shikiLangFor(pygments: string): string {
   return SHIKI_ALIASES.get(key) ?? key;
 }
 
-export const languagesStep: Step = {
+const languagesStep: Step = {
   table: "languages",
   sources: ["judge_language"],
   async run(ctx) {
@@ -58,7 +58,7 @@ export const languagesStep: Step = {
   },
 };
 
-export const problemTypesStep: Step = {
+const problemTypesStep: Step = {
   table: "problemTypes",
   sources: ["judge_problemtype"],
   async run(ctx) {
@@ -75,7 +75,7 @@ export const problemTypesStep: Step = {
   },
 };
 
-export const problemGroupsStep: Step = {
+const problemGroupsStep: Step = {
   table: "problemGroups",
   sources: ["judge_problemgroup"],
   async run(ctx) {
@@ -92,7 +92,7 @@ export const problemGroupsStep: Step = {
   },
 };
 
-export const licensesStep: Step = {
+const licensesStep: Step = {
   table: "licenses",
   sources: ["judge_license"],
   async run(ctx) {
@@ -113,7 +113,7 @@ export const licensesStep: Step = {
   },
 };
 
-export const navigationBarStep: Step = {
+const navigationBarStep: Step = {
   table: "navigationBar",
   sources: ["judge_navigationbar"],
   async run(ctx) {
@@ -141,7 +141,7 @@ export const navigationBarStep: Step = {
   },
 };
 
-export const miscConfigStep: Step = {
+const miscConfigStep: Step = {
   table: "miscConfig",
   sources: ["judge_miscconfig"],
   async run(ctx) {
@@ -158,7 +158,7 @@ export const miscConfigStep: Step = {
   },
 };
 
-export const flatPagesStep: Step = {
+const flatPagesStep: Step = {
   table: "flatPages",
   sources: ["django_flatpage"],
   async run(ctx) {

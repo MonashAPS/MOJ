@@ -5,23 +5,6 @@ import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useId, useMemo, useState } from "react";
 
-/** English month names, kept for `formatMoment` below: it is a plain function
- *  with no hook to read the catalogue through. The picker uses the keys. */
-const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-
 /** The catalogue keys the picker reads its month and weekday names by. The
  *  short month is a message of its own rather than the first three letters of
  *  the long one, which is a cut only English survives. */
@@ -44,14 +27,6 @@ const WEEKDAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "s
 
 function pad(value: number): string {
   return String(value).padStart(2, "0");
-}
-
-/** `2026-09-10 19:30`, in the viewer's own zone. */
-export function formatMoment(ms: number | null): string {
-  if (ms === null) return "—";
-  const date = new Date(ms);
-
-  return `${date.getDate()} ${MONTHS[date.getMonth()]?.slice(0, 3)} ${date.getFullYear()}, ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function startOfMonth(date: Date): Date {

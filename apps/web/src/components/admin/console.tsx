@@ -111,26 +111,6 @@ export function ConfirmAction({
   );
 }
 
-/** A yes/no chip that never relies on colour alone. Off renders nothing, so a
- *  row of flags shows one em-dash rather than one per flag. */
-export function Flag({
-  on,
-  label,
-  tone = "accent",
-}: {
-  on: boolean;
-  label: string;
-  tone?: "accent" | "bad" | "warn" | "good";
-}) {
-  if (!on) return null;
-
-  return (
-    <Badge variant={tone} rounding="square">
-      {label}
-    </Badge>
-  );
-}
-
 /** The flags cell: whatever is on, or one em-dash when nothing is. */
 export function Flags({
   flags,

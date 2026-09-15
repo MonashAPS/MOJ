@@ -10,7 +10,7 @@ import type { MathDelimiter } from "./remark-tilde-math.js";
 
 /* ---------------------------------------------------------------- heading demotion ----- */
 
-export interface DemoteHeadingsOptions {
+interface DemoteHeadingsOptions {
   readonly by: number;
 }
 
@@ -99,7 +99,7 @@ export function slugify(text: string): string {
     .replace(/\s+/g, "-");
 }
 
-export interface CollectOptions {
+interface CollectOptions {
   readonly into: CollectedMeta;
   readonly demoteBy: number;
 }

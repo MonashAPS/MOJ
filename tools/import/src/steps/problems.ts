@@ -5,7 +5,7 @@ const SOURCE_VISIBILITY = new Set(["A", "S", "O", "F"]);
 
 const TEST_CASE_TYPES = new Set(["C", "S", "E"]);
 
-export const problemsStep: Step = {
+const problemsStep: Step = {
   table: "problems",
   sources: [
     "judge_problem",
@@ -102,7 +102,7 @@ export const problemsStep: Step = {
   },
 };
 
-export const problemTranslationsStep: Step = {
+const problemTranslationsStep: Step = {
   table: "problemTranslations",
   sources: ["judge_problemtranslation"],
   async run(ctx) {
@@ -135,7 +135,7 @@ export const problemTranslationsStep: Step = {
   },
 };
 
-export const problemClarificationsStep: Step = {
+const problemClarificationsStep: Step = {
   table: "problemClarifications",
   sources: ["judge_problemclarification"],
   async run(ctx) {
@@ -167,7 +167,7 @@ export const problemClarificationsStep: Step = {
   },
 };
 
-export const languageLimitsStep: Step = {
+const languageLimitsStep: Step = {
   table: "languageLimits",
   sources: ["judge_languagelimit"],
   async run(ctx) {
@@ -208,7 +208,7 @@ export const languageLimitsStep: Step = {
   },
 };
 
-export const solutionsStep: Step = {
+const solutionsStep: Step = {
   table: "solutions",
   sources: ["judge_solution", "judge_solution_authors"],
   async run(ctx) {
@@ -242,7 +242,7 @@ export const solutionsStep: Step = {
   },
 };
 
-export const problemPointsVotesStep: Step = {
+const problemPointsVotesStep: Step = {
   table: "problemPointsVotes",
   sources: ["judge_problempointsvote"],
   async run(ctx) {
@@ -284,7 +284,7 @@ export const problemPointsVotesStep: Step = {
   },
 };
 
-export const problemDataStep: Step = {
+const problemDataStep: Step = {
   table: "problemData",
   sources: ["judge_problemdata"],
   async run(ctx) {
@@ -316,7 +316,7 @@ export const problemDataStep: Step = {
   },
 };
 
-export const problemTestCasesStep: Step = {
+const problemTestCasesStep: Step = {
   table: "problemTestCases",
   sources: ["judge_problemtestcase"],
   async run(ctx) {

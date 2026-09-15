@@ -5,7 +5,7 @@ import { blobToBuffer, isSqlNumber, isSqlText, type SqlValue, sqlValueFromJson }
 
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,6}))?)?/;
 
-export function parseSqlDate(value: SqlValue): number | undefined {
+function parseSqlDate(value: SqlValue): number | undefined {
   if (value === null) return undefined;
 
   if (isSqlNumber(value)) return value;

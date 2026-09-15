@@ -14,10 +14,7 @@ export function gravatarUrl(email: string | null | undefined, size = 32): string
  * Better Auth user id and the address it hashes lives in the auth database, so
  * this is server-only; only the hash ever reaches the page.
  */
-export async function gravatarUrlsForUserIds(
-  userIds: readonly string[],
-  size = 32,
-): Promise<Map<string, string>> {
+async function gravatarUrlsForUserIds(userIds: readonly string[], size = 32): Promise<Map<string, string>> {
   const wanted = [...new Set(userIds.filter(Boolean))];
   const urls = new Map<string, string>();
 

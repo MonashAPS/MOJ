@@ -11,7 +11,7 @@ type TagRef = { _id: string; name: string; color: string; description: string };
 type OrganizationRef = { _id: string; name: string; slug: string; shortName: string };
 
 /** DMOJ paints a tag chip in the tag's own colour and picks the ink by luma. */
-export function tagInk(color: string): string {
+function tagInk(color: string): string {
   const hex = color.replace("#", "");
 
   const full =
@@ -32,7 +32,7 @@ export function tagInk(color: string): string {
   return 0.299 * red + 0.587 * green + 0.114 * blue > 0.5 ? "#000000" : "#ffffff";
 }
 
-export function ContestTagChip({ tag }: { tag: TagRef }) {
+function ContestTagChip({ tag }: { tag: TagRef }) {
   return (
     <Link
       href={`/contests/tag/${tag.name}/`}

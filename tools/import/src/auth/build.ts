@@ -29,7 +29,7 @@ export interface AuthBuildResult extends AuthWriteInput {
   };
 }
 
-export function userIdFor(legacyUserId: number): string {
+function userIdFor(legacyUserId: number): string {
   return `u${legacyUserId}`;
 }
 

@@ -29,11 +29,7 @@
     "vendor:typst": "node scripts/vendor-typst-packages.mjs"
   },
   "dependencies": {
-    "@shikijs/rehype": "^4.4.3",
-    "hast-util-to-string": "^3.0.1",
-    "katex": "^0.18.7",
     "mdast-util-to-string": "^4.0.0",
-    "micromark-util-character": "^2.1.1",
     "rehype-katex": "^7.0.1",
     "rehype-raw": "^7.0.0",
     "rehype-sanitize": "^6.0.0",
@@ -45,15 +41,15 @@
     "remark-stringify": "^11.0.0",
     "shiki": "^4.4.3",
     "unified": "^11.0.5",
-    "unist-util-visit": "^5.0.0",
-    "unist-util-visit-parents": "^6.0.1",
-    "vfile": "^6.0.3"
+    "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
     "@types/hast": "^3.0.4",
-    "@types/katex": "^0.16.7",
     "@types/mdast": "^4.0.4",
     "@types/node": "^26.5.1",
+    "hast-util-sanitize": "^5.0.2",
+    "mdast-util-from-markdown": "^2.0.3",
+    "micromark-util-types": "^2.0.2",
     "pdf-parse": "^2.4.5",
     "typescript": "^7.0.2",
     "vitest": "^5.0.0"

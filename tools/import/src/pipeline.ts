@@ -18,7 +18,7 @@ export interface StateFile {
   finished: Record<string, FinishedTable>;
 }
 
-export function statePath(outDir: string): string {
+function statePath(outDir: string): string {
   return path.join(outDir, "state.json");
 }
 

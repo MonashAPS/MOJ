@@ -131,7 +131,7 @@ export const PASSKEY_COLUMNS = [
   "aaguid",
 ] as const;
 
-export const REQUIRED_COLUMNS = new Map<string, readonly string[]>([
+const REQUIRED_COLUMNS = new Map<string, readonly string[]>([
   ["user", ["id", "name", "email", "email_verified", "created_at", "updated_at"]],
   ["account", ["id", "account_id", "provider_id", "user_id", "created_at", "updated_at"]],
   ["two_factor", ["id", "user_id", "secret", "backup_codes"]],
@@ -176,7 +176,7 @@ export function buildUpsert(table: string, columns: readonly string[], values: A
   return { text, values: parameters };
 }
 
-export async function introspectColumns(client: SqlExecutor, table: string): Promise<Set<string>> {
+async function introspectColumns(client: SqlExecutor, table: string): Promise<Set<string>> {
   const result = await client.query(
     "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = $1",
     [table],

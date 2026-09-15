@@ -14,7 +14,7 @@ import { useTranslations } from "next-intl";
 import { DASH } from "@/lib/submissionFormat";
 
 /** `runtime_versions(info)` (judge/jinja2/runtime.py): `name version, name version`. */
-export function versionText(versions: Array<{ name: string; versions: string[] }>): string {
+function versionText(versions: Array<{ name: string; versions: string[] }>): string {
   return versions
     .map((entry) => (entry.versions.length > 0 ? `${entry.name} ${entry.versions.join(", ")}` : entry.name))
     .join(", ");

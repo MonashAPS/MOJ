@@ -4,7 +4,6 @@ import type {
   SubmissionSourceView,
   SubmissionStatusExtras,
 } from "@convex/pages/submissions";
-import { SUBMISSION_RESULTS, USER_DISPLAY_CODES } from "@moj/core";
 import { queryAsViewer } from "@/lib/convex-server";
 
 /**
@@ -18,16 +17,6 @@ export type ListContext = SubmissionListContext;
 export type StatusExtras = SubmissionStatusExtras;
 
 export type SourceView = SubmissionSourceView;
-
-/** `get_searchable_status_codes`: `SC` is never searchable, `IE` only for staff. */
-export function searchableStatuses(staff: boolean): Array<{ code: string; name: string }> {
-  const hidden = new Set(staff ? ["SC"] : ["SC", "IE"]);
-
-  return SUBMISSION_RESULTS.filter((code) => !hidden.has(code)).map((code) => ({
-    code,
-    name: USER_DISPLAY_CODES[code] ?? code,
-  }));
-}
 
 export async function loadListContext(args: {
   username?: string;

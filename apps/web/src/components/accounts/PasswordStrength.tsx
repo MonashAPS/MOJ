@@ -13,7 +13,7 @@ export type Strength = {
 
 /** A word, never a score: the meter says Weak / Fair / Strong and nothing else
  *  (DESIGN.md section 18). Shared by register and every password form. */
-export function strengthOf(password: string): Strength {
+function strengthOf(password: string): Strength {
   if (!password) return { value: 0, word: "", tone: "bad" };
   let points = 0;
 

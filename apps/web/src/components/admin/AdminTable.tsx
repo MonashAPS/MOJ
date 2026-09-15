@@ -29,7 +29,7 @@ export type AdminColumn<Row> = {
   headClassName?: string;
 };
 
-export type AdminBulkAction = {
+type AdminBulkAction = {
   label: string;
   onSelect: () => void;
   destructive?: boolean;

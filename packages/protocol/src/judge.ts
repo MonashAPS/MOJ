@@ -61,13 +61,9 @@ export const heartbeatRequestSchema = judgeAuthSchema.extend({
 
 export type HeartbeatRequest = z.infer<typeof heartbeatRequestSchema>;
 
-export const disconnectRequestSchema = judgeAuthSchema;
-
 /* -------------------------------------------------------------------------- */
 /* Claim                                                                      */
 /* -------------------------------------------------------------------------- */
-
-export const claimRequestSchema = judgeAuthSchema;
 
 /**
  * The submission id as it travels on the wire.

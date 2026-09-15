@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { formatDateTime, formatRelative } from "@/lib/format";
 
-export type Revision = {
+type Revision = {
   id: string;
   createdAt: number;
   reason: string;

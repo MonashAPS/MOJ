@@ -2,7 +2,7 @@
 
 import { Dialog, DialogContent } from "@moj/ui";
 import type { ReactNode } from "react";
-import { AdminForm } from "@/components/admin/AdminForm";
+import { AdminForm } from "./AdminForm";
 
 /**
  * The console's create-and-edit surface for the small tables: a dialog holding

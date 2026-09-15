@@ -8,9 +8,15 @@ import type { FunctionReturnType } from "convex/server";
 import { Copy, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
-import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
-import { ConfirmAction, DASH, SearchBox, StatusLine } from "@/components/admin/console";
-import { RecordDialog } from "@/components/admin/RecordDialog";
+import {
+  type AdminColumn,
+  AdminTable,
+  ConfirmAction,
+  DASH,
+  RecordDialog,
+  SearchBox,
+  StatusLine,
+} from "@/components/admin";
 
 type LanguageRow = FunctionReturnType<typeof api.admin.languages.list>[number];
 

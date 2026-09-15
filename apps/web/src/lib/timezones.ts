@@ -37,5 +37,3 @@ export function timezoneList(): string[] {
 
   return FALLBACK;
 }
-
-export const DEFAULT_TIMEZONE = "Australia/Melbourne";

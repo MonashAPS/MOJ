@@ -299,9 +299,6 @@ export const top = query({
   },
 });
 
-/** Kept for the shell, which shipped against this name before `top` existed. */
-export const topUsers = top;
-
 /* -------------------------------------------------------------------------- */
 /* Aggregate maintenance                                                      */
 /* -------------------------------------------------------------------------- */

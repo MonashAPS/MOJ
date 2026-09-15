@@ -102,13 +102,6 @@ export async function leaveContest(_state: JoinResult | null, formData: FormData
   redirect(`/contest/${key}/`);
 }
 
-/** The same thing from a plain `<form action>`, which passes no prior state.
- *  The Safe Exam Browser screen uses it: it has no room for an error and every
- *  failure there is the contest already being over. */
-export async function leaveContestForm(formData: FormData): Promise<void> {
-  await leaveContest(null, formData);
-}
-
 export type CloneResult = { error: string } | never;
 
 /** `ContestClone.form_valid` (contests.py:317): the clone opens in the admin. */

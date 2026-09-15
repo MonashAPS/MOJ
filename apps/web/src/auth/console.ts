@@ -57,7 +57,7 @@ export async function requireSuperuser(): Promise<ConsoleViewer> {
   return viewer;
 }
 
-export function can(viewer: ConsoleViewer, code: string): boolean {
+function can(viewer: ConsoleViewer, code: string): boolean {
   return viewer.isSuperuser || viewer.permissions.includes(code);
 }
 

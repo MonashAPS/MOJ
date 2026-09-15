@@ -19,9 +19,16 @@ import {
 import { AlertTriangle, KeyRound, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
-import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
-import { ConfirmAction, CopyButton, DASH, Flags, StatusLine } from "@/components/admin/console";
-import { RecordDialog } from "@/components/admin/RecordDialog";
+import {
+  type AdminColumn,
+  AdminTable,
+  ConfirmAction,
+  CopyButton,
+  DASH,
+  Flags,
+  RecordDialog,
+  StatusLine,
+} from "@/components/admin";
 import { formatDateTime } from "@/lib/format";
 import { createKeyAction, listKeysAction, revokeKeyAction } from "./actions";
 import { API_KEY_SCOPES, type ConsoleKeyRow } from "./scopes";

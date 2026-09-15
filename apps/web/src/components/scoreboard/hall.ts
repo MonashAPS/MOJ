@@ -16,7 +16,7 @@ export type Attendance = "all" | "in-person";
 export type DisplayRow = BoardRow & { displayRank: number };
 
 /** `@moj/core`'s `rankRows` comparator: solves desc, penalty asc, then name. */
-export function compareRows(a: BoardRow, b: BoardRow): number {
+function compareRows(a: BoardRow, b: BoardRow): number {
   return (
     b.solved - a.solved ||
     a.penalty - b.penalty ||

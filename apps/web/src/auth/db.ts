@@ -55,8 +55,6 @@ function lazy<T extends object>(resolve: () => T): T {
   });
 }
 
-export const pool: Pool = lazy(realPool);
-
 export const db: Db = lazy(realDb);
 
 export { schema };

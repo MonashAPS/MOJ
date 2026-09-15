@@ -25,7 +25,7 @@ export type AccountSecurity = {
 
 /** Everything the account pages need about the signed-in user's second factors,
  *  read through Better Auth's server API rather than the tables. */
-export async function readAccountSecurity(): Promise<AccountSecurity | null> {
+async function readAccountSecurity(): Promise<AccountSecurity | null> {
   const requestHeaders = await headers();
   const session = await auth.api.getSession({ headers: requestHeaders });
 

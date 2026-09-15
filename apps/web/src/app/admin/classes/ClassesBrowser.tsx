@@ -7,8 +7,7 @@ import type { FunctionReturnType } from "convex/server";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
-import { Flags } from "@/components/admin/console";
+import { type AdminColumn, AdminTable, Flags } from "@/components/admin";
 
 type ClassRow = FunctionReturnType<typeof api.classes.listForOrganization>[number];
 

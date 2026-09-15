@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { Button, cn, EmptyState, Panel, Progress, RatingName } from "@moj/ui";
+import { Button, cn, Panel, Progress, RatingName } from "@moj/ui";
 import { useQuery } from "convex/react";
 import {
   CalendarClock,
@@ -221,7 +221,7 @@ export function NewProblemsBox({ states }: { states?: Record<string, "solved" | 
 }
 
 export function TopUsersBox({ viewerUsername }: { viewerUsername?: string }) {
-  const users = useQuery(api.rankings.topUsers, { limit: 10 });
+  const users = useQuery(api.rankings.top, { limit: 10 });
 
   if (users === undefined || users.length === 0) return null;
 
@@ -264,5 +264,3 @@ export function TopUsersBox({ viewerUsername }: { viewerUsername?: string }) {
     </Panel>
   );
 }
-
-export { EmptyState, formatDate };

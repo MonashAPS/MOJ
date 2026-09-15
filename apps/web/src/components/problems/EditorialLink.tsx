@@ -41,7 +41,7 @@ function rememberSkip(): void {
  * the link opens a confirmation rather than navigating. A direct visit to
  * `/problem/<code>/editorial` is not intercepted; only this link is.
  */
-export function EditorialLink({
+function EditorialLink({
   href,
   className,
   children,

@@ -53,6 +53,4 @@ const rehypeStyleAllowlist: Plugin<[], Root> = function rehypeStyleAllowlist() {
   };
 };
 
-export default rehypeStyleAllowlist;
-
 export { rehypeStyleAllowlist };

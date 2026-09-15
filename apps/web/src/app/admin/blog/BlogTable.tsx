@@ -9,10 +9,17 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
-import { ConfirmAction, DASH, Flags, SearchBox, StatusLine } from "@/components/admin/console";
-import { MarkdownField } from "@/components/admin/MarkdownField";
-import { RecordDialog } from "@/components/admin/RecordDialog";
+import {
+  type AdminColumn,
+  AdminTable,
+  ConfirmAction,
+  DASH,
+  Flags,
+  MarkdownField,
+  RecordDialog,
+  SearchBox,
+  StatusLine,
+} from "@/components/admin";
 import { chosenIds } from "@/lib/choices";
 import { formatDateTime } from "@/lib/format";
 

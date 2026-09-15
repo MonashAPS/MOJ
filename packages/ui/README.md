@@ -103,7 +103,7 @@ the table lists the everyday entry point first.
 | `Select` | `options: {value,label,disabled}[]`, `value`, `onValueChange`, `placeholder`, `size`, `invalid`, `ariaLabel`. Parts: `SelectRoot`, `SelectTrigger`, `SelectValue`, `SelectContent`, `SelectItem`, `SelectGroup`, `SelectLabel`, `SelectSeparator` |
 | `Checkbox` | Radix props plus `label`, which makes the whole row the hit area |
 | `RadioGroup` | Radix props plus `options: {value,label,hint,disabled}[]`; or compose `RadioGroupItem` |
-| `Switch` / `Toggle` | Radix props plus `label`. Instant, reversible settings only |
+| `Switch` | Radix props plus `label`. Instant, reversible settings only |
 | `Combobox` | `Popover` + `Command`. `options`, `value`, `onValueChange`, `searchPlaceholder`, `emptyText` |
 | `MultiSelect` | the same with removable chips above the trigger: `values`, `onChange`, `max`. Backspace on an empty filter removes the last chip |
 | `InputGroup` / `InputGroupInput` | a field with `leading` and `trailing` slots — the problem search box is this plus a `search` glyph and a `Kbd` |
@@ -136,7 +136,7 @@ the table lists the everyday entry point first.
 
 | Component | Props that matter |
 | --- | --- |
-| `Dialog` / `DialogRoot` | `DialogTrigger`, `DialogContent` (`title`, `description` and `width` are conveniences; `showCloseButton`), `DialogHeader`, `DialogTitle`, `DialogDescription`, `DialogFooter`, `DialogClose` |
+| `Dialog` | `DialogTrigger`, `DialogContent` (`title`, `description` and `width` are conveniences; `showCloseButton`), `DialogHeader`, `DialogTitle`, `DialogDescription`, `DialogFooter`, `DialogClose` |
 | `AlertDialog` | the same shell for every irreversible action. `AlertDialogAction` is a danger button, `AlertDialogCancel` a secondary one and takes focus on open |
 | `DropdownMenu` | `DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuItem` (`variant="destructive"`, `inset`), `DropdownMenuCheckboxItem`, `DropdownMenuRadioGroup` / `RadioItem`, `DropdownMenuLabel`, `DropdownMenuSeparator`, `DropdownMenuShortcut`, `DropdownMenuSub` / `SubTrigger` / `SubContent` |
 | `Popover` | `PopoverTrigger`, `PopoverContent`, `PopoverAnchor` |
@@ -154,15 +154,15 @@ the table lists the everyday entry point first.
 Every name the foundation exported still resolves, and with the same call
 signature: `Button` (`variant`/`full`/`inline`/`icon`), `Input` (`invalid`,
 `icon`), `Textarea`, `Field`, `Select` (`options`), `MultiSelect` (`values`,
-`onChange`, `max`), `Checkbox` (`label`), `RadioGroup` (`options`), `Toggle`,
+`onChange`, `max`), `Checkbox` (`label`), `RadioGroup` (`options`), `Switch`,
 `Tooltip` (`content`), `Table` (`striped`, `scrollable`), `EmptyRow`,
 `Pagination`, `paginationRange`, `Tabs` (`panels`), `TabBar`, `TitleRow`,
 `Breadcrumb` (`items`), `InfoBox`, `TwoColumn`, `ContentDescription`,
 `VerdictPill`, `RatingName`, `ratingClass`, `ratingTitle`, `Badge` (`accent`),
-`DialogRoot` / `DialogTrigger` / `DialogContent` / `DialogClose`, `cn`.
+`Dialog` / `DialogTrigger` / `DialogContent` / `DialogClose`, `cn`.
 
 Where shadcn's name for a primitive collided with the foundation's name for a
 convenience wrapper, the convenience wrapper kept the short name and the Radix
 root took the `…Root` suffix: `SelectRoot`, `TabsRoot`, `TooltipRoot`,
-`BreadcrumbRoot`, `PaginationRoot`. `Toggle` is a labelled `Switch`, as it was;
+`BreadcrumbRoot`, `PaginationRoot`. The labelled switch is `Switch`, as it was;
 shadcn's pressed-state button is `ToggleButton`.
