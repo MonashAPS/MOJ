@@ -93,10 +93,34 @@ function frame(inner: string, label: string, role: string, index: number): strin
   ].join("");
 }
 
+/** Where to cut a paired sample's lead so it drops the `### Input` heading
+ *  directly above it. Anything further up — `## Example 1`, a sentence — stays. */
+function withoutInputHeading(lead: string): string {
+  HEADING.lastIndex = 0;
+  let last: RegExpExecArray | null = null;
+  let match = HEADING.exec(lead);
+
+  while (match !== null) {
+    last = match;
+    match = HEADING.exec(lead);
+  }
+
+  // Only a heading the sample sits directly under is the sample's own.
+  if (last === null || lead.slice(last.index + last[0].length).trim() !== "") return lead;
+  const text = (last[1] ?? "").replace(/<[^>]*>/g, "").trim();
+
+  return /\binput\b/i.test(text) ? lead.slice(0, last.index) : lead;
+}
+
 /**
  * Rewrites `html`. An input frame immediately followed by an output frame — with
  * nothing between them but that output's own heading — becomes one two-column
  * grid, so a page of five samples does not double its own scroll.
+ *
+ * The pair eats both headings. The `### Output` one is trapped between the two
+ * blocks and disappears by construction; the `### Input` one has to be cut
+ * deliberately, and leaving it in read as a missing heading rather than a spared
+ * one. Neither says anything the titlebars do not.
  */
 export function decorateStatement(html: string): string {
   const blocks = findBlocks(html);
@@ -143,15 +167,16 @@ export function decorateStatement(html: string): string {
     const block = blocks[index];
 
     if (!current || !block) break;
-    out.push(html.slice(cursor, block.start));
+    const lead = html.slice(cursor, block.start);
     const paired = pairedOutput(index);
 
     if (paired === null) {
-      out.push(current.html);
+      out.push(lead, current.html);
       cursor = block.end;
       index += 1;
     } else {
       out.push(
+        withoutInputHeading(lead),
         `<div class="not-prose my-4 grid items-start gap-3 min-[900px]:grid-cols-2 [&>figure]:my-0">${current.html}${paired.html}</div>`,
       );
       cursor = paired.end;
