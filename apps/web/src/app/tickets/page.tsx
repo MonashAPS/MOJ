@@ -18,6 +18,7 @@ function one(value: string | string[] | undefined): string | undefined {
 export async function generateMetadata({ searchParams }: Props) {
   const page = Number(one((await searchParams).page) ?? 1) || 1;
   const t = await getTranslations("blog.meta");
+
   return { title: page === 1 ? t("tickets") : t("ticketsPage", { page }) };
 }
 
@@ -25,6 +26,7 @@ export default async function TicketsPage({ searchParams }: Props) {
   const t = await getTranslations("blog.tickets");
   const params = await searchParams;
   const viewerState = await queryAsViewer(api.viewer.current, {}).catch(() => null);
+
   // `TicketList` is `LoginRequiredMixin` (judge/views/ticket.py:207).
   if (!viewerState?.profile) redirect("/accounts/login/?next=/tickets/");
 
@@ -32,6 +34,7 @@ export default async function TicketsPage({ searchParams }: Props) {
   const onlyOpen = one(params.open) === "1";
   const page = Math.max(1, Number(one(params.page) ?? 1) || 1);
   const args = ticketQueryArgs(scope, onlyOpen, page);
+
   const initial = await queryAsViewer(api.tickets.list, args).catch(() => ({
     page: [],
     isDone: true,

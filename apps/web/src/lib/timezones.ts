@@ -27,16 +27,13 @@ const FALLBACK = [
 ];
 
 export function timezoneList(): string[] {
-  const supported = (Intl as unknown as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf;
-  if (typeof supported === "function") {
-    try {
-      const zones = supported("timeZone");
-      if (zones.length > 0) return zones;
-    } catch {
-      // fall through
-    }
+  try {
+    const zones = Intl.supportedValuesOf("timeZone");
+
+    if (zones.length > 0) return zones;
+  } catch {
+    // A runtime that does not implement the canonical list.
   }
+
   return FALLBACK;
 }
-
-export const DEFAULT_TIMEZONE = "Australia/Melbourne";

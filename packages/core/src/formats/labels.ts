@@ -23,15 +23,18 @@ export interface LabelOptions {
 /** The label for a zero-based contest problem index. */
 export function getLabelForProblem(index: number, options: LabelOptions = {}): string {
   const scheme = options.scheme ?? getFormatOrDefault(options.formatName).defaultLabelScheme;
+
   switch (scheme) {
     case "letters":
       return letterLabel(index);
     case "custom": {
       const labels = options.customLabels ?? [];
+
       // Past the end of the list, fall back to letters so a short list never
       // renders blank headers.
       return labels[index] ?? letterLabel(index);
     }
+
     default:
       return numberLabel(index);
   }

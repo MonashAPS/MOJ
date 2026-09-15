@@ -5,7 +5,7 @@
 
 export type Addressable = { slug: string; legacyId?: number | null };
 
-export function organizationHandle(organization: Addressable): string {
+function organizationHandle(organization: Addressable): string {
   return organization.legacyId ? `${organization.legacyId}-${organization.slug}` : organization.slug;
 }
 
@@ -22,5 +22,6 @@ export function classHref(organization: Addressable, klass: Addressable, suffix 
 export function slugFromHandle(handle: string): string {
   const decoded = decodeURIComponent(handle);
   const match = /^(\d+)-(.+)$/.exec(decoded);
+
   return match?.[2] ?? decoded;
 }

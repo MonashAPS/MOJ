@@ -18,6 +18,7 @@ import { queryAsViewer } from "@/lib/convex-server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("contests.scoreboards");
+
   return { title: t("title") };
 }
 

@@ -11,16 +11,24 @@
  * `_disconnected`, `on_supported_problems`, `_update_ping`).
  */
 
+import type { WithoutSystemFields } from "convex/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { mojError } from "./lib/errors";
+import { isJsonString, isNonEmptyString, type JsonValue } from "./lib/json";
 
 /** No heartbeat for this long and the judge is treated as gone. */
 export const JUDGE_HEARTBEAT_TIMEOUT_MS = 60_000;
 
-export type JudgeProblemEntry = [string, ...unknown[]];
-export type JudgeExecutorMap = Record<string, Array<[string, ...unknown[]]>>;
+/** `on_supported_problems`: `[problem code, time limit]`, as the wire sends it. */
+export type JudgeProblemEntry = readonly JsonValue[];
+
+/** `_connected`: executor key to its `[runtime name, version parts]` rows. */
+export type JudgeExecutorMap = Record<string, readonly JudgeProblemEntry[]>;
+
+/** The fields a judge handshake or heartbeat writes back onto its row. */
+type JudgePatch = Partial<WithoutSystemFields<Doc<"judges">>>;
 
 export function judgeAuthError(message: string) {
   return mojError("FORBIDDEN", message);
@@ -42,26 +50,34 @@ export async function authenticateJudge(
     .query("judges")
     .withIndex("by_name", (q) => q.eq("name", judgeName))
     .unique();
+
   if (!judge) throw judgeAuthError("Unknown judge.");
+
   if (judge.authKeyHash.toLowerCase() !== authKeyHash.toLowerCase()) {
     throw judgeAuthError("Bad judge key.");
   }
+
   if (judge.isBlocked) throw judgeAuthError("This judge is blocked.");
+
   return judge;
 }
 
 function problemCodes(problems: JudgeProblemEntry[] | undefined): string[] | null {
   if (!problems) return null;
   const codes = new Set<string>();
+
   for (const entry of problems) {
     const code = entry?.[0];
-    if (typeof code === "string" && code.length > 0) codes.add(code);
+
+    if (isNonEmptyString(code)) codes.add(code);
   }
+
   return [...codes].sort();
 }
 
 function runtimeKeys(executors: JudgeExecutorMap | undefined): string[] | null {
   if (!executors) return null;
+
   return Object.keys(executors).sort();
 }
 
@@ -79,6 +95,7 @@ async function replaceRuntimeVersions(
     .query("runtimeVersions")
     .withIndex("by_judge", (q) => q.eq("judgeId", judgeId))
     .collect();
+
   for (const row of existing) await ctx.db.delete(row._id);
 
   for (const [key, runtimes] of Object.entries(executors)) {
@@ -90,14 +107,17 @@ async function replaceRuntimeVersions(
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", key))
       .first();
+
     // A judge may run an executor the site has no Language row for; DMOJ's
     // `judge.runtimes.set(...)` silently drops those too.
     if (!language) continue;
     let priority = 0;
+
     for (const runtime of runtimes ?? []) {
       const name = runtime?.[0];
       const version = runtime?.[1];
-      if (typeof name !== "string") continue;
+
+      if (!isJsonString(name)) continue;
       await ctx.db.insert("runtimeVersions", {
         languageId: language._id,
         judgeId,
@@ -115,6 +135,7 @@ export async function deleteRuntimeVersions(ctx: MutationCtx, judgeId: Id<"judge
     .query("runtimeVersions")
     .withIndex("by_judge", (q) => q.eq("judgeId", judgeId))
     .collect();
+
   for (const row of existing) await ctx.db.delete(row._id);
 }
 
@@ -125,17 +146,20 @@ export async function applyHandshake(
   args: { problems: JudgeProblemEntry[]; executors: JudgeExecutorMap; ip?: string },
 ): Promise<void> {
   const now = Date.now();
-  await ctx.db.patch(judge._id, {
+
+  const patch: JudgePatch = {
     online: true,
     startTime: now,
     lastSeen: now,
     problemCodes: problemCodes(args.problems) ?? [],
     runtimeKeys: runtimeKeys(args.executors) ?? [],
-    ...(args.ip ? { lastIp: args.ip } : {}),
     // A judge that reconnects mid-grade is not holding anything any more; the
     // recovery cron picks up whatever it dropped.
     currentSubmissionId: undefined,
-  });
+  };
+
+  if (args.ip) patch.lastIp = args.ip;
+  await ctx.db.patch(judge._id, patch);
   await replaceRuntimeVersions(ctx, judge._id, args.executors);
 }
 
@@ -155,14 +179,17 @@ export async function applyHeartbeat(
 ): Promise<void> {
   const codes = problemCodes(args.problems);
   const keys = runtimeKeys(args.executors);
-  await ctx.db.patch(judge._id, {
-    online: true,
-    lastSeen: Date.now(),
-    ...(args.load === null || args.load === undefined ? {} : { load: args.load }),
-    ...(codes ? { problemCodes: codes } : {}),
-    ...(keys ? { runtimeKeys: keys } : {}),
-    ...(args.ip ? { lastIp: args.ip } : {}),
-  });
+  const patch: JudgePatch = { online: true, lastSeen: Date.now() };
+
+  if (args.load !== null && args.load !== undefined) patch.load = args.load;
+
+  if (codes) patch.problemCodes = codes;
+
+  if (keys) patch.runtimeKeys = keys;
+
+  if (args.ip) patch.lastIp = args.ip;
+  await ctx.db.patch(judge._id, patch);
+
   if (args.executors) await replaceRuntimeVersions(ctx, judge._id, args.executors);
 }
 
@@ -180,7 +207,9 @@ export async function freeJudge(
 ): Promise<void> {
   if (!judgeId) return;
   const judge = await ctx.db.get(judgeId);
+
   if (!judge) return;
+
   if (judge.currentSubmissionId === submissionId) {
     await ctx.db.patch(judgeId, { currentSubmissionId: undefined });
   }
@@ -198,13 +227,16 @@ export const markOfflineJudges = internalMutation({
     const cutoff = Date.now() - (timeoutMs ?? JUDGE_HEARTBEAT_TIMEOUT_MS);
     const judges = await ctx.db.query("judges").collect();
     let marked = 0;
+
     for (const judge of judges) {
       if (!judge.online) continue;
       const lastSeen = judge.lastSeen ?? judge.startTime ?? 0;
+
       if (lastSeen >= cutoff) continue;
       await markJudgeOffline(ctx, judge);
       marked += 1;
     }
+
     return { marked };
   },
 });
@@ -223,7 +255,9 @@ export const prepareEndToEnd = internalMutation({
       .query("judges")
       .withIndex("by_name", (q) => q.eq("name", args.judgeName))
       .unique();
+
     let created = false;
+
     if (!judge) {
       const judgeId = await ctx.db.insert("judges", {
         name: args.judgeName,
@@ -236,6 +270,7 @@ export const prepareEndToEnd = internalMutation({
         problemCodes: [],
         runtimeKeys: [],
       });
+
       judge = await ctx.db.get(judgeId);
       created = true;
     }

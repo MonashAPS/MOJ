@@ -15,6 +15,7 @@ export const list = query({
   handler: async (ctx) => {
     const rows = await ctx.db.query("languages").collect();
     rows.sort((a, b) => a.name.localeCompare(b.name));
+
     return rows;
   },
 });
@@ -36,6 +37,7 @@ export const templates = query({
   handler: async (ctx) => {
     const rows = await ctx.db.query("languages").collect();
     rows.sort((a, b) => a.name.localeCompare(b.name));
+
     return rows.map((row) => ({
       key: row.key,
       name: row.name,
@@ -55,9 +57,11 @@ export const usableForProblem = query({
   args: { code: v.string() },
   handler: async (ctx, { code }) => {
     const problem = await problemByCode(ctx, code);
+
     if (!problem) return null;
 
     const viewer = await loadViewerContext(ctx);
+
     if (!(await canAccessProblem(ctx, problem, viewer))) return null;
 
     const judges = (
@@ -66,18 +70,23 @@ export const usableForProblem = query({
         .withIndex("by_online_tier", (q) => q.eq("online", true))
         .collect()
     ).filter((judge) => judge.problemCodes.includes(problem.code));
+
     const runtimeKeys = new Set(judges.flatMap((judge) => judge.runtimeKeys));
 
     const limits = await ctx.db
       .query("languageLimits")
       .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
       .collect();
-    const limitByLanguage = new Map(limits.map((row) => [row.languageId as string, row]));
+
+    const limitByLanguage = new Map(limits.map((row) => [row.languageId, row]));
 
     const out = [];
+
     for (const id of problem.allowedLanguageIds) {
       const language = await ctx.db.get(id);
+
       if (!language) continue;
+
       if (!runtimeKeys.has(language.key)) continue;
       const limit = limitByLanguage.get(language._id);
       out.push({
@@ -94,7 +103,9 @@ export const usableForProblem = query({
         runnable: true,
       });
     }
+
     out.sort((a, b) => a.name.localeCompare(b.name) || a.key.localeCompare(b.key));
+
     return { problemCode: problem.code, languages: out, onlineJudges: judges.length };
   },
 });
@@ -126,35 +137,45 @@ export const detail = query({
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", key))
       .first();
+
     if (!language) return null;
 
     const seeAll = await seesAllJudges(ctx);
+
     const rows = await ctx.db
       .query("runtimeVersions")
       .withIndex("by_language", (q) => q.eq("languageId", language._id))
       .collect();
 
     const judges = new Map<string, LanguageRuntimeOnJudge>();
+
     for (const row of [...rows].sort((a, b) => a.priority - b.priority)) {
       const judge = await ctx.db.get(row.judgeId);
+
       if (!judge) continue;
+
       if (!seeAll && !judge.online) continue;
       let entry = judges.get(judge._id);
+
       if (!entry) {
         entry = { judgeId: judge._id, judgeName: judge.name, online: judge.online, runtimes: [] };
         judges.set(judge._id, entry);
       }
+
       entry.runtimes.push({ name: row.name, version: row.version, priority: row.priority });
     }
 
     const byName = new Map<string, Set<string>>();
+
     for (const entry of judges.values()) {
       for (const runtime of entry.runtimes) {
         let set = byName.get(runtime.name);
+
         if (!set) {
           set = new Set<string>();
           byName.set(runtime.name, set);
         }
+
         if (runtime.version) set.add(runtime.version);
       }
     }
@@ -182,7 +203,9 @@ export const withProblemCounts = query({
       ctx.db.query("languages").collect(),
       ctx.db.query("problems").collect(),
     ]);
+
     languages.sort((a, b) => a.key.localeCompare(b.key));
+
     return languages.map((language) => ({
       ...language,
       shortDisplayName: language.shortName || language.key,

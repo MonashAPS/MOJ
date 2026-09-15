@@ -23,10 +23,10 @@ import {
   Tooltip,
 } from "@moj/ui";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { ChevronDown, ChevronUp, Plus, Trash2, TriangleAlert, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
+import { mutationError } from "@/lib/convex-error";
 import { formatDateTime } from "@/lib/format";
 import { formatMemory } from "@/lib/submissionFormat";
 
@@ -49,8 +49,26 @@ const CASE_TYPES = [
   { value: "E", key: "batchEnd" },
 ] as const;
 
-type Payload = NonNullable<(typeof api.problemData.get)["_returnType"]>;
-type CaseRow = Payload["cases"][number] & { key: string };
+type Payload = NonNullable<(typeof api.problems.data.get)["_returnType"]>;
+
+/** A row the editor holds. One the member has just added has no database id
+ *  yet, and `saveCases` rewrites the whole set anyway. */
+type CaseRow = Omit<Payload["cases"][number], "id"> & {
+  key: string;
+  id?: Payload["cases"][number]["id"];
+};
+
+/** Convex's upload endpoint answers `{storageId}`. The id's brand is nominal, so
+ *  a present string is as far as a runtime check can go. */
+function isUploadAnswer(body: unknown): body is { storageId: Id<"_storage"> } {
+  return (
+    typeof body === "object" && body !== null && "storageId" in body && typeof body.storageId === "string"
+  );
+}
+
+function caseType(value: string): CaseRow["type"] | null {
+  return CASE_TYPES.find((type) => type.value === value)?.value ?? null;
+}
 
 const OPTIONAL_COLUMNS = [
   "outputPrefix",
@@ -64,21 +82,23 @@ type ColumnKey = (typeof OPTIONAL_COLUMNS)[number];
 
 function numberOrNull(value: string): number | null {
   const trimmed = value.trim();
+
   if (trimmed === "") return null;
   const parsed = Number(trimmed);
+
   return Number.isFinite(parsed) ? parsed : null;
 }
 
 export function TestDataEditor({ code, initial }: { code: string; initial: Payload }) {
   const t = useTranslations("problems.testData");
   const actions = useTranslations("common.actions");
-  const live = useQuery(api.problemData.get, { code });
+  const live = useQuery(api.problems.data.get, { code });
   const data = live ?? initial;
 
-  const generateUploadUrl = useMutation(api.problemData.generateUploadUrl);
-  const updateData = useMutation(api.problemData.updateData);
-  const saveCases = useMutation(api.problemData.saveCases);
-  const publishArchive = useAction(api.problemData.publishArchive);
+  const generateUploadUrl = useMutation(api.problems.data.generateUploadUrl);
+  const updateData = useMutation(api.problems.data.updateData);
+  const saveCases = useMutation(api.problems.data.saveCases);
+  const publishArchive = useAction(api.problems.data.publishArchive);
 
   const published = data.published;
   // Nothing of this problem's data lives here: a judge reports it and the site
@@ -88,6 +108,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
   const [rows, setRows] = useState<CaseRow[]>(() =>
     data.cases.map((row, index) => ({ ...row, key: `${row.id ?? "new"}-${index}` })),
   );
+
   const [form, setForm] = useState({
     checker: data.data?.checker ?? "",
     checkerArgs: data.data?.checkerArgs ?? "",
@@ -97,6 +118,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
     nobigmath: data.data?.nobigmath ?? false,
     generator: data.data?.generator ?? "",
   });
+
   const [visible, setVisible] = useState<Record<ColumnKey, boolean>>(() => ({
     outputPrefix: data.cases.some((row) => row.outputPrefix !== null),
     outputLimit: data.cases.some((row) => row.outputLimit !== null),
@@ -104,13 +126,14 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
     generatorArgs: data.cases.some((row) => row.generatorArgs !== ""),
     batchDependencies: data.cases.some((row) => row.batchDependencies.length > 0),
   }));
+
   const [files, setFiles] = useState<string[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const filePicker = useRef<HTMLInputElement>(null);
 
-  const preview = useQuery(api.problemData.initYaml, { code, files: files.length > 0 ? files : undefined });
+  const preview = useQuery(api.problems.data.initYaml, { code, files: files.length > 0 ? files : undefined });
 
   function patch(key: string, change: Partial<CaseRow>) {
     setRows((current) => current.map((row) => (row.key === key ? { ...row, ...change } : row)));
@@ -120,11 +143,15 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
     setRows((current) => {
       const next = [...current];
       const target = index + delta;
+
       if (target < 0 || target >= next.length) return current;
-      const a = next[index] as CaseRow;
-      const b = next[target] as CaseRow;
+      const a = next[index];
+      const b = next[target];
+
+      if (a === undefined || b === undefined) return current;
       next[index] = b;
       next[target] = a;
+
       return next.map((row, position) => ({ ...row, order: position + 1 }));
     });
   }
@@ -133,14 +160,11 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
     setBusy(true);
     setError(null);
     setStatus(null);
+
     try {
       await action();
     } catch (thrown) {
-      setError(
-        thrown instanceof ConvexError && typeof thrown.data === "object" && thrown.data !== null
-          ? String((thrown.data as { message?: string }).message ?? t("saveFailed"))
-          : t("saveFailed"),
-      );
+      setError(mutationError(thrown, t("saveFailed")));
     } finally {
       setBusy(false);
     }
@@ -154,13 +178,18 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
   async function upload(file: File) {
     await withErrors(async () => {
       const url = await generateUploadUrl({ code });
+
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": file.type || "application/zip" },
         body: file,
       });
+
       if (!response.ok) throw new Error("upload failed");
-      const { storageId } = (await response.json()) as { storageId: Id<"_storage"> };
+      const answer: unknown = await response.json();
+
+      if (!isUploadAnswer(answer)) throw new Error("the upload endpoint returned no storage id");
+      const { storageId } = answer;
       const result = await publishArchive({ code, zipfile: file.name, storageId });
       setFiles(result.files);
       setStatus(
@@ -265,6 +294,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                 className="sr-only"
                 onChange={(event) => {
                   const file = event.target.files?.[0];
+
                   if (file) void upload(file);
                   event.target.value = "";
                 }}
@@ -454,7 +484,11 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                         size="sm"
                         ariaLabel={t("caseType", { index: index + 1 })}
                         value={row.type}
-                        onValueChange={(value) => patch(row.key, { type: value as CaseRow["type"] })}
+                        onValueChange={(value) => {
+                          const type = caseType(value);
+
+                          if (type) patch(row.key, { type });
+                        }}
                         options={caseTypes}
                       />
                     </TableCell>
@@ -651,7 +685,6 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                   ...current,
                   {
                     key: `new-${Date.now()}`,
-                    id: undefined as unknown as CaseRow["id"],
                     order: current.length + 1,
                     type: "C",
                     inputFile: "",

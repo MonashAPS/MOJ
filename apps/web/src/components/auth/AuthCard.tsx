@@ -1,6 +1,6 @@
 import { cn } from "@moj/ui";
 import type { ReactNode } from "react";
-import { Wordmark } from "@/components/Wordmark";
+import { Wordmark } from "@/components/shell/Wordmark";
 
 /** The full-page auth frame: the royal grid at full strength on the page ground, the
  *  wordmark in the theme's ink, and the one card in the product that carries the

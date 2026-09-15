@@ -6,6 +6,7 @@ import { PasskeyManager } from "./PasskeyManager";
 
 export async function generateMetadata() {
   const t = await getTranslations("auth.twoFactor.passkeys");
+
   return { title: t("metaTitle") };
 }
 
@@ -14,6 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function PasskeysPage() {
   const account = await requireAccount("/accounts/2fa/webauthn/attest/");
   const t = await getTranslations("auth.twoFactor.passkeys");
+
   return (
     <>
       <TitleRow title={t("title")} tabs={await accountTabs()} active="passkeys" />

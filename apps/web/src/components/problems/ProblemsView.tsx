@@ -51,22 +51,25 @@ import {
 import { formatPoints } from "@/lib/units";
 
 type ListPayload = NonNullable<(typeof api.problems.list)["_returnType"]>;
+
 type ListItem = ListPayload["items"][number];
 
-const STATE_META = {
-  solved: { Icon: CheckCircle2, tone: "var(--state-solved)", label: "solved" },
-  partial: { Icon: CircleSlash2, tone: "var(--state-partial)", label: "partial" },
-  attempted: { Icon: CircleDashed, tone: "var(--state-attempted)", label: "attempted" },
-} as const;
+const STATE_META = new Map([
+  ["solved", { Icon: CheckCircle2, tone: "var(--state-solved)", label: "solved" }],
+  ["partial", { Icon: CircleSlash2, tone: "var(--state-partial)", label: "partial" }],
+  ["attempted", { Icon: CircleDashed, tone: "var(--state-attempted)", label: "attempted" }],
+]);
 
 function StateIcon({ state, code, username }: { state: string; code: string; username: string | null }) {
   const t = useTranslations("problems.list");
   const states = useTranslations("problems.state");
-  const meta = STATE_META[state as keyof typeof STATE_META];
+  const meta = STATE_META.get(state);
+
   if (!meta) return <span className="sr-only">{states("notAttempted")}</span>;
   const { Icon, tone } = meta;
   const label = states(meta.label);
   const glyph = <Icon size={14} aria-hidden style={{ color: tone }} />;
+
   return (
     <Tooltip content={label}>
       {username ? (
@@ -107,6 +110,7 @@ function SortHead({
 }) {
   const active = query.sort === sort;
   const Chevron = active && query.descending ? ChevronDown : ChevronUp;
+
   return (
     <TableHead numeric={numeric} className={cn("p-0", className)}>
       <button
@@ -128,6 +132,7 @@ function SortHead({
 
 function EditorialCell({ item }: { item: ListItem }) {
   const t = useTranslations("problems.list");
+
   return item.hasPublicEditorial ? (
     <Tooltip content={t("editorialAvailable")}>
       <Link
@@ -185,7 +190,7 @@ function Row({
           {item.types && item.types.length > 0 ? (
             <span className="flex flex-wrap gap-1">
               {item.types.map((type) => (
-                <Badge key={type.id} variant="neutral" shape="square">
+                <Badge key={type.id} variant="neutral" rounding="square">
                   {type.fullName}
                 </Badge>
               ))}
@@ -246,6 +251,7 @@ function StackedRow({
   hideScoreboard: boolean;
 }) {
   const t = useTranslations("problems.list");
+
   return (
     <li className="relative flex min-h-[44px] items-start gap-2 border-b border-border px-3 py-2.5 last:border-b-0">
       {username ? (
@@ -331,6 +337,7 @@ export function ProblemsView({
     page: query.page,
     pageSize: 50,
   });
+
   const data = live ?? initial;
   const loading = live === undefined;
 
@@ -348,6 +355,7 @@ export function ProblemsView({
 
   const inContest = data.inContest;
   const hideScoreboard = inContest && data.contest?.hideScoreboard === true;
+
   const columns =
     (username ? 1 : 0) + 3 + (query.showTypes ? 1 : 0) + (inContest ? 0 : 2) + (inContest ? 0 : 0);
 
@@ -365,6 +373,7 @@ export function ProblemsView({
       busy={pending}
     />
   );
+
   const panel = renderPanel(false);
 
   const pager =
@@ -586,23 +595,29 @@ export function ProblemsView({
 
 function dedupeTypes(items: ListItem[]): FilterOptions["types"] {
   const seen = new Map<string, { name: string; fullName: string; count: number }>();
+
   for (const item of items) {
     for (const type of item.types ?? []) {
       const existing = seen.get(type.name);
+
       if (existing) existing.count += 1;
       else seen.set(type.name, { name: type.name, fullName: type.fullName, count: 1 });
     }
   }
+
   return [...seen.values()].sort((a, b) => a.fullName.localeCompare(b.fullName));
 }
 
 function dedupeGroups(items: ListItem[]): FilterOptions["groups"] {
   const seen = new Map<string, { name: string; fullName: string; count: number }>();
+
   for (const item of items) {
     if (!item.group) continue;
     const existing = seen.get(item.group.name);
+
     if (existing) existing.count += 1;
     else seen.set(item.group.name, { name: item.group.name, fullName: item.group.fullName, count: 1 });
   }
+
   return [...seen.values()].sort((a, b) => a.fullName.localeCompare(b.fullName));
 }

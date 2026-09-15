@@ -6,6 +6,7 @@ import type { ClipboardEvent, KeyboardEvent } from "react";
 import { useId, useRef } from "react";
 
 const SLOTS = [0, 1, 2, 3, 4, 5] as const;
+
 const LENGTH = SLOTS.length;
 
 export function OneTimeCode({
@@ -45,39 +46,51 @@ export function OneTimeCode({
     const code = next.slice(0, LENGTH);
     latest.current = code;
     onChange(code);
+
     if (code.length === LENGTH) onComplete?.(code);
+
     return code;
   }
 
   function handleInput(slot: number, raw: string) {
     const digits = raw.replace(/\D/g, "");
+
     if (!digits) return;
     const code = latest.current;
+
     // A password manager or iOS autofill drops the whole code into one box.
     const next = commit(
       digits.length > 1 ? code.slice(0, slot) + digits : code.slice(0, slot) + digits + code.slice(slot + 1),
     );
+
     focusSlot(digits.length > 1 ? next.length : slot + 1);
   }
 
   function handleKeyDown(slot: number, event: KeyboardEvent<HTMLInputElement>) {
     const code = latest.current;
+
     if (event.key === "Backspace") {
       event.preventDefault();
+
       if (code[slot]) {
         commit(code.slice(0, slot) + code.slice(slot + 1));
+
         return;
       }
+
       if (slot > 0) {
         commit(code.slice(0, slot - 1) + code.slice(slot));
         focusSlot(slot - 1);
       }
+
       return;
     }
+
     if (event.key === "ArrowLeft") {
       event.preventDefault();
       focusSlot(slot - 1);
     }
+
     if (event.key === "ArrowRight") {
       event.preventDefault();
       focusSlot(Math.min(slot + 1, code.length));
@@ -86,6 +99,7 @@ export function OneTimeCode({
 
   function handlePaste(event: ClipboardEvent<HTMLInputElement>) {
     const digits = event.clipboardData.getData("text").replace(/\D/g, "");
+
     if (!digits) return;
     event.preventDefault();
     focusSlot(commit(digits).length);

@@ -23,8 +23,9 @@ type FormFieldContextValue<
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
 > = { name: TName };
 
-const FormFieldContext = createContext<FormFieldContextValue>({} as FormFieldContextValue);
-const FormItemContext = createContext<{ id: string }>({} as { id: string });
+const FormFieldContext = createContext<FormFieldContextValue | null>(null);
+
+const FormItemContext = createContext<{ id: string } | null>(null);
 
 export function FormField<
   TFieldValues extends FieldValues = FieldValues,
@@ -43,10 +44,13 @@ export function useFormField() {
   const fieldContext = useContext(FormFieldContext);
   const itemContext = useContext(FormItemContext);
   const { getFieldState } = useFormContext();
-  const formState = useFormState({ name: fieldContext.name });
-  const fieldState = getFieldState(fieldContext.name, formState);
+  const formState = useFormState({ name: fieldContext?.name });
 
-  if (!fieldContext) throw new Error("useFormField should be used within <FormField>");
+  if (fieldContext === null || itemContext === null) {
+    throw new Error("useFormField should be used within <FormField> and <FormItem>");
+  }
+
+  const fieldState = getFieldState(fieldContext.name, formState);
 
   return {
     id: itemContext.id,
@@ -60,6 +64,7 @@ export function useFormField() {
 
 export function FormItem({ className, ...props }: ComponentProps<"div">) {
   const id = useId();
+
   return (
     <FormItemContext.Provider value={{ id }}>
       <div data-slot="form-item" className={cn("grid gap-1", className)} {...props} />
@@ -69,6 +74,7 @@ export function FormItem({ className, ...props }: ComponentProps<"div">) {
 
 export function FormLabel({ className, ...props }: ComponentProps<typeof LabelPrimitive.Root>) {
   const { error, formItemId } = useFormField();
+
   return (
     <Label
       data-slot="form-label"
@@ -82,6 +88,7 @@ export function FormLabel({ className, ...props }: ComponentProps<typeof LabelPr
 
 export function FormControl(props: ComponentProps<typeof Slot>) {
   const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
+
   return (
     <Slot
       data-slot="form-control"
@@ -95,6 +102,7 @@ export function FormControl(props: ComponentProps<typeof Slot>) {
 
 export function FormDescription({ className, ...props }: ComponentProps<"p">) {
   const { formDescriptionId } = useFormField();
+
   return (
     <p
       data-slot="form-description"
@@ -108,7 +116,9 @@ export function FormDescription({ className, ...props }: ComponentProps<"p">) {
 export function FormMessage({ className, ...props }: ComponentProps<"p">) {
   const { error, formMessageId } = useFormField();
   const body = error ? String(error?.message ?? "") : props.children;
+
   if (!body) return null;
+
   return (
     <p
       data-slot="form-message"

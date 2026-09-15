@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ user: string }> }) {
   const { user } = await params;
   const t = await getTranslations("users.submissions");
+
   return { title: t("metaTitle", { username: decodeURIComponent(user) }) };
 }
 
@@ -23,6 +24,7 @@ export default async function UserSubmissionsPage({
   const { user } = await params;
   const username = decodeURIComponent(user);
   const viewer = await queryAsViewer(api.viewer.current, {});
+
   return (
     <SubmissionListPage
       filters={{ username }}

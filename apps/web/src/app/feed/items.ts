@@ -14,6 +14,7 @@ import type { FeedEntry, FeedMeta } from "./xml";
 async function renderBody(body: string, preset: string): Promise<string> {
   if (!body.trim()) return "";
   const { html } = await renderMarkdown(body, preset, { highlight: false, lazyLoadImages: false });
+
   return html;
 }
 
@@ -35,6 +36,7 @@ export async function loadFeed(
 
   if (kind === "problems") {
     const items = await query(api.feeds.problems, { limit: 25 }).catch(() => []);
+
     return {
       meta: {
         title: `Recently Added ${site.siteName} Problems`,
@@ -58,6 +60,7 @@ export async function loadFeed(
 
   if (kind === "comment") {
     const items = await query(api.feeds.comments, { limit: 25 }).catch(() => []);
+
     return {
       meta: {
         title: `Latest ${site.siteName} Comments`,
@@ -79,6 +82,7 @@ export async function loadFeed(
   }
 
   const items = await query(api.feeds.blog, { limit: 25 }).catch(() => []);
+
   return {
     meta: {
       title: `Latest ${site.siteName} Blog Posts`,

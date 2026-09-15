@@ -4,7 +4,9 @@
   "version": "1.4.2",
   "description": "MOJ, the MAPS Online Judge",
   "license": "AGPL-3.0-only",
+  "type": "module",
   "workspaces": [
+    "convex",
     "apps/*",
     "packages/*",
     "tools/*",
@@ -22,28 +24,24 @@
     "test": "vitest run",
     "e2e:judge": "node infra/scripts/e2e-judge.mjs",
     "test:watch": "vitest",
-    "lint": "biome check .",
+    "lint": "biome check . && oxlint",
     "format": "biome format --write .",
-    "typecheck": "tsc -p convex/tsconfig.json --noEmit && npm run typecheck --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
     "convex:codegen": "convex codegen",
     "convex:deploy": "convex deploy",
     "seed": "convex run seed:run '{}'",
-    "prepare": "npm run build --workspace packages/content"
-  },
-  "dependencies": {
-    "@convex-dev/aggregate": "^0.3.1",
-    "@convex-dev/rate-limiter": "^0.3.2",
-    "@moj/core": "*",
-    "fflate": "^0.8.3"
+    "prepare": "npm run build --workspace packages/content && lefthook install",
+    "knip": "knip",
+    "lint:fix": "biome check --write . && oxlint --fix"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.13",
-    "@edge-runtime/vm": "^5.0.0",
     "@types/node": "^26.5.1",
     "concurrently": "^10.0.5",
     "convex": "^1.45.0",
-    "convex-test": "^0.0.57",
-    "fast-xml-parser": "^5.11.1",
+    "knip": "^6.35.1",
+    "lefthook": "^2.1.14",
+    "oxlint": "1.83.0",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2",
     "vitest": "^5.0.0"

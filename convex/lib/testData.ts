@@ -34,8 +34,10 @@ export async function publishedTestData(
   problemId: Id<"problems">,
 ): Promise<PublishedTestData | null> {
   const row = await testDataRow(ctx, problemId);
+
   if (!row) return null;
   const uploader = row.uploadedByProfileId ? await ctx.db.get(row.uploadedByProfileId) : null;
+
   return {
     hash: row.hash,
     size: row.size,
@@ -53,14 +55,11 @@ export async function publishedTestData(
 export function unsafeArchiveMember(names: readonly string[]): string | null {
   for (const name of names) {
     const normalized = name.replaceAll("\\", "/");
+
     if (normalized.startsWith("/") || /^[a-zA-Z]:/.test(normalized)) return name;
+
     if (normalized.split("/").some((piece) => piece === "..")) return name;
   }
-  return null;
-}
 
-/** sha256 of raw bytes, lowercase hex, the form `problemTestData.hash` holds. */
-export async function sha256OfBytes(bytes: ArrayBuffer): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return null;
 }

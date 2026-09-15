@@ -12,6 +12,7 @@ import { renderContent } from "@/lib/markdown";
 
 export async function generateMetadata() {
   const t = await getTranslations("common.nav");
+
   return { title: t("home") };
 }
 
@@ -21,8 +22,9 @@ const DAY = 24 * 3600_000;
 
 export default async function HomePage() {
   const t = await getTranslations("common.home");
+
   const [misc, posts, session] = await Promise.all([
-    query(api.site.miscConfig, {}).catch(() => ({}) as Record<string, string>),
+    query(api.site.miscConfig, {}).catch((): Record<string, string> => ({})),
     queryAsViewer(api.blog.list, { limit: 10 }).catch(() => []),
     getServerSession().catch(() => null),
   ]);
@@ -123,6 +125,8 @@ export default async function HomePage() {
                   <div
                     // `--content-ink` is @moj/content's own knob for the prose colour;
                     // a summary is secondary text, not body copy.
+                    // SAFETY: `CSSProperties` carries no index signature for custom properties,
+                    // and the browser applies every `--*` entry of a style object as one.
                     style={{ "--content-ink": "var(--ink-2)" } as React.CSSProperties}
                     className="content-description mt-3 max-w-[68ch] text-base"
                     // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitised by @moj/content
@@ -166,5 +170,6 @@ export default async function HomePage() {
 
 function firstParagraph(content: string): string {
   const paragraph = content.split(/\n\s*\n/)[0] ?? "";
+
   return paragraph.length > 280 ? `${paragraph.slice(0, 280)}…` : paragraph;
 }

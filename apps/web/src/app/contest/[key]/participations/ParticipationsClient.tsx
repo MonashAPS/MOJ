@@ -1,7 +1,8 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import type { ContestDetail, ParticipationRow } from "@convex/contests";
+import type { ContestDetail } from "@convex/contests";
+import type { ParticipationRow } from "@convex/contests/participation";
 import {
   Badge,
   cn,
@@ -27,9 +28,13 @@ const DASH = "—";
 
 function cellSkin(state: string): string {
   const base = state.replace("pretest-", "");
+
   if (base === "full-score") return "bg-(--cell-solved-bg) text-(--cell-solved-ink)";
+
   if (base === "partial-score") return "bg-warn-bg text-warn";
+
   if (base === "failed-score") return "bg-(--cell-failed-bg) text-(--cell-failed-ink)";
+
   return "text-(--cell-empty-ink)";
 }
 
@@ -57,11 +62,13 @@ export function ParticipationsClient({
   const tabLabels = useTranslations("contests.tabs");
   const router = useRouter();
   const [lookup, setLookup] = useState("");
-  const live = useQuery(api.contests.participations, isOwn ? { key: contestKey } : "skip");
+  const live = useQuery(api.contests.participation.participations, isOwn ? { key: contestKey } : "skip");
+
   const liveOther = useQuery(
-    api.contests.participationsOfUser,
+    api.contests.participation.participationsOfUser,
     !isOwn && subject ? { key: contestKey, username: subject } : "skip",
   );
+
   const rows = (isOwn ? live : liveOther) ?? initial;
   const contest = detail.contest;
   const joinKind = joinKindFor(detail);
@@ -104,6 +111,7 @@ export function ParticipationsClient({
               className="grid gap-1"
               onSubmit={(event) => {
                 event.preventDefault();
+
                 if (lookup.trim()) {
                   router.push(`/contest/${contestKey}/participations/${lookup.trim()}/`);
                 }
@@ -182,16 +190,16 @@ export function ParticipationsClient({
                           className="text-sm"
                         />
                         {row.virtual > 0 ? (
-                          <Badge variant="neutral" shape="square" mono>
+                          <Badge variant="neutral" rounding="square" mono>
                             {t("virtualBadge", { number: String(row.virtual) })}
                           </Badge>
                         ) : (
-                          <Badge variant="accent" shape="square" mono>
+                          <Badge variant="accent" rounding="square" mono>
                             {t("liveBadge")}
                           </Badge>
                         )}
                         {row.isDisqualified ? (
-                          <Badge variant="bad" shape="square" mono>
+                          <Badge variant="bad" rounding="square" mono>
                             {t("disqualifiedBadge")}
                           </Badge>
                         ) : null}

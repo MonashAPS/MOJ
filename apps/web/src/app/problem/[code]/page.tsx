@@ -22,7 +22,9 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
   const { code } = await params;
   const language = await viewerLanguage();
   const problem = await queryAsViewer(api.problems.get, { code, language }).catch(() => null);
+
   if (!problem) return { title: t("noSuchProblem") };
+
   return {
     // DMOJ titles the page with the translation when there is one.
     title: problem.statement.name,
@@ -36,11 +38,13 @@ export default async function ProblemStatementPage({ params }: { params: Promise
   const { code } = await params;
   const language = await viewerLanguage();
   const problem = await queryAsViewer(api.problems.get, { code, language });
+
   if (!problem) {
     // A proctored contest withholds its problems rather than hiding them. Say
     // so here, where somebody is looking at the problem, instead of replacing
     // the whole site with a notice they did not ask for.
     const gate = await queryAsViewer(api.proctor.gate, {}).catch(() => null);
+
     if (gate?.blocked) {
       return (
         <>
@@ -49,6 +53,7 @@ export default async function ProblemStatementPage({ params }: { params: Promise
         </>
       );
     }
+
     notFound();
   }
 
@@ -56,6 +61,7 @@ export default async function ProblemStatementPage({ params }: { params: Promise
     renderMarkdown(problem.statement.source, problem.statement.preset),
     problem.contestProblem ? queryAsViewer(api.contests.navBar, {}).catch(() => null) : Promise.resolve(null),
   ]);
+
   const statement = decorateStatement(html);
 
   const siblings = bar?.problems ?? [];

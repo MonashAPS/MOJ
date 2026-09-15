@@ -10,7 +10,14 @@
 import { participationStart } from "../contestTiming";
 import type { FormatData } from "../types";
 import { pyRound } from "../util/number";
-import type { ContestFormat, ParticipationUpdate, ScoringLine, UpdateParticipationInput } from "./base";
+import type {
+  ContestFormat,
+  FormatConfigInput,
+  FormatConfigValidators,
+  ParticipationUpdate,
+  ScoringLine,
+  UpdateParticipationInput,
+} from "./base";
 import {
   breakdown,
   buildParticipationResult,
@@ -18,7 +25,7 @@ import {
   cumtimeSeconds,
   groupByProblem,
   letterLabel,
-  mergeConfig,
+  numberConfig,
   pointsPrecision,
   secondsSince,
   validateAgainstDefaults,
@@ -27,16 +34,21 @@ import { computeMaxPointsRows } from "./penalty";
 
 export const ICPC_DEFAULTS = { penalty: 20 } as const;
 
-const VALIDATORS = { penalty: (value: number) => value >= 0 };
+const VALIDATORS: FormatConfigValidators = { penalty: (value) => Number(value) >= 0 };
 
-export function validateIcpcConfig(config: unknown): void {
+export type IcpcConfig = {
+  /** Minutes added per rejected submission that preceded a solve. */
+  readonly penalty: number;
+};
+
+export function validateIcpcConfig(config: FormatConfigInput): void {
   validateAgainstDefaults(config, ICPC_DEFAULTS, VALIDATORS, "ICPC-styled contest");
 }
 
-export function resolveIcpcConfig(config: unknown): { penalty: number } {
+export function resolveIcpcConfig(config: FormatConfigInput): IcpcConfig {
   validateIcpcConfig(config);
-  const merged = mergeConfig(ICPC_DEFAULTS, config);
-  return { penalty: Number(merged.penalty) };
+
+  return { penalty: numberConfig(config, "penalty", ICPC_DEFAULTS.penalty) };
 }
 
 export function updateParticipationIcpc(input: UpdateParticipationInput): ParticipationUpdate {
@@ -51,12 +63,14 @@ export function updateParticipationIcpc(input: UpdateParticipationInput): Partic
   const formatData: FormatData = {};
 
   const groups = groupByProblem(submissions, participation.id);
+
   for (const row of computeMaxPointsRows(groups, contestProblems, config.penalty)) {
     const dt = secondsSince(start, row.time);
 
     if (config.penalty && row.points) {
       penalty += row.penaltyCount * config.penalty * 60;
     }
+
     if (row.points) {
       cumtime += dt;
       last = Math.max(last, dt);
@@ -87,7 +101,9 @@ export const icpcFormat: ContestFormat = {
 
   displayUserProblem(participation, contestProblem, contest) {
     const entry = participation.formatData?.[contestProblem.id];
+
     if (!entry) return null;
+
     return buildProblemCell(entry, contestProblem, contest, { penalty: true });
   },
 
@@ -101,8 +117,10 @@ export const icpcFormat: ContestFormat = {
   getShortFormDisplay(config) {
     const { penalty } = resolveIcpcConfig(config);
     const lines: ScoringLine[] = [{ key: "maxScoreSubmission" }];
+
     if (penalty) lines.push({ key: "penalty", values: { minutes: penalty } });
     lines.push({ key: "tiesByScoreAlteringThenLast" });
+
     return lines;
   },
 };

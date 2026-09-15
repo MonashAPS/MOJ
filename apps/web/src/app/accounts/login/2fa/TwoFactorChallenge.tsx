@@ -32,12 +32,16 @@ export function TwoFactorChallenge({ next, hasTotp }: { next: string; hasTotp: b
     if (busy) return;
     setBusy(true);
     setError(null);
+
     try {
       const result = await authClient.twoFactor.verifyTotp({ code: value });
+
       if (result.error) {
         setError(result.error.status === 429 ? t("tooMany") : t("wrongCode"));
+
         return;
       }
+
       finish();
     } catch {
       setError(tError("generic"));
@@ -50,12 +54,16 @@ export function TwoFactorChallenge({ next, hasTotp }: { next: string; hasTotp: b
     if (busy) return;
     setBusy(true);
     setError(null);
+
     try {
       const result = await authClient.twoFactor.verifyBackupCode({ code: scratchCode.trim() });
+
       if (result.error) {
         setError(t("wrongScratchCode"));
+
         return;
       }
+
       finish();
     } catch {
       setError(tError("generic"));

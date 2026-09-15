@@ -33,6 +33,7 @@ const CODES = new Set(SITE_LANGUAGES.map((language) => language.code));
 export function normaliseLanguage(value: string | null | undefined): string {
   if (!value) return DEFAULT_LANGUAGE;
   const trimmed = value.trim().toLowerCase();
+
   return CODES.has(trimmed) ? trimmed : DEFAULT_LANGUAGE;
 }
 

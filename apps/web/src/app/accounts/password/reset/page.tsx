@@ -3,6 +3,7 @@ import { ResetRequestForm } from "./ResetRequestForm";
 
 export async function generateMetadata() {
   const t = await getTranslations("auth.passwordReset");
+
   return { title: t("metaTitle") };
 }
 

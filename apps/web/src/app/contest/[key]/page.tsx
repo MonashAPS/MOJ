@@ -14,7 +14,9 @@ export async function generateMetadata({ params }: { params: Promise<{ key: stri
   const { key } = await params;
   const t = await getTranslations("contests.detail");
   const detail = await queryAsViewer(api.contests.get, { key }).catch(() => null);
+
   if (!detail?.contest) return { title: t("metaFallback") };
+
   return {
     title: detail.contest.name,
     description: detail.contest.summary ?? undefined,
@@ -23,13 +25,16 @@ export async function generateMetadata({ params }: { params: Promise<{ key: stri
 
 export default async function ContestPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
+
   const [detail, viewerState] = await Promise.all([
     queryAsViewer(api.contests.get, { key }).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
   ]);
 
   if (!detail || detail.access.kind === "notFound" || detail.access.kind === "inaccessible") notFound();
+
   if (detail.access.kind === "privateContest") return <PrivateContest access={detail.access} />;
+
   if (!detail.contest) notFound();
 
   const descriptionHtml = await renderContent(detail.contest.description, "contest");

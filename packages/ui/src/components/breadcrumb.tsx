@@ -33,6 +33,7 @@ export function BreadcrumbLink({
   ...props
 }: ComponentProps<"a"> & { asChild?: boolean }) {
   const Component = asChild ? Slot : "a";
+
   return (
     <Component
       data-slot="breadcrumb-link"
@@ -93,6 +94,7 @@ export function Breadcrumb({
       </BreadcrumbRoot>
     );
   }
+
   return (
     <BreadcrumbRoot className={className}>
       <BreadcrumbList>

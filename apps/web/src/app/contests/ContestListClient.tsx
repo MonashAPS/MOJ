@@ -43,8 +43,10 @@ const SKELETON_ROWS = ["a", "b", "c", "d", "e", "f"];
 function Countdown({ sentence, endsAt }: { sentence: string; endsAt: number }) {
   const t = useTranslations("contests.list");
   const remaining = useCountdown(endsAt);
+
   if (remaining === null || remaining > COUNTDOWN_HORIZON) return null;
   const urgent = remaining < 300_000;
+
   return (
     <span
       className={cn(
@@ -141,6 +143,7 @@ function ListTable({
 
 function ActiveRow({ participation }: { participation: ActiveParticipation }) {
   const contest = participation.contest;
+
   return (
     <TableRow className="group">
       <ContestBlock
@@ -208,17 +211,21 @@ export function ContestListClient({
 
   const hrefWith = (changes: Record<string, string | null>): string => {
     const next = new URLSearchParams(searchParams?.toString() ?? "");
+
     for (const [name, value] of Object.entries(changes)) {
       if (value === null || value === "") next.delete(name);
       else next.set(name, value);
     }
+
     const query = next.toString();
+
     return query ? `/contests/?${query}` : "/contests/";
   };
 
   if (!data) return <ListSkeleton />;
 
   const totalPages = Math.max(1, Math.ceil(data.totalPast / PAST_PER_PAGE));
+
   const tagOptions = [
     { value: ALL_TAGS, label: t("allTags") },
     ...[
@@ -233,6 +240,7 @@ export function ContestListClient({
   const sortLink = (column: "name" | "userCount" | "startTime", label: string) => {
     const isActive = sort === column;
     const nextOrder = isActive && !descending ? "desc" : "asc";
+
     return (
       <Link
         href={hrefWith({ sort: column, order: nextOrder, page: null })}

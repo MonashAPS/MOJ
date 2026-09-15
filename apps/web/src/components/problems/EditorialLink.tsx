@@ -41,7 +41,7 @@ function rememberSkip(): void {
  * the link opens a confirmation rather than navigating. A direct visit to
  * `/problem/<code>/editorial` is not intercepted; only this link is.
  */
-export function EditorialLink({
+function EditorialLink({
   href,
   className,
   children,
@@ -65,6 +65,7 @@ export function EditorialLink({
         onClick={(event) => {
           // A modified click still means "open it over there", untouched.
           if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+
           if (skipConfirm()) return;
           event.preventDefault();
           setOpen(true);
@@ -125,6 +126,7 @@ export function ProblemTabLink({
       </EditorialLink>
     );
   }
+
   return (
     <Link href={href} className={className}>
       {children}

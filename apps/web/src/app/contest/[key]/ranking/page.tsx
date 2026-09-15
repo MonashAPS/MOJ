@@ -1,4 +1,5 @@
 import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -9,6 +10,7 @@ export async function generateMetadata({ params }: { params: Promise<{ key: stri
   const { key } = await params;
   const t = await getTranslations("contests.ranking");
   const detail = await queryAsViewer(api.contests.get, { key }).catch(() => null);
+
   return { title: detail?.contest ? t("metaTitle", { name: detail.contest.name }) : t("metaFallback") };
 }
 
@@ -17,11 +19,12 @@ export default async function ContestRankingPage({ params }: { params: Promise<{
 
   const [detail, ranking, viewerState] = await Promise.all([
     queryAsViewer(api.contests.get, { key }).catch(() => null),
-    queryAsViewer(api.contestRankings.ranking, { key }).catch(() => null),
+    queryAsViewer(api.contests.rankings.ranking, { key }).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
   ]);
 
   if (!detail || detail.access.kind === "notFound" || detail.access.kind === "inaccessible") notFound();
+
   if (!detail.contest) notFound();
 
   // The class filter's options: the classes of the organisations the contest is
@@ -30,8 +33,8 @@ export default async function ContestRankingPage({ params }: { params: Promise<{
   const classGroups = await Promise.all(
     detail.contest.organizations.map((organization) =>
       queryAsViewer(api.classes.listForOrganization, { organizationSlug: organization.slug })
-        .then((rows) => rows.map((row) => ({ _id: row._id as string, name: row.name })))
-        .catch(() => [] as { _id: string; name: string }[]),
+        .then((rows) => rows.map((row) => ({ _id: row._id, name: row.name })))
+        .catch((): { _id: Id<"classes">; name: string }[] => []),
     ),
   );
 

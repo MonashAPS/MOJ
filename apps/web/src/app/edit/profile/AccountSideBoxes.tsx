@@ -25,6 +25,7 @@ export function AccountSideBoxes({
   tokenCount: number;
 }) {
   const t = useTranslations("users.account");
+
   return (
     <>
       <Panel title={t("account")} icon={<KeyRound size={14} aria-hidden />}>

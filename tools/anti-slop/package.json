@@ -1,0 +1,11 @@
+{
+  "name": "@moj/anti-slop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Vendored anti-slop Oxlint rules; see UPSTREAM.md",
+  "exports": "./index.ts",
+  "dependencies": {
+    "@oxlint/plugins": "1.83.0"
+  }
+}

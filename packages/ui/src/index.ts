@@ -1,5 +1,7 @@
 export { cn } from "./cn";
+
 export { Alert, AlertDescription, AlertTitle, alertVariants } from "./components/alert";
+
 export {
   AlertDialog,
   AlertDialogAction,
@@ -11,7 +13,9 @@ export {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./components/alert-dialog";
+
 export { Badge, type BadgeProps, badgeVariants } from "./components/badge";
+
 export {
   Breadcrumb,
   BreadcrumbEllipsis,
@@ -22,6 +26,7 @@ export {
   BreadcrumbRoot,
   BreadcrumbSeparator,
 } from "./components/breadcrumb";
+
 export {
   Button,
   type ButtonProps,
@@ -30,6 +35,7 @@ export {
   buttonClass,
   buttonVariants,
 } from "./components/button";
+
 export {
   Card,
   CardAction,
@@ -39,13 +45,16 @@ export {
   CardHeader,
   CardTitle,
 } from "./components/card";
+
 export { Checkbox, type CheckboxProps } from "./components/checkbox";
+
 export {
   Combobox,
   type ComboboxOption,
   MultiSelect,
   type MultiSelectOption,
 } from "./components/combobox";
+
 export {
   Command,
   CommandDialog,
@@ -57,6 +66,7 @@ export {
   CommandSeparator,
   CommandShortcut,
 } from "./components/command";
+
 export {
   ContextMenu,
   ContextMenuContent,
@@ -67,6 +77,7 @@ export {
   HoverCardContent,
   HoverCardTrigger,
 } from "./components/context-menu";
+
 export {
   Dialog,
   DialogClose,
@@ -77,10 +88,10 @@ export {
   DialogHeader,
   DialogOverlay,
   DialogPortal,
-  DialogRoot,
   DialogTitle,
   DialogTrigger,
 } from "./components/dialog";
+
 export {
   Accordion,
   AccordionContent,
@@ -90,6 +101,7 @@ export {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "./components/disclosure";
+
 export {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -107,6 +119,7 @@ export {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "./components/dropdown-menu";
+
 export {
   Empty,
   EmptyContent,
@@ -115,6 +128,7 @@ export {
   EmptyState,
   EmptyTitle,
 } from "./components/empty";
+
 export {
   Field,
   FieldGroup,
@@ -128,11 +142,17 @@ export {
   FormMessage,
   useFormField,
 } from "./components/form";
+
 export { Input, type InputProps, inputClass, Textarea, type TextareaProps } from "./components/input";
+
 export { InputGroup, InputGroupInput } from "./components/input-group";
+
 export { Kbd, KbdGroup } from "./components/kbd";
+
 export { Label, MicroLabel } from "./components/label";
+
 export { ContentDescription, TwoColumn } from "./components/layout";
+
 export {
   Avatar,
   AvatarFallback,
@@ -144,6 +164,7 @@ export {
   Skeleton,
   Spinner,
 } from "./components/misc";
+
 export {
   Pagination,
   PaginationContent,
@@ -155,9 +176,13 @@ export {
   PaginationRoot,
   paginationRange,
 } from "./components/pagination";
+
 export { InfoBox, Panel } from "./components/panel";
+
 export { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "./components/popover";
+
 export { RadioGroup, RadioGroupItem, type RadioGroupProps, type RadioOption } from "./components/radio-group";
+
 export {
   RATING_VALUES,
   type RatingClass,
@@ -168,6 +193,7 @@ export {
   ratingProgress,
   ratingTitle,
 } from "./components/rating-name";
+
 export {
   Select,
   SelectContent,
@@ -180,6 +206,7 @@ export {
   SelectTrigger,
   SelectValue,
 } from "./components/select";
+
 export {
   Sheet,
   SheetClose,
@@ -190,9 +217,13 @@ export {
   SheetTitle,
   SheetTrigger,
 } from "./components/sheet";
+
 export { SkeletonPanel, SkeletonTable, SkeletonText } from "./components/skeleton";
+
 export { Slider } from "./components/slider";
-export { Switch, type SwitchProps, Toggle } from "./components/switch";
+
+export { Switch, type SwitchProps } from "./components/switch";
+
 export {
   EmptyRow,
   Table,
@@ -205,6 +236,7 @@ export {
   type TableProps,
   TableRow,
 } from "./components/table";
+
 export {
   Tabs,
   TabsContent,
@@ -213,9 +245,13 @@ export {
   TabsRoot,
   TabsTrigger,
 } from "./components/tabs";
+
 export { PageTabs, TabBar, type TabItem, type TabLink, TitleRow } from "./components/title-row";
+
 export { Toaster, toast } from "./components/toast";
+
 export { ToggleButton, ToggleGroup, ToggleGroupItem } from "./components/toggle-group";
+
 export {
   Tooltip,
   TooltipContent,
@@ -223,12 +259,14 @@ export {
   TooltipRoot,
   TooltipTrigger,
 } from "./components/tooltip";
+
 export {
   type Verdict,
   VerdictPill,
   type VerdictTone,
   verdictTone,
 } from "./components/verdict-pill";
+
 export {
   DUR,
   DUR_CURTAIN,
@@ -241,6 +279,7 @@ export {
   EASE_SMOOTH,
   stagger,
 } from "./motion";
+
 export {
   controlIcons,
   disabledAction,
@@ -255,4 +294,5 @@ export {
   overlayMotion,
   overlayPanel,
 } from "./styles";
+
 export { type UiText, UiTextProvider, useUiText } from "./ui-text";

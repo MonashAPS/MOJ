@@ -33,15 +33,17 @@ const RESULTS = ["AB", "AC", "CE", "IE", "IR", "MLE", "OLE", "RTE", "TLE", "WA"]
 function duration(ms: number) {
   const hours = Math.floor(ms / 3_600_000);
   const minutes = Math.round((ms % 3_600_000) / 60_000);
+
   if (hours >= 1) return `${hours} ${hours === 1 ? "hour" : "hours"} ${minutes} min`;
+
   return `${Math.max(1, minutes)} min`;
 }
 
 /** `user/prepare-data.html`: pick what goes in the archive, watch the job, then
  *  take the link. */
 export function PrepareDataForm() {
-  const status = useQuery(api.profiles.dataExportStatus, {});
-  const prepare = useMutation(api.profiles.prepareDataExport);
+  const status = useQuery(api.profiles.dataExport.status, {});
+  const prepare = useMutation(api.profiles.dataExport.prepare);
 
   const [comments, setComments] = useState(true);
   const [submissions, setSubmissions] = useState(true);
@@ -63,6 +65,7 @@ export function PrepareDataForm() {
 
   async function submit() {
     setBusy(true);
+
     try {
       await prepare({
         options: {

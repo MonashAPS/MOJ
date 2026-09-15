@@ -34,6 +34,7 @@ function RailLinks({ onNavigate, iconsOnly }: { onNavigate?: () => void; iconsOn
   const t = useTranslations("admin.components.chrome");
   const sections = useTranslations("admin.shell.sections");
   const pathname = usePathname() ?? "";
+
   return (
     <nav aria-label={t("sections")} className="grid gap-4 py-3">
       {ADMIN_SECTIONS.map((group) => (
@@ -49,6 +50,7 @@ function RailLinks({ onNavigate, iconsOnly }: { onNavigate?: () => void; iconsOn
           {group.items.map((item) => {
             const active = pathname === item.href || pathname.startsWith(item.href);
             const Icon = item.icon;
+
             const link = (
               <Link
                 key={item.key}
@@ -71,6 +73,7 @@ function RailLinks({ onNavigate, iconsOnly }: { onNavigate?: () => void; iconsOn
                 </span>
               </Link>
             );
+
             return iconsOnly ? (
               <Tooltip key={item.key} content={sections(`items.${item.key}`)} side="right">
                 {link}

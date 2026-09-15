@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
   const t = await getTranslations("users.list");
+
   return { title: t("title") };
 }
 
@@ -31,10 +32,13 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const missing = first(search.missing);
 
   const params = new URLSearchParams();
+
   if (first(search.order)) params.set("order", state.order);
+
   if (organizationSlug) params.set("organization", organizationSlug);
 
   const args = { page, sort: state.sort, descending: state.descending, organizationSlug };
+
   const [data, organizations, viewerState, tabs] = await Promise.all([
     queryAsViewer(api.rankings.users, args),
     query(api.organizations.list, {}).catch(() => []),
@@ -48,7 +52,9 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const chipRows = await queryAsViewer(api.pages.users.organizationsFor, {
     profileIds: data.users.map((user) => user._id),
   }).catch(() => null);
+
   const chips: Record<string, OrganizationChip[]> = {};
+
   for (const row of chipRows ?? []) chips[row.profileId] = row.organizations;
 
   return (

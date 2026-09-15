@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 function resolve(names: readonly string[]): string[] {
   if (typeof window === "undefined") return names.map(() => "");
   const styles = getComputedStyle(document.documentElement);
+
   return names.map((name) => styles.getPropertyValue(name).trim());
 }
 
@@ -26,6 +27,7 @@ export function useTokenColors(names: readonly string[]): string[] {
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     media.addEventListener("change", read);
+
     return () => {
       observer.disconnect();
       media.removeEventListener("change", read);

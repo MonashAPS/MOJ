@@ -7,11 +7,13 @@ import { formatDateTime } from "@/lib/format";
 export type ProblemState = "solved" | "partial" | "attempted" | "untouched";
 
 type TagRef = { _id: string; name: string; color: string; description: string };
+
 type OrganizationRef = { _id: string; name: string; slug: string; shortName: string };
 
 /** DMOJ paints a tag chip in the tag's own colour and picks the ink by luma. */
-export function tagInk(color: string): string {
+function tagInk(color: string): string {
   const hex = color.replace("#", "");
+
   const full =
     hex.length === 3
       ? hex
@@ -19,15 +21,18 @@ export function tagInk(color: string): string {
           .map((char) => char + char)
           .join("")
       : hex;
+
   if (full.length !== 6) return "#000000";
   const red = Number.parseInt(full.slice(0, 2), 16) / 255;
   const green = Number.parseInt(full.slice(2, 4), 16) / 255;
   const blue = Number.parseInt(full.slice(4, 6), 16) / 255;
+
   if (!Number.isFinite(red + green + blue)) return "#000000";
+
   return 0.299 * red + 0.587 * green + 0.114 * blue > 0.5 ? "#000000" : "#ffffff";
 }
 
-export function ContestTagChip({ tag }: { tag: TagRef }) {
+function ContestTagChip({ tag }: { tag: TagRef }) {
   return (
     <Link
       href={`/contests/tag/${tag.name}/`}
@@ -61,26 +66,26 @@ export function ContestChips({
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5 align-middle">
       {!isVisible ? (
-        <Badge variant="neutral" shape="pill" mono>
+        <Badge variant="neutral" rounding="pill" mono>
           <EyeOff size={11} aria-hidden />
           {t("hidden")}
         </Badge>
       ) : null}
       {isOrganizationPrivate ? (
         organizations.map((organization) => (
-          <Badge key={organization._id} variant="outline" shape="pill" mono>
+          <Badge key={organization._id} variant="outline" rounding="pill" mono>
             <Lock size={11} aria-hidden />
             {organization.shortName || organization.name}
           </Badge>
         ))
       ) : isPrivate ? (
-        <Badge variant="neutral" shape="pill" mono>
+        <Badge variant="neutral" rounding="pill" mono>
           <Lock size={11} aria-hidden />
           {t("private")}
         </Badge>
       ) : null}
       {isRated ? (
-        <Badge variant="warn" shape="pill" mono>
+        <Badge variant="warn" rounding="pill" mono>
           <BarChart3 size={11} aria-hidden />
           {t("rated")}
         </Badge>
@@ -100,16 +105,17 @@ export function useHumanDuration(): (ms: number) => string {
 
   return (ms: number) => {
     const total = Math.max(0, Math.round(ms / 1000));
+
     const [first, second] = (
       [
         ["days", Math.floor(total / 86400)],
         ["hours", Math.floor((total % 86400) / 3600)],
         ["minutes", Math.floor((total % 3600) / 60)],
       ] as const
-    )
-      .filter(([, value]) => value > 0)
-      .map(([unit, value]) => t(unit, { count: value }));
+    ).flatMap(([unit, value]) => (value > 0 ? [t(unit, { count: value })] : []));
+
     if (first === undefined) return t("underAMinute");
+
     return second === undefined ? first : t("pair", { first, second });
   };
 }
@@ -161,7 +167,9 @@ export function ProblemStateIcon({ state, title }: { state: ProblemState; title?
   const t = useTranslations("contests.problemState");
   const { Icon, className } = STATE_ICON[state];
   const label = t(state);
+
   if (state === "untouched") return <span className="sr-only">{label}</span>;
+
   return (
     <Tooltip content={title ?? label}>
       <span className={cn("inline-flex items-center", className)}>
@@ -180,6 +188,7 @@ export function UserCount({ count, href }: { count: number; href?: string | null
       {count}
     </span>
   );
+
   return href ? (
     <Link href={href} className="relative z-1">
       {body}

@@ -24,19 +24,26 @@ export function EmailChangeForm({ currentEmail }: { currentEmail: string }) {
     event.preventDefault();
     const address = email.trim();
     const found: Errors = {};
+
     if (!address.includes("@")) found.email = tError("invalidEmail");
     else if (address.toLowerCase() === currentEmail.toLowerCase()) found.email = t("sameAddress");
+
     if (!password) found.password = t("enterPassword");
     setErrors(found);
+
     if (Object.keys(found).length > 0) return;
 
     setBusy(true);
+
     try {
       const result = await requestEmailChange({ password, newEmail: address });
+
       if (!result.ok) {
         setErrors({ [result.field]: result.message });
+
         return;
       }
+
       setSentTo(address);
       setPassword("");
     } catch {

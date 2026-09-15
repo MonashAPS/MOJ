@@ -1,8 +1,9 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import type { RankingPayload, RankingRow } from "@convex/contestRankings";
+import type { Id } from "@convex/_generated/dataModel";
 import type { ContestDetail } from "@convex/contests";
+import type { RankingPayload, RankingRow } from "@convex/contests/rankings";
 import type { FrozenCells } from "@convex/pages/contests";
 import {
   Alert,
@@ -21,23 +22,26 @@ import {
   toast,
 } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionArgs } from "convex/server";
 import { Ban, Snowflake, Trophy, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips, useHumanDuration } from "@/components/contests/pieces";
+import { chosenValue } from "@/lib/choices";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { formatDateTime, formatPoints } from "@/lib/format";
 import { contestTabs, joinKindFor } from "../tabs";
 
 const DASH = "—";
+
 const ALL = "__all__";
 
 /**
  * C1: a window contest's clock is the *participation's*, and the ranking has to
  * say so. `contests.get` carries `timeLimit` and the participation's computed
- * end; `contestRankings.ranking` does not, which is why the page reads both.
+ * end; `contests/rankings.ranking` does not, which is why the page reads both.
  */
 function WindowNote({ detail }: { detail: ContestDetail }) {
   const t = useTranslations("contests.ranking");
@@ -47,6 +51,7 @@ function WindowNote({ detail }: { detail: ContestDetail }) {
   const participation = detail.participation ?? detail.liveParticipation;
   const target = participation && !participation.ended ? participation.endsAt : (contest?.endTime ?? null);
   const remaining = useCountdown(detail.timing.ended ? null : target);
+
   if (!contest) return null;
 
   const window = contest.timeLimit
@@ -56,9 +61,11 @@ function WindowNote({ detail }: { detail: ContestDetail }) {
         end: formatDateTime(contest.endTime),
       })
     : null;
+
   const clock = remaining !== null && remaining <= COUNTDOWN_HORIZON ? formatDuration(remaining) : null;
 
   if (!window && !clock) return null;
+
   return (
     <p className="font-mono text-sm tabular-nums text-muted-foreground">
       {clock
@@ -77,9 +84,13 @@ type CellData = NonNullable<RankingRow["problems"][number]>;
 /** DMOJ's `<td class>` for a cell, mapped onto DESIGN.md section 16.1's states. */
 function cellSkin(state: string): string {
   const base = state.replace("pretest-", "");
+
   if (base === "full-score") return "bg-(--cell-solved-bg) text-(--cell-solved-ink)";
+
   if (base === "partial-score") return "bg-warn-bg text-warn";
+
   if (base === "failed-score") return "bg-(--cell-failed-bg) text-(--cell-failed-ink)";
+
   return "text-(--cell-empty-ink)";
 }
 
@@ -115,6 +126,7 @@ function ProblemCell({
   }
 
   const isPretest = cell.state.startsWith("pretest-");
+
   const label = [
     cell.pointsText,
     cell.penaltyText ? t("penalty", { value: cell.penaltyText }) : null,
@@ -165,11 +177,12 @@ function Row({
   precision: number;
 }) {
   const t = useTranslations("contests.ranking");
-  const disqualify = useMutation(api.contests.disqualify);
+  const disqualify = useMutation(api.contests.participation.disqualify);
   const [busy, setBusy] = useState(false);
 
   const toggle = async () => {
     setBusy(true);
+
     try {
       await disqualify({
         key: contestKey,
@@ -211,17 +224,17 @@ function Row({
             className="text-sm"
           />
           {row.virtual > 0 ? (
-            <Badge variant="neutral" shape="square" mono>
+            <Badge variant="neutral" rounding="square" mono>
               {t("virtualBadge")}
             </Badge>
           ) : null}
           {row.virtual === -1 ? (
-            <Badge variant="neutral" shape="square" mono>
+            <Badge variant="neutral" rounding="square" mono>
               {t("spectatorBadge")}
             </Badge>
           ) : null}
           {row.isDisqualified ? (
-            <Badge variant="bad" shape="square" mono>
+            <Badge variant="bad" rounding="square" mono>
               {t("disqualifiedBadge")}
             </Badge>
           ) : null}
@@ -238,7 +251,7 @@ function Row({
             {row.organizations.map((organization) => (
               <Tooltip key={organization._id} content={organization.name}>
                 <Link href={`/organization/${organization.slug}/`} className="relative z-1">
-                  <Badge variant="outline" shape="square" mono>
+                  <Badge variant="outline" rounding="square" mono>
                     {organization.shortName || organization.name}
                   </Badge>
                 </Link>
@@ -305,7 +318,7 @@ export function RankingClient({
   detail: ContestDetail;
   initial: RankingPayload;
   viewerUsername: string | null;
-  classOptions: { _id: string; name: string }[];
+  classOptions: { _id: Id<"classes">; name: string }[];
   initialFrozenCells: FrozenCells;
 }) {
   const t = useTranslations("contests.ranking");
@@ -315,33 +328,43 @@ export function RankingClient({
   const [includeSpectators, setIncludeSpectators] = useState(false);
   const [showOrganizations, setShowOrganizations] = useState(true);
   const [organizationSlug, setOrganizationSlug] = useState(ALL);
-  const [classId, setClassId] = useState(ALL);
+  const [classId, setClassId] = useState<Id<"classes"> | typeof ALL>(ALL);
   const [revealBusy, setRevealBusy] = useState(false);
   const unfreeze = useMutation(api.scoreboard.unfreezeContest);
 
-  const args = {
+  const args: FunctionArgs<typeof api.contests.rankings.ranking> = {
     key: contestKey,
     includeVirtual,
     includeSpectators,
-    ...(organizationSlug !== ALL ? { organizationSlug } : {}),
-    ...(classId !== ALL ? { classId: classId as never } : {}),
   };
-  const live = useQuery(api.contestRankings.ranking, args);
+
+  if (organizationSlug !== ALL) args.organizationSlug = organizationSlug;
+
+  if (classId !== ALL) args.classId = classId;
+
+  const live = useQuery(api.contests.rankings.ranking, args);
   const defaults = !includeVirtual && !includeSpectators && organizationSlug === ALL && classId === ALL;
   const data = live ?? (defaults ? initial : null);
 
   const liveFrozen = useQuery(api.pages.contests.frozenCells, { key: contestKey });
   const frozen = liveFrozen === undefined ? initialFrozenCells : liveFrozen;
   const pendingMap = new Map<string, number>();
+
   for (const cell of frozen?.cells ?? []) {
     pendingMap.set(`${cell.participationId}|${cell.contestProblemId}`, cell.pending);
   }
+
   const pendingOf = (participationId: string, contestProblemId: string) =>
     pendingMap.get(`${participationId}|${contestProblemId}`) ?? 0;
 
   const joinKind = joinKindFor(detail);
   const contest = detail.contest;
   const precision = contest?.pointsPrecision ?? 2;
+
+  const classIdOptions: { value: Id<"classes"> | typeof ALL; label: string }[] = [
+    { value: ALL, label: t("allClasses") },
+    ...classOptions.map((klass) => ({ value: klass._id, label: klass.name })),
+  ];
 
   const organizationOptions = [
     { value: ALL, label: t("allOrganizations") },
@@ -356,6 +379,7 @@ export function RankingClient({
 
   const toggleReveal = async (revealed: boolean) => {
     setRevealBusy(true);
+
     try {
       await unfreeze({ key: contestKey, revealed });
       toast.success(revealed ? t("revealed") : t("frozenAgain"));
@@ -366,7 +390,7 @@ export function RankingClient({
     }
   };
 
-  const problemIds = (data?.problems ?? []).map((problem) => problem.contestProblemId as string);
+  const problemIds = (data?.problems ?? []).map((problem) => problem.contestProblemId);
   // An organisation column nobody is in is 300px of nothing; DMOJ hides it too.
   const anyOrganizations = (data?.rows ?? []).some((row) => row.organizations.length > 0);
   const organizationColumn = anyOrganizations && showOrganizations;
@@ -463,12 +487,12 @@ export function RankingClient({
                   <Select
                     ariaLabel={t("filterByClass")}
                     size="sm"
-                    options={[
-                      { value: ALL, label: t("allClasses") },
-                      ...classOptions.map((klass) => ({ value: klass._id, label: klass.name })),
-                    ]}
+                    options={classIdOptions.map((option) => ({
+                      value: option.value,
+                      label: option.label,
+                    }))}
                     value={classId}
-                    onValueChange={setClassId}
+                    onValueChange={(value) => setClassId(chosenValue(classIdOptions, value, ALL))}
                   />
                 </div>
               ) : null}

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
  *  `--row-h-2` with bars at the real column widths, never a centred spinner. */
 export function SubmissionListSkeleton({ rows = 8 }: { rows?: number }) {
   const t = useTranslations("submissions.list");
+
   return (
     <div
       role="status"

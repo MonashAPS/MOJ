@@ -33,6 +33,7 @@ export function JoinClassForm({
 
   async function submit() {
     setBusy(true);
+
     try {
       await join({ organizationSlug, classSlug, accessCode: code || undefined });
       toast.success(t("joinedClass", { name }));

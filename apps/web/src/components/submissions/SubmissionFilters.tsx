@@ -81,6 +81,7 @@ export function SubmissionFilters({
           onSubmit={(event) => {
             event.preventDefault();
             const username = term.trim();
+
             if (username) router.push(userSearchHref(username));
           }}
         >

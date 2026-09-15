@@ -8,6 +8,26 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { ScratchCodes } from "@/components/accounts/ScratchCodes";
 import { AuthCard } from "@/components/auth/AuthCard";
+import { readErrorMessage, readJsonBody } from "@/lib/json-body";
+
+type ScratchCodeBody = { data: { codes: string[] } };
+
+function isScratchCode(value: unknown): value is string {
+  return typeof value === "string";
+}
+
+function isScratchCodeBody(value: unknown): value is ScratchCodeBody {
+  if (typeof value !== "object" || value === null || !("data" in value)) return false;
+  const { data } = value;
+
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "codes" in data &&
+    Array.isArray(data.codes) &&
+    data.codes.every(isScratchCode)
+  );
+}
 
 /** DMOJ's `generate_scratch_codes`, on its own page. The endpoint is the URL
  *  DMOJ uses, `/accounts/2fa/scratchcode/generate/`. */
@@ -24,17 +44,28 @@ export function RegenerateScratchCodes({ next, remaining }: { next: string; rema
     event.preventDefault();
     setBusy(true);
     setError(null);
+
     try {
       const response = await fetch("/accounts/2fa/scratchcode/generate/", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ password }),
       });
-      const body = (await response.json()) as { data?: { codes?: string[] }; error?: { message?: string } };
-      if (!response.ok || !body.data?.codes) {
-        setError(body.error?.message ?? t("failed"));
+
+      if (!response.ok) {
+        setError((await readErrorMessage(response)) ?? t("failed"));
+
         return;
       }
+
+      const body = await readJsonBody(response, isScratchCodeBody);
+
+      if (!body) {
+        setError(t("failed"));
+
+        return;
+      }
+
       setCodes(body.data.codes);
       router.refresh();
     } catch {

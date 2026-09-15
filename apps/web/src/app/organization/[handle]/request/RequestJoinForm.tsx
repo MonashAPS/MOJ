@@ -40,6 +40,7 @@ export function RequestJoinForm({
 
   async function submit() {
     setBusy(true);
+
     try {
       await request({ slug, reason, classSlug });
       toast.success(t("sent", { organization: name }));

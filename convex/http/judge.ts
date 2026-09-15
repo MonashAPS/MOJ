@@ -15,41 +15,39 @@
 
 import {
   abortQuerySchema,
-  claimRequestSchema,
   DATA_HASH_HEADER,
   DATA_SIZE_HEADER,
-  disconnectRequestSchema,
   eventRequestSchema,
   handshakeRequestSchema,
   heartbeatRequestSchema,
+  judgeAuthSchema,
   judgeDataQuerySchema,
 } from "@moj/protocol/judge";
 import type { HttpRouter } from "convex/server";
-import { ConvexError } from "convex/values";
+import { ConvexError, type Value } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { httpAction } from "../_generated/server";
+import { errorPayload } from "../lib/errors";
+import { sha256Hex } from "../lib/hash";
+import { isJsonObject, type JsonValue } from "../lib/json";
 
-function json(body: unknown, status = 200): Response {
+function json(body: Value, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "content-type": "application/json" },
   });
 }
 
-/** sha256 of the judge key, lowercase hex, matching `judges.authKeyHash`. */
-export async function sha256Hex(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 function clientIp(request: Request): string | undefined {
   const forwarded = request.headers.get("x-forwarded-for");
+
   if (forwarded) return forwarded.split(",")[0]?.trim();
+
   return request.headers.get("cf-connecting-ip") ?? undefined;
 }
 
-async function readJson(request: Request): Promise<unknown> {
+async function readJson(request: Request): Promise<JsonValue | null> {
   try {
     return await request.json();
   } catch {
@@ -63,26 +61,31 @@ async function readJson(request: Request): Promise<unknown> {
  * retries. Never a 500: the judge treats every failure the same way, but an
  * operator reading the log deserves the reason.
  */
-function errorResponse(error: unknown): Response {
-  if (error instanceof ConvexError) {
-    const data = error.data as { code?: string; message?: string } | undefined;
+function errorResponse(cause: unknown): Response {
+  if (cause instanceof ConvexError) {
+    const data = errorPayload(cause);
     const status = data?.code === "FORBIDDEN" ? 403 : 400;
+
     return json({ error: data?.message ?? "request failed" }, status);
   }
-  const message = error instanceof Error ? error.message : String(error);
+
+  const message = cause instanceof Error ? cause.message : String(cause);
+
   return json({ error: message }, 400);
 }
 
 /** `GET /judge/data` answers `{ok: false, error}` rather than a bare `{error}`. */
-function dataErrorResponse(error: unknown): Response {
-  if (error instanceof ConvexError) {
-    const data = error.data as { code?: string; message?: string } | undefined;
+function dataErrorResponse(cause: unknown): Response {
+  if (cause instanceof ConvexError) {
+    const data = errorPayload(cause);
+
     return json(
       { ok: false, error: data?.message ?? "request failed" },
       data?.code === "FORBIDDEN" ? 403 : 400,
     );
   }
-  return json({ ok: false, error: error instanceof Error ? error.message : String(error) }, 400);
+
+  return json({ ok: false, error: cause instanceof Error ? cause.message : String(cause) }, 400);
 }
 
 export function registerJudgeRoutes(http: HttpRouter): void {
@@ -91,15 +94,18 @@ export function registerJudgeRoutes(http: HttpRouter): void {
     method: "POST",
     handler: httpAction(async (ctx, request) => {
       const parsed = handshakeRequestSchema.safeParse(await readJson(request));
+
       if (!parsed.success) return json({ error: "malformed handshake" }, 400);
+
       try {
         const result = await ctx.runMutation(internal.judging.handshake, {
           judgeName: parsed.data.judgeName,
           authKeyHash: await sha256Hex(parsed.data.judgeKey),
-          problems: parsed.data.problems as unknown[][],
-          executors: parsed.data.executors as Record<string, unknown[][]>,
+          problems: parsed.data.problems,
+          executors: parsed.data.executors,
           ip: clientIp(request),
         });
+
         return json(result);
       } catch (error) {
         return errorResponse(error);
@@ -112,16 +118,19 @@ export function registerJudgeRoutes(http: HttpRouter): void {
     method: "POST",
     handler: httpAction(async (ctx, request) => {
       const parsed = heartbeatRequestSchema.safeParse(await readJson(request));
+
       if (!parsed.success) return json({ error: "malformed heartbeat" }, 400);
+
       try {
         const result = await ctx.runMutation(internal.judging.heartbeat, {
           judgeName: parsed.data.judgeName,
           authKeyHash: await sha256Hex(parsed.data.judgeKey),
           load: parsed.data.load ?? undefined,
-          problems: parsed.data.problems as unknown[][] | undefined,
-          executors: parsed.data.executors as Record<string, unknown[][]> | undefined,
+          problems: parsed.data.problems,
+          executors: parsed.data.executors,
           ip: clientIp(request),
         });
+
         return json(result);
       } catch (error) {
         return errorResponse(error);
@@ -133,13 +142,16 @@ export function registerJudgeRoutes(http: HttpRouter): void {
     path: "/judge/claim",
     method: "POST",
     handler: httpAction(async (ctx, request) => {
-      const parsed = claimRequestSchema.safeParse(await readJson(request));
+      const parsed = judgeAuthSchema.safeParse(await readJson(request));
+
       if (!parsed.success) return json({ error: "malformed claim" }, 400);
+
       try {
         const result = await ctx.runMutation(internal.judging.claim, {
           judgeName: parsed.data.judgeName,
           authKeyHash: await sha256Hex(parsed.data.judgeKey),
         });
+
         return json(result);
       } catch (error) {
         return errorResponse(error);
@@ -153,11 +165,15 @@ export function registerJudgeRoutes(http: HttpRouter): void {
     handler: httpAction(async (ctx, request) => {
       const body = await readJson(request);
       const parsed = eventRequestSchema.safeParse(body);
+
       if (!parsed.success) {
         // Say which event type was rejected: the judge logs the body back.
-        const type = (body as { event?: { type?: unknown } } | null)?.event?.type;
+        const event = isJsonObject(body) ? body.event : undefined;
+        const type = isJsonObject(event) ? event.type : undefined;
+
         return json({ ok: false, error: `malformed ${JSON.stringify(type ?? null)} event` }, 400);
       }
+
       try {
         const result = await ctx.runMutation(internal.judging.event, {
           judgeName: parsed.data.judgeName,
@@ -165,6 +181,7 @@ export function registerJudgeRoutes(http: HttpRouter): void {
           submissionId: parsed.data.submissionId,
           event: parsed.data.event,
         });
+
         return json(result);
       } catch (error) {
         return errorResponse(error);
@@ -178,13 +195,16 @@ export function registerJudgeRoutes(http: HttpRouter): void {
     handler: httpAction(async (ctx, request) => {
       const query = Object.fromEntries(new URL(request.url).searchParams.entries());
       const parsed = abortQuerySchema.safeParse(query);
+
       if (!parsed.success) return json({ abort: false });
+
       try {
         const result = await ctx.runQuery(internal.judging.abortFlag, {
           judgeName: parsed.data.judgeName,
           authKeyHash: await sha256Hex(parsed.data.judgeKey),
           submissionId: parsed.data.submissionId,
         });
+
         return json(result);
       } catch (error) {
         return errorResponse(error);
@@ -203,11 +223,13 @@ export function registerJudgeRoutes(http: HttpRouter): void {
     handler: httpAction(async (ctx, request) => {
       const query = Object.fromEntries(new URL(request.url).searchParams.entries());
       const parsed = judgeDataQuerySchema.safeParse(query);
+
       if (!parsed.success) return json({ ok: false, error: "malformed request" }, 400);
 
       let archive: { storageId: Id<"_storage">; hash: string; size: number } | null;
+
       try {
-        archive = await ctx.runQuery(internal.problemTestData.judgeArchive, {
+        archive = await ctx.runQuery(internal.problems.testData.judgeArchive, {
           judgeName: parsed.data.judgeName,
           authKeyHash: await sha256Hex(parsed.data.judgeKey),
           code: parsed.data.code,
@@ -217,6 +239,7 @@ export function registerJudgeRoutes(http: HttpRouter): void {
       }
 
       if (!archive) return json({ ok: false, error: "no data" }, 404);
+
       // The judge names the hash its claim carried; a newer archive means that
       // claim is stale, and grading the bytes it asked for would be wrong.
       if (parsed.data.hash && parsed.data.hash !== archive.hash) {
@@ -224,6 +247,7 @@ export function registerJudgeRoutes(http: HttpRouter): void {
       }
 
       const blob = await ctx.storage.get(archive.storageId);
+
       if (!blob) return json({ ok: false, error: "no data" }, 404);
 
       // Streamed rather than handed over as a Blob: an archive is megabytes,
@@ -244,13 +268,16 @@ export function registerJudgeRoutes(http: HttpRouter): void {
     path: "/judge/disconnect",
     method: "POST",
     handler: httpAction(async (ctx, request) => {
-      const parsed = disconnectRequestSchema.safeParse(await readJson(request));
+      const parsed = judgeAuthSchema.safeParse(await readJson(request));
+
       if (!parsed.success) return json({ error: "malformed disconnect" }, 400);
+
       try {
         const result = await ctx.runMutation(internal.judging.disconnect, {
           judgeName: parsed.data.judgeName,
           authKeyHash: await sha256Hex(parsed.data.judgeKey),
         });
+
         return json(result);
       } catch (error) {
         return errorResponse(error);

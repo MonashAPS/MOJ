@@ -12,6 +12,7 @@ import { loadMessages } from "./messages";
  */
 export default getRequestConfig(async () => {
   const language = await viewerLanguage();
+
   return {
     locale: language,
     // `Intl` does the formatting and does not know DMOJ's spelling of Chinese.

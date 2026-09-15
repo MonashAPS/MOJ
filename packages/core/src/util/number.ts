@@ -9,6 +9,7 @@
  */
 
 const TWO = 2n;
+
 const TEN = 10n;
 
 interface DecomposedDouble {
@@ -35,6 +36,7 @@ function decompose(value: number): DecomposedDouble {
     // Subnormal (or zero): no implicit leading bit.
     return { negative, mantissa: rawMantissa, exponent: -1074 };
   }
+
   return {
     negative,
     mantissa: rawMantissa | (1n << 52n),
@@ -52,9 +54,11 @@ function pow10(digits: number): bigint {
  */
 export function pyRound(value: number, digits = 0): number {
   if (!Number.isFinite(value) || value === 0) return value;
+
   if (!Number.isInteger(digits)) throw new RangeError("digits must be an integer");
 
   const { negative, mantissa, exponent } = decompose(value);
+
   if (mantissa === 0n) return value;
 
   // We want round_half_even(|value| * 10 ** digits) as an integer `scaled`,
@@ -74,6 +78,7 @@ export function pyRound(value: number, digits = 0): number {
   let scaled = numerator / denominator;
   const remainder = numerator - scaled * denominator;
   const twiceRemainder = remainder * TWO;
+
   if (twiceRemainder > denominator) {
     scaled += 1n;
   } else if (twiceRemainder === denominator) {
@@ -84,11 +89,13 @@ export function pyRound(value: number, digits = 0): number {
   // Build the decimal literal and let the (correctly rounded) string-to-double
   // conversion produce the result, exactly as CPython does.
   const sign = negative ? "-" : "";
+
   if (digits <= 0) return Number(`${sign}${scaled * pow10(-digits)}`);
 
   const text = scaled.toString().padStart(digits + 1, "0");
   const whole = text.slice(0, text.length - digits);
   const fraction = text.slice(text.length - digits);
+
   return Number(`${sign}${whole}.${fraction}`);
 }
 
@@ -106,6 +113,7 @@ export function floatformat(value: number, arg = -1): string {
   const places = Math.trunc(arg);
 
   if (places < 0 && Number.isInteger(value)) return roundHalfUp(value, 0);
+
   return roundHalfUp(value, Math.abs(places));
 }
 
@@ -124,14 +132,18 @@ export function roundHalfUp(value: number, places: number): string {
 
   if (fraction.length <= places) {
     const padded = fraction.padEnd(places, "0");
+
     return sign + whole + (places > 0 ? `.${padded}` : "");
   }
 
   let scaled = BigInt(whole + fraction.slice(0, places));
+
   if (fraction.charCodeAt(places) - 48 >= 5) scaled += 1n;
 
   const text = scaled.toString().padStart(places + 1, "0");
+
   if (places === 0) return sign + text;
+
   return `${sign}${text.slice(0, text.length - places)}.${text.slice(text.length - places)}`;
 }
 
@@ -139,6 +151,7 @@ export function roundHalfUp(value: number, places: number): string {
 function toPlainDecimalString(value: number): string {
   const text = value.toString();
   const exponent = text.indexOf("e");
+
   if (exponent === -1) return text;
 
   const mantissa = text.slice(0, exponent);
@@ -150,7 +163,9 @@ function toPlainDecimalString(value: number): string {
   const pointPosition = whole.length + power;
 
   if (pointPosition <= 0) return `0.${"0".repeat(-pointPosition)}${digits}`;
+
   if (pointPosition >= digits.length) return digits + "0".repeat(pointPosition - digits.length);
+
   return `${digits.slice(0, pointPosition)}.${digits.slice(pointPosition)}`;
 }
 
@@ -165,6 +180,7 @@ export function niceRepr(seconds: number): string {
   const hours = Math.floor(magnitude / 3600);
   const minutes = Math.floor((magnitude % 3600) / 60);
   const secs = magnitude % 60;
+
   return `${negative ? "-" : ""}${pad(hours)}:${pad(minutes)}:${pad(secs)}`;
 }
 

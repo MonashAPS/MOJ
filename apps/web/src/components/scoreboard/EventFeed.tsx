@@ -9,16 +9,17 @@ import { contestClock } from "./hall";
 
 const SHIFT_MS = 420;
 
-const CHIP: Record<string, string> = {
-  correct: "chipCorrect",
-  incorrect: "chipIncorrect",
-  pending: "chipPending",
-};
-const LINE: Record<string, string> = {
-  correct: "lineCorrect",
-  incorrect: "lineIncorrect",
-  pending: "linePending",
-};
+const CHIP = new Map<string, string>([
+  ["correct", "chipCorrect"],
+  ["incorrect", "chipIncorrect"],
+  ["pending", "chipPending"],
+]);
+
+const LINE = new Map<string, string>([
+  ["correct", "lineCorrect"],
+  ["incorrect", "lineIncorrect"],
+  ["pending", "linePending"],
+]);
 
 function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -50,31 +51,39 @@ export function EventFeed({
   const fresh = useMemo(() => {
     const keys = new Set(entries.map((entry) => entry.id));
     const arrived = new Set<string>();
+
     if (painted.current) {
       for (const key of keys) if (!positions.current.has(key)) arrived.add(key);
     }
+
     return arrived;
   }, [entries]);
 
   useLayoutEffect(() => {
     const list = listRef.current;
+
     if (!list) return;
     const still = prefersReducedMotion();
     const next = new Map<string, number>();
+
     for (const node of list.querySelectorAll<HTMLLIElement>("li[data-entry]")) {
       const key = node.dataset.entry;
+
       if (!key) continue;
       const top = node.offsetTop;
       next.set(key, top);
       const before = positions.current.get(key);
+
       if (still || before === undefined) continue;
       const delta = before - top;
-      if (Math.abs(delta) < 2 || typeof node.animate !== "function") continue;
+
+      if (Math.abs(delta) < 2 || typeof node.animate === "undefined") continue;
       node.animate([{ transform: `translateY(${delta}px)` }, { transform: "none" }], {
         duration: SHIFT_MS,
         easing: `cubic-bezier(${EASE_OUT.join(",")})`,
       });
     }
+
     positions.current = next;
     painted.current = true;
   });
@@ -109,9 +118,9 @@ export function EventFeed({
             <span className="hall-feed-division" title={entry.divisionName}>
               {entry.divisionName}
             </span>
-            <span className="hall-feed-chip">{t(CHIP[entry.state] ?? "chipPending")}</span>
+            <span className="hall-feed-chip">{t(CHIP.get(entry.state) ?? "chipPending")}</span>
             <span className="hall-feed-line">
-              {t.rich(LINE[entry.state] ?? "linePending", {
+              {t.rich(LINE.get(entry.state) ?? "linePending", {
                 name: entry.displayName,
                 problem: entry.problem,
                 who: (chunks) => <b>{chunks}</b>,

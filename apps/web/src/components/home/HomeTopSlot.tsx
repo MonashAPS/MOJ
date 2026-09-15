@@ -7,9 +7,11 @@ const STORAGE_KEY = "moj-home-top-dismissed";
 
 function hashOf(value: string): string {
   let hash = 0;
+
   for (let index = 0; index < value.length; index++) {
     hash = (hash * 31 + value.charCodeAt(index)) | 0;
   }
+
   return String(hash);
 }
 
@@ -42,6 +44,7 @@ export function HomeTopSlot({ html }: { html: string }) {
         title="Dismiss this announcement"
         onClick={() => {
           setDismissed(true);
+
           try {
             localStorage.setItem(STORAGE_KEY, hash);
           } catch {

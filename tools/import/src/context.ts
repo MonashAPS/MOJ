@@ -8,14 +8,14 @@ import { loadRows, type Row, readRows } from "./rows.ts";
 
 export const BATCH_SIZE = 200;
 
-export interface SkipEntry {
+interface SkipEntry {
   table: string;
   reason: string;
   count: number;
   samples: number[];
 }
 
-export interface UnresolvedEntry {
+interface UnresolvedEntry {
   from: string;
   field: string;
   target: string;
@@ -23,14 +23,14 @@ export interface UnresolvedEntry {
   samples: number[];
 }
 
-export interface TableCounts {
+interface TableCounts {
   sources: string[];
   read: number;
   written: number;
   skipped: number;
 }
 
-export class Report {
+class Report {
   readonly tables = new Map<string, TableCounts>();
   readonly skips = new Map<string, SkipEntry>();
   readonly warnings = new Map<string, SkipEntry>();
@@ -40,30 +40,37 @@ export class Report {
 
   counts(table: string): TableCounts {
     let entry = this.tables.get(table);
+
     if (!entry) {
       entry = { sources: [], read: 0, written: 0, skipped: 0 };
       this.tables.set(table, entry);
     }
+
     return entry;
   }
 
   usage(mysqlTable: string): Set<string> {
     let set = this.columnUsage.get(mysqlTable);
+
     if (!set) {
       set = new Set<string>();
       this.columnUsage.set(mysqlTable, set);
     }
+
     return set;
   }
 
   skip(table: string, reason: string, legacyId: number | null): void {
     const key = `${table}\u0000${reason}`;
     let entry = this.skips.get(key);
+
     if (!entry) {
       entry = { table, reason, count: 0, samples: [] };
       this.skips.set(key, entry);
     }
+
     entry.count++;
+
     if (legacyId !== null && entry.samples.length < 5) entry.samples.push(legacyId);
     this.counts(table).skipped++;
   }
@@ -72,22 +79,28 @@ export class Report {
   warn(table: string, reason: string, legacyId: number | null): void {
     const key = `${table} ${reason}`;
     let entry = this.warnings.get(key);
+
     if (!entry) {
       entry = { table, reason, count: 0, samples: [] };
       this.warnings.set(key, entry);
     }
+
     entry.count++;
+
     if (legacyId !== null && entry.samples.length < 5) entry.samples.push(legacyId);
   }
 
   unresolvedRef(from: string, field: string, target: string, legacyId: number | null): void {
     const key = `${from}\u0000${field}\u0000${target}`;
     let entry = this.unresolved.get(key);
+
     if (!entry) {
       entry = { from, field, target, count: 0, samples: [] };
       this.unresolved.set(key, entry);
     }
+
     entry.count++;
+
     if (legacyId !== null && entry.samples.length < 5) entry.samples.push(legacyId);
   }
 
@@ -96,15 +109,17 @@ export class Report {
   }
 }
 
-export class IdMap {
+class IdMap {
   private readonly maps = new Map<string, Map<number, string>>();
 
   private table(table: string): Map<number, string> {
     let map = this.maps.get(table);
+
     if (!map) {
       map = new Map<number, string>();
       this.maps.set(table, map);
     }
+
     return map;
   }
 
@@ -132,10 +147,12 @@ class JsonlWriter {
 
   async write(line: string): Promise<void> {
     if (!this.file) return;
+
     if (!this.stream) {
       mkdirSync(path.dirname(this.file), { recursive: true });
       this.stream = createWriteStream(this.file, { encoding: "utf8" });
     }
+
     if (!this.stream.write(line)) await once(this.stream, "drain");
   }
 
@@ -172,13 +189,16 @@ export class TableEmitter {
 
   async emit(doc: ImportDoc): Promise<void> {
     this.batch.push(doc);
-    if (typeof doc.legacyId === "number") this.pending.add(doc.legacyId);
+
+    if (doc.legacyId !== undefined) this.pending.add(doc.legacyId);
     this.buffered += `${JSON.stringify(doc)}\n`;
+
     if (this.buffered.length > 1 << 20) {
       const text = this.buffered;
       this.buffered = "";
       await this.writer.write(text);
     }
+
     if (this.batch.length >= BATCH_SIZE) await this.flush();
   }
 
@@ -188,19 +208,23 @@ export class TableEmitter {
     this.batch = [];
     this.pending.clear();
     const inserted = await this.ctx.loader.insert(this.table, docs);
+
     for (const entry of inserted) {
       if (entry.legacyId !== null) this.ctx.ids.set(this.table, entry.legacyId, entry.id);
     }
+
     this.ctx.report.counts(this.table).written += docs.length;
   }
 
   async close(): Promise<void> {
     await this.flush();
+
     if (this.buffered.length > 0) {
       const text = this.buffered;
       this.buffered = "";
       await this.writer.write(text);
     }
+
     await this.writer.close();
   }
 }
@@ -233,6 +257,7 @@ export class ImportContext {
 
   rows(mysqlTable: string): AsyncGenerator<Row> {
     this.report.usage(mysqlTable);
+
     return readRows(rawPath(this.options.outDir, mysqlTable), this.report.usage(mysqlTable));
   }
 
@@ -242,15 +267,18 @@ export class ImportContext {
 
   emitter(table: string): TableEmitter {
     let emitter = this.emitters.get(table);
+
     if (!emitter) {
       emitter = new TableEmitter(this, table, path.join(this.docsDir(), `${table}.jsonl`));
       this.emitters.set(table, emitter);
     }
+
     return emitter;
   }
 
   async closeEmitter(table: string): Promise<void> {
     const emitter = this.emitters.get(table);
+
     if (!emitter) return;
     await emitter.close();
     this.emitters.delete(table);
@@ -271,7 +299,9 @@ export class ImportContext {
   ): string | undefined {
     if (legacyId === null || legacyId === undefined) return undefined;
     const id = this.ids.get(target, legacyId);
+
     if (id === undefined) this.report.unresolvedRef(from, field, target, rowId);
+
     return id;
   }
 
@@ -284,10 +314,13 @@ export class ImportContext {
   ): string[] {
     if (!legacyIds) return [];
     const out: string[] = [];
+
     for (const legacyId of legacyIds) {
       const id = this.ref(target, legacyId, from, field, rowId);
+
       if (id !== undefined) out.push(id);
     }
+
     return out;
   }
 }
@@ -300,15 +333,19 @@ export async function groupM2M(
   orderColumn?: string,
 ): Promise<Map<number, number[]>> {
   const grouped = new Map<number, { value: number; order: number }[]>();
+
   for await (const row of ctx.rows(mysqlTable)) {
     const key = row.n(keyColumn);
     const value = row.n(valueColumn);
     const order = orderColumn ? row.n(orderColumn) : row.id();
     const list = grouped.get(key);
+
     if (list) list.push({ value, order });
     else grouped.set(key, [{ value, order }]);
   }
+
   const out = new Map<number, number[]>();
+
   for (const [key, list] of grouped) {
     list.sort((a, b) => a.order - b.order);
     out.set(
@@ -316,5 +353,6 @@ export async function groupM2M(
       list.map((entry) => entry.value),
     );
   }
+
   return out;
 }

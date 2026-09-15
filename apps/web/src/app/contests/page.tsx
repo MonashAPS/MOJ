@@ -10,6 +10,7 @@ import { contestListTabs } from "./tabs";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("contests.list");
+
   return { title: t("title"), description: t("description") };
 }
 
@@ -21,8 +22,10 @@ export default async function ContestsPage({
   const t = await getTranslations("contests.list");
   const tabs = await getTranslations("contests.tabs");
   const params = await searchParams;
+
   const single = (name: string): string | undefined => {
     const value = params[name];
+
     return Array.isArray(value) ? value[0] : value;
   };
 
@@ -38,16 +41,18 @@ export default async function ContestsPage({
     paginationOpts: { numItems: PAST_PER_PAGE, cursor: String((page - 1) * PAST_PER_PAGE) },
     sort,
     descending,
-    ...(search ? { search } : {}),
-    ...(tagName ? { tagName } : {}),
   };
+
+  if (search) args.search = search;
+
+  if (tagName) args.tagName = tagName;
 
   const [initial, viewerState, permissions] = await Promise.all([
     queryAsViewer(api.contests.list, args).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
     queryAsViewer(api.viewer.permissions, {
       codes: ["judge.edit_all_contest", "judge.edit_own_contest"],
-    }).catch(() => ({}) as Record<string, boolean>),
+    }).catch((): Record<string, boolean> => ({})),
   ]);
 
   const canEditContests =

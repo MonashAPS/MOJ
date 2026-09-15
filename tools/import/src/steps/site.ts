@@ -1,40 +1,43 @@
 import type { Step } from "./types.ts";
 
-const SHIKI_ALIASES: Record<string, string> = {
-  "c++": "cpp",
-  "c#": "csharp",
-  cs: "csharp",
-  python3: "python",
-  objc: "objective-c",
-  objectivec: "objective-c",
-  "objective-c++": "objective-cpp",
-  fortran: "fortran-free-form",
-  coffeescript: "coffee",
-  common_lisp: "lisp",
-  commonlisp: "lisp",
-  js: "javascript",
-  ts: "typescript",
-  nasm: "asm",
-  gas: "asm",
-  text: "plaintext",
-  turing: "plaintext",
-  brainfuck: "plaintext",
-  bf: "plaintext",
-  pike: "plaintext",
-  sed: "plaintext",
-};
+const SHIKI_ALIASES = new Map<string, string>([
+  ["c++", "cpp"],
+  ["c#", "csharp"],
+  ["cs", "csharp"],
+  ["python3", "python"],
+  ["objc", "objective-c"],
+  ["objectivec", "objective-c"],
+  ["objective-c++", "objective-cpp"],
+  ["fortran", "fortran-free-form"],
+  ["coffeescript", "coffee"],
+  ["common_lisp", "lisp"],
+  ["commonlisp", "lisp"],
+  ["js", "javascript"],
+  ["ts", "typescript"],
+  ["nasm", "asm"],
+  ["gas", "asm"],
+  ["text", "plaintext"],
+  ["turing", "plaintext"],
+  ["brainfuck", "plaintext"],
+  ["bf", "plaintext"],
+  ["pike", "plaintext"],
+  ["sed", "plaintext"],
+]);
 
-export function shikiLangFor(pygments: string): string {
+function shikiLangFor(pygments: string): string {
   const key = pygments.trim().toLowerCase();
+
   if (key === "") return "plaintext";
-  return SHIKI_ALIASES[key] ?? key;
+
+  return SHIKI_ALIASES.get(key) ?? key;
 }
 
-export const languagesStep: Step = {
+const languagesStep: Step = {
   table: "languages",
   sources: ["judge_language"],
   async run(ctx) {
     const emitter = ctx.emitter("languages");
+
     for await (const row of ctx.rows("judge_language")) {
       ctx.report.counts("languages").read++;
       const pygments = row.s("pygments");
@@ -55,11 +58,12 @@ export const languagesStep: Step = {
   },
 };
 
-export const problemTypesStep: Step = {
+const problemTypesStep: Step = {
   table: "problemTypes",
   sources: ["judge_problemtype"],
   async run(ctx) {
     const emitter = ctx.emitter("problemTypes");
+
     for await (const row of ctx.rows("judge_problemtype")) {
       ctx.report.counts("problemTypes").read++;
       await emitter.emit({
@@ -71,11 +75,12 @@ export const problemTypesStep: Step = {
   },
 };
 
-export const problemGroupsStep: Step = {
+const problemGroupsStep: Step = {
   table: "problemGroups",
   sources: ["judge_problemgroup"],
   async run(ctx) {
     const emitter = ctx.emitter("problemGroups");
+
     for await (const row of ctx.rows("judge_problemgroup")) {
       ctx.report.counts("problemGroups").read++;
       await emitter.emit({
@@ -87,11 +92,12 @@ export const problemGroupsStep: Step = {
   },
 };
 
-export const licensesStep: Step = {
+const licensesStep: Step = {
   table: "licenses",
   sources: ["judge_license"],
   async run(ctx) {
     const emitter = ctx.emitter("licenses");
+
     for await (const row of ctx.rows("judge_license")) {
       ctx.report.counts("licenses").read++;
       await emitter.emit({
@@ -107,7 +113,7 @@ export const licensesStep: Step = {
   },
 };
 
-export const navigationBarStep: Step = {
+const navigationBarStep: Step = {
   table: "navigationBar",
   sources: ["judge_navigationbar"],
   async run(ctx) {
@@ -116,9 +122,11 @@ export const navigationBarStep: Step = {
     rows.sort(
       (a, b) => a.n("level") - b.n("level") || a.n("tree_id") - b.n("tree_id") || a.n("lft") - b.n("lft"),
     );
+
     for (const row of rows) {
       ctx.report.counts("navigationBar").read++;
       const parentLegacy = row.nOpt("parent_id");
+
       if (parentLegacy !== undefined && emitter.isPending(parentLegacy)) await emitter.flush();
       await emitter.emit({
         order: row.n("order"),
@@ -133,11 +141,12 @@ export const navigationBarStep: Step = {
   },
 };
 
-export const miscConfigStep: Step = {
+const miscConfigStep: Step = {
   table: "miscConfig",
   sources: ["judge_miscconfig"],
   async run(ctx) {
     const emitter = ctx.emitter("miscConfig");
+
     for await (const row of ctx.rows("judge_miscconfig")) {
       ctx.report.counts("miscConfig").read++;
       await emitter.emit({
@@ -149,11 +158,12 @@ export const miscConfigStep: Step = {
   },
 };
 
-export const flatPagesStep: Step = {
+const flatPagesStep: Step = {
   table: "flatPages",
   sources: ["django_flatpage"],
   async run(ctx) {
     const emitter = ctx.emitter("flatPages");
+
     for await (const row of ctx.rows("django_flatpage")) {
       ctx.report.counts("flatPages").read++;
       await emitter.emit({

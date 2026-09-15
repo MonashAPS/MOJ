@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { DISPOSABLE_EMAIL_KEY } from "@/auth/disposable-email";
 import { auth } from "@/auth/server";
+import { authErrorMessage, authErrorStatus } from "@/lib/auth-error";
 
 export type EmailChangeResult =
   | { ok: true }
@@ -24,23 +25,27 @@ export async function requestEmailChange(input: {
   try {
     await auth.api.verifyPassword({ headers: requestHeaders, body: { password: input.password } });
   } catch (error) {
-    const status = (error as { statusCode?: number }).statusCode;
-    if (status === 401) return { ok: false, field: "form", message: t("reauth") };
+    if (authErrorStatus(error) === 401) return { ok: false, field: "form", message: t("reauth") };
+
     return { ok: false, field: "password", message: tPassword("wrong") };
   }
 
   try {
     await auth.api.changeEmail({ headers: requestHeaders, body: { newEmail: input.newEmail } });
+
     return { ok: true };
   } catch (error) {
-    const status = (error as { statusCode?: number }).statusCode;
-    const message = (error as { body?: { message?: string } }).body?.message;
+    const status = authErrorStatus(error);
+    const message = authErrorMessage(error);
+
     if (status === 429) {
       return { ok: false, field: "form", message: t("tooMany") };
     }
+
     if (message === DISPOSABLE_EMAIL_KEY) {
       return { ok: false, field: "email", message: tError(DISPOSABLE_EMAIL_KEY) };
     }
+
     return { ok: false, field: "email", message: message ?? t("addressUnusable") };
   }
 }

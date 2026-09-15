@@ -12,9 +12,11 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
   const t = await getTranslations("problems");
   const { code } = await params;
+
   const problem = await queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }).catch(
     () => null,
   );
+
   return {
     title: problem ? t("vote.titleFor", { name: problem.statement.name }) : t("detail.noSuchProblem"),
   };
@@ -24,7 +26,9 @@ export default async function VotePage({ params }: { params: Promise<{ code: str
   const t = await getTranslations("problems.vote");
   const { code } = await params;
   const problem = await queryAsViewer(api.problems.get, { code, language: await viewerLanguage() });
+
   if (!problem) notFound();
+
   if (!problem.viewer.canViewVotes) forbidden();
 
   return (

@@ -18,6 +18,7 @@ declare global {
  *  globalThis because the route handler and the page render in different module
  *  graphs in dev, but the same process. */
 globalThis.__mojRecentLinks ??= new Map<string, RememberedLink>();
+
 const recentLinks: Map<string, RememberedLink> = globalThis.__mojRecentLinks;
 
 export function rememberLink(email: string, kind: string, url: string) {
@@ -32,7 +33,9 @@ type Env = Record<string, string | undefined>;
 
 export function mailMode(env: Env = process.env): MailMode {
   const mode = (env.MAIL_MODE ?? "console").trim().toLowerCase();
+
   if (mode === "ses" || mode === "smtp") return mode;
+
   return "console";
 }
 
@@ -58,13 +61,17 @@ export type SmtpConfig = {
 
 export function sesConfigFromEnv(env: Env = process.env): SesConfig {
   const region = env.SES_REGION?.trim();
+
   if (!region) throw new Error("MAIL_MODE=ses needs SES_REGION.");
   const accessKeyId = env.SES_ACCESS_KEY_ID?.trim();
   const secretAccessKey = env.SES_SECRET_ACCESS_KEY?.trim();
+
   if (accessKeyId && secretAccessKey) return { region, credentials: { accessKeyId, secretAccessKey } };
+
   if (accessKeyId || secretAccessKey) {
     throw new Error("SES_ACCESS_KEY_ID and SES_SECRET_ACCESS_KEY have to be set together.");
   }
+
   // Neither set: leave the SDK to its own credential chain, which is how an
   // instance role or a mounted profile is meant to be used.
   return { region };
@@ -72,11 +79,14 @@ export function sesConfigFromEnv(env: Env = process.env): SesConfig {
 
 export function smtpConfigFromEnv(env: Env = process.env): SmtpConfig {
   const host = env.SMTP_HOST?.trim();
+
   if (!host) throw new Error("MAIL_MODE=smtp needs SMTP_HOST.");
   const port = Number(env.SMTP_PORT ?? 587);
+
   if (!Number.isInteger(port) || port <= 0 || port > 65535) {
     throw new Error(`SMTP_PORT is not a port number: ${env.SMTP_PORT}`);
   }
+
   // Implicit TLS is port 465's convention; everything else starts in the clear
   // and upgrades with STARTTLS, which is what nodemailer does when `secure` is
   // false. `SMTP_SECURE` overrides it for a server that disagrees.
@@ -84,32 +94,52 @@ export function smtpConfigFromEnv(env: Env = process.env): SmtpConfig {
   const secure = secureRaw ? secureRaw === "1" || secureRaw === "true" : port === 465;
   const user = env.SMTP_USER?.trim();
   const pass = env.SMTP_PASSWORD?.trim();
+
   if (user && pass) return { host, port, secure, auth: { user, pass } };
+
   if (user || pass) throw new Error("SMTP_USER and SMTP_PASSWORD have to be set together.");
+
   return { host, port, secure };
 }
 
+export type MailEnvelope = {
+  from: string;
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+};
+
 /** What a mail is on the wire, for either transport. */
-export function mailEnvelope(mail: OutgoingMail, from: string) {
-  return {
-    from,
-    to: mail.to,
-    subject: mail.subject,
-    text: mail.text,
-    ...(mail.html ? { html: mail.html } : {}),
-  };
+function mailEnvelope(mail: OutgoingMail, from: string): MailEnvelope {
+  const envelope: MailEnvelope = { from, to: mail.to, subject: mail.subject, text: mail.text };
+
+  if (mail.html) envelope.html = mail.html;
+
+  return envelope;
 }
 
-export function sesSendInput(mail: OutgoingMail, from: string) {
+type SesContent = { Data: string; Charset: string };
+
+type SesBody = { Text: SesContent; Html?: SesContent };
+
+export type SesSendInput = {
+  Source: string;
+  Destination: { ToAddresses: string[] };
+  Message: { Subject: SesContent; Body: SesBody };
+};
+
+export function sesSendInput(mail: OutgoingMail, from: string): SesSendInput {
+  const body: SesBody = { Text: { Data: mail.text, Charset: "UTF-8" } };
+
+  if (mail.html) body.Html = { Data: mail.html, Charset: "UTF-8" };
+
   return {
     Source: from,
     Destination: { ToAddresses: [mail.to] },
     Message: {
       Subject: { Data: mail.subject, Charset: "UTF-8" },
-      Body: {
-        Text: { Data: mail.text, Charset: "UTF-8" },
-        ...(mail.html ? { Html: { Data: mail.html, Charset: "UTF-8" } } : {}),
-      },
+      Body: body,
     },
   };
 }
@@ -138,18 +168,51 @@ export function consoleTransport(log: (message: string) => void = console.info):
   };
 }
 
-export async function createSesTransport(config: SesConfig): Promise<MailTransport> {
+/** The one SES call this app makes. The AWS SDK sits behind it so a test can
+ *  drive the SES path with a client of its own instead of the network. */
+interface SesClient {
+  send(input: SesSendInput): Promise<void>;
+}
+
+export type SesClientFactory = (config: SesConfig) => Promise<SesClient>;
+
+async function awsSesClient(config: SesConfig): Promise<SesClient> {
   const { SESClient, SendEmailCommand } = await import("@aws-sdk/client-ses");
   const client = new SESClient(config);
+
   return {
-    async send(mail, from) {
-      await client.send(new SendEmailCommand(sesSendInput(mail, from)));
+    async send(input) {
+      await client.send(new SendEmailCommand(input));
     },
   };
 }
 
+let sesClientFactory: SesClientFactory = awsSesClient;
+
+/** Point the SES transport at another client; `null` restores the AWS SDK one.
+ *  Nothing in the running app calls this. */
+export function setSesClientFactory(factory: SesClientFactory | null): void {
+  sesClientFactory = factory ?? awsSesClient;
+}
+
+export async function createSesTransport(
+  config: SesConfig,
+  createClient: SesClientFactory = sesClientFactory,
+): Promise<MailTransport> {
+  const client = await createClient(config);
+
+  return {
+    async send(mail, from) {
+      await client.send(sesSendInput(mail, from));
+    },
+  };
+}
+
+/** What nodemailer answers with. Nothing in the app reads more than this. */
+type SentMail = { messageId?: string };
+
 export interface Transporter {
-  sendMail(message: ReturnType<typeof mailEnvelope>): Promise<unknown>;
+  sendMail(message: MailEnvelope): Promise<SentMail>;
 }
 
 /** Split out so a test can drive a nodemailer transport it made itself. */
@@ -161,12 +224,14 @@ export function smtpTransportFrom(transporter: Transporter): MailTransport {
   };
 }
 
-export async function createSmtpTransport(config: SmtpConfig): Promise<MailTransport> {
+async function createSmtpTransport(config: SmtpConfig): Promise<MailTransport> {
   const nodemailer = await import("nodemailer");
-  return smtpTransportFrom(nodemailer.createTransport(config) as Transporter);
+
+  return smtpTransportFrom(nodemailer.createTransport(config));
 }
 
 let transportPromise: Promise<MailTransport> | null = null;
+
 let transportMode: MailMode | null = null;
 
 /** Tests, and anything that changes MAIL_MODE at run time, need the cached
@@ -178,12 +243,15 @@ export function resetMailTransport(): void {
 
 function buildTransport(mode: MailMode): Promise<MailTransport> {
   if (mode === "ses") return createSesTransport(sesConfigFromEnv());
+
   if (mode === "smtp") return createSmtpTransport(smtpConfigFromEnv());
+
   return Promise.resolve(consoleTransport());
 }
 
-export function mailTransport(): Promise<MailTransport> {
+function mailTransport(): Promise<MailTransport> {
   const mode = mailMode();
+
   if (!transportPromise || transportMode !== mode) {
     transportMode = mode;
     transportPromise = buildTransport(mode).catch((error) => {
@@ -193,6 +261,7 @@ export function mailTransport(): Promise<MailTransport> {
       throw error;
     });
   }
+
   return transportPromise;
 }
 

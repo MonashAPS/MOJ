@@ -14,11 +14,14 @@ export const list = query({
   args: {},
   handler: async (ctx) => {
     await requirePerm(ctx, LICENSE_PERM);
+
     const [licenses, problems] = await Promise.all([
       ctx.db.query("licenses").collect(),
       ctx.db.query("problems").collect(),
     ]);
+
     licenses.sort((a, b) => a.name.localeCompare(b.name));
+
     return licenses.map((row) => ({
       ...row,
       problemCount: problems.filter((problem) => problem.licenseId === row._id).length,
@@ -30,6 +33,7 @@ export const get = query({
   args: { id: v.id("licenses") },
   handler: async (ctx, { id }) => {
     await requirePerm(ctx, LICENSE_PERM);
+
     return await ctx.db.get(id);
   },
 });
@@ -47,7 +51,9 @@ export const create = mutation({
   handler: async (ctx, args): Promise<Id<"licenses">> => {
     const editor = await requirePerm(ctx, LICENSE_PERM);
     const key = args.key.trim();
+
     if (key.length === 0) throw invalid("A license needs a key.");
+
     if (!/^[-\w.]+$/.test(key))
       throw invalid("License keys may only contain letters, digits, dashes and dots.");
 
@@ -55,6 +61,7 @@ export const create = mutation({
       .query("licenses")
       .withIndex("by_key", (q) => q.eq("key", key))
       .first();
+
     if (clash) throw invalid(`A license with the key ${key} already exists.`);
 
     const id = await ctx.db.insert("licenses", {
@@ -65,6 +72,7 @@ export const create = mutation({
       icon: args.icon ?? "",
       text: args.text ?? "",
     });
+
     await writeRevision(
       ctx,
       "license",
@@ -73,6 +81,7 @@ export const create = mutation({
       editor._id,
       args.reason ?? "Created license",
     );
+
     return id;
   },
 });
@@ -91,25 +100,36 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const editor = await requirePerm(ctx, LICENSE_PERM);
     const row = await ctx.db.get(args.id);
+
     if (!row) throw notFound("License");
 
     const patch: Partial<Doc<"licenses">> = {};
+
     if (args.key !== undefined) {
       const key = args.key.trim();
+
       if (key.length === 0) throw invalid("A license needs a key.");
+
       if (key !== row.key) {
         const clash = await ctx.db
           .query("licenses")
           .withIndex("by_key", (q) => q.eq("key", key))
           .first();
+
         if (clash) throw invalid(`A license with the key ${key} already exists.`);
       }
+
       patch.key = key;
     }
+
     if (args.link !== undefined) patch.link = args.link;
+
     if (args.name !== undefined) patch.name = args.name;
+
     if (args.display !== undefined) patch.display = args.display;
+
     if (args.icon !== undefined) patch.icon = args.icon;
+
     if (args.text !== undefined) patch.text = args.text;
 
     await writeRevision(ctx, "license", args.id, row, editor._id, args.reason ?? "Edited license");
@@ -122,9 +142,11 @@ export const remove = mutation({
   handler: async (ctx, { id, reason }) => {
     const editor = await requirePerm(ctx, LICENSE_PERM);
     const row = await ctx.db.get(id);
+
     if (!row) throw notFound("License");
 
     const problems = await ctx.db.query("problems").collect();
+
     for (const problem of problems) {
       if (problem.licenseId === id) await ctx.db.patch(problem._id, { licenseId: undefined });
     }

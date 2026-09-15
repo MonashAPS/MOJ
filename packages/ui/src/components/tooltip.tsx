@@ -60,6 +60,7 @@ export function Tooltip({
   delayDuration?: number;
 }) {
   if (!content) return <>{children}</>;
+
   return (
     <TooltipRoot delayDuration={delayDuration}>
       <TooltipTrigger asChild>{children}</TooltipTrigger>

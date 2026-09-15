@@ -1,34 +1,36 @@
 // @vitest-environment edge-runtime
 
-import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
-import { profileRow, siteSettingsRow } from "./lib/testing";
-import schema from "./schema";
 import { brandingPalette } from "./site";
-
-const modules = import.meta.glob("./**/*.ts");
+import {
+  asUser,
+  insertProblem,
+  insertProblemGroup,
+  insertProfile,
+  insertSiteSettings,
+} from "./test.fixtures";
+import { setupTest } from "./test.setup";
 
 async function seed() {
-  const t = convexTest(schema, modules);
+  const t = setupTest();
   await t.run(async (ctx) => {
-    await ctx.db.insert("siteSettings", siteSettingsRow());
-    await ctx.db.insert("profiles", profileRow("plain"));
-    await ctx.db.insert(
-      "profiles",
-      profileRow("navadmin", {
-        permissions: ["judge.change_navigationbar", "judge.change_miscconfig", "judge.change_flatpage"],
-      }),
-    );
-    await ctx.db.insert("profiles", profileRow("root", { isSuperuser: true, isStaff: true }));
+    await insertSiteSettings(ctx);
+    await insertProfile(ctx, { username: "plain" });
+    await insertProfile(ctx, {
+      username: "navadmin",
+      permissions: ["judge.change_navigationbar", "judge.change_miscconfig", "judge.change_flatpage"],
+    });
+    await insertProfile(ctx, { username: "root", isSuperuser: true, isStaff: true });
   });
+
   return t;
 }
 
 describe("navigation bar", () => {
   test("items nest under their parent and sort by order", async () => {
     const t = await seed();
-    const admin = t.withIdentity({ subject: "user-navadmin" });
+    const admin = asUser(t, "navadmin");
 
     const problems = await admin.mutation(api.admin.site.createNavItem, {
       key: "problems",
@@ -37,6 +39,7 @@ describe("navigation bar", () => {
       regex: "^/problems?/",
       order: 2,
     });
+
     await admin.mutation(api.admin.site.createNavItem, {
       key: "home",
       label: "Home",
@@ -69,7 +72,8 @@ describe("navigation bar", () => {
 
   test("deleting a parent lifts its children up a level", async () => {
     const t = await seed();
-    const admin = t.withIdentity({ subject: "user-navadmin" });
+    const admin = asUser(t, "navadmin");
+
     const parent = await admin.mutation(api.admin.site.createNavItem, {
       key: "parent",
       label: "Parent",
@@ -77,6 +81,7 @@ describe("navigation bar", () => {
       regex: "^/p/",
       order: 1,
     });
+
     await admin.mutation(api.admin.site.createNavItem, {
       key: "child",
       label: "Child",
@@ -94,7 +99,7 @@ describe("navigation bar", () => {
   test("an invalid highlight regex is refused", async () => {
     const t = await seed();
     await expect(
-      t.withIdentity({ subject: "user-navadmin" }).mutation(api.admin.site.createNavItem, {
+      asUser(t, "navadmin").mutation(api.admin.site.createNavItem, {
         key: "bad",
         label: "Bad",
         path: "/",
@@ -106,7 +111,7 @@ describe("navigation bar", () => {
 
   test("duplicate identifiers are refused", async () => {
     const t = await seed();
-    const admin = t.withIdentity({ subject: "user-navadmin" });
+    const admin = asUser(t, "navadmin");
     await admin.mutation(api.admin.site.createNavItem, {
       key: "home",
       label: "Home",
@@ -128,7 +133,7 @@ describe("navigation bar", () => {
   test("editing the bar needs judge.change_navigationbar", async () => {
     const t = await seed();
     await expect(
-      t.withIdentity({ subject: "user-plain" }).mutation(api.admin.site.createNavItem, {
+      asUser(t, "plain").mutation(api.admin.site.createNavItem, {
         key: "sneak",
         label: "Sneak",
         path: "/",
@@ -140,7 +145,8 @@ describe("navigation bar", () => {
 
   test("reordering moves rows without touching the rest", async () => {
     const t = await seed();
-    const admin = t.withIdentity({ subject: "user-navadmin" });
+    const admin = asUser(t, "navadmin");
+
     const a = await admin.mutation(api.admin.site.createNavItem, {
       key: "a",
       label: "A",
@@ -148,6 +154,7 @@ describe("navigation bar", () => {
       regex: "^/a/",
       order: 1,
     });
+
     const b = await admin.mutation(api.admin.site.createNavItem, {
       key: "b",
       label: "B",
@@ -170,7 +177,7 @@ describe("navigation bar", () => {
 describe("misc config and flat pages", () => {
   test("config values round-trip through the shell query", async () => {
     const t = await seed();
-    const admin = t.withIdentity({ subject: "user-navadmin" });
+    const admin = asUser(t, "navadmin");
     await admin.mutation(api.admin.site.setConfig, {
       key: "announcement",
       value: "Contest tonight.",
@@ -187,7 +194,7 @@ describe("misc config and flat pages", () => {
 
   test("flat page URLs are normalised and unique", async () => {
     const t = await seed();
-    const admin = t.withIdentity({ subject: "user-navadmin" });
+    const admin = asUser(t, "navadmin");
     await admin.mutation(api.admin.site.createFlatPage, {
       url: "/about",
       title: "About",
@@ -220,12 +227,12 @@ describe("site settings", () => {
   test("only superusers may edit them", async () => {
     const t = await seed();
     await expect(
-      t.withIdentity({ subject: "user-navadmin" }).mutation(api.admin.site.updateSettings, {
+      asUser(t, "navadmin").mutation(api.admin.site.updateSettings, {
         registrationOpen: false,
       }),
     ).rejects.toThrow();
 
-    await t.withIdentity({ subject: "user-root" }).mutation(api.admin.site.updateSettings, {
+    await asUser(t, "root").mutation(api.admin.site.updateSettings, {
       registrationOpen: false,
       commentVoteHideThreshold: -3,
       reason: "Closed for the semester",
@@ -238,42 +245,19 @@ describe("site settings", () => {
 
   test("the settings threshold drives the comment collapse point", async () => {
     const t = await seed();
-    await t.withIdentity({ subject: "user-root" }).mutation(api.admin.site.updateSettings, {
+    await asUser(t, "root").mutation(api.admin.site.updateSettings, {
       commentVoteHideThreshold: -2,
     });
     await t.run(async (ctx) => {
-      const groupId = await ctx.db.insert("problemGroups", { name: "misc", fullName: "Misc" });
+      const groupId = await insertProblemGroup(ctx, { name: "misc" });
+
       const author = await ctx.db
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", "plain"))
         .unique();
+
       if (!author) throw new Error("no author");
-      await ctx.db.insert("problems", {
-        code: "alpha",
-        name: "Alpha",
-        description: "",
-        authorProfileIds: [],
-        curatorProfileIds: [],
-        testerProfileIds: [],
-        typeIds: [],
-        groupId,
-        timeLimit: 1,
-        memoryLimit: 65536,
-        shortCircuit: false,
-        points: 100,
-        partial: false,
-        allowedLanguageIds: [],
-        isPublic: true,
-        isManuallyManaged: false,
-        date: Date.now(),
-        bannedProfileIds: [],
-        userCount: 0,
-        acRate: 0,
-        isFullMarkup: false,
-        submissionSourceVisibility: "F",
-        organizationIds: [],
-        isOrganizationPrivate: false,
-      });
+      await insertProblem(ctx, { code: "alpha", name: "Alpha", description: "", groupId });
       await ctx.db.insert("comments", {
         targetType: "problem",
         targetKey: "alpha",
@@ -304,6 +288,7 @@ const TOLERANCE = 8;
 
 function channels(hex: string): [number, number, number] {
   const int = Number.parseInt(hex.replace("#", ""), 16);
+
   return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
 }
 
@@ -312,6 +297,7 @@ function channels(hex: string): [number, number, number] {
 function distance(got: string, want: string): number {
   const a = channels(got);
   const b = channels(want);
+
   return Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]));
 }
 
@@ -356,10 +342,13 @@ describe("brandingPalette", () => {
   test("the dark chrome separates, in order, whatever the operator picked", () => {
     for (const nav of ["#101a3d", "#1a1a2e", "#0f3b2a", "#4a1020", "#2b2b2b"]) {
       const { navDark, titlebarDark, contestBarDark } = brandingPalette("#2f4fd0", nav);
+
       const lightness = (hex: string) => {
         const [r, g, b] = channels(hex);
+
         return 0.2126 * r + 0.7152 * g + 0.0722 * b;
       };
+
       expect(lightness(navDark)).toBeGreaterThanOrEqual(lightness(nav));
       expect(lightness(contestBarDark)).toBeGreaterThan(lightness(navDark));
       expect(lightness(titlebarDark)).toBeGreaterThan(lightness(contestBarDark));
@@ -370,11 +359,15 @@ describe("brandingPalette", () => {
     const luminance = (hex: string) => {
       const channel = (value: number) => {
         const c = value / 255;
+
         return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
       };
+
       const [r, g, b] = channels(hex);
+
       return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
     };
+
     const onWhite = (hex: string) => 1.05 / (luminance(hex) + 0.05);
 
     for (const accent of ["#2f4fd0", "#2941a5", "#b3001b", "#0f6b3f", "#7a4b00"]) {
@@ -382,6 +375,7 @@ describe("brandingPalette", () => {
         accent,
         "#101a3d",
       );
+
       expect(onWhite(accentFillDark)).toBeGreaterThanOrEqual(4.5);
       // Hover lifts off the fill and pressed drops below it, as tokens.css has it.
       expect(luminance(accentFillHoverDark)).toBeGreaterThan(luminance(accentFillDark));

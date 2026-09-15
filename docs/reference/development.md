@@ -7,17 +7,29 @@ This page is for people changing MOJ itself. If you only want to run it, read th
 
 ```
 MOJ/
-  package.json          npm workspaces: apps/*, packages/*, tools/*, docs
+  package.json          npm workspaces: convex, apps/*, packages/*, tools/*, docs
   tsconfig.base.json
   biome.json
-  vitest.config.mts     one vitest project per workspace, plus the convex tests
-  convex/               schema.ts, auth.config.ts, function modules, crons.ts, http/, _generated/
+  oxlint.config.ts      the anti-slop rules, vendored in tools/anti-slop
+  lefthook.yml          pre-commit lint and the commit message check
+  knip.ts               unused files, dependencies and exports
+  vitest.config.mts     one vitest project per workspace
+  convex/               schema.ts, auth.config.ts, function modules, crons.ts, _generated/
+    contests/           participation, clarifications, rankings, tools, formats
+    problems/           votes, pdf, data, testData
+    profiles/           apiTokens, dataExport
+    jobs/               the chunked job runners
+    admin/              staff mutations, one file per area
+    pages/              reads that serve one page; pages/admin/ is the staff console
+    http/               the judge protocol and the problems API
+    lib/                auth, errors, hashing, pagination, rate limits, shared helpers
   apps/web/             the Next.js app: src/app, src/components, src/lib, src/auth, drizzle/
   apps/judge/           Dockerfile, entrypoint, judge.yml template, judge-server/ (a git subtree), tests/
   packages/core/        permissions, contest formats, ratings, points, verdicts, scoreboard freeze
   packages/content/     markdown pipeline, tilde maths, sanitiser presets, Shiki, markdown to Typst
   packages/protocol/    zod schemas shared by the judge API, the problems API and API v2
   packages/ui/          tokens.css and the shared components
+  tools/anti-slop/      the vendored oxlint rules, see its UPSTREAM.md
   tools/import/         the DMOJ importer
   tools/upload-problem/ upload-problem.mjs, used by problem repositories
   actions/upload-problems/  the reusable GitHub Action problem repositories call
@@ -46,9 +58,11 @@ name the consumer must render it with, and the web layer renders it.
 | `npm run build` | Builds every workspace that has a build script. |
 | `npm test` | Vitest across the workspaces. |
 | `npm run test:watch` | The same, in watch mode. |
-| `npm run lint` | Biome check. |
+| `npm run lint` | Biome check, then oxlint with the anti-slop rules. |
+| `npm run lint:fix` | The same, writing the fixes both tools can make. |
 | `npm run format` | Biome format, writing changes. |
-| `npm run typecheck` | `tsc --noEmit` for the Convex functions and each workspace. |
+| `npm run knip` | Unused files, dependencies and exports across the workspaces. |
+| `npm run typecheck` | `tsc --noEmit` in each workspace. |
 | `npm run seed` | Re-runs the seed against a running deployment. |
 | `npm run convex:codegen` | Regenerates `convex/_generated`. Needs a reachable deployment. |
 | `npm run convex:deploy` | Pushes the Convex functions to the configured deployment. |
@@ -63,9 +77,11 @@ workspaces, so they need `-w`.
 
 ## Tests
 
-Unit tests are Vitest and live beside the code as `*.test.ts`. The parts of the system worth testing hardest are
-in `packages/core`, because they are pure: the contest formats, the rating calculation, the permission rules, the
-verdict ordering and the freeze logic all take data and return data.
+Unit tests are Vitest and live beside the code as `<module>.test.ts`, and a module with more than one test file
+splits them as `<module>.<topic>.test.ts`. Test-only helpers sit beside them as `test.*.ts` or `*.fixtures.ts`,
+fixture data goes in `__fixtures__/`, and file snapshots go in `__snapshots__/` next to the test that owns them. The parts of the system worth testing hardest are in `packages/core`, because they are pure:
+the contest formats, the rating calculation, the permission rules, the verdict ordering and the freeze logic all
+take data and return data.
 
 ```bash
 npm test                        # everything
@@ -74,11 +90,16 @@ npm run test:watch              # watch mode
 ```
 
 Convex functions are tested with `convex-test`, which runs the real function code against an in-memory database.
-Those files carry `// @vitest-environment edge-runtime` at the top, because the root project runs `node`.
+Those files carry `// @vitest-environment edge-runtime` at the top, because the convex project runs `node`.
 
 Two naming rules matter under `convex/`. Convex's bundler skips any file whose basename has more than one dot, so
-test files (`*.test.ts`) and their helpers (`*.fixtures.ts`, `*.setup.ts`) never reach a deployment. A
-single-dot helper there would be pushed.
+test files (`*.test.ts`) and their helpers never reach a deployment. A single-dot helper there would be pushed.
+
+Those helpers are two files. `convex/test.setup.ts` holds the harness: `setupTest()` returns a deployment with
+every component in `convex/convex.config.ts` registered, and `judgeClient()` speaks the judge wire protocol over
+HTTP. `convex/test.fixtures.ts` holds the rows: `<table>Row(overrides)` builds one with every schema field filled
+in, `insert<Table>(target, overrides)` writes one and returns its id, and a target is either a `MutationCtx` or
+the harness itself.
 
 The judge has its own end-to-end test in `apps/judge/tests/`, driven by `e2e.py`. It stands up a mock of the judge
 API, runs the real container against it, and asserts the exact event sequence for a submission that is accepted,
@@ -89,9 +110,6 @@ request and does not need the site.
 python3 apps/judge/tests/e2e.py            # against an already built moj-judge:tier1
 python3 apps/judge/tests/e2e.py --build    # build first
 ```
-
-The browser smoke test is Playwright in `apps/web`. It is not part of `npm test`, because it needs the compose
-stack up. In CI it is gated on a repository variable, so it runs when you ask for it rather than on every push.
 
 ## Working in a worktree
 
@@ -160,7 +178,10 @@ domain query with page-shaped fields.
 ## Adding a Convex function
 
 Functions go in the file for their area: problems in `convex/problems.ts`, contests in `convex/contests.ts`, staff
-mutations under `convex/admin/`, page-only reads under `convex/pages/`.
+mutations under `convex/admin/`, page-only reads under `convex/pages/`. A cohesive group that is not the area's
+core reads goes in a module beside it, named after the group: contest joining is `convex/contests/participation.ts`
+and problem voting is `convex/problems/votes.ts`. Drop the group's name from the function when the module carries
+it: `convex/pages/admin/problems.ts` exports `list`, not `problemsList`.
 
 ```ts
 // convex/problems.ts
@@ -211,7 +232,11 @@ committed. Commit the regenerated files with your change. A module path with a s
 ## Conventions
 
 - TypeScript with `strict: true`, ESM everywhere. No `any` that is not commented.
-- Biome for formatting and linting. Run `npm run format` before committing; CI runs `npm run lint`.
+- Biome for formatting and general linting, oxlint for the vendored anti-slop rules in `tools/anti-slop`
+  (`tools/anti-slop/UPSTREAM.md` records where they come from). `npm run lint` runs both; CI runs it.
+- lefthook runs biome and oxlint on the staged files before a commit and checks the commit message against
+  Conventional Commits. `LEFTHOOK=0` skips the hooks. `BIOME` and `OXLINT` override how the binaries are run,
+  for example `BIOME="steam-run npx biome"` on NixOS.
 - Field names in Convex are camelCase versions of DMOJ's names, so a reviewer can find the original.
 - Every imported table has `legacyId` and an index on it. Keep that true for new tables that could be imported.
 - Timestamps are milliseconds since the epoch as `v.number()`. Durations are seconds unless the field name says
@@ -240,7 +265,7 @@ does not exist.
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on pull requests and on pushes to the main branches: `npm ci`, `npm run lint`,
-`npm run typecheck`, `npm test`, a web build, and, in a second job, the tier 1 judge image build followed by the
-judge end-to-end test against its mock. The browser smoke test is a third job, gated on a repository variable.
+`npm run typecheck`, `npm run knip`, `npm test`, a web build, and, in a second job, the tier 1 judge image build followed by the
+judge end-to-end test against its mock.
 
 `.github/workflows/pages.yml` builds `docs/` and deploys it to GitHub Pages on a push to the main branch.

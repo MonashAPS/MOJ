@@ -38,9 +38,10 @@ export interface BookletOptions extends NormaliseOptions {
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 export function defaultLabel(index: number): string {
-  if (index < LETTERS.length) return LETTERS[index] as string;
+  if (index < LETTERS.length) return LETTERS.charAt(index);
   const first = Math.floor(index / LETTERS.length) - 1;
-  return `${LETTERS[first] as string}${LETTERS[index % LETTERS.length] as string}`;
+
+  return `${LETTERS.charAt(first)}${LETTERS.charAt(index % LETTERS.length)}`;
 }
 
 export function booklet(
@@ -51,6 +52,7 @@ export function booklet(
   const template = options.template ?? "booklet.typ";
   const statementTemplate = options.statementTemplate ?? "statement.typ";
   const footerText = contest.footerText ?? contest.title;
+
   const labelled = problems.map((problem, index) => ({
     ...problem,
     label: problem.meta.label ?? contest.labels?.[index] ?? defaultLabel(index),
@@ -72,6 +74,7 @@ export function booklet(
     const entries = labelled
       .map((problem) => `    (${typstEscapeString(problem.label)}, ${typstEscapeString(problem.meta.name)}),`)
       .join("\n");
+
     lines.push(
       "#cover(",
       `  title: ${typstEscapeString(contest.title)},`,
@@ -89,6 +92,7 @@ export function booklet(
 
   for (const [index, problem] of labelled.entries()) {
     const meta: ProblemMeta = { ...problem.meta, label: problem.label };
+
     if (index > 0 || options.cover !== false) lines.push("#pagebreak()");
     lines.push(
       `#set page(footer: problem-footer(${typstEscapeString(footerText)}, ` +

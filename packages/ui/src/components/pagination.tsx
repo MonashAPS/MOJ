@@ -8,14 +8,17 @@ import { buttonVariants } from "./button";
 export function paginationRange(page: number, totalPages: number, adjacent = 2): (number | "gap")[] {
   if (totalPages <= 1) return [1];
   const pages: (number | "gap")[] = [];
+
   const push = (value: number | "gap") => {
     if (value === "gap" && pages[pages.length - 1] === "gap") return;
     pages.push(value);
   };
+
   for (let index = 1; index <= totalPages; index++) {
     if (index === 1 || index === totalPages || Math.abs(index - page) <= adjacent) push(index);
     else push("gap");
   }
+
   return pages;
 }
 
@@ -119,6 +122,7 @@ export function Pagination({
 }) {
   if (totalPages <= 1) return null;
   const items = paginationRange(page, totalPages);
+
   return (
     <PaginationRoot aria-label={label} className={className}>
       <PaginationContent>

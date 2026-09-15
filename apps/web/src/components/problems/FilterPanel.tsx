@@ -27,6 +27,8 @@ import {
   EMPTY_QUERY,
   type ProblemQuery,
   type ProblemSort,
+  parseProblemSort,
+  parseProblemStatus,
   problemQueryString,
 } from "@/lib/problem-query";
 
@@ -43,9 +45,11 @@ function withCurrent(
   ...values: string[]
 ): { value: string; label: string }[] {
   const known = new Set(options.map((option) => option.value));
+
   const extra = values
     .filter((value) => value && !known.has(value))
     .map((value) => ({ value, label: value }));
+
   return [...options, ...extra];
 }
 
@@ -63,6 +67,7 @@ function Group({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="border-t border-border">
       <CollapsibleTrigger className="flex w-full items-center gap-2 py-2 text-left">
@@ -136,10 +141,12 @@ export function FilterPanel({
   const ids = useId();
   const [search, setSearch] = useState(query.search);
   const [author, setAuthor] = useState(query.author);
+
   const [points, setPoints] = useState<[number, number]>([
     query.pointStart ?? pointValues.min,
     query.pointEnd ?? pointValues.max,
   ]);
+
   const [solvedByDraft, setSolvedByDraft] = useState("");
 
   // The URL is the source of truth: a Back navigation has to reach the fields.
@@ -220,7 +227,7 @@ export function FilterPanel({
           name={`${ids}-status`}
           ariaLabel={t("groupStatus")}
           value={query.hideSolved ? "unsolved" : query.status}
-          onValueChange={(value) => set({ status: value as ProblemQuery["status"], hideSolved: false })}
+          onValueChange={(value) => set({ status: parseProblemStatus(value), hideSolved: false })}
           options={[
             { value: "all", label: t("statusAll") },
             { value: "solved", label: t("statusSolved"), disabled: !authenticated },
@@ -297,12 +304,14 @@ export function FilterPanel({
               step={1}
               value={points}
               onValueChange={(value) => setPoints([value[0] ?? 0, value[1] ?? 0])}
-              onValueCommit={(value) =>
+              onValueCommit={(value) => {
+                const [low = pointValues.min, high = pointValues.max] = value;
+
                 set({
-                  pointStart: (value[0] ?? pointValues.min) > pointValues.min ? (value[0] as number) : null,
-                  pointEnd: (value[1] ?? pointValues.max) < pointValues.max ? (value[1] as number) : null,
-                })
-              }
+                  pointStart: low > pointValues.min ? low : null,
+                  pointEnd: high < pointValues.max ? high : null,
+                });
+              }}
             />
             <span className="w-9 shrink-0 rounded-sm border border-border bg-secondary px-1 text-center font-mono text-sm tabular-nums text-foreground">
               {points[1]}
@@ -339,6 +348,7 @@ export function FilterPanel({
             if (event.key !== "Enter") return;
             event.preventDefault();
             const username = solvedByDraft.trim();
+
             if (!username || query.solvedBy.includes(username)) return;
             setSolvedByDraft("");
             set({ solvedBy: [...query.solvedBy, username] });
@@ -402,7 +412,7 @@ export function FilterPanel({
         <Select
           ariaLabel={t("groupSort")}
           value={query.sort}
-          onValueChange={(value) => set({ sort: value as ProblemSort })}
+          onValueChange={(value) => set({ sort: parseProblemSort(value) })}
           options={sortOptions}
         />
         <Switch
@@ -425,6 +435,7 @@ export function FilterPanel({
   );
 
   if (bare) return body;
+
   return (
     <Panel title={t("title")} bodyClassName="p-0" action={reset}>
       {body}
@@ -444,9 +455,11 @@ export function ActiveFilters({
 }) {
   const t = useTranslations("problems.filters");
   const chips: { key: string; label: string; clear: Partial<ProblemQuery> }[] = [];
+
   if (query.search) {
     chips.push({ key: "search", label: t("chipSearch", { term: query.search }), clear: { search: "" } });
   }
+
   if (query.hideSolved) {
     chips.push({ key: "hide", label: t("chipHideSolved"), clear: { hideSolved: false } });
   } else if (query.status !== "all") {
@@ -456,10 +469,12 @@ export function ActiveFilters({
       clear: { status: "all" },
     });
   }
+
   if (query.category) {
     const group = options.groups.find((row) => row.name === query.category);
     chips.push({ key: "category", label: group?.fullName ?? query.category, clear: { category: "" } });
   }
+
   for (const name of query.types) {
     const type = options.types.find((row) => row.name === name);
     chips.push({
@@ -468,8 +483,10 @@ export function ActiveFilters({
       clear: { types: query.types.filter((value) => value !== name) },
     });
   }
+
   const { pointStart, pointEnd } = query;
   const clearPoints = { pointStart: null, pointEnd: null };
+
   if (pointStart !== null && pointEnd !== null) {
     const label = t("chipPoints", { start: pointStart, end: pointEnd });
     chips.push({ key: "points", label, clear: clearPoints });
@@ -478,6 +495,7 @@ export function ActiveFilters({
   } else if (pointEnd !== null) {
     chips.push({ key: "points", label: t("chipPointsUpTo", { end: pointEnd }), clear: clearPoints });
   }
+
   for (const username of query.solvedBy) {
     chips.push({
       key: `solved-${username}`,
@@ -485,10 +503,13 @@ export function ActiveFilters({
       clear: { solvedBy: query.solvedBy.filter((value) => value !== username) },
     });
   }
+
   if (query.notByMe) chips.push({ key: "notme", label: t("notByMe"), clear: { notByMe: false } });
+
   if (query.author) {
     chips.push({ key: "author", label: t("chipAuthor", { author: query.author }), clear: { author: "" } });
   }
+
   for (const key of query.contests) {
     const contest = options.contests.find((row) => row.key === key);
     chips.push({
@@ -497,11 +518,13 @@ export function ActiveFilters({
       clear: { contests: query.contests.filter((value) => value !== key) },
     });
   }
+
   if (query.hasEditorial) {
     chips.push({ key: "editorial", label: t("hasEditorial"), clear: { hasEditorial: false } });
   }
 
   if (chips.length === 0) return null;
+
   return (
     <ul className="mb-3 flex flex-wrap items-center gap-1.5">
       {chips.map((chip) => (

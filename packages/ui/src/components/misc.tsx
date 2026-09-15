@@ -166,6 +166,7 @@ export function Skeleton({ className, ...props }: ComponentProps<"div">) {
  *  a word will not fit. */
 export function Spinner({ className, ...props }: ComponentProps<typeof Loader2>) {
   const ui = useUiText();
+
   return (
     <Loader2
       role="status"

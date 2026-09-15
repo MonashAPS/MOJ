@@ -15,6 +15,7 @@ export class StatementSplitter {
 
   push(chunk: string): string[] {
     this.buf += chunk;
+
     return this.drain(false);
   }
 
@@ -23,7 +24,9 @@ export class StatementSplitter {
     const rest = this.buf.trim();
     this.buf = "";
     this.scan = 0;
+
     if (rest.length > 0 && rest !== ";") out.push(rest);
+
     return out;
   }
 
@@ -37,6 +40,7 @@ export class StatementSplitter {
     while (i < buf.length && !stop) {
       const ch = buf[i];
       const last = i === buf.length - 1;
+
       switch (this.state) {
         case "normal":
           if (ch === "'") this.state = "single";
@@ -48,6 +52,7 @@ export class StatementSplitter {
               stop = true;
               break;
             }
+
             if (ch === "-" && buf[i + 1] === "-") {
               this.state = "line-comment";
               i++;
@@ -57,9 +62,11 @@ export class StatementSplitter {
             }
           } else if (ch === ";") {
             const stmt = buf.slice(start, i + 1).trim();
+
             if (stmt.length > 1) out.push(stmt);
             start = i + 1;
           }
+
           break;
         case "single":
         case "double":
@@ -80,13 +87,16 @@ export class StatementSplitter {
               stop = true;
               break;
             }
+
             if (buf[i + 1] === "/") {
               this.state = "normal";
               i++;
             }
           }
+
           break;
       }
+
       if (stop) break;
       i++;
     }
@@ -97,6 +107,7 @@ export class StatementSplitter {
     } else {
       this.scan = i;
     }
+
     return out;
   }
 }

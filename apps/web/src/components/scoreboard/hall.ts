@@ -16,7 +16,7 @@ export type Attendance = "all" | "in-person";
 export type DisplayRow = BoardRow & { displayRank: number };
 
 /** `@moj/core`'s `rankRows` comparator: solves desc, penalty asc, then name. */
-export function compareRows(a: BoardRow, b: BoardRow): number {
+function compareRows(a: BoardRow, b: BoardRow): number {
   return (
     b.solved - a.solved ||
     a.penalty - b.penalty ||
@@ -28,12 +28,15 @@ export function compareRows(a: BoardRow, b: BoardRow): number {
 function assignRanks(rows: BoardRow[]): DisplayRow[] {
   let lastKey: string | null = null;
   let rank = 0;
+
   return rows.map((row, index) => {
     const key = `${row.solved}/${row.penalty}`;
+
     if (key !== lastKey) {
       rank = index + 1;
       lastKey = key;
     }
+
     return { ...row, displayRank: rank };
   });
 }
@@ -42,6 +45,7 @@ function assignRanks(rows: BoardRow[]): DisplayRow[] {
 export function displayRows(division: Division, attendance: Attendance): DisplayRow[] {
   const rows = attendance === "in-person" ? division.rows.filter((row) => row.inPerson) : [...division.rows];
   rows.sort(compareRows);
+
   return assignRanks(rows);
 }
 
@@ -57,13 +61,16 @@ export type RevealTarget = { rowIndex: number; cellIndex: number; rank: number; 
 export function nextRevealTarget(rows: readonly DisplayRow[]): RevealTarget | null {
   for (let rowIndex = rows.length - 1; rowIndex >= 0; rowIndex--) {
     const row = rows[rowIndex];
+
     if (!row) continue;
+
     for (let cellIndex = 0; cellIndex < row.cells.length; cellIndex++) {
       if (row.cells[cellIndex]?.state === "frozen") {
         return { rowIndex, cellIndex, rank: row.displayRank, row };
       }
     }
   }
+
   return null;
 }
 
@@ -86,6 +93,7 @@ export function contestClock(seconds: number): string {
   const total = contestMinutes(seconds);
   const hours = Math.floor(total / 60);
   const minutes = total % 60;
+
   return `${hours}:${String(minutes).padStart(2, "0")}`;
 }
 

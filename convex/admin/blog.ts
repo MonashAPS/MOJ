@@ -26,16 +26,19 @@ export const list = query({
   handler: async (ctx, { search }) => {
     const profile = await optionalViewer(ctx);
     const viewer = await coreViewer(ctx, profile);
+
     if (!hasPerm(viewer, POST_PERM) && !hasPerm(viewer, "judge.edit_all_post")) return [];
 
     const rows = await ctx.db.query("blogPosts").collect();
     const editable = rows.filter((row) => blogPostIsEditableBy(coreRow(row), viewer));
     const needle = search?.trim().toLowerCase();
+
     const filtered = needle
       ? editable.filter((row) => row.title.toLowerCase().includes(needle) || row.slug.includes(needle))
       : editable;
 
     filtered.sort((a, b) => b.publishOn - a.publishOn);
+
     return await Promise.all(
       filtered.map(async (row) => ({
         _id: row._id,
@@ -57,8 +60,11 @@ export const get = query({
     const profile = await optionalViewer(ctx);
     const viewer = await coreViewer(ctx, profile);
     const row = await ctx.db.get(id);
+
     if (!row) return null;
+
     if (!blogPostIsEditableBy(coreRow(row), viewer)) return null;
+
     return { ...row, authors: await authorSummaries(ctx, row.authorProfileIds) };
   },
 });
@@ -81,7 +87,9 @@ export const create = mutation({
     const viewer = await coreViewer(ctx, editor);
 
     const title = args.title.trim();
+
     if (title.length === 0) throw invalid("A post needs a title.");
+
     if (title.length > 100) throw invalid("Post titles are limited to 100 characters.");
 
     if (args.visible && !hasPerm(viewer, "judge.change_post_visibility")) {
@@ -89,6 +97,7 @@ export const create = mutation({
     }
 
     const authors = args.authorProfileIds?.length ? args.authorProfileIds : [editor._id];
+
     if (!hasPerm(viewer, "judge.edit_all_post") && !authors.includes(editor._id)) {
       throw forbidden("You can only create posts you are an author of.");
     }
@@ -104,7 +113,9 @@ export const create = mutation({
       authorProfileIds: authors,
       ogImage: args.ogImage,
     });
+
     await writeRevision(ctx, "blogPost", id, await ctx.db.get(id), editor._id, args.reason ?? "Created post");
+
     return id;
   },
 });
@@ -127,7 +138,9 @@ export const update = mutation({
     const editor = await requireViewer(ctx);
     const viewer = await coreViewer(ctx, editor);
     const row = await ctx.db.get(args.id);
+
     if (!row) throw notFound("Post");
+
     if (!blogPostIsEditableBy(coreRow(row), viewer)) throw forbidden();
 
     if (
@@ -137,23 +150,34 @@ export const update = mutation({
     ) {
       throw forbidden("Missing permission judge.change_post_visibility.");
     }
+
     if (args.authorProfileIds !== undefined && !hasPerm(viewer, "judge.edit_all_post")) {
       throw forbidden("Only judge.edit_all_post can change a post's authors.");
     }
 
     const patch: Partial<Doc<"blogPosts">> = {};
+
     if (args.title !== undefined) {
       const title = args.title.trim();
+
       if (title.length === 0) throw invalid("A post needs a title.");
       patch.title = title;
     }
+
     if (args.slug !== undefined) patch.slug = args.slug.trim() || slugify(args.title ?? row.title);
+
     if (args.content !== undefined) patch.content = args.content;
+
     if (args.summary !== undefined) patch.summary = args.summary;
+
     if (args.visible !== undefined) patch.visible = args.visible;
+
     if (args.sticky !== undefined) patch.sticky = args.sticky;
+
     if (args.publishOn !== undefined) patch.publishOn = args.publishOn;
+
     if (args.authorProfileIds !== undefined) patch.authorProfileIds = args.authorProfileIds;
+
     if (args.ogImage !== undefined) patch.ogImage = args.ogImage;
 
     await writeRevision(ctx, "blogPost", args.id, row, editor._id, args.reason ?? "Edited post");
@@ -167,7 +191,9 @@ export const remove = mutation({
     const editor = await requireViewer(ctx);
     const viewer = await coreViewer(ctx, editor);
     const row = await ctx.db.get(id);
+
     if (!row) throw notFound("Post");
+
     if (!blogPostIsEditableBy(coreRow(row), viewer)) throw forbidden();
 
     await writeRevision(ctx, "blogPost", id, row, editor._id, reason ?? "Deleted post");
@@ -176,6 +202,7 @@ export const remove = mutation({
       .query("comments")
       .withIndex("by_target_time", (q) => q.eq("targetType", "blog").eq("targetKey", id))
       .collect();
+
     for (const comment of comments) await ctx.db.delete(comment._id);
 
     await ctx.db.delete(id);
@@ -189,13 +216,16 @@ export const history = query({
     const profile = await optionalViewer(ctx);
     const viewer = await coreViewer(ctx, profile);
     const row = await ctx.db.get(id);
+
     if (!row || !blogPostIsEditableBy(coreRow(row), viewer)) return [];
 
     const rows = await revisionsFor(ctx, "blogPost", id);
     rows.sort((a, b) => b.createdAt - a.createdAt);
+
     return await Promise.all(
       rows.map(async (revision) => {
         const author = revision.authorProfileId ? await ctx.db.get(revision.authorProfileId) : null;
+
         return {
           _id: revision._id,
           createdAt: revision.createdAt,

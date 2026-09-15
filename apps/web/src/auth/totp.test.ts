@@ -21,9 +21,11 @@ const OPTIONS = { digits: 6, period: 30 } as const;
 
 const TOTP_URI = createOTP(SECRET, OPTIONS).url("MOJ", "member@example.org");
 
-function phone(): TOTP {
-  const parsed = URI.parse(TOTP_URI);
+function phone(uri: string = TOTP_URI): TOTP {
+  const parsed = URI.parse(uri);
+
   if (!(parsed instanceof TOTP)) throw new Error("The enrolment URI is not a TOTP URI.");
+
   return parsed;
 }
 
@@ -52,8 +54,8 @@ describe("TOTP enrolment", () => {
   });
 
   it("rejects a code from another secret", async () => {
-    const other = URI.parse(createOTP("aB3dE6gH9jK2mN5pQ8sT1vW4xY7zC0fI", OPTIONS).url("MOJ", "someone"));
-    const code = (other as TOTP).generate();
+    const other = phone(createOTP("aB3dE6gH9jK2mN5pQ8sT1vW4xY7zC0fI", OPTIONS).url("MOJ", "someone"));
+    const code = other.generate();
     await expect(createOTP(SECRET, OPTIONS).verify(code)).resolves.toBe(false);
   });
 

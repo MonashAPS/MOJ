@@ -7,6 +7,7 @@ import { RegisterForm } from "./RegisterForm";
 
 export async function generateMetadata() {
   const t = await getTranslations("auth.register");
+
   return { title: t("metaTitle") };
 }
 

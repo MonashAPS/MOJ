@@ -9,36 +9,52 @@
  * `contest`, `group_by_contest`) follow the same spelling.
  */
 
-export type ProblemSort =
-  | "code"
-  | "name"
-  | "points"
-  | "acRate"
-  | "userCount"
-  | "date"
-  | "group"
-  | "solved"
-  | "type"
-  | "editorial";
+const PROBLEM_SORTS = [
+  "code",
+  "name",
+  "points",
+  "acRate",
+  "userCount",
+  "date",
+  "group",
+  "solved",
+  "type",
+  "editorial",
+] as const;
 
-export type ProblemStatus = "all" | "solved" | "attempted" | "unsolved";
+export type ProblemSort = (typeof PROBLEM_SORTS)[number];
+
+const PROBLEM_STATUSES = ["all", "solved", "attempted", "unsolved"] as const;
+
+export type ProblemStatus = (typeof PROBLEM_STATUSES)[number];
 
 /** DMOJ's `order` is one signed field name, e.g. `-points`. */
-const SORT_BY_PARAM: Record<string, ProblemSort> = {
+const PARAM_BY_SORT: Record<ProblemSort, string> = {
   code: "code",
   name: "name",
   points: "points",
-  ac_rate: "acRate",
-  user_count: "userCount",
+  acRate: "ac_rate",
+  userCount: "user_count",
   date: "date",
   group: "group",
   solved: "solved",
   type: "type",
   editorial: "editorial",
 };
-const PARAM_BY_SORT = Object.fromEntries(
-  Object.entries(SORT_BY_PARAM).map(([param, sort]) => [sort, param]),
-) as Record<ProblemSort, string>;
+
+const SORT_BY_PARAM = new Map<string, ProblemSort>();
+
+for (const sort of PROBLEM_SORTS) SORT_BY_PARAM.set(PARAM_BY_SORT[sort], sort);
+
+/** The `status` parameter, and the radio group that writes it. */
+export function parseProblemStatus(value: string): ProblemStatus {
+  return PROBLEM_STATUSES.find((status) => status === value) ?? "all";
+}
+
+/** The `order` parameter without its sign, and the sort select that writes it. */
+export function parseProblemSort(value: string): ProblemSort {
+  return PROBLEM_SORTS.find((sort) => sort === value) ?? "code";
+}
 
 /** DMOJ's `default_desc`, extended with the two sorts the panel adds. */
 const DEFAULT_DESC = new Set<ProblemSort>(["points", "acRate", "userCount", "date", "solved"]);
@@ -90,23 +106,28 @@ export type RawSearchParams = Record<string, string | string[] | undefined>;
 
 function one(value: string | string[] | undefined): string {
   if (Array.isArray(value)) return value[0] ?? "";
+
   return value ?? "";
 }
 
 function many(value: string | string[] | undefined): string[] {
   if (Array.isArray(value)) return value.filter(Boolean);
+
   return value ? [value] : [];
 }
 
 function flag(value: string | string[] | undefined): boolean {
   const raw = one(value);
+
   return raw === "1" || raw === "true" || raw === "on";
 }
 
 function integer(value: string | string[] | undefined): number | null {
   const raw = one(value).trim();
+
   if (!raw) return null;
   const parsed = Number(raw);
+
   return Number.isFinite(parsed) ? Math.round(parsed) : null;
 }
 
@@ -116,13 +137,9 @@ export function parseProblemQuery(params: RawSearchParams | URLSearchParams): Pr
 
   const orderRaw = one(get("order")).trim();
   const orderKey = orderRaw.startsWith("-") ? orderRaw.slice(1) : orderRaw;
-  const sort = SORT_BY_PARAM[orderKey] ?? "code";
+  const sort = SORT_BY_PARAM.get(orderKey) ?? "code";
   const descending = orderRaw ? orderRaw.startsWith("-") : DEFAULT_DESC.has(sort) && sort !== "code";
-
-  const statusRaw = one(get("status")) as ProblemStatus;
-  const status: ProblemStatus = ["all", "solved", "attempted", "unsolved"].includes(statusRaw)
-    ? statusRaw
-    : "all";
+  const status = parseProblemStatus(one(get("status")));
 
   return {
     search: one(get("search")),
@@ -150,26 +167,44 @@ export function parseProblemQuery(params: RawSearchParams | URLSearchParams): Pr
  *  stays `/problems/` and every filtered one is a short, readable link. */
 export function problemQueryString(query: ProblemQuery): string {
   const params = new URLSearchParams();
+
   if (query.search) params.set("search", query.search);
+
   if (query.fullText) params.set("full_text", "1");
+
   if (query.hideSolved) params.set("hide_solved", "1");
+
   if (query.hasEditorial) params.set("has_public_editorial", "1");
+
   if (query.showTypes) params.set("show_types", "1");
+
   if (query.category) params.set("category", query.category);
+
   for (const type of query.types) params.append("type", type);
+
   if (query.pointStart !== null) params.set("point_start", String(query.pointStart));
+
   if (query.pointEnd !== null) params.set("point_end", String(query.pointEnd));
+
   if (query.status !== "all") params.set("status", query.status);
+
   for (const username of query.solvedBy) params.append("solved_by", username);
+
   if (query.notByMe) params.set("not_by_me", "1");
+
   if (query.author) params.set("author", query.author);
+
   for (const key of query.contests) params.append("contest", key);
+
   if (query.groupByContest) params.set("group_by_contest", "1");
+
   if (query.sort !== "code" || query.descending) {
     params.set("order", `${query.descending ? "-" : ""}${PARAM_BY_SORT[query.sort]}`);
   }
+
   if (query.page > 1) params.set("page", String(query.page));
   const encoded = params.toString();
+
   return encoded ? `?${encoded}` : "";
 }
 
@@ -180,6 +215,8 @@ export function problemHref(query: ProblemQuery, base = "/problems/"): string {
 /** The args `problems.list` takes. `hide_solved` is DMOJ's spelling of
  *  `status=unsolved`, and it wins when both are set, as DMOJ's form does. */
 export function problemListArgs(query: ProblemQuery, pageSize = 50) {
+  const order: "asc" | "desc" = query.descending ? "desc" : "asc";
+
   return {
     search: query.search || undefined,
     fullText: query.fullText,
@@ -196,7 +233,7 @@ export function problemListArgs(query: ProblemQuery, pageSize = 50) {
     groupByContest: query.groupByContest || undefined,
     showTypes: query.showTypes,
     sort: query.sort,
-    order: (query.descending ? "desc" : "asc") as "asc" | "desc",
+    order,
     page: query.page,
     pageSize,
   };
@@ -205,15 +242,22 @@ export function problemListArgs(query: ProblemQuery, pageSize = 50) {
 /** How many filters are on, for the "Filters (3)" button and the group counts. */
 export function activeFilterCount(query: ProblemQuery): number {
   let count = 0;
+
   if (query.search) count += 1;
+
   if (query.hideSolved || query.status !== "all") count += 1;
+
   if (query.hasEditorial) count += 1;
+
   if (query.category) count += 1;
   count += query.types.length;
+
   if (query.pointStart !== null || query.pointEnd !== null) count += 1;
   count += query.solvedBy.length;
+
   if (query.author) count += 1;
   count += query.contests.length;
+
   return count;
 }
 
@@ -221,5 +265,6 @@ export function activeFilterCount(query: ProblemQuery): number {
  *  direction that column is usually read in. */
 export function toggleSort(query: ProblemQuery, sort: ProblemSort): ProblemQuery {
   const descending = query.sort === sort ? !query.descending : DEFAULT_DESC.has(sort);
+
   return { ...query, sort, descending, page: 1 };
 }

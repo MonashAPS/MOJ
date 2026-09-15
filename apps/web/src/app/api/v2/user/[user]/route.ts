@@ -11,6 +11,7 @@ export async function GET(
   context: { params: Promise<{ user: string }> },
 ): Promise<Response> {
   const { user } = await context.params;
+
   return withFilters(request, async () =>
     handleApiRequest(request, async (options) => ({
       object: await fetchQuery(api.apiV2.user, { user }, options),

@@ -23,8 +23,11 @@ export const controlIcons =
 /** 50% opacity is the universal disabled signal; actions stop taking pointers and
  *  form controls show the not-allowed cursor. */
 export const disabledAction = "disabled:pointer-events-none disabled:opacity-50";
+
 export const disabledField = "disabled:cursor-not-allowed disabled:opacity-50";
+
 export const disabledItem = "data-[disabled]:pointer-events-none data-[disabled]:opacity-50";
+
 export const disabledCmdkItem = "data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50";
 
 /** Overlay panels: menus, popovers, selects. One recipe, one shadow, one z-slot. */

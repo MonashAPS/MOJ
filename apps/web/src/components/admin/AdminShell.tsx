@@ -4,7 +4,7 @@ import { Breadcrumb, cn, PageTabs, type TabItem } from "@moj/ui";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 
-export type AdminBreadcrumbItem = { label: string; href?: string };
+type AdminBreadcrumbItem = { label: string; href?: string };
 
 /**
  * Every console page's header: breadcrumb, title, page tabs and the one primary

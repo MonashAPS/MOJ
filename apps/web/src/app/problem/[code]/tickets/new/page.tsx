@@ -15,9 +15,11 @@ export async function generateMetadata({ params }: Props) {
   const t = await getTranslations("problems.tickets");
   const states = await getTranslations("common.states");
   const { code } = await params;
+
   const problem = await queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }).catch(
     () => null,
   );
+
   return {
     title: problem
       ? t.markup("newTitle", { name: problem.name, link: (chunks) => chunks })
@@ -30,6 +32,7 @@ export async function generateMetadata({ params }: Props) {
 export default async function NewProblemTicketPage({ params }: Props) {
   const t = await getTranslations("problems.tickets");
   const { code } = await params;
+
   const [problem, viewerState] = await Promise.all([
     queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
@@ -38,6 +41,7 @@ export default async function NewProblemTicketPage({ params }: Props) {
   if (!viewerState?.profile) {
     redirect(`/accounts/login/?next=/problem/${encodeURIComponent(code)}/tickets/new/`);
   }
+
   if (!problem) notFound();
 
   return (

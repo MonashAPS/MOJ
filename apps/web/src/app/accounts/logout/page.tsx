@@ -8,6 +8,7 @@ import { logOut } from "./actions";
 
 export async function generateMetadata() {
   const t = await getTranslations("auth.logout");
+
   return { title: t("metaTitle") };
 }
 
@@ -38,7 +39,7 @@ export default async function LogoutPage({ searchParams }: { searchParams: Promi
     );
   }
 
-  const username = (session.user as { username?: string | null }).username || session.user.name;
+  const username = session.user.username || session.user.name;
 
   return (
     <AuthCard

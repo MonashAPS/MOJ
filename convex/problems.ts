@@ -1,6 +1,18 @@
+/**
+ * Problems: the list, the problem page, the random pick, the editorial, the
+ * ranked submissions and the small reads the problem pages hang off.
+ *
+ * The viewer and access helpers here are what the other problem modules share:
+ * `problems/votes.ts`, `problems/pdf.ts`, `problems/data.ts`,
+ * `problems/testData.ts`, `admin/problems.ts` and the pages that read a
+ * problem all go through `loadViewerContext`, `problemByCode` and
+ * `canAccessProblem` rather than repeating the rules.
+ */
+
 import {
   hasPerm as coreHasPerm,
   DEFAULT_SUBMISSION_SOURCE_VISIBILITY,
+  isFullSolve,
   problemIsAccessibleBy,
   problemIsEditableBy,
   problemIsVisibleTo,
@@ -12,16 +24,20 @@ import {
 import type { ProblemRow, ProfileRow } from "@moj/core/types";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
-import { mutation, type QueryCtx, query } from "./_generated/server";
-import { optionalViewer, requireViewer } from "./lib/auth";
-import { forbidden, invalid, notFound } from "./lib/errors";
+import { type MutationCtx, type QueryCtx, query } from "./_generated/server";
+import { optionalViewer } from "./lib/auth";
+import { notFound } from "./lib/errors";
 import { proctorBlocksContestProblems } from "./lib/proctor";
+import { profileByUsername } from "./profiles";
 
-export const MIN_USER_POINTS_VOTE = 1;
-export const MAX_USER_POINTS_VOTE = 50;
 export const HOT_PROBLEM_COUNT = 7;
+
 export const HOT_PROBLEM_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 export const DEFAULT_PAGE_SIZE = 50;
+
+/** `Problem.code`: DMOJ's slug field, lowercase letters, digits and dots. */
+export const PROBLEM_CODE_PATTERN = /^[a-z.0-9]+$/;
 
 /** Cap on how far a single list query will scan. */
 const MAX_SCAN = 20_000;
@@ -50,6 +66,7 @@ export type ViewerContext = {
  */
 export async function loadViewerContext(ctx: QueryCtx): Promise<ViewerContext> {
   const profile = await optionalViewer(ctx);
+
   if (!profile) {
     return { profile: null, core: null, participation: null, contest: null, inContest: false };
   }
@@ -58,25 +75,29 @@ export async function loadViewerContext(ctx: QueryCtx): Promise<ViewerContext> {
     .query("organizationMemberships")
     .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
     .collect();
-  const organizationIds = memberships.map((row) => row.organizationId as string);
+
+  const organizationIds = memberships.map((row) => row.organizationId);
 
   const organizations = await ctx.db.query("organizations").collect();
+
   const adminOfOrganizationIds = organizations
     .filter((row) => row.adminProfileIds.includes(profile._id))
-    .map((row) => row._id as string);
+    .map((row) => row._id);
 
   const classes = await ctx.db.query("classes").collect();
-  const classIds = classes
-    .filter((row) => row.memberProfileIds.includes(profile._id))
-    .map((row) => row._id as string);
+
+  const classIds = classes.filter((row) => row.memberProfileIds.includes(profile._id)).map((row) => row._id);
+
   const adminOfClassIds = classes
     .filter((row) => row.adminProfileIds.includes(profile._id))
-    .map((row) => row._id as string);
+    .map((row) => row._id);
 
   let participation: Doc<"contestParticipations"> | null = null;
   let contest: Doc<"contests"> | null = null;
+
   if (profile.currentParticipationId) {
     participation = await ctx.db.get(profile.currentParticipationId);
+
     if (participation) contest = await ctx.db.get(participation.contestId);
   }
 
@@ -113,22 +134,50 @@ export function toCoreProblem(problem: Doc<"problems">): ProblemRow {
     name: problem.name,
     isPublic: problem.isPublic,
     isOrganizationPrivate: problem.isOrganizationPrivate,
-    organizationIds: problem.organizationIds as unknown as string[],
-    authorProfileIds: problem.authorProfileIds as unknown as string[],
-    curatorProfileIds: problem.curatorProfileIds as unknown as string[],
-    testerProfileIds: problem.testerProfileIds as unknown as string[],
-    bannedProfileIds: problem.bannedProfileIds as unknown as string[],
+    organizationIds: problem.organizationIds,
+    authorProfileIds: problem.authorProfileIds,
+    curatorProfileIds: problem.curatorProfileIds,
+    testerProfileIds: problem.testerProfileIds,
+    bannedProfileIds: problem.bannedProfileIds,
     points: problem.points,
     partial: problem.partial,
     submissionSourceVisibility: problem.submissionSourceVisibility,
   };
 }
 
-export async function problemByCode(ctx: QueryCtx, code: string): Promise<Doc<"problems"> | null> {
+export async function problemByCode(
+  ctx: QueryCtx | MutationCtx,
+  code: string,
+): Promise<Doc<"problems"> | null> {
   return await ctx.db
     .query("problems")
     .withIndex("by_code", (q) => q.eq("code", code))
     .unique();
+}
+
+/** `problemByCode` for the callers that have nothing to say about a miss. */
+export async function requireProblem(ctx: QueryCtx | MutationCtx, code: string): Promise<Doc<"problems">> {
+  const problem = await problemByCode(ctx, code);
+
+  if (!problem) throw notFound("Problem");
+
+  return problem;
+}
+
+/** `Problem.is_solved_by(user)`: an AC with full case points, archives aside. */
+export async function hasSolvedProblem(
+  ctx: QueryCtx,
+  profileId: Id<"profiles"> | undefined,
+  problemId: Id<"problems">,
+): Promise<boolean> {
+  if (!profileId) return false;
+
+  const rows = await ctx.db
+    .query("submissions")
+    .withIndex("by_profile_problem", (q) => q.eq("profileId", profileId).eq("problemId", problemId))
+    .collect();
+
+  return rows.some((row) => !row.isArchived && isFullSolve(row));
 }
 
 export async function contestProblemFor(
@@ -140,6 +189,7 @@ export async function contestProblemFor(
     .query("contestProblems")
     .withIndex("by_problem", (q) => q.eq("problemId", problemId))
     .collect();
+
   return rows.find((row) => row.contestId === contestId) ?? null;
 }
 
@@ -153,6 +203,7 @@ export async function canAccessProblem(
   viewer: ViewerContext,
 ): Promise<boolean> {
   let inCurrentContest = false;
+
   // A proctored contest only opens its problems while the viewer is sharing
   // their screen. Without that the bypass falls away and the problem's own
   // visibility decides, so a public problem stays readable and an unlisted one
@@ -163,6 +214,7 @@ export async function canAccessProblem(
   ) {
     inCurrentContest = (await contestProblemFor(ctx, viewer.contest._id, problem._id)) !== null;
   }
+
   return problemIsAccessibleBy(toCoreProblem(problem), viewer.core, { inCurrentContest });
 }
 
@@ -188,6 +240,7 @@ export async function solveSetsFor(ctx: QueryCtx, viewer: ViewerContext): Promis
 
   if (viewer.inContest && viewer.participation) {
     const participationId = viewer.participation._id;
+
     const submissions = await ctx.db
       .query("submissions")
       .withIndex("by_participation", (q) => q.eq("participationId", participationId))
@@ -196,21 +249,27 @@ export async function solveSetsFor(ctx: QueryCtx, viewer: ViewerContext): Promis
     const solved = new Set<string>();
     const attempted = new Set<string>();
     const best = new Map<string, number>();
+
     for (const submission of submissions) {
-      const key = submission.problemId as string;
+      const key = submission.problemId;
       attempted.add(key);
       const points = submission.contestPoints ?? 0;
+
       if (points > (best.get(key) ?? Number.NEGATIVE_INFINITY)) best.set(key, points);
+
       // contest_completed_ids: AC with contest points at least the problem's.
       if (submission.result === "AC" && submission.contestProblemId) {
         const link = await ctx.db.get(submission.contestProblemId);
+
         if (link && points >= link.points) solved.add(key);
       }
     }
+
     return { solved, attempted, best };
   }
 
   const profileId = viewer.profile._id;
+
   const submissions = await ctx.db
     .query("submissions")
     .withIndex("by_profile_date", (q) => q.eq("profileId", profileId))
@@ -219,14 +278,17 @@ export async function solveSetsFor(ctx: QueryCtx, viewer: ViewerContext): Promis
   const solved = new Set<string>();
   const attempted = new Set<string>();
   const best = new Map<string, number>();
+
   for (const submission of submissions) {
-    const key = submission.problemId as string;
+    const key = submission.problemId;
     attempted.add(key);
+
     if (submission.points !== undefined && submission.points !== null) {
       if (submission.points > (best.get(key) ?? Number.NEGATIVE_INFINITY)) {
         best.set(key, submission.points);
       }
     }
+
     if (
       !submission.isArchived &&
       submission.result === "AC" &&
@@ -235,6 +297,7 @@ export async function solveSetsFor(ctx: QueryCtx, viewer: ViewerContext): Promis
       solved.add(key);
     }
   }
+
   return { solved, attempted, best };
 }
 
@@ -244,30 +307,39 @@ async function solvedIdsForProfile(ctx: QueryCtx, profileId: Id<"profiles">): Pr
     .query("submissions")
     .withIndex("by_profile_date", (q) => q.eq("profileId", profileId))
     .take(MAX_SCAN);
+
   const solved = new Set<string>();
+
   for (const submission of submissions) {
     if (
       !submission.isArchived &&
       submission.result === "AC" &&
       submission.casePoints >= submission.caseTotal
     ) {
-      solved.add(submission.problemId as string);
+      solved.add(submission.problemId);
     }
   }
+
   return solved;
 }
 
-function stateFor(
-  problemId: string,
-  points: number,
-  sets: SolveSets,
-): { state: ProblemState; bestPoints: number | null } {
+/** The viewer's standing on one problem, as the list and the problem page show it. */
+type SolveState = {
+  state: ProblemState;
+  bestPoints: number | null;
+};
+
+function stateFor(problemId: string, points: number, sets: SolveSets): SolveState {
   const best = sets.best.get(problemId) ?? null;
+
   if (sets.solved.has(problemId)) return { state: "solved", bestPoints: best };
+
   if (sets.attempted.has(problemId)) {
     if (best !== null && best > 0 && best < points) return { state: "partial", bestPoints: best };
+
     return { state: "attempted", bestPoints: best };
   }
+
   return { state: "none", bestPoints: best };
 }
 
@@ -282,8 +354,10 @@ async function profileSummaries(ctx: QueryCtx, ids: readonly Id<"profiles">[]) {
     displayRank: string;
     rating: number | null;
   }[] = [];
+
   for (const id of ids) {
     const row = await ctx.db.get(id);
+
     if (!row) continue;
     out.push({
       id: row._id,
@@ -292,14 +366,8 @@ async function profileSummaries(ctx: QueryCtx, ids: readonly Id<"profiles">[]) {
       rating: row.rating ?? null,
     });
   }
-  return out;
-}
 
-async function profileByUsername(ctx: QueryCtx, username: string) {
-  return await ctx.db
-    .query("profiles")
-    .withIndex("by_username", (q) => q.eq("username", username))
-    .unique();
+  return out;
 }
 
 export async function solutionFor(ctx: QueryCtx, problemId: Id<"problems">) {
@@ -311,15 +379,19 @@ export async function solutionFor(ctx: QueryCtx, problemId: Id<"problems">) {
 
 async function typesFor(ctx: QueryCtx, problem: Doc<"problems">) {
   const out: { id: Id<"problemTypes">; name: string; fullName: string }[] = [];
+
   for (const id of problem.typeIds) {
     const row = await ctx.db.get(id);
+
     if (row) out.push({ id: row._id, name: row.name, fullName: row.fullName });
   }
+
   return out;
 }
 
-async function translationFor(ctx: QueryCtx, problemId: Id<"problems">, language: string) {
+export async function translationFor(ctx: QueryCtx, problemId: Id<"problems">, language: string) {
   if (!language) return null;
+
   return await ctx.db
     .query("problemTranslations")
     .withIndex("by_problem_language", (q) => q.eq("problemId", problemId).eq("language", language))
@@ -329,16 +401,21 @@ async function translationFor(ctx: QueryCtx, problemId: Id<"problems">, language
 /** `ContestFormat.get_label_for_problem`, for the labels the list shows. */
 export function labelFor(contest: Doc<"contests">, index: number): string {
   if (contest.labelScheme === "numbers") return String(index + 1);
+
   if (contest.labelScheme === "custom") {
     const custom = contest.customLabels[index];
+
     if (custom) return custom;
   }
+
   let label = "";
   let n = index;
+
   do {
     label = String.fromCharCode(65 + (n % 26)) + label;
     n = Math.floor(n / 26) - 1;
   } while (n >= 0);
+
   return label;
 }
 
@@ -387,6 +464,13 @@ type ListItem = {
   contestLabel: string | null;
 };
 
+/** The point-filter facet the list returns alongside its items. */
+type PointValues = {
+  min: number;
+  max: number;
+  values: number[];
+};
+
 export const list = query({
   args: {
     search: v.optional(v.string()),
@@ -420,27 +504,36 @@ export const list = query({
     // and no tags, ordered by ContestProblem.order (get_contest_queryset).
     if (viewer.inContest && viewer.contest) {
       const contest = viewer.contest;
+
       const links = await ctx.db
         .query("contestProblems")
         .withIndex("by_contest_order", (q) => q.eq("contestId", contest._id))
         .collect();
+
       links.sort((a, b) => a.order - b.order);
 
       const items: ListItem[] = [];
+
       for (const [index, link] of links.entries()) {
         const problem = await ctx.db.get(link.problemId);
+
         if (!problem) continue;
         const translation = await translationFor(ctx, problem._id, language);
         const group = await ctx.db.get(problem.groupId);
+
         const problemSubmissions = await ctx.db
           .query("submissions")
           .withIndex("by_problem_date", (q) => q.eq("problemId", problem._id))
           .take(MAX_SCAN);
-        const distinct = new Set(
-          problemSubmissions
-            .filter((row) => row.contestId === contest._id && row.participationId)
-            .map((row) => row.participationId as string),
-        );
+
+        const distinct = new Set<Id<"contestParticipations">>();
+
+        for (const row of problemSubmissions) {
+          if (row.contestId === contest._id && row.participationId) {
+            distinct.add(row.participationId);
+          }
+        }
+
         const { state, bestPoints } = stateFor(problem._id, link.points, sets);
         items.push({
           id: problem._id,
@@ -461,6 +554,9 @@ export const list = query({
         });
       }
 
+      // Contest mode hides the point filter, so its facet is empty.
+      const contestPointValues: PointValues = { min: 0, max: 0, values: [] };
+
       return {
         inContest: true,
         contest: {
@@ -477,7 +573,7 @@ export const list = query({
         pageSize: items.length,
         totalPages: 1,
         hasMore: false,
-        pointValues: { min: 0, max: 0, values: [] as number[] },
+        pointValues: contestPointValues,
       };
     }
 
@@ -492,20 +588,26 @@ export const list = query({
         .query("problems")
         .withSearchIndex("search_name_desc", (q) => q.search("name", search))
         .take(500);
+
       const byDescription = await ctx.db
         .query("problems")
         .withSearchIndex("search_description", (q) => q.search("description", search))
         .take(500);
+
       const seen = new Map<string, Doc<"problems">>();
+
       for (const row of [...byName, ...byDescription]) seen.set(row._id, row);
 
       const lowered = search.toLowerCase();
+
       for (const row of await ctx.db.query("problems").take(MAX_SCAN)) {
         if (row.code.includes(lowered)) seen.set(row._id, row);
       }
+
       candidates = [...seen.values()];
     } else {
       candidates = await ctx.db.query("problems").take(MAX_SCAN);
+
       if (search) {
         const lowered = search.toLowerCase();
         candidates = candidates.filter(
@@ -520,22 +622,27 @@ export const list = query({
     // --- Filters ----------------------------------------------------------
     if (args.group) {
       const groupName = args.group;
+
       const group = await ctx.db
         .query("problemGroups")
         .withIndex("by_name", (q) => q.eq("name", groupName))
         .first();
+
       candidates = group ? candidates.filter((row) => row.groupId === group._id) : [];
     }
 
     if (args.types && args.types.length > 0) {
       const wanted = new Set<string>();
+
       for (const name of args.types) {
         const row = await ctx.db
           .query("problemTypes")
           .withIndex("by_name", (q) => q.eq("name", name))
           .first();
+
         if (row) wanted.add(row._id);
       }
+
       candidates = candidates.filter((row) => row.typeIds.some((id) => wanted.has(id)));
     }
 
@@ -552,22 +659,28 @@ export const list = query({
     // `has_public_editorial`, annotated by DMOJ onto the queryset.
     const now = Date.now();
     const editorialByProblem = new Map<string, boolean>();
+
     for (const row of candidates) {
       const solution = await solutionFor(ctx, row._id);
       editorialByProblem.set(row._id, !!solution && solution.isPublic && solution.publishOn <= now);
     }
+
     if (args.hasEditorial) {
       candidates = candidates.filter((row) => editorialByProblem.get(row._id) === true);
     }
 
     // Status, relative to the viewer.
     const status = args.status ?? "all";
+
     if (status !== "all" && viewer.profile) {
       candidates = candidates.filter((row) => {
         const solved = sets.solved.has(row._id);
         const attempted = sets.attempted.has(row._id);
+
         if (status === "solved") return solved;
+
         if (status === "attempted") return attempted && !solved;
+
         return !solved;
       });
     }
@@ -576,13 +689,16 @@ export const list = query({
     if (args.solvedBy && args.solvedBy.length > 0) {
       for (const username of args.solvedBy) {
         const profile = await profileByUsername(ctx, username);
+
         if (!profile) {
           candidates = [];
           break;
         }
+
         const theirs = await solvedIdsForProfile(ctx, profile._id);
         candidates = candidates.filter((row) => theirs.has(row._id));
       }
+
       if (args.solvedByNotMe && viewer.profile) {
         candidates = candidates.filter((row) => !sets.solved.has(row._id));
       }
@@ -590,32 +706,38 @@ export const list = query({
 
     // The point slider is built before the point filter, as DMOJ does.
     const prepoint = candidates;
+
     if (args.pointStart !== undefined) {
       const start = args.pointStart;
       candidates = candidates.filter((row) => row.points >= start);
     }
+
     if (args.pointEnd !== undefined) {
       const end = args.pointEnd;
       candidates = candidates.filter((row) => row.points <= end);
     }
 
     // Contest filter: keep only problems used by the named contests.
-    const contestsById = new Map<string, Doc<"contests">>();
     const labelsByProblem = new Map<string, { contest: Doc<"contests">; label: string }[]>();
+
     if (args.contestKeys && args.contestKeys.length > 0) {
       const allowed = new Set<string>();
+
       for (const key of args.contestKeys) {
         const contest = await ctx.db
           .query("contests")
           .withIndex("by_key", (q) => q.eq("key", key))
           .unique();
+
         if (!contest) continue;
-        contestsById.set(contest._id, contest);
+
         const links = await ctx.db
           .query("contestProblems")
           .withIndex("by_contest_order", (q) => q.eq("contestId", contest._id))
           .collect();
+
         links.sort((a, b) => a.order - b.order);
+
         for (const [index, link] of links.entries()) {
           allowed.add(link.problemId);
           const bucket = labelsByProblem.get(link.problemId) ?? [];
@@ -623,6 +745,7 @@ export const list = query({
           labelsByProblem.set(link.problemId, bucket);
         }
       }
+
       candidates = candidates.filter((row) => allowed.has(row._id));
     }
 
@@ -633,10 +756,12 @@ export const list = query({
     const names = new Map<string, string>();
     const groups = new Map<string, Doc<"problemGroups"> | null>();
     const typeNames = new Map<string, string[]>();
+
     for (const row of candidates) {
       const translation = await translationFor(ctx, row._id, language);
       names.set(row._id, translation?.name ?? row.name);
       groups.set(row._id, await ctx.db.get(row.groupId));
+
       if (args.showTypes) {
         typeNames.set(
           row._id,
@@ -666,8 +791,10 @@ export const list = query({
         case "solved": {
           const rank = (row: Doc<"problems">) =>
             sets.solved.has(row._id) ? 1 : sets.attempted.has(row._id) ? 0 : -1;
+
           return rank(a) - rank(b);
         }
+
         default:
           return a.code.localeCompare(b.code);
       }
@@ -675,7 +802,9 @@ export const list = query({
 
     candidates.sort((a, b) => {
       const primary = compare(a, b);
+
       if (primary !== 0) return descending ? -primary : primary;
+
       // DMOJ breaks every tie on the primary key.
       return a._creationTime - b._creationTime;
     });
@@ -686,6 +815,7 @@ export const list = query({
     const pageRows = candidates.slice(start, start + pageSize);
 
     const items: ListItem[] = [];
+
     for (const row of pageRows) {
       const group = groups.get(row._id) ?? null;
       const { state, bestPoints } = stateFor(row._id, row.points, sets);
@@ -711,26 +841,25 @@ export const list = query({
     // Group-by-contest output for the contest filter and the view toggle.
     let grouped: { contestKey: string; contestName: string; startTime: number; items: ListItem[] }[] | null =
       null;
+
     if ((args.groupByContest ?? false) || (args.contestKeys?.length ?? 0) > 0) {
-      const buckets = new Map<string, ListItem[]>();
+      const buckets = new Map<string, { contest: Doc<"contests">; items: ListItem[] }>();
+
       for (const item of items) {
         for (const { contest, label } of labelsByProblem.get(item.id) ?? []) {
-          contestsById.set(contest._id, contest);
-          const bucket = buckets.get(contest._id) ?? [];
-          bucket.push({ ...item, contestLabel: label });
+          const bucket = buckets.get(contest._id) ?? { contest, items: [] };
+          bucket.items.push({ ...item, contestLabel: label });
           buckets.set(contest._id, bucket);
         }
       }
-      grouped = [...buckets.entries()]
-        .map(([contestId, rows]) => {
-          const contest = contestsById.get(contestId) as Doc<"contests">;
-          return {
-            contestKey: contest.key,
-            contestName: contest.name,
-            startTime: contest.startTime,
-            items: rows,
-          };
-        })
+
+      grouped = [...buckets.values()]
+        .map((bucket) => ({
+          contestKey: bucket.contest.key,
+          contestName: bucket.contest.name,
+          startTime: bucket.contest.startTime,
+          items: bucket.items,
+        }))
         .sort((a, b) => b.startTime - a.startTime);
     }
 
@@ -763,9 +892,11 @@ export const get = query({
   args: { code: v.string(), language: v.optional(v.string()) },
   handler: async (ctx, { code, language }) => {
     const problem = await problemByCode(ctx, code);
+
     if (!problem) return null;
 
     const viewer = await loadViewerContext(ctx);
+
     if (!(await canAccessProblem(ctx, problem, viewer))) return null;
 
     const core = toCoreProblem(problem);
@@ -775,8 +906,9 @@ export const get = query({
 
     // Statement, with the viewer's language translation when there is one.
     const translation = await translationFor(ctx, problem._id, language ?? "");
+
     const statement = {
-      language: translation ? (language as string) : "en",
+      language: translation ? translation.language : "en",
       translated: translation !== null,
       name: translation?.name ?? problem.name,
       source: translation?.description ?? problem.description,
@@ -789,9 +921,12 @@ export const get = query({
       .query("languageLimits")
       .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
       .collect();
+
     const languageLimits = [];
+
     for (const limit of limits) {
       const lang = await ctx.db.get(limit.languageId);
+
       if (!lang) continue;
       languageLimits.push({
         languageKey: lang.key,
@@ -802,12 +937,15 @@ export const get = query({
     }
 
     const allowedLanguages = [];
+
     for (const id of problem.allowedLanguageIds) {
       const lang = await ctx.db.get(id);
+
       if (lang) {
         allowedLanguages.push({ key: lang.key, name: lang.name, shortName: lang.shortName });
       }
     }
+
     const totalLanguages = (await ctx.db.query("languages").collect()).length;
 
     // Types are hidden inside a contest that sets hide_problem_tags.
@@ -823,14 +961,19 @@ export const get = query({
       .query("contestProblems")
       .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
       .collect();
+
     const appearedIn = [];
+
     for (const link of links) {
       const contest = await ctx.db.get(link.contestId);
+
       if (!contest?.isVisible) continue;
+
       const siblings = await ctx.db
         .query("contestProblems")
         .withIndex("by_contest_order", (q) => q.eq("contestId", contest._id))
         .collect();
+
       siblings.sort((a, b) => a.order - b.order);
       const index = siblings.findIndex((row) => row._id === link._id);
       appearedIn.push({
@@ -842,6 +985,7 @@ export const get = query({
         points: link.points,
       });
     }
+
     appearedIn.sort((a, b) => b.startTime - a.startTime);
 
     // Stats strip.
@@ -849,6 +993,7 @@ export const get = query({
       .query("submissions")
       .withIndex("by_problem_date", (q) => q.eq("problemId", problem._id))
       .take(MAX_SCAN);
+
     let attempts = 0;
     let accepted = 0;
     const solvers = new Set<string>();
@@ -856,24 +1001,30 @@ export const get = query({
     let fastestProfileId: Id<"profiles"> | null = null;
     let fastestSubmissionId: Id<"submissions"> | null = null;
     let viewerHasSubmissions = false;
+
     for (const submission of submissions) {
       if (viewer.profile && submission.profileId === viewer.profile._id) {
         viewerHasSubmissions = true;
       }
+
       if (submission.isArchived) continue;
       attempts += 1;
+
       if (!(submission.result === "AC" && submission.casePoints >= submission.caseTotal)) continue;
       accepted += 1;
       solvers.add(submission.profileId);
+
       if (submission.time !== undefined && (bestTime === null || submission.time < bestTime)) {
         bestTime = submission.time;
         fastestProfileId = submission.profileId;
         fastestSubmissionId = submission._id;
       }
     }
+
     const fastest = fastestProfileId ? await ctx.db.get(fastestProfileId) : null;
 
     const solution = await solutionFor(ctx, problem._id);
+
     const canSeeEditorial =
       !!solution &&
       !viewer.inContest &&
@@ -891,7 +1042,9 @@ export const get = query({
     const votePermission = votePermissionForUser(core, viewer.core, {
       hasSolvedProblem: sets.solved.has(problem._id),
     });
+
     let existingVote: Doc<"problemPointsVotes"> | null = null;
+
     if (viewer.profile && voteCanVote(votePermission)) {
       const voterId = viewer.profile._id;
       existingVote = await ctx.db
@@ -904,6 +1057,7 @@ export const get = query({
       .query("judges")
       .withIndex("by_online_tier", (q) => q.eq("online", true))
       .collect();
+
     const availableJudges = onlineJudges.filter((judge) => judge.problemCodes.includes(problem.code)).length;
 
     const bannedFromSubmitting =
@@ -916,12 +1070,15 @@ export const get = query({
     const { state, bestPoints } = stateFor(problem._id, problem.points, sets);
 
     let submissionsLeft: number | null = null;
+
     if (contestProblem?.maxSubmissions && viewer.participation) {
       const participationId = viewer.participation._id;
+
       const contestSubs = await ctx.db
         .query("submissions")
         .withIndex("by_participation", (q) => q.eq("participationId", participationId))
         .collect();
+
       const used = contestSubs.filter((row) => row.problemId === problem._id && row.status !== "IE").length;
       submissionsLeft = Math.max(contestProblem.maxSubmissions - used, 0);
     }
@@ -1044,57 +1201,76 @@ export const random = query({
   },
   handler: async (ctx, args) => {
     const viewer = await loadViewerContext(ctx);
+
     // DMOJ 404s /problems/random/ inside a contest.
     if (viewer.inContest) return null;
 
     const sets = await solveSetsFor(ctx, viewer);
+
     let candidates = (await ctx.db.query("problems").take(MAX_SCAN)).filter((row) =>
       problemIsVisibleTo(toCoreProblem(row), viewer.core),
     );
 
     if (args.group) {
       const groupName = args.group;
+
       const group = await ctx.db
         .query("problemGroups")
         .withIndex("by_name", (q) => q.eq("name", groupName))
         .first();
+
       candidates = group ? candidates.filter((row) => row.groupId === group._id) : [];
     }
+
     if (args.types && args.types.length > 0) {
       const wanted = new Set<string>();
+
       for (const name of args.types) {
         const row = await ctx.db
           .query("problemTypes")
           .withIndex("by_name", (q) => q.eq("name", name))
           .first();
+
         if (row) wanted.add(row._id);
       }
+
       candidates = candidates.filter((row) => row.typeIds.some((id) => wanted.has(id)));
     }
+
     if (args.pointStart !== undefined) {
       const start = args.pointStart;
       candidates = candidates.filter((row) => row.points >= start);
     }
+
     if (args.pointEnd !== undefined) {
       const end = args.pointEnd;
       candidates = candidates.filter((row) => row.points <= end);
     }
+
     if (args.hasEditorial) {
       const now = Date.now();
       const keep: Doc<"problems">[] = [];
+
       for (const row of candidates) {
         const solution = await solutionFor(ctx, row._id);
+
         if (solution?.isPublic && solution.publishOn <= now) keep.push(row);
       }
+
       candidates = keep;
     }
+
     const status = args.status ?? "all";
+
     if (status !== "all" && viewer.profile) {
       candidates = candidates.filter((row) => {
         const solved = sets.solved.has(row._id);
         const attempted = sets.attempted.has(row._id);
+
         if (status === "solved") return solved;
+
         if (status === "attempted") return attempted && !solved;
+
         return !solved;
       });
     }
@@ -1103,7 +1279,9 @@ export const random = query({
     // The seed keeps the query deterministic, which a reactive query has to be.
     const seed = args.seed ?? Math.floor(Date.now() / 1000);
     const index = Math.abs(Math.floor(seed)) % candidates.length;
-    return { code: (candidates[index] as Doc<"problems">).code };
+    const picked = candidates[index];
+
+    return picked ? { code: picked.code } : null;
   },
 });
 
@@ -1115,14 +1293,18 @@ export const editorial = query({
   args: { code: v.string() },
   handler: async (ctx, { code }) => {
     const problem = await problemByCode(ctx, code);
+
     if (!problem) return null;
 
     const viewer = await loadViewerContext(ctx);
+
     if (!(await canAccessProblem(ctx, problem, viewer))) return null;
+
     // ProblemSolution 404s while the viewer is in a contest.
     if (viewer.inContest) return null;
 
     const solution = await solutionFor(ctx, problem._id);
+
     if (!solution) return null;
 
     const accessible = solutionIsAccessibleBy(
@@ -1134,9 +1316,11 @@ export const editorial = query({
       toCoreProblem(problem),
       viewer.core,
     );
+
     if (!accessible) return null;
 
     const sets = await solveSetsFor(ctx, viewer);
+
     return {
       problemCode: problem.code,
       problemName: problem.name,
@@ -1168,27 +1352,33 @@ export const ranks = query({
   },
   handler: async (ctx, args) => {
     const problem = await problemByCode(ctx, args.code);
+
     if (!problem) return null;
 
     const viewer = await loadViewerContext(ctx);
+
     if (!(await canAccessProblem(ctx, problem, viewer))) return null;
 
     let contest: Doc<"contests"> | null = null;
+
     if (args.contestKey) {
       const key = args.contestKey;
       contest = await ctx.db
         .query("contests")
         .withIndex("by_key", (q) => q.eq("key", key))
         .unique();
+
       if (!contest) return null;
     }
 
     const wantedLanguageIds = new Set<string>();
+
     for (const key of args.languages ?? []) {
       const lang = await ctx.db
         .query("languages")
         .withIndex("by_key", (q) => q.eq("key", key))
         .first();
+
       if (lang) wantedLanguageIds.add(lang._id);
     }
 
@@ -1200,19 +1390,25 @@ export const ranks = query({
     const scoreOf = (row: Doc<"submissions">) => (contest ? (row.contestPoints ?? 0) : (row.points ?? 0));
 
     const best = new Map<string, Doc<"submissions">>();
+
     for (const submission of submissions) {
       if (submission.isArchived) continue;
+
       if (contest && submission.contestId !== contest._id) continue;
+
       if (wantedLanguageIds.size > 0 && !wantedLanguageIds.has(submission.languageId)) continue;
+
       if (scoreOf(submission) <= 0) continue;
 
       const author = await ctx.db.get(submission.profileId);
+
       if (!author || author.isUnlisted) continue;
 
-      const key = submission.profileId as string;
+      const key = submission.profileId;
       const current = best.get(key);
       const currentScore = current ? scoreOf(current) : Number.NEGATIVE_INFINITY;
       const score = scoreOf(submission);
+
       if (
         score > currentScore ||
         (score === currentScore &&
@@ -1224,26 +1420,34 @@ export const ranks = query({
 
     // Per-language breakdown over every counted submission, not just the best.
     const perLanguage = new Map<string, { total: number; accepted: number; bestTime: number | null }>();
+
     for (const submission of submissions) {
       if (submission.isArchived) continue;
+
       if (contest && submission.contestId !== contest._id) continue;
       const lang = await ctx.db.get(submission.languageId);
+
       if (!lang) continue;
       const entry = perLanguage.get(lang.key) ?? { total: 0, accepted: 0, bestTime: null };
       entry.total += 1;
+
       if (submission.result === "AC" && submission.casePoints >= submission.caseTotal) {
         entry.accepted += 1;
+
         if (submission.time !== undefined && (entry.bestTime === null || submission.time < entry.bestTime)) {
           entry.bestTime = submission.time;
         }
       }
+
       perLanguage.set(lang.key, entry);
     }
 
     const rows = [];
+
     for (const submission of best.values()) {
       const author = await ctx.db.get(submission.profileId);
       const lang = await ctx.db.get(submission.languageId);
+
       if (!author || !lang) continue;
       rows.push({
         submissionId: submission._id,
@@ -1258,12 +1462,15 @@ export const ranks = query({
         language: { key: lang.key, name: lang.name, shortName: lang.shortName },
       });
     }
+
     rows.sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
+
       return (a.time ?? Number.POSITIVE_INFINITY) - (b.time ?? Number.POSITIVE_INFINITY);
     });
 
     const limit = Math.max(1, Math.min(Math.floor(args.limit ?? 100), 1000));
+
     return {
       problemCode: problem.code,
       problemName: problem.name,
@@ -1279,116 +1486,6 @@ export const ranks = query({
           bestTime: value.bestTime,
         }))
         .sort((a, b) => b.total - a.total),
-    };
-  },
-});
-
-/* -------------------------------------------------------------------------- */
-/* Points voting                                                              */
-/* -------------------------------------------------------------------------- */
-
-async function voteContext(ctx: QueryCtx, code: string) {
-  const problem = await problemByCode(ctx, code);
-  if (!problem) throw notFound("Problem");
-  const viewer = await loadViewerContext(ctx);
-  if (!(await canAccessProblem(ctx, problem, viewer))) throw notFound("Problem");
-  const sets = await solveSetsFor(ctx, viewer);
-  const permission = votePermissionForUser(toCoreProblem(problem), viewer.core, {
-    hasSolvedProblem: sets.solved.has(problem._id),
-  });
-  return { problem, viewer, permission };
-}
-
-export const vote = mutation({
-  args: { code: v.string(), points: v.number(), note: v.optional(v.string()) },
-  handler: async (ctx, { code, points, note }) => {
-    const profile = await requireViewer(ctx);
-    const { problem, permission } = await voteContext(ctx, code);
-    if (!voteCanVote(permission)) {
-      throw forbidden("Not allowed to vote on this problem.");
-    }
-    if (!Number.isInteger(points)) {
-      throw invalid("Proposed points must be a whole number.");
-    }
-    if (points < MIN_USER_POINTS_VOTE || points > MAX_USER_POINTS_VOTE) {
-      throw invalid(`Proposed points must be between ${MIN_USER_POINTS_VOTE} and ${MAX_USER_POINTS_VOTE}.`);
-    }
-    const body = note ?? "";
-    if (body.length > 8192) throw invalid("The note is too long.");
-
-    // DMOJ deletes any pre-existing vote inside the transaction, then inserts.
-    const existing = await ctx.db
-      .query("problemPointsVotes")
-      .withIndex("by_voter_problem", (q) => q.eq("voterProfileId", profile._id).eq("problemId", problem._id))
-      .unique();
-    if (existing) await ctx.db.delete(existing._id);
-
-    await ctx.db.insert("problemPointsVotes", {
-      points,
-      voterProfileId: profile._id,
-      problemId: problem._id,
-      voteTime: Date.now(),
-      note: body,
-    });
-    return { points };
-  },
-});
-
-export const deleteVote = mutation({
-  args: { code: v.string() },
-  handler: async (ctx, { code }) => {
-    const profile = await requireViewer(ctx);
-    const { problem, permission } = await voteContext(ctx, code);
-    if (!voteCanVote(permission)) {
-      throw forbidden("Not allowed to delete votes on this problem.");
-    }
-    const existing = await ctx.db
-      .query("problemPointsVotes")
-      .withIndex("by_voter_problem", (q) => q.eq("voterProfileId", profile._id).eq("problemId", problem._id))
-      .unique();
-    if (existing) await ctx.db.delete(existing._id);
-    return { ok: true };
-  },
-});
-
-export const voteStats = query({
-  args: { code: v.string() },
-  handler: async (ctx, { code }) => {
-    const problem = await problemByCode(ctx, code);
-    if (!problem) return null;
-    const viewer = await loadViewerContext(ctx);
-    if (!(await canAccessProblem(ctx, problem, viewer))) return null;
-
-    const sets = await solveSetsFor(ctx, viewer);
-    const permission = votePermissionForUser(toCoreProblem(problem), viewer.core, {
-      hasSolvedProblem: sets.solved.has(problem._id),
-    });
-    if (!voteCanView(permission)) return null;
-
-    const rows = await ctx.db
-      .query("problemPointsVotes")
-      .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
-      .collect();
-    const votes = rows.map((row) => row.points).sort((a, b) => a - b);
-
-    let meanValue: number | null = null;
-    let medianValue: number | null = null;
-    if (votes.length > 0) {
-      meanValue = votes.reduce((sum, value) => sum + value, 0) / votes.length;
-      const mid = Math.floor(votes.length / 2);
-      medianValue =
-        votes.length % 2 === 1
-          ? (votes[mid] as number)
-          : ((votes[mid - 1] as number) + (votes[mid] as number)) / 2;
-    }
-
-    return {
-      votes,
-      mean: meanValue,
-      median: medianValue,
-      minPossibleVote: MIN_USER_POINTS_VOTE,
-      maxPossibleVote: MAX_USER_POINTS_VOTE,
-      currentPoints: problem.points,
     };
   },
 });
@@ -1423,31 +1520,43 @@ export const hotProblems = query({
         .query("submissions")
         .withIndex("by_problem_date", (q) => q.eq("problemId", problem._id).gt("date", since))
         .take(MAX_SCAN);
+
       if (submissions.length === 0) continue;
       const entry = { users: new Set<string>(), volume: 0, acVolume: 0 };
+
       for (const submission of submissions) {
         entry.users.add(submission.profileId);
+
         if (submission.result && volumeResults.has(submission.result)) entry.volume += 1;
+
         if (submission.result === "AC") entry.acVolume += 1;
       }
+
       stats.set(problem._id, entry);
     }
 
     const counted = [...stats.values()].map((entry) => entry.users.size);
+
     if (counted.length === 0) return [];
     const mx = Math.max(...counted);
+
     if (mx === 0) return [];
     const threshold = Math.max(mx / 3, 1);
 
     const scored = [];
+
     for (const problem of problems) {
       const entry = stats.get(problem._id);
+
       if (!entry) continue;
       const unique = entry.users.size;
+
       if (unique <= threshold) continue;
       const ratio = entry.volume > 0 ? entry.acVolume / entry.volume : 0;
+
       const ordering =
         0.5 * problem.points * (0.4 * ratio + 0.6 * problem.acRate) + 100 * Math.E ** (unique / mx);
+
       scored.push({
         id: problem._id,
         code: problem.code,
@@ -1461,6 +1570,7 @@ export const hotProblems = query({
     }
 
     scored.sort((a, b) => b.ordering - a.ordering);
+
     return scored.slice(0, limit);
   },
 });
@@ -1477,6 +1587,7 @@ export const recent = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, { limit }): Promise<RecentProblem[]> => {
     const take = Math.max(1, Math.min(limit ?? 7, 25));
+
     const rows = await ctx.db
       .query("problems")
       .withIndex("by_public_date", (q) => q.eq("isPublic", true))
@@ -1504,7 +1615,9 @@ export const languageTemplate = query({
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", languageKey))
       .first();
+
     if (!language) return null;
+
     return {
       key: language.key,
       name: language.name,
@@ -1520,154 +1633,19 @@ export const clarifications = query({
   args: { code: v.string() },
   handler: async (ctx, { code }) => {
     const problem = await problemByCode(ctx, code);
+
     if (!problem) return null;
     const viewer = await loadViewerContext(ctx);
+
     if (!(await canAccessProblem(ctx, problem, viewer))) return null;
 
     const rows = await ctx.db
       .query("problemClarifications")
       .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
       .collect();
+
     rows.sort((a, b) => b.date - a.date);
+
     return rows.map((row) => ({ id: row._id, description: row.description, date: row.date }));
-  },
-});
-
-/* -------------------------------------------------------------------------- */
-/* PDF cache                                                                  */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Everything `/problem/[code]/pdf` needs in one read: the statement to render,
- * the info-box values the Typst template prints, and whatever is already in the
- * `pdfCache` for this problem and language.
- *
- * The route hashes `statement + meta` itself and compares against
- * `cached.sourceHash`, so a statement edit invalidates the cache without the
- * query having to hash anything (which would make it non-deterministic to
- * re-run when the template changes).
- */
-export const pdfSource = query({
-  args: { code: v.string(), language: v.optional(v.string()) },
-  handler: async (ctx, { code, language }) => {
-    const problem = await problemByCode(ctx, code);
-    if (!problem) return null;
-
-    const viewer = await loadViewerContext(ctx);
-    if (!(await canAccessProblem(ctx, problem, viewer))) return null;
-
-    const lang = language ?? "en";
-    const translation = await translationFor(ctx, problem._id, lang);
-
-    const authors: string[] = [];
-    for (const id of problem.authorProfileIds) {
-      const row = await ctx.db.get(id);
-      if (row) authors.push(row.username);
-    }
-
-    // The Typst template prints a python time limit when there is one.
-    const limits = await ctx.db
-      .query("languageLimits")
-      .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
-      .collect();
-    let pythonTimeLimit: number | null = null;
-    for (const limit of limits) {
-      const lang3 = await ctx.db.get(limit.languageId);
-      if (lang3 && (lang3.key === "PY3" || lang3.key.toLowerCase().startsWith("py"))) {
-        pythonTimeLimit = limit.timeLimit;
-        break;
-      }
-    }
-
-    const cached = await ctx.db
-      .query("pdfCache")
-      .withIndex("by_problem_language", (q) => q.eq("problemCode", problem.code).eq("language", lang))
-      .unique();
-
-    return {
-      code: problem.code,
-      language: lang,
-      statement: translation?.description ?? problem.description,
-      meta: {
-        name: translation?.name ?? problem.name,
-        code: problem.code,
-        points: problem.points,
-        timeLimit: problem.timeLimit,
-        memoryLimit: problem.memoryLimit,
-        pythonTimeLimit,
-        authors,
-        inputType: "standard input",
-        outputType: "standard output",
-      },
-      cached: cached
-        ? {
-            sourceHash: cached.sourceHash,
-            url: await ctx.storage.getUrl(cached.storageId),
-            renderedAt: cached.renderedAt,
-          }
-        : null,
-    };
-  },
-});
-
-/** An upload slot for a freshly rendered PDF; access-checked like the read. */
-export const pdfUploadUrl = mutation({
-  args: { code: v.string() },
-  handler: async (ctx, { code }) => {
-    const problem = await problemByCode(ctx, code);
-    if (!problem) throw notFound("Problem");
-    const viewer = await loadViewerContext(ctx);
-    if (!(await canAccessProblem(ctx, problem, viewer))) throw notFound("Problem");
-    return await ctx.storage.generateUploadUrl();
-  },
-});
-
-export const savePdf = mutation({
-  args: {
-    code: v.string(),
-    language: v.string(),
-    sourceHash: v.string(),
-    storageId: v.id("_storage"),
-  },
-  handler: async (ctx, args) => {
-    const problem = await problemByCode(ctx, args.code);
-    if (!problem) throw notFound("Problem");
-    const viewer = await loadViewerContext(ctx);
-    if (!(await canAccessProblem(ctx, problem, viewer))) throw notFound("Problem");
-
-    const existing = await ctx.db
-      .query("pdfCache")
-      .withIndex("by_problem_language", (q) =>
-        q.eq("problemCode", problem.code).eq("language", args.language),
-      )
-      .unique();
-
-    if (existing) {
-      if (existing.storageId !== args.storageId) await ctx.storage.delete(existing.storageId);
-      await ctx.db.patch(existing._id, {
-        storageId: args.storageId,
-        sourceHash: args.sourceHash,
-        renderedAt: Date.now(),
-      });
-    } else {
-      await ctx.db.insert("pdfCache", {
-        problemCode: problem.code,
-        language: args.language,
-        storageId: args.storageId,
-        sourceHash: args.sourceHash,
-        renderedAt: Date.now(),
-      });
-    }
-
-    await ctx.db.insert("uploads", {
-      storageId: args.storageId,
-      uploaderProfileId: viewer.profile?._id,
-      kind: "pdf",
-      name: `${problem.code}.${args.language}.pdf`,
-      createdAt: Date.now(),
-      cacheKey: `pdf:${problem.code}:${args.language}:${args.sourceHash}`,
-    });
-
-    return { ok: true };
   },
 });

@@ -24,22 +24,29 @@ export function DisableTwoFactorForm({ blocked }: { blocked: boolean }) {
     event.preventDefault();
     setBusy(true);
     setError(null);
+
     try {
       // DMOJ takes a six digit code or a scratch code here; both are accepted.
       const digits = code.replace(/\s+/g, "");
+
       const verified = /^\d{6}$/.test(digits)
         ? await authClient.twoFactor.verifyTotp({ code: digits })
         : await authClient.twoFactor.verifyBackupCode({ code: digits });
+
       if (verified.error) {
         setError(t("disable.wrongCode"));
+
         return;
       }
 
       const result = await authClient.twoFactor.disable({ password });
+
       if (result.error) {
         setError(result.error.message ?? t("disable.failed"));
+
         return;
       }
+
       router.push("/accounts/2fa/");
       router.refresh();
     } catch {

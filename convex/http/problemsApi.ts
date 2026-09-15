@@ -26,11 +26,13 @@ import {
   type ApiErrorCode,
   MAX_IMAGE_BYTES,
   PROBLEMS_WRITE_SCOPE,
+  type ProblemUpsertResponse,
   problemTestDataInput,
   problemUpsertInput,
 } from "@moj/protocol";
 import type { HttpRouter } from "convex/server";
-import { v } from "convex/values";
+import { type Value, v } from "convex/values";
+import { z } from "zod";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import {
@@ -40,10 +42,12 @@ import {
   internalQuery,
   type MutationCtx,
 } from "../_generated/server";
-import { groupIdByName, typeIdsByName, writeRevision } from "../admin/problems";
-import { inspectArchive } from "../problemData";
-import { problemByCode, toCoreProblem } from "../problems";
-import { MAX_VALIDATED_ARCHIVE_BYTES } from "../problemTestData";
+import { groupIdByName, typeIdsByName, writeProblemRevision } from "../admin/problems";
+import { sha256Hex } from "../lib/hash";
+import type { JsonValue } from "../lib/json";
+import { PROBLEM_CODE_PATTERN, problemByCode, toCoreProblem } from "../problems";
+import { inspectArchive } from "../problems/data";
+import { MAX_VALIDATED_ARCHIVE_BYTES } from "../problems/testData";
 
 /* -------------------------------------------------------------------------- */
 /* Responses                                                                  */
@@ -51,7 +55,7 @@ import { MAX_VALIDATED_ARCHIVE_BYTES } from "../problemTestData";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8" } as const;
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: Value, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
 }
 
@@ -70,17 +74,26 @@ export type ApiKeyIdentity = {
   source: "better-auth" | "table";
 };
 
-async function sha256Hex(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 function bearerToken(request: Request): string | null {
   const header = request.headers.get("authorization") ?? request.headers.get("Authorization");
+
   if (!header) return null;
   const match = /^Bearer\s+(.+)$/i.exec(header.trim());
+
   return match?.[1]?.trim() || null;
 }
+
+/** What `POST /api/auth/api-key/verify` answers, of the fields this reads. */
+const verifyResponseSchema = z.object({
+  valid: z.boolean().optional(),
+  key: z
+    .object({
+      userId: z.string().optional(),
+      permissions: z.record(z.string(), z.array(z.string())).nullish(),
+      enabled: z.boolean().optional(),
+    })
+    .optional(),
+});
 
 /**
  * Better Auth's api-key plugin exposes `POST /api/auth/api-key/verify`, which
@@ -91,9 +104,11 @@ async function verifyWithBetterAuth(
   key: string,
 ): Promise<{ userId: string; scopes: string[] } | null | "unreachable"> {
   const base = process.env.AUTH_URL;
+
   if (!base) return "unreachable";
 
   let response: Response;
+
   try {
     response = await fetch(`${base.replace(/\/+$/, "")}/api/auth/api-key/verify`, {
       method: "POST",
@@ -103,27 +118,36 @@ async function verifyWithBetterAuth(
   } catch {
     return "unreachable";
   }
+
   if (response.status >= 500) return "unreachable";
+
   if (!response.ok) return null;
 
-  let body: {
-    valid?: boolean;
-    key?: { userId?: string; permissions?: Record<string, string[]> | null; enabled?: boolean };
-  };
+  let payload: JsonValue | null;
+
   try {
-    body = (await response.json()) as typeof body;
+    payload = await response.json();
   } catch {
     return null;
   }
+
+  const verified = verifyResponseSchema.safeParse(payload);
+
+  if (!verified.success) return null;
+  const body = verified.data;
+
   if (!body.valid || !body.key?.userId) return null;
+
   if (body.key.enabled === false) return null;
 
   // Better Auth models scopes as `{resource: [action, ...]}`; the wire scope
   // `problems:write` is `{problems: ["write"]}`.
   const scopes: string[] = [];
+
   for (const [resource, actions] of Object.entries(body.key.permissions ?? {})) {
     for (const action of actions ?? []) scopes.push(`${resource}:${action}`);
   }
+
   return { userId: body.key.userId, scopes };
 }
 
@@ -134,6 +158,7 @@ export const profileForUserId = internalQuery({
       .query("profiles")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .unique();
+
     return profile ? { profileId: profile._id, username: profile.username } : null;
   },
 });
@@ -146,10 +171,14 @@ export const profileForKeyHash = internalQuery({
       .query("apiKeys")
       .withIndex("by_keyHash", (q) => q.eq("keyHash", keyHash))
       .unique();
+
     if (!row?.enabled) return null;
+
     if (row.expiresAt !== undefined && row.expiresAt <= Date.now()) return null;
     const profile = await ctx.db.get(row.profileId);
+
     if (!profile) return null;
+
     return { profileId: profile._id, username: profile.username, scopes: row.scopes };
   },
 });
@@ -161,36 +190,42 @@ export const touchApiKey = internalMutation({
       .query("apiKeys")
       .withIndex("by_keyHash", (q) => q.eq("keyHash", keyHash))
       .unique();
+
     if (row) await ctx.db.patch(row._id, { lastUsedAt: Date.now() });
   },
 });
 
 async function authenticate(ctx: ActionCtx, request: Request): Promise<ApiKeyIdentity | null> {
   const key = bearerToken(request);
+
   if (!key) return null;
 
   const verified = await verifyWithBetterAuth(key);
+
   if (verified && verified !== "unreachable") {
     const profile = await ctx.runQuery(internal.http.problemsApi.profileForUserId, {
       userId: verified.userId,
     });
+
     if (!profile) return null;
+
     return { ...profile, scopes: verified.scopes, source: "better-auth" };
   }
+
   if (verified === null) return null;
 
   const keyHash = await sha256Hex(key);
   const row = await ctx.runQuery(internal.http.problemsApi.profileForKeyHash, { keyHash });
+
   if (!row) return null;
   await ctx.runMutation(internal.http.problemsApi.touchApiKey, { keyHash });
+
   return { ...row, source: "table" };
 }
 
 /* -------------------------------------------------------------------------- */
 /* The upsert                                                                 */
 /* -------------------------------------------------------------------------- */
-
-const CODE_PATTERN = /^[a-z.0-9]+$/;
 
 const languageLimitValidator = v.object({
   timeLimit: v.number(),
@@ -233,9 +268,11 @@ export const upsertProblem = internalMutation({
   },
   handler: async (ctx, { code, actorProfileId, body }) => {
     const actor = await ctx.db.get(actorProfileId);
+
     if (!actor) {
       return { status: "forbidden" as const, message: "The API key has no profile." };
     }
+
     const core = {
       id: actor._id,
       username: actor.username,
@@ -247,17 +284,20 @@ export const upsertProblem = internalMutation({
     const existing = await problemByCode(ctx, code);
     const created = existing === null;
     const warnings: string[] = [];
+    const name = body.name?.trim() ?? "";
 
     if (created) {
-      if (!CODE_PATTERN.test(code) || code.length > 20) {
+      if (!PROBLEM_CODE_PATTERN.test(code) || code.length > 20) {
         return {
           status: "invalid" as const,
           message: "Problem codes may only contain lowercase letters, digits and dots.",
         };
       }
-      if (!body.name?.trim()) {
+
+      if (!name) {
         return { status: "invalid" as const, message: "A new problem requires a name." };
       }
+
       if (!hasPerm(core, "judge.edit_own_problem")) {
         return { status: "forbidden" as const, message: "Missing permission judge.edit_own_problem." };
       }
@@ -274,14 +314,17 @@ export const upsertProblem = internalMutation({
 
     const resolveProfiles = async (usernames: readonly string[]) => {
       const ids: Id<"profiles">[] = [];
+
       for (const username of usernames) {
         const row = await ctx.db
           .query("profiles")
           .withIndex("by_username", (q) => q.eq("username", username))
           .unique();
+
         if (row) ids.push(row._id);
         else warnings.push(`No such user: ${username}`);
       }
+
       return ids;
     };
 
@@ -293,18 +336,20 @@ export const upsertProblem = internalMutation({
     if (created) {
       // Create-only fields: group, types, publishOn, checkAll.
       const groupId = await groupIdByName(ctx, body.group ?? "uncategorized", true);
+
       const typeIds = await typeIdsByName(
         ctx,
         body.types && body.types.length > 0 ? body.types : ["uncategorized"],
         true,
       );
+
       // `checkAll` on the add form ticks every allowed language; the uploader
       // always sets it, so all languages is the create default either way.
       const allLanguages = await ctx.db.query("languages").collect();
 
       problemId = await ctx.db.insert("problems", {
         code,
-        name: (body.name as string).trim(),
+        name,
         description: body.statement ?? "",
         authorProfileIds: wantsPeople(body.authors) ? await resolveProfiles(body.authors ?? []) : [],
         curatorProfileIds: wantsPeople(body.curators) ? await resolveProfiles(body.curators ?? []) : [],
@@ -332,25 +377,38 @@ export const upsertProblem = internalMutation({
     } else {
       problemId = existing._id;
       const patch: Partial<Doc<"problems">> = {};
+
       // Absent means unchanged, exactly as the uploader's `*Provided` flags did.
-      if (body.name?.trim()) patch.name = body.name.trim();
+      if (name) patch.name = name;
+
       if (body.statement !== undefined) patch.description = body.statement;
+
       if (body.points !== undefined) patch.points = body.points;
+
       if (body.timeLimit !== undefined) patch.timeLimit = body.timeLimit;
+
       if (body.memoryLimit !== undefined) patch.memoryLimit = body.memoryLimit;
+
       if (body.shortCircuit !== undefined) patch.shortCircuit = body.shortCircuit;
+
       if (body.partial !== undefined) patch.partial = body.partial;
+
       if (body.isPublic !== undefined) patch.isPublic = body.isPublic;
+
       if (body.summary !== undefined) patch.summary = body.summary;
+
       if (wantsPeople(body.authors)) {
         patch.authorProfileIds = await resolveProfiles(body.authors ?? []);
       }
+
       if (wantsPeople(body.curators)) {
         patch.curatorProfileIds = await resolveProfiles(body.curators ?? []);
       }
+
       if (wantsPeople(body.testers)) {
         patch.testerProfileIds = await resolveProfiles(body.testers ?? []);
       }
+
       // group, types, publishOn and checkAll are create-only and ignored here.
       if (Object.keys(patch).length > 0) await ctx.db.patch(problemId, patch);
     }
@@ -361,13 +419,17 @@ export const upsertProblem = internalMutation({
         .query("languageLimits")
         .withIndex("by_problem", (q) => q.eq("problemId", problemId))
         .collect();
+
       for (const [key, limit] of Object.entries(body.languageLimits)) {
         const language = await languageForKey(ctx, key);
+
         if (!language) {
           warnings.push(`No such language: ${key}`);
           continue;
         }
+
         const current = rows.find((row) => row.languageId === language._id);
+
         if (current) {
           await ctx.db.patch(current._id, {
             timeLimit: limit.timeLimit,
@@ -391,8 +453,10 @@ export const upsertProblem = internalMutation({
         .query("solutions")
         .withIndex("by_problem", (q) => q.eq("problemId", problemId))
         .unique();
+
       const isPublic = body.editorial.isPublic ?? true;
       const publishOn = body.editorial.publishOn ?? Date.now();
+
       if (solution) {
         await ctx.db.patch(solution._id, { content: body.editorial.content, isPublic, publishOn });
       } else {
@@ -406,40 +470,54 @@ export const upsertProblem = internalMutation({
       }
     }
 
-    await writeRevision(
+    await writeProblemRevision(
       ctx,
       problemId,
       actorProfileId,
       created ? "Created through the problems API." : "Updated through the problems API.",
     );
 
+    // SAFETY: `problemId` was inserted or patched in this transaction, so the read hits.
     const problem = (await ctx.db.get(problemId)) as Doc<"problems">;
     const group = await ctx.db.get(problem.groupId);
     const typeNames: string[] = [];
+
     for (const id of problem.typeIds) {
       const row = await ctx.db.get(id);
+
       if (row) typeNames.push(row.name);
     }
+
     const usernames = async (ids: readonly Id<"profiles">[]) => {
       const out: string[] = [];
+
       for (const id of ids) {
         const row = await ctx.db.get(id);
+
         if (row) out.push(row.username);
       }
+
       return out;
     };
+
     const languageKeys: string[] = [];
+
     for (const id of problem.allowedLanguageIds) {
       const row = await ctx.db.get(id);
+
       if (row) languageKeys.push(row.key);
     }
+
     const limitRows = await ctx.db
       .query("languageLimits")
       .withIndex("by_problem", (q) => q.eq("problemId", problemId))
       .collect();
+
     const languageLimits: Record<string, { timeLimit: number; memoryLimit: number }> = {};
+
     for (const row of limitRows) {
       const language = await ctx.db.get(row.languageId);
+
       if (language) {
         languageLimits[language.key] = {
           timeLimit: row.timeLimit,
@@ -447,6 +525,7 @@ export const upsertProblem = internalMutation({
         };
       }
     }
+
     const solution = await ctx.db
       .query("solutions")
       .withIndex("by_problem", (q) => q.eq("problemId", problemId))
@@ -486,6 +565,7 @@ export const problemSummaryFor = internalQuery({
   args: { code: v.string() },
   handler: async (ctx, { code }) => {
     const problem = await problemByCode(ctx, code);
+
     return problem ? { id: problem._id, code: problem.code } : null;
   },
 });
@@ -504,6 +584,7 @@ export const recordUpload = internalMutation({
           .withIndex("by_cacheKey", (q) => q.eq("cacheKey", args.cacheKey))
           .first()
       : null;
+
     if (existing) return { storageId: existing.storageId, reused: true };
 
     await ctx.db.insert("uploads", {
@@ -514,12 +595,14 @@ export const recordUpload = internalMutation({
       createdAt: Date.now(),
       cacheKey: args.cacheKey,
     });
+
     return { storageId: args.storageId, reused: false };
   },
 });
 
 function imageLink(storageId: string): string {
   const base = (process.env.CONVEX_SITE_URL ?? "").replace(/\/+$/, "");
+
   return `${base}/api/problems/images/${storageId}`;
 }
 
@@ -528,23 +611,30 @@ function imageLink(storageId: string): string {
 /* -------------------------------------------------------------------------- */
 
 const UPSERT_PATH = /^\/api\/problems\/([a-z.0-9]+)\/?$/;
+
 const IMAGES_PATH = /^\/api\/problems\/([a-z.0-9]+)\/images\/?$/;
+
 const IMAGE_FETCH_PATH = /^\/api\/problems\/images\/([^/]+)\/?$/;
+
 const DATA_PATH = /^\/api\/problems\/([a-z.0-9]+)\/data\/?$/;
+
 const DATA_UPLOAD_URL_PATH = /^\/api\/problems\/([a-z.0-9]+)\/data\/upload-url\/?$/;
 
 const upsertHandler = httpAction(async (ctx, request) => {
-  const match = UPSERT_PATH.exec(new URL(request.url).pathname);
-  if (!match) return errorResponse("not_found", "No such endpoint.");
-  const code = match[1] as string;
+  const [, code] = UPSERT_PATH.exec(new URL(request.url).pathname) ?? [];
+
+  if (code === undefined) return errorResponse("not_found", "No such endpoint.");
 
   const identity = await authenticate(ctx, request);
+
   if (!identity) return errorResponse("unauthenticated", "A valid API key is required.");
+
   if (!identity.scopes.includes(PROBLEMS_WRITE_SCOPE)) {
     return errorResponse("forbidden", `This API key lacks the ${PROBLEMS_WRITE_SCOPE} scope.`);
   }
 
   let raw: unknown;
+
   try {
     raw = await request.json();
   } catch {
@@ -552,9 +642,11 @@ const upsertHandler = httpAction(async (ctx, request) => {
   }
 
   const parsed = problemUpsertInput.safeParse(raw);
+
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
     const where = issue?.path.join(".");
+
     return errorResponse(
       "invalid",
       where ? `${where}: ${issue?.message}` : (issue?.message ?? "The request body is invalid."),
@@ -568,42 +660,53 @@ const upsertHandler = httpAction(async (ctx, request) => {
   });
 
   if (result.status === "forbidden") return errorResponse("forbidden", result.message);
+
   if (result.status === "invalid") return errorResponse("invalid", result.message);
 
-  return jsonResponse({
+  const response: ProblemUpsertResponse = {
     ok: true,
     created: result.created,
     problem: result.problem,
-    ...(result.warnings.length > 0 ? { warnings: result.warnings } : {}),
-  });
+  };
+
+  if (result.warnings.length > 0) response.warnings = result.warnings;
+
+  return jsonResponse(response);
 });
 
 async function uploadImage(ctx: ActionCtx, request: Request): Promise<Response> {
-  const match = IMAGES_PATH.exec(new URL(request.url).pathname);
-  if (!match) return errorResponse("not_found", "No such endpoint.");
-  const code = match[1] as string;
+  const [, code] = IMAGES_PATH.exec(new URL(request.url).pathname) ?? [];
+
+  if (code === undefined) return errorResponse("not_found", "No such endpoint.");
 
   const identity = await authenticate(ctx, request);
+
   if (!identity) return errorResponse("unauthenticated", "A valid API key is required.");
+
   if (!identity.scopes.includes(PROBLEMS_WRITE_SCOPE)) {
     return errorResponse("forbidden", `This API key lacks the ${PROBLEMS_WRITE_SCOPE} scope.`);
   }
 
   const problem = await ctx.runQuery(internal.http.problemsApi.problemSummaryFor, { code });
+
   if (!problem) return errorResponse("not_found", `Could not find a problem with the code "${code}".`);
 
   let form: FormData;
+
   try {
     form = await request.formData();
   } catch {
     return errorResponse("invalid", "The request body must be multipart/form-data.");
   }
+
   // DMOJ's martor widget posted `markdown-image-upload`; `file` is the name
   // SPEC section 8 gives. Both are accepted so old tooling keeps working.
   const file = form.get("file") ?? form.get("markdown-image-upload");
+
   if (!(file instanceof Blob)) {
     return errorResponse("invalid", "The request must carry a file field.");
   }
+
   if (file.size > MAX_IMAGE_BYTES) {
     return errorResponse("payload_too_large", "That image is too large.");
   }
@@ -614,12 +717,14 @@ async function uploadImage(ctx: ActionCtx, request: Request): Promise<Response> 
   const cacheKey = `statement-image:${hash}`;
 
   const storageId = await ctx.storage.store(new Blob([bytes], { type: file.type }));
+
   const recorded = await ctx.runMutation(internal.http.problemsApi.recordUpload, {
     storageId,
     uploaderProfileId: identity.profileId,
     name: file instanceof File ? file.name : `${code}.bin`,
     cacheKey,
   });
+
   // The same bytes were uploaded before: reuse the stored copy and drop this one.
   if (recorded.reused && recorded.storageId !== storageId) {
     await ctx.storage.delete(storageId);
@@ -650,40 +755,50 @@ type PublishedState = {
  */
 async function publisherFor(ctx: ActionCtx, request: Request, code: string): Promise<Publisher> {
   const identity = await authenticate(ctx, request);
+
   if (!identity) {
     return { ok: false, response: errorResponse("unauthenticated", "A valid API key is required.") };
   }
+
   if (!identity.scopes.includes(PROBLEMS_WRITE_SCOPE)) {
     return {
       ok: false,
       response: errorResponse("forbidden", `This API key lacks the ${PROBLEMS_WRITE_SCOPE} scope.`),
     };
   }
-  const context = await ctx.runQuery(internal.problemTestData.publisherContext, {
+
+  const context = await ctx.runQuery(internal.problems.testData.publisherContext, {
     code,
     actorProfileId: identity.profileId,
   });
+
   if (context.status === "not_found") {
     return {
       ok: false,
       response: errorResponse("not_found", `Could not find a problem with the code "${code}".`),
     };
   }
+
   if (context.status === "forbidden") {
     return { ok: false, response: errorResponse("forbidden", "You may not edit this problem.") };
   }
+
   return { ok: true, identity, problemId: context.problemId, published: context.published };
 }
 
 async function dataStatus(ctx: ActionCtx, request: Request): Promise<Response> {
-  const match = DATA_PATH.exec(new URL(request.url).pathname);
-  if (!match) return errorResponse("not_found", "No such endpoint.");
+  const [, code] = DATA_PATH.exec(new URL(request.url).pathname) ?? [];
 
-  const publisher = await publisherFor(ctx, request, match[1] as string);
+  if (code === undefined) return errorResponse("not_found", "No such endpoint.");
+
+  const publisher = await publisherFor(ctx, request, code);
+
   if (!publisher.ok) return publisher.response;
 
   const published = publisher.published;
+
   if (!published) return jsonResponse({ ok: true, hash: null });
+
   return jsonResponse({
     ok: true,
     hash: published.hash,
@@ -699,32 +814,40 @@ async function dataStatus(ctx: ActionCtx, request: Request): Promise<Response> {
  * storage id it got back.
  */
 async function dataUploadUrl(ctx: ActionCtx, request: Request): Promise<Response> {
-  const match = DATA_UPLOAD_URL_PATH.exec(new URL(request.url).pathname);
-  if (!match) return errorResponse("not_found", "No such endpoint.");
+  const [, code] = DATA_UPLOAD_URL_PATH.exec(new URL(request.url).pathname) ?? [];
 
-  const publisher = await publisherFor(ctx, request, match[1] as string);
+  if (code === undefined) return errorResponse("not_found", "No such endpoint.");
+
+  const publisher = await publisherFor(ctx, request, code);
+
   if (!publisher.ok) return publisher.response;
 
   return jsonResponse({ ok: true, uploadUrl: await ctx.storage.generateUploadUrl() });
 }
 
 async function dataPublish(ctx: ActionCtx, request: Request): Promise<Response> {
-  const match = DATA_PATH.exec(new URL(request.url).pathname);
-  if (!match) return errorResponse("not_found", "No such endpoint.");
+  const [, code] = DATA_PATH.exec(new URL(request.url).pathname) ?? [];
 
-  const publisher = await publisherFor(ctx, request, match[1] as string);
+  if (code === undefined) return errorResponse("not_found", "No such endpoint.");
+
+  const publisher = await publisherFor(ctx, request, code);
+
   if (!publisher.ok) return publisher.response;
 
   let raw: unknown;
+
   try {
     raw = await request.json();
   } catch {
     return errorResponse("invalid", "The request body must be JSON.");
   }
+
   const parsed = problemTestDataInput.safeParse(raw);
+
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
     const where = issue?.path.join(".");
+
     return errorResponse(
       "invalid",
       where ? `${where}: ${issue?.message}` : (issue?.message ?? "The request body is invalid."),
@@ -732,21 +855,27 @@ async function dataPublish(ctx: ActionCtx, request: Request): Promise<Response> 
   }
 
   let blob: Blob | null = null;
+
   try {
+    // SAFETY: the publisher echoes back the id `generateUploadUrl` handed it; an id
+    // that resolves to nothing throws here and is caught as "upload not found".
     blob = await ctx.storage.get(parsed.data.storageId as Id<"_storage">);
   } catch {
     blob = null;
   }
+
   if (!blob) return errorResponse("invalid", "That upload could not be found.");
 
   // Small enough to read back: reject an invalid zip or a traversal member now
   // rather than leaving every judge to fail on it.
   if (blob.size <= MAX_VALIDATED_ARCHIVE_BYTES) {
     const inspected = inspectArchive(await blob.arrayBuffer());
+
     if (inspected.error) return errorResponse("invalid", inspected.error);
   }
 
-  const result = await ctx.runMutation(internal.problemTestData.record, {
+  // SAFETY: the blob above was fetched with this same id, so it names a stored file.
+  const result = await ctx.runMutation(internal.problems.testData.record, {
     problemId: publisher.problemId,
     storageId: parsed.data.storageId as Id<"_storage">,
     hash: parsed.data.hash,
@@ -766,18 +895,26 @@ async function dataPublish(ctx: ActionCtx, request: Request): Promise<Response> 
 /** One POST prefix route serves the images and both data endpoints. */
 const postHandler = httpAction(async (ctx, request) => {
   const path = new URL(request.url).pathname;
+
   if (DATA_UPLOAD_URL_PATH.test(path)) return await dataUploadUrl(ctx, request);
+
   if (DATA_PATH.test(path)) return await dataPublish(ctx, request);
+
   return await uploadImage(ctx, request);
 });
 
 const dataStatusHandler = httpAction(dataStatus);
 
 const imageFetchHandler = httpAction(async (ctx, request) => {
-  const match = IMAGE_FETCH_PATH.exec(new URL(request.url).pathname);
-  if (!match) return new Response("Not found", { status: 404 });
-  const blob = await ctx.storage.get(match[1] as Id<"_storage">);
+  const [, storageId] = IMAGE_FETCH_PATH.exec(new URL(request.url).pathname) ?? [];
+
+  if (storageId === undefined) return new Response("Not found", { status: 404 });
+  // SAFETY: the path segment is the opaque storage id `uploadImage` put in the link
+  // it returned; `storage.get` answers null for one that no longer resolves.
+  const blob = await ctx.storage.get(storageId as Id<"_storage">);
+
   if (!blob) return new Response("Not found", { status: 404 });
+
   return new Response(blob, {
     status: 200,
     headers: {
@@ -807,40 +944,46 @@ export function registerProblemsApiRoutes(http: HttpRouter): void {
  * (`PY3`, `PYPY3`). Match the key as written first, then the documented
  * aliases, then case-insensitively, so a repo can write either.
  */
-const LANGUAGE_KEY_ALIASES: Record<string, string> = {
-  python2: "PY2",
-  python3: "PY3",
-  pypy2: "PYPY",
-  pypy3: "PYPY3",
-};
+const LANGUAGE_KEY_ALIASES = new Map<string, string>([
+  ["python2", "PY2"],
+  ["python3", "PY3"],
+  ["pypy2", "PYPY"],
+  ["pypy3", "PYPY3"],
+]);
 
 async function languageForKey(ctx: MutationCtx, key: string): Promise<Doc<"languages"> | null> {
   const exact = await ctx.db
     .query("languages")
     .withIndex("by_key", (q) => q.eq("key", key))
     .first();
+
   if (exact) return exact;
 
-  const alias = LANGUAGE_KEY_ALIASES[key.toLowerCase()];
+  const alias = LANGUAGE_KEY_ALIASES.get(key.toLowerCase());
+
   if (alias) {
     const aliased = await ctx.db
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", alias))
       .first();
+
     if (aliased) return aliased;
   }
 
   const upper = key.toUpperCase();
+
   if (upper !== key) {
     const uppercased = await ctx.db
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", upper))
       .first();
+
     if (uppercased) return uppercased;
   }
 
   const wanted = key.toLowerCase();
   const all = await ctx.db.query("languages").collect();
+
   return (
     all.find((row) => row.commonName.toLowerCase() === wanted || row.shortName.toLowerCase() === wanted) ??
     null

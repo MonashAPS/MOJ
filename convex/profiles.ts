@@ -1,10 +1,11 @@
 /**
- * User accounts: `/user/[user]`, `/user/[user]/solved`, `/edit/profile/`,
- * `/accounts/api/token/generate/` and `/data/prepare/`.
+ * User accounts: `/user/[user]`, `/user/[user]/solved` and `/edit/profile/`.
+ * The API token and the data export are beside it in `profiles/apiTokens.ts`
+ * and `profiles/dataExport.ts`.
  *
- * Ports `UserPage`, `UserAboutPage`, `UserProblemsPage`, `edit_profile`,
- * `UserPrepareData` and `generate_api_token` from judge/views/user.py, and
- * `Profile.calculate_points` / `get_pp_breakdown` through `@moj/core`.
+ * Ports `UserPage`, `UserAboutPage`, `UserProblemsPage` and `edit_profile`
+ * from judge/views/user.py, and `Profile.calculate_points` /
+ * `get_pp_breakdown` through `@moj/core`.
  *
  * Markdown is not rendered here. `@moj/content` pulls in Shiki's WASM engine,
  * which does not belong in a Convex isolate, so `about` comes back as source
@@ -21,11 +22,11 @@ import {
   resultClassFromCode,
 } from "@moj/core";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation, type QueryCtx, query } from "./_generated/server";
 import { optionalViewer, requireStaff, requireViewer } from "./lib/auth";
-import { forbidden, invalid, mojError, notFound } from "./lib/errors";
+import { forbidden, invalid, notFound } from "./lib/errors";
+import { isNonEmptyString } from "./lib/json";
 import { insertProfileAggregates, patchProfile } from "./rankings";
 import { siteTheme } from "./schema";
 
@@ -33,9 +34,6 @@ export const DEFAULT_TIMEZONE = "Australia/Melbourne";
 
 /** `settings.DMOJ_USER_MAX_ORGANIZATION_COUNT`. */
 export const MAX_OPEN_ORGANIZATIONS = 3;
-
-/** `settings.DMOJ_USER_DATA_DOWNLOAD_RATELIMIT`. */
-export const DATA_DOWNLOAD_RATELIMIT_MS = 24 * 60 * 60 * 1000;
 
 /** `UserProblemsPage.get_context_data` asks for the first ten weights. */
 const PP_PREVIEW_ENTRIES = 10;
@@ -59,8 +57,8 @@ const profileDefaults = {
   isStaff: false,
   isSuperuser: false,
   isActive: true,
-  permissions: [] as string[],
-  groups: [] as string[],
+  permissions: [],
+  groups: [],
 };
 
 async function languageIdForKey(
@@ -68,18 +66,40 @@ async function languageIdForKey(
   key: string | undefined,
 ): Promise<Id<"languages"> | undefined> {
   if (!key) return undefined;
+
   const language = await ctx.db
     .query("languages")
     .withIndex("by_key", (q) => q.eq("key", key))
     .first();
+
   return language?._id;
 }
 
-async function profileByUsername(ctx: QueryCtx, username: string): Promise<Doc<"profiles"> | null> {
+export async function profileByUsername(
+  ctx: QueryCtx | MutationCtx,
+  username: string,
+): Promise<Doc<"profiles"> | null> {
   return await ctx.db
     .query("profiles")
     .withIndex("by_username", (q) => q.eq("username", username))
     .unique();
+}
+
+/** The profile ids behind a list of usernames, refusing one that does not exist. */
+export async function usernamesToIds(
+  ctx: QueryCtx | MutationCtx,
+  usernames: readonly string[],
+): Promise<Id<"profiles">[]> {
+  const ids: Id<"profiles">[] = [];
+
+  for (const username of usernames) {
+    const profile = await profileByUsername(ctx, username);
+
+    if (!profile) throw notFound(`User ${username}`);
+    ids.push(profile._id);
+  }
+
+  return ids;
 }
 
 export const byUsername = query({
@@ -106,12 +126,14 @@ export const ensureProfile = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
+
     if (!identity) throw invalid("You must be logged in to create a profile.");
     // The username comes off the token, never off the argument: the caller is a
     // client whose cached session can lag a sign-out by a render, and taking its
     // word would let one account write another's name onto its profile.
-    const claimed = (identity as { username?: unknown }).username;
-    const username = typeof claimed === "string" && claimed.length > 0 ? claimed : args.username;
+    const claimed = identity.username;
+    const username = isNonEmptyString(claimed) ? claimed : args.username;
+
     return await upsertProfile(ctx, { ...args, username, userId: identity.subject });
   },
 });
@@ -154,14 +176,22 @@ async function upsertProfile(
 
   if (existing) {
     const patch: Partial<Doc<"profiles">> = { username: args.username };
+
     if (args.timezone) patch.timezone = args.timezone;
+
     if (languageId) patch.languageId = languageId;
+
     if (args.about !== undefined) patch.about = args.about;
+
     if (args.isStaff !== undefined) patch.isStaff = args.isStaff;
+
     if (args.isSuperuser !== undefined) patch.isSuperuser = args.isSuperuser;
+
     if (args.permissions !== undefined) patch.permissions = args.permissions;
+
     if (args.displayRank !== undefined) patch.displayRank = args.displayRank;
     await patchProfile(ctx, existing._id, patch);
+
     return existing._id;
   }
 
@@ -178,8 +208,11 @@ async function upsertProfile(
     displayRank: args.displayRank ?? "user",
     joinDate: Date.now(),
   });
+
   const inserted = await ctx.db.get(profileId);
+
   if (inserted) await insertProfileAggregates(ctx, inserted);
+
   return profileId;
 }
 
@@ -281,9 +314,11 @@ async function scanSubmissions(
     .withIndex("by_profile_date", (q) => q.eq("profileId", profileId))
     .order("desc")
     .take(SUBMISSION_SCAN_CAP + 1);
+
   if (rows.length > SUBMISSION_SCAN_CAP) {
     return { rows: rows.slice(0, SUBMISSION_SCAN_CAP), truncated: true };
   }
+
   return { rows, truncated: false };
 }
 
@@ -297,10 +332,13 @@ async function loadProblems(
   ids: Iterable<Id<"problems">>,
 ): Promise<Map<Id<"problems">, Doc<"problems">>> {
   const map = new Map<Id<"problems">, Doc<"problems">>();
+
   for (const id of new Set(ids)) {
     const problem = await ctx.db.get(id);
+
     if (problem) map.set(id, problem);
   }
+
   return map;
 }
 
@@ -315,19 +353,26 @@ function buildBestSubmissions(
   exclude: ReadonlySet<Id<"problems">>,
 ): SolvedGroup[] {
   const best = new Map<Id<"problems">, number>();
+
   for (const row of rows) {
     if (row.isArchived) continue;
+
     if (row.points === undefined || row.points === null || row.points <= 0) continue;
     const problem = problems.get(row.problemId);
+
     if (!isCountedProblem(problem)) continue;
+
     if (exclude.has(row.problemId)) continue;
     const current = best.get(row.problemId);
+
     if (current === undefined || row.points > current) best.set(row.problemId, row.points);
   }
 
   const flat: SolvedProblem[] = [];
+
   for (const [problemId, points] of best) {
     const problem = problems.get(problemId);
+
     if (!problem) continue;
     flat.push({
       problemId,
@@ -338,11 +383,14 @@ function buildBestSubmissions(
       group: groupNames.get(problem.groupId) ?? "",
     });
   }
+
   flat.sort((a, b) => (a.group === b.group ? a.code.localeCompare(b.code) : a.group.localeCompare(b.group)));
 
   const groups: SolvedGroup[] = [];
+
   for (const problem of flat) {
     const last = groups[groups.length - 1];
+
     if (last && last.name === problem.group) {
       last.problems.push(problem);
       last.points += problem.points;
@@ -350,6 +398,7 @@ function buildBestSubmissions(
       groups.push({ name: problem.group, points: problem.points, problems: [problem] });
     }
   }
+
   return groups;
 }
 
@@ -366,12 +415,16 @@ async function buildPPBreakdown(
   end: number,
 ): Promise<{ entries: PPBreakdownEntry[]; hasMore: boolean }> {
   const best = new Map<Id<"problems">, { points: number; submission: ScannedSubmission }>();
+
   for (const row of rows) {
     if (row.isArchived) continue;
+
     if (row.points === undefined || row.points === null) continue;
     const problem = problems.get(row.problemId);
+
     if (!isCountedProblem(problem)) continue;
     const current = best.get(row.problemId);
+
     if (
       current === undefined ||
       row.points > current.points ||
@@ -385,6 +438,7 @@ async function buildPPBreakdown(
     .filter(([, entry]) => entry.points > 0)
     .sort((a, b) => {
       if (b[1].points !== a[1].points) return b[1].points - a[1].points;
+
       return b[1].submission.date - a[1].submission.date;
     });
 
@@ -394,12 +448,15 @@ async function buildPPBreakdown(
 
   const entries: PPBreakdownEntry[] = [];
   const weights = PP_TABLE.slice(start, end);
+
   for (let i = 0; i < Math.min(weights.length, window.length); i++) {
     const pair = window[i];
     const weight = weights[i];
+
     if (!pair || weight === undefined) continue;
     const [problemId, { points, submission }] = pair;
     const problem = problems.get(problemId);
+
     if (!problem) continue;
     const language = await ctx.db.get(submission.languageId);
     entries.push({
@@ -421,22 +478,29 @@ async function buildPPBreakdown(
   }
 
   const hasMore = end < Math.min(PP_TABLE.length, start + window.length);
+
   return { entries, hasMore };
 }
 
-function buildSubmissionActivity(rows: readonly ScannedSubmission[]): {
+/** The heat map on a user page: submissions per day, and the first year with any. */
+type SubmissionActivity = {
   counts: Record<string, number>;
   minYear: number | null;
-} {
+};
+
+function buildSubmissionActivity(rows: readonly ScannedSubmission[]): SubmissionActivity {
   const counts: Record<string, number> = {};
   let minYear: number | null = null;
+
   for (const row of rows) {
     const date = new Date(row.date);
     const key = date.toISOString().slice(0, 10);
     counts[key] = (counts[key] ?? 0) + 1;
     const year = date.getUTCFullYear();
+
     if (minYear === null || year < minYear) minYear = year;
   }
+
   return { counts, minYear };
 }
 
@@ -444,6 +508,7 @@ export const userPage = query({
   args: { username: v.string() },
   handler: async (ctx, { username }): Promise<UserPageData | null> => {
     const profile = await profileByUsername(ctx, username);
+
     if (!profile) return null;
     const viewer = await optionalViewer(ctx);
 
@@ -455,6 +520,7 @@ export const userPage = query({
         q.eq("isUnlisted", false).gt("performancePoints", profile.performancePoints),
       )
       .collect();
+
     const rank = ahead.filter((row) => row._id !== profile._id).length + 1;
 
     const ratingRows = await ctx.db
@@ -463,21 +529,25 @@ export const userPage = query({
       .collect();
 
     let ratingRank: number | null = null;
-    if (profile.rating !== undefined && ratingRows.length > 0) {
+
+    const rating = profile.rating;
+
+    if (rating !== undefined && ratingRows.length > 0) {
       const ratedAhead = await ctx.db
         .query("profiles")
-        .withIndex("by_listed_rating", (q) =>
-          q.eq("isUnlisted", false).gt("rating", profile.rating as number),
-        )
+        .withIndex("by_listed_rating", (q) => q.eq("isUnlisted", false).gt("rating", rating))
         .collect();
+
       ratingRank = ratedAhead.length + 1;
     }
 
     const ratingHistory: RatingHistoryEntry[] = [];
     let minRating = Number.POSITIVE_INFINITY;
     let maxRating = Number.NEGATIVE_INFINITY;
+
     for (const row of ratingRows) {
       const contest = await ctx.db.get(row.contestId);
+
       if (!contest) continue;
       minRating = Math.min(minRating, row.rating);
       maxRating = Math.max(maxRating, row.rating);
@@ -490,15 +560,19 @@ export const userPage = query({
         ratingClass: ratingClass(row.rating),
       });
     }
+
     ratingHistory.sort((a, b) => a.timestamp - b.timestamp);
 
     const memberships = await ctx.db
       .query("organizationMemberships")
       .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
       .collect();
+
     const organizations: UserPageData["organizations"] = [];
+
     for (const membership of memberships) {
       const organization = await ctx.db.get(membership.organizationId);
+
       if (!organization) continue;
       organizations.push({
         _id: organization._id,
@@ -507,15 +581,18 @@ export const userPage = query({
         shortName: organization.shortName,
       });
     }
+
     organizations.sort((a, b) => a.name.localeCompare(b.name));
 
     const { rows, truncated } = await scanSubmissions(ctx, profile._id);
+
     const problems = await loadProblems(
       ctx,
       rows.map((row) => row.problemId),
     );
 
     const groupNames = new Map<Id<"problemGroups">, string>();
+
     for (const problem of problems.values()) {
       if (groupNames.has(problem.groupId)) continue;
       const group = await ctx.db.get(problem.groupId);
@@ -526,6 +603,7 @@ export const userPage = query({
     const { entries, hasMore } = await buildPPBreakdown(ctx, rows, problems, 0, PP_PREVIEW_ENTRIES);
 
     const authored = await ctx.db.query("problems").collect();
+
     const authoredProblems = authored
       .filter(
         (problem) =>
@@ -581,20 +659,24 @@ export const performancePoints = query({
   args: { username: v.string(), start: v.optional(v.number()), end: v.optional(v.number()) },
   handler: async (ctx, args): Promise<{ entries: PPBreakdownEntry[]; hasMore: boolean }> => {
     const profile = await profileByUsername(ctx, args.username);
+
     if (!profile) return { entries: [], hasMore: false };
 
     let start = Math.floor(args.start ?? 0);
     let end = Math.floor(args.end ?? PP_ENTRIES);
+
     if (start < 0 || end < 0 || start > end) {
       start = 0;
       end = 100;
     }
 
     const { rows } = await scanSubmissions(ctx, profile._id);
+
     const problems = await loadProblems(
       ctx,
       rows.map((row) => row.problemId),
     );
+
     return await buildPPBreakdown(ctx, rows, problems, start, end);
   },
 });
@@ -617,6 +699,7 @@ export const solved = query({
     truncated: boolean;
   } | null> => {
     const profile = await profileByUsername(ctx, username);
+
     if (!profile) return null;
 
     const viewer = await optionalViewer(ctx);
@@ -625,18 +708,23 @@ export const solved = query({
 
     if (compareWithViewer && viewer && viewer._id !== profile._id) {
       const viewerRows = await scanSubmissions(ctx, viewer._id);
+
       for (const row of viewerRows.rows) {
         if (!row.isArchived && isFullSolve(row)) exclude.add(row.problemId);
       }
+
       comparedWith = viewer.username;
     }
 
     const { rows, truncated } = await scanSubmissions(ctx, profile._id);
+
     const problems = await loadProblems(
       ctx,
       rows.map((row) => row.problemId),
     );
+
     const groupNames = new Map<Id<"problemGroups">, string>();
+
     for (const problem of problems.values()) {
       if (groupNames.has(problem.groupId)) continue;
       const group = await ctx.db.get(problem.groupId);
@@ -644,6 +732,7 @@ export const solved = query({
     }
 
     const groups = buildBestSubmissions(rows, problems, groupNames, exclude);
+
     return {
       username: profile.username,
       displayName: profile.usernameDisplayOverride || profile.username,
@@ -666,6 +755,7 @@ async function hasAnySolves(ctx: QueryCtx, profileId: Id<"profiles">): Promise<b
     .withIndex("by_profile_date", (q) => q.eq("profileId", profileId))
     .order("desc")
     .take(SUBMISSION_SCAN_CAP);
+
   return rows.some((row) => !row.isArchived && isFullSolve(row));
 }
 
@@ -675,11 +765,13 @@ async function setOrganizations(
   slugs: readonly string[],
 ): Promise<void> {
   const wanted: Doc<"organizations">[] = [];
+
   for (const slug of new Set(slugs)) {
     const organization = await ctx.db
       .query("organizations")
       .withIndex("by_slug", (q) => q.eq("slug", slug))
       .unique();
+
     if (!organization) throw notFound(`Organization ${slug}`);
     wanted.push(organization);
   }
@@ -688,13 +780,16 @@ async function setOrganizations(
     .query("organizationMemberships")
     .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
     .collect();
+
   const existingIds = new Set(existing.map((row) => row.organizationId));
 
   // `ProfileForm.__init__`: without `judge.edit_all_organization` only open
   // organizations and ones the user is already in may be picked.
   const mayPickAny = profile.isSuperuser || profile.permissions.includes("judge.edit_all_organization");
+
   for (const organization of wanted) {
     if (mayPickAny) continue;
+
     if (!organization.isOpen && !existingIds.has(organization._id)) {
       throw forbidden(`You may not join ${organization.name}.`);
     }
@@ -702,17 +797,21 @@ async function setOrganizations(
 
   // `ProfileForm.clean`: at most three open organizations.
   const openCount = wanted.filter((organization) => organization.isOpen).length;
+
   if (openCount > MAX_OPEN_ORGANIZATIONS) {
     throw invalid(`You may not be part of more than ${MAX_OPEN_ORGANIZATIONS} public organizations.`);
   }
 
   const wantedIds = new Set(wanted.map((organization) => organization._id));
+
   for (const membership of existing) {
     if (wantedIds.has(membership.organizationId)) continue;
     await ctx.db.delete(membership._id);
     await bumpMemberCount(ctx, membership.organizationId, -1);
   }
+
   let order = existing.length;
+
   for (const organization of wanted) {
     if (existingIds.has(organization._id)) continue;
     await ctx.db.insert("organizationMemberships", {
@@ -730,6 +829,7 @@ export async function bumpMemberCount(
   delta: number,
 ): Promise<void> {
   const organization = await ctx.db.get(organizationId);
+
   if (!organization) return;
   await ctx.db.patch(organizationId, {
     memberCount: Math.max(0, organization.memberCount + delta),
@@ -749,6 +849,7 @@ export const updateProfile = mutation({
   },
   handler: async (ctx, args) => {
     const profile = await requireViewer(ctx);
+
     // `edit_profile`: "Your part is silent, little toad."
     if (profile.mute) throw forbidden("Your part is silent, little toad.");
 
@@ -756,25 +857,35 @@ export const updateProfile = mutation({
 
     if (args.about !== undefined && args.about !== profile.about) {
       if (args.about.length > 20000) throw invalid("About is too long.");
+
       if (!(await hasAnySolves(ctx, profile._id))) {
         throw invalid("You must solve at least one problem before you can update your profile.");
       }
+
       patch.about = args.about;
     }
+
     if (args.timezone !== undefined) patch.timezone = args.timezone;
+
     if (args.siteTheme !== undefined) patch.siteTheme = args.siteTheme;
+
     if (args.editorTheme !== undefined) patch.editorTheme = args.editorTheme;
+
     if (args.mathEngine !== undefined) patch.mathEngine = args.mathEngine;
+
     if (args.languageKey !== undefined) {
       const languageId = await languageIdForKey(ctx, args.languageKey);
+
       if (!languageId) throw notFound("Language");
       patch.languageId = languageId;
     }
+
     if (args.usernameDisplayOverride !== undefined) {
       // DMOJ only exposes this through the admin, so staff only.
       if (!profile.isStaff && !profile.isSuperuser) {
         throw forbidden("Only staff may set a display name override.");
       }
+
       patch.usernameDisplayOverride = args.usernameDisplayOverride || undefined;
     }
 
@@ -783,19 +894,19 @@ export const updateProfile = mutation({
     }
 
     await patchProfile(ctx, profile._id, patch);
+
     return profile._id;
   },
 });
-
-/** Kept for the shell, which shipped against this name. */
-export const updatePreferences = updateProfile;
 
 export const setTheme = mutation({
   args: { siteTheme },
   handler: async (ctx, args) => {
     const profile = await optionalViewer(ctx);
+
     if (!profile) return null;
     await ctx.db.patch(profile._id, { siteTheme: args.siteTheme });
+
     return args.siteTheme;
   },
 });
@@ -804,8 +915,10 @@ export const touchAccess = mutation({
   args: { ip: v.optional(v.string()) },
   handler: async (ctx, { ip }) => {
     const profile = await optionalViewer(ctx);
+
     if (!profile) return null;
     await ctx.db.patch(profile._id, { lastAccess: Date.now(), ip: ip ?? profile.ip });
+
     return profile._id;
   },
 });
@@ -815,206 +928,8 @@ export const listStaff = query({
   handler: async (ctx) => {
     await requireStaff(ctx);
     const rows = await ctx.db.query("profiles").collect();
+
     return rows.filter((row) => row.isStaff || row.isSuperuser);
-  },
-});
-
-/* -------------------------------------------------------------------------- */
-/* API tokens                                                                 */
-/* -------------------------------------------------------------------------- */
-
-export type ApiTokenInfo = {
-  /** A legacy DMOJ token is still on the account and still works. */
-  hasLegacyToken: boolean;
-  /** Keys minted by Better Auth's api-key plugin live in Postgres, not here. */
-  legacyTokenHint: string | null;
-};
-
-/**
- * `/accounts/api/token/generate/`. New tokens come from Better Auth's api-key
- * plugin in the web layer; this only reports on the imported DMOJ token, which
- * the API still accepts until the user replaces it.
- */
-export const myApiToken = query({
-  args: {},
-  handler: async (ctx): Promise<ApiTokenInfo> => {
-    const profile = await requireViewer(ctx);
-    return {
-      hasLegacyToken: !!profile.legacyApiTokenHash,
-      legacyTokenHint: profile.legacyApiTokenHash ? `${profile.legacyApiTokenHash.slice(0, 8)}...` : null,
-    };
-  },
-});
-
-/**
- * The legacy DMOJ Bearer token, checked from the API layer.
- *
- * DMOJ's token is `base64url(struct.pack('>I32s', user_id, secret))` and the
- * profile stores `hmac_sha256(SECRET_KEY, secret).hexdigest()`
- * (judge/models/profile.py:269, judge/middleware.py:117). The web layer decodes
- * the token and computes the digest with `LEGACY_SECRET_KEY`; this compares it
- * against the stored hash without ever handing the hash out.
- */
-export const verifyLegacyApiToken = query({
-  args: { legacyUserId: v.number(), digest: v.string() },
-  handler: async (
-    ctx,
-    { legacyUserId, digest },
-  ): Promise<{ userId: string; username: string; isStaff: boolean } | null> => {
-    const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_legacyUserId", (q) => q.eq("legacyUserId", legacyUserId))
-      .unique();
-    if (!profile?.legacyApiTokenHash) return null;
-    if (profile.isActive === false) return null;
-    if (!constantTimeEquals(profile.legacyApiTokenHash, digest)) return null;
-    return {
-      userId: profile.userId,
-      username: profile.username,
-      isStaff: profile.isStaff || profile.isSuperuser,
-    };
-  },
-});
-
-function constantTimeEquals(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let difference = 0;
-  for (let i = 0; i < a.length; i++) difference |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return difference === 0;
-}
-
-/** `remove_api_token`. */
-export const revokeLegacyApiToken = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const profile = await requireViewer(ctx);
-    await ctx.db.patch(profile._id, { legacyApiTokenHash: undefined });
-    return true;
-  },
-});
-
-/** Used by the import tool and by the token page after a rotation. */
-export const setLegacyApiTokenHash = internalMutation({
-  args: { profileId: v.id("profiles"), hash: v.optional(v.string()) },
-  handler: async (ctx, { profileId, hash }) => {
-    await ctx.db.patch(profileId, { legacyApiTokenHash: hash });
-  },
-});
-
-/* -------------------------------------------------------------------------- */
-/* Data export                                                                */
-/* -------------------------------------------------------------------------- */
-
-export const dataExportOptions = v.object({
-  submissionDownload: v.boolean(),
-  commentDownload: v.boolean(),
-  submissionProblemGlob: v.optional(v.string()),
-  submissionResults: v.optional(v.array(v.string())),
-});
-
-export type DataExportStatus = {
-  canPrepare: boolean;
-  msUntilCanPrepare: number;
-  rateLimitMs: number;
-  job: {
-    _id: Id<"jobs">;
-    status: "queued" | "running" | "done" | "failed";
-    progress: { done: number; total: number; stage: string };
-    error?: string;
-    createdAt: number;
-    finishedAt?: number;
-  } | null;
-  download: { storageId: Id<"_storage">; name: string; createdAt: number } | null;
-};
-
-async function latestExportJob(ctx: QueryCtx, profileId: Id<"profiles">): Promise<Doc<"jobs"> | null> {
-  return await ctx.db
-    .query("jobs")
-    .withIndex("by_creator_type_createdAt", (q) =>
-      q.eq("createdByProfileId", profileId).eq("type", "userExport"),
-    )
-    .order("desc")
-    .first();
-}
-
-export const dataExportStatus = query({
-  args: {},
-  handler: async (ctx): Promise<DataExportStatus> => {
-    const profile = await requireViewer(ctx);
-    const job = await latestExportJob(ctx, profile._id);
-    const now = Date.now();
-
-    const last = profile.dataLastDownloaded;
-    const msUntilCanPrepare = last === undefined ? 0 : Math.max(0, last + DATA_DOWNLOAD_RATELIMIT_MS - now);
-    const running = job?.status === "queued" || job?.status === "running";
-
-    let download: DataExportStatus["download"] = null;
-    if (job?.status === "done" && job.result?.storageId) {
-      download = {
-        storageId: job.result.storageId as Id<"_storage">,
-        name: `${profile.username}-data.zip`,
-        createdAt: job.finishedAt ?? job.createdAt,
-      };
-    }
-
-    return {
-      canPrepare: !profile.mute && msUntilCanPrepare === 0 && !running,
-      msUntilCanPrepare,
-      rateLimitMs: DATA_DOWNLOAD_RATELIMIT_MS,
-      job: job
-        ? {
-            _id: job._id,
-            status: job.status,
-            progress: job.progress,
-            error: job.error,
-            createdAt: job.createdAt,
-            finishedAt: job.finishedAt,
-          }
-        : null,
-      download,
-    };
-  },
-});
-
-/** `UserPrepareData.form_valid`, with `DownloadDataForm`'s validation. */
-export const prepareDataExport = mutation({
-  args: { options: dataExportOptions },
-  handler: async (ctx, { options }): Promise<Id<"jobs">> => {
-    const profile = await requireViewer(ctx);
-    if (profile.mute) throw forbidden("Your part is silent, little toad.");
-    if (!options.submissionDownload && !options.commentDownload) {
-      throw invalid("Please select at least one thing to download.");
-    }
-
-    const now = Date.now();
-    const last = profile.dataLastDownloaded;
-    if (last !== undefined && last + DATA_DOWNLOAD_RATELIMIT_MS > now) {
-      throw mojError("RATE_LIMITED", "You may only prepare your data once a day.");
-    }
-
-    const existing = await latestExportJob(ctx, profile._id);
-    if (existing && (existing.status === "queued" || existing.status === "running")) {
-      throw mojError("CONFLICT", "Your data is already being prepared.");
-    }
-
-    const jobId = await ctx.db.insert("jobs", {
-      type: "userExport",
-      status: "queued",
-      progress: { done: 0, total: 2, stage: "Applying filters" },
-      args: {
-        profileId: profile._id,
-        submissionDownload: options.submissionDownload,
-        commentDownload: options.commentDownload,
-        submissionProblemGlob: options.submissionDownload ? (options.submissionProblemGlob ?? "*") : "*",
-        submissionResults: options.submissionDownload ? (options.submissionResults ?? []) : [],
-      },
-      createdByProfileId: profile._id,
-      createdAt: now,
-    });
-
-    await ctx.db.patch(profile._id, { dataLastDownloaded: now });
-    await ctx.scheduler.runAfter(0, internal.jobsUsers.run, { jobId });
-    return jobId;
   },
 });
 
@@ -1043,7 +958,7 @@ export async function recalculateProfilePoints(
 
   const result = calculateProfilePoints(
     rows.map((row) => ({
-      problemId: row.problemId as string,
+      problemId: row.problemId,
       points: row.points ?? null,
       result: row.result ?? null,
       casePoints: row.casePoints,
@@ -1058,6 +973,7 @@ export async function recalculateProfilePoints(
     problemCount: result.problemCount,
     performancePoints: result.performancePoints,
   });
+
   return result;
 }
 
@@ -1065,11 +981,15 @@ export const recalculatePoints = mutation({
   args: { username: v.string() },
   handler: async (ctx, { username }) => {
     const staff = await requireStaff(ctx);
+
     if (!staff.isSuperuser && !staff.permissions.includes("judge.change_profile")) {
       throw forbidden("Missing permission judge.change_profile.");
     }
+
     const profile = await profileByUsername(ctx, username);
+
     if (!profile) throw notFound("User");
+
     return await recalculateProfilePoints(ctx, profile._id);
   },
 });

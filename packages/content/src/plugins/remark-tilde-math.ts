@@ -24,7 +24,7 @@
  * feature, and the spec asks for the single-line behaviour.
  */
 
-import type { Root } from "mdast";
+import type { Data, Nodes, Root } from "mdast";
 import type { CompileContext, Extension as FromMarkdownExtension, Token } from "mdast-util-from-markdown";
 import type {
   Code,
@@ -36,6 +36,13 @@ import type {
 import type { Plugin } from "unified";
 
 export type MathDelimiter = "tilde" | "paren" | "bracket" | "dollar";
+
+declare module "mdast" {
+  interface Data {
+    /** The delimiter pair a maths node was written with, for `RenderMeta.math`. */
+    mojDelimiter?: MathDelimiter;
+  }
+}
 
 declare module "micromark-util-types" {
   interface TokenTypeMap {
@@ -50,19 +57,31 @@ declare module "micromark-util-types" {
 }
 
 const CODE_BACKSLASH = 92;
+
 const CODE_TILDE = 126;
+
 const CODE_DOLLAR = 36;
+
 const CODE_PAREN_OPEN = 40;
+
 const CODE_PAREN_CLOSE = 41;
+
 const CODE_BRACKET_OPEN = 91;
+
 const CODE_BRACKET_CLOSE = 93;
 
 const TOKEN_TILDE = "mojMathTilde";
+
 const TOKEN_BACKSLASH = "mojMathBackslash";
+
 const TOKEN_DOLLAR = "mojMathDollar";
+
 const TOKEN_BACKSLASH_MARKER = "mojMathBackslashMarker";
+
 const TOKEN_BACKSLASH_DATA = "mojMathBackslashData";
+
 const TOKEN_DOLLAR_MARKER = "mojMathDollarMarker";
+
 const TOKEN_DOLLAR_DATA = "mojMathDollarData";
 
 /** Virtual line-ending codes used by micromark's preprocessor. */
@@ -81,25 +100,31 @@ const tildeMath: Construct = {
     function start(code: Code): State | undefined {
       effects.enter(TOKEN_TILDE);
       effects.consume(code);
+
       return afterOpen;
     }
 
     function afterOpen(code: Code): State | undefined {
       // `~~` belongs to GFM strikethrough; `~` at end of line stays literal.
       if (code === CODE_TILDE || code === null || isLineEnding(code)) return nok(code);
+
       return inside(code);
     }
 
     function inside(code: Code): State | undefined {
       if (code === null || isLineEnding(code)) return nok(code);
+
       if (code === CODE_TILDE) {
         if (!seenData) return nok(code);
         effects.consume(code);
         effects.exit(TOKEN_TILDE);
+
         return ok;
       }
+
       seenData = true;
       effects.consume(code);
+
       return inside;
     }
   } satisfies Tokenizer,
@@ -121,6 +146,7 @@ const backslashMath: Construct = {
       effects.enter(TOKEN_BACKSLASH);
       effects.enter(TOKEN_BACKSLASH_MARKER);
       effects.consume(code);
+
       return afterBackslash;
     }
 
@@ -133,39 +159,51 @@ const backslashMath: Construct = {
         // Anything else (`\~`, `\*`, `\\`, ...) is left to `characterEscape`.
         return nok(code);
       }
+
       effects.consume(code);
       effects.exit(TOKEN_BACKSLASH_MARKER);
+
       return inside;
     }
 
     function inside(code: Code): State | undefined {
       if (code === null) return closeData(nok)(code);
+
       if (isLineEnding(code)) {
         closeData();
         effects.enter("lineEnding");
         effects.consume(code);
         effects.exit("lineEnding");
+
         return inside;
       }
+
       openData();
+
       if (code === CODE_BACKSLASH) {
         effects.consume(code);
+
         return maybeClose;
       }
+
       effects.consume(code);
+
       return inside;
     }
 
     function maybeClose(code: Code): State | undefined {
       if (code === null) return closeData(nok)(code);
+
       if (code === closer) {
         // The `\` already consumed above belongs to the closing marker; the data token is
         // trimmed by the handler, which knows both delimiters are two characters wide.
         effects.consume(code);
         closeData();
         effects.exit(TOKEN_BACKSLASH);
+
         return ok;
       }
+
       // A backslash that is not the closer is ordinary TeX (`\frac`, `\\`, ...).
       return inside(code);
     }
@@ -182,7 +220,8 @@ const backslashMath: Construct = {
         effects.exit(TOKEN_BACKSLASH_DATA);
         open = false;
       }
-      return next ?? (inside as State);
+
+      return next ?? inside;
     }
   } satisfies Tokenizer,
 };
@@ -200,6 +239,7 @@ const dollarDisplayMath: Construct = {
       effects.enter(TOKEN_DOLLAR);
       effects.enter(TOKEN_DOLLAR_MARKER);
       effects.consume(code);
+
       return secondOpen;
     }
 
@@ -207,28 +247,35 @@ const dollarDisplayMath: Construct = {
       if (code !== CODE_DOLLAR) return nok(code);
       effects.consume(code);
       effects.exit(TOKEN_DOLLAR_MARKER);
+
       return inside;
     }
 
     function inside(code: Code): State | undefined {
       if (code === null) return closeData(nok)(code);
+
       if (isLineEnding(code)) {
         closeData();
         effects.enter("lineEnding");
         effects.consume(code);
         effects.exit("lineEnding");
+
         return inside;
       }
+
       if (code === CODE_DOLLAR) {
         if (!seenData) return closeData(nok)(code);
         closeData();
         effects.enter(TOKEN_DOLLAR_MARKER);
         effects.consume(code);
+
         return maybeClose;
       }
+
       seenData = true;
       openData();
       effects.consume(code);
+
       return inside;
     }
 
@@ -237,11 +284,14 @@ const dollarDisplayMath: Construct = {
         effects.consume(code);
         effects.exit(TOKEN_DOLLAR_MARKER);
         effects.exit(TOKEN_DOLLAR);
+
         return ok;
       }
+
       if (code === null) return nok(code);
       // A lone `$` inside the maths: it was not a closing marker after all.
       effects.exit(TOKEN_DOLLAR_MARKER);
+
       return inside(code);
     }
 
@@ -257,7 +307,8 @@ const dollarDisplayMath: Construct = {
         effects.exit(TOKEN_DOLLAR_DATA);
         open = false;
       }
-      return next ?? (inside as State);
+
+      return next ?? inside;
     }
   } satisfies Tokenizer,
 };
@@ -272,14 +323,20 @@ export function mojMathSyntax(): MicromarkExtension {
   };
 }
 
-interface MathNodeShape {
-  type: string;
+/**
+ * The maths node `enterMath` pushes.
+ *
+ * `\(` and `\[` share a construct, so which of mdast's two maths nodes this is
+ * only becomes clear when the closing delimiter is read.
+ */
+interface PendingMathNode {
+  type: "math" | "inlineMath";
   value: string;
   meta?: string | null;
-  data?: Record<string, unknown>;
+  data?: Data;
 }
 
-function inlineMathData(value: string): Record<string, unknown> {
+function inlineMathData(value: string): Data {
   return {
     hName: "code",
     hProperties: { className: ["language-math", "math-inline"] },
@@ -287,7 +344,7 @@ function inlineMathData(value: string): Record<string, unknown> {
   };
 }
 
-function displayMathData(value: string): Record<string, unknown> {
+function displayMathData(value: string): Data {
   // A `span` rather than `mdast-util-math`'s `pre`: `\[...\]` and `$$...$$` can appear inside
   // a paragraph, and `rehype-raw` re-parses the tree with parse5, which would hoist a `pre`
   // out of its paragraph and split it. `rehype-katex` only looks at the class names.
@@ -300,28 +357,42 @@ function displayMathData(value: string): Record<string, unknown> {
 
 function enterMath(display: boolean) {
   return function enter(this: CompileContext, token: Token): void {
-    const node = display ? { type: "math", value: "", meta: null } : { type: "inlineMath", value: "" };
-    this.enter(node as never, token);
+    const node: Nodes = display ? { type: "math", value: "", meta: null } : { type: "inlineMath", value: "" };
+
+    this.enter(node, token);
   };
 }
 
-function exitMath(fixed: { delimiter: MathDelimiter; display: boolean; open: number } | undefined) {
+/** How a construct was delimited; the backslash construct only knows at its exit. */
+interface MathDelimiterForm {
+  readonly delimiter: MathDelimiter;
+  readonly display: boolean;
+  /** Characters in the opening marker, which the closing marker matches. */
+  readonly open: number;
+}
+
+function exitMath(fixed: MathDelimiterForm | undefined) {
   return function exit(this: CompileContext, token: Token): void {
     const raw = this.sliceSerialize(token);
-    const shape = fixed ?? {
-      delimiter: (raw.charCodeAt(1) === CODE_BRACKET_OPEN ? "bracket" : "paren") as "bracket" | "paren",
+
+    const form: MathDelimiterForm = fixed ?? {
+      delimiter: raw.charCodeAt(1) === CODE_BRACKET_OPEN ? "bracket" : "paren",
       display: raw.charCodeAt(1) === CODE_BRACKET_OPEN,
       open: 2,
     };
-    const value = raw.slice(shape.open, raw.length - shape.open);
-    const node = this.stack[this.stack.length - 1] as unknown as MathNodeShape;
+
+    const value = raw.slice(form.open, raw.length - form.open);
+    // SAFETY: `enterMath` pushed this token's maths node, and nothing else can be
+    // entered before the matching `this.exit(token)` below pops it.
+    const node = this.stack[this.stack.length - 1] as PendingMathNode;
     // `\(` and `\[` share a construct, so the node type is settled here.
-    node.type = shape.display ? "math" : "inlineMath";
-    if (shape.display && node.meta === undefined) node.meta = null;
+    node.type = form.display ? "math" : "inlineMath";
+
+    if (form.display && node.meta === undefined) node.meta = null;
     node.value = value;
     node.data = {
-      ...(shape.display ? displayMathData(value) : inlineMathData(value)),
-      mojDelimiter: shape.delimiter,
+      ...(form.display ? displayMathData(value) : inlineMathData(value)),
+      mojDelimiter: form.delimiter,
     };
     this.exit(token);
   };
@@ -349,7 +420,9 @@ export function mojMathFromMarkdown(): FromMarkdownExtension {
  */
 const remarkTildeMath: Plugin<[], Root> = function remarkTildeMath() {
   const data = this.data();
+
   if (!data.micromarkExtensions) data.micromarkExtensions = [];
+
   if (!data.fromMarkdownExtensions) data.fromMarkdownExtensions = [];
   const micromarkExtensions = data.micromarkExtensions;
   const fromMarkdownExtensions = data.fromMarkdownExtensions;
@@ -359,4 +432,5 @@ const remarkTildeMath: Plugin<[], Root> = function remarkTildeMath() {
 };
 
 export default remarkTildeMath;
+
 export { remarkTildeMath };

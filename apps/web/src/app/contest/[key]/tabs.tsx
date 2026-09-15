@@ -17,6 +17,7 @@ export function contestTabs(
   const tabs: TabItem[] = [
     { key: "detail", label: t("info"), href: `/contest/${key}/`, icon: <Info aria-hidden /> },
   ];
+
   const viewer = detail.viewer;
   const started = detail.timing.started;
 
@@ -37,6 +38,7 @@ export function contestTabs(
         href: `/contest/${key}/ranking/`,
         icon: <BarChart3 aria-hidden />,
       });
+
       if (viewer.isAuthenticated) {
         tabs.push({
           key: "participation",
@@ -68,6 +70,7 @@ export function contestTabs(
         icon: <Gavel aria-hidden />,
       });
     }
+
     tabs.push({
       key: "edit",
       label: t("edit"),
@@ -93,17 +96,24 @@ export function joinKindFor(
   detail: ContestDetail,
 ): "join" | "spectate" | "virtual" | "leave" | "stopSpectating" | "blocked" | "login" | null {
   const viewer = detail.viewer;
+
   if (!viewer.isAuthenticated) return detail.timing.started ? "login" : null;
+
   if (!detail.timing.started && !viewer.isEditor && !viewer.isTester) return null;
 
   if (detail.timing.ended) {
     if (viewer.inContest) return "leave";
+
     return viewer.canJoinVirtual ? "virtual" : null;
   }
+
   if (viewer.inContest) {
     return detail.participation?.virtual === -1 ? "stopSpectating" : "leave";
   }
+
   if (viewer.canJoinLive) return "join";
+
   if (viewer.canSpectate) return "spectate";
+
   return "blocked";
 }

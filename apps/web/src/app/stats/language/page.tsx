@@ -8,6 +8,7 @@ import { absoluteTime } from "@/lib/submissionFormat";
 
 export async function generateMetadata() {
   const t = await getTranslations("status.languageStats");
+
   return { title: t("metaTitle") };
 }
 

@@ -63,8 +63,13 @@ data in a Postgres database of its own, named after the deployment, and exposes 
 
 Functions are grouped one file per area: `problems.ts`, `submissions.ts`, `contests.ts`, `judging.ts`,
 `judgeApi.ts`, `scoreboard.ts`, `ratings.ts`, `admin/*.ts`, and `pages/*.ts` for reads that exist to serve one
-page rather than to express a domain rule. Permission checks are pure functions in
-`packages/core`, so the same rule runs in a query, in a mutation and in a test.
+page rather than to express a domain rule. An area that grew past one file becomes a directory beside the file
+that keeps the core reads, and each module in it is named after what it does: `contests/participation.ts`,
+`contests/clarifications.ts`, `contests/rankings.ts`, `contests/tools.ts`, `problems/votes.ts`,
+`problems/pdf.ts`, `problems/data.ts`, `profiles/apiTokens.ts`, `profiles/dataExport.ts`, and
+`pages/admin/<area>.ts` for the staff console. A module's path is its API path, so `convex/contests/tools.ts` is
+`api.contests.tools.*`. Permission checks are pure functions in `packages/core`, so the same rule runs in a
+query, in a mutation and in a test.
 
 Counts and ranks that would otherwise mean scanning a table use the `@convex-dev/aggregate` component: user
 points, ratings and problem counts each have an aggregate keyed for the list they sort. Convex has no triggers, so

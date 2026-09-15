@@ -14,21 +14,14 @@ import {
   toast,
 } from "@moj/ui";
 import { useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { Check, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { UserLink } from "@/components/users/UserLink";
 import { formatDateTime } from "@/lib/format";
 
-export type RequestRow = {
-  _id: string;
-  username: string;
-  displayName: string;
-  time: number;
-  state: "P" | "A" | "R";
-  reason: string;
-  className: string | null;
-};
+export type RequestRow = FunctionReturnType<typeof api.organizations.reviewRequests>["requests"][number];
 
 const STATE: Record<RequestRow["state"], { message: string; variant: "run" | "good" | "bad" }> = {
   P: { message: "statePending", variant: "run" },
@@ -44,13 +37,14 @@ export function RequestsTable({ rows, showActions }: { rows: RequestRow[]; showA
   const shared = useTranslations("organizations.common");
   const approve = useMutation(api.organizations.approve);
   const reject = useMutation(api.organizations.reject);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<RequestRow["_id"] | null>(null);
 
-  async function act(id: string, action: "approve" | "reject", username: string) {
+  async function act(id: RequestRow["_id"], action: "approve" | "reject", username: string) {
     setBusyId(id);
+
     try {
-      if (action === "approve") await approve({ requestId: id as never });
-      else await reject({ requestId: id as never });
+      if (action === "approve") await approve({ requestId: id });
+      else await reject({ requestId: id });
       toast.success(action === "approve" ? t("approved", { username }) : t("rejected", { username }));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : shared("failed"));

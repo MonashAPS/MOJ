@@ -11,5 +11,12 @@
     "declarationMap": true,
     "sourceMap": true
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/test.*.ts",
+    "src/pdf-parse.d.ts",
+    "src/__fixtures__",
+    "src/__snapshots__"
+  ]
 }

@@ -18,17 +18,17 @@ import {
 } from "@/lib/submissionFormat";
 
 /** `--v-<verdict>` for the 3px rail, through the one tone resolver's families. */
-const RAIL: Record<string, string> = {
-  good: "bg-good",
-  bad: "bg-bad",
-  warn: "bg-warn",
-  neutral: "bg-neutral",
-  run: "bg-run",
-  ie: "bg-ie",
-};
+const RAIL = new Map<string, string>([
+  ["good", "bg-good"],
+  ["bad", "bg-bad"],
+  ["warn", "bg-warn"],
+  ["neutral", "bg-neutral"],
+  ["run", "bg-run"],
+  ["ie", "bg-ie"],
+]);
 
 function railClass(tone: string): string {
-  return RAIL[tone] ?? "bg-neutral";
+  return RAIL.get(tone) ?? "bg-neutral";
 }
 
 export type RowPermissions = {
@@ -70,8 +70,10 @@ export function SubmissionRow({
   const showScore = !grading && row.status !== "IE" && row.status !== "CE" && row.status !== "AB";
   const noUsage = ["QU", "P", "G", "CE", "IE", "AB"].includes(row.status);
   const isOwn = permissions.username !== null && permissions.username === row.user?.username;
+
   const canRejudge =
     permissions.canRejudge && (permissions.canEditAllProblems || permissions.problemEditable);
+
   const canAbort = grading && (permissions.canAbortAny || isOwn);
 
   const href = row.canSeeDetail
@@ -270,7 +272,9 @@ function RelativeStamp({ date, now }: { date: number; now: number }) {
       mounted.current = true;
       setReference(Date.now());
     }
+
     const timer = setInterval(() => setReference(Date.now()), 60_000);
+
     return () => clearInterval(timer);
   }, []);
 

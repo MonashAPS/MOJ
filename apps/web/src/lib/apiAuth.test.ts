@@ -18,23 +18,74 @@ import { beforeAll, describe, expect, test } from "vitest";
 // `@/auth/db` builds a pg Pool at import time, and `@/auth/server` needs a
 // secret. Neither connects to anything in these tests.
 process.env.DATABASE_URL ??= "postgresql://moj:moj@127.0.0.1:5433/moj_auth";
+
 process.env.AUTH_SECRET ??= "test-secret-for-unit-tests-only-0123456789";
 
 type ApiAuth = typeof import("./apiAuth");
+
 let apiAuth: ApiAuth;
 
 beforeAll(async () => {
   apiAuth = await import("./apiAuth");
 });
 
+type ApiEnvelope = {
+  api_version: string;
+  method: string;
+  fetched: string;
+  data?: { objects: unknown[] };
+  error?: { code: number; message: string };
+};
+
+function isErrorBody(value: unknown): value is { code: number; message: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "code" in value &&
+    typeof value.code === "number" &&
+    "message" in value &&
+    typeof value.message === "string"
+  );
+}
+
+function isObjectsPayload(value: unknown): value is { objects: unknown[] } {
+  return typeof value === "object" && value !== null && "objects" in value && Array.isArray(value.objects);
+}
+
+function isApiEnvelope(body: unknown): body is ApiEnvelope {
+  return (
+    typeof body === "object" &&
+    body !== null &&
+    "api_version" in body &&
+    typeof body.api_version === "string" &&
+    "method" in body &&
+    typeof body.method === "string" &&
+    "fetched" in body &&
+    typeof body.fetched === "string" &&
+    (!("data" in body) || isObjectsPayload(body.data)) &&
+    (!("error" in body) || isErrorBody(body.error))
+  );
+}
+
+/** Read a response as the API v2 envelope, failing the test when it is not one. */
+async function envelopeOf(response: Response): Promise<ApiEnvelope> {
+  const body: unknown = await response.json();
+
+  if (!isApiEnvelope(body)) throw new Error("the response body is not an API v2 envelope");
+
+  return body;
+}
+
 const SECRET_KEY = "django-insecure-moj-test-key";
 
 /** `generate_api_token` for user 4919 with `secret = bytes(range(32))`. */
 const DMOJ_TOKEN = "AAATNwABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4f";
+
 const DMOJ_DIGEST = "e8ac60acafafb009ad576a6f0d7aef237a3aefbde3e7d29faf19797463023c25";
 
 /** The same, with a secret that forces `-` and `_` into the base64url alphabet. */
 const DMOJ_TOKEN_URLSAFE = "AAAAAfv_-__7__v_-__7__v_-__7__v_-__7__v_-__7__v_";
+
 const DMOJ_DIGEST_URLSAFE = "cf6f3650bbefe5166c60025e31f9d5fdbdd9fe34397fdc9c6f575d39d8a55005";
 
 describe("legacy token decoding", () => {
@@ -121,11 +172,11 @@ describe("the API v2 envelope", () => {
   test("a data response carries DMOJ's three header fields", async () => {
     const response = apiAuth.apiJson(request, { objects: [] });
     expect(response.status).toBe(200);
-    const body = (await response.json()) as Record<string, unknown>;
+    const body = await envelopeOf(response);
     expect(body.api_version).toBe("2.0");
     expect(body.method).toBe("get");
-    expect(typeof body.fetched).toBe("string");
-    expect(new Date(body.fetched as string).toISOString()).toBe(body.fetched);
+    expect(body.fetched).toEqual(expect.any(String));
+    expect(new Date(body.fetched).toISOString()).toBe(body.fetched);
     expect(body.data).toEqual({ objects: [] });
     expect(body.error).toBeUndefined();
   });
@@ -133,7 +184,7 @@ describe("the API v2 envelope", () => {
   test("an error response carries the code and the message, and no data", async () => {
     const response = apiAuth.apiError(request, 404, "page/object not found");
     expect(response.status).toBe(404);
-    const body = (await response.json()) as Record<string, unknown>;
+    const body = await envelopeOf(response);
     expect(body.error).toEqual({ code: 404, message: "page/object not found" });
     expect(body.data).toBeUndefined();
   });
@@ -145,10 +196,11 @@ describe("the API v2 envelope", () => {
       ["UNAUTHENTICATED", 403, "login required"],
       ["INVALID", 400, "invalid filter value type"],
     ];
+
     for (const [code, status, message] of cases) {
       const response = apiAuth.errorResponse(request, { data: { code, message: "whatever" } });
       expect(response.status).toBe(status);
-      const body = (await response.json()) as { error: { code: number; message: string } };
+      const body = await envelopeOf(response);
       expect(body.error).toEqual({ code: status, message });
     }
   });
@@ -157,8 +209,9 @@ describe("the API v2 envelope", () => {
     const response = apiAuth.errorResponse(request, {
       data: { code: "FORBIDDEN", message: "login required" },
     });
-    const body = (await response.json()) as { error: { message: string } };
-    expect(body.error.message).toBe("login required");
+
+    const body = await envelopeOf(response);
+    expect(body.error?.message).toBe("login required");
   });
 
   test("an error that is not a ConvexError is rethrown", () => {
@@ -199,23 +252,29 @@ describe("query-string filters", () => {
 
   test("withFilters turns a bad filter into the error envelope", async () => {
     const request = new Request("http://x/api/v2/problems?partial=maybe");
+
     const response = await apiAuth.withFilters(request, async (target) => {
       apiAuth.booleanFilter(target, "partial");
+
       return new Response("unreachable");
     });
+
     expect(response.status).toBe(400);
-    const body = (await response.json()) as { error: { message: string } };
-    expect(body.error.message).toBe("invalid filter value type");
+    const body = await envelopeOf(response);
+    expect(body.error?.message).toBe("invalid filter value type");
   });
 
   test("withFilters turns a bad page into a not-found envelope", async () => {
     const request = new Request("http://x/api/v2/problems?page=0");
+
     const response = await apiAuth.withFilters(request, async (target) => {
       apiAuth.pageFilter(target);
+
       return new Response("unreachable");
     });
+
     expect(response.status).toBe(404);
-    const body = (await response.json()) as { error: { message: string } };
-    expect(body.error.message).toBe("page/object not found");
+    const body = await envelopeOf(response);
+    expect(body.error?.message).toBe("page/object not found");
   });
 });

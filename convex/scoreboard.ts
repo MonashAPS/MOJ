@@ -19,6 +19,7 @@ import {
   firstSolves,
   freezeOffsetFor,
   nextRevealTarget,
+  PARTICIPATION_LIVE,
   penaltyMinutesFor,
   rankRows,
   type ScoreboardCell,
@@ -36,11 +37,10 @@ import {
   loadContestProblems,
   toContestRow,
   toViewerRowInContest,
-} from "./contestFormats";
+} from "./contests/formats";
 import { isStaff, optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, invalid, notFound } from "./lib/errors";
-
-const LIVE = 0;
+import { isJsonArray, isJsonObject, isJsonString, type MaybeJson } from "./lib/json";
 
 /* -------------------------------------------------------------------------- */
 /* Shapes                                                                     */
@@ -122,7 +122,10 @@ export type ScoreboardEventPayload = {
 /* Loading                                                                    */
 /* -------------------------------------------------------------------------- */
 
-async function eventByKey(ctx: QueryCtx | MutationCtx, key: string): Promise<Doc<"scoreboardEvents"> | null> {
+export async function eventByKey(
+  ctx: QueryCtx | MutationCtx,
+  key: string,
+): Promise<Doc<"scoreboardEvents"> | null> {
   return await ctx.db
     .query("scoreboardEvents")
     .withIndex("by_key", (q) => q.eq("key", key))
@@ -134,10 +137,13 @@ async function eventContests(
   event: Doc<"scoreboardEvents">,
 ): Promise<Doc<"contests">[]> {
   const out: Doc<"contests">[] = [];
+
   for (const id of event.contestIds) {
     const contest = await ctx.db.get(id);
+
     if (contest) out.push(contest);
   }
+
   return out;
 }
 
@@ -155,31 +161,38 @@ async function resolveBadges(
   warnings: string[];
 }> {
   const slugs = [...event.badgeOrganizationSlugs];
+
   if (event.inPersonOrganizationSlug) slugs.push(event.inPersonOrganizationSlug);
 
   const organizations = new Map<string, Doc<"organizations">>();
+
   for (const slug of new Set(slugs)) {
     const organization = await ctx.db
       .query("organizations")
       .withIndex("by_slug", (q) => q.eq("slug", slug))
       .first();
+
     if (organization) organizations.set(slug, organization);
   }
 
   const warnings: string[] = [];
   const missing = [...new Set(slugs)].filter((slug) => !organizations.has(slug));
+
   if (missing.length) {
     warnings.push(`No organisation with slug(s): ${missing.sort().join(", ")}`);
   }
 
   const badges: ScoreboardBadge[] = [];
+
   for (const slug of event.badgeOrganizationSlugs) {
     const organization = organizations.get(slug);
+
     if (!organization) continue;
     badges.push({ key: slug, label: organization.shortName || organization.name });
   }
 
   let inPersonKey: string | null = null;
+
   if (event.inPersonOrganizationSlug) {
     if (organizations.has(event.inPersonOrganizationSlug)) {
       inPersonKey = event.inPersonOrganizationSlug;
@@ -195,27 +208,38 @@ async function resolveBadges(
 
 function flagUrl(pattern: string | null | undefined, username: string): string | null {
   if (!pattern) return null;
+
   return pattern.replace("{username}", encodeURIComponent(username));
 }
 
 /** The reveals staff have already performed, as stored on the contest. */
 export type PersistedReveal = { participationId: string; cellIndex: number };
 
+function isPersistedReveal(entry: MaybeJson): entry is PersistedReveal {
+  return isJsonObject(entry) && isJsonString(entry.participationId) && Number.isInteger(entry.cellIndex);
+}
+
 function persistedReveals(contest: Doc<"contests">): PersistedReveal[] {
-  const state = contest.revealState as { revealed?: PersistedReveal[] } | undefined | null;
-  if (!state || !Array.isArray(state.revealed)) return [];
-  return state.revealed.filter(
-    (entry) => typeof entry?.participationId === "string" && Number.isInteger(entry?.cellIndex),
-  );
+  const state = contest.revealState;
+
+  if (!isJsonObject(state)) return [];
+  const revealed = state.revealed;
+
+  if (!isJsonArray(revealed)) return [];
+
+  return revealed.flatMap((entry) => (isPersistedReveal(entry) ? [entry] : []));
 }
 
 /** Apply one recorded reveal in place; mirrors `applyReveal` in `@moj/core`. */
 function applyRevealed(rows: ScoreboardRow[], reveal: PersistedReveal): boolean {
   const row = rows.find((candidate) => candidate.id === reveal.participationId);
+
   if (!row) return false;
   const cell = row.cells[reveal.cellIndex];
+
   if (!cell || cell.state !== FROZEN) return false;
   const truth = cell.reveal;
+
   if (truth) {
     cell.state = truth.state;
     cell.wrong = truth.wrong;
@@ -225,10 +249,12 @@ function applyRevealed(rows: ScoreboardRow[], reveal: PersistedReveal): boolean 
     cell.state = "failed";
     cell.penalty = 0;
   }
+
   cell.pending = 0;
   cell.reveal = undefined;
   row.solved = row.cells.filter((entry) => entry.state === SOLVED).length;
   row.penalty = row.cells.reduce((sum, entry) => sum + (entry.state === SOLVED ? entry.penalty : 0), 0);
+
   return true;
 }
 
@@ -237,6 +263,8 @@ type BuiltDivision = {
   rows: ScoreboardRow[];
   problems: ScoreboardProblem[];
   contestProblems: Doc<"contestProblems">[];
+  /** The rows the board was built from: `ScoreboardRow.id` is an opaque string. */
+  participations: Doc<"contestParticipations">[];
   freezeOffset: number;
   penaltyMinutes: number;
 };
@@ -255,6 +283,7 @@ async function buildDivision(
   const contestProblems = await loadContestProblems(ctx, contest._id);
   const problems: ScoreboardProblem[] = [];
   const maxPoints = new Map<string, number>();
+
   for (const [index, contestProblem] of contestProblems.entries()) {
     const problem = await ctx.db.get(contestProblem.problemId);
     problems.push({
@@ -270,25 +299,33 @@ async function buildDivision(
   const participations = (
     await ctx.db
       .query("contestParticipations")
-      .withIndex("by_contest_virtual_score", (q) => q.eq("contestId", contest._id).eq("virtual", LIVE))
+      .withIndex("by_contest_virtual_score", (q) =>
+        q.eq("contestId", contest._id).eq("virtual", PARTICIPATION_LIVE),
+      )
       .collect()
   ).filter((row) => !row.isDisqualified);
 
   const wanted = new Set<string>(badgeSlugs);
+
   if (inPersonKey) wanted.add(inPersonKey);
 
   const participants: ScoreboardParticipant[] = [];
+
   for (const participation of participations) {
     const profile = await ctx.db.get(participation.profileId);
+
     if (!profile) continue;
 
     const memberships = await ctx.db
       .query("organizationMemberships")
       .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
       .collect();
+
     const slugs = new Set<string>();
+
     for (const membership of memberships) {
       const organization = await ctx.db.get(membership.organizationId);
+
       if (organization && wanted.has(organization.slug)) slugs.add(organization.slug);
     }
 
@@ -302,16 +339,20 @@ async function buildDivision(
     });
   }
 
-  const participationIds = new Set(participations.map((row) => row._id as string));
+  const liveParticipationIds = new Set(participations.map((row) => row._id));
+
   const submissions = await ctx.db
     .query("submissions")
     .withIndex("by_contest_date", (q) => q.eq("contestId", contest._id))
     .collect();
 
   const attempts: Attempt[] = [];
+
   for (const submission of submissions) {
-    if (!submission.participationId || !participationIds.has(submission.participationId)) continue;
+    if (!submission.participationId || !liveParticipationIds.has(submission.participationId)) continue;
+
     if (!submission.contestProblemId) continue;
+
     if (submission.date < contest.startTime || submission.date > contest.endTime) continue;
     attempts.push({
       participation: submission.participationId,
@@ -345,6 +386,7 @@ async function buildDivision(
     rows: board.rows,
     problems,
     contestProblems,
+    participations,
     freezeOffset,
     penaltyMinutes,
   };
@@ -353,52 +395,73 @@ async function buildDivision(
 function serialiseDivision(built: BuiltDivision, includeReveal: boolean, now: number): Division {
   const contest = built.contest;
   const firsts = firstSolves(built.rows);
+
   const revealPending = built.rows.reduce(
     (count, row) => count + row.cells.filter((cell) => cell.state === FROZEN).length,
     0,
   );
 
-  const rows: BoardRow[] = built.rows.map((row) => ({
-    participationId: row.id as Id<"contestParticipations">,
-    username: row.username,
-    displayName: row.displayName ?? row.username,
-    flag: row.flag ?? null,
-    badges: [...(row.badges ?? [])],
-    inPerson: row.inPerson === true,
-    cells: row.cells.map((cell: ScoreboardCell, index: number) => ({
-      state: cell.state,
-      wrong: cell.wrong,
-      pending: cell.pending,
-      time: cell.time,
-      penalty: cell.penalty,
-      firstBlood: cell.state === SOLVED && cell.time !== null && firsts.get(index) === cell.time,
-      reveal:
-        includeReveal && cell.reveal
-          ? {
-              state: cell.reveal.state,
-              wrong: cell.reveal.wrong,
-              time: cell.reveal.time,
-              penalty: cell.reveal.penalty,
-            }
-          : undefined,
-    })),
-    solved: row.solved,
-    penalty: row.penalty,
-    rank: row.rank,
-  }));
+  const participationIds = new Map<string, Id<"contestParticipations">>(
+    built.participations.map((row) => [row._id, row._id]),
+  );
+
+  const contestProblemIds = new Map<string, Id<"contestProblems">>(
+    built.contestProblems.map((row) => [row._id, row._id]),
+  );
+
+  const rows: BoardRow[] = built.rows.flatMap((row) => {
+    const participationId = participationIds.get(row.id);
+
+    if (participationId === undefined) return [];
+
+    return {
+      participationId,
+      username: row.username,
+      displayName: row.displayName ?? row.username,
+      flag: row.flag ?? null,
+      badges: [...(row.badges ?? [])],
+      inPerson: row.inPerson === true,
+      cells: row.cells.map((cell: ScoreboardCell, index: number) => ({
+        state: cell.state,
+        wrong: cell.wrong,
+        pending: cell.pending,
+        time: cell.time,
+        penalty: cell.penalty,
+        firstBlood: cell.state === SOLVED && cell.time !== null && firsts.get(index) === cell.time,
+        reveal:
+          includeReveal && cell.reveal
+            ? {
+                state: cell.reveal.state,
+                wrong: cell.reveal.wrong,
+                time: cell.reveal.time,
+                penalty: cell.reveal.penalty,
+              }
+            : undefined,
+      })),
+      solved: row.solved,
+      penalty: row.penalty,
+      rank: row.rank,
+    };
+  });
 
   return {
     contestId: contest._id,
     key: contest.key,
     name: contest.name,
     label: contest.name,
-    problems: built.problems.map((problem, index) => ({
-      contestProblemId: problem.id as Id<"contestProblems">,
-      label: problem.label ?? String(index + 1),
-      code: problem.code ?? "",
-      name: problem.name ?? "",
-      points: problem.points ?? 0,
-    })),
+    problems: built.problems.flatMap((problem, index) => {
+      const contestProblemId = contestProblemIds.get(problem.id);
+
+      if (contestProblemId === undefined) return [];
+
+      return {
+        contestProblemId,
+        label: problem.label ?? String(index + 1),
+        code: problem.code ?? "",
+        name: problem.name ?? "",
+        points: problem.points ?? 0,
+      };
+    }),
     rows,
     freezeOffset: built.freezeOffset,
     duration: (contest.endTime - contest.startTime) / 1000,
@@ -433,13 +496,17 @@ export const events = query({
     const staff = isStaff(profile);
     const rows = await ctx.db.query("scoreboardEvents").collect();
     const out: ScoreboardEventSummary[] = [];
+
     for (const row of rows) {
       if (!row.isPublic && !staff) continue;
       const contestKeys: string[] = [];
+
       for (const id of row.contestIds) {
         const contest = await ctx.db.get(id);
+
         if (contest) contestKeys.push(contest.key);
       }
+
       out.push({
         _id: row._id,
         key: row.key,
@@ -449,6 +516,7 @@ export const events = query({
         contestKeys,
       });
     }
+
     return out.sort((a, b) => a.name.localeCompare(b.name));
   },
 });
@@ -462,10 +530,12 @@ export const event = query({
   handler: async (ctx, { key }): Promise<ScoreboardEventPayload> => {
     const now = Date.now();
     const row = await eventByKey(ctx, key);
+
     if (!row) return null;
 
     const profile = await optionalViewer(ctx);
     const viewer = await toViewerRowInContest(ctx, profile);
+
     if (!row.isPublic && !isStaff(profile)) return null;
 
     const contests = await eventContests(ctx, row);
@@ -474,6 +544,7 @@ export const event = query({
     const badgeSlugs = badges.map((badge) => badge.key);
 
     const divisions: Division[] = [];
+
     for (const contest of contests) {
       const built = await buildDivision(ctx, contest, row, badgeSlugs, inPersonKey);
       divisions.push(serialiseDivision(built, canReveal, now));
@@ -511,19 +582,24 @@ async function requireRevealRights(
 ): Promise<{ event: Doc<"scoreboardEvents">; contests: Doc<"contests">[] }> {
   const profile = await requireViewer(ctx);
   const row = await eventByKey(ctx, eventKey);
+
   if (!row) throw notFound(`Scoreboard "${eventKey}"`);
   const viewer = await toViewerRowInContest(ctx, profile);
   const contests = await eventContests(ctx, row);
+
   if (!canRevealContests(viewer, contests.map(toContestRow))) {
     throw forbidden("You may not run the reveal for this scoreboard.");
   }
+
   return { event: row, contests };
 }
 
 function divisionsToTouch(contests: Doc<"contests">[], contestKey?: string): Doc<"contests">[] {
   if (!contestKey) return contests;
   const contest = contests.find((row) => row.key === contestKey);
+
   if (!contest) throw invalid(`"${contestKey}" is not a division of this scoreboard.`);
+
   return [contest];
 }
 
@@ -545,25 +621,33 @@ export const revealStep = mutation({
 
     let revealedCount = 0;
     let done = true;
+
     for (const contest of divisionsToTouch(contests, contestKey)) {
       const built = await buildDivision(ctx, contest, row, badgeSlugs, inPersonKey);
       const target = nextRevealTarget(built.rows);
+
       if (!target) continue;
-      const targetRow = built.rows[target.rowIndex] as ScoreboardRow;
+      const targetRow = built.rows[target.rowIndex];
+
+      if (!targetRow) continue;
+
       const revealed = [
         ...persistedReveals(contest),
-        { participationId: targetRow.id as string, cellIndex: target.cellIndex },
+        { participationId: targetRow.id, cellIndex: target.cellIndex },
       ];
+
       await writeReveals(ctx, contest, revealed);
       revealedCount += 1;
 
       // Anything left after this step?
       applyRevealed(built.rows, {
-        participationId: targetRow.id as string,
+        participationId: targetRow.id,
         cellIndex: target.cellIndex,
       });
+
       if (nextRevealTarget(built.rows)) done = false;
     }
+
     return { revealed: revealedCount, done };
   },
 });
@@ -574,13 +658,16 @@ export const revealUndo = mutation({
   handler: async (ctx, { event: eventKey, contestKey }): Promise<{ undone: number }> => {
     const { contests } = await requireRevealRights(ctx, eventKey);
     let undone = 0;
+
     for (const contest of divisionsToTouch(contests, contestKey)) {
       const revealed = persistedReveals(contest);
+
       if (revealed.length === 0) continue;
       revealed.pop();
       await writeReveals(ctx, contest, revealed);
       undone += 1;
     }
+
     return { undone };
   },
 });
@@ -594,21 +681,27 @@ export const revealAll = mutation({
     const badgeSlugs = badges.map((badge) => badge.key);
 
     let revealed = 0;
+
     for (const contest of divisionsToTouch(contests, contestKey)) {
       const built = await buildDivision(ctx, contest, row, badgeSlugs, inPersonKey);
       const entries = persistedReveals(contest);
+
       for (let target = nextRevealTarget(built.rows); target; target = nextRevealTarget(built.rows)) {
-        const targetRow = built.rows[target.rowIndex] as ScoreboardRow;
-        entries.push({ participationId: targetRow.id as string, cellIndex: target.cellIndex });
+        const targetRow = built.rows[target.rowIndex];
+
+        if (!targetRow) break;
+        entries.push({ participationId: targetRow.id, cellIndex: target.cellIndex });
         applyRevealed(built.rows, {
-          participationId: targetRow.id as string,
+          participationId: targetRow.id,
           cellIndex: target.cellIndex,
         });
         rankRows(built.rows);
         revealed += 1;
       }
+
       await writeReveals(ctx, contest, entries);
     }
+
     return { revealed };
   },
 });
@@ -623,6 +716,7 @@ export const unfreeze = mutation({
     const { contests } = await requireRevealRights(ctx, eventKey);
     const touched = divisionsToTouch(contests, contestKey);
     const revealed = frozen !== true;
+
     for (const contest of touched) {
       await ctx.db.patch(contest._id, {
         freezeRevealed: revealed,
@@ -630,6 +724,7 @@ export const unfreeze = mutation({
         revealState: revealed ? { revealed: [] } : contest.revealState,
       });
     }
+
     return { contests: touched.length };
   },
 });
@@ -658,37 +753,45 @@ export const setTag = mutation({
     const { badges, organizations, inPersonKey } = await resolveBadges(ctx, row);
 
     const editable = new Set(badges.map((badge) => badge.key));
+
     if (inPersonKey) editable.add(inPersonKey);
+
     if (!editable.has(slug)) {
       throw invalid(`Not an editable badge for this event: ${slug}`);
     }
 
     const organization = organizations.get(slug);
+
     if (!organization) throw notFound(`Organisation "${slug}"`);
 
     const profile = await ctx.db
       .query("profiles")
       .withIndex("by_username", (q) => q.eq("username", username))
       .unique();
+
     if (!profile) throw notFound(`User "${username}"`);
 
     let competes = false;
+
     for (const contest of contests) {
       const rows = await ctx.db
         .query("contestParticipations")
         .withIndex("by_profile_contest", (q) => q.eq("profileId", profile._id).eq("contestId", contest._id))
         .collect();
-      if (rows.some((entry) => entry.virtual === LIVE && !entry.isDisqualified)) {
+
+      if (rows.some((entry) => entry.virtual === PARTICIPATION_LIVE && !entry.isDisqualified)) {
         competes = true;
         break;
       }
     }
+
     if (!competes) throw invalid(`${username} is not competing in this event.`);
 
     const memberships = await ctx.db
       .query("organizationMemberships")
       .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
       .collect();
+
     const existing = memberships.find((entry) => entry.organizationId === organization._id);
 
     if (on && !existing) {
@@ -709,9 +812,12 @@ export const setTag = mutation({
       .query("organizationMemberships")
       .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
       .collect();
+
     const slugs = new Set<string>();
+
     for (const membership of after) {
       const org = await ctx.db.get(membership.organizationId);
+
       if (org) slugs.add(org.slug);
     }
 
@@ -730,14 +836,17 @@ export const unfreezeContest = mutation({
   handler: async (ctx, { key, revealed }): Promise<null> => {
     const profile = await requireViewer(ctx);
     const contest = await contestByKey(ctx, key);
+
     if (!contest) throw notFound(`Contest "${key}"`);
     const viewer = await toViewerRowInContest(ctx, profile);
+
     if (!canRevealContests(viewer, [toContestRow(contest)])) throw forbidden();
     await ctx.db.patch(contest._id, {
       freezeRevealed: revealed,
       isUnfrozen: revealed,
       revealState: revealed ? { revealed: [] } : contest.revealState,
     });
+
     return null;
   },
 });

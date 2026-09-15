@@ -43,6 +43,7 @@ export const buttonVariants = cva(
 );
 
 export type ButtonVariant = NonNullable<VariantProps<typeof buttonVariants>["variant"]>;
+
 export type ButtonSize = NonNullable<VariantProps<typeof buttonVariants>["size"]>;
 
 export type ButtonProps = ComponentProps<"button"> &
@@ -77,6 +78,7 @@ export function Button({
 }: ButtonProps) {
   const Component = asChild ? Slot : "button";
   const leading = busy ? <Loader2 className="animate-spin-slow" aria-hidden /> : icon;
+
   return (
     <Component
       data-slot="button"

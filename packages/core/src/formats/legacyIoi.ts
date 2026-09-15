@@ -9,16 +9,22 @@
 import { participationStart } from "../contestTiming";
 import type { FormatData } from "../types";
 import { pyRound } from "../util/number";
-import type { ContestFormat, ParticipationUpdate, ScoringLine, UpdateParticipationInput } from "./base";
+import type {
+  ContestFormat,
+  FormatConfigInput,
+  ParticipationUpdate,
+  ScoringLine,
+  UpdateParticipationInput,
+} from "./base";
 import {
+  booleanConfig,
   breakdown,
   buildParticipationResult,
   buildProblemCell,
   cumtimeSeconds,
   groupByProblem,
-  mergeConfig,
   numberLabel,
-  orderedProblemIds,
+  orderedProblemGroups,
   pointsPrecision,
   secondsSince,
   validateAgainstDefaults,
@@ -26,14 +32,19 @@ import {
 
 export const LEGACY_IOI_DEFAULTS = { cumtime: false } as const;
 
-export function validateLegacyIoiConfig(config: unknown): void {
+export type LegacyIoiConfig = {
+  /** Whether solve times count towards `cumtime` and the tie break. */
+  readonly cumtime: boolean;
+};
+
+export function validateLegacyIoiConfig(config: FormatConfigInput): void {
   validateAgainstDefaults(config, LEGACY_IOI_DEFAULTS, {}, "IOI-styled contest");
 }
 
-export function resolveLegacyIoiConfig(config: unknown): { cumtime: boolean } {
+export function resolveLegacyIoiConfig(config: FormatConfigInput): LegacyIoiConfig {
   validateLegacyIoiConfig(config);
-  const merged = mergeConfig(LEGACY_IOI_DEFAULTS, config);
-  return { cumtime: Boolean(merged.cumtime) };
+
+  return { cumtime: booleanConfig(config, "cumtime", LEGACY_IOI_DEFAULTS.cumtime) };
 }
 
 export function updateParticipationLegacyIoi(input: UpdateParticipationInput): ParticipationUpdate {
@@ -46,15 +57,17 @@ export function updateParticipationLegacyIoi(input: UpdateParticipationInput): P
   const formatData: FormatData = {};
 
   const groups = groupByProblem(submissions, participation.id);
-  for (const problemId of orderedProblemIds(groups, contestProblems)) {
-    const rows = groups.get(problemId) as { date: number; contestPoints: number }[];
+
+  for (const [problemId, rows] of orderedProblemGroups(groups, contestProblems)) {
     const points = Math.max(...rows.map((row) => row.contestPoints));
     // MIN(date) among the submissions that scored the maximum.
     const time = Math.min(...rows.filter((row) => row.contestPoints === points).map((row) => row.date));
 
     let dt = 0;
+
     if (config.cumtime) {
       dt = secondsSince(start, time);
+
       if (points) cumtime += dt;
     }
 
@@ -83,13 +96,16 @@ export const legacyIoiFormat: ContestFormat = {
 
   displayUserProblem(participation, contestProblem, contest, config) {
     const entry = participation.formatData?.[contestProblem.id];
+
     if (!entry) return null;
     const resolved = resolveLegacyIoiConfig(config ?? contest.formatConfig);
+
     return buildProblemCell(entry, contestProblem, contest, { showTime: resolved.cumtime });
   },
 
   displayParticipationResult(participation, contest, config) {
     const resolved = resolveLegacyIoiConfig(config ?? contest.formatConfig);
+
     return buildParticipationResult(participation, contest, resolved.cumtime);
   },
 
@@ -100,6 +116,7 @@ export const legacyIoiFormat: ContestFormat = {
     const resolved = resolveLegacyIoiConfig(config);
     const lines: ScoringLine[] = [{ key: "maxScoreSubmission" }];
     lines.push({ key: resolved.cumtime ? "tiesByScoreAltering" : "tiesNotBroken" });
+
     return lines;
   },
 };

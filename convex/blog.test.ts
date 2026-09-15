@@ -1,42 +1,51 @@
 // @vitest-environment edge-runtime
 
-import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
-import { blogPostRow, profileRow, siteSettingsRow } from "./lib/testing";
-import schema from "./schema";
-
-const modules = import.meta.glob("./**/*.ts");
+import { asUser, insertBlogPost, insertProfile, insertSiteSettings } from "./test.fixtures";
+import { setupTest } from "./test.setup";
 
 async function seed() {
-  const t = convexTest(schema, modules);
-  const ids = await t.run(async (ctx) => {
-    await ctx.db.insert("siteSettings", siteSettingsRow());
-    const author = await ctx.db.insert("profiles", profileRow("author"));
-    const reader = await ctx.db.insert("profiles", profileRow("reader"));
-    const editor = await ctx.db.insert(
-      "profiles",
-      profileRow("editor", { permissions: ["judge.edit_all_post"] }),
-    );
+  const t = setupTest();
 
-    const live = await ctx.db.insert(
-      "blogPosts",
-      blogPostRow("Live post", { publishOn: 1_000, authorProfileIds: [author] }),
-    );
-    const sticky = await ctx.db.insert(
-      "blogPosts",
-      blogPostRow("Sticky post", { publishOn: 500, sticky: true, authorProfileIds: [author] }),
-    );
-    const draft = await ctx.db.insert(
-      "blogPosts",
-      blogPostRow("Draft post", { visible: false, authorProfileIds: [author] }),
-    );
-    const future = await ctx.db.insert(
-      "blogPosts",
-      blogPostRow("Future post", { publishOn: Date.now() + 86_400_000, authorProfileIds: [author] }),
-    );
+  const ids = await t.run(async (ctx) => {
+    await insertSiteSettings(ctx);
+    const author = await insertProfile(ctx, { username: "author" });
+    const reader = await insertProfile(ctx, { username: "reader" });
+
+    const editor = await insertProfile(ctx, {
+      username: "editor",
+      permissions: ["judge.edit_all_post"],
+    });
+
+    const live = await insertBlogPost(ctx, {
+      title: "Live post",
+      publishOn: 1_000,
+      authorProfileIds: [author],
+    });
+
+    const sticky = await insertBlogPost(ctx, {
+      title: "Sticky post",
+      publishOn: 500,
+      sticky: true,
+      authorProfileIds: [author],
+    });
+
+    const draft = await insertBlogPost(ctx, {
+      title: "Draft post",
+      visible: false,
+      authorProfileIds: [author],
+    });
+
+    const future = await insertBlogPost(ctx, {
+      title: "Future post",
+      publishOn: Date.now() + 86_400_000,
+      authorProfileIds: [author],
+    });
+
     return { author, reader, editor, live, sticky, draft, future };
   });
+
   return { t, ids };
 }
 
@@ -49,7 +58,7 @@ describe("blog visibility", () => {
 
   test("drafts and future posts stay hidden from plain readers", async () => {
     const { t, ids } = await seed();
-    const posts = await t.withIdentity({ subject: "user-reader" }).query(api.blog.list, { limit: 10 });
+    const posts = await asUser(t, "reader").query(api.blog.list, { limit: 10 });
     expect(posts.map((post) => post.title)).toEqual(["Sticky post", "Live post"]);
 
     expect(await t.query(api.blog.get, { id: ids.draft })).toBeNull();
@@ -58,7 +67,7 @@ describe("blog visibility", () => {
 
   test("judge.edit_all_post sees drafts and future posts", async () => {
     const { t, ids } = await seed();
-    const editor = t.withIdentity({ subject: "user-editor" });
+    const editor = asUser(t, "editor");
     const posts = await editor.query(api.blog.list, { limit: 10 });
     expect(posts.map((post) => post.title).sort()).toEqual([
       "Draft post",
@@ -87,12 +96,13 @@ describe("blog visibility", () => {
     await t.run(async (ctx) => {
       const base = {
         targetType: "blog" as const,
-        targetKey: ids.live as string,
+        targetKey: ids.live,
         authorProfileId: ids.author,
         time: Date.now(),
         score: 0,
         revisions: 1,
       };
+
       await ctx.db.insert("comments", { ...base, body: "one", hidden: false });
       await ctx.db.insert("comments", { ...base, body: "two", hidden: false });
       await ctx.db.insert("comments", { ...base, body: "gone", hidden: true });
@@ -103,9 +113,11 @@ describe("blog visibility", () => {
 
   test("pagination walks the visible posts in order", async () => {
     const { t } = await seed();
+
     const first = await t.query(api.blog.paginated, {
       paginationOpts: { numItems: 1, cursor: null },
     });
+
     expect(first.page.map((post) => post.title)).toEqual(["Sticky post"]);
     expect(first.isDone).toBe(false);
     expect(first.totalCount).toBe(2);
@@ -113,6 +125,7 @@ describe("blog visibility", () => {
     const second = await t.query(api.blog.paginated, {
       paginationOpts: { numItems: 1, cursor: first.continueCursor },
     });
+
     expect(second.page.map((post) => post.title)).toEqual(["Live post"]);
     expect(second.isDone).toBe(true);
   });
@@ -126,9 +139,10 @@ describe("blog admin", () => {
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", "author"))
         .unique();
+
       if (writer) await ctx.db.patch(writer._id, { permissions: ["judge.change_blogpost"] });
     });
-    const writer = t.withIdentity({ subject: "user-author" });
+    const writer = asUser(t, "author");
 
     await expect(
       writer.mutation(api.admin.blog.create, {
@@ -142,6 +156,7 @@ describe("blog admin", () => {
       title: "New post",
       content: "Body",
     });
+
     expect(id).toBeTruthy();
 
     const history = await writer.query(api.admin.blog.history, { id });
@@ -151,7 +166,7 @@ describe("blog admin", () => {
 
   test("an update writes a revision of the previous state", async () => {
     const { t, ids } = await seed();
-    const editor = t.withIdentity({ subject: "user-editor" });
+    const editor = asUser(t, "editor");
     await editor.mutation(api.admin.blog.update, {
       id: ids.live,
       title: "Renamed",
@@ -171,7 +186,7 @@ describe("blog admin", () => {
     await t.run(async (ctx) => {
       await ctx.db.insert("comments", {
         targetType: "blog",
-        targetKey: ids.live as string,
+        targetKey: ids.live,
         authorProfileId: ids.author,
         time: Date.now(),
         score: 0,
@@ -181,7 +196,7 @@ describe("blog admin", () => {
       });
     });
 
-    await t.withIdentity({ subject: "user-editor" }).mutation(api.admin.blog.remove, {
+    await asUser(t, "editor").mutation(api.admin.blog.remove, {
       id: ids.live,
     });
 

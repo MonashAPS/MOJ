@@ -13,9 +13,11 @@ declare global {
 
 function makePool(): Pool {
   const connectionString = process.env.DATABASE_URL;
+
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set. Run `npm run setup` or copy infra/.env.example.");
   }
+
   return new Pool({ connectionString, max: 10 });
 }
 
@@ -25,27 +27,34 @@ function makePool(): Pool {
 // count grows until Postgres refuses connections.
 function realPool(): Pool {
   if (!globalThis.__mojAuthPool) globalThis.__mojAuthPool = makePool();
+
   return globalThis.__mojAuthPool;
 }
 
 function realDb(): Db {
   if (!globalThis.__mojAuthDb) globalThis.__mojAuthDb = drizzle(realPool(), { schema });
+
   return globalThis.__mojAuthDb;
 }
 
 function lazy<T extends object>(resolve: () => T): T {
-  return new Proxy({} as T, {
+  // SAFETY: no trap reads the target; each one answers from the resolved instance.
+  const placeholder = {} as T;
+
+  return new Proxy(placeholder, {
     get(_target, prop) {
       const instance = resolve();
-      const value = Reflect.get(instance, prop, instance);
-      return typeof value === "function" ? value.bind(instance) : value;
+      // SAFETY: a key the instance does not carry reads as undefined here, exactly as it would on the instance.
+      const value = instance[prop as keyof T];
+
+      return value instanceof Function ? value.bind(instance) : value;
     },
     has(_target, prop) {
-      return Reflect.has(resolve(), prop);
+      return prop in resolve();
     },
   });
 }
 
-export const pool: Pool = lazy(realPool);
 export const db: Db = lazy(realDb);
+
 export { schema };

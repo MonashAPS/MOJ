@@ -12,15 +12,16 @@
  * spoil the frozen grid or the reveal.
  */
 
-import { type Attempt, classifyEvent, freezeOffsetFor } from "@moj/core";
+import { type Attempt, classifyEvent, freezeOffsetFor, PARTICIPATION_LIVE } from "@moj/core";
 import { v } from "convex/values";
-import type { Doc, Id } from "../_generated/dataModel";
+import type { Doc } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
-import { labelForProblem, loadContestProblems } from "../contestFormats";
+import { labelForProblem, loadContestProblems } from "../contests/formats";
 import { isStaff, optionalViewer } from "../lib/auth";
+import { eventByKey } from "../scoreboard";
 
-const LIVE = 0;
 const DEFAULT_LIMIT = 60;
+
 const MAX_LIMIT = 200;
 
 /** Submissions read per division before filtering. */
@@ -44,13 +45,6 @@ export type FeedItem = {
   masked: boolean;
 };
 
-async function eventByKey(ctx: QueryCtx, key: string): Promise<Doc<"scoreboardEvents"> | null> {
-  return await ctx.db
-    .query("scoreboardEvents")
-    .withIndex("by_key", (q) => q.eq("key", key))
-    .unique();
-}
-
 async function divisionFeed(
   ctx: QueryCtx,
   contest: Doc<"contests">,
@@ -62,6 +56,7 @@ async function divisionFeed(
 
   const contestProblems = await loadContestProblems(ctx, contest._id);
   const labels = new Map<string, { label: string; name: string }>();
+
   for (const [index, contestProblem] of contestProblems.entries()) {
     const problem = await ctx.db.get(contestProblem.problemId);
     labels.set(contestProblem._id, {
@@ -72,9 +67,13 @@ async function divisionFeed(
 
   const participations = await ctx.db
     .query("contestParticipations")
-    .withIndex("by_contest_virtual_score", (q) => q.eq("contestId", contest._id).eq("virtual", LIVE))
+    .withIndex("by_contest_virtual_score", (q) =>
+      q.eq("contestId", contest._id).eq("virtual", PARTICIPATION_LIVE),
+    )
     .collect();
+
   const live = new Map<string, Doc<"contestParticipations">>();
+
   for (const participation of participations) {
     if (!participation.isDisqualified) live.set(participation._id, participation);
   }
@@ -90,16 +89,23 @@ async function divisionFeed(
 
   for (const submission of submissions) {
     if (items.length >= limit) break;
-    if (!submission.participationId || !live.has(submission.participationId)) continue;
+
+    if (!submission.participationId) continue;
+    const participation = live.get(submission.participationId);
+
+    if (!participation) continue;
+
     if (!submission.contestProblemId) continue;
     const problem = labels.get(submission.contestProblemId);
-    if (!problem) continue;
-    if (submission.date < contest.startTime || submission.date > contest.endTime) continue;
 
-    const participation = live.get(submission.participationId) as Doc<"contestParticipations">;
+    if (!problem) continue;
+
+    if (submission.date < contest.startTime || submission.date > contest.endTime) continue;
     let who = names.get(participation.profileId);
+
     if (!who) {
       const profile = await ctx.db.get(participation.profileId);
+
       if (!profile) continue;
       who = {
         username: profile.username,
@@ -116,6 +122,7 @@ async function divisionFeed(
       result: submission.result ?? null,
       maxPoints: 0,
     };
+
     const [state, masked] = classifyEvent(attempt, freezeOffset);
 
     items.push({
@@ -147,22 +154,27 @@ export const feed = query({
   args: { key: v.string(), limit: v.optional(v.number()) },
   handler: async (ctx, { key, limit }): Promise<FeedItem[]> => {
     const row = await eventByKey(ctx, key);
+
     if (!row) return [];
 
     const profile = await optionalViewer(ctx);
+
     if (!row.isPublic && !isStaff(profile)) return [];
 
     const cap = Math.max(1, Math.min(MAX_LIMIT, Math.trunc(limit ?? DEFAULT_LIMIT)));
 
     const items: FeedItem[] = [];
-    for (const id of row.contestIds as Id<"contests">[]) {
+
+    for (const id of row.contestIds) {
       const contest = await ctx.db.get(id);
+
       if (!contest) continue;
       items.push(...(await divisionFeed(ctx, contest, row.freezeMinutes, cap)));
     }
 
     // Ties break on the submission id, so the order is stable between updates.
     items.sort((a, b) => b.at - a.at || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0));
+
     return items.slice(0, cap);
   },
 });

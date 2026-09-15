@@ -9,7 +9,9 @@ export async function generateMetadata({ params }: { params: Promise<{ key: stri
   const { key } = await params;
   const t = await getTranslations("contests.join");
   const detail = await queryAsViewer(api.contests.get, { key }).catch(() => null);
+
   if (!detail?.contest) return { title: t("metaFallback") };
+
   return {
     title: detail.viewer.requiresAccessCode
       ? t("accessCodeTitle", { name: detail.contest.name })
@@ -27,8 +29,11 @@ export default async function ContestJoinPage({ params }: { params: Promise<{ ke
   const detail = await queryAsViewer(api.contests.get, { key }).catch(() => null);
 
   if (!detail || detail.access.kind === "notFound" || detail.access.kind === "inaccessible") notFound();
+
   if (detail.access.kind === "privateContest") notFound();
+
   if (!detail.contest) notFound();
+
   if (!detail.viewer.isAuthenticated) {
     redirect(`/accounts/login/?next=${encodeURIComponent(`/contest/${key}/join/`)}`);
   }

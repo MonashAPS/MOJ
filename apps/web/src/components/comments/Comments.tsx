@@ -23,6 +23,7 @@ export async function Comments({ targetType, targetKey }: CommentsProps) {
     queryAsViewer(api.viewer.current, {}).catch(() => null),
     queryAsViewer(api.site.settings, {}).catch(() => null),
   ]);
+
   // `enable_comments` (blog/content.html): a page whose target no longer exists,
   // or a site with comments switched off, renders no section at all.
   if (!data || settings?.enableComments === false) return null;

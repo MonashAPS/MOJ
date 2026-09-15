@@ -1,6 +1,7 @@
 /** Escapes a JavaScript string into a Typst string literal, including the quotes. */
 export function typstEscapeString(value: string): string {
   let out = '"';
+
   for (const character of value) {
     switch (character) {
       case "\\":
@@ -24,19 +25,28 @@ export function typstEscapeString(value: string): string {
       }
     }
   }
+
   return `${out}"`;
 }
 
 /** A Typst array literal of strings, e.g. `("a", "b")`. */
 export function typstStringArray(values: readonly string[]): string {
   if (values.length === 0) return "()";
-  if (values.length === 1) return `(${typstEscapeString(values[0] as string)},)`;
-  return `(${values.map(typstEscapeString).join(", ")})`;
+  const body = values.map(typstEscapeString).join(", ");
+
+  // A one-element Typst array keeps a trailing comma, or it is just a parenthesis.
+  return values.length === 1 ? `(${body},)` : `(${body})`;
+}
+
+function isNumberValue(value: string | number): value is number {
+  return typeof value === "number";
 }
 
 /** A Typst literal for a value that may be absent. */
 export function typstOptional(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return "none";
-  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "none";
+
+  if (isNumberValue(value)) return Number.isFinite(value) ? String(value) : "none";
+
   return typstEscapeString(value);
 }

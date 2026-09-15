@@ -1,37 +1,25 @@
 import { getFormatOrDefault } from "@moj/core";
-import type {
-  GenericDatabaseReader,
-  GenericDatabaseWriter,
-  GenericDataModel,
-  GenericDocument,
-} from "convex/server";
-import type { GenericId, Value } from "convex/values";
+import type { GenericDatabaseWriter, GenericDataModel } from "convex/server";
+import type { Value } from "convex/values";
 import { v } from "convex/values";
-import type { Doc } from "./_generated/dataModel";
+import type { TableNames } from "./_generated/dataModel";
 import { internalMutation, internalQuery } from "./_generated/server";
+import { isJsonNumber, isJsonObject, isJsonString, type JsonObject, type JsonValue } from "./lib/json";
 import { insertProfileAggregates } from "./rankings";
 import schema from "./schema";
 
 const tableNames = new Set(Object.keys(schema.tables));
 
-function assertTable(table: string): string {
-  if (!tableNames.has(table)) {
+function isTableName(table: string): table is TableNames {
+  return tableNames.has(table);
+}
+
+function assertTable(table: string): TableNames {
+  if (!isTableName(table)) {
     throw new Error(`unknown table ${table}; expected one of ${[...tableNames].sort().join(", ")}`);
   }
+
   return table;
-}
-
-/**
- * The importer addresses tables by name, so these functions use the loose
- * generic database types rather than the generated per table ones. The schema
- * still validates every document on insert.
- */
-function writer(db: unknown): GenericDatabaseWriter<GenericDataModel> {
-  return db as GenericDatabaseWriter<GenericDataModel>;
-}
-
-function reader(db: unknown): GenericDatabaseReader<GenericDataModel> {
-  return db as GenericDatabaseReader<GenericDataModel>;
 }
 
 const idResult = v.object({
@@ -50,46 +38,56 @@ const idResult = v.object({
  * Extending this is one line: add the table, the field that names a row and the
  * index that covers it.
  */
-const NATURAL_KEYS: Record<string, { field: string; index: string }> = {
-  languages: { field: "key", index: "by_key" },
-  problemTypes: { field: "name", index: "by_name" },
-  problemGroups: { field: "name", index: "by_name" },
-  licenses: { field: "key", index: "by_key" },
-  navigationBar: { field: "key", index: "by_key" },
-  miscConfig: { field: "key", index: "by_key" },
-  flatPages: { field: "url", index: "by_url" },
-};
+const NATURAL_KEYS = new Map<TableNames, { field: string; index: string }>([
+  ["languages", { field: "key", index: "by_key" }],
+  ["problemTypes", { field: "name", index: "by_name" }],
+  ["problemGroups", { field: "name", index: "by_name" }],
+  ["licenses", { field: "key", index: "by_key" }],
+  ["navigationBar", { field: "key", index: "by_key" }],
+  ["miscConfig", { field: "key", index: "by_key" }],
+  ["flatPages", { field: "url", index: "by_url" }],
+]);
+
+/** A `GenericDocument` is keyed by string, so `_id` arrives untyped. */
+function isIdString(value: Value | undefined): value is string {
+  return typeof value === "string";
+}
 
 /**
- * The row this document belongs to, if the table has a natural key and a row
- * already carries it. First match, not `unique`: a deployment duplicated by an
- * earlier import must still be importable; `admin/languages.dedupeByKey` and
- * `admin/dedupe.dedupeNaturalKeys` are what clear the duplicates up
- * afterwards.
+ * The id of the row this document belongs to, if the table has a natural key
+ * and a row already carries it. First match, not `unique`: a deployment
+ * duplicated by an earlier import must still be importable;
+ * `admin/languages.dedupeByKey` and `admin/dedupe.dedupeNaturalKeys` are what
+ * clear the duplicates up afterwards.
  */
-async function existingByNaturalKey(
+async function existingIdByNaturalKey(
   db: GenericDatabaseWriter<GenericDataModel>,
-  table: string,
-  doc: unknown,
-): Promise<GenericDocument | null> {
-  const natural = NATURAL_KEYS[table];
-  if (!natural) return null;
-  const key = (doc as Record<string, unknown>)[natural.field];
-  if (typeof key !== "string") return null;
-  return await db
+  table: TableNames,
+  doc: JsonValue,
+): Promise<string | null> {
+  const natural = NATURAL_KEYS.get(table);
+
+  if (!natural || !isJsonObject(doc)) return null;
+  const key = doc[natural.field];
+
+  if (!isJsonString(key)) return null;
+
+  const row = await db
     .query(table)
     .withIndex(natural.index, (q) => q.eq(natural.field, key))
     .first();
+
+  const id = row === null ? undefined : row._id;
+
+  return isIdString(id) ? id : null;
 }
 
-function legacyIdOf(doc: unknown): number | null {
-  const value = (doc as { legacyId?: unknown }).legacyId;
-  return typeof value === "number" ? value : null;
-}
+/** `legacyId` is the DMOJ primary key; a row the dump invented has none. */
+function legacyIdOf(doc: JsonValue): number | null {
+  if (!isJsonObject(doc)) return null;
+  const value = doc.legacyId;
 
-/** The importer sends plain JSON, which the schema validates on insert. */
-function asDocument(doc: unknown): Record<string, Value> {
-  return doc as Record<string, Value>;
+  return isJsonNumber(value) ? value : null;
 }
 
 /**
@@ -109,26 +107,34 @@ export const insertBatch = internalMutation({
   returns: v.array(idResult),
   handler: async (ctx, args) => {
     const table = assertTable(args.table);
-    const db = writer(ctx.db);
+    const db: GenericDatabaseWriter<GenericDataModel> = ctx.db;
     const out: { legacyId: number | null; id: string }[] = [];
+
     for (const doc of args.docs) {
-      const existing = await existingByNaturalKey(db, table, doc);
+      const existing = await existingIdByNaturalKey(db, table, doc);
+      const existingId = existing === null ? null : ctx.db.normalizeId(table, existing);
       let id: string;
-      if (existing) {
-        await db.patch(existing._id as GenericId<string>, asDocument(doc));
-        id = existing._id as string;
+
+      if (existingId) {
+        await ctx.db.patch(existingId, doc);
+        id = existingId;
       } else {
-        id = await db.insert(table, asDocument(doc));
+        id = await db.insert(table, doc);
+
         // The leaderboard aggregates have no triggers, so a straight insert has
         // to add the profile itself. `rankings.rebuildAggregates` repairs the
         // tree if an import is interrupted part way through.
         if (table === "profiles") {
-          const inserted = await ctx.db.get(id as unknown as Doc<"profiles">["_id"]);
-          if (inserted) await insertProfileAggregates(ctx, inserted as Doc<"profiles">);
+          const profileId = ctx.db.normalizeId("profiles", id);
+          const inserted = profileId === null ? null : await ctx.db.get(profileId);
+
+          if (inserted) await insertProfileAggregates(ctx, inserted);
         }
       }
+
       out.push({ legacyId: legacyIdOf(doc), id });
     }
+
     return out;
   },
 });
@@ -141,11 +147,15 @@ export const patchBatch = internalMutation({
   },
   returns: v.number(),
   handler: async (ctx, args) => {
-    assertTable(args.table);
-    const db = writer(ctx.db);
+    const table = assertTable(args.table);
+
     for (const patch of args.patches) {
-      await db.patch(patch.id as GenericId<string>, asDocument(patch.fields));
+      const id = ctx.db.normalizeId(table, patch.id);
+
+      if (id === null) throw new Error(`${patch.id} is not an id of ${table}`);
+      await ctx.db.patch(id, patch.fields);
     }
+
     return args.patches.length;
   },
 });
@@ -162,10 +172,11 @@ export const clearTable = internalMutation({
   returns: v.object({ deleted: v.number(), isDone: v.boolean() }),
   handler: async (ctx, args) => {
     const table = assertTable(args.table);
-    const db = writer(ctx.db);
     const limit = args.limit ?? 2000;
-    const docs = await db.query(table).take(limit);
-    for (const doc of docs) await db.delete(doc._id as GenericId<string>);
+    const docs = await ctx.db.query(table).take(limit);
+
+    for (const doc of docs) await ctx.db.delete(doc._id);
+
     return { deleted: docs.length, isDone: docs.length < limit };
   },
 });
@@ -187,12 +198,15 @@ export const mapping = internalQuery({
   }),
   handler: async (ctx, args) => {
     const table = assertTable(args.table);
-    const db = reader(ctx.db);
-    const result = await db.query(table).paginate({ cursor: args.cursor, numItems: args.numItems ?? 512 });
+
+    const result = await ctx.db
+      .query(table)
+      .paginate({ cursor: args.cursor, numItems: args.numItems ?? 512 });
+
     return {
-      page: result.page.map((doc: GenericDocument) => ({
-        legacyId: legacyIdOf(doc),
-        id: doc._id as string,
+      page: result.page.map((doc) => ({
+        legacyId: "legacyId" in doc ? (doc.legacyId ?? null) : null,
+        id: doc._id,
       })),
       continueCursor: result.isDone ? null : result.continueCursor,
       isDone: result.isDone,
@@ -228,30 +242,37 @@ export const backfillFormatDataKeys = internalMutation({
 
     let rewritten = 0;
     let droppedKeys = 0;
+
     for (const participation of page.page) {
       const data = participation.formatData;
-      if (data === null || typeof data !== "object" || Array.isArray(data)) continue;
 
-      const entries = Object.entries(data as Record<string, unknown>);
+      if (!isJsonObject(data)) continue;
+
+      const entries = Object.entries(data);
       const numeric = entries.filter(([key]) => /^\d+$/.test(key));
+
       if (numeric.length === 0) continue;
 
-      const next: Record<string, unknown> = {};
+      const next: JsonObject = {};
+
       for (const [key, value] of entries) {
         if (!/^\d+$/.test(key)) {
           next[key] = value;
           continue;
         }
+
         const contestProblem = await ctx.db
           .query("contestProblems")
           .withIndex("by_legacyId", (q) => q.eq("legacyId", Number(key)))
           .unique();
+
         if (contestProblem && contestProblem.contestId === participation.contestId) {
           next[contestProblem._id] = value;
         } else {
           droppedKeys++;
         }
       }
+
       await ctx.db.patch(participation._id, { formatData: next });
       rewritten++;
     }
@@ -293,10 +314,13 @@ export const backfillLabelScheme = internalMutation({
       .paginate({ cursor: args.cursor, numItems: args.numItems ?? 200 });
 
     let rewritten = 0;
+
     for (const contest of page.page) {
       if (contest.labelScheme !== "letters") continue;
+
       if (contest.customLabels.length > 0) continue;
       const scheme = getFormatOrDefault(contest.formatName).defaultLabelScheme;
+
       if (scheme === "letters") continue;
       await ctx.db.patch(contest._id, { labelScheme: scheme });
       rewritten++;

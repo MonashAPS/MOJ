@@ -3,28 +3,31 @@
 import { api } from "@convex/_generated/api";
 import { Alert, AlertTitle, Button, Field, Input, Panel, Textarea } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { TriangleAlert } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { mutationError } from "@/lib/convex-error";
 import { formatPoints } from "@/lib/units";
 
-type Stats = NonNullable<(typeof api.problems.voteStats)["_returnType"]>;
+type Stats = NonNullable<(typeof api.problems.votes.voteStats)["_returnType"]>;
 
 /** DMOJ's vote-stats canvas, drawn as bars: one column per point value between
  *  the smallest and largest vote the site allows. */
 function Histogram({ stats }: { stats: Stats }) {
   const t = useTranslations("problems.vote");
   const counts = new Map<number, number>();
+
   for (const vote of stats.votes) counts.set(vote, (counts.get(vote) ?? 0) + 1);
   const max = Math.max(1, ...counts.values());
   const values: number[] = [];
+
   for (let value = stats.minPossibleVote; value <= stats.maxPossibleVote; value += 1) values.push(value);
 
   return (
     <div className="flex h-40 items-end gap-px" role="img" aria-label={t("histogramLabel")}>
       {values.map((value) => {
         const count = counts.get(value) ?? 0;
+
         return (
           <span
             key={value}
@@ -50,9 +53,9 @@ export function VoteView({
   currentPoints: number;
 }) {
   const t = useTranslations("problems.vote");
-  const stats = useQuery(api.problems.voteStats, { code });
-  const castVote = useMutation(api.problems.vote);
-  const deleteVote = useMutation(api.problems.deleteVote);
+  const stats = useQuery(api.problems.votes.voteStats, { code });
+  const castVote = useMutation(api.problems.votes.vote);
+  const deleteVote = useMutation(api.problems.votes.deleteVote);
 
   const [points, setPoints] = useState(initialVote ? String(initialVote.points) : "");
   const [note, setNote] = useState(initialVote?.note ?? "");
@@ -60,17 +63,14 @@ export function VoteView({
   const [busy, setBusy] = useState(false);
   const [voted, setVoted] = useState(initialVote !== null);
 
-  async function run(action: () => Promise<unknown>) {
+  async function run<TAnswer>(action: () => Promise<TAnswer>) {
     setBusy(true);
     setError(null);
+
     try {
       await action();
     } catch (thrown) {
-      setError(
-        thrown instanceof ConvexError && typeof thrown.data === "object" && thrown.data !== null
-          ? String((thrown.data as { message?: string }).message ?? t("saveFailed"))
-          : t("saveFailed"),
-      );
+      setError(mutationError(thrown, t("saveFailed")));
     } finally {
       setBusy(false);
     }
@@ -123,10 +123,13 @@ export function VoteView({
           onSubmit={(event) => {
             event.preventDefault();
             const value = Number(points);
+
             if (!Number.isFinite(value) || value < min || value > max) {
               setError(t("outOfRange", { min, max }));
+
               return;
             }
+
             void run(async () => {
               await castVote({ code, points: Math.round(value), note: note || undefined });
               setVoted(true);

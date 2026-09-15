@@ -20,6 +20,7 @@ export const nav = query({
   args: {},
   handler: async (ctx): Promise<NavNode[]> => {
     const rows = await ctx.db.query("navigationBar").withIndex("by_order").collect();
+
     return buildTree(rows);
   },
 });
@@ -29,13 +30,16 @@ export const miscConfig = query({
   handler: async (ctx): Promise<Record<string, string>> => {
     const rows = await ctx.db.query("miscConfig").collect();
     const out: Record<string, string> = {};
+
     for (const row of rows) out[row.key] = row.value;
+
     return out;
   },
 });
 
 /** The preset `@moj/content` renders flat page bodies with. */
 export const FLATPAGE_PRESET = "flatpage" as const;
+
 /** The preset `@moj/content` renders license texts with. */
 export const LICENSE_PRESET = "license" as const;
 
@@ -46,6 +50,7 @@ export const flatPage = query({
       .query("flatPages")
       .withIndex("by_url", (q) => q.eq("url", url))
       .first();
+
     return row === null ? null : { ...row, contentPreset: FLATPAGE_PRESET };
   },
 });
@@ -71,8 +76,13 @@ export const settings = query({
 
 /** The defaults live in `packages/ui/src/tokens.css`; these mirror the two an
  *  operator may override, so the query can always answer with a usable pair. */
-const DEFAULT_ACCENT = "#2941a5";
-const DEFAULT_NAV = "#101a3d";
+const DEFAULT_ACCENT_RGB: Rgb = [0x29, 0x41, 0xa5];
+
+const DEFAULT_NAV_RGB: Rgb = [0x10, 0x1a, 0x3d];
+
+const DEFAULT_ACCENT = toHex(DEFAULT_ACCENT_RGB);
+
+const DEFAULT_NAV = toHex(DEFAULT_NAV_RGB);
 
 export type Branding = {
   siteName: string;
@@ -97,10 +107,12 @@ export type Branding = {
   isCustomised: boolean;
 };
 
-function parseHex(value: string): [number, number, number] | null {
-  const match = /^#?([0-9a-f]{6})$/i.exec(value.trim());
-  if (!match) return null;
-  const int = Number.parseInt(match[1] as string, 16);
+function parseHex(value: string): Rgb | null {
+  const [, digits] = /^#?([0-9a-f]{6})$/i.exec(value.trim()) ?? [];
+
+  if (digits === undefined) return null;
+  const int = Number.parseInt(digits, 16);
+
   return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
 }
 
@@ -109,6 +121,7 @@ function toHex([r, g, b]: [number, number, number]): string {
     Math.round(Math.max(0, Math.min(255, value)))
       .toString(16)
       .padStart(2, "0");
+
   return `#${part(r)}${part(g)}${part(b)}`;
 }
 
@@ -138,20 +151,30 @@ function toHex([r, g, b]: [number, number, number]): string {
  * and pressed states step off that.
  */
 type Rgb = [number, number, number];
+
 type Lab = [number, number, number];
 
 const ACCENT_DARK_LIFT = 0.259;
+
 const ACCENT_DARK_CHROMA = 0.65;
+
 const NAV_DARK_LIFT = 0.029;
+
 const TITLEBAR_DARK_LIFT = 0.081;
+
 const CONTEST_BAR_LIFT = 0.039;
+
 const CHROME_CHROMA = 1.1;
+
 const ACCENT_FILL_LIFT = 0.035;
+
 const ACCENT_FILL_HOVER_LIFT = 0.05;
+
 const ACCENT_FILL_ACTIVE_DROP = -0.05;
 
 function toLinear(value: number): number {
   const c = value / 255;
+
   return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
 }
 
@@ -166,6 +189,7 @@ function toOklab([r, g, b]: Rgb): Lab {
   const l = Math.cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb);
   const m = Math.cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb);
   const s = Math.cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb);
+
   return [
     0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
     1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
@@ -177,6 +201,7 @@ function toLinearRgb([L, a, b]: Lab): Rgb {
   const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
   const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
   const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+
   return [
     4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
     -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
@@ -190,23 +215,30 @@ function toLinearRgb([L, a, b]: Lab): Rgb {
 function fromOklab([L, a, b]: Lab): Rgb {
   const fits = (lab: Lab) => toLinearRgb(lab).every((c) => c >= -0.0005 && c <= 1.0005);
   let scale = 1;
+
   if (!fits([L, a, b])) {
     let low = 0;
     let high = 1;
+
     for (let i = 0; i < 24; i += 1) {
       const mid = (low + high) / 2;
+
       if (fits([L, a * mid, b * mid])) low = mid;
       else high = mid;
     }
+
     scale = low;
   }
+
   const [r, g, bl] = toLinearRgb([L, a * scale, b * scale]);
+
   return [fromLinear(r), fromLinear(g), fromLinear(bl)];
 }
 
 /** Raise a colour's lightness, hold its hue, and scale its chroma. */
 function lift(rgb: Rgb, amount: number, chroma: number): Rgb {
   const [L, a, b] = toOklab(rgb);
+
   return fromOklab([Math.min(1, L + amount), a * chroma, b * chroma]);
 }
 
@@ -215,6 +247,7 @@ function lift(rgb: Rgb, amount: number, chroma: number): Rgb {
 function halfway(from: Rgb, to: Rgb): Rgb {
   const a = toOklab(from);
   const b = toOklab(to);
+
   return fromOklab([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2]);
 }
 
@@ -238,11 +271,12 @@ export type BrandingPalette = {
  * `tokens.css`'s dark ones.
  */
 export function brandingPalette(accentColor: string, navColor: string): BrandingPalette {
-  const accent = parseHex(accentColor) ?? (parseHex(DEFAULT_ACCENT) as Rgb);
-  const nav = parseHex(navColor) ?? (parseHex(DEFAULT_NAV) as Rgb);
+  const accent = parseHex(accentColor) ?? DEFAULT_ACCENT_RGB;
+  const nav = parseHex(navColor) ?? DEFAULT_NAV_RGB;
   const navDark = lift(nav, NAV_DARK_LIFT, CHROME_CHROMA);
   const titlebarDark = lift(navDark, TITLEBAR_DARK_LIFT, CHROME_CHROMA);
   const fillDark = lift(accent, ACCENT_FILL_LIFT, 1);
+
   return {
     accent: toHex(accent),
     accentDark: toHex(lift(accent, ACCENT_DARK_LIFT, ACCENT_DARK_CHROMA)),
@@ -265,6 +299,7 @@ export function brandingPalette(accentColor: string, navColor: string): Branding
 function isOverride(value: string | undefined, fallback: string): boolean {
   if (!value) return false;
   const rgb = parseHex(value);
+
   return rgb !== null && toHex(rgb) !== fallback;
 }
 
@@ -272,15 +307,19 @@ function isOverride(value: string | undefined, fallback: string): boolean {
 export function relativeLuminance(rgb: [number, number, number]): number {
   const channel = (value: number) => {
     const c = value / 255;
+
     return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
   };
+
   return 0.2126 * channel(rgb[0]) + 0.7152 * channel(rgb[1]) + 0.0722 * channel(rgb[2]);
 }
 
 export function contrastWithWhite(hex: string): number | null {
   const rgb = parseHex(hex);
+
   if (!rgb) return null;
   const luminance = relativeLuminance(rgb);
+
   return Math.round((1.05 / (luminance + 0.05)) * 100) / 100;
 }
 
@@ -301,6 +340,7 @@ export const branding = query({
       settings?.accentColor ?? DEFAULT_ACCENT,
       settings?.navColor ?? DEFAULT_NAV,
     );
+
     const colorsCustomised =
       isOverride(settings?.accentColor, DEFAULT_ACCENT) || isOverride(settings?.navColor, DEFAULT_NAV);
 
@@ -341,8 +381,11 @@ export const shell = query({
         .withIndex("by_singleton", (q) => q.eq("singleton", "site"))
         .unique(),
     ]);
+
     const misc: Record<string, string> = {};
+
     for (const row of miscRows) misc[row.key] = row.value;
+
     return { nav: buildTree(navRows), misc, settings: siteSettings };
   },
 });
@@ -351,6 +394,7 @@ export const openOrganizations = query({
   args: {},
   handler: async (ctx) => {
     const rows = await ctx.db.query("organizations").collect();
+
     return rows
       .filter((row) => row.isOpen)
       .sort((a, b) => a.name.localeCompare(b.name))
@@ -360,6 +404,7 @@ export const openOrganizations = query({
 
 function buildTree(rows: Doc<"navigationBar">[]): NavNode[] {
   const nodes = new Map<string, NavNode>();
+
   for (const row of rows) {
     nodes.set(row._id, {
       _id: row._id,
@@ -371,19 +416,27 @@ function buildTree(rows: Doc<"navigationBar">[]): NavNode[] {
       children: [],
     });
   }
+
   const roots: NavNode[] = [];
+
   for (const row of rows) {
     const node = nodes.get(row._id);
+
     if (!node) continue;
     const parent = row.parentId ? nodes.get(row.parentId) : undefined;
+
     if (parent) parent.children.push(node);
     else roots.push(node);
   }
+
   const sort = (list: NavNode[]) => {
     list.sort((a, b) => a.order - b.order);
+
     for (const item of list) sort(item.children);
   };
+
   sort(roots);
+
   return roots;
 }
 
@@ -395,6 +448,7 @@ export const license = query({
       .query("licenses")
       .withIndex("by_key", (q) => q.eq("key", key))
       .first();
+
     return row === null ? null : { ...row, textPreset: LICENSE_PRESET };
   },
 });
@@ -404,6 +458,7 @@ export const licenses = query({
   handler: async (ctx) => {
     const rows = await ctx.db.query("licenses").collect();
     rows.sort((a, b) => a.name.localeCompare(b.name));
+
     return rows;
   },
 });
@@ -414,6 +469,7 @@ export const contestTags = query({
   handler: async (ctx) => {
     const rows = await ctx.db.query("contestTags").collect();
     rows.sort((a, b) => a.name.localeCompare(b.name));
+
     return rows;
   },
 });
@@ -426,6 +482,7 @@ export const miscConfigValue = query({
       .query("miscConfig")
       .withIndex("by_key", (q) => q.eq("key", key))
       .first();
+
     return row?.value ?? null;
   },
 });
@@ -436,6 +493,7 @@ export const navRows = query({
   handler: async (ctx): Promise<Doc<"navigationBar">[]> => {
     const rows = await ctx.db.query("navigationBar").withIndex("by_order").collect();
     rows.sort((a, b) => a.order - b.order);
+
     return rows;
   },
 });

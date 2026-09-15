@@ -35,6 +35,7 @@ import "@/components/scoreboard/hall.css";
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
+
   return (
     target.tagName === "INPUT" ||
     target.tagName === "TEXTAREA" ||
@@ -85,6 +86,7 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
   /* A display box that gets restarted mid-event comes back up as it was left. */
   useEffect(() => {
     if (readSetting(`moj:scoreboard:attendance:${eventKey}`) === "in-person") setAttendance("in-person");
+
     if (readSetting(`moj:scoreboard:feed:${eventKey}`) === "open") setFeedOpen(true);
   }, [eventKey]);
 
@@ -118,15 +120,18 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
 
   const badges: EditableBadge[] = useMemo(() => {
     if (!payload) return [];
+
     const list: EditableBadge[] = payload.badges.map((badge) => ({
       ...badge,
       attendance: badge.key === payload.inPersonBadge,
     }));
+
     // An in-person organisation that is not also a badge never appears in a
     // row's badge list, but it still has to be editable.
     if (payload.inPersonBadge && !list.some((badge) => badge.attendance)) {
       list.push({ key: payload.inPersonBadge, label: payload.inPersonBadge, attendance: true });
     }
+
     return list;
   }, [payload]);
 
@@ -145,13 +150,15 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
     if (!revealing || !target) return;
     const panel = panels.current[index];
     const row = panel?.querySelector<HTMLTableRowElement>(`tr[data-row="${target.row.participationId}"]`);
+
     if (!row) return;
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     row.scrollIntoView({ block: "center", behavior: still ? "auto" : "smooth" });
   }, [revealing, target, index]);
 
-  const run = useCallback(async (action: () => Promise<unknown>) => {
+  const run = useCallback(async <T,>(action: () => Promise<T>) => {
     setBusy(true);
+
     try {
       await action();
     } finally {
@@ -172,7 +179,9 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
+
       if (tagRow !== null || helpOpen) return;
+
       if (isTypingTarget(event.target)) return;
 
       if (revealing) {
@@ -185,6 +194,7 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
         } else if (event.key === "Escape") {
           setRevealing(false);
         }
+
         return;
       }
 
@@ -206,6 +216,7 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
       }
 
       const letter = event.key.toLowerCase();
+
       if (letter === "p") setTouring((on) => !on);
       else if (letter === "f") chooseFeed(!feedOpen);
       else if (letter === "i" && hasRoster) {
@@ -219,6 +230,7 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
     };
 
     window.addEventListener("keydown", onKeyDown);
+
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [
     revealing,

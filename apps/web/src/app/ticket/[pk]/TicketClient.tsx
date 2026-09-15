@@ -31,10 +31,12 @@ import { useEffect, useRef, useState } from "react";
 import { CommentForm } from "@/components/comments/CommentForm";
 import { renderUserMarkdownBatch } from "@/components/markdown/actions";
 import { identiconUrl, initials } from "@/lib/avatar";
+import { chosenIds } from "@/lib/choices";
 import { mutationError } from "@/lib/convex-error";
 import { formatDateTime, formatRelative } from "@/lib/format";
 
 export type TicketDetail = NonNullable<FunctionReturnType<typeof api.tickets.get>>;
+
 type TicketMessage = TicketDetail["messages"][number];
 
 function messageKey(message: { _id: string; body: string }): string {
@@ -65,13 +67,16 @@ export function TicketClient({
     const missing = ticket.messages
       .map((message) => ({ key: messageKey(message), source: message.body, preset: message.bodyPreset }))
       .filter((item) => !requested.current.has(item.key));
+
     if (missing.length === 0) return;
+
     for (const item of missing) requested.current.add(item.key);
 
     let alive = true;
     void renderUserMarkdownBatch(missing).then((rendered) => {
       if (alive) setHtml((previous) => ({ ...previous, ...rendered }));
     });
+
     return () => {
       alive = false;
     };
@@ -79,6 +84,7 @@ export function TicketClient({
 
   async function toggleOpen() {
     setError(null);
+
     try {
       await setOpen({ ticketId, open: !ticket.isOpen });
     } catch (thrown) {
@@ -167,6 +173,7 @@ export function TicketClient({
 function Message({ message, html }: { message: TicketMessage; html: string }) {
   const t = useTranslations("blog.ticket");
   const author = message.author;
+
   return (
     <section
       id={`message-${message._id}`}
@@ -265,7 +272,7 @@ function AssigneesDialog({
   const common = useTranslations("common.actions");
   const staff = useQuery(api.profiles.listStaff, open ? {} : "skip");
   const assign = useMutation(api.tickets.assign);
-  const [values, setValues] = useState<string[]>(() => ticket.assignees.map((one) => one._id));
+  const [values, setValues] = useState<Id<"profiles">[]>(() => ticket.assignees.map((one) => one._id));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -281,8 +288,9 @@ function AssigneesDialog({
   async function save() {
     setBusy(true);
     setError(null);
+
     try {
-      await assign({ ticketId, profileIds: values as Id<"profiles">[] });
+      await assign({ ticketId, profileIds: values });
       onOpenChange(false);
     } catch (thrown) {
       setError(mutationError(thrown, t("assigneesNotChanged")));
@@ -301,7 +309,14 @@ function AssigneesDialog({
         ) : null}
         <MultiSelect
           values={values}
-          onChange={setValues}
+          onChange={(next) =>
+            setValues(
+              chosenIds(
+                next,
+                options.map((option) => option.value),
+              ),
+            )
+          }
           options={options}
           placeholder={staff === undefined ? t("loadingStaff") : t("chooseStaff")}
           searchPlaceholder={t("filterStaff")}
@@ -337,6 +352,7 @@ function NotesPanel({ ticket, ticketId }: { ticket: TicketDetail; ticketId: Id<"
   async function save() {
     setBusy(true);
     setError(null);
+
     try {
       await setNotes({ ticketId, notes: draft });
       setEditing(false);

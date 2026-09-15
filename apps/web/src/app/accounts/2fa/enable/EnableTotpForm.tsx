@@ -42,15 +42,19 @@ export function EnableTotpForm({ next }: { next: string }) {
     event.preventDefault();
     setBusy(true);
     setError(null);
+
     try {
       const result = await authClient.twoFactor.enable({ password, issuer: "MOJ" });
-      const enrolment = result.data as { totpURI?: string; backupCodes?: string[] } | null;
-      if (result.error || !enrolment?.totpURI) {
+      const enrolment = result.data;
+
+      if (result.error || enrolment?.method !== "totp") {
         setError(result.error?.status === 400 ? tPassword("wrong") : t("setupFailed"));
+
         return;
       }
+
       setTotpUri(enrolment.totpURI);
-      setScratchCodes(enrolment.backupCodes ?? []);
+      setScratchCodes(enrolment.backupCodes);
       setStage("scan");
     } catch {
       setError(tError("generic"));
@@ -63,12 +67,16 @@ export function EnableTotpForm({ next }: { next: string }) {
     if (busy) return;
     setBusy(true);
     setError(null);
+
     try {
       const result = await authClient.twoFactor.verifyTotp({ code: value });
+
       if (result.error) {
         setError(t("wrongCode"));
+
         return;
       }
+
       // No `router.refresh()` here: the page guard sends an account that already
       // has two factor on back to the overview, which would take the scratch
       // codes away before they had been read. The refresh happens on the way out.
@@ -124,6 +132,7 @@ export function EnableTotpForm({ next }: { next: string }) {
 
   if (stage === "scan") {
     const secret = secretFrom(totpUri);
+
     return (
       <AuthCard title={t("scanTitle")} subtitle={t("scanSubtitle")} footer={<span>{t("scanFooter")}</span>}>
         <form

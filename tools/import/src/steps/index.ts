@@ -27,4 +27,5 @@ export const STEPS: Step[] = [
 export const STEP_TABLES = STEPS.map((step) => step.table);
 
 export type { Step } from "./types.ts";
+
 export { MAP_TARGETS } from "./types.ts";

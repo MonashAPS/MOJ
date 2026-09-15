@@ -12,9 +12,11 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
   const t = await getTranslations("problems");
   const { code } = await params;
+
   const problem = await queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }).catch(
     () => null,
   );
+
   return {
     title: problem ? t("submit.titleFor", { name: problem.statement.name }) : t("detail.noSuchProblem"),
   };
@@ -23,12 +25,15 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
 export default async function SubmitPage({ params }: { params: Promise<{ code: string }> }) {
   const t = await getTranslations("problems.submit");
   const { code } = await params;
+
   const [problem, viewerState, languages] = await Promise.all([
     queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
     query(api.languages.list, {}).catch(() => []),
   ]);
+
   if (!problem) notFound();
+
   if (!problem.canSubmit) forbidden();
 
   // DMOJ opens the form on the member's own default language.

@@ -8,11 +8,13 @@
  */
 export function siteUrl(): string {
   const raw = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
   return raw.replace(/\/+$/, "");
 }
 
 export function absolute(path: string): string {
   if (/^https?:\/\//.test(path)) return path;
+
   return `${siteUrl()}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
@@ -56,6 +58,7 @@ export type FeedMeta = {
 
 export function renderRss(meta: FeedMeta, entries: FeedEntry[]): string {
   const built = entries.length > 0 ? Math.max(...entries.map((entry) => entry.updated)) : Date.now();
+
   const items = entries
     .map(
       (entry) => `    <item>
@@ -85,6 +88,7 @@ ${items}
 
 export function renderAtom(meta: FeedMeta, entries: FeedEntry[]): string {
   const updated = entries.length > 0 ? Math.max(...entries.map((entry) => entry.updated)) : Date.now();
+
   const items = entries
     .map(
       (entry) => `  <entry>
@@ -121,4 +125,5 @@ export function xmlResponse(body: string, contentType: string): Response {
 }
 
 export const RSS_CONTENT_TYPE = "application/rss+xml; charset=utf-8";
+
 export const ATOM_CONTENT_TYPE = "application/atom+xml; charset=utf-8";

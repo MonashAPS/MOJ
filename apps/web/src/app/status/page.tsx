@@ -7,6 +7,7 @@ import { StatusTable } from "./StatusTable";
 
 export async function generateMetadata() {
   const t = await getTranslations("status.judges");
+
   return { title: t("title") };
 }
 
@@ -15,6 +16,7 @@ export const dynamic = "force-dynamic";
 export default async function StatusPage() {
   const t = await getTranslations("status.judges");
   const [initial, tabs] = await Promise.all([queryAsViewer(api.status.page, {}), statusTabs()]);
+
   return (
     <>
       <TitleRow title={t("title")} tabs={tabs} active="judges" />

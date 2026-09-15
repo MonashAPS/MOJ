@@ -126,14 +126,16 @@ Tiers can be mixed across judges. [`apps/judge/README.md`](apps/judge/README.md)
 ## Contributing
 
 ```bash
-npm run lint            # biome
-npm run typecheck       # the Convex functions and every workspace
+npm run lint            # biome, then oxlint with the anti-slop rules
+npm run typecheck       # every workspace
 npm test                # vitest
+npm run knip            # unused files, dependencies and exports
 npm run docs:dev -w docs
 ```
 
 CI runs the same checks on pull requests, plus the web build, the tier 1 judge image and the judge end to end
-test. Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+test. lefthook runs the linters on staged files before each commit. Commit messages follow
+[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 
 ## Licence
 

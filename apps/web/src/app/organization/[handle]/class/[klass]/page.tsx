@@ -19,6 +19,7 @@ function first(value: string | string[] | undefined): string | undefined {
 
 export async function generateMetadata({ params }: { params: Promise<{ klass: string }> }) {
   const { klass } = await params;
+
   return { title: slugFromHandle(klass) };
 }
 
@@ -45,10 +46,12 @@ export default async function ClassPage({
     }),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
   ]);
+
   if (!detail) notFound();
 
   const base = classHref(detail.organization, detail);
   const params_ = new URLSearchParams();
+
   if (first(search.order)) params_.set("order", state.order);
 
   return (

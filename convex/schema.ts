@@ -2,9 +2,12 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export const displayRank = v.union(v.literal("user"), v.literal("setter"), v.literal("admin"));
+
 export const siteTheme = v.union(v.literal("auto"), v.literal("light"), v.literal("dark"));
+
 /** The theme a visitor with no stored preference gets (SPEC section 24). */
 export const themeDefault = v.union(v.literal("system"), v.literal("light"), v.literal("dark"));
+
 export const submissionStatus = v.union(
   v.literal("QU"),
   v.literal("P"),
@@ -14,6 +17,7 @@ export const submissionStatus = v.union(
   v.literal("CE"),
   v.literal("AB"),
 );
+
 export const submissionResult = v.union(
   v.literal("AC"),
   v.literal("WA"),
@@ -27,28 +31,37 @@ export const submissionResult = v.union(
   v.literal("SC"),
   v.literal("AB"),
 );
+
 export const testCaseType = v.union(v.literal("C"), v.literal("S"), v.literal("E"));
+
 export const sourceVisibility = v.union(v.literal("A"), v.literal("S"), v.literal("O"), v.literal("F"));
+
 export const globalSourceVisibility = v.union(
   v.literal("all"),
   v.literal("all-solved"),
   v.literal("only-own"),
 );
+
 export const scoreboardVisibility = v.union(v.literal("V"), v.literal("C"), v.literal("P"), v.literal("H"));
+
 export const labelScheme = v.union(v.literal("letters"), v.literal("numbers"), v.literal("custom"));
+
 export const requestState = v.union(v.literal("P"), v.literal("A"), v.literal("R"));
+
 export const commentTarget = v.union(
   v.literal("problem"),
   v.literal("contest"),
   v.literal("blog"),
   v.literal("solution"),
 );
+
 export const jobStatus = v.union(
   v.literal("queued"),
   v.literal("running"),
   v.literal("done"),
   v.literal("failed"),
 );
+
 export const uploadKind = v.union(
   v.literal("statement-image"),
   v.literal("export"),

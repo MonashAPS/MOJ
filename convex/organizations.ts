@@ -23,6 +23,7 @@ import { type MutationCtx, mutation, type QueryCtx, query } from "./_generated/s
 import { optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, invalid, notFound } from "./lib/errors";
 import { bumpMemberCount, MAX_OPEN_ORGANIZATIONS } from "./profiles";
+import { type LeaderboardRow, userSort } from "./rankings";
 
 /** `OrganizationUsers.paginate_by`. */
 export const MEMBERS_PER_PAGE = 100;
@@ -46,7 +47,7 @@ type ViewerRow = {
   permissions: readonly string[];
 } | null;
 
-function asOrganizationRow(organization: Doc<"organizations">): OrganizationRow {
+export function asOrganizationRow(organization: Doc<"organizations">): OrganizationRow {
   return {
     id: organization._id,
     slug: organization.slug,
@@ -57,8 +58,9 @@ function asOrganizationRow(organization: Doc<"organizations">): OrganizationRow 
   };
 }
 
-function asViewerRow(profile: Doc<"profiles"> | null): ViewerRow {
+export function asViewerRow(profile: Doc<"profiles"> | null): ViewerRow {
   if (!profile) return null;
+
   return {
     id: profile._id,
     username: profile.username,
@@ -94,6 +96,7 @@ async function membership(
     .query("organizationMemberships")
     .withIndex("by_profile", (q) => q.eq("profileId", profileId))
     .collect();
+
   return rows.find((row) => row.organizationId === organizationId) ?? null;
 }
 
@@ -102,11 +105,15 @@ async function openOrganizationCount(ctx: QueryCtx, profileId: Id<"profiles">): 
     .query("organizationMemberships")
     .withIndex("by_profile", (q) => q.eq("profileId", profileId))
     .collect();
+
   let count = 0;
+
   for (const row of rows) {
     const organization = await ctx.db.get(row.organizationId);
+
     if (organization?.isOpen) count += 1;
   }
+
   return count;
 }
 
@@ -143,15 +150,18 @@ export const list = query({
   handler: async (ctx): Promise<OrganizationListRow[]> => {
     const viewer = await optionalViewer(ctx);
     const mine = new Set<Id<"organizations">>();
+
     if (viewer) {
       const rows = await ctx.db
         .query("organizationMemberships")
         .withIndex("by_profile", (q) => q.eq("profileId", viewer._id))
         .collect();
+
       for (const row of rows) mine.add(row.organizationId);
     }
 
     const organizations = await ctx.db.query("organizations").collect();
+
     return organizations
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((organization) => ({
@@ -210,6 +220,7 @@ export const get = query({
   args: { slug: v.string() },
   handler: async (ctx, { slug }): Promise<OrganizationDetail | null> => {
     const organization = await organizationBySlug(ctx, slug);
+
     if (!organization) return null;
 
     const profile = await optionalViewer(ctx);
@@ -217,8 +228,10 @@ export const get = query({
     const row = asOrganizationRow(organization);
 
     const admins: OrganizationDetail["admins"] = [];
+
     for (const adminId of organization.adminProfileIds) {
       const admin = await ctx.db.get(adminId);
+
       if (!admin) continue;
       admins.push({
         _id: admin._id,
@@ -230,6 +243,7 @@ export const get = query({
 
     const allClasses = await organizationClasses(ctx, organization._id);
     const activeClasses = allClasses.filter((klass) => klass.isActive);
+
     const classes = activeClasses
       .map((klass) => ({
         _id: klass._id,
@@ -250,11 +264,13 @@ export const get = query({
     const canEdit = organizationCanEdit(row, viewer);
 
     let hasPendingRequest = false;
+
     if (profile) {
       const pending = await ctx.db
         .query("organizationRequests")
         .withIndex("by_profile_state", (q) => q.eq("profileId", profile._id).eq("state", "P"))
         .collect();
+
       hasPendingRequest = pending.some((entry) => entry.organizationId === organization._id);
     }
 
@@ -296,31 +312,14 @@ export const get = query({
   },
 });
 
-export type OrganizationMemberRow = {
-  _id: Id<"profiles">;
-  username: string;
-  displayName: string;
-  displayRank: string;
-  points: number;
-  performancePoints: number;
-  problemCount: number;
-  rating?: number;
-  rank: number;
-};
+export type OrganizationMemberRow = LeaderboardRow;
 
 /** `OrganizationUsers`: listed members only, ranked, 100 per page. */
 export const members = query({
   args: {
     slug: v.string(),
     page: v.optional(v.number()),
-    sort: v.optional(
-      v.union(
-        v.literal("performancePoints"),
-        v.literal("problemCount"),
-        v.literal("rating"),
-        v.literal("points"),
-      ),
-    ),
+    sort: v.optional(userSort),
     descending: v.optional(v.boolean()),
   },
   handler: async (
@@ -337,6 +336,7 @@ export const members = query({
   }> => {
     const organization = await organizationBySlug(ctx, args.slug);
     const page = Math.max(1, Math.floor(args.page ?? 1));
+
     if (!organization) {
       return {
         organization: null,
@@ -359,8 +359,10 @@ export const members = query({
       .collect();
 
     const rows: Doc<"profiles">[] = [];
+
     for (const entry of memberships) {
       const member = await ctx.db.get(entry.profileId);
+
       if (member && !member.isUnlisted) rows.push(member);
     }
 
@@ -376,9 +378,12 @@ export const members = query({
           return member.performancePoints;
       }
     };
+
     rows.sort((a, b) => {
       const delta = value(a) - value(b);
+
       if (delta !== 0) return descending ? -delta : delta;
+
       return a._id < b._id ? -1 : a._id > b._id ? 1 : 0;
     });
 
@@ -415,7 +420,9 @@ export const members = query({
 
 async function requireOrganization(ctx: QueryCtx, slug: string): Promise<Doc<"organizations">> {
   const organization = await organizationBySlug(ctx, slug);
+
   if (!organization) throw notFound("Organization");
+
   return organization;
 }
 
@@ -432,19 +439,23 @@ export const join = mutation({
     if (await membership(ctx, organization._id, profile._id)) {
       throw invalid("You are already in the organization.");
     }
+
     if (!organization.isOpen) throw invalid("This organization is not open.");
 
     if (organization.accessCode && accessCode !== organization.accessCode) {
       throw forbidden("That access code is not correct.");
     }
+
     if (organization.slots !== undefined && organization.memberCount >= organization.slots) {
       throw invalid("This organization is full.");
     }
+
     if ((await openOrganizationCount(ctx, profile._id)) >= MAX_OPEN_ORGANIZATIONS) {
       throw invalid(`You may not be part of more than ${MAX_OPEN_ORGANIZATIONS} public organizations.`);
     }
 
     await addMember(ctx, organization._id, profile._id);
+
     return organization._id;
   },
 });
@@ -455,11 +466,14 @@ export async function addMember(
   profileId: Id<"profiles">,
 ): Promise<void> {
   const existing = await membership(ctx, organizationId, profileId);
+
   if (existing) return;
+
   const memberships = await ctx.db
     .query("organizationMemberships")
     .withIndex("by_organization", (q) => q.eq("organizationId", organizationId))
     .collect();
+
   await ctx.db.insert("organizationMemberships", {
     organizationId,
     profileId,
@@ -474,18 +488,21 @@ export async function removeMember(
   profileId: Id<"profiles">,
 ): Promise<boolean> {
   const existing = await membership(ctx, organizationId, profileId);
+
   if (!existing) return false;
   await ctx.db.delete(existing._id);
   await bumpMemberCount(ctx, organizationId, -1);
 
   // Leaving an organisation leaves its classes too.
   const classes = await organizationClasses(ctx, organizationId);
+
   for (const klass of classes) {
     if (!klass.memberProfileIds.includes(profileId)) continue;
     await ctx.db.patch(klass._id, {
       memberProfileIds: klass.memberProfileIds.filter((id) => id !== profileId),
     });
   }
+
   return true;
 }
 
@@ -496,7 +513,9 @@ export const leave = mutation({
     const profile = await requireViewer(ctx);
     const organization = await requireOrganization(ctx, slug);
     const removed = await removeMember(ctx, organization._id, profile._id);
+
     if (!removed) throw invalid(`You are not in "${organization.shortName}".`);
+
     return organization._id;
   },
 });
@@ -507,18 +526,23 @@ export const kick = mutation({
   handler: async (ctx, { slug, username }) => {
     const profile = await requireViewer(ctx);
     const organization = await requireOrganization(ctx, slug);
+
     if (!organizationCanEdit(asOrganizationRow(organization), asViewerRow(profile))) {
       throw forbidden("You are not allowed to kick people from this organization.");
     }
+
     const target = await ctx.db
       .query("profiles")
       .withIndex("by_username", (q) => q.eq("username", username))
       .unique();
+
     if (!target) throw invalid("The user you are trying to kick does not exist!");
     const removed = await removeMember(ctx, organization._id, target._id);
+
     if (!removed) {
       throw invalid(`The user you are trying to kick is not in organization: ${organization.name}`);
     }
+
     return organization._id;
   },
 });
@@ -534,12 +558,15 @@ export const edit = mutation({
   handler: async (ctx, args) => {
     const profile = await requireViewer(ctx);
     const organization = await requireOrganization(ctx, args.slug);
+
     if (!organizationCanEdit(asOrganizationRow(organization), asViewerRow(profile))) {
       throw forbidden("You are not allowed to edit this organization.");
     }
 
     const patch: Partial<Doc<"organizations">> = {};
+
     if (args.about !== undefined) patch.about = args.about;
+
     if (args.logoOverrideImage !== undefined) {
       patch.logoOverrideImage = args.logoOverrideImage || undefined;
     }
@@ -547,23 +574,29 @@ export const edit = mutation({
     if (args.adminUsernames !== undefined) {
       // `EditOrganization.get_form`: only members or existing admins may be picked.
       const adminIds: Id<"profiles">[] = [];
+
       for (const username of args.adminUsernames) {
         const candidate = await ctx.db
           .query("profiles")
           .withIndex("by_username", (q) => q.eq("username", username))
           .unique();
+
         if (!candidate) throw notFound(`User ${username}`);
         const isMember = (await membership(ctx, organization._id, candidate._id)) !== null;
+
         if (!isMember && !organization.adminProfileIds.includes(candidate._id)) {
           throw invalid(`${username} is not a member of ${organization.name}.`);
         }
+
         adminIds.push(candidate._id);
       }
+
       if (adminIds.length === 0) throw invalid("An organization needs at least one administrator.");
       patch.adminProfileIds = adminIds;
     }
 
     await ctx.db.patch(organization._id, patch);
+
     return organization._id;
   },
 });
@@ -578,28 +611,36 @@ export const request = mutation({
   handler: async (ctx, args) => {
     const profile = await requireViewer(ctx);
     const organization = await requireOrganization(ctx, args.slug);
+
     if (organization.isOpen) throw notFound("Join request page");
 
     const pending = await ctx.db
       .query("organizationRequests")
       .withIndex("by_profile_state", (q) => q.eq("profileId", profile._id).eq("state", "P"))
       .collect();
+
     if (pending.some((entry) => entry.organizationId === organization._id)) {
       throw invalid(`You already have a pending request to join ${organization.name}.`);
     }
 
     let classId: Id<"classes"> | undefined;
-    if (args.classSlug) {
+
+    const classSlug = args.classSlug;
+
+    if (classSlug) {
       const klass = await ctx.db
         .query("classes")
         .withIndex("by_organization_slug", (q) =>
-          q.eq("organizationId", organization._id).eq("slug", args.classSlug as string),
+          q.eq("organizationId", organization._id).eq("slug", classSlug),
         )
         .unique();
+
       if (!klass) throw notFound("Class");
+
       if (!klass.isActive) throw invalid("That class is not accepting members.");
       classId = klass._id;
     }
+
     // `OrganizationRequest.clean`.
     if (organization.classRequired && !classId) {
       throw invalid("Organization requires a class to be specified");
@@ -650,6 +691,7 @@ export const reviewRequests = query({
     const tab = args.tab ?? "pending";
     const profile = await optionalViewer(ctx);
     const organization = await organizationBySlug(ctx, args.slug);
+
     if (!organization || !profile) {
       return { organization: null, tab, editAll: false, requests: [], slotsRemaining: null };
     }
@@ -660,6 +702,7 @@ export const reviewRequests = query({
 
     const editAll = organizationCanReviewAllRequests(row, viewer);
     const editClasses = organizationCanReviewClassRequests(allClasses.map(asClassRow), viewer);
+
     if (!editAll && !editClasses) throw forbidden();
 
     const myClassIds = new Set(
@@ -670,6 +713,7 @@ export const reviewRequests = query({
       tab === "pending" ? ["P"] : tab === "approved" ? ["A"] : tab === "rejected" ? ["R"] : ["A", "R"];
 
     const rows: JoinRequestRow[] = [];
+
     for (const state of states) {
       const entries = await ctx.db
         .query("organizationRequests")
@@ -677,9 +721,11 @@ export const reviewRequests = query({
           q.eq("organizationId", organization._id).eq("state", state),
         )
         .collect();
+
       for (const entry of entries) {
         if (!editAll && (!entry.classId || !myClassIds.has(entry.classId))) continue;
         const requester = await ctx.db.get(entry.profileId);
+
         if (!requester) continue;
         const klass = entry.classId ? await ctx.db.get(entry.classId) : null;
         rows.push({
@@ -693,6 +739,7 @@ export const reviewRequests = query({
         });
       }
     }
+
     rows.sort((a, b) => a.time - b.time);
 
     return {
@@ -712,15 +759,19 @@ async function loadReviewableRequest(
 ): Promise<{ entry: Doc<"organizationRequests">; organization: Doc<"organizations"> }> {
   const profile = await requireViewer(ctx);
   const entry = await ctx.db.get(requestId);
+
   if (!entry) throw notFound("Join request");
   const organization = await ctx.db.get(entry.organizationId);
+
   if (!organization) throw notFound("Organization");
 
   const viewer = asViewerRow(profile);
   const row = asOrganizationRow(organization);
+
   if (organizationCanReviewAllRequests(row, viewer)) return { entry, organization };
 
   const klass = entry.classId ? await ctx.db.get(entry.classId) : null;
+
   if (klass?.adminProfileIds.includes(profile._id)) return { entry, organization };
   throw forbidden();
 }
@@ -730,10 +781,12 @@ export const approve = mutation({
   args: { requestId: v.id("organizationRequests") },
   handler: async (ctx, { requestId }) => {
     const { entry, organization } = await loadReviewableRequest(ctx, requestId);
+
     if (entry.state !== "P") throw invalid("That request has already been reviewed.");
 
     if (organization.slots !== undefined) {
       const canAdd = organization.slots - organization.memberCount;
+
       if (canAdd < 1) {
         throw invalid("Your organization can only receive 0 more members.");
       }
@@ -741,14 +794,17 @@ export const approve = mutation({
 
     await ctx.db.patch(entry._id, { state: "A" });
     await addMember(ctx, organization._id, entry.profileId);
+
     if (entry.classId) {
       const klass = await ctx.db.get(entry.classId);
+
       if (klass && !klass.memberProfileIds.includes(entry.profileId)) {
         await ctx.db.patch(klass._id, {
           memberProfileIds: [...klass.memberProfileIds, entry.profileId],
         });
       }
     }
+
     return entry._id;
   },
 });
@@ -757,8 +813,10 @@ export const reject = mutation({
   args: { requestId: v.id("organizationRequests") },
   handler: async (ctx, { requestId }) => {
     const { entry } = await loadReviewableRequest(ctx, requestId);
+
     if (entry.state !== "P") throw invalid("That request has already been reviewed.");
     await ctx.db.patch(entry._id, { state: "R" });
+
     return entry._id;
   },
 });
@@ -768,6 +826,7 @@ export const openOrganizations = query({
   args: {},
   handler: async (ctx) => {
     const organizations = await ctx.db.query("organizations").collect();
+
     return organizations
       .filter((organization) => organization.isOpen)
       .sort((a, b) => a.name.localeCompare(b.name))

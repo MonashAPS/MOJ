@@ -12,9 +12,11 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
   const t = await getTranslations("problems");
   const { code } = await params;
+
   const problem = await queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }).catch(
     () => null,
   );
+
   return {
     title: problem ? t("manage.titleFor", { name: problem.statement.name }) : t("detail.noSuchProblem"),
   };
@@ -23,11 +25,14 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
 export default async function ManageSubmissionsPage({ params }: { params: Promise<{ code: string }> }) {
   const t = await getTranslations("problems.manage");
   const { code } = await params;
+
   const [problem, languages] = await Promise.all([
     queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }),
     query(api.languages.list, {}).catch(() => []),
   ]);
+
   if (!problem) notFound();
+
   if (!problem.canManageSubmissions) forbidden();
 
   return (

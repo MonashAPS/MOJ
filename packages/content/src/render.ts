@@ -23,7 +23,7 @@
 
 import type { Root as HastRoot } from "hast";
 import type { Root as MdastRoot } from "mdast";
-import rehypeKatex from "rehype-katex";
+import rehypeKatex, { type Options as KatexOptions } from "rehype-katex";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeStringify from "rehype-stringify";
@@ -31,7 +31,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
-import { bundledLanguages, createHighlighter, type Highlighter } from "shiki";
+import { type BundledLanguage, bundledLanguages, createHighlighter, type Highlighter } from "shiki";
 import { type PluggableList, unified } from "unified";
 
 import { plainTextFromMdast, type SummaryOptions, truncateSummary } from "./plain.js";
@@ -46,6 +46,7 @@ import {
   rehypeTidyTables,
   rehypeUserReferences,
   type UserReference,
+  type UserReferenceOptions,
 } from "./plugins/rehype-dmoj.js";
 import { rehypeEscapeDisallowed } from "./plugins/rehype-escape-disallowed.js";
 import { rehypeStyleAllowlist } from "./plugins/rehype-style-allowlist.js";
@@ -124,14 +125,16 @@ const highlighters = new Map<string, Promise<Highlighter>>();
 async function getHighlighter(themes: ShikiThemes): Promise<Highlighter> {
   const key = `${themes.light}|${themes.dark}`;
   let existing = highlighters.get(key);
+
   if (!existing) {
     existing = createHighlighter({ themes: [themes.light, themes.dark], langs: [] });
     highlighters.set(key, existing);
   }
+
   return existing;
 }
 
-function isBundled(language: string): boolean {
+function isBundled(language: string): language is BundledLanguage {
   return Object.hasOwn(bundledLanguages, language);
 }
 
@@ -139,6 +142,7 @@ function isBundled(language: string): boolean {
 export async function disposeHighlighters(): Promise<void> {
   const pending = [...highlighters.values()];
   highlighters.clear();
+
   for (const promise of pending) (await promise).dispose();
 }
 
@@ -146,13 +150,14 @@ export async function disposeHighlighters(): Promise<void> {
  * Runs a list of transformers over a tree.
  *
  * The pipeline is assembled from optional pieces and crosses the mdast/hast boundary in the
- * middle, which unified's generic `Processor` type cannot follow, so the trees are typed at
- * the call site instead.
+ * middle, which unified's generic `Processor` type cannot follow, so the trees are typed here
+ * instead.
  */
-async function runPlugins<T>(plugins: PluggableList, tree: unknown): Promise<T> {
-  return (await unified()
-    .use(plugins)
-    .run(tree as never)) as unknown as T;
+async function runPlugins(plugins: PluggableList, tree: HastRoot | MdastRoot): Promise<HastRoot> {
+  const result = await unified().use(plugins).run(tree);
+
+  // SAFETY: both pipelines below end in rehype plugins, so what comes back is a hast root.
+  return result as HastRoot;
 }
 
 function parseMdast(source: string, singleDollar: boolean): MdastRoot {
@@ -189,34 +194,33 @@ export async function renderMarkdown(
   const mdast = parseMdast(source, singleDollar);
 
   const toHast: PluggableList = [[remarkCollect, { into: collected, demoteBy }]];
+
   // `safe_mode` styles print raw HTML instead of parsing it.
   if (!config.rawHtml) toHast.push(remarkEscapeHtml);
   toHast.push([remarkDemoteHeadings, { by: demoteBy }]);
   toHast.push([remarkRehype, { allowDangerousHtml: config.rawHtml }]);
   toHast.push(rehypeTidyTables);
+
   if (config.rawHtml) toHast.push(rehypeRaw);
 
-  const tree = await runPlugins<HastRoot>(toHast, mdast);
+  const tree = await runPlugins(toHast, mdast);
 
   let highlighter: Highlighter | undefined;
+
   if (highlight) {
     const wanted = collectFenceLanguages(tree).filter(isBundled);
     highlighter = await getHighlighter(themes);
     const loaded = new Set(highlighter.getLoadedLanguages());
     const missing = wanted.filter((language) => !loaded.has(language));
-    if (missing.length > 0) await highlighter.loadLanguage(...(missing as never[]));
+
+    if (missing.length > 0) await highlighter.loadLanguage(...missing);
   }
 
-  const toHtml: PluggableList = [
-    [
-      rehypeKatex,
-      {
-        output: "htmlAndMathml",
-        strict: "ignore",
-        ...(options.katexMacros ? { macros: options.katexMacros } : {}),
-      },
-    ],
-  ];
+  const katexOptions: KatexOptions = { output: "htmlAndMathml", strict: "ignore" };
+
+  if (options.katexMacros) katexOptions.macros = options.katexMacros;
+  const toHtml: PluggableList = [[rehypeKatex, katexOptions]];
+
   if (highlighter) {
     const active = highlighter;
     toHtml.push([
@@ -228,30 +232,37 @@ export async function renderMarkdown(
           isBundled(language) && active.getLoadedLanguages().includes(language),
         onLanguage: (language: string, ok: boolean) => {
           codeLanguages.add(language);
+
           if (!ok) unknownCodeLanguages.add(language);
         },
       },
     ]);
   }
+
   toHtml.push(rehypeScrollableTables);
+
   if (nofollow) toHtml.push([rehypeNofollow, { excluded: options.nofollowExcluded ?? [] }]);
+
   if (lazy) toHtml.push(rehypeLazyImages);
+
   if (config.camo && options.camo) toHtml.push([rehypeCamo, options.camo]);
-  toHtml.push([
-    rehypeUserReferences,
-    {
-      ...(options.userHref ? { href: options.userHref } : {}),
-      onReference: (reference: UserReference) => userReferences.push(reference),
-    },
-  ]);
+  const onReference = (reference: UserReference) => userReferences.push(reference);
+
+  const userReferenceOptions: UserReferenceOptions = options.userHref
+    ? { href: options.userHref, onReference }
+    : { onReference };
+
+  toHtml.push([rehypeUserReferences, userReferenceOptions]);
+
   if (options.baseUrl) toHtml.push([rehypeAbsolutify, { base: options.baseUrl }]);
+
   if (config.sanitise === "user-safe") {
     toHtml.push([rehypeEscapeDisallowed, { tagNames: [...USER_SAFE_TAGS, ...MATHML_TAGS] }]);
     toHtml.push(rehypeStyleAllowlist);
     toHtml.push([rehypeSanitize, userSafeSchema()]);
   }
 
-  const finalTree = await runPlugins<HastRoot>(toHtml, tree);
+  const finalTree = await runPlugins(toHtml, tree);
   const output = unified().use(rehypeStringify).stringify(finalTree);
 
   const plain = plainTextFromMdast(mdast);
@@ -281,6 +292,7 @@ export interface PlainOptions extends SummaryOptions {
 /** Statement prose with the markup removed, for `og:description` and search. */
 export function renderPlain(source: string, options: PlainOptions = {}): string {
   const mdast = parseMdast(source, options.singleDollarMath ?? true);
+
   return plainTextFromMdast(mdast, options);
 }
 
@@ -288,15 +300,14 @@ export function renderPlain(source: string, options: PlainOptions = {}): string 
 export function extractSummary(source: string, options: SummaryOptions = {}): string {
   const mdast = parseMdast(source, true);
   const firstParagraph = mdast.children.find((node) => node.type === "paragraph");
+
   const text = firstParagraph
     ? plainTextFromMdast({ type: "root", children: [firstParagraph] }, options)
     : plainTextFromMdast(mdast, options);
+
   return truncateSummary(text, options);
 }
 
 export function normaliseCodeLanguage(language: string): string {
   return normaliseLanguage(language);
 }
-
-export type { CamoOptions, CollectedHeading, UserReference };
-export { presetConfig };

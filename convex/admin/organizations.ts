@@ -13,36 +13,20 @@ import type { Doc, Id } from "./../_generated/dataModel";
 import { type MutationCtx, mutation, type QueryCtx, query } from "./../_generated/server";
 import { requireStaff } from "./../lib/auth";
 import { forbidden, invalid, notFound } from "./../lib/errors";
+import { asOrganizationRow, asViewerRow } from "./../organizations";
+import { usernamesToIds } from "./../profiles";
 
 const CHANGE = "judge.change_organization";
+
 const EDIT_ALL = "judge.edit_all_organization";
-
-function asViewerRow(profile: Doc<"profiles">) {
-  return {
-    id: profile._id,
-    username: profile.username,
-    isStaff: profile.isStaff,
-    isSuperuser: profile.isSuperuser,
-    permissions: profile.permissions,
-  };
-}
-
-function asOrganizationRow(organization: Doc<"organizations">) {
-  return {
-    id: organization._id,
-    slug: organization.slug,
-    name: organization.name,
-    adminProfileIds: organization.adminProfileIds,
-    isOpen: organization.isOpen,
-    classRequired: organization.classRequired,
-  };
-}
 
 async function requireOrganizationAdmin(ctx: QueryCtx | MutationCtx): Promise<Doc<"profiles">> {
   const staff = await requireStaff(ctx);
+
   if (!staff.isSuperuser && !staff.permissions.includes(CHANGE)) {
     throw forbidden(`Missing permission ${CHANGE}.`);
   }
+
   return staff;
 }
 
@@ -76,14 +60,18 @@ async function toRow(
   staff: Doc<"profiles">,
 ): Promise<AdminOrganizationRow> {
   const adminUsernames: string[] = [];
+
   for (const adminId of organization.adminProfileIds) {
     const admin = await ctx.db.get(adminId);
+
     if (admin) adminUsernames.push(admin.username);
   }
+
   const classes = await ctx.db
     .query("classes")
     .withIndex("by_organization", (q) => q.eq("organizationId", organization._id))
     .collect();
+
   const pending = await ctx.db
     .query("organizationRequests")
     .withIndex("by_organization_state", (q) => q.eq("organizationId", organization._id).eq("state", "P"))
@@ -113,6 +101,7 @@ export const list = query({
   handler: async (ctx, args): Promise<AdminOrganizationRow[]> => {
     const staff = await requireOrganizationAdmin(ctx);
     const search = args.search?.trim();
+
     const organizations = search
       ? await ctx.db
           .query("organizations")
@@ -125,7 +114,9 @@ export const list = query({
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const rows: AdminOrganizationRow[] = [];
+
     for (const organization of filtered) rows.push(await toRow(ctx, organization, staff));
+
     return rows;
   },
 });
@@ -134,10 +125,12 @@ export const get = query({
   args: { slug: v.string() },
   handler: async (ctx, { slug }): Promise<AdminOrganizationRow | null> => {
     const staff = await requireOrganizationAdmin(ctx);
+
     const organization = await ctx.db
       .query("organizations")
       .withIndex("by_slug", (q) => q.eq("slug", slug))
       .unique();
+
     return organization ? await toRow(ctx, organization, staff) : null;
   },
 });
@@ -148,20 +141,8 @@ function validateSlug(slug: string): void {
   if (!SLUG_PATTERN.test(slug)) {
     throw invalid("A slug is lowercase letters, digits and hyphens.");
   }
-  if (slug.length > 128) throw invalid("That slug is too long.");
-}
 
-async function usernamesToIds(ctx: MutationCtx, usernames: readonly string[]): Promise<Id<"profiles">[]> {
-  const ids: Id<"profiles">[] = [];
-  for (const username of usernames) {
-    const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_username", (q) => q.eq("username", username))
-      .unique();
-    if (!profile) throw notFound(`User ${username}`);
-    ids.push(profile._id);
-  }
-  return ids;
+  if (slug.length > 128) throw invalid("That slug is too long.");
 }
 
 export const create = mutation({
@@ -186,20 +167,25 @@ export const create = mutation({
       .query("organizations")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .unique();
+
     if (existing) throw invalid("An organization with that slug already exists.");
 
     const isOpen = args.isOpen ?? true;
     const classRequired = args.classRequired ?? false;
+
     // `Organization.clean`.
     if (classRequired && isOpen) {
       throw invalid("Class membership cannot be enforced when organization has open enrollment.");
     }
+
     if (args.shortName.length > 20) throw invalid("A short name is at most 20 characters.");
+
     if (args.accessCode && args.accessCode.length > 7) {
       throw invalid("An access code is at most 7 characters.");
     }
 
     const adminProfileIds = await usernamesToIds(ctx, args.adminUsernames);
+
     if (adminProfileIds.length === 0) {
       throw invalid("An organization needs at least one administrator.");
     }
@@ -237,53 +223,74 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const staff = await requireOrganizationAdmin(ctx);
+
     const organization = await ctx.db
       .query("organizations")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .unique();
+
     if (!organization) throw notFound("Organization");
+
     if (!organizationIsEditableBy(asOrganizationRow(organization), asViewerRow(staff))) {
       throw forbidden("You are not allowed to edit this organization.");
     }
 
     const patch: Partial<Doc<"organizations">> = {};
+
     if (args.name !== undefined) patch.name = args.name;
-    if (args.newSlug !== undefined && args.newSlug !== organization.slug) {
-      validateSlug(args.newSlug);
+
+    const newSlug = args.newSlug;
+
+    if (newSlug !== undefined && newSlug !== organization.slug) {
+      validateSlug(newSlug);
+
       const clash = await ctx.db
         .query("organizations")
-        .withIndex("by_slug", (q) => q.eq("slug", args.newSlug as string))
+        .withIndex("by_slug", (q) => q.eq("slug", newSlug))
         .unique();
+
       if (clash) throw invalid("An organization with that slug already exists.");
-      patch.slug = args.newSlug;
+      patch.slug = newSlug;
     }
+
     if (args.shortName !== undefined) {
       if (args.shortName.length > 20) throw invalid("A short name is at most 20 characters.");
       patch.shortName = args.shortName;
     }
+
     if (args.about !== undefined) patch.about = args.about;
+
     if (args.isOpen !== undefined) patch.isOpen = args.isOpen;
+
     if (args.slots !== undefined) patch.slots = args.slots === null ? undefined : args.slots;
+
     if (args.accessCode !== undefined) {
       if (args.accessCode && args.accessCode.length > 7) {
         throw invalid("An access code is at most 7 characters.");
       }
+
       patch.accessCode = args.accessCode || undefined;
     }
+
     if (args.classRequired !== undefined) patch.classRequired = args.classRequired;
+
     if (args.logoOverrideImage !== undefined) {
       patch.logoOverrideImage = args.logoOverrideImage || undefined;
     }
+
     if (args.adminUsernames !== undefined) {
       const adminProfileIds = await usernamesToIds(ctx, args.adminUsernames);
+
       if (adminProfileIds.length === 0) {
         throw invalid("An organization needs at least one administrator.");
       }
+
       patch.adminProfileIds = adminProfileIds;
     }
 
     const isOpen = patch.isOpen ?? organization.isOpen;
     const classRequired = patch.classRequired ?? organization.classRequired;
+
     if (classRequired && isOpen) {
       throw invalid("Class membership cannot be enforced when organization has open enrollment.");
     }
@@ -297,6 +304,7 @@ export const update = mutation({
       reason: args.reason ?? "Edited from admin",
       createdAt: Date.now(),
     });
+
     return organization._id;
   },
 });
@@ -306,22 +314,26 @@ export const remove = mutation({
   handler: async (ctx, { slug }) => {
     const staff = await requireOrganizationAdmin(ctx);
     requireEditAll(staff);
+
     const organization = await ctx.db
       .query("organizations")
       .withIndex("by_slug", (q) => q.eq("slug", slug))
       .unique();
+
     if (!organization) throw notFound("Organization");
 
     const memberships = await ctx.db
       .query("organizationMemberships")
       .withIndex("by_organization", (q) => q.eq("organizationId", organization._id))
       .collect();
+
     for (const membership of memberships) await ctx.db.delete(membership._id);
 
     const classes = await ctx.db
       .query("classes")
       .withIndex("by_organization", (q) => q.eq("organizationId", organization._id))
       .collect();
+
     for (const klass of classes) await ctx.db.delete(klass._id);
 
     for (const state of ["P", "A", "R"] as const) {
@@ -331,10 +343,12 @@ export const remove = mutation({
           q.eq("organizationId", organization._id).eq("state", state),
         )
         .collect();
+
       for (const entry of requests) await ctx.db.delete(entry._id);
     }
 
     await ctx.db.delete(organization._id);
+
     return true;
   },
 });
@@ -347,16 +361,19 @@ export const recountMembers = mutation({
     requireEditAll(staff);
     const organizations = await ctx.db.query("organizations").collect();
     let fixed = 0;
+
     for (const organization of organizations) {
       const memberships = await ctx.db
         .query("organizationMemberships")
         .withIndex("by_organization", (q) => q.eq("organizationId", organization._id))
         .collect();
+
       if (memberships.length !== organization.memberCount) {
         await ctx.db.patch(organization._id, { memberCount: memberships.length });
         fixed += 1;
       }
     }
+
     return fixed;
   },
 });

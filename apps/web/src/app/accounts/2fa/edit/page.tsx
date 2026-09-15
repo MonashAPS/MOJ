@@ -6,6 +6,7 @@ import { RegenerateScratchCodes } from "./RegenerateScratchCodes";
 
 export async function generateMetadata() {
   const t = await getTranslations("auth.twoFactor.scratch");
+
   return { title: t("metaTitle") };
 }
 
@@ -18,8 +19,10 @@ export default async function EditTwoFactorPage({
 }) {
   const { next } = await searchParams;
   const account = await requireAccount("/accounts/2fa/edit/");
+
   // DMOJ's `TOTPEditView.check_skip`: nothing to edit when it is off.
   if (!account.totpEnabled) redirect("/accounts/2fa/");
+
   return (
     <RegenerateScratchCodes next={safeNext(next, "/accounts/2fa/")} remaining={account.scratchCodesLeft} />
   );

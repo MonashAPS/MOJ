@@ -1,7 +1,9 @@
 import type { ImportContext } from "../context.ts";
+import type { ImportDoc } from "../loader.ts";
 import type { Step } from "./types.ts";
 
 const STATUSES = new Set(["QU", "P", "G", "D", "IE", "CE", "AB"]);
+
 const RESULTS = new Set(["AC", "WA", "TLE", "MLE", "OLE", "IR", "RTE", "CE", "IE", "SC", "AB"]);
 
 interface ContestSubmission {
@@ -13,6 +15,7 @@ interface ContestSubmission {
 
 async function contestSubmissions(ctx: ImportContext): Promise<Map<number, ContestSubmission>> {
   const map = new Map<number, ContestSubmission>();
+
   for await (const row of ctx.rows("judge_contestsubmission")) {
     map.set(row.n("submission_id"), {
       participationLegacyId: row.n("participation_id"),
@@ -21,10 +24,11 @@ async function contestSubmissions(ctx: ImportContext): Promise<Map<number, Conte
       isPretest: row.b("is_pretest"),
     });
   }
+
   return map;
 }
 
-export const submissionsStep: Step = {
+const submissionsStep: Step = {
   table: "submissions",
   sources: ["judge_submission", "judge_contestsubmission"],
   async run(ctx) {
@@ -37,20 +41,24 @@ export const submissionsStep: Step = {
       const profileId = ctx.ref("profiles", row.n("user_id"), "judge_submission", "user_id", id);
       const problemId = ctx.ref("problems", row.n("problem_id"), "judge_submission", "problem_id", id);
       const languageId = ctx.ref("languages", row.n("language_id"), "judge_submission", "language_id", id);
+
       if (!profileId || !problemId || !languageId) {
         ctx.report.skip("submissions", "profile, problem or language missing", id);
         continue;
       }
 
       const status = row.s("status");
+
       if (!STATUSES.has(status)) ctx.report.warn("submissions", `unknown status ${status}, stored as IE`, id);
       const result = row.sOpt("result");
+
       if (result !== undefined && !RESULTS.has(result)) {
         ctx.report.warn("submissions", `unknown result ${result}, dropped`, id);
       }
 
       const contest = contestRows.get(id);
-      const doc: Record<string, unknown> = {
+
+      const doc: ImportDoc = {
         profileId,
         problemId,
         date: row.t("date"),
@@ -107,13 +115,15 @@ export const submissionsStep: Step = {
   },
 };
 
-export const submissionSourcesStep: Step = {
+const submissionSourcesStep: Step = {
   table: "submissionSources",
   sources: ["judge_submissionsource"],
   async run(ctx) {
     const emitter = ctx.emitter("submissionSources");
+
     for await (const row of ctx.rows("judge_submissionsource")) {
       ctx.report.counts("submissionSources").read++;
+
       const submissionId = ctx.ref(
         "submissions",
         row.n("submission_id"),
@@ -121,10 +131,12 @@ export const submissionSourcesStep: Step = {
         "submission_id",
         row.id(),
       );
+
       if (!submissionId) {
         ctx.report.skip("submissionSources", "submission missing", row.id());
         continue;
       }
+
       await emitter.emit({
         submissionId,
         source: row.s("source"),
@@ -134,13 +146,15 @@ export const submissionSourcesStep: Step = {
   },
 };
 
-export const submissionTestCasesStep: Step = {
+const submissionTestCasesStep: Step = {
   table: "submissionTestCases",
   sources: ["judge_submissiontestcase"],
   async run(ctx) {
     const emitter = ctx.emitter("submissionTestCases");
+
     for await (const row of ctx.rows("judge_submissiontestcase")) {
       ctx.report.counts("submissionTestCases").read++;
+
       const submissionId = ctx.ref(
         "submissions",
         row.n("submission_id"),
@@ -148,10 +162,12 @@ export const submissionTestCasesStep: Step = {
         "submission_id",
         row.id(),
       );
+
       if (!submissionId) {
         ctx.report.skip("submissionTestCases", "submission missing", row.id());
         continue;
       }
+
       await emitter.emit({
         submissionId,
         case: row.n("case"),

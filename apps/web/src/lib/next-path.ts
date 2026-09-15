@@ -3,7 +3,10 @@
  *  off to another host after they log in. */
 export function safeNext(value: string | null | undefined, fallback = "/"): string {
   if (!value) return fallback;
+
   if (!value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return fallback;
+
   if (value.includes("\n") || value.includes("\r")) return fallback;
+
   return value;
 }

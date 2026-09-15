@@ -17,8 +17,7 @@ export function QrCode({ value, label, size = 240 }: { value: string; label: str
       width={size}
       height={size}
       viewBox={`0 0 ${extent} ${extent}`}
-      className="block h-auto w-full max-w-[240px] rounded-md border border-border-strong"
-      shapeRendering="crispEdges"
+      className="block h-auto w-full max-w-[240px] rounded-md border border-border-strong [shape-rendering:crispEdges]"
     >
       <rect width={extent} height={extent} fill="#ffffff" />
       <g transform={`translate(${quiet} ${quiet})`}>

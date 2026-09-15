@@ -82,8 +82,10 @@ export function KickMemberForm({
                 disabled={busy}
                 onClick={async (event) => {
                   event.preventDefault();
+
                   if (!username) return;
                   setBusy(true);
+
                   try {
                     await kick({ slug, username });
                     toast.success(t("kicked", { username }));

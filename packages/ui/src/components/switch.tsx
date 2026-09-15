@@ -35,7 +35,9 @@ export function Switch({ className, label, ...props }: SwitchProps) {
       />
     </SwitchPrimitive.Root>
   );
+
   if (!label) return control;
+
   return (
     <label
       htmlFor={props.id}
@@ -46,6 +48,3 @@ export function Switch({ className, label, ...props }: SwitchProps) {
     </label>
   );
 }
-
-/** The foundation's name for a labelled switch. */
-export const Toggle = Switch;

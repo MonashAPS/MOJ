@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { ConvexClientProvider } from "@/auth/convex-client";
 import { getServerSession } from "@/auth/session";
-import { BrandingStyle } from "@/components/BrandingStyle";
+import { BrandingStyle } from "@/components/shell/BrandingStyle";
 import { SiteShell } from "@/components/shell/SiteShell";
 import { ThemeScript } from "@/components/shell/ThemeScript";
 import { UiText } from "@/components/shell/UiText";
@@ -21,6 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const branding = await query(api.site.branding, {}).catch(() => null);
   const name = branding?.siteName ?? "MOJ";
   const longName = branding?.siteLongName ?? "MAPS Online Judge";
+
   return {
     title: { default: name, template: `%s - ${longName}` },
     description: `The ${longName}: problems, contests and rankings for Monash Algorithms and Problem Solving.`,
@@ -60,6 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const theme = resolveTheme(jar.get(THEME_COOKIE)?.value, themeDefault);
 
   const profile = viewerState?.profile ?? null;
+
   const viewer = profile
     ? {
         username: profile.username,
@@ -71,9 +73,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         // The admin plugin stamps the acting superuser onto the session; the
         // impersonation bar and the dropdown's "Stop impersonating" row hang
         // off this.
-        isImpersonating: Boolean(
-          (session?.session as { impersonatedBy?: string | null } | undefined)?.impersonatedBy,
-        ),
+        isImpersonating: Boolean(session?.session.impersonatedBy),
       }
     : null;
 

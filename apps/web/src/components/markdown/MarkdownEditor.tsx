@@ -33,9 +33,13 @@ export type MarkdownEditorProps = {
 type Wrap = { before: string; after: string; placeholder: string };
 
 const BOLD: Wrap = { before: "**", after: "**", placeholder: "bold text" };
+
 const ITALIC: Wrap = { before: "*", after: "*", placeholder: "italic text" };
+
 const CODE: Wrap = { before: "`", after: "`", placeholder: "code" };
+
 const MATH: Wrap = { before: "~", after: "~", placeholder: "a^2 + b^2" };
+
 const LINK: Wrap = { before: "[", after: "](https://)", placeholder: "link text" };
 
 /**
@@ -80,12 +84,16 @@ export function MarkdownEditor({
 
   const preview = useCallback(async () => {
     const source = value;
+
     if (source.trim().length === 0) {
       setHtml("");
       setPreviewedSource(null);
+
       return;
     }
+
     setRendering(true);
+
     try {
       const rendered = await renderUserMarkdown(source, preset);
       setHtml(rendered);
@@ -97,12 +105,14 @@ export function MarkdownEditor({
 
   function applyWrap(wrap: Wrap) {
     const area = areaRef.current;
+
     if (!area) return;
     const start = area.selectionStart;
     const end = area.selectionEnd;
     const selected = value.slice(start, end);
     const body = selected.length > 0 ? selected : wrap.placeholder;
     const next = `${value.slice(0, start)}${wrap.before}${body}${wrap.after}${value.slice(end)}`;
+
     if (maxLength !== undefined && next.length > maxLength) return;
     onChange(next);
     setMode("write");
@@ -116,6 +126,7 @@ export function MarkdownEditor({
   function onModeChange(next: string) {
     if (next !== "write" && next !== "preview") return;
     setMode(next);
+
     if (next === "preview" && !previewed) void preview();
   }
 

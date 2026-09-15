@@ -28,17 +28,23 @@ export function ResetConfirmForm({ token }: { token: string }) {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const found: Errors = {};
+
     if (next.length < 8) found.next = tPassword("tooShort");
     else if (/^\d+$/.test(next)) found.next = tPassword("numeric");
+
     if (next !== confirm) found.confirm = tPassword("mismatch");
     setErrors(found);
+
     if (Object.keys(found).length > 0) return;
 
     setBusy(true);
+
     try {
       const result = await authClient.resetPassword({ newPassword: next, token });
+
       if (result.error) {
         const message = result.error.message ?? "";
+
         if (/breach|compromised/i.test(message)) {
           setErrors({ next: message });
         } else if (/token|expired|invalid/i.test(message)) {
@@ -46,8 +52,10 @@ export function ResetConfirmForm({ token }: { token: string }) {
         } else {
           setErrors({ form: message || t("failed") });
         }
+
         return;
       }
+
       router.push("/accounts/reset/complete/");
     } catch {
       setErrors({ form: tError("generic") });

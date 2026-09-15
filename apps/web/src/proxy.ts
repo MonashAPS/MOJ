@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { COMPROMISED_COOKIE } from "@/auth/password-compromised";
+import { readJsonBody } from "@/lib/json-body";
 
 /** Gates that must run before any page renders.
  *
@@ -36,16 +37,29 @@ const EXEMPT_PREFIXES = [
 
 type SessionResponse = {
   user?: { id: string; isStaff?: boolean; twoFactorEnabled?: boolean | null };
-} | null;
+};
 
-async function fetchSession(request: NextRequest): Promise<SessionResponse> {
+/** The gate reads three fields off `/api/auth/get-session`, so that is all it
+ *  decodes; anything else the endpoint answers with counts as signed out. */
+function isSessionResponse(value: unknown): value is SessionResponse {
+  if (typeof value !== "object" || value === null) return false;
+
+  if (!("user" in value)) return true;
+  const { user } = value;
+
+  return typeof user === "object" && user !== null && "id" in user && typeof user.id === "string";
+}
+
+async function fetchSession(request: NextRequest): Promise<SessionResponse | null> {
   try {
     const response = await fetch(new URL("/api/auth/get-session", request.nextUrl.origin), {
       headers: { cookie: request.headers.get("cookie") ?? "" },
       cache: "no-store",
     });
+
     if (!response.ok) return null;
-    return (await response.json()) as SessionResponse;
+
+    return await readJsonBody(response, isSessionResponse);
   } catch {
     return null;
   }
@@ -71,6 +85,7 @@ export async function proxy(request: NextRequest) {
     // path we were already on and loops.
     const url = new URL(request.url);
     url.pathname = `${pathname}/`;
+
     return NextResponse.redirect(url, 308);
   }
 
@@ -78,21 +93,25 @@ export async function proxy(request: NextRequest) {
 
   // Cheap negative check: no session cookie, nothing to gate.
   const cookieHeader = request.headers.get("cookie") ?? "";
+
   if (!cookieHeader.includes("moj.session_token")) return NextResponse.next();
 
   if (request.cookies.get(COMPROMISED_COOKIE)?.value === "1") {
     const url = request.nextUrl.clone();
     url.pathname = "/accounts/password/change/";
     url.searchParams.set("compromised", "1");
+
     return NextResponse.redirect(url);
   }
 
   const session = await fetchSession(request);
   const user = session?.user;
+
   if (user?.isStaff && !user.twoFactorEnabled) {
     const url = request.nextUrl.clone();
     url.pathname = "/accounts/2fa/";
     url.search = `?required=1&next=${encodeURIComponent(pathname)}`;
+
     return NextResponse.redirect(url);
   }
 

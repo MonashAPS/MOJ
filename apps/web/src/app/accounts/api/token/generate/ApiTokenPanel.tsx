@@ -1,5 +1,6 @@
 "use client";
 
+import { PROBLEMS_WRITE_SCOPE, READ_SCOPE } from "@moj/protocol";
 import {
   Alert,
   AlertDescription,
@@ -34,6 +35,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { formatDateTime } from "@/lib/format";
+import { readErrorMessage } from "@/lib/json-body";
 import { type ApiKeySummary, generateApiToken, type TokenScope } from "./actions";
 
 export function ApiTokenPanel({
@@ -64,12 +66,16 @@ export function ApiTokenPanel({
     event.preventDefault();
     setBusy(true);
     setError(null);
+
     try {
       const result = await generateApiToken({ name, scopes });
+
       if (!result.ok) {
         setError(result.message);
+
         return;
       }
+
       setIssued(result.token);
       setName("");
       router.refresh();
@@ -83,17 +89,20 @@ export function ApiTokenPanel({
   async function revoke(payload: { keyId?: string; legacy?: boolean }) {
     setWorking(true);
     setError(null);
+
     try {
       const response = await fetch("/accounts/api/token/remove/", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
-        setError(body?.error?.message ?? t("revokeFailed"));
+        setError((await readErrorMessage(response)) ?? t("revokeFailed"));
+
         return;
       }
+
       setPendingDelete(null);
       setRevokingLegacy(false);
       router.refresh();
@@ -113,9 +122,9 @@ export function ApiTokenPanel({
   }
 
   const scopeOptions = [
-    { value: "read" as TokenScope, label: "read", hint: t("scopeRead") },
-    { value: "problems:write" as TokenScope, label: "problems:write", hint: t("scopeProblemsWrite") },
-  ];
+    { value: READ_SCOPE, label: READ_SCOPE, hint: t("scopeRead") },
+    { value: PROBLEMS_WRITE_SCOPE, label: PROBLEMS_WRITE_SCOPE, hint: t("scopeProblemsWrite") },
+  ] satisfies { value: TokenScope; label: string; hint: string }[];
 
   return (
     <div className="grid gap-4">
@@ -290,6 +299,7 @@ export function ApiTokenPanel({
               aria-busy={working || undefined}
               onClick={(event) => {
                 event.preventDefault();
+
                 if (pendingDelete) void revoke({ keyId: pendingDelete.id });
               }}
             >

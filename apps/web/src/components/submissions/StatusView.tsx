@@ -35,6 +35,7 @@ import { AnsiBlock } from "./AnsiBlock";
 import styles from "./code.module.css";
 
 type Detail = NonNullable<FunctionReturnType<typeof api.submissions.detail>>;
+
 type TestCase = Detail["cases"][number];
 
 /** `make_batch` (judge/views/submission.py:113): consecutive cases with the same
@@ -63,11 +64,14 @@ function groupCases(cases: TestCase[]): Array<{
 
   for (const testCase of cases) {
     const batch = testCase.batch ?? null;
+
     if (batch !== last && buffer.length > 0) flush();
     buffer.push(testCase);
     last = batch;
   }
+
   flush();
+
   return groups;
 }
 
@@ -78,42 +82,51 @@ function statusStrip(
   graded: boolean,
 ): Array<{ key: string; status: string; combined: number }> {
   const flat: Array<{ key: string; status: string }> = [];
+
   for (const group of groups) {
     if (group.batch) {
       const worst = group.cases.find((row) => row.status !== "AC") ?? group.cases[0];
+
       if (worst) flat.push({ key: `b${group.batch}`, status: worst.status });
     } else {
       for (const row of group.cases) flat.push({ key: `c${row.case}`, status: row.status });
     }
   }
+
   if (!graded && flat.length > 0 && groups[groups.length - 1]?.batch) flat.pop();
 
   const out: Array<{ key: string; status: string; combined: number }> = [];
   let run: Array<{ key: string; status: string }> = [];
+
   const flush = () => {
     if (run.length === 0) return;
     const first = run[0];
+
     if (!first) return;
+
     if (run.length > 10) out.push({ key: first.key, status: first.status, combined: run.length });
     else for (const entry of run) out.push({ ...entry, combined: 1 });
     run = [];
   };
+
   for (const entry of flat) {
     if (run.length > 0 && run[0]?.status !== entry.status) flush();
     run.push(entry);
   }
+
   flush();
+
   return out;
 }
 
-const TONE_TEXT: Record<string, string> = {
-  good: "text-good",
-  bad: "text-bad",
-  warn: "text-warn",
-  neutral: "text-neutral",
-  run: "text-run",
-  ie: "text-ie",
-};
+const TONE_TEXT = new Map<string, string>([
+  ["good", "text-good"],
+  ["bad", "text-bad"],
+  ["warn", "text-warn"],
+  ["neutral", "text-neutral"],
+  ["run", "text-run"],
+  ["ie", "text-ie"],
+]);
 
 /**
  * `submission/status.html` and `submission/status-testcases.html`, live by
@@ -255,7 +268,7 @@ export function StatusView({
                   key={entry.key}
                   className={cn(
                     "inline-flex items-center gap-0.5 font-mono text-xs tabular-nums",
-                    TONE_TEXT[verdictTone(entry.status)] ?? "text-neutral",
+                    TONE_TEXT.get(verdictTone(entry.status)) ?? "text-neutral",
                   )}
                   title={entry.status}
                 >
@@ -379,6 +392,7 @@ function Line({ label, children }: { label: string; children: React.ReactNode })
 function Progress({ currentCase, status }: { currentCase: number; status: string }) {
   const t = useTranslations("submissions.status");
   const queued = status === "QU";
+
   return (
     <div className="flex items-center gap-3">
       {queued ? null : (
@@ -409,6 +423,7 @@ function CaseGroup({
   currentCase: number;
 }) {
   const t = useTranslations("submissions.cases");
+
   const rows = (
     <ul>
       {group.cases.map((testCase, position) => (
@@ -472,9 +487,12 @@ function CaseRow({
 }) {
   const t = useTranslations("submissions.cases");
   const [open, setOpen] = useState(false);
+
   const clipped =
     testCase.status !== "AC" && testCase.output.length > 0 && (outputPrefix === null || outputPrefix > 0);
+
   const expandable = clipped || testCase.extendedFeedback.length > 0;
+
   const output =
     outputPrefix === null ? testCase.output : testCase.output.slice(0, Math.max(0, outputPrefix));
 

@@ -40,7 +40,9 @@ export function Input({ invalid, icon, trailing, mono, className, ...props }: In
       {...props}
     />
   );
+
   if (!icon && !trailing) return field;
+
   return (
     <div
       data-slot="input-group"

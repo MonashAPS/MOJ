@@ -49,6 +49,7 @@ export function VersionMatrix({ matrix }: { matrix: VersionMatrixData }) {
                 </th>
                 {matrix.judges.map((judge) => {
                   const cell = matrix.matrix[judge]?.[language.key];
+
                   return (
                     <td
                       key={judge}

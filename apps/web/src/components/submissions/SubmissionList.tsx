@@ -18,7 +18,7 @@ import {
   toast,
   verdictTone,
 } from "@moj/ui";
-import { useConvex, useMutation, usePaginatedQuery } from "convex/react";
+import { type PaginatedQueryArgs, useConvex, useMutation, usePaginatedQuery } from "convex/react";
 import { Inbox, PlugZap } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -36,6 +36,8 @@ const PAGE_SIZE = 50;
 function same(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((value, index) => value === b[index]);
 }
+
+type SubmissionsQuery = PaginatedQueryArgs<typeof api.submissions.list>;
 
 export type SubmissionListFilters = {
   username?: string;
@@ -99,22 +101,27 @@ export function SubmissionList({
   const selectedStatuses = useMemo(() => searchParams.getAll("status"), [searchParams]);
   const selectedLanguages = useMemo(() => searchParams.getAll("language"), [searchParams]);
 
-  const queryArgs = useMemo(
-    () => ({
-      ...filters,
-      ...(selectedStatuses.length > 0 ? { results: selectedStatuses } : {}),
-      ...(selectedLanguages.length > 0 ? { languageKeys: selectedLanguages } : {}),
-    }),
-    [filters, selectedStatuses, selectedLanguages],
-  );
+  const queryArgs = useMemo(() => {
+    // An unset filter is left out rather than sent as undefined, so the query
+    // subscribes under the same key it would without the filter panel.
+    const args: SubmissionsQuery = { ...filters };
+
+    if (selectedStatuses.length > 0) args.results = selectedStatuses;
+
+    if (selectedLanguages.length > 0) args.languageKeys = selectedLanguages;
+
+    return args;
+  }, [filters, selectedStatuses, selectedLanguages]);
 
   const live = usePaginatedQuery(api.submissions.list, dynamic ? queryArgs : "skip", {
     initialNumItems: PAGE_SIZE,
   });
 
   const filtered = selectedStatuses.length > 0 || selectedLanguages.length > 0;
+
   const asServerFetched =
     same(selectedStatuses, initialFilters.status) && same(selectedLanguages, initialFilters.language);
+
   const loadingFirst = dynamic && live.status === "LoadingFirstPage";
   const usingServerPage = !dynamic || (loadingFirst && asServerFetched);
   const rows = usingServerPage ? initialPage : live.results;
@@ -137,7 +144,9 @@ export function SubmissionList({
   const setFilters = useCallback(
     (next: { status?: string[]; language?: string[] }) => {
       const params = new URLSearchParams();
+
       for (const value of next.status ?? selectedStatuses) params.append("status", value);
+
       for (const value of next.language ?? selectedLanguages) params.append("language", value);
       const query = params.toString();
       router.replace(query ? `?${query}` : "?", { scroll: false });
@@ -160,6 +169,7 @@ export function SubmissionList({
     if (!confirm) return;
     const { kind, id } = confirm;
     setConfirm(null);
+
     try {
       if (kind === "rejudge") {
         await rejudge({ submissionId: id });
@@ -306,11 +316,14 @@ function Disconnected() {
   useEffect(() => {
     const apply = (connected: boolean) =>
       setDown((previous) => (previous === !connected ? previous : !connected));
+
     apply(convex.connectionState().isWebSocketConnected);
+
     return convex.subscribeToConnectionState((state) => apply(state.isWebSocketConnected));
   }, [convex]);
 
   if (!down) return null;
+
   return (
     <div className="mb-3 flex items-center gap-2 rounded-md border border-warning-line bg-warning-bg px-3 py-2 text-sm text-warning-ink">
       <PlugZap aria-hidden className="size-4 shrink-0" />

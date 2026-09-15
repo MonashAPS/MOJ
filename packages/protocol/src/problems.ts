@@ -65,7 +65,9 @@ export const problemUpsertInput = z
   .strict();
 
 export type ProblemUpsertInput = z.infer<typeof problemUpsertInput>;
+
 export type EditorialInput = z.infer<typeof editorialInput>;
+
 export type LanguageLimitInput = z.infer<typeof languageLimitInput>;
 
 /** Keys the endpoint honours only when it is creating the problem. */
@@ -164,7 +166,7 @@ export const API_SCOPES = [READ_SCOPE, PROBLEMS_WRITE_SCOPE] as const;
 export type ApiScope = (typeof API_SCOPES)[number];
 
 export function isApiScope(value: string): value is ApiScope {
-  return (API_SCOPES as readonly string[]).includes(value);
+  return API_SCOPES.some((scope) => scope === value);
 }
 
 /** Largest statement image the endpoint accepts, matching DMOJ's martor limit. */

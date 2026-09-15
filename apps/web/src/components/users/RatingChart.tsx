@@ -17,10 +17,13 @@ import { ratingTitleKey } from "./rating-title";
 export type { RatingPoint } from "./rating-chart";
 
 const AXIS_FONT = { fontFamily: "var(--font-mono)", fontSize: 11 };
+
 /** How far the pointer may sit from a point and still pick it up. */
 const HIT_RADIUS = 11;
+
 /** Above this the tooltip would leave the panel, so it hangs below the point. */
 const TOOLTIP_FLIP = 92;
+
 const TOOLTIP_EDGE = 90;
 
 function signed(delta: number) {
@@ -29,6 +32,7 @@ function signed(delta: number) {
 
 function RatingValue({ rating }: { rating: number }) {
   const t = useTranslations("users.ratings");
+
   return (
     <span className={cn("rating", ratingClass(rating))} title={t(ratingTitleKey(rating))}>
       {rating}
@@ -42,6 +46,7 @@ function Tooltip({ dot, width }: { dot: ChartDot; width: number }) {
   // would hang out of the panel, so both are nudged back inside.
   const below = dot.y < TOOLTIP_FLIP;
   const left = Math.min(Math.max(dot.x, TOOLTIP_EDGE), Math.max(TOOLTIP_EDGE, width - TOOLTIP_EDGE));
+
   return (
     <div
       role="status"
@@ -81,12 +86,17 @@ export function RatingChart({ points }: { points: RatingPoint[] }) {
 
   useEffect(() => {
     const container = containerRef.current;
+
     if (!container) return;
+
     const observer = new ResizeObserver(([entry]) => {
       const measured = entry?.contentRect.width ?? 0;
+
       if (measured > 0) setWidth(Math.max(CHART_MIN_WIDTH, Math.round(measured)));
     });
+
     observer.observe(container);
+
     return () => observer.disconnect();
   }, []);
 
@@ -102,6 +112,7 @@ export function RatingChart({ points }: { points: RatingPoint[] }) {
       rank: String(dot.point.ranking),
       date: formatDate(dot.point.timestamp),
     };
+
     return dot.delta === null
       ? t("point", values)
       : t("pointWithChange", { ...values, change: signed(dot.delta) });

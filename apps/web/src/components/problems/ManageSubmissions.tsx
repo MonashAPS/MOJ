@@ -22,10 +22,10 @@ import {
   Progress,
 } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { TriangleAlert } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { mutationError } from "@/lib/convex-error";
 
 /** DMOJ's `Submission.RESULT`, in its own order. */
 const RESULTS = ["AC", "WA", "TLE", "MLE", "OLE", "IR", "RTE", "CE", "IE", "SC", "AB"];
@@ -33,6 +33,7 @@ const RESULTS = ["AC", "WA", "TLE", "MLE", "OLE", "IR", "RTE", "CE", "IE", "SC",
 function JobProgress({ jobId, kind }: { jobId: Id<"jobs">; kind: "rejudge" | "rescore" }) {
   const t = useTranslations("problems.manage");
   const job = useQuery(api.jobs.status, { jobId });
+
   if (!job) return null;
   const done = job.status === "done" || job.status === "failed";
   const total = job.progress?.total ?? 0;
@@ -103,6 +104,7 @@ export function ManageSubmissions({
         }
       : "skip",
   );
+
   const totals = useQuery(api.submissions.resultsForProblem, { problemCode });
   const previewCount = preview?.count ?? null;
   const rescoreCount = totals?.total ?? 0;
@@ -110,15 +112,12 @@ export function ManageSubmissions({
   async function run(action: () => Promise<{ jobId: Id<"jobs"> }>, set: (id: Id<"jobs">) => void) {
     setBusy(true);
     setError(null);
+
     try {
       const { jobId } = await action();
       set(jobId);
     } catch (thrown) {
-      setError(
-        thrown instanceof ConvexError && typeof thrown.data === "object" && thrown.data !== null
-          ? String((thrown.data as { message?: string }).message ?? t("jobNotStarted"))
-          : t("jobNotStarted"),
-      );
+      setError(mutationError(thrown, t("jobNotStarted")));
     } finally {
       setBusy(false);
       setConfirming(null);

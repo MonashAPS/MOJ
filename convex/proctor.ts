@@ -9,6 +9,7 @@
  * does, rather than on anything the page claims once at the start.
  */
 
+import type { WithoutSystemFields } from "convex/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, type QueryCtx, query } from "./_generated/server";
@@ -30,10 +31,13 @@ export const state = query({
   args: {},
   handler: async (ctx): Promise<ProctorState> => {
     const profile = await optionalViewer(ctx);
+
     if (!profile) return { active: false, sessionId: null, startedAt: null, expiresIn: null };
 
     const session = await activeProctorSession(ctx, profile._id);
+
     if (!session) return { active: false, sessionId: null, startedAt: null, expiresIn: null };
+
     return {
       active: true,
       sessionId: session._id,
@@ -61,11 +65,14 @@ export const gate = query({
   handler: async (ctx): Promise<ProctorGate> => {
     const shut: ProctorGate = { blocked: false, contestKey: null, contestName: null };
     const profile = await optionalViewer(ctx);
+
     if (!profile?.currentParticipationId) return shut;
 
     const participation = await ctx.db.get(profile.currentParticipationId);
+
     if (!participation) return shut;
     const contest = await ctx.db.get(participation.contestId);
+
     if (!contest?.proctorRequired) return shut;
 
     return {
@@ -94,24 +101,30 @@ export const start = mutation({
     }
 
     const now = Date.now();
+
     const previous = await ctx.db
       .query("proctorSessions")
       .withIndex("by_profile_started", (q) => q.eq("profileId", profile._id))
       .order("desc")
       .first();
+
     if (previous && previous.endedAt === undefined) {
       await ctx.db.patch(previous._id, { endedAt: now, endedReason: "replaced" });
     }
 
     const viewer = await viewerContext(ctx);
-    const sessionId = await ctx.db.insert("proctorSessions", {
+
+    const session: WithoutSystemFields<Doc<"proctorSessions">> = {
       profileId: profile._id,
       startedAt: now,
       lastSeenAt: now,
       displaySurface: args.displaySurface,
       userAgent: args.userAgent.slice(0, 512),
-      ...(viewer.contest ? { contestId: viewer.contest._id } : {}),
-    });
+    };
+
+    if (viewer.contest) session.contestId = viewer.contest._id;
+    const sessionId = await ctx.db.insert("proctorSessions", session);
+
     return { sessionId };
   },
 });
@@ -122,11 +135,14 @@ export const heartbeat = mutation({
   handler: async (ctx, args): Promise<{ ok: boolean }> => {
     const profile = await requireViewer(ctx);
     const session = await ctx.db.get(args.sessionId);
+
     if (!session || session.profileId !== profile._id) throw forbidden();
+
     // A session that was replaced stays ended: the newer tab owns the stream.
     if (session.endedAt !== undefined) return { ok: false };
 
     await ctx.db.patch(session._id, { lastSeenAt: Date.now() });
+
     return { ok: true };
   },
 });
@@ -136,13 +152,16 @@ export const stop = mutation({
   handler: async (ctx, args): Promise<null> => {
     const profile = await requireViewer(ctx);
     const session = await ctx.db.get(args.sessionId);
+
     if (!session || session.profileId !== profile._id) throw forbidden();
+
     if (session.endedAt === undefined) {
       await ctx.db.patch(session._id, {
         endedAt: Date.now(),
         endedReason: args.reason?.slice(0, 100) ?? "stopped",
       });
     }
+
     return null;
   },
 });
@@ -155,6 +174,7 @@ export const uploadUrl = mutation({
   args: {},
   handler: async (ctx): Promise<string> => {
     await requireViewer(ctx);
+
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -179,6 +199,7 @@ export const addChunk = mutation({
   handler: async (ctx, args): Promise<null> => {
     const profile = await requireViewer(ctx);
     const session = await ctx.db.get(args.sessionId);
+
     if (!session || session.profileId !== profile._id) throw forbidden();
 
     // Which contest they are in is read here rather than taken from the page,
@@ -188,7 +209,7 @@ export const addChunk = mutation({
       ? await ctx.db.get(profile.currentParticipationId)
       : null;
 
-    await ctx.db.insert("proctorChunks", {
+    const chunk: WithoutSystemFields<Doc<"proctorChunks">> = {
       sessionId: session._id,
       profileId: profile._id,
       index: args.index,
@@ -197,10 +218,14 @@ export const addChunk = mutation({
       bytes: args.bytes,
       mimeType: args.mimeType,
       storageId: args.storageId,
-      ...(participation ? { contestId: participation.contestId } : {}),
-    });
+    };
+
+    if (participation) chunk.contestId = participation.contestId;
+    await ctx.db.insert("proctorChunks", chunk);
+
     // A slice arriving is as good a sign of life as a heartbeat.
     if (session.endedAt === undefined) await ctx.db.patch(session._id, { lastSeenAt: Date.now() });
+
     return null;
   },
 });
@@ -227,10 +252,12 @@ async function toRow(
 ): Promise<ProctorSessionRow> {
   const profile = await ctx.db.get(session.profileId);
   const contest = session.contestId ? await ctx.db.get(session.contestId) : null;
+
   const chunks = await ctx.db
     .query("proctorChunks")
     .withIndex("by_session_index", (q) => q.eq("sessionId", session._id))
     .collect();
+
   return {
     _id: session._id,
     username: profile?.username ?? "?",
@@ -256,7 +283,9 @@ async function toRow(
  */
 async function staffOnly(ctx: QueryCtx): Promise<Doc<"profiles"> | null> {
   const profile = await optionalViewer(ctx);
+
   if (!profile) return null;
+
   return profile.isStaff || profile.isSuperuser ? profile : null;
 }
 
@@ -311,12 +340,15 @@ export const timeline = query({
     const now = Date.now();
     const to = now - (args.endOffsetMs ?? 0);
     const from = to - (args.spanMs ?? 24 * 60 * 60 * 1000);
+
     if (!(await staffOnly(ctx))) return { from, to, rows: [], contests: [] };
 
-    const wanted = args.contestKey
+    const contestKey = args.contestKey;
+
+    const wanted = contestKey
       ? await ctx.db
           .query("contests")
-          .withIndex("by_key", (q) => q.eq("key", args.contestKey as string))
+          .withIndex("by_key", (q) => q.eq("key", contestKey))
           .unique()
       : null;
 
@@ -326,26 +358,30 @@ export const timeline = query({
       .take(20_000);
 
     const contestNames = new Map<string, { key: string; name: string }>();
-    const bySession = new Map<string, TimelineSlice[]>();
-    const bytes = new Map<string, number>();
+    const bySession = new Map<Id<"proctorSessions">, TimelineSlice[]>();
+    const bytes = new Map<Id<"proctorSessions">, number>();
 
     for (const chunk of chunks) {
       let contestKey: string | null = null;
+
       if (chunk.contestId) {
         const cached = contestNames.get(chunk.contestId);
+
         if (cached) {
           contestKey = cached.key;
         } else {
           const contest = await ctx.db.get(chunk.contestId);
+
           if (contest) {
             contestNames.set(chunk.contestId, { key: contest.key, name: contest.name });
             contestKey = contest.key;
           }
         }
       }
+
       if (wanted && chunk.contestId !== wanted._id) continue;
 
-      const key = chunk.sessionId as string;
+      const key = chunk.sessionId;
       const slices = bySession.get(key) ?? [];
       slices.push({
         index: chunk.index,
@@ -358,10 +394,13 @@ export const timeline = query({
     }
 
     const rows: TimelineRow[] = [];
+
     for (const [sessionId, slices] of bySession) {
-      const session = await ctx.db.get(sessionId as Id<"proctorSessions">);
+      const session = await ctx.db.get(sessionId);
+
       if (!session) continue;
       const person = await ctx.db.get(session.profileId);
+
       if (args.username && person?.username !== args.username) continue;
 
       slices.sort((a, b) => a.startedAt - b.startedAt);
@@ -377,6 +416,7 @@ export const timeline = query({
         slices,
       });
     }
+
     rows.sort((a, b) => b.startedAt - a.startedAt);
 
     return {
@@ -395,11 +435,13 @@ export const sessions = query({
     if (!(await staffOnly(ctx))) return [];
 
     const now = Date.now();
+
     const rows = await ctx.db
       .query("proctorSessions")
       .withIndex("by_lastSeen")
       .order("desc")
       .take(Math.min(args.limit ?? 50, 200));
+
     return await Promise.all(rows.map((session) => toRow(ctx, session, now)));
   },
 });
@@ -415,10 +457,12 @@ export const sliceUrl = query({
   args: { sessionId: v.id("proctorSessions"), index: v.number() },
   handler: async (ctx, args): Promise<string | null> => {
     if (!(await staffOnly(ctx))) return null;
+
     const chunk = await ctx.db
       .query("proctorChunks")
       .withIndex("by_session_index", (q) => q.eq("sessionId", args.sessionId).eq("index", args.index))
       .unique();
+
     return chunk ? await ctx.storage.getUrl(chunk.storageId) : null;
   },
 });
@@ -436,12 +480,14 @@ export const replay = query({
     if (!(await staffOnly(ctx))) return null;
 
     const session = await ctx.db.get(args.sessionId);
+
     if (!session) return null;
 
     const chunks = await ctx.db
       .query("proctorChunks")
       .withIndex("by_session_index", (q) => q.eq("sessionId", session._id))
       .collect();
+
     chunks.sort((a, b) => a.index - b.index);
 
     return {

@@ -41,7 +41,9 @@ export function Checkbox({ className, label, labelClassName, onCheckedChange, ..
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   );
+
   if (!label) return control;
+
   return (
     <label
       className={cn(

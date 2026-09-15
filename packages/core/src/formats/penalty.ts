@@ -13,7 +13,7 @@
  */
 
 import type { ContestProblemRow, ContestSubmissionRow, Id } from "../types";
-import { orderedProblemIds } from "./base";
+import { orderedProblemGroups } from "./base";
 
 /** Results that never count towards an ICPC/AtCoder penalty. */
 export const PENALTY_IGNORED_RESULTS: readonly string[] = ["IE", "CE"];
@@ -30,7 +30,9 @@ export interface MaxPointsRow {
 
 function counts(submission: ContestSubmissionRow): boolean {
   const result = submission.result;
+
   if (result === null || result === undefined) return false;
+
   return !PENALTY_IGNORED_RESULTS.includes(result);
 }
 
@@ -41,9 +43,9 @@ export function computeMaxPointsRows(
 ): MaxPointsRow[] {
   const rows: MaxPointsRow[] = [];
 
-  for (const problemId of orderedProblemIds(groups, contestProblems)) {
-    const submissions = groups.get(problemId) as ContestSubmissionRow[];
+  for (const [problemId, submissions] of orderedProblemGroups(groups, contestProblems)) {
     const points = Math.max(...submissions.map((submission) => submission.contestPoints));
+
     const time = Math.min(
       ...submissions
         .filter((submission) => submission.contestPoints === points)
@@ -51,6 +53,7 @@ export function computeMaxPointsRows(
     );
 
     let penaltyCount = 0;
+
     if (penaltyMinutes) {
       const scored = submissions.filter(counts);
       penaltyCount = points

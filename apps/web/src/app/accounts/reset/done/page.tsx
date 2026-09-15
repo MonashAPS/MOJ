@@ -7,6 +7,7 @@ import { AuthCard } from "@/components/auth/AuthCard";
 
 export async function generateMetadata() {
   const t = await getTranslations("auth.resetDone");
+
   return { title: t("metaTitle") };
 }
 

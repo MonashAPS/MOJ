@@ -7,9 +7,17 @@ import { useTranslations } from "next-intl";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { BoardCell } from "./BoardCell";
 import { type Attendance, cellSignature, type DisplayRow, type RevealTarget } from "./hall";
-import { pictogramFor } from "./olympics";
+import { type Pictogram, pictogramFor } from "./olympics";
 
 const FLIP_MS = 700;
+
+/** The pictogram's colour reaches the column head as custom properties, which
+ *  React's `CSSProperties` does not describe on its own. */
+type SportStyle = React.CSSProperties & { [variable: `--${string}`]: string };
+
+function sportStyle(picture: Pictogram): SportStyle {
+  return { "--hall-col": picture.colour, "--hall-col-wash": `${picture.colour}3a` };
+}
 
 function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -69,38 +77,48 @@ export function DivisionPanel({
     const next = new Map<string, string>();
     const moved = new Set<string>();
     const first = seen.current.size === 0;
+
     for (const row of division.rows) {
       row.cells.forEach((cell, index) => {
         const key = `${row.participationId}:${index}`;
         const signature = cellSignature(cell);
         next.set(key, signature);
         const before = seen.current.get(key);
+
         if (!first && before !== undefined && before !== signature) moved.add(key);
       });
     }
+
     seen.current = next;
+
     return moved;
   }, [division]);
 
   useLayoutEffect(() => {
     const body = bodyRef.current;
+
     if (!body) return;
     const still = prefersReducedMotion();
     const next = new Map<string, number>();
+
     for (const node of body.querySelectorAll<HTMLTableRowElement>("tr[data-row]")) {
       const id = node.dataset.row;
+
       if (!id) continue;
       const top = node.offsetTop;
       next.set(id, top);
       const before = positions.current.get(id);
+
       if (still || before === undefined) continue;
       const delta = before - top;
-      if (Math.abs(delta) < 2 || typeof node.animate !== "function") continue;
+
+      if (Math.abs(delta) < 2 || typeof node.animate === "undefined") continue;
       node.animate([{ transform: `translateY(${delta}px)` }, { transform: "none" }], {
         duration: FLIP_MS,
         easing: easing(),
       });
     }
+
     positions.current = next;
   });
 
@@ -126,6 +144,7 @@ export function DivisionPanel({
               </th>
               {division.problems.map((problem, index) => {
                 const picture = olympics ? pictogramFor(division.key, problem.code, index) : null;
+
                 return (
                   <th
                     key={problem.contestProblemId}
@@ -133,14 +152,7 @@ export function DivisionPanel({
                     scope="col"
                     title={problem.name || problem.label}
                     data-sport={picture?.sport}
-                    style={
-                      picture
-                        ? ({
-                            "--hall-col": picture.colour,
-                            "--hall-col-wash": `${picture.colour}3a`,
-                          } as React.CSSProperties)
-                        : undefined
-                    }
+                    style={picture ? sportStyle(picture) : undefined}
                   >
                     {picture ? (
                       <img className="hall-pictogram" src={picture.src} alt={problem.label} />
@@ -162,6 +174,7 @@ export function DivisionPanel({
             {rows.map((row, position) => {
               const isTarget = revealing && target?.rowIndex === position;
               const isDone = revealing && target !== null && position < target.rowIndex;
+
               return (
                 <tr
                   key={row.participationId}

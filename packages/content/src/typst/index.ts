@@ -5,11 +5,13 @@ export {
   type ContestMeta,
   defaultLabel,
 } from "./booklet.js";
+
 export {
   typstEscapeString,
   typstOptional,
   typstStringArray,
 } from "./escape.js";
+
 export {
   defaultResolveImage,
   dropAllImages,
@@ -17,6 +19,7 @@ export {
   type NormaliseResult,
   normaliseForCmarker,
 } from "./markdown.js";
+
 export {
   DEFAULT_TYPST_PACKAGE_PATH,
   type RenderPdfOptions,
@@ -27,6 +30,7 @@ export {
   typstAvailable,
   typstBinary,
 } from "./render-pdf.js";
+
 export {
   markdownToTypst,
   markdownToTypstBody,

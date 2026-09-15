@@ -5,5 +5,5 @@
     "noEmit": true,
     "lib": ["ES2023"]
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts"]
+  "include": ["src/**/*.ts"]
 }

@@ -9,6 +9,16 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../_generated/server";
 import { requireSuperuser } from "../lib/auth";
 import { writeRevision } from "../lib/community";
+import {
+  type Budget,
+  DEDUPE_PAGE,
+  type DedupeReport,
+  type DedupeState,
+  dedupeReportValidator,
+  emptyDedupeReport,
+  newBudget,
+  nextPage,
+} from "../lib/dedupe";
 
 /**
  * `npm run setup` seeds the reference tables and an older `npm run import`
@@ -26,12 +36,6 @@ import { writeRevision } from "../lib/community";
 
 /** What the revisions read when nobody said why. */
 const DEDUPE_REASON = "Merged duplicate rows by natural key";
-/** Documents one page reads from a table. */
-const DEDUPE_PAGE = 200;
-/** Rows one pass rewrites before handing over to the next scheduled pass. */
-const DEDUPE_WRITE_BUDGET = 500;
-/** Documents one pass reads, for the tables it has to scan to find references. */
-const DEDUPE_READ_BUDGET = 2000;
 
 /**
  * The tables convex/importer.ts keys naturally, minus `languages`, which
@@ -64,22 +68,12 @@ const dedupeTableValidator = v.union(v.literal("problems"), v.literal("navigatio
  * per function execution, so the scans walk the built in `by_creation_time`
  * index instead, which also survives a patch: repointing a row does not move it.
  */
-interface DedupeState {
-  table: DedupeTable;
-  cursor: number | null;
-}
-
-interface Budget {
-  reads: number;
-  writes: number;
-}
-
 /** The fields the ranking reads; every keyed table carries all three. */
-interface KeyedRow {
+type KeyedRow = {
   _id: Id<KeyedTable>;
   _creationTime: number;
   legacyId?: number;
-}
+};
 
 /** A losing row and the row its references move to. */
 interface Merge {
@@ -108,8 +102,11 @@ interface TablePlan<Row extends KeyedRow> {
 function bySurvivorRank(a: KeyedRow, b: KeyedRow): number {
   const aImported = a.legacyId === undefined ? 1 : 0;
   const bImported = b.legacyId === undefined ? 1 : 0;
+
   if (aImported !== bImported) return aImported - bImported;
+
   if (a._creationTime !== b._creationTime) return b._creationTime - a._creationTime;
+
   return a._id < b._id ? -1 : a._id > b._id ? 1 : 0;
 }
 
@@ -121,9 +118,11 @@ function planTable<Row extends KeyedRow>(
   keyOf: (row: Row) => string,
 ): TablePlan<Row> {
   const byKey = new Map<string, Row[]>();
+
   for (const row of rows) {
     const key = keyOf(row);
     const group = byKey.get(key);
+
     if (group) group.push(row);
     else byKey.set(key, [row]);
   }
@@ -131,17 +130,21 @@ function planTable<Row extends KeyedRow>(
   const keys: string[] = [];
   const merges: Merge[] = [];
   const survivorOf = new Map<Row["_id"], Row["_id"]>();
+
   for (const [key, group] of byKey) {
     if (group.length < 2) continue;
     // Six tables share one report, so the key says which table it came from.
     keys.push(`${table}/${key}`);
-    const ranked = [...group].sort(bySurvivorRank);
-    const survivor = ranked[0] as Row;
-    for (const loser of ranked.slice(1)) {
+    const [survivor, ...losers] = [...group].sort(bySurvivorRank);
+
+    if (survivor === undefined) continue;
+
+    for (const loser of losers) {
       survivorOf.set(loser._id, survivor._id);
       merges.push({ entityType, loser, survivor: survivor._id });
     }
   }
+
   return { keys, merges, survivorOf };
 }
 
@@ -177,6 +180,7 @@ async function buildPlan(ctx: MutationCtx): Promise<DedupePlan> {
   const pagePlan = planTable("flatPages", "flatPage", pages, (row) => row.url);
 
   const all = [typePlan, groupPlan, licensePlan, navigationPlan, miscPlan, pagePlan];
+
   return {
     keys: all.flatMap((plan) => plan.keys).sort(),
     merges: all.flatMap((plan) => plan.merges),
@@ -190,17 +194,11 @@ async function buildPlan(ctx: MutationCtx): Promise<DedupePlan> {
 /** One page of `problems`, walked by `_creationTime`, which Convex keeps unique. */
 async function problemsPage(ctx: MutationCtx, cursor: number | null): Promise<Doc<"problems">[]> {
   const query = ctx.db.query("problems");
+
   return await (cursor === null
     ? query.withIndex("by_creation_time")
     : query.withIndex("by_creation_time", (q) => q.gt("_creationTime", cursor))
   ).take(DEDUPE_PAGE);
-}
-
-/** Where the next page of a scan starts, and whether there is one. */
-function advance(rows: { _creationTime: number }[]): { cursor: number | null; isDone: boolean } {
-  const last = rows[rows.length - 1];
-  if (rows.length < DEDUPE_PAGE || last === undefined) return { cursor: null, isDone: true };
-  return { cursor: last._creationTime, isDone: false };
 }
 
 /**
@@ -223,91 +221,88 @@ async function rewriteTablePage(
         .query("navigationBar")
         .withIndex("by_parent", (q) => q.eq("parentId", loser))
         .take(DEDUPE_PAGE);
+
       budget.reads -= Math.max(rows.length, 1);
+
       if (rows.length === 0) continue;
+
       for (const row of rows) {
         // admin/site.ts refuses to make an item its own parent, which is what
         // repointing a row onto the duplicate it is folding into would do.
         await ctx.db.patch(row._id, { parentId: row._id === survivor ? undefined : survivor });
       }
+
       budget.writes -= rows.length;
+
       return { rewritten: rows.length, cursor: null, isDone: false };
     }
+
     return { rewritten: 0, cursor: null, isDone: true };
   }
 
   const rows = await problemsPage(ctx, cursor);
   budget.reads -= Math.max(rows.length, 1);
   let rewritten = 0;
+
   for (const row of rows) {
     const patch: Partial<Doc<"problems">> = {};
+
     if (row.typeIds.some((id) => plan.problemTypes.has(id))) {
       const typeIds: Id<"problemTypes">[] = [];
+
       for (const id of row.typeIds) {
         const mapped = plan.problemTypes.get(id) ?? id;
+
         // The loser folds into the survivor rather than listing it twice.
         if (!typeIds.includes(mapped)) typeIds.push(mapped);
       }
+
       patch.typeIds = typeIds;
     }
+
     const group = plan.problemGroups.get(row.groupId);
+
     if (group) patch.groupId = group;
     const license = row.licenseId === undefined ? undefined : plan.licenses.get(row.licenseId);
+
     if (license) patch.licenseId = license;
+
     if (Object.keys(patch).length === 0) continue;
     await ctx.db.patch(row._id, patch);
     rewritten += 1;
   }
+
   budget.writes -= rewritten;
-  return { rewritten, ...advance(rows) };
+
+  return { rewritten, ...nextPage(rows) };
 }
 
 /** Walks the reference tables from `from` until the budget runs out. */
 async function rewriteReferences(
   ctx: MutationCtx,
   plan: DedupePlan,
-  from: DedupeState,
+  from: DedupeState<DedupeTable>,
   budget: Budget,
-): Promise<{ rewritten: number; next: DedupeState | null }> {
+): Promise<{ rewritten: number; next: DedupeState<DedupeTable> | null }> {
   const start = Math.max(DEDUPE_TABLES.indexOf(from.table), 0);
   let rewritten = 0;
-  for (let i = start; i < DEDUPE_TABLES.length; i++) {
-    const table = DEDUPE_TABLES[i] as DedupeTable;
-    let cursor = i === start ? from.cursor : null;
+
+  for (const [index, table] of DEDUPE_TABLES.entries()) {
+    if (index < start) continue;
+    let cursor = index === start ? from.cursor : null;
+
     for (;;) {
       if (budget.reads <= 0 || budget.writes <= 0) return { rewritten, next: { table, cursor } };
       const step = await rewriteTablePage(ctx, table, plan, cursor, budget);
       rewritten += step.rewritten;
+
       if (step.isDone) break;
       cursor = step.cursor;
     }
   }
+
   return { rewritten, next: null };
 }
-
-export interface DedupeReport {
-  keys: string[];
-  keysRepaired: number;
-  rowsDeleted: number;
-  referencesRewritten: number;
-  isDone: boolean;
-}
-
-const dedupeReportValidator = v.object({
-  keys: v.array(v.string()),
-  keysRepaired: v.number(),
-  rowsDeleted: v.number(),
-  referencesRewritten: v.number(),
-  isDone: v.boolean(),
-});
-
-const emptyReport: DedupeReport = {
-  keys: [],
-  keysRepaired: 0,
-  rowsDeleted: 0,
-  referencesRewritten: 0,
-  isDone: true,
-};
 
 /**
  * One bounded pass. Recomputes the plan from the tables every time, which is
@@ -316,15 +311,17 @@ const emptyReport: DedupeReport = {
  */
 async function dedupePass(
   ctx: MutationCtx,
-  from: DedupeState,
+  from: DedupeState<DedupeTable>,
   editorProfileId: Id<"profiles"> | undefined,
   reason: string,
-): Promise<{ report: DedupeReport; next: DedupeState | null }> {
+): Promise<{ report: DedupeReport; next: DedupeState<DedupeTable> | null }> {
   const plan = await buildPlan(ctx);
-  if (plan.merges.length === 0) return { report: emptyReport, next: null };
 
-  const budget: Budget = { reads: DEDUPE_READ_BUDGET, writes: DEDUPE_WRITE_BUDGET };
+  if (plan.merges.length === 0) return { report: emptyDedupeReport, next: null };
+
+  const budget = newBudget();
   const { rewritten, next } = await rewriteReferences(ctx, plan, from, budget);
+
   if (next) {
     return {
       report: {
@@ -339,6 +336,7 @@ async function dedupePass(
   }
 
   let deleted = 0;
+
   for (const merge of plan.merges) {
     await writeRevision(
       ctx,
@@ -377,12 +375,14 @@ export const dedupeNaturalKeys = mutation({
   handler: async (ctx, { reason }): Promise<DedupeReport> => {
     const editor = await requireSuperuser(ctx);
     const why = reason ?? DEDUPE_REASON;
+
     const { report, next } = await dedupePass(
       ctx,
       { table: DEDUPE_TABLES[0], cursor: null },
       editor._id,
       why,
     );
+
     if (next) {
       await ctx.scheduler.runAfter(0, internal.admin.dedupe.dedupeNaturalKeysStep, {
         table: next.table,
@@ -392,6 +392,7 @@ export const dedupeNaturalKeys = mutation({
         reason: why,
       });
     }
+
     return report;
   },
 });
@@ -415,13 +416,16 @@ export const dedupeNaturalKeysStep = internalMutation({
   returns: dedupeReportValidator,
   handler: async (ctx, args): Promise<DedupeReport> => {
     const reason = args.reason ?? DEDUPE_REASON;
+
     const { report, next } = await dedupePass(
       ctx,
       { table: args.table ?? DEDUPE_TABLES[0], cursor: args.cursor ?? null },
       args.editorProfileId,
       reason,
     );
+
     const total = (args.rewritten ?? 0) + report.referencesRewritten;
+
     if (next) {
       await ctx.scheduler.runAfter(0, internal.admin.dedupe.dedupeNaturalKeysStep, {
         table: next.table,
@@ -431,6 +435,7 @@ export const dedupeNaturalKeysStep = internalMutation({
         reason,
       });
     }
+
     return { ...report, referencesRewritten: total };
   },
 });

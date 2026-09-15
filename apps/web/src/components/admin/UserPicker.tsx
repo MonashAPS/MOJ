@@ -42,7 +42,7 @@ export function UserPicker({
   const t = useTranslations("admin.components.userPicker");
   const [open, setOpen] = useState(false);
   const [term, setTerm] = useState("");
-  const matches = useQuery(api.pages.admin1.profileSearch, open ? { term, limit: 10 } : "skip");
+  const matches = useQuery(api.pages.admin.console.profileSearch, open ? { term, limit: 10 } : "skip");
   const options = (matches ?? []).filter((row) => !values.includes(row.username));
 
   return (

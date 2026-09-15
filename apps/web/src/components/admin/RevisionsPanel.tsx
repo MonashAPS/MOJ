@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { formatDateTime, formatRelative } from "@/lib/format";
 
-export type Revision = {
+type Revision = {
   id: string;
   createdAt: number;
   reason: string;
@@ -31,38 +31,54 @@ type Change = { field: string; before: string; after: string };
  *  are handed down instead. */
 type BooleanWords = { yes: string; no: string };
 
-function render(value: unknown, words: BooleanWords): string {
+/** A snapshot is whatever JSON the section wrote, so the diff walks JSON values. */
+type JsonObject = { [field: string]: JsonValue };
+
+type JsonValue = string | number | boolean | null | JsonValue[] | JsonObject;
+
+/** Only an object snapshot has fields to compare; anything else diffs as empty. */
+function isSnapshotObject(snapshot: unknown): snapshot is JsonObject {
+  return typeof snapshot === "object" && snapshot !== null && !Array.isArray(snapshot);
+}
+
+function isNestedObject(value: JsonValue): value is JsonObject {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function render(value: JsonValue | undefined, words: BooleanWords): string {
   if (value === undefined || value === null) return "—";
+
   if (Array.isArray(value))
     return value.length === 0 ? "—" : value.map((entry) => render(entry, words)).join(", ");
-  if (typeof value === "object") return JSON.stringify(value);
-  if (typeof value === "boolean") return value ? words.yes : words.no;
+
+  if (isNestedObject(value)) return JSON.stringify(value);
+
+  if (value === true || value === false) return value ? words.yes : words.no;
+
   return String(value);
 }
 
-function asRecord(snapshot: unknown): Record<string, unknown> {
-  return snapshot && typeof snapshot === "object" && !Array.isArray(snapshot)
-    ? (snapshot as Record<string, unknown>)
-    : {};
-}
-
 /** Field-by-field, both ways: what a snapshot gained, lost or changed. */
-function diff(before: unknown, after: unknown, words: BooleanWords): Change[] {
-  const left = asRecord(before);
-  const right = asRecord(after);
+function diff(before: Revision, after: Revision, words: BooleanWords): Change[] {
+  const left: JsonObject = isSnapshotObject(before.snapshot) ? before.snapshot : {};
+  const right: JsonObject = isSnapshotObject(after.snapshot) ? after.snapshot : {};
   const fields = [...new Set([...Object.keys(left), ...Object.keys(right)])].sort();
   const changes: Change[] = [];
+
   for (const field of fields) {
     const a = render(left[field], words);
     const b = render(right[field], words);
+
     if (a !== b) changes.push({ field, before: a, after: b });
   }
+
   return changes;
 }
 
 /** A field the catalogue has no name for, spelled out from its camelCase one. */
 function fallbackLabel(field: string): string {
   const spaced = field.replace(/([A-Z])/g, " $1").toLowerCase();
+
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
@@ -90,6 +106,7 @@ export function RevisionsPanel({
 }) {
   const t = useTranslations("admin.components.revisions");
   const pending = loading || (revisions === undefined && rawRows == null);
+
   const rows: Revision[] =
     revisions ??
     (rawRows ?? []).map((row) => ({
@@ -99,16 +116,16 @@ export function RevisionsPanel({
       author: row.author,
       snapshot: row.snapshot,
     }));
+
   const [leftId, setLeftId] = useState<string | null>(null);
   const [rightId, setRightId] = useState<string | null>(null);
 
   const left = rows.find((row) => row.id === leftId) ?? rows[1] ?? null;
   const right = rows.find((row) => row.id === rightId) ?? rows[0] ?? null;
   const words = useMemo(() => ({ yes: t("booleanTrue"), no: t("booleanFalse") }), [t]);
-  const changes = useMemo(
-    () => (left && right ? diff(left.snapshot, right.snapshot, words) : []),
-    [left, right, words],
-  );
+
+  const changes = useMemo(() => (left && right ? diff(left, right, words) : []), [left, right, words]);
+
   const panelTitle = title ?? t("title");
 
   function fieldLabel(field: string): string {

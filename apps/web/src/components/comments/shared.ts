@@ -7,6 +7,7 @@ import type { FunctionReturnType } from "convex/server";
 export type CommentTargetType = "problem" | "contest" | "blog" | "solution";
 
 export type CommentList = NonNullable<FunctionReturnType<typeof api.comments.list>>;
+
 export type CommentNode = CommentList["comments"][number];
 
 /** Rendered HTML is cached per body, so an edit invalidates exactly one row. */

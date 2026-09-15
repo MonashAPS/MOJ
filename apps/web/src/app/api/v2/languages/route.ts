@@ -14,6 +14,7 @@ export async function GET(request: Request): Promise<Response> {
       id: listFilter(url, "id"),
       key: listFilter(url, "key"),
     };
+
     return handleApiRequest(request, (options) => fetchQuery(api.apiV2.languages, args, options));
   });
 }

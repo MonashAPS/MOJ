@@ -17,6 +17,7 @@ export function CopyButton({ text, label, className }: { text: string; label?: s
   useEffect(() => {
     if (!copied) return;
     const timer = setTimeout(() => setCopied(false), 1200);
+
     return () => clearTimeout(timer);
   }, [copied]);
 

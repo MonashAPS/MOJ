@@ -18,6 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
   const t = await getTranslations("problems.editorial");
   const { code } = await params;
   const editorial = await queryAsViewer(api.problems.editorial, { code }).catch(() => null);
+
   return {
     title: editorial ? t("titleFor", { name: editorial.problemName }) : t("noSuchEditorial"),
   };
@@ -27,10 +28,12 @@ export default async function EditorialPage({ params }: { params: Promise<{ code
   const t = await getTranslations("problems.editorial");
   const detail = await getTranslations("problems.detail");
   const { code } = await params;
+
   const [problem, editorial] = await Promise.all([
     queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }),
     queryAsViewer(api.problems.editorial, { code }),
   ]);
+
   if (!problem || !editorial) notFound();
 
   const { html } = await renderMarkdown(editorial.content, editorial.preset);

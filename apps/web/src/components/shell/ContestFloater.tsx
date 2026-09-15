@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { formatDuration, useCountdown } from "@/lib/countdown";
 
 const STORAGE_KEY = "contest_timer_pos";
+
 const DISMISS_KEY = "contest_timer_hidden";
 
 /** DMOJ's draggable contest box, with its position remembered in localStorage.
@@ -33,10 +34,13 @@ export function ContestFloater({
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
+
       if (stored) {
         const [left, top] = stored.split(":");
+
         if (left && top) setPosition({ left, top });
       }
+
       if (sessionStorage.getItem(DISMISS_KEY) === contestKey) setHidden(true);
     } catch {
       // private mode
@@ -45,18 +49,21 @@ export function ContestFloater({
 
   const onPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     const box = boxRef.current;
+
     if (!box) return;
     const rect = box.getBoundingClientRect();
     dragOffset.current = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    event.currentTarget.setPointerCapture(event.pointerId);
   }, []);
 
   const onPointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     const offset = dragOffset.current;
+
     if (!offset) return;
     const left = `${Math.max(0, Math.min(event.clientX - offset.x, window.innerWidth - 80))}px`;
     const top = `${Math.max(0, Math.min(event.clientY - offset.y, window.innerHeight - 40))}px`;
     setPosition({ left, top });
+
     try {
       localStorage.setItem(STORAGE_KEY, `${left}:${top}`);
     } catch {
@@ -66,7 +73,7 @@ export function ContestFloater({
 
   const onPointerUp = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     dragOffset.current = null;
-    (event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId);
+    event.currentTarget.releasePointerCapture(event.pointerId);
   }, []);
 
   if (hidden) return null;
@@ -96,6 +103,7 @@ export function ContestFloater({
           title={t("hideTimerHint")}
           onClick={() => {
             setHidden(true);
+
             try {
               sessionStorage.setItem(DISMISS_KEY, contestKey);
             } catch {

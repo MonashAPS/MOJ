@@ -3,13 +3,13 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation } from "./_generated/server";
 import { SEED_LANGUAGES, SEED_NAVIGATION } from "./lib/seedData";
 
-const MISC_CONFIG_DEFAULTS: Record<string, string> = {
-  announcement: "",
-  footer: "",
-  meta_keywords: "competitive programming, online judge, algorithms, contests",
-  home_page_top: "",
-  analytics: "",
-};
+const MISC_CONFIG_DEFAULTS = new Map<string, string>([
+  ["announcement", ""],
+  ["footer", ""],
+  ["meta_keywords", "competitive programming, online judge, algorithms, contests"],
+  ["home_page_top", ""],
+  ["analytics", ""],
+]);
 
 const ABOUT_PAGE = `# About this judge
 
@@ -112,32 +112,40 @@ export const run = internalMutation({
 
     // Languages ------------------------------------------------------------
     let languagesWritten = 0;
+
     for (const language of SEED_LANGUAGES) {
       const existing = await ctx.db
         .query("languages")
         .withIndex("by_key", (q) => q.eq("key", language.key))
         .first();
+
       if (existing) {
         if (force) {
           await ctx.db.patch(existing._id, language);
           languagesWritten++;
         }
+
         continue;
       }
+
       await ctx.db.insert("languages", language);
       languagesWritten++;
     }
+
     report.languages = languagesWritten;
 
     // Navigation bar -------------------------------------------------------
     const navIdByLegacyId = new Map<number, Id<"navigationBar">>();
     let navWritten = 0;
+
     for (const item of SEED_NAVIGATION) {
       const existing = await ctx.db
         .query("navigationBar")
         .withIndex("by_key", (q) => q.eq("key", item.key))
         .first();
+
       const parentId = item.parentLegacyId === null ? undefined : navIdByLegacyId.get(item.parentLegacyId);
+
       const row = {
         order: item.order,
         key: item.key,
@@ -147,31 +155,39 @@ export const run = internalMutation({
         parentId,
         legacyId: item.legacyId,
       };
+
       if (existing) {
         navIdByLegacyId.set(item.legacyId, existing._id);
+
         if (force) {
           await ctx.db.patch(existing._id, row);
           navWritten++;
         }
+
         continue;
       }
+
       const id = await ctx.db.insert("navigationBar", row);
       navIdByLegacyId.set(item.legacyId, id);
       navWritten++;
     }
+
     report.navigationBar = navWritten;
 
     // Misc config ----------------------------------------------------------
     let miscWritten = 0;
-    for (const [key, value] of Object.entries(MISC_CONFIG_DEFAULTS)) {
+
+    for (const [key, value] of MISC_CONFIG_DEFAULTS) {
       const existing = await ctx.db
         .query("miscConfig")
         .withIndex("by_key", (q) => q.eq("key", key))
         .first();
+
       if (existing) continue;
       await ctx.db.insert("miscConfig", { key, value });
       miscWritten++;
     }
+
     report.miscConfig = miscWritten;
 
     // Site settings --------------------------------------------------------
@@ -179,6 +195,7 @@ export const run = internalMutation({
       .query("siteSettings")
       .withIndex("by_singleton", (q) => q.eq("singleton", "site"))
       .unique();
+
     if (!settings) {
       await ctx.db.insert("siteSettings", {
         singleton: "site",
@@ -202,8 +219,11 @@ export const run = internalMutation({
       // Renaming an existing instance is the console's job, except when setup
       // is re-run with an explicit name and `force`.
       const rename: Partial<typeof settings> = {};
+
       if (force && siteName?.trim()) rename.siteName = siteName.trim();
+
       if (force && siteLongName?.trim()) rename.siteLongName = siteLongName.trim();
+
       if (Object.keys(rename).length > 0) await ctx.db.patch(settings._id, rename);
       report.siteSettings = Object.keys(rename).length > 0 ? 1 : 0;
     }
@@ -216,6 +236,7 @@ export const run = internalMutation({
     await ensureGroup(ctx, "hard", "Hard");
     await ensureGroup(ctx, "expert", "Expert");
     const uncategorizedTypeId = await ensureType(ctx, "uncategorized", "Uncategorized");
+
     for (const [name, fullName] of [
       ["ad-hoc", "Ad Hoc"],
       ["data-structures", "Data Structures"],
@@ -234,6 +255,7 @@ export const run = internalMutation({
       .query("flatPages")
       .withIndex("by_url", (q) => q.eq("url", "/about/"))
       .first();
+
     if (!about) {
       await ctx.db.insert("flatPages", {
         url: "/about/",
@@ -248,11 +270,13 @@ export const run = internalMutation({
 
     // Announcements --------------------------------------------------------
     let announcementsWritten = 0;
+
     for (const announcement of ANNOUNCEMENTS) {
       const existing = await ctx.db
         .query("blogPosts")
         .withIndex("by_slug", (q) => q.eq("slug", announcement.slug))
         .unique();
+
       if (existing) continue;
       await ctx.db.insert("blogPosts", {
         title: announcement.title,
@@ -266,6 +290,7 @@ export const run = internalMutation({
       });
       announcementsWritten++;
     }
+
     report.blogPosts = announcementsWritten;
 
     // Sample problem -------------------------------------------------------
@@ -273,10 +298,12 @@ export const run = internalMutation({
       .query("problems")
       .withIndex("by_code", (q) => q.eq("code", "aplusb"))
       .unique();
+
     if (existingProblem) {
       report.problems = 0;
     } else {
       const allLanguages = await ctx.db.query("languages").collect();
+
       const problemId = await ctx.db.insert("problems", {
         code: "aplusb",
         name: "A Plus B",
@@ -322,6 +349,7 @@ export const run = internalMutation({
         mkCase(problemId, 6, "C", "03.in", "03.out", 0),
         mkCase(problemId, 7, "E", "", "", 0),
       ];
+
       for (const row of cases) await ctx.db.insert("problemTestCases", row);
       report.problems = 1;
     }
@@ -356,7 +384,9 @@ async function ensureGroup(ctx: any, name: string, fullName: string): Promise<Id
     .query("problemGroups")
     .withIndex("by_name", (q: any) => q.eq("name", name))
     .first();
+
   if (existing) return existing._id;
+
   return await ctx.db.insert("problemGroups", { name, fullName });
 }
 
@@ -365,6 +395,8 @@ async function ensureType(ctx: any, name: string, fullName: string): Promise<Id<
     .query("problemTypes")
     .withIndex("by_name", (q: any) => q.eq("name", name))
     .first();
+
   if (existing) return existing._id;
+
   return await ctx.db.insert("problemTypes", { name, fullName });
 }

@@ -11,6 +11,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { event } = await params;
   const t = await getTranslations("contests.scoreboards");
   const payload = await queryAsViewer(api.scoreboard.event, { key: event }).catch(() => null);
+
   return {
     title: payload?.event.name ?? t("metaFallback"),
     // A hall display is for the room it is in, not for search results.
@@ -23,6 +24,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function HallScoreboardPage({ params }: Params) {
   const { event } = await params;
   const payload = await queryAsViewer(api.scoreboard.event, { key: event }).catch(() => null);
+
   if (!payload) notFound();
+
   return <HallScoreboard eventKey={event} initial={payload} />;
 }

@@ -9,6 +9,7 @@ import type { Id, SubmissionResult } from "./types";
 
 /** `settings.DMOJ_PP_STEP`. */
 export const PP_STEP = 0.95;
+
 /** `settings.DMOJ_PP_ENTRIES`. */
 export const PP_ENTRIES = 100;
 
@@ -68,14 +69,17 @@ export function calculateProfilePoints(
 
   for (const submission of submissions) {
     if (submission.isArchived) continue;
+
     if (submission.isPublicProblem === false) continue;
 
     if (submission.points !== null && submission.points !== undefined) {
       const current = bestPoints.get(submission.problemId);
+
       if (current === undefined || submission.points > current) {
         bestPoints.set(submission.problemId, submission.points);
       }
     }
+
     if (isFullSolve(submission)) solved.add(submission.problemId);
   }
 
@@ -83,11 +87,19 @@ export function calculateProfilePoints(
   const data = [...bestPoints.values()].filter((value) => value > 0).sort((a, b) => b - a);
 
   let points = 0;
+
   for (const value of data) points += value;
 
-  const entries = Math.min(data.length, table.length);
   let performancePoints = 0;
-  for (let i = 0; i < entries; i++) performancePoints += (table[i] as number) * (data[i] as number);
+
+  for (const [i, weight] of table.entries()) {
+    const value = data[i];
+
+    if (value === undefined) break;
+
+    performancePoints += weight * value;
+  }
+
   performancePoints += ppBonus(solved.size);
 
   return { points, problemCount: solved.size, performancePoints };
@@ -118,8 +130,10 @@ export function computeProblemStats(submissions: readonly ProblemStatsSubmission
 
   for (const submission of submissions) {
     if (submission.isUserUnlisted) continue;
+
     if (submission.isArchived) continue;
     total += 1;
+
     if (isFullSolve(submission)) {
       accepted += 1;
       solvers.add(submission.profileId);
@@ -137,33 +151,43 @@ export interface RankedItem<T> {
   readonly item: T;
 }
 
+/** The value `ranker` compares to decide whether two items are tied. */
+export type RankKey = number | string;
+
+/** The sentinel before the first item, which can equal no key. */
+const UNRANKED = Symbol("unranked");
+
 /**
  * `judge/utils/ranker.py:ranker`.
  *
  * Standard competition ranking over an already-sorted sequence: equal keys
  * share a rank and the next distinct key skips ahead by the size of the tie
  * (1, 1, 3, ...). `startRank` matches DMOJ's `rank` argument, which is the rank
- * *before* the first item, so the default 0 makes the first item rank 1.
+ * *before* the first item, so the default 0 makes the first item rank 1. DMOJ's
+ * `key` defaults to `attrgetter('points')`; here every caller names its own.
  */
 export function ranker<T>(
   items: readonly T[],
-  key: (item: T) => unknown = (item) => (item as { points?: unknown }).points,
+  key: (item: T) => RankKey | null | undefined,
   startRank = 0,
 ): RankedItem<T>[] {
   const ranked: RankedItem<T>[] = [];
   let rank = startRank;
   let delta = 1;
-  let last: unknown = Symbol("unset");
+  let last: RankKey | null | undefined | typeof UNRANKED = UNRANKED;
 
   for (const item of items) {
     const current = key(item);
+
     if (current !== last) {
       rank += delta;
       delta = 0;
     }
+
     delta += 1;
     ranked.push({ rank, item });
     last = current;
   }
+
   return ranked;
 }

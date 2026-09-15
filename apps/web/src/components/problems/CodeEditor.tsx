@@ -31,32 +31,46 @@ async function languageExtension(editorMode: string): Promise<Extension | null> 
   switch (editorMode) {
     case "c_cpp": {
       const { cpp } = await import("@codemirror/lang-cpp");
+
       return cpp();
     }
+
     case "python": {
       const { python } = await import("@codemirror/lang-python");
+
       return python();
     }
+
     case "java": {
       const { java } = await import("@codemirror/lang-java");
+
       return java();
     }
+
     case "golang": {
       const { go } = await import("@codemirror/lang-go");
+
       return go();
     }
+
     case "javascript": {
       const { javascript } = await import("@codemirror/lang-javascript");
+
       return javascript();
     }
+
     case "rust": {
       const { rust } = await import("@codemirror/lang-rust");
+
       return rust();
     }
+
     case "kotlin": {
       const { kotlin } = await import("@codemirror/legacy-modes/mode/clike");
+
       return StreamLanguage.define(kotlin);
     }
+
     default:
       return null;
   }
@@ -128,6 +142,7 @@ export function CodeEditor({
 
   useEffect(() => {
     const node = host.current;
+
     if (!node) return;
 
     const editor = new EditorView({
@@ -152,6 +167,7 @@ export function CodeEditor({
               preventDefault: true,
               run: () => {
                 submit.current?.();
+
                 return true;
               },
             },
@@ -171,7 +187,9 @@ export function CodeEditor({
         ],
       }),
     });
+
     view.current = editor;
+
     return () => {
       editor.destroy();
       view.current = null;
@@ -186,6 +204,7 @@ export function CodeEditor({
       if (cancelled || !view.current) return;
       view.current.dispatch({ effects: language.current.reconfigure(extension ?? []) });
     });
+
     return () => {
       cancelled = true;
     };
@@ -193,8 +212,10 @@ export function CodeEditor({
 
   useEffect(() => {
     const editor = view.current;
+
     if (!editor) return;
     const current = editor.state.doc.toString();
+
     if (current === value) return;
     editor.dispatch({ changes: { from: 0, to: current.length, insert: value } });
   }, [value]);

@@ -22,12 +22,14 @@ async function loadTag(name: string) {
   ]);
 
   const contests = [...list.current, ...list.future, ...list.past.page];
+
   return { tag, contests, found: !!tag };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ name: string }> }): Promise<Metadata> {
   const { name } = await params;
   const t = await getTranslations("contests.tag");
+
   return { title: t("metaTitle", { name }) };
 }
 
@@ -36,6 +38,7 @@ export default async function ContestTagPage({ params }: { params: Promise<{ nam
   const t = await getTranslations("contests.tag");
   const columns = await getTranslations("contests.columns");
   const { tag, contests, found } = await loadTag(name);
+
   if (!found || !tag) notFound();
 
   const descriptionHtml = tag.description ? await renderContent(tag.description, "contest-tag") : "";

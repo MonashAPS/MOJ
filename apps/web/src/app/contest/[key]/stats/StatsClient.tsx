@@ -39,6 +39,7 @@ function StatusBar({
   if (total === 0) {
     return <div className="h-3 rounded-full bg-secondary" />;
   }
+
   return (
     <div
       className="flex h-3 gap-0.5 overflow-hidden rounded-full"
@@ -46,7 +47,9 @@ function StatusBar({
     >
       {codes.map((code) => {
         const value = counts.find((entry) => entry.code === code)?.value ?? 0;
+
         if (value === 0) return null;
+
         return (
           <Tooltip key={code} content={t("statusShare", { code, value, total })}>
             <span
@@ -78,6 +81,7 @@ function MagnitudeRow({
   hint?: string;
 }) {
   const width = max > 0 ? Math.max(1.5, (100 * value) / max) : 0;
+
   return (
     <div className="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)_max-content] items-center gap-3">
       <span className="truncate text-sm text-subtle">{label}</span>

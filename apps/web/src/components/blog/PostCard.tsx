@@ -22,11 +22,13 @@ export function PostCard({
 }) {
   const t = useTranslations("blog.post");
   const comments = post.commentCount;
+
   const time = () => (
     <time dateTime={new Date(post.publishOn).toISOString()} title={formatDateTime(post.publishOn)}>
       {formatDate(post.publishOn)}
     </time>
   );
+
   const authors = () => (
     <>
       {post.authors.map((author, index) => (

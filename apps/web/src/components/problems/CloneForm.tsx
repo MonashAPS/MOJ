@@ -3,11 +3,11 @@
 import { api } from "@convex/_generated/api";
 import { Alert, AlertTitle, Button, Field, FormFooter, Input } from "@moj/ui";
 import { useMutation } from "convex/react";
-import { ConvexError } from "convex/values";
 import { TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { mutationError } from "@/lib/convex-error";
 
 export type CloneSource = {
   code: string;
@@ -45,10 +45,13 @@ export function CloneForm({ source, username }: { source: CloneSource; username:
       onSubmit={(event) => {
         event.preventDefault();
         const wanted = code.trim();
+
         if (!/^[a-z0-9_-]+$/i.test(wanted)) {
           setError(t("invalidCode"));
+
           return;
         }
+
         setBusy(true);
         setError(null);
         void (async () => {
@@ -75,11 +78,7 @@ export function CloneForm({ source, username }: { source: CloneSource; username:
             router.push(`/problem/${wanted}`);
           } catch (thrown) {
             setBusy(false);
-            setError(
-              thrown instanceof ConvexError && typeof thrown.data === "object" && thrown.data !== null
-                ? String((thrown.data as { message?: string }).message ?? t("failed"))
-                : t("failed"),
-            );
+            setError(mutationError(thrown, t("failed")));
           }
         })();
       }}

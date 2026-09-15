@@ -38,9 +38,10 @@ import { type CommentNode, commentAnchor } from "./shared";
 /** DMOJ nests one `<ul>` per level; past six the indent stops so a long thread
  *  still fits a phone. */
 const INDENT_STEP = 22;
+
 const MAX_INDENT_DEPTH = 6;
 
-export function CommentRow({
+export function CommentRow<TAnswer>({
   comment,
   html,
   signedIn,
@@ -53,7 +54,7 @@ export function CommentRow({
   signedIn: boolean;
   viewerUsername: string | null;
   maxLength: number;
-  onReply: (parentId: Id<"comments">, body: string) => Promise<unknown>;
+  onReply: (parentId: Id<"comments">, body: string) => Promise<TAnswer>;
 }) {
   const t = useTranslations("blog.comments");
   const common = useTranslations("common.actions");
@@ -80,6 +81,7 @@ export function CommentRow({
 
   async function castVote(delta: 1 | -1) {
     setError(null);
+
     try {
       if (comment.myVote === delta) await unvote({ commentId: comment._id });
       else await vote({ commentId: comment._id, delta });
@@ -90,6 +92,7 @@ export function CommentRow({
 
   async function setHidden(next: boolean) {
     setError(null);
+
     try {
       if (next) await hide({ commentId: comment._id });
       else await unhide({ commentId: comment._id, includeReplies: true });
@@ -301,6 +304,7 @@ function VoteArrow({
   const t = useTranslations("blog.comments");
   const label = direction === "up" ? t("upvote") : t("downvote");
   const Glyph = direction === "up" ? ChevronUp : ChevronDown;
+
   return (
     <Tooltip content={title ?? label}>
       <button

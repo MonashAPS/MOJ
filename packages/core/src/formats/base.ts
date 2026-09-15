@@ -18,6 +18,8 @@ import type {
   FormatData,
   FormatDataEntry,
   Id,
+  JsonObject,
+  JsonValue,
 } from "../types";
 import { floatformat, niceRepr } from "../util/number";
 
@@ -39,10 +41,44 @@ export class UnknownContestFormatError extends Error {
 
 export type SolutionState = "failed-score" | "full-score" | "partial-score";
 
+/** A scalar a format's config holds; DMOJ's `config_defaults` are all scalars. */
+export type FormatConfigValue = boolean | number | string;
+
+/** DMOJ's `config_defaults`: the keys a format accepts, with their defaults. */
+export type FormatConfigDefaults = Readonly<Record<string, FormatConfigValue>>;
+
+/** A stored `formatConfig` as it reaches a format, before the format decodes it. */
+export type FormatConfigInput = JsonValue | undefined;
+
+/** DMOJ's `config_validators`, run after the value passed the type check. */
+export type FormatConfigValidators = Readonly<Record<string, (value: JsonValue) => boolean>>;
+
+/** A format's config as the format-agnostic callers see it: defaults plus overrides. */
+export type ResolvedFormatConfig = Readonly<Record<string, JsonValue>>;
+
+/** Narrow a decoded JSON value to Python's `dict`. */
+export function isJsonObject(value: JsonValue): value is JsonObject {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isBooleanValue(value: JsonValue): value is boolean {
+  return typeof value === "boolean";
+}
+
+function isNumberValue(value: JsonValue): value is number {
+  return typeof value === "number";
+}
+
+function isStringValue(value: JsonValue): value is string {
+  return typeof value === "string";
+}
+
 /** `BaseContestFormat.best_solution_state(points, total)` (base.py:104). */
 export function bestSolutionState(points: number, total: number): SolutionState {
   if (!points) return "failed-score";
+
   if (points === total) return "full-score";
+
   return "partial-score";
 }
 
@@ -53,7 +89,7 @@ export interface UpdateParticipationInput {
   readonly contestProblems: readonly ContestProblemRow[];
   readonly contest: ContestRow;
   /** Overrides `contest.formatConfig`. */
-  readonly config?: unknown;
+  readonly config?: FormatConfigInput;
   /** Overrides the computed participation start (ms since epoch). */
   readonly start?: number;
   /** Overrides the computed participation end (ms since epoch); used by `ecoo`. */
@@ -83,6 +119,11 @@ export interface ProblemCellDisplay {
   readonly bonusText?: string;
 }
 
+/** `ProblemCellDisplay` while `buildProblemCell` is still filling it in. */
+type MutableProblemCell = {
+  -readonly [K in keyof ProblemCellDisplay]: ProblemCellDisplay[K];
+};
+
 export interface ParticipationResultDisplay {
   readonly points: number;
   readonly pointsText: string;
@@ -109,14 +150,14 @@ export interface ContestFormat {
   readonly name: string;
   /** DMOJ's human-facing `name`. */
   readonly displayName: string;
-  readonly configDefaults: Readonly<Record<string, unknown>>;
+  readonly configDefaults: FormatConfigDefaults;
   /** Label scheme this format uses when the contest does not override it. */
   readonly defaultLabelScheme: "letters" | "numbers";
 
   /** `validate(config)`; throws `FormatConfigError`. */
-  validate(config: unknown): void;
+  validate(config: FormatConfigInput): void;
   /** Defaults merged with the stored config, after validation. */
-  resolveConfig(config: unknown): Record<string, unknown>;
+  resolveConfig(config: FormatConfigInput): ResolvedFormatConfig;
 
   updateParticipation(input: UpdateParticipationInput): ParticipationUpdate;
 
@@ -124,13 +165,13 @@ export interface ContestFormat {
     participation: Pick<ContestParticipationRow, "formatData">,
     contestProblem: ContestProblemRow,
     contest: ContestRow,
-    config?: unknown,
+    config?: FormatConfigInput,
   ): ProblemCellDisplay | null;
 
   displayParticipationResult(
     participation: Pick<ContestParticipationRow, "score" | "cumtime">,
     contest: ContestRow,
-    config?: unknown,
+    config?: FormatConfigInput,
   ): ParticipationResultDisplay;
 
   getProblemBreakdown(
@@ -142,7 +183,7 @@ export interface ContestFormat {
   getLabelForProblem(index: number): string;
 
   /** Message keys for the markdown lines describing the format's settings. */
-  getShortFormDisplay(config?: unknown): ScoringLine[];
+  getShortFormDisplay(config?: FormatConfigInput): ScoringLine[];
 }
 
 /* -------------------------------------------------------------------------- */
@@ -155,22 +196,29 @@ export function pointsPrecision(contest: ContestRow): number {
 
 /** Validate a config against `config_defaults` / `config_validators`, DMOJ style. */
 export function validateAgainstDefaults(
-  config: unknown,
-  defaults: Readonly<Record<string, unknown>>,
-  validators: Readonly<Record<string, (value: never) => boolean>>,
+  config: FormatConfigInput,
+  defaults: FormatConfigDefaults,
+  validators: FormatConfigValidators,
   styleName: string,
 ): void {
   if (config === null || config === undefined) return;
-  if (typeof config !== "object" || Array.isArray(config)) {
+
+  if (!isJsonObject(config)) {
     throw new FormatConfigError(`${styleName} expects no config or dict as config`);
   }
-  for (const [key, value] of Object.entries(config as Record<string, unknown>)) {
-    if (!(key in defaults)) throw new FormatConfigError(`unknown config key "${key}"`);
-    if (!sameType(value, defaults[key])) {
+
+  for (const [key, value] of Object.entries(config)) {
+    const expected = defaults[key];
+
+    if (expected === undefined) throw new FormatConfigError(`unknown config key "${key}"`);
+
+    if (!sameType(value, expected)) {
       throw new FormatConfigError(`invalid type for config key "${key}"`);
     }
+
     const validator = validators[key];
-    if (validator && !(validator as (value: unknown) => boolean)(value)) {
+
+    if (validator && !validator(value)) {
       throw new FormatConfigError(`invalid value "${String(value)}" for config key "${key}"`);
     }
   }
@@ -182,21 +230,33 @@ export function validateAgainstDefaults(
  * `bool` is a subclass of `int` in Python, so a boolean passes an integer
  * default; the reverse does not hold.
  */
-function sameType(value: unknown, expected: unknown): boolean {
-  if (typeof expected === "boolean") return typeof value === "boolean";
-  if (typeof expected === "number") return typeof value === "number" || typeof value === "boolean";
-  return typeof value === typeof expected;
+function sameType(value: JsonValue, expected: FormatConfigValue): boolean {
+  if (isBooleanValue(expected)) return isBooleanValue(value);
+
+  if (isNumberValue(expected)) return isNumberValue(value) || isBooleanValue(value);
+
+  return isStringValue(value);
 }
 
-export function mergeConfig(
-  defaults: Readonly<Record<string, unknown>>,
-  config: unknown,
-): Record<string, unknown> {
-  const merged: Record<string, unknown> = { ...defaults };
-  if (config && typeof config === "object" && !Array.isArray(config)) {
-    Object.assign(merged, config as Record<string, unknown>);
-  }
-  return merged;
+/** The stored value for a config key, or undefined when the config omits it. */
+function storedConfigValue(config: FormatConfigInput, key: string): JsonValue | undefined {
+  if (config === null || config === undefined || !isJsonObject(config)) return undefined;
+
+  return config[key];
+}
+
+/** A numeric config key, falling back to the format's default (DMOJ's `int()`). */
+export function numberConfig(config: FormatConfigInput, key: string, fallback: number): number {
+  const stored = storedConfigValue(config, key);
+
+  return stored === undefined ? fallback : Number(stored);
+}
+
+/** A boolean config key, falling back to the format's default (DMOJ's `bool()`). */
+export function booleanConfig(config: FormatConfigInput, key: string, fallback: boolean): boolean {
+  const stored = storedConfigValue(config, key);
+
+  return stored === undefined ? fallback : Boolean(stored);
 }
 
 /** Milliseconds between a submission and the participation start, as seconds. */
@@ -220,6 +280,7 @@ export function groupByProblem(
   participationId?: Id,
 ): Map<Id, ContestSubmissionRow[]> {
   const groups = new Map<Id, ContestSubmissionRow[]>();
+
   for (const submission of submissions) {
     if (
       participationId !== undefined &&
@@ -228,25 +289,35 @@ export function groupByProblem(
     ) {
       continue;
     }
+
     const bucket = groups.get(submission.contestProblemId);
+
     if (bucket) bucket.push(submission);
     else groups.set(submission.contestProblemId, [submission]);
   }
+
   return groups;
 }
 
 /** Order the problem groups the way the SQL does: by the contest problem order. */
-export function orderedProblemIds(
+export function orderedProblemGroups(
   groups: Map<Id, ContestSubmissionRow[]>,
   contestProblems: readonly ContestProblemRow[],
-): Id[] {
-  const ordered = [...contestProblems]
-    .sort((a, b) => a.order - b.order)
-    .map((problem) => problem.id)
-    .filter((id) => groups.has(id));
+): [Id, ContestSubmissionRow[]][] {
+  const ordered: [Id, ContestSubmissionRow[]][] = [];
+
+  for (const problem of [...contestProblems].sort((a, b) => a.order - b.order)) {
+    const group = groups.get(problem.id);
+
+    if (group !== undefined) ordered.push([problem.id, group]);
+  }
+
+  const placed = new Set(ordered.map(([id]) => id));
+
   // Submissions pointing at a contest problem we were not given still count,
   // exactly as the SQL's join does.
-  for (const id of groups.keys()) if (!ordered.includes(id)) ordered.push(id);
+  for (const [id, group] of groups) if (!placed.has(id)) ordered.push([id, group]);
+
   return ordered;
 }
 
@@ -263,9 +334,8 @@ export function buildProblemCell(
 ): ProblemCellDisplay {
   const isPretest = contest.runPretestsOnly === true && contestProblem.isPretested === true;
   const solutionState = bestSolutionState(entry.points, contestProblem.points);
-  const cell: {
-    -readonly [K in keyof ProblemCellDisplay]: ProblemCellDisplay[K];
-  } = {
+
+  const cell: MutableProblemCell = {
     state: (isPretest ? "pretest-" : "") + solutionState,
     solutionState,
     isPretest,
@@ -273,14 +343,17 @@ export function buildProblemCell(
     pointsText: floatformat(entry.points),
     timeText: options.showTime === false ? "" : niceRepr(entry.time),
   };
+
   if (options.penalty) {
     cell.penalty = entry.penalty ?? 0;
     cell.penaltyText = entry.penalty ? floatformat(entry.penalty) : "";
   }
+
   if (options.bonus) {
     cell.bonus = entry.bonus ?? 0;
     cell.bonusText = entry.bonus ? floatformat(entry.bonus) : "";
   }
+
   return cell;
 }
 
@@ -291,6 +364,7 @@ export function buildParticipationResult(
 ): ParticipationResultDisplay {
   const score = participation.score ?? 0;
   const cumtime = participation.cumtime ?? 0;
+
   return {
     points: score,
     pointsText: floatformat(score, -pointsPrecision(contest)),
@@ -304,6 +378,7 @@ export function breakdown(
   contestProblems: readonly ContestProblemRow[],
 ): (FormatDataEntry | null)[] {
   const data = participation.formatData ?? {};
+
   return contestProblems.map((problem) => data[problem.id] ?? null);
 }
 
@@ -316,9 +391,11 @@ export function numberLabel(index: number): string {
 export function letterLabel(index: number): string {
   let value = index + 1;
   let label = "";
+
   while (value > 0) {
     label += String.fromCharCode(((value - 1) % 26) + 65);
     value = Math.floor((value - 1) / 26);
   }
+
   return [...label].reverse().join("");
 }

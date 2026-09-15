@@ -18,6 +18,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import { applyTheme, type ThemeChoice } from "@/components/shell/ThemeToggle";
+import { chosenValue } from "@/lib/choices";
 
 const MAX_ORGANIZATIONS = 3;
 
@@ -68,6 +69,7 @@ export function EditProfileForm({
   // read the same however the wording there is revised.
   const nav = useTranslations("common.nav");
   const update = useMutation(api.profiles.updateProfile);
+
   const [baseline, setBaseline] = useState<FormState>({
     about,
     timezone,
@@ -76,6 +78,7 @@ export function EditProfileForm({
     editorTheme,
     organizationSlugs,
   });
+
   const [form, setForm] = useState<FormState>(baseline);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -84,7 +87,7 @@ export function EditProfileForm({
     { value: "auto", label: t("themeSystem") },
     { value: "light", label: nav("themeLight") },
     { value: "dark", label: nav("themeDark") },
-  ];
+  ] satisfies { value: ThemeChoice; label: string }[];
 
   const dirty =
     form.about !== baseline.about ||
@@ -96,10 +99,13 @@ export function EditProfileForm({
 
   useEffect(() => {
     if (!dirty) return;
+
     function warn(event: BeforeUnloadEvent) {
       event.preventDefault();
     }
+
     window.addEventListener("beforeunload", warn);
+
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
@@ -118,6 +124,7 @@ export function EditProfileForm({
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setStatus("saving");
+
     try {
       await update({
         about: canEditAbout ? form.about : undefined,
@@ -199,7 +206,7 @@ export function EditProfileForm({
               id="profile-site-theme"
               ariaLabel={t("siteTheme")}
               value={form.siteTheme}
-              onValueChange={(value) => chooseTheme(value as ThemeChoice)}
+              onValueChange={(value) => chooseTheme(chosenValue(siteThemes, value, form.siteTheme))}
               options={siteThemes}
             />
           </Field>

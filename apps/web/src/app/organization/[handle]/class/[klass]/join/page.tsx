@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ klass: string }> }) {
   const { klass } = await params;
   const t = await getTranslations("organizations.class");
+
   return { title: t("joinTitle", { name: slugFromHandle(klass) }) };
 }
 
@@ -27,9 +28,11 @@ export default async function JoinClassPage({
   const classSlug = slugFromHandle(klass);
 
   const session = await getServerSession();
+
   if (!session) redirect(`/accounts/login/?next=/organization/${handle}/class/${klass}/join/`);
 
   const detail = await queryAsViewer(api.classes.get, { organizationSlug, classSlug });
+
   if (!detail) notFound();
 
   const base = classHref(detail.organization, detail);

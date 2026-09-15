@@ -1,9 +1,10 @@
 "use server";
 
-import type { ApiScope } from "@moj/protocol";
+import { type ApiScope, isApiScope } from "@moj/protocol";
 import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth/server";
+import { authErrorStatus } from "@/lib/auth-error";
 
 export type TokenScope = ApiScope;
 
@@ -20,48 +21,47 @@ export type GenerateResult = { ok: true; token: string } | { ok: false; message:
 
 /** Better Auth models scopes as `{resource: [action]}`; the two wire names are
  *  `read` and `problems:write` (docs/using/accounts.md). */
-function permissionsFor(scopes: TokenScope[]): Record<string, string[]> {
+function permissionsFor(scopes: TokenScope[]) {
   const permissions: Record<string, string[]> = {};
+
   for (const scope of scopes) {
     const [resource, action] = scope.includes(":") ? scope.split(":") : ["api", scope];
+
     if (!resource || !action) continue;
     permissions[resource] = [...(permissions[resource] ?? []), action];
   }
+
   return permissions;
 }
 
-function scopesFrom(raw: unknown): TokenScope[] {
-  let parsed: Record<string, string[]> = {};
-  if (typeof raw === "string") {
-    try {
-      parsed = JSON.parse(raw) as Record<string, string[]>;
-    } catch {
-      parsed = {};
-    }
-  } else if (raw && typeof raw === "object") {
-    parsed = raw as Record<string, string[]>;
-  }
+/** The api-key plugin parses the stored permissions before it answers, so the
+ *  wire names are rebuilt from that object and kept only where they name a scope
+ *  this site still offers. */
+function scopesFrom(permissions: Record<string, string[]> | null | undefined): TokenScope[] {
   const scopes: TokenScope[] = [];
-  for (const [resource, actions] of Object.entries(parsed)) {
+
+  for (const [resource, actions] of Object.entries(permissions ?? {})) {
     for (const action of actions ?? []) {
-      scopes.push((resource === "api" ? action : `${resource}:${action}`) as TokenScope);
+      const scope = resource === "api" ? action : `${resource}:${action}`;
+
+      if (isApiScope(scope)) scopes.push(scope);
     }
   }
+
   return scopes;
 }
 
 export async function listApiTokens(): Promise<ApiKeySummary[]> {
   const requestHeaders = await headers();
   const t = await getTranslations("auth.apiToken");
-  const result = await auth.api.listApiKeys({ headers: requestHeaders }).catch(() => []);
-  // The endpoint answers with `{apiKeys}`; older shapes answered with the array.
-  const keys = Array.isArray(result) ? result : ((result as { apiKeys?: unknown[] }).apiKeys ?? []);
-  return (keys as Array<Record<string, unknown>>).map((key, index) => ({
-    id: String(key.id),
-    name: typeof key.name === "string" && key.name ? key.name : t("unnamed", { number: index + 1 }),
-    start: typeof key.start === "string" ? key.start : null,
-    createdAt: key.createdAt ? new Date(key.createdAt as string).getTime() : Date.now(),
-    lastRequest: key.lastRequest ? new Date(key.lastRequest as string).getTime() : null,
+  const listed = await auth.api.listApiKeys({ headers: requestHeaders }).catch(() => null);
+
+  return (listed?.apiKeys ?? []).map((key, index) => ({
+    id: key.id,
+    name: key.name || t("unnamed", { number: index + 1 }),
+    start: key.start,
+    createdAt: key.createdAt.getTime(),
+    lastRequest: key.lastRequest?.getTime() ?? null,
     scopes: scopesFrom(key.permissions),
   }));
 }
@@ -74,6 +74,7 @@ export async function generateApiToken(input: {
 }): Promise<GenerateResult> {
   const requestHeaders = await headers();
   const t = await getTranslations("auth.apiToken");
+
   try {
     const created = await auth.api.createApiKey({
       headers: requestHeaders,
@@ -83,12 +84,12 @@ export async function generateApiToken(input: {
         permissions: permissionsFor(input.scopes.length > 0 ? input.scopes : ["read"]),
       },
     });
-    return { ok: true, token: (created as { key: string }).key };
+
+    return { ok: true, token: created.key };
   } catch (error) {
-    const status = (error as { statusCode?: number }).statusCode;
     return {
       ok: false,
-      message: status === 401 ? t("reauth") : t("createFailed"),
+      message: authErrorStatus(error) === 401 ? t("reauth") : t("createFailed"),
     };
   }
 }

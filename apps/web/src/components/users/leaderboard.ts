@@ -15,7 +15,9 @@ export const USER_SORTS: { key: UserSortKey; message: string }[] = [
 ];
 
 /** `UserList.default_sort`. Every sort is descending first (`default_desc`). */
-export const DEFAULT_USER_ORDER = "-performance_points";
+const DEFAULT_USER_SORT: UserSortKey = "performance_points";
+
+const DEFAULT_USER_ORDER = `-${DEFAULT_USER_SORT}`;
 
 const CONVEX_SORT = {
   points: "points",
@@ -32,13 +34,19 @@ export type UserSortState = {
   sort: (typeof CONVEX_SORT)[UserSortKey];
 };
 
+function userSortKey(bare: string): UserSortKey | null {
+  return USER_SORTS.find((sort) => sort.key === bare)?.key ?? null;
+}
+
 export function parseUserOrder(raw: string | null | undefined): UserSortState {
   // `order.lstrip('-') in all_sorts`, with at most one leading minus.
   const candidate = raw ?? "";
   const bare = candidate.startsWith("-") ? candidate.slice(1) : candidate;
-  const order = bare in CONVEX_SORT && !bare.startsWith("-") ? candidate : DEFAULT_USER_ORDER;
+  const named = bare.startsWith("-") ? null : userSortKey(bare);
+  const order = named === null ? DEFAULT_USER_ORDER : candidate;
   const descending = order.startsWith("-");
-  const key = (descending ? order.slice(1) : order) as UserSortKey;
+  const key = named ?? DEFAULT_USER_SORT;
+
   return { order, key, descending, sort: CONVEX_SORT[key] };
 }
 
@@ -49,13 +57,16 @@ export function sortHref(basePath: string, params: URLSearchParams, key: UserSor
   next.delete("page");
   // `links[current]` flips the active column; every other column starts descending.
   next.set("order", key === state.key ? (state.descending ? key : `-${key}`) : `-${key}`);
+
   return `${basePath}?${next.toString()}`;
 }
 
 export function pageHref(basePath: string, params: URLSearchParams, page: number) {
   const next = new URLSearchParams(params);
+
   if (page <= 1) next.delete("page");
   else next.set("page", String(page));
   const query = next.toString();
+
   return query ? `${basePath}?${query}` : basePath;
 }

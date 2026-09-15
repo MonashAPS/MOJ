@@ -8,13 +8,17 @@ import { auth } from "@/auth/server";
  */
 export async function GET(request: NextRequest) {
   const home = new URL("/", request.nextUrl.origin);
+
   try {
     const { headers } = await auth.api.stopImpersonating({
       headers: request.headers,
       returnHeaders: true,
     });
+
     const response = NextResponse.redirect(home);
+
     for (const cookie of headers.getSetCookie()) response.headers.append("set-cookie", cookie);
+
     return response;
   } catch {
     // Nobody was being impersonated; the way out is the same either way.

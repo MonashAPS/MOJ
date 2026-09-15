@@ -45,6 +45,7 @@ import path from "node:path";
 import zlib from "node:zlib";
 
 const MARKDOWN_IMAGE_PATTERN = /!\[([^\]]*)\]\((?!https?:\/\/)(?!data:)(?!\/)([^)\s]+)([^)]*)\)/g;
+
 const HTML_IMAGE_PATTERN = /<img\b[^>]*\bsrc=["'](?!https?:\/\/)(?!data:)(?!\/)([^"']+)["'][^>]*>/gi;
 
 /** What a problem gets when `config.json` says nothing, so a repository can
@@ -58,6 +59,7 @@ export const DEFAULTS = {
 
 /** Repositories in the wild spell it `statment.md`; both names are read. */
 const STATEMENT_NAMES = ["statement.md", "statment.md"];
+
 const EDITORIAL_NAMES = ["editorial.md"];
 
 export class UploadError extends Error {}
@@ -87,11 +89,14 @@ export function parseArgs(argv) {
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
     const value = argv[i + 1];
+
     const needsValue = () => {
       if (value === undefined || value.startsWith("--")) {
         throw new UploadError(`${flag} needs a value`);
       }
+
       i += 1;
+
       return value;
     };
 
@@ -147,12 +152,15 @@ export function parseArgs(argv) {
   if (args.problemDirs.length === 0 && !args.problemsRoot) {
     throw new UploadError("Pass --problem-dir <dir> or --problems-root <dir>.");
   }
+
   if (args.dataOnly && args.skipData) {
     throw new UploadError("--data-only and --skip-data contradict each other.");
   }
+
   if (args.dataOnly && args.statementOnly) {
     throw new UploadError("--data-only and --statement-only contradict each other.");
   }
+
   return args;
 }
 
@@ -167,12 +175,15 @@ export function publishPlan(args) {
 /** A tiny glob: `*` within a segment, `**` across segments, `?` one character. */
 export function globToRegExp(pattern) {
   let out = "";
+
   for (let i = 0; i < pattern.length; i++) {
     const char = pattern[i];
+
     if (char === "*") {
       if (pattern[i + 1] === "*") {
         out += ".*";
         i += 1;
+
         if (pattern[i + 1] === "/") i += 1;
       } else {
         out += "[^/]*";
@@ -185,6 +196,7 @@ export function globToRegExp(pattern) {
       out += char;
     }
   }
+
   return new RegExp(`^${out}$`);
 }
 
@@ -199,6 +211,7 @@ export function matchesAny(value, patterns) {
 async function exists(target) {
   try {
     await fs.access(target);
+
     return true;
   } catch {
     return false;
@@ -207,9 +220,11 @@ async function exists(target) {
 
 async function isProblemDir(dir) {
   if (await exists(path.join(dir, "config.json"))) return true;
+
   for (const name of STATEMENT_NAMES) {
     if (await exists(path.join(dir, name))) return true;
   }
+
   return false;
 }
 
@@ -228,14 +243,17 @@ export function problemCodesFromChanged(changed, problemsRoot) {
 
   for (const raw of String(changed).split(/[\n,]/)) {
     const entry = raw.trim().replace(/^["']|["']$/g, "");
+
     if (!entry) continue;
     const parts = entry.split(/[\\/]/).filter(Boolean);
 
     let start = -1;
+
     if (rootParts.length > 0 && rootParts.every((part, index) => parts[index] === part)) {
       start = rootParts.length;
     } else if (rootName) {
       const index = parts.lastIndexOf(rootName);
+
       if (index >= 0) start = index + 1;
     } else if (parts.length > 1) {
       start = 0;
@@ -243,37 +261,48 @@ export function problemCodesFromChanged(changed, problemsRoot) {
 
     if (start < 0 || parts.length < start + 2) continue;
     const code = parts[start];
+
     if (code) codes.add(code);
   }
+
   return [...codes];
 }
 
 export async function resolveProblemDirs(args) {
   const dirs = [];
+
   for (const dir of args.problemDirs) dirs.push(path.resolve(dir));
 
   if (args.problemsRoot) {
     const root = path.resolve(args.problemsRoot);
+
     if (args.changed) {
       for (const code of problemCodesFromChanged(args.changed, args.problemsRoot)) {
         const candidate = path.join(root, code);
+
         if (await isProblemDir(candidate)) dirs.push(candidate);
       }
     } else {
       const entries = await fs.readdir(root, { withFileTypes: true });
+
       for (const entry of entries) {
         if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
         const candidate = path.join(root, entry.name);
+
         if (await isProblemDir(candidate)) dirs.push(candidate);
       }
     }
   }
 
   const unique = [...new Set(dirs)].sort();
+
   return unique.filter((dir) => {
     const code = problemCodeFromDir(dir);
+
     if (args.include.length > 0 && !matchesAny(code, args.include)) return false;
+
     if (args.exclude.length > 0 && matchesAny(code, args.exclude)) return false;
+
     return true;
   });
 }
@@ -288,23 +317,29 @@ export function problemCodeFromDir(dir) {
 
 function positiveNumber(raw, field) {
   const value = Number(raw);
+
   if (!Number.isFinite(value) || value <= 0) {
     throw new UploadError(`Invalid ${field}: ${JSON.stringify(raw)}`);
   }
+
   return value;
 }
 
 function boolean(raw, field) {
-  if (typeof raw === "boolean") return raw;
+  if (raw === true || raw === false) return raw;
   const text = String(raw).trim().toLowerCase();
+
   if (["1", "true", "yes", "on"].includes(text)) return true;
+
   if (["0", "false", "no", "off"].includes(text)) return false;
   throw new UploadError(`Invalid ${field}: ${JSON.stringify(raw)}`);
 }
 
 function nameList(raw) {
   if (Array.isArray(raw)) return raw.map((entry) => String(entry).trim()).filter(Boolean);
+
   if (raw === undefined || raw === null) return [];
+
   return String(raw)
     .split(",")
     .map((entry) => entry.trim())
@@ -314,8 +349,10 @@ function nameList(raw) {
 async function readFirst(dir, names) {
   for (const name of names) {
     const target = path.join(dir, name);
+
     if (await exists(target)) return { name, content: await fs.readFile(target, "utf8") };
   }
+
   return null;
 }
 
@@ -330,12 +367,15 @@ export async function buildRequest(problemDir, { statementOnly = false } = {}) {
   const code = problemCodeFromDir(dir);
 
   const statement = await readFirst(dir, STATEMENT_NAMES);
+
   if (!statement) {
     throw new UploadError(`Missing statement file: ${path.join(dir, STATEMENT_NAMES[0])}`);
   }
+
   const editorial = await readFirst(dir, EDITORIAL_NAMES);
 
   const body = { statement: statement.content };
+
   if (editorial?.content.trim()) {
     body.editorial = { content: editorial.content, isPublic: true };
   }
@@ -343,17 +383,21 @@ export async function buildRequest(problemDir, { statementOnly = false } = {}) {
   const configPath = path.join(dir, "config.json");
   let config = {};
   const hasConfig = await exists(configPath);
+
   if (hasConfig) {
     const raw = await fs.readFile(configPath, "utf8");
+
     try {
       config = JSON.parse(raw);
     } catch (error) {
       throw new UploadError(`Invalid JSON in ${configPath}: ${error.message}`);
     }
-    if (!config || typeof config !== "object" || Array.isArray(config)) {
+
+    if (config === null || Array.isArray(config) || !(config instanceof Object)) {
       throw new UploadError(`Expected a JSON object in ${configPath}`);
     }
   }
+
   const has = (field) => Object.hasOwn(config, field);
 
   if (statementOnly) {
@@ -362,37 +406,52 @@ export async function buildRequest(problemDir, { statementOnly = false } = {}) {
   }
 
   const warnings = [];
+
   if (has("title")) {
     const title = String(config.title ?? "").trim();
+
     if (!title) throw new UploadError("config.title is empty");
     body.name = title;
   }
+
   if (has("authors")) {
     // SPEC section 8: an empty list means "unchanged", so it is not sent.
     const authors = nameList(config.authors);
+
     if (authors.length > 0) body.authors = authors;
   }
+
   if (has("testers")) {
     const testers = nameList(config.testers);
+
     if (testers.length > 0) body.testers = testers;
   }
+
   if (has("points")) body.points = positiveNumber(config.points, "config.points");
+
   if (has("timeLimit")) body.timeLimit = positiveNumber(config.timeLimit, "config.timeLimit");
+
   if (has("memoryLimit")) {
     body.memoryLimit = positiveNumber(config.memoryLimit, "config.memoryLimit");
   }
+
   if (has("shortCircuit")) body.shortCircuit = boolean(config.shortCircuit, "config.shortCircuit");
+
   if (has("partial")) body.partial = boolean(config.partial, "config.partial");
+
   if (has("public")) body.isPublic = boolean(config.public, "config.public");
+
   if (has("summary")) body.summary = String(config.summary);
 
   // create-problem.mjs wrote the python3 and pypy3 rows whenever a time limit
   // was being applied, with pythonTimeLimit falling back to the global one.
   const wantsLimits = has("pythonTimeLimit") || has("timeLimit") || has("memoryLimit");
+
   if (wantsLimits) {
     const timeLimit = has("pythonTimeLimit")
       ? positiveNumber(config.pythonTimeLimit, "config.pythonTimeLimit")
       : (body.timeLimit ?? DEFAULTS.timeLimit);
+
     const memoryLimit = body.memoryLimit ?? DEFAULTS.memoryLimit;
     body.languageLimits = {
       python3: { timeLimit, memoryLimit },
@@ -411,15 +470,20 @@ export async function buildRequest(problemDir, { statementOnly = false } = {}) {
 
 /** Files at the top of a problem directory that belong to the statement half. */
 const DATA_EXCLUDED_ROOT_FILES = new Set([...STATEMENT_NAMES, ...EDITORIAL_NAMES, "config.json"]);
+
 /** Directories skipped wherever they appear. Dotted names are skipped as well. */
 const DATA_EXCLUDED_DIRS = new Set(["__pycache__"]);
 
 /** Zip without zip64: no member, and no archive, may reach 4 GiB. */
 const ZIP_MAX_BYTES = 0xffffffff;
+
 const ZIP_MAX_ENTRIES = 0xffff;
+
 /** 1980-01-01 00:00:00, the oldest moment a DOS timestamp can name. */
 const ZIP_DOS_DATE = 0x0021;
+
 const ZIP_DOS_TIME = 0x0000;
+
 /** Spelled out rather than left to the defaults, because the bytes are hashed. */
 const DEFLATE_OPTIONS = {
   level: 6,
@@ -430,21 +494,27 @@ const DEFLATE_OPTIONS = {
 
 const CRC_TABLE = (() => {
   const table = new Uint32Array(256);
+
   for (let index = 0; index < 256; index++) {
     let value = index;
+
     for (let bit = 0; bit < 8; bit++) {
       value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
     }
+
     table[index] = value >>> 0;
   }
+
   return table;
 })();
 
 export function crc32(buffer) {
   let crc = 0xffffffff;
+
   for (let index = 0; index < buffer.length; index++) {
     crc = CRC_TABLE[(crc ^ buffer[index]) & 0xff] ^ (crc >>> 8);
   }
+
   return (crc ^ 0xffffffff) >>> 0;
 }
 
@@ -453,10 +523,12 @@ export function formatBytes(bytes) {
   const units = ["KB", "MB", "GB", "TB"];
   let value = bytes / 1024;
   let unit = 0;
+
   while (value >= 1024 && unit < units.length - 1) {
     value /= 1024;
     unit += 1;
   }
+
   return `${value >= 10 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
 }
 
@@ -477,18 +549,23 @@ export async function collectDataFiles(problemDir, { log = () => {} } = {}) {
 
   const walk = async (current, prefix) => {
     const real = await fs.realpath(current);
+
     if (visited.has(real)) return;
     visited.add(real);
 
     const entries = await fs.readdir(current, { withFileTypes: true });
+
     for (const entry of entries) {
       if (entry.name.startsWith(".")) continue;
+
       if (DATA_EXCLUDED_DIRS.has(entry.name)) continue;
+
       if (!prefix && DATA_EXCLUDED_ROOT_FILES.has(entry.name)) continue;
 
       const absolute = path.join(current, entry.name);
       const archivePath = prefix ? `${prefix}/${entry.name}` : entry.name;
       let stats;
+
       try {
         stats = await fs.stat(absolute);
       } catch {
@@ -515,6 +592,7 @@ export async function collectDataFiles(problemDir, { log = () => {} } = {}) {
   files.sort((a, b) =>
     Buffer.compare(Buffer.from(a.archivePath, "utf8"), Buffer.from(b.archivePath, "utf8")),
   );
+
   return files;
 }
 
@@ -532,6 +610,7 @@ function localHeader(entry) {
   header.writeUInt16LE(entry.name.length, 26);
   header.writeUInt16LE(0, 28); // no extra field, so no timestamps sneak back in
   entry.name.copy(header, 30);
+
   return header;
 }
 
@@ -555,6 +634,7 @@ function centralHeader(entry) {
   header.writeUInt32LE(entry.externalAttributes, 38);
   header.writeUInt32LE(entry.offset, 42);
   entry.name.copy(header, 46);
+
   return header;
 }
 
@@ -568,6 +648,7 @@ function endOfCentralDirectory(count, size, offset) {
   record.writeUInt32LE(size, 12);
   record.writeUInt32LE(offset, 16);
   record.writeUInt16LE(0, 20); // no archive comment
+
   return record;
 }
 
@@ -589,6 +670,7 @@ function endOfCentralDirectory(count, size, offset) {
  */
 export async function buildDataArchive(problemDir, options = {}) {
   const files = await collectDataFiles(problemDir, options);
+
   if (files.length > ZIP_MAX_ENTRIES) {
     throw new UploadError(
       `${files.length} files is more than the ${ZIP_MAX_ENTRIES} a zip without zip64 can hold. ` +
@@ -615,6 +697,7 @@ export async function buildDataArchive(problemDir, options = {}) {
     const deflated = zlib.deflateRawSync(contents, DEFLATE_OPTIONS);
     const useDeflate = deflated.length < contents.length;
     const payload = useDeflate ? deflated : contents;
+
     const entry = {
       name: Buffer.from(file.archivePath, "utf8"),
       method: useDeflate ? 8 : 0,
@@ -640,6 +723,7 @@ export async function buildDataArchive(problemDir, options = {}) {
   }
 
   const centralSize = central.reduce((total, header) => total + header.length, 0);
+
   if (offset + centralSize >= ZIP_MAX_BYTES) {
     throw new UploadError("The archive passed 4 GB; a zip without zip64 cannot go that far.");
   }
@@ -649,6 +733,7 @@ export async function buildDataArchive(problemDir, options = {}) {
     ...central,
     endOfCentralDirectory(files.length, centralSize, offset),
   ]);
+
   return {
     bytes,
     hash: sha256(bytes),
@@ -669,19 +754,23 @@ function sha256(buffer) {
 
 export function createClient({ judgeUrl, apiKey, fetchImpl = globalThis.fetch }) {
   const base = String(judgeUrl || "").replace(/\/+$/, "");
+
   if (!base) throw new UploadError("JUDGE_URL is not set.");
+
   if (!apiKey) throw new UploadError("JUDGE_API_KEY is not set.");
 
   const authorization = `Bearer ${apiKey}`;
 
   const describe = async (response) => {
     let detail = "";
+
     try {
       const body = await response.json();
       detail = body?.error?.message ? ` ${body.error.message}` : ` ${JSON.stringify(body)}`;
     } catch {
       detail = "";
     }
+
     return `HTTP ${response.status}${detail}`;
   };
 
@@ -693,24 +782,31 @@ export function createClient({ judgeUrl, apiKey, fetchImpl = globalThis.fetch })
         headers: { authorization, "content-type": "application/json" },
         body: JSON.stringify(body),
       });
+
       if (!response.ok) throw new UploadError(`${code}: ${await describe(response)}`);
+
       return await response.json();
     },
     async uploadImage(code, fileName, buffer, contentType) {
       const form = new FormData();
       form.append("file", new Blob([buffer], { type: contentType || "application/octet-stream" }), fileName);
+
       const response = await fetchImpl(`${base}/api/problems/${code}/images`, {
         method: "POST",
         headers: { authorization },
         body: form,
       });
+
       if (!response.ok) {
         throw new UploadError(`${code}: image ${fileName}: ${await describe(response)}`);
       }
+
       const payload = await response.json();
+
       if (payload.status !== 200 || !payload.link) {
         throw new UploadError(`${code}: image ${fileName} rejected: ${JSON.stringify(payload)}`);
       }
+
       return payload.link;
     },
     /** What the site holds for this problem, so unchanged data is not re-sent. */
@@ -718,9 +814,12 @@ export function createClient({ judgeUrl, apiKey, fetchImpl = globalThis.fetch })
       const response = await fetchImpl(`${base}/api/problems/${code}/data`, {
         headers: { authorization },
       });
+
       if (response.status === 404) return { exists: false, hash: null };
+
       if (!response.ok) throw new UploadError(`${code}: data: ${await describe(response)}`);
       const payload = await response.json();
+
       return {
         exists: true,
         hash: payload.hash ?? null,
@@ -735,24 +834,32 @@ export function createClient({ judgeUrl, apiKey, fetchImpl = globalThis.fetch })
         method: "POST",
         headers: { authorization },
       });
+
       if (!urlResponse.ok) {
         throw new UploadError(`${code}: data upload URL: ${await describe(urlResponse)}`);
       }
+
       const { uploadUrl } = await urlResponse.json();
+
       if (!uploadUrl) throw new UploadError(`${code}: the site returned no upload URL for the data.`);
 
       const send = (method) =>
         fetchImpl(uploadUrl, { method, headers: { "content-type": "application/zip" }, body: bytes });
+
       // Storage backends differ on which write verb they take; try both rather
       // than make the caller care.
       let response = await send("PUT");
+
       if (response.status === 405 || response.status === 501) response = await send("POST");
+
       if (!response.ok) throw new UploadError(`${code}: data upload: ${await describe(response)}`);
 
       const payload = await response.json();
+
       if (!payload.storageId) {
         throw new UploadError(`${code}: the data upload returned no storage id: ${JSON.stringify(payload)}`);
       }
+
       return payload.storageId;
     },
     async recordData(code, body) {
@@ -761,7 +868,9 @@ export function createClient({ judgeUrl, apiKey, fetchImpl = globalThis.fetch })
         headers: { authorization, "content-type": "application/json" },
         body: JSON.stringify(body),
       });
+
       if (!response.ok) throw new UploadError(`${code}: data: ${await describe(response)}`);
+
       return await response.json();
     },
   };
@@ -784,6 +893,7 @@ const CONTENT_TYPES = {
 
 export function collectLocalImageRefs(markdown) {
   const refs = [];
+
   for (const match of markdown.matchAll(MARKDOWN_IMAGE_PATTERN)) {
     refs.push({
       fullMatch: match[0],
@@ -791,6 +901,7 @@ export function collectLocalImageRefs(markdown) {
       replaceWith: (link) => `![${match[1]}](${link}${match[3] ?? ""})`,
     });
   }
+
   for (const match of markdown.matchAll(HTML_IMAGE_PATTERN)) {
     refs.push({
       fullMatch: match[0],
@@ -798,6 +909,7 @@ export function collectLocalImageRefs(markdown) {
       replaceWith: (link) => match[0].replace(match[1], link),
     });
   }
+
   return refs;
 }
 
@@ -820,6 +932,7 @@ async function saveRegistry(file, registry) {
  */
 export async function rewriteImages(markdown, { code, dir, client, registry, registryDir, log }) {
   const refs = collectLocalImageRefs(markdown);
+
   if (refs.length === 0) return { markdown, uploaded: 0, cached: 0, dirty: false };
 
   let result = markdown;
@@ -829,16 +942,19 @@ export async function rewriteImages(markdown, { code, dir, client, registry, reg
 
   for (const ref of refs) {
     const imagePath = path.resolve(dir, decodeURIComponent(ref.localPath));
+
     if (!(await exists(imagePath))) {
       log(`  warning: image not found at ${imagePath}, leaving the reference alone`);
       continue;
     }
+
     const buffer = await fs.readFile(imagePath);
     const hash = sha256(buffer);
     const key = path.relative(registryDir, imagePath).split(path.sep).join("/");
     const entry = registry[key];
 
     let link;
+
     if (entry && entry.hash === hash) {
       link = entry.link;
       cached += 1;
@@ -850,6 +966,7 @@ export async function rewriteImages(markdown, { code, dir, client, registry, reg
       uploaded += 1;
       log(`  uploaded ${key} -> ${link}`);
     }
+
     result = result.split(ref.fullMatch).join(ref.replaceWith(link));
   }
 
@@ -862,6 +979,7 @@ export async function rewriteImages(markdown, { code, dir, client, registry, reg
 
 function describeArchive(archive) {
   const files = `${archive.fileCount} ${archive.fileCount === 1 ? "file" : "files"}`;
+
   return `${files}, ${formatBytes(archive.size)}, sha256 ${archive.hash.slice(0, 12)}`;
 }
 
@@ -875,18 +993,22 @@ function describeArchive(archive) {
  */
 async function prepareArchive(dir, code, { log, dataOnly }) {
   const archive = await buildDataArchive(dir, { log });
+
   if (archive.paths.includes("init.yml")) return archive;
 
   const reason =
     archive.fileCount === 0 ? "the directory holds no test data" : "the directory has no init.yml";
+
   if (dataOnly) throw new UploadError(`${code}: ${reason}, so there is no test data to publish.`);
   log(`  data: not published, ${reason}`);
+
   return null;
 }
 
 /** Ask, then upload only if the site's copy is not already these bytes. */
 async function publishArchive(code, archive, client, log) {
   const current = await client.getData(code);
+
   if (!current.exists) {
     throw new UploadError(
       `${code}: the site has no such problem, so its test data has nowhere to go. Publish the statement first.`,
@@ -895,8 +1017,10 @@ async function publishArchive(code, archive, client, log) {
 
   const summary = describeArchive(archive);
   const result = { hash: archive.hash, size: archive.size, fileCount: archive.fileCount };
+
   if (current.hash === archive.hash) {
     log(`  data: unchanged (${summary})`);
+
     return { ...result, status: "unchanged" };
   }
 
@@ -904,6 +1028,7 @@ async function publishArchive(code, archive, client, log) {
   const response = await client.recordData(code, { storageId, ...result });
   const status = response.changed === false ? "unchanged" : "published";
   log(`  data: ${status} (${summary})`);
+
   return { ...result, status };
 }
 
@@ -913,14 +1038,18 @@ export async function run(argv, options = {}) {
   const env = options.env ?? process.env;
 
   const args = parseArgs(argv);
+
   if (args.help) {
     log(HELP);
+
     return { uploaded: [], skipped: [], failed: [], exitCode: 0 };
   }
 
   const dirs = await resolveProblemDirs(args);
+
   if (dirs.length === 0) {
     log("No problems selected.");
+
     return { uploaded: [], skipped: [], failed: [], exitCode: 0 };
   }
 
@@ -931,11 +1060,13 @@ export async function run(argv, options = {}) {
         ".image-registry.json",
       ),
   );
+
   const registryDir = path.dirname(registryFile);
   const registry = await loadRegistry(registryFile);
   let registryDirty = false;
 
   const plan = publishPlan(args);
+
   const makeClient = () =>
     options.client ??
     createClient({
@@ -945,6 +1076,7 @@ export async function run(argv, options = {}) {
     });
 
   let client = null;
+
   if (args.dryRun) {
     // A dry run reads, so that it can say whether the data on the site is
     // already these bytes, but it still runs with no credentials at all: then
@@ -965,14 +1097,18 @@ export async function run(argv, options = {}) {
 
   for (const dir of dirs) {
     const code = problemCodeFromDir(dir);
+
     try {
       let request = null;
+
       if (plan.statement) {
         request = await buildRequest(dir, { statementOnly: args.statementOnly });
+
         for (const warning of request.warnings) log(`  ${warning}`);
       }
 
       const archive = plan.data ? await prepareArchive(dir, code, { log, dataOnly: args.dataOnly }) : null;
+
       if (plan.data && !archive) dataTally.none += 1;
 
       if (args.dryRun) {
@@ -984,9 +1120,11 @@ export async function run(argv, options = {}) {
         }
 
         let data = null;
+
         if (archive) {
           const summary = describeArchive(archive);
           let current = null;
+
           if (client) {
             try {
               current = await client.getData(code);
@@ -994,6 +1132,7 @@ export async function run(argv, options = {}) {
               log(`  data: the site could not be asked: ${error.message}`);
             }
           }
+
           if (current?.hash === archive.hash) {
             data = {
               hash: archive.hash,
@@ -1015,12 +1154,14 @@ export async function run(argv, options = {}) {
             log(`  data: would upload ${summary}${replacing}`);
           }
         }
+
         skipped.push({ code, reason: "dry-run", data });
         continue;
       }
 
       let created = false;
       let name = code;
+
       if (request) {
         const statement = await rewriteImages(request.body.statement, {
           code,
@@ -1030,6 +1171,7 @@ export async function run(argv, options = {}) {
           registryDir,
           log,
         });
+
         registryDirty ||= statement.dirty;
         request.body.statement = statement.markdown;
 
@@ -1042,6 +1184,7 @@ export async function run(argv, options = {}) {
             registryDir,
             log,
           });
+
           registryDirty ||= rewritten.dirty;
           request.body.editorial.content = rewritten.markdown;
         }
@@ -1050,14 +1193,17 @@ export async function run(argv, options = {}) {
         created = !!response.created;
         name = response.problem?.name ?? code;
         log(`${code}: ${created ? "created" : "updated"} "${name}"`);
+
         for (const warning of response.warnings ?? []) log(`  warning: ${warning}`);
       }
 
       let data = null;
+
       if (archive) {
         data = await publishArchive(code, archive, client, log);
         dataTally[data.status === "published" ? "published" : "unchanged"] += 1;
       }
+
       if (!request) log(`${code}: test data published, the statement was left alone`);
 
       uploaded.push({ code, created, name, statement: !!request, data });
@@ -1072,14 +1218,19 @@ export async function run(argv, options = {}) {
 
   log("");
   log(`${uploaded.length} uploaded, ${skipped.length} skipped, ${failed.length} failed.`);
+
   if (plan.data) {
     const counts = args.dryRun
       ? `${dataTally.pending} to upload, ${dataTally.unchanged} unchanged`
       : `${dataTally.published} published, ${dataTally.unchanged} unchanged`;
+
     log(`Test data: ${counts}, ${dataTally.none} without data.`);
   }
+
   const result = { uploaded, skipped, failed, exitCode: failed.length > 0 ? 1 : 0 };
+
   if (args.json) log(JSON.stringify(result));
+
   return result;
 }
 

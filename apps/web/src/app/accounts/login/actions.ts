@@ -10,6 +10,7 @@ import { auth } from "@/auth/server";
  *  rather than in the browser. */
 export async function resendActivation(identifier: string): Promise<{ ok: boolean }> {
   const value = identifier.trim().toLowerCase();
+
   if (!value) return { ok: false };
 
   try {
@@ -23,6 +24,7 @@ export async function resendActivation(identifier: string): Promise<{ ok: boolea
     if (!row || row.emailVerified) return { ok: true };
 
     await auth.api.sendVerificationEmail({ body: { email: row.email, callbackURL: "/" } });
+
     return { ok: true };
   } catch {
     return { ok: false };
