@@ -715,25 +715,54 @@ export const list = query({
     const finishedKeys: string[] = [];
     const current: Doc<"contests">[] = [];
 
+    // A live participation that has run out is why a row offers Spectate rather
+    // than Join; it says nothing about which contest the viewer is in.
     for (const contest of running) {
       const participation = profile ? await liveParticipationOf(ctx, contest._id, profile._id) : null;
 
-      if (!participation) {
-        current.push(contest);
-        continue;
-      }
-
-      if (participationHasEnded(toParticipationRow(participation), toContestRow(contest), now)) {
+      if (
+        participation &&
+        participationHasEnded(toParticipationRow(participation), toContestRow(contest), now)
+      ) {
         finishedKeys.push(contest.key);
-        current.push(contest);
-        continue;
       }
 
-      const endsAt = endTimeOf(contest, participation);
+      current.push(contest);
+    }
+
+    /**
+     * The contest the viewer is actually in, which is the only one this section
+     * can offer to leave.
+     *
+     * It used to list every contest where they held a live participation row. An
+     * open-ended contest never ends one, so joining the tutorial once put it here
+     * for good, with a Leave button that answered `You are not in contest`. It
+     * also missed a virtual run, which happens on a contest that has finished and
+     * so was never among the running ones looked at.
+     */
+    const held = profile?.currentParticipationId ? await ctx.db.get(profile.currentParticipationId) : null;
+
+    const heldContest = held ? await ctx.db.get(held.contestId) : null;
+
+    if (held && heldContest) {
+      // It is listed as the contest they are in, so it is not also listed as one
+      // they could join.
+      const index = current.findIndex((row) => row._id === heldContest._id);
+
+      if (index >= 0) current.splice(index, 1);
+
+      const endsAt = endTimeOf(heldContest, held);
       activeParticipations.push({
-        participationId: participation._id,
-        contest: await listRow(ctx, contest, editorOrTester(contest), false, solvedIds, released(contest)),
-        virtual: participation.virtual,
+        participationId: held._id,
+        contest: await listRow(
+          ctx,
+          heldContest,
+          editorOrTester(heldContest),
+          false,
+          solvedIds,
+          released(heldContest),
+        ),
+        virtual: held.virtual,
         endsAt,
         timeRemaining: endsAt >= now ? endsAt - now : null,
       });
