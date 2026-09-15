@@ -44,7 +44,7 @@ then rebuild the image and run the judge end-to-end test.
 | `npm run e2e:judge` | Submits to `aplusb` and waits for Accepted. |
 | `npm run db:migrate -w apps/web` | Migrations for the account database. |
 | `npm run import -w tools/import` | The [DMOJ importer](/admin/import). |
-| `npm run docs:dev -w docs`, `npm run docs:build -w docs` | This site, at `http://localhost:5173/MOJ/`. |
+| `npm run docs:dev -w docs`, `npm run docs:build -w docs` | This site, at `http://localhost:5173/`. |
 
 ::: tip
 On NixOS the Biome binary will not start on its own. Run it through `steam-run`, or set
@@ -91,7 +91,7 @@ needs a second hostname in `allowedDevOrigins` and its own compose project.
 
 ## This site
 
-VitePress in `docs/`. The base path is `/MOJ/`; links between pages are written without it, as
+VitePress in `docs/`, served at the root of `moj.monashaps.com`; links between pages are absolute, as
 `/using/contests`. A new page needs an entry in the sidebar in `docs/.vitepress/config.ts`. The build fails on a
 dead internal link.
 

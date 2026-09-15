@@ -19,13 +19,13 @@ MOJ is an online judge and contest platform written in TypeScript, compatible wi
 * **Two-factor authentication** with TOTP and passkeys
 * An **API** with tokens, and problem repositories deployed by a GitHub Action
 * **DMOJ compatibility**: all DMOJ URLs work, the problem and statement format is unchanged, and existing accounts,
-  problems, submissions and contests import. See [compatibility](https://binder.monashaps.com/MOJ/guide/compatibility).
+  problems, submissions and contests import. See [compatibility](https://moj.monashaps.com/guide/compatibility).
 * **Light and dark themes**, with the site name, wordmark, colours and CSS as settings
 
 ## Installation
 
 Install, configure and run MOJ by following the documentation at
-[binder.monashaps.com/MOJ](https://binder.monashaps.com/MOJ/).
+[moj.monashaps.com](https://moj.monashaps.com/).
 
 ## Screenshots
 
