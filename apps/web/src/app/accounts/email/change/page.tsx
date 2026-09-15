@@ -7,6 +7,7 @@ import { EmailChangeForm } from "./EmailChangeForm";
 
 export async function generateMetadata() {
   const t = await getTranslations("auth.emailChange");
+
   return { title: t("metaTitle") };
 }
 
@@ -15,6 +16,7 @@ export const dynamic = "force-dynamic";
 export default async function EmailChangePage() {
   const account = await requireAccount("/accounts/email/change/");
   const t = await getTranslations("auth.emailChange");
+
   return (
     <>
       <TitleRow title={t("title")} tabs={await accountTabs()} active="email" />

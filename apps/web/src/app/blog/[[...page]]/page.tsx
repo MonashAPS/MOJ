@@ -16,21 +16,26 @@ type Props = { params: Promise<{ page?: string[] }> };
 
 function pageNumber(segments: string[] | undefined): number {
   if (!segments || segments.length === 0) return 1;
+
   if (segments.length > 1) notFound();
   const parsed = Number(segments[0]);
+
   if (!Number.isInteger(parsed) || parsed < 1) notFound();
+
   return parsed;
 }
 
 export async function generateMetadata({ params }: Props) {
   const page = pageNumber((await params).page);
   const t = await getTranslations("blog.meta");
+
   return { title: page === 1 ? t("news") : t("newsPage", { page }) };
 }
 
 export default async function BlogListPage({ params }: Props) {
   const t = await getTranslations("blog.list");
   const page = pageNumber((await params).page);
+
   const result = await queryAsViewer(api.blog.paginated, {
     paginationOpts: { numItems: PER_PAGE, cursor: String((page - 1) * PER_PAGE) },
   }).catch(() => null);
@@ -38,6 +43,7 @@ export default async function BlogListPage({ params }: Props) {
   const posts = result?.page ?? [];
   const total = result?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+
   if (page > totalPages && page !== 1) notFound();
 
   // `renderMarkdown` is async and JSX is not, so every summary is rendered here.

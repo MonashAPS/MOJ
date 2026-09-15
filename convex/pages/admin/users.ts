@@ -28,20 +28,26 @@ export const extras = query({
   args: { username: v.string() },
   handler: async (ctx, { username }): Promise<UserExtras | null> => {
     await requireProfileAdmin(ctx);
+
     const profile = await ctx.db
       .query("profiles")
       .withIndex("by_username", (q) => q.eq("username", username))
       .unique();
+
     if (!profile) return null;
 
     const language = profile.languageId ? await ctx.db.get(profile.languageId) : null;
+
     const memberships = await ctx.db
       .query("organizationMemberships")
       .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
       .collect();
+
     const organizationSlugs: string[] = [];
+
     for (const membership of memberships) {
       const organization = await ctx.db.get(membership.organizationId);
+
       if (organization) organizationSlugs.push(organization.slug);
     }
 
@@ -49,14 +55,17 @@ export const extras = query({
       .query("apiKeys")
       .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
       .collect();
+
     keys.sort((a, b) => b.createdAt - a.createdAt);
 
     const history = await ctx.db
       .query("revisions")
       .withIndex("by_entity", (q) => q.eq("entityType", "profiles").eq("entityId", profile._id))
       .collect();
+
     history.sort((a, b) => b.createdAt - a.createdAt);
     const revisionRows: ConsoleRevision[] = [];
+
     for (const row of history.slice(0, 25)) {
       const author = row.authorProfileId ? await ctx.db.get(row.authorProfileId) : null;
       revisionRows.push({
@@ -93,11 +102,14 @@ export const setMemberships = mutation({
   },
   handler: async (ctx, args) => {
     const staff = await requireProfileAdmin(ctx);
+
     const profile = await ctx.db
       .query("profiles")
       .withIndex("by_username", (q) => q.eq("username", args.username))
       .unique();
+
     if (!profile) throw notFound("User");
+
     if (profile.isSuperuser && !staff.isSuperuser) {
       throw forbidden("Only superusers may edit a superuser.");
     }
@@ -110,6 +122,7 @@ export const setMemberships = mutation({
           .query("languages")
           .withIndex("by_key", (q) => q.eq("key", args.languageKey as string))
           .first();
+
         if (!language) throw invalid(`There is no language with the identifier ${args.languageKey}.`);
         await ctx.db.patch(profile._id, { languageId: language._id });
       }
@@ -117,11 +130,13 @@ export const setMemberships = mutation({
 
     if (args.organizationSlugs !== undefined) {
       const wanted = new Map<Id<"organizations">, Doc<"organizations">>();
+
       for (const slug of args.organizationSlugs) {
         const organization = await ctx.db
           .query("organizations")
           .withIndex("by_slug", (q) => q.eq("slug", slug))
           .unique();
+
         if (!organization) throw notFound(`Organization ${slug}`);
         wanted.set(organization._id, organization);
       }
@@ -130,18 +145,22 @@ export const setMemberships = mutation({
         .query("organizationMemberships")
         .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
         .collect();
+
       const have = new Set(existing.map((row) => row.organizationId));
 
       for (const membership of existing) {
         if (wanted.has(membership.organizationId)) continue;
         const organization = await ctx.db.get(membership.organizationId);
+
         if (organization) {
           await ctx.db.patch(organization._id, {
             memberCount: Math.max(0, organization.memberCount - 1),
           });
         }
+
         await ctx.db.delete(membership._id);
       }
+
       for (const [organizationId, organization] of wanted) {
         if (have.has(organizationId)) continue;
         await ctx.db.insert("organizationMemberships", {
@@ -162,6 +181,7 @@ export const setMemberships = mutation({
       reason: args.reason ?? "Edited from admin",
       createdAt: Date.now(),
     });
+
     return profile._id;
   },
 });
@@ -171,10 +191,12 @@ export const clearLegacyApiToken = mutation({
   args: { username: v.string(), reason: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const staff = await requireProfileAdmin(ctx);
+
     const profile = await ctx.db
       .query("profiles")
       .withIndex("by_username", (q) => q.eq("username", args.username))
       .unique();
+
     if (!profile) throw notFound("User");
     await ctx.db.patch(profile._id, { legacyApiTokenHash: undefined });
     await ctx.db.insert("revisions", {

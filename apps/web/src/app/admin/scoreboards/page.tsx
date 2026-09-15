@@ -4,6 +4,7 @@ import { ScoreboardsList } from "./ScoreboardsList";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.scoreboards");
+
   return { title: t("metaTitle") };
 }
 

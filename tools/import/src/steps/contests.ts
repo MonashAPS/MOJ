@@ -14,6 +14,7 @@ const SCOREBOARD_VISIBILITY = new Set(["V", "C", "P", "H"]);
  */
 export function labelSchemeFor(formatName: string, labelScript: string): "letters" | "numbers" | "custom" {
   if (labelScript.trim() !== "") return "custom";
+
   return getFormatOrDefault(formatName).defaultLabelScheme;
 }
 
@@ -24,36 +25,47 @@ export function labelSchemeFor(formatName: string, labelScript: string): "letter
  */
 export function remapFormatData(ctx: ImportContext, formatData: unknown, rowId: number): unknown {
   if (formatData === null || formatData === undefined) return null;
+
   if (typeof formatData !== "object" || Array.isArray(formatData)) return formatData;
   const out: Record<string, unknown> = {};
+
   for (const [key, value] of Object.entries(formatData as Record<string, unknown>)) {
     const legacyId = Number(key);
+
     if (!Number.isInteger(legacyId)) {
       // Not a contest problem id: keep it, whatever a future format stores.
       out[key] = value;
       continue;
     }
+
     const id = ctx.ref("contestProblems", legacyId, "judge_contestparticipation", "format_data", rowId);
+
     if (id !== undefined) out[id] = value;
   }
+
   return out;
 }
 
 /** Django DurationField is stored as microseconds on MariaDB. */
 export function durationToSeconds(micros: number | undefined): number | undefined {
   if (micros === undefined) return undefined;
+
   return micros / 1_000_000;
 }
 
 export async function problemCodeMap(ctx: ImportContext): Promise<Map<number, string>> {
   const map = new Map<number, string>();
+
   for await (const row of ctx.rows("judge_problem")) map.set(row.id(), row.s("code"));
+
   return map;
 }
 
 export async function languageKeyMap(ctx: ImportContext): Promise<Map<number, string>> {
   const map = new Map<number, string>();
+
   for await (const row of ctx.rows("judge_language")) map.set(row.id(), row.s("key"));
+
   return map;
 }
 
@@ -84,15 +96,18 @@ export const judgesStep: Step = {
         lastIp: row.sOpt("last_ip"),
         problemCodes: (problems.get(id) ?? []).flatMap((problemId) => {
           const code = codes.get(problemId);
+
           return code === undefined ? [] : [code];
         }),
         runtimeKeys: (runtimes.get(id) ?? []).flatMap((languageId) => {
           const key = keys.get(languageId);
+
           return key === undefined ? [] : [key];
         }),
         legacyId: id,
       });
     }
+
     ctx.report.note("judges are imported offline with tier 0 and no current submission");
   },
 };
@@ -102,9 +117,11 @@ export const runtimeVersionsStep: Step = {
   sources: ["judge_runtimeversion"],
   async run(ctx) {
     const emitter = ctx.emitter("runtimeVersions");
+
     for await (const row of ctx.rows("judge_runtimeversion")) {
       ctx.report.counts("runtimeVersions").read++;
       const judgeId = ctx.ref("judges", row.n("judge_id"), "judge_runtimeversion", "judge_id", row.id());
+
       const languageId = ctx.ref(
         "languages",
         row.n("language_id"),
@@ -112,10 +129,12 @@ export const runtimeVersionsStep: Step = {
         "language_id",
         row.id(),
       );
+
       if (!judgeId || !languageId) {
         ctx.report.skip("runtimeVersions", "judge or language missing", row.id());
         continue;
       }
+
       await emitter.emit({
         languageId,
         judgeId,
@@ -133,6 +152,7 @@ export const contestTagsStep: Step = {
   sources: ["judge_contesttag"],
   async run(ctx) {
     const emitter = ctx.emitter("contestTags");
+
     for await (const row of ctx.rows("judge_contesttag")) {
       ctx.report.counts("contestTags").read++;
       await emitter.emit({
@@ -170,32 +190,39 @@ export const contestsStep: Step = {
     const testers = await groupM2M(ctx, "judge_contest_testers", "contest_id", "profile_id");
     const spectators = await groupM2M(ctx, "judge_contest_spectators", "contest_id", "profile_id");
     const banned = await groupM2M(ctx, "judge_contest_banned_users", "contest_id", "profile_id");
+
     const privateContestants = await groupM2M(
       ctx,
       "judge_contest_private_contestants",
       "contest_id",
       "profile_id",
     );
+
     const rateExclude = await groupM2M(ctx, "judge_contest_rate_exclude", "contest_id", "profile_id");
+
     const viewScoreboard = await groupM2M(
       ctx,
       "judge_contest_view_contest_scoreboard",
       "contest_id",
       "profile_id",
     );
+
     const viewSubmissions = await groupM2M(
       ctx,
       "judge_contest_view_contest_submissions",
       "contest_id",
       "profile_id",
     );
+
     const organizations = await groupM2M(ctx, "judge_contest_organizations", "contest_id", "organization_id");
+
     const joinOrganizations = await groupM2M(
       ctx,
       "judge_contest_join_organizations",
       "contest_id",
       "organization_id",
     );
+
     const classes = await groupM2M(ctx, "judge_contest_classes", "contest_id", "class_id");
     const tags = await groupM2M(ctx, "judge_contest_tags", "contest_id", "contesttag_id");
 
@@ -203,10 +230,13 @@ export const contestsStep: Step = {
       ctx.report.counts("contests").read++;
       const id = row.id();
       const visibility = row.s("scoreboard_visibility");
+
       if (!SCOREBOARD_VISIBILITY.has(visibility)) {
         ctx.report.warn("contests", `unknown scoreboard_visibility ${visibility}, stored as V`, id);
       }
+
       const labelScript = row.s("problem_label_script");
+
       if (labelScript.trim() !== "") {
         ctx.report.warn("contests", "problem_label_script is not portable, label scheme set to custom", id);
       }
@@ -319,8 +349,10 @@ export const contestProblemsStep: Step = {
   sources: ["judge_contestproblem"],
   async run(ctx) {
     const emitter = ctx.emitter("contestProblems");
+
     for await (const row of ctx.rows("judge_contestproblem")) {
       ctx.report.counts("contestProblems").read++;
+
       const contestId = ctx.ref(
         "contests",
         row.n("contest_id"),
@@ -328,6 +360,7 @@ export const contestProblemsStep: Step = {
         "contest_id",
         row.id(),
       );
+
       const problemId = ctx.ref(
         "problems",
         row.n("problem_id"),
@@ -335,10 +368,12 @@ export const contestProblemsStep: Step = {
         "problem_id",
         row.id(),
       );
+
       if (!contestId || !problemId) {
         ctx.report.skip("contestProblems", "contest or problem missing", row.id());
         continue;
       }
+
       await emitter.emit({
         contestId,
         problemId,
@@ -359,8 +394,10 @@ export const contestParticipationsStep: Step = {
   sources: ["judge_contestparticipation"],
   async run(ctx) {
     const emitter = ctx.emitter("contestParticipations");
+
     for await (const row of ctx.rows("judge_contestparticipation")) {
       ctx.report.counts("contestParticipations").read++;
+
       const contestId = ctx.ref(
         "contests",
         row.n("contest_id"),
@@ -368,6 +405,7 @@ export const contestParticipationsStep: Step = {
         "contest_id",
         row.id(),
       );
+
       const profileId = ctx.ref(
         "profiles",
         row.n("user_id"),
@@ -375,10 +413,12 @@ export const contestParticipationsStep: Step = {
         "user_id",
         row.id(),
       );
+
       if (!contestId || !profileId) {
         ctx.report.skip("contestParticipations", "contest or profile missing", row.id());
         continue;
       }
+
       await emitter.emit({
         contestId,
         profileId,
@@ -400,10 +440,12 @@ export const ratingsStep: Step = {
   sources: ["judge_rating"],
   async run(ctx) {
     const emitter = ctx.emitter("ratings");
+
     for await (const row of ctx.rows("judge_rating")) {
       ctx.report.counts("ratings").read++;
       const profileId = ctx.ref("profiles", row.n("user_id"), "judge_rating", "user_id", row.id());
       const contestId = ctx.ref("contests", row.n("contest_id"), "judge_rating", "contest_id", row.id());
+
       const participationId = ctx.ref(
         "contestParticipations",
         row.n("participation_id"),
@@ -411,10 +453,12 @@ export const ratingsStep: Step = {
         "participation_id",
         row.id(),
       );
+
       if (!profileId || !contestId || !participationId) {
         ctx.report.skip("ratings", "profile, contest or participation missing", row.id());
         continue;
       }
+
       await emitter.emit({
         profileId,
         contestId,
@@ -435,14 +479,17 @@ export const contestMossStep: Step = {
   sources: ["judge_contestmoss"],
   async run(ctx) {
     const emitter = ctx.emitter("contestMoss");
+
     for await (const row of ctx.rows("judge_contestmoss")) {
       ctx.report.counts("contestMoss").read++;
       const contestId = ctx.ref("contests", row.n("contest_id"), "judge_contestmoss", "contest_id", row.id());
       const problemId = ctx.ref("problems", row.n("problem_id"), "judge_contestmoss", "problem_id", row.id());
+
       if (!contestId || !problemId) {
         ctx.report.skip("contestMoss", "contest or problem missing", row.id());
         continue;
       }
+
       await emitter.emit({
         contestId,
         problemId,

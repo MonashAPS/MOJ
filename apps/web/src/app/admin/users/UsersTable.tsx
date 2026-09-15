@@ -88,10 +88,12 @@ export function UsersTable() {
   const setParam = useCallback(
     (updates: Record<string, string | null>) => {
       const next = new URLSearchParams(params.toString());
+
       for (const [key, value] of Object.entries(updates)) {
         if (value === null || value === "" || value === "any") next.delete(key);
         else next.set(key, value);
       }
+
       if (!("page" in updates)) next.delete("page");
       const query = next.toString();
       router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
@@ -119,6 +121,7 @@ export function UsersTable() {
       ? result.users.filter((user) => user.isSuperuser)
       : result.users
     : undefined;
+
   const total = result ? (superuserOnly ? (rows?.length ?? 0) : result.total) : 0;
   const totalPages = superuserOnly ? 1 : Math.max(1, Math.ceil(total / PER_PAGE));
 
@@ -278,6 +281,7 @@ export function UsersTable() {
                 hrefFor={(target) => {
                   const next = new URLSearchParams(params.toString());
                   next.set("page", String(target));
+
                   return `${pathname}?${next.toString()}`;
                 }}
               />
@@ -302,14 +306,18 @@ function EmailResults({ term }: { term: string }) {
 
   useEffect(() => {
     const needle = term.trim();
+
     if (needle.length < 2) {
       setRows(null);
       setError(null);
+
       return;
     }
+
     const timer = window.setTimeout(() => {
       startTransition(async () => {
         const result = await searchAccountsAction(needle);
+
         if (result.ok) {
           setRows(result.data);
           setError(null);
@@ -319,6 +327,7 @@ function EmailResults({ term }: { term: string }) {
         }
       });
     }, 250);
+
     return () => window.clearTimeout(timer);
   }, [term]);
 
@@ -330,8 +339,11 @@ function EmailResults({ term }: { term: string }) {
       </p>
     );
   }
+
   if (error) return <StatusLine tone="bad">{error}</StatusLine>;
+
   if (rows === null) return <p className="text-sm text-muted-foreground">{pending ? t("searching") : ""}</p>;
+
   if (rows.length === 0) {
     return <p className="text-sm text-muted-foreground">{t("none")}</p>;
   }

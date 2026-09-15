@@ -20,12 +20,16 @@ export function AssertClient({ next }: { next: string }) {
 
   const assert = useCallback(async () => {
     setState("waiting");
+
     try {
       const result = await authClient.signIn.passkey();
+
       if (result?.error) {
         setState("failed");
+
         return;
       }
+
       router.push(next);
       router.refresh();
     } catch {

@@ -5,11 +5,13 @@ import { LicensesTable } from "./LicensesTable";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.licenses");
+
   return { title: t("metaTitle") };
 }
 
 export default async function AdminLicensesPage() {
   const t = await getTranslations("admin.licenses");
+
   return (
     <>
       <TitleRow title={t("title")} />

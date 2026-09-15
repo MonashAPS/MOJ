@@ -8,6 +8,7 @@ import { OrganizationEditor } from "./OrganizationEditor";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+
   return { title: decodeURIComponent(slug) };
 }
 
@@ -19,6 +20,7 @@ export default async function AdminOrganizationPage({ params }: { params: Promis
     getTranslations("admin.organizations.detail"),
     queryAsViewer(api.admin.organizations.get, { slug }).catch(() => null),
   ]);
+
   const crumbs = (
     <Crumbs
       items={[{ label: t("crumb"), href: "/admin/organizations/" }, { label: organization?.name ?? slug }]}

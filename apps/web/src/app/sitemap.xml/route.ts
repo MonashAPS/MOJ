@@ -16,6 +16,7 @@ export async function GET() {
         entry.lastmod === undefined
           ? ""
           : `\n    <lastmod>${new Date(entry.lastmod).toISOString().slice(0, 10)}</lastmod>`;
+
       return `  <url>
     <loc>${escapeXml(absolute(entry.location))}</loc>${lastmod}
     <changefreq>${escapeXml(entry.changefreq)}</changefreq>
@@ -29,5 +30,6 @@ export async function GET() {
 ${urls}
 </urlset>
 `;
+
   return xmlResponse(body, "application/xml; charset=utf-8");
 }

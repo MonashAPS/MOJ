@@ -28,10 +28,13 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
+
   const organization = await queryAsViewer(api.organizations.get, { slug: slugFromHandle(handle) }).catch(
     () => null,
   );
+
   const t = await getTranslations("organizations.home");
+
   return { title: organization?.name ?? t("metaTitle") };
 }
 
@@ -44,11 +47,13 @@ export default async function OrganizationHomePage({ params }: { params: Promise
     queryAsViewer(api.organizations.get, { slug }),
     getServerSession().catch(() => null),
   ]);
+
   if (!organization) notFound();
 
   const about = organization.about.trim()
     ? (await renderMarkdown(organization.about, organization.aboutPreset)).html
     : "";
+
   const base = organizationHref(organization);
 
   return (

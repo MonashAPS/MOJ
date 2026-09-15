@@ -6,6 +6,7 @@ import { UsersTable } from "./UsersTable";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.users.list");
+
   return { title: t("title") };
 }
 

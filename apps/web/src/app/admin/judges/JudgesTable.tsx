@@ -74,6 +74,7 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
   const [issued, setIssued] = useState<{ name: string; key: string } | null>(null);
+
   const [pending, setPending] = useState<{ kind: "disconnect" | "key" | "delete"; row: JudgeRow } | null>(
     null,
   );
@@ -90,6 +91,7 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
     if (!draft) return;
     setBusy(true);
     setError(null);
+
     try {
       if (draft.id) {
         await update({
@@ -107,8 +109,10 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
           description: draft.description,
           reason,
         });
+
         setIssued({ name: result.name, key: result.authKey });
       }
+
       setDraft(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("saveFailed"));
@@ -133,17 +137,22 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
     if (!pending) return;
     const { kind, row } = pending;
     setPending(null);
+
     if (kind === "disconnect") {
       await run(() => disconnect({ id: row._id }), t("disconnectingMessage", { name: row.name }));
+
       return;
     }
+
     if (kind === "delete") {
       await run(
         () => remove({ id: row._id, reason: "Deleted from the console" }),
         t("deletedMessage", { name: row.name }),
       );
+
       return;
     }
+
     try {
       const result = await regenerate({ id: row._id, reason: "Regenerated from the console" });
       setIssued({ name: row.name, key: result.authKey });

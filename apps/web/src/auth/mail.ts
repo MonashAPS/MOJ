@@ -18,6 +18,7 @@ declare global {
  *  globalThis because the route handler and the page render in different module
  *  graphs in dev, but the same process. */
 globalThis.__mojRecentLinks ??= new Map<string, RememberedLink>();
+
 const recentLinks: Map<string, RememberedLink> = globalThis.__mojRecentLinks;
 
 export function rememberLink(email: string, kind: string, url: string) {
@@ -32,7 +33,9 @@ type Env = Record<string, string | undefined>;
 
 export function mailMode(env: Env = process.env): MailMode {
   const mode = (env.MAIL_MODE ?? "console").trim().toLowerCase();
+
   if (mode === "ses" || mode === "smtp") return mode;
+
   return "console";
 }
 
@@ -58,13 +61,17 @@ export type SmtpConfig = {
 
 export function sesConfigFromEnv(env: Env = process.env): SesConfig {
   const region = env.SES_REGION?.trim();
+
   if (!region) throw new Error("MAIL_MODE=ses needs SES_REGION.");
   const accessKeyId = env.SES_ACCESS_KEY_ID?.trim();
   const secretAccessKey = env.SES_SECRET_ACCESS_KEY?.trim();
+
   if (accessKeyId && secretAccessKey) return { region, credentials: { accessKeyId, secretAccessKey } };
+
   if (accessKeyId || secretAccessKey) {
     throw new Error("SES_ACCESS_KEY_ID and SES_SECRET_ACCESS_KEY have to be set together.");
   }
+
   // Neither set: leave the SDK to its own credential chain, which is how an
   // instance role or a mounted profile is meant to be used.
   return { region };
@@ -72,11 +79,14 @@ export function sesConfigFromEnv(env: Env = process.env): SesConfig {
 
 export function smtpConfigFromEnv(env: Env = process.env): SmtpConfig {
   const host = env.SMTP_HOST?.trim();
+
   if (!host) throw new Error("MAIL_MODE=smtp needs SMTP_HOST.");
   const port = Number(env.SMTP_PORT ?? 587);
+
   if (!Number.isInteger(port) || port <= 0 || port > 65535) {
     throw new Error(`SMTP_PORT is not a port number: ${env.SMTP_PORT}`);
   }
+
   // Implicit TLS is port 465's convention; everything else starts in the clear
   // and upgrades with STARTTLS, which is what nodemailer does when `secure` is
   // false. `SMTP_SECURE` overrides it for a server that disagrees.
@@ -84,8 +94,11 @@ export function smtpConfigFromEnv(env: Env = process.env): SmtpConfig {
   const secure = secureRaw ? secureRaw === "1" || secureRaw === "true" : port === 465;
   const user = env.SMTP_USER?.trim();
   const pass = env.SMTP_PASSWORD?.trim();
+
   if (user && pass) return { host, port, secure, auth: { user, pass } };
+
   if (user || pass) throw new Error("SMTP_USER and SMTP_PASSWORD have to be set together.");
+
   return { host, port, secure };
 }
 
@@ -141,6 +154,7 @@ export function consoleTransport(log: (message: string) => void = console.info):
 export async function createSesTransport(config: SesConfig): Promise<MailTransport> {
   const { SESClient, SendEmailCommand } = await import("@aws-sdk/client-ses");
   const client = new SESClient(config);
+
   return {
     async send(mail, from) {
       await client.send(new SendEmailCommand(sesSendInput(mail, from)));
@@ -163,10 +177,12 @@ export function smtpTransportFrom(transporter: Transporter): MailTransport {
 
 export async function createSmtpTransport(config: SmtpConfig): Promise<MailTransport> {
   const nodemailer = await import("nodemailer");
+
   return smtpTransportFrom(nodemailer.createTransport(config) as Transporter);
 }
 
 let transportPromise: Promise<MailTransport> | null = null;
+
 let transportMode: MailMode | null = null;
 
 /** Tests, and anything that changes MAIL_MODE at run time, need the cached
@@ -178,12 +194,15 @@ export function resetMailTransport(): void {
 
 function buildTransport(mode: MailMode): Promise<MailTransport> {
   if (mode === "ses") return createSesTransport(sesConfigFromEnv());
+
   if (mode === "smtp") return createSmtpTransport(smtpConfigFromEnv());
+
   return Promise.resolve(consoleTransport());
 }
 
 export function mailTransport(): Promise<MailTransport> {
   const mode = mailMode();
+
   if (!transportPromise || transportMode !== mode) {
     transportMode = mode;
     transportPromise = buildTransport(mode).catch((error) => {
@@ -193,6 +212,7 @@ export function mailTransport(): Promise<MailTransport> {
       throw error;
     });
   }
+
   return transportPromise;
 }
 

@@ -56,11 +56,14 @@ export function CommentForm({
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+
     if (blocked) return;
     setBusy(true);
     setError(null);
+
     try {
       await onSubmit(body.trim());
+
       if (clearOnSuccess) {
         setBody("");
         setPreviewed(false);

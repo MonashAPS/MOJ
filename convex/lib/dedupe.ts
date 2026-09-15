@@ -11,8 +11,10 @@ import { v } from "convex/values";
 
 /** Documents one page reads from a table. */
 export const DEDUPE_PAGE = 200;
+
 /** Rows one pass rewrites before handing over to the next scheduled pass. */
 export const DEDUPE_WRITE_BUDGET = 500;
+
 /** Documents one pass reads, for the tables it has to scan to find references. */
 export const DEDUPE_READ_BUDGET = 2000;
 
@@ -59,7 +61,9 @@ export const emptyDedupeReport: DedupeReport = {
 /** Where the next page of a scan starts, and whether there is one. */
 export function nextPage(rows: { _creationTime: number }[]): { cursor: number | null; isDone: boolean } {
   const last = rows[rows.length - 1];
+
   if (rows.length < DEDUPE_PAGE || last === undefined) return { cursor: null, isDone: true };
+
   return { cursor: last._creationTime, isDone: false };
 }
 

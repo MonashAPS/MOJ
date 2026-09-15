@@ -12,17 +12,21 @@ async function fixture() {
   const t = setupTest();
   const languageId = await insertLanguage(t, { key: "PY3" });
   const cpp = await insertLanguage(t, { key: "CPP17" });
+
   const problemId = await insertProblem(t, {
     code: "aplusb",
     allowedLanguageIds: [languageId],
     memoryLimit: 262144,
   });
+
   const other = await insertProblem(t, {
     code: "other",
     allowedLanguageIds: [languageId],
     memoryLimit: 262144,
   });
+
   const author = await insertProfile(t);
+
   return { t, languageId, cpp, problemId, other, author };
 }
 
@@ -50,6 +54,7 @@ describe("judge authentication", () => {
       ],
       { PY3: [["python3", [3, 9, 10]]], CPP17: [["g++", [11]]] },
     );
+
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true, judgeId });
 
@@ -64,6 +69,7 @@ describe("judge authentication", () => {
         .withIndex("by_judge", (q) => q.eq("judgeId", judgeId))
         .collect(),
     );
+
     expect(runtimes.map((row) => row.version).sort()).toEqual(["11", "3.9.10"]);
   });
 
@@ -142,18 +148,22 @@ describe("claimNext", () => {
       problemCodes: ["aplusb"],
       runtimeKeys: ["PY3"],
     });
+
     const client = judgeClient(t, "local");
 
     const order: number[] = [];
+
     for (let i = 0; i < 4; i++) {
       const body = (await (await client.claim()).json()) as {
         submission: { submissionId: number } | null;
       };
+
       if (!body.submission) break;
       order.push(body.submission.submissionId);
       // Free the judge so it can take the next one.
       await t.run(async (ctx) => ctx.db.patch(judgeId, { currentSubmissionId: undefined }));
     }
+
     expect(order).toEqual([13, 12, 10, 11]);
   });
 
@@ -185,9 +195,11 @@ describe("claimNext", () => {
     });
 
     await insertJudge(t, { name: "local", problemCodes: ["aplusb"], runtimeKeys: ["PY3"] });
+
     const body = (await (await judgeClient(t, "local").claim()).json()) as {
       submission: { submissionId: number; problemCode: string; languageKey: string } | null;
     };
+
     expect(body.submission?.submissionId).toBe(3);
     expect(body.submission?.problemCode).toBe("aplusb");
     expect(body.submission?.languageKey).toBe("PY3");
@@ -209,11 +221,13 @@ describe("claimNext", () => {
     const otherBody = (await (await judgeClient(t, "other").claim()).json()) as {
       submission: unknown;
     };
+
     expect(otherBody.submission).toBeNull();
 
     const pinnedBody = (await (await judgeClient(t, "pinned").claim()).json()) as {
       submission: { submissionId: number } | null;
     };
+
     expect(pinnedBody.submission?.submissionId).toBe(7);
   });
 
@@ -246,9 +260,11 @@ describe("claimNext", () => {
     });
 
     await t.run(async (ctx) => ctx.db.patch(fast, { online: false }));
+
     const body = (await (await judgeClient(t, "slow").claim()).json()) as {
       submission: { submissionId: number } | null;
     };
+
     expect(body.submission?.submissionId).toBe(5);
   });
 
@@ -264,6 +280,7 @@ describe("claimNext", () => {
       status: "G",
       legacyId: 20,
     });
+
     await t.run(async (ctx) => ctx.db.patch(busy, { currentSubmissionId: held }));
 
     // A rejudge is skipped while only one judge in the tier is free...
@@ -276,9 +293,11 @@ describe("claimNext", () => {
       legacyId: 21,
       date: 1,
     });
+
     const reserved = (await (await judgeClient(t, "free").claim()).json()) as {
       submission: unknown;
     };
+
     expect(reserved.submission).toBeNull();
 
     // ...but a normal submission still goes out.
@@ -291,9 +310,11 @@ describe("claimNext", () => {
       legacyId: 22,
       date: 2,
     });
+
     const dispatched = (await (await judgeClient(t, "free").claim()).json()) as {
       submission: { submissionId: number } | null;
     };
+
     expect(dispatched.submission?.submissionId).toBe(22);
   });
 
@@ -308,15 +329,18 @@ describe("claimNext", () => {
       priority: 2,
       legacyId: 30,
     });
+
     const body = (await (await judgeClient(t, "only").claim()).json()) as {
       submission: { submissionId: number } | null;
     };
+
     expect(body.submission?.submissionId).toBe(30);
   });
 
   it("marks the submission processing and the judge busy", async () => {
     const { t, languageId, problemId, author } = await fixture();
     const judgeId = await insertJudge(t, { name: "local" });
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -336,6 +360,7 @@ describe("claimNext", () => {
         meta: { pretestsOnly: boolean; inContest: number | null; attemptNo: number };
       } | null;
     };
+
     expect(body.submission?.source).toBe("print(42)");
     expect(body.submission?.timeLimit).toBe(1);
     expect(body.submission?.memoryLimit).toBe(262144);
@@ -378,6 +403,7 @@ describe("claimNext", () => {
     const body = (await (await judgeClient(t, "local").claim()).json()) as {
       submission: { timeLimit: number; memoryLimit: number } | null;
     };
+
     expect(body.submission?.timeLimit).toBe(5);
     expect(body.submission?.memoryLimit).toBe(65536);
   });
@@ -411,9 +437,11 @@ describe("claimNext", () => {
     });
 
     await insertJudge(t, { name: "local" });
+
     const body = (await (await judgeClient(t, "local").claim()).json()) as {
       submission: { submissionId: number; meta: { attemptNo: number } } | null;
     };
+
     expect(body.submission?.submissionId).toBe(62);
     expect(body.submission?.meta.attemptNo).toBe(2);
   });

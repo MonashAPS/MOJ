@@ -11,6 +11,7 @@ import { colourFor, ProctorChart, type Segment } from "./ProctorChart";
 import { ProctorPlayer } from "./ProctorPlayer";
 
 const MINUTE = 60_000;
+
 const HOUR = 60 * MINUTE;
 
 /**
@@ -45,7 +46,9 @@ export function ProctorSessions() {
 
   const people = useMemo(() => {
     const seen = new Map<string, string>();
+
     for (const row of data?.rows ?? []) seen.set(row.username, row.displayName);
+
     return [...seen.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   }, [data]);
 

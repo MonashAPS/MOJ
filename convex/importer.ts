@@ -18,6 +18,7 @@ function assertTable(table: string): string {
   if (!tableNames.has(table)) {
     throw new Error(`unknown table ${table}; expected one of ${[...tableNames].sort().join(", ")}`);
   }
+
   return table;
 }
 
@@ -73,9 +74,12 @@ async function existingByNaturalKey(
   doc: unknown,
 ): Promise<GenericDocument | null> {
   const natural = NATURAL_KEYS[table];
+
   if (!natural) return null;
   const key = (doc as Record<string, unknown>)[natural.field];
+
   if (typeof key !== "string") return null;
+
   return await db
     .query(table)
     .withIndex(natural.index, (q) => q.eq(natural.field, key))
@@ -84,6 +88,7 @@ async function existingByNaturalKey(
 
 function legacyIdOf(doc: unknown): number | null {
   const value = (doc as { legacyId?: unknown }).legacyId;
+
   return typeof value === "number" ? value : null;
 }
 
@@ -111,24 +116,30 @@ export const insertBatch = internalMutation({
     const table = assertTable(args.table);
     const db = writer(ctx.db);
     const out: { legacyId: number | null; id: string }[] = [];
+
     for (const doc of args.docs) {
       const existing = await existingByNaturalKey(db, table, doc);
       let id: string;
+
       if (existing) {
         await db.patch(existing._id as GenericId<string>, asDocument(doc));
         id = existing._id as string;
       } else {
         id = await db.insert(table, asDocument(doc));
+
         // The leaderboard aggregates have no triggers, so a straight insert has
         // to add the profile itself. `rankings.rebuildAggregates` repairs the
         // tree if an import is interrupted part way through.
         if (table === "profiles") {
           const inserted = await ctx.db.get(id as unknown as Doc<"profiles">["_id"]);
+
           if (inserted) await insertProfileAggregates(ctx, inserted as Doc<"profiles">);
         }
       }
+
       out.push({ legacyId: legacyIdOf(doc), id });
     }
+
     return out;
   },
 });
@@ -143,9 +154,11 @@ export const patchBatch = internalMutation({
   handler: async (ctx, args) => {
     assertTable(args.table);
     const db = writer(ctx.db);
+
     for (const patch of args.patches) {
       await db.patch(patch.id as GenericId<string>, asDocument(patch.fields));
     }
+
     return args.patches.length;
   },
 });
@@ -165,7 +178,9 @@ export const clearTable = internalMutation({
     const db = writer(ctx.db);
     const limit = args.limit ?? 2000;
     const docs = await db.query(table).take(limit);
+
     for (const doc of docs) await db.delete(doc._id as GenericId<string>);
+
     return { deleted: docs.length, isDone: docs.length < limit };
   },
 });
@@ -189,6 +204,7 @@ export const mapping = internalQuery({
     const table = assertTable(args.table);
     const db = reader(ctx.db);
     const result = await db.query(table).paginate({ cursor: args.cursor, numItems: args.numItems ?? 512 });
+
     return {
       page: result.page.map((doc: GenericDocument) => ({
         legacyId: legacyIdOf(doc),
@@ -228,30 +244,37 @@ export const backfillFormatDataKeys = internalMutation({
 
     let rewritten = 0;
     let droppedKeys = 0;
+
     for (const participation of page.page) {
       const data = participation.formatData;
+
       if (data === null || typeof data !== "object" || Array.isArray(data)) continue;
 
       const entries = Object.entries(data as Record<string, unknown>);
       const numeric = entries.filter(([key]) => /^\d+$/.test(key));
+
       if (numeric.length === 0) continue;
 
       const next: Record<string, unknown> = {};
+
       for (const [key, value] of entries) {
         if (!/^\d+$/.test(key)) {
           next[key] = value;
           continue;
         }
+
         const contestProblem = await ctx.db
           .query("contestProblems")
           .withIndex("by_legacyId", (q) => q.eq("legacyId", Number(key)))
           .unique();
+
         if (contestProblem && contestProblem.contestId === participation.contestId) {
           next[contestProblem._id] = value;
         } else {
           droppedKeys++;
         }
       }
+
       await ctx.db.patch(participation._id, { formatData: next });
       rewritten++;
     }
@@ -293,10 +316,13 @@ export const backfillLabelScheme = internalMutation({
       .paginate({ cursor: args.cursor, numItems: args.numItems ?? 200 });
 
     let rewritten = 0;
+
     for (const contest of page.page) {
       if (contest.labelScheme !== "letters") continue;
+
       if (contest.customLabels.length > 0) continue;
       const scheme = getFormatOrDefault(contest.formatName).defaultLabelScheme;
+
       if (scheme === "letters") continue;
       await ctx.db.patch(contest._id, { labelScheme: scheme });
       rewritten++;

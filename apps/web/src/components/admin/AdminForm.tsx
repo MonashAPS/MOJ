@@ -55,10 +55,13 @@ export function AdminForm({
 }) {
   useEffect(() => {
     if (!dirty) return;
+
     function warn(event: BeforeUnloadEvent) {
       event.preventDefault();
     }
+
     window.addEventListener("beforeunload", warn);
+
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
@@ -149,6 +152,7 @@ export function AdminCheckField({
   disabledReason?: string;
 }) {
   const id = useId();
+
   return (
     <div className="grid gap-1" title={disabled ? disabledReason : undefined}>
       <Checkbox
@@ -183,6 +187,7 @@ export function AdminFormFooter({
   note?: ReactNode;
 }) {
   const t = useTranslations("admin.components.form");
+
   return (
     // Pinned to the bottom of the window rather than the bottom of the form.
     // A console page is long and the thing you came to press was under all of
@@ -205,7 +210,9 @@ export function AdminFormFooter({
 /** What a mutation said when it refused, on the page rather than in a toast. */
 export function AdminFormError({ message }: { message: string | null }) {
   const t = useTranslations("admin.components.form");
+
   if (!message) return null;
+
   return (
     <Alert variant="danger">
       <AlertTitle>{t("errorTitle")}</AlertTitle>

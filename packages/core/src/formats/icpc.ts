@@ -36,6 +36,7 @@ export function validateIcpcConfig(config: unknown): void {
 export function resolveIcpcConfig(config: unknown): { penalty: number } {
   validateIcpcConfig(config);
   const merged = mergeConfig(ICPC_DEFAULTS, config);
+
   return { penalty: Number(merged.penalty) };
 }
 
@@ -51,12 +52,14 @@ export function updateParticipationIcpc(input: UpdateParticipationInput): Partic
   const formatData: FormatData = {};
 
   const groups = groupByProblem(submissions, participation.id);
+
   for (const row of computeMaxPointsRows(groups, contestProblems, config.penalty)) {
     const dt = secondsSince(start, row.time);
 
     if (config.penalty && row.points) {
       penalty += row.penaltyCount * config.penalty * 60;
     }
+
     if (row.points) {
       cumtime += dt;
       last = Math.max(last, dt);
@@ -87,7 +90,9 @@ export const icpcFormat: ContestFormat = {
 
   displayUserProblem(participation, contestProblem, contest) {
     const entry = participation.formatData?.[contestProblem.id];
+
     if (!entry) return null;
+
     return buildProblemCell(entry, contestProblem, contest, { penalty: true });
   },
 
@@ -101,8 +106,10 @@ export const icpcFormat: ContestFormat = {
   getShortFormDisplay(config) {
     const { penalty } = resolveIcpcConfig(config);
     const lines: ScoringLine[] = [{ key: "maxScoreSubmission" }];
+
     if (penalty) lines.push({ key: "penalty", values: { minutes: penalty } });
     lines.push({ key: "tiesByScoreAlteringThenLast" });
+
     return lines;
   },
 };

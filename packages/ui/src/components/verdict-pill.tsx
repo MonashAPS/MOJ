@@ -84,6 +84,7 @@ export function VerdictPill({
   const code = String(verdict).toUpperCase();
   const tone = judging ? "run" : verdictTone(code);
   const text = label ?? (code === "_AC" ? "AC" : code);
+
   return (
     <Badge
       variant={tone}

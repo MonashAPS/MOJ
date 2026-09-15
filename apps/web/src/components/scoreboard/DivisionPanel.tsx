@@ -69,38 +69,48 @@ export function DivisionPanel({
     const next = new Map<string, string>();
     const moved = new Set<string>();
     const first = seen.current.size === 0;
+
     for (const row of division.rows) {
       row.cells.forEach((cell, index) => {
         const key = `${row.participationId}:${index}`;
         const signature = cellSignature(cell);
         next.set(key, signature);
         const before = seen.current.get(key);
+
         if (!first && before !== undefined && before !== signature) moved.add(key);
       });
     }
+
     seen.current = next;
+
     return moved;
   }, [division]);
 
   useLayoutEffect(() => {
     const body = bodyRef.current;
+
     if (!body) return;
     const still = prefersReducedMotion();
     const next = new Map<string, number>();
+
     for (const node of body.querySelectorAll<HTMLTableRowElement>("tr[data-row]")) {
       const id = node.dataset.row;
+
       if (!id) continue;
       const top = node.offsetTop;
       next.set(id, top);
       const before = positions.current.get(id);
+
       if (still || before === undefined) continue;
       const delta = before - top;
+
       if (Math.abs(delta) < 2 || typeof node.animate !== "function") continue;
       node.animate([{ transform: `translateY(${delta}px)` }, { transform: "none" }], {
         duration: FLIP_MS,
         easing: easing(),
       });
     }
+
     positions.current = next;
   });
 
@@ -126,6 +136,7 @@ export function DivisionPanel({
               </th>
               {division.problems.map((problem, index) => {
                 const picture = olympics ? pictogramFor(division.key, problem.code, index) : null;
+
                 return (
                   <th
                     key={problem.contestProblemId}
@@ -162,6 +173,7 @@ export function DivisionPanel({
             {rows.map((row, position) => {
               const isTarget = revealing && target?.rowIndex === position;
               const isDone = revealing && target !== null && position < target.rowIndex;
+
               return (
                 <tr
                   key={row.participationId}

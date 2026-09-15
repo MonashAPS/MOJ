@@ -22,12 +22,15 @@ class FakeDatabase implements SqlExecutor {
   async query(text: string, values: unknown[] = []) {
     if (text.startsWith("SELECT column_name")) {
       const table = values[0] as string;
+
       return {
         rows: (this.columns[table] ?? []).map((column_name) => ({ column_name })),
         rowCount: (this.columns[table] ?? []).length,
       };
     }
+
     this.statements.push({ text, values });
+
     return { rows: [], rowCount: 1 };
   }
 }
@@ -62,6 +65,7 @@ describe("SQL building", () => {
       preferred_language: "PY3",
       organization_slugs: null,
     });
+
     expect(statement.text).toContain('INSERT INTO "user"');
     expect(statement.text).toContain('"email_verified"');
     expect(statement.text).toContain('"is_superuser"');
@@ -81,6 +85,7 @@ describe("SQL building", () => {
       device_type: "multiDevice",
       backed_up: false,
     });
+
     expect(statement.text).not.toContain("aaguid");
     expect(statement.values).toHaveLength(7);
   });
@@ -168,6 +173,7 @@ describe("writeBetterAuthRows", () => {
       ...FULL_SCHEMA,
       two_factor: ["id", "secret", "backup_codes", "user_id", "verified"],
     });
+
     const result = await writeBetterAuthRows(db, rows);
     expect(result.droppedColumns).toEqual([
       "two_factor.failed_verification_count",
@@ -258,19 +264,23 @@ describe("buildAuthRows", () => {
     const codesBlob = Buffer.from(fernetEncrypt(key, Buffer.from(JSON.stringify(codes)), iv, 0), "ascii");
     const raw = `${ctx.options.outDir}/raw/judge_profile.jsonl`;
     const { readFileSync, writeFileSync } = await import("node:fs");
+
     const patched = readFileSync(raw, "utf8")
       .trim()
       .split("\n")
       .map((line) => {
         const row = JSON.parse(line) as Record<string, unknown>;
+
         if (row.id === 1) {
           row.is_totp_enabled = 1;
           row.totp_key = { $hex: totpBlob.toString("hex") };
           row.scratch_codes = { $hex: codesBlob.toString("hex") };
         }
+
         return JSON.stringify(row);
       })
       .join("\n");
+
     writeFileSync(raw, `${patched}\n`);
 
     const result = await buildAuthRows(ctx, { djangoSecretKey, authSecret });
@@ -286,18 +296,22 @@ describe("buildAuthRows", () => {
     const { ctx } = await makeFixtureContext();
     const raw = `${ctx.options.outDir}/raw/judge_profile.jsonl`;
     const { readFileSync, writeFileSync } = await import("node:fs");
+
     const patched = readFileSync(raw, "utf8")
       .trim()
       .split("\n")
       .map((line) => {
         const row = JSON.parse(line) as Record<string, unknown>;
+
         if (row.id === 1) {
           row.is_totp_enabled = 1;
           row.totp_key = { $hex: "6761726261676521" };
         }
+
         return JSON.stringify(row);
       })
       .join("\n");
+
     writeFileSync(raw, `${patched}\n`);
 
     const result = await buildAuthRows(ctx, {});

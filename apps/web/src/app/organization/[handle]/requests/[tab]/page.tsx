@@ -12,6 +12,7 @@ import { RequestsTable } from "./RequestsTable";
 export const dynamic = "force-dynamic";
 
 const TABS = ["pending", "log", "approved", "rejected"] as const;
+
 type Tab = (typeof TABS)[number];
 
 /** The tab is part of the title's sentence, so each tab gets its own message
@@ -34,6 +35,7 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
   const { handle, tab } = await params;
   const t = await getTranslations("organizations.requests");
   const message = META[tab as Tab] ?? META.pending;
+
   return { title: t(message, { organization: slugFromHandle(handle) }) };
 }
 
@@ -43,25 +45,31 @@ export default async function OrganizationRequestsPage({
   params: Promise<{ handle: string; tab: string }>;
 }) {
   const { handle, tab } = await params;
+
   if (!TABS.includes(tab as Tab)) notFound();
   const slug = slugFromHandle(handle);
+
   const [t, shared] = await Promise.all([
     getTranslations("organizations.requests"),
     getTranslations("organizations.common"),
   ]);
 
   const session = await getServerSession();
+
   if (!session) redirect(`/accounts/login/?next=/organization/${handle}/requests/${tab}/`);
 
   const data = await queryAsViewer(api.organizations.reviewRequests, { slug, tab: tab as Tab }).catch(
     () => null,
   );
+
   // The query throws for someone with no review rights and returns a null
   // organisation when there is no such organisation.
   if (!data) return <ErrorScreen code={403} id="AccessDenied" description={shared("accessDenied")} />;
+
   if (!data.organization) notFound();
 
   const base = `/organization/${handle}/requests`;
+
   const tabs: TabItem[] = TABS.map((key) => ({
     key,
     label: t(TAB_LABELS[key]),

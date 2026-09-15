@@ -9,7 +9,9 @@ import { writeRevision } from "../lib/community";
 import { invalid, notFound } from "../lib/errors";
 
 const NAV_PERM = "judge.change_navigationbar";
+
 const CONFIG_PERM = "judge.change_miscconfig";
+
 const FLATPAGE_PERM = "judge.change_flatpage";
 
 /** `validate_regex` (judge/models/interface.py:23). */
@@ -31,6 +33,7 @@ export const navRows = query({
     await requirePerm(ctx, NAV_PERM);
     const rows = await ctx.db.query("navigationBar").withIndex("by_order").collect();
     rows.sort((a, b) => a.order - b.order);
+
     return rows;
   },
 });
@@ -50,13 +53,16 @@ export const createNavItem = mutation({
     checkRegex(args.regex);
 
     const key = args.key.trim();
+
     if (key.length === 0) throw invalid("A navigation item needs an identifier.");
+
     if (key.length > 10) throw invalid("Identifiers are limited to 10 characters.");
 
     const clash = await ctx.db
       .query("navigationBar")
       .withIndex("by_key", (q) => q.eq("key", key))
       .first();
+
     if (clash) throw invalid(`A navigation item with the identifier ${key} already exists.`);
 
     const id = await ctx.db.insert("navigationBar", {
@@ -67,6 +73,7 @@ export const createNavItem = mutation({
       order: args.order,
       parentId: args.parentId,
     });
+
     await writeRevision(
       ctx,
       "navigationBar",
@@ -75,6 +82,7 @@ export const createNavItem = mutation({
       editor._id,
       args.reason ?? "Created navigation item",
     );
+
     return id;
   },
 });
@@ -93,16 +101,25 @@ export const updateNavItem = mutation({
   handler: async (ctx, args) => {
     const editor = await requirePerm(ctx, NAV_PERM);
     const row = await ctx.db.get(args.id);
+
     if (!row) throw notFound("Navigation item");
+
     if (args.regex !== undefined) checkRegex(args.regex);
+
     if (args.parentId === args.id) throw invalid("A navigation item cannot be its own parent.");
 
     const patch: Partial<Doc<"navigationBar">> = {};
+
     if (args.key !== undefined) patch.key = args.key.trim();
+
     if (args.label !== undefined) patch.label = args.label;
+
     if (args.path !== undefined) patch.path = args.path;
+
     if (args.regex !== undefined) patch.regex = args.regex;
+
     if (args.order !== undefined) patch.order = args.order;
+
     if (args.parentId !== undefined) patch.parentId = args.parentId ?? undefined;
 
     await ctx.db.patch(args.id, patch);
@@ -122,12 +139,14 @@ export const deleteNavItem = mutation({
   handler: async (ctx, { id, reason }) => {
     const editor = await requirePerm(ctx, NAV_PERM);
     const row = await ctx.db.get(id);
+
     if (!row) throw notFound("Navigation item");
 
     const children = await ctx.db
       .query("navigationBar")
       .withIndex("by_parent", (q) => q.eq("parentId", id))
       .collect();
+
     for (const child of children) await ctx.db.patch(child._id, { parentId: row.parentId });
 
     await writeRevision(ctx, "navigationBar", id, row, editor._id, reason ?? "Deleted navigation item");
@@ -148,11 +167,15 @@ export const reorderNav = mutation({
   },
   handler: async (ctx, { items }) => {
     await requirePerm(ctx, NAV_PERM);
+
     for (const item of items) {
       const row = await ctx.db.get(item.id);
+
       if (!row) throw notFound("Navigation item");
+
       if (item.parentId === item.id) throw invalid("A navigation item cannot be its own parent.");
       const patch: Partial<Doc<"navigationBar">> = { order: item.order };
+
       if (item.parentId !== undefined) patch.parentId = item.parentId ?? undefined;
       await ctx.db.patch(item.id, patch);
     }
@@ -183,6 +206,7 @@ export const configRows = query({
     await requirePerm(ctx, CONFIG_PERM);
     const rows = await ctx.db.query("miscConfig").collect();
     rows.sort((a, b) => a.key.localeCompare(b.key));
+
     return { rows, knownKeys: KNOWN_CONFIG_KEYS as readonly string[] };
   },
 });
@@ -192,7 +216,9 @@ export const setConfig = mutation({
   handler: async (ctx, { key, value, reason }) => {
     const editor = await requirePerm(ctx, CONFIG_PERM);
     const trimmed = key.trim();
+
     if (trimmed.length === 0) throw invalid("A configuration item needs a key.");
+
     if (trimmed.length > 30) throw invalid("Keys are limited to 30 characters.");
 
     const existing = await ctx.db
@@ -210,8 +236,10 @@ export const setConfig = mutation({
         reason ?? "Edited configuration",
       );
       await ctx.db.patch(existing._id, { value });
+
       return existing._id;
     }
+
     const id = await ctx.db.insert("miscConfig", { key: trimmed, value });
     await writeRevision(
       ctx,
@@ -221,6 +249,7 @@ export const setConfig = mutation({
       editor._id,
       reason ?? "Created configuration",
     );
+
     return id;
   },
 });
@@ -229,10 +258,12 @@ export const deleteConfig = mutation({
   args: { key: v.string(), reason: v.optional(v.string()) },
   handler: async (ctx, { key, reason }) => {
     const editor = await requirePerm(ctx, CONFIG_PERM);
+
     const existing = await ctx.db
       .query("miscConfig")
       .withIndex("by_key", (q) => q.eq("key", key))
       .first();
+
     if (!existing) throw notFound("Configuration item");
     await writeRevision(
       ctx,
@@ -256,13 +287,16 @@ export const flatPageRows = query({
     await requirePerm(ctx, FLATPAGE_PERM);
     const rows = await ctx.db.query("flatPages").collect();
     rows.sort((a, b) => a.url.localeCompare(b.url));
+
     return rows;
   },
 });
 
 function normaliseUrl(url: string): string {
   const trimmed = url.trim();
+
   if (!trimmed.startsWith("/")) throw invalid("A flat page URL must start with a slash.");
+
   return trimmed.endsWith("/") ? trimmed : `${trimmed}/`;
 }
 
@@ -277,10 +311,12 @@ export const createFlatPage = mutation({
   handler: async (ctx, args): Promise<Id<"flatPages">> => {
     const editor = await requirePerm(ctx, FLATPAGE_PERM);
     const url = normaliseUrl(args.url);
+
     const clash = await ctx.db
       .query("flatPages")
       .withIndex("by_url", (q) => q.eq("url", url))
       .first();
+
     if (clash) throw invalid(`A flat page already lives at ${url}.`);
 
     const id = await ctx.db.insert("flatPages", {
@@ -289,6 +325,7 @@ export const createFlatPage = mutation({
       content: args.content,
       enableComments: args.enableComments,
     });
+
     await writeRevision(
       ctx,
       "flatPage",
@@ -297,6 +334,7 @@ export const createFlatPage = mutation({
       editor._id,
       args.reason ?? "Created flat page",
     );
+
     return id;
   },
 });
@@ -313,22 +351,30 @@ export const updateFlatPage = mutation({
   handler: async (ctx, args) => {
     const editor = await requirePerm(ctx, FLATPAGE_PERM);
     const row = await ctx.db.get(args.id);
+
     if (!row) throw notFound("Flat page");
 
     const patch: Partial<Doc<"flatPages">> = {};
+
     if (args.url !== undefined) {
       const url = normaliseUrl(args.url);
+
       if (url !== row.url) {
         const clash = await ctx.db
           .query("flatPages")
           .withIndex("by_url", (q) => q.eq("url", url))
           .first();
+
         if (clash) throw invalid(`A flat page already lives at ${url}.`);
       }
+
       patch.url = url;
     }
+
     if (args.title !== undefined) patch.title = args.title;
+
     if (args.content !== undefined) patch.content = args.content;
+
     if (args.enableComments !== undefined) patch.enableComments = args.enableComments;
 
     await writeRevision(ctx, "flatPage", args.id, row, editor._id, args.reason ?? "Edited flat page");
@@ -341,6 +387,7 @@ export const deleteFlatPage = mutation({
   handler: async (ctx, { id, reason }) => {
     const editor = await requirePerm(ctx, FLATPAGE_PERM);
     const row = await ctx.db.get(id);
+
     if (!row) throw notFound("Flat page");
     await writeRevision(ctx, "flatPage", id, row, editor._id, reason ?? "Deleted flat page");
     await ctx.db.delete(id);
@@ -394,6 +441,7 @@ export const updateSettings = mutation({
         throw invalid(`${key} must be a number.`);
       }
     }
+
     if (patch.commentReplyTimeframeDays !== undefined && patch.commentReplyTimeframeDays < 0) {
       throw invalid("The reply timeframe cannot be negative.");
     }
@@ -402,6 +450,7 @@ export const updateSettings = mutation({
       .query("siteSettings")
       .withIndex("by_singleton", (q) => q.eq("singleton", "site"))
       .unique();
+
     if (!existing) throw notFound("Site settings");
 
     await writeRevision(

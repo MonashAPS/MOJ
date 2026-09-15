@@ -5,6 +5,7 @@ export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; e
 
 export function failed(error: unknown): { ok: false; error: string } {
   const message = error instanceof Error ? error.message : String(error);
+
   return { ok: false, error: message.replace(/^\[.*?\]\s*/, "") };
 }
 
@@ -15,9 +16,11 @@ export function failed(error: unknown): { ok: false; error: string } {
  */
 export async function applySetCookies(responseHeaders: Headers): Promise<void> {
   const store = await cookies();
+
   for (const raw of responseHeaders.getSetCookie()) {
     const [pair = "", ...attributes] = raw.split(";");
     const index = pair.indexOf("=");
+
     if (index < 0) continue;
     const name = pair.slice(0, index).trim();
     const value = decodeURIComponent(pair.slice(index + 1).trim());
@@ -31,8 +34,10 @@ export async function applySetCookies(responseHeaders: Headers): Promise<void> {
       sameSite?: "lax" | "strict" | "none";
       domain?: string;
     } = {};
+
     for (const attribute of attributes) {
       const [key = "", attributeValue = ""] = attribute.split("=").map((part) => part.trim());
+
       switch (key.toLowerCase()) {
         case "path":
           options.path = attributeValue;
@@ -57,6 +62,7 @@ export async function applySetCookies(responseHeaders: Headers): Promise<void> {
           break;
       }
     }
+
     store.set(name, value, options);
   }
 }

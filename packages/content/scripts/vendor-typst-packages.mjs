@@ -37,6 +37,7 @@ async function run(command, args, options = {}) {
 
 async function vendor(spec) {
   const [name, version] = spec.split("@");
+
   if (!name || !version) throw new Error(`expected name@version, got ${spec}`);
 
   const target = join(ROOT, name, version);
@@ -46,6 +47,7 @@ async function vendor(spec) {
 
   process.stdout.write(`downloading ${url}\n`);
   const response = await fetch(url);
+
   if (!response.ok) throw new Error(`${url}: ${response.status} ${response.statusText}`);
   await pipeline(response.body, createWriteStream(archive));
 
@@ -55,10 +57,13 @@ async function vendor(spec) {
   await rm(staging, { recursive: true, force: true });
 
   const files = await readdir(target);
+
   if (!files.includes("typst.toml")) throw new Error(`${spec}: no typst.toml in the archive`);
   process.stdout.write(`vendored ${spec} into ${target}\n`);
 }
 
 const specs = process.argv.slice(2);
+
 for (const spec of specs.length > 0 ? specs : PINNED) await vendor(spec);
+
 process.stdout.write('\nRemember to update the `#import "@preview/..."` lines in typst/statement.typ.\n');

@@ -34,12 +34,16 @@ export function Clarifications({
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+
     if (!body.trim()) {
       setError(t("bodyRequired"));
+
       return;
     }
+
     setBusy(true);
     setError(null);
+
     try {
       await add({ key: contestKey, problemCode, description: body.trim() });
       setBody("");

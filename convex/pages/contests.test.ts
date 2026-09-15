@@ -51,28 +51,34 @@ describe("tag", () => {
 describe("frozenCells", () => {
   async function frozenContest(t: T) {
     const now = Date.now();
+
     return await t.run(async (ctx) => {
       const groupId = await insertProblemGroup(ctx);
       const languageId = await insertLanguage(ctx);
       const problemId = await insertProblem(ctx, { code: "aplusb", groupId });
+
       const contestId = await insertContest(ctx, {
         key: "frozen",
         startTime: now - 3 * HOUR,
         endTime: now + 30 * MINUTE,
         freezeMinutes: 60,
       });
+
       const contestProblemId = await insertContestProblem(ctx, {
         contestId,
         problemId,
         order: 0,
         points: 1,
       });
+
       const profileId = await insertProfile(ctx, { username: "runner" });
+
       const participationId = await insertParticipation(ctx, {
         contestId,
         profileId,
         realStart: now - 3 * HOUR,
       });
+
       // One submission before the freeze point and two after it.
       await insertSubmission(ctx, {
         profileId,
@@ -89,6 +95,7 @@ describe("frozenCells", () => {
         time: 0.1,
         memory: 1024,
       });
+
       for (const offset of [10 * MINUTE, 5 * MINUTE]) {
         await insertSubmission(ctx, {
           profileId,
@@ -106,6 +113,7 @@ describe("frozenCells", () => {
           memory: 1024,
         });
       }
+
       return { contestProblemId, participationId };
     });
   }
@@ -151,10 +159,12 @@ describe("deleteMossResults", () => {
     await t.run(async (ctx) => {
       const groupId = await insertProblemGroup(ctx);
       const problemId = await insertProblem(ctx, { code: "aplusb", groupId });
+
       const editorId = await insertProfile(ctx, {
         username: "editor",
         permissions: ["judge.moss_contest", "judge.edit_all_contest"],
       });
+
       const contestId = await insertContest(ctx, { key: "mossy", authorProfileIds: [editorId] });
       await ctx.db.insert("contestMoss", {
         contestId,

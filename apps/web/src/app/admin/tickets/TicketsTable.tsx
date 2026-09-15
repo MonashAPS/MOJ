@@ -46,6 +46,7 @@ export function TicketsTable() {
     cursor,
     numItems: PER_PAGE,
   });
+
   const counts = useQuery(api.admin.tickets.counts, {});
 
   const setOpen = useMutation(api.admin.tickets.setOpen);
@@ -269,15 +270,18 @@ function AssignDialog({
   async function save() {
     setBusy(true);
     setError(null);
+
     try {
       await setAssignees({
         ticketId: ticket._id,
         profileIds: chosen as Id<"profiles">[],
         reason,
       });
+
       if (notes !== ticket.notes) {
         await setNotes({ ticketId: ticket._id, notes, reason });
       }
+
       onDone(t("reassignedMessage", { title: ticket.title }));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("reassignFailed"));

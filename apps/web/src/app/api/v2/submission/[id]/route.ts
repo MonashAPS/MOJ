@@ -13,10 +13,12 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }): Promise<Response> {
   const { id } = await context.params;
+
   return withFilters(request, async () => {
     if (!request.headers.get("authorization")) {
       return apiError(request, API_ERRORS.loginRequired.code, API_ERRORS.loginRequired.message);
     }
+
     return handleApiRequest(request, async (options) => ({
       object: await fetchQuery(api.apiV2.submission, { id }, options),
     }));

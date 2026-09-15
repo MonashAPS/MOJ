@@ -14,6 +14,7 @@ type PdfParseInstance = {
 };
 
 type PdfParseCtor = new (options: { data: Buffer }) => PdfParseInstance;
+
 type Extract = (data: Buffer) => Promise<PdfText>;
 
 let extract: Extract | undefined;
@@ -24,6 +25,7 @@ async function legacy(): Promise<Extract | undefined> {
     const specifier = ["pdf-parse", "lib", "pdf-parse.js"].join("/");
     const module = (await import(/* @vite-ignore */ specifier)) as Record<string, unknown>;
     const parse = (module.default ?? module) as unknown as Extract;
+
     return typeof parse === "function" ? parse : undefined;
   } catch {
     return undefined;
@@ -39,20 +41,25 @@ async function load(): Promise<Extract> {
   if (PDFParse) {
     extract = async (data: Buffer) => {
       const parser = new PDFParse({ data });
+
       try {
         const result = await parser.getText();
         const numpages = result.total ?? result.pages?.length ?? 0;
+
         return { text: result.text, numpages };
       } finally {
         await parser.destroy();
       }
     };
+
     return extract;
   }
 
   const one = (module.default ?? module) as unknown;
   extract = typeof one === "function" ? (one as Extract) : await legacy();
+
   if (!extract) throw new Error("pdf-parse exposes neither PDFParse nor a parse function");
+
   return extract;
 }
 
@@ -60,10 +67,12 @@ async function load(): Promise<Extract> {
 export async function pdfText(pdf: Buffer): Promise<string> {
   const parse = await load();
   const { text } = await parse(pdf);
+
   return text.replace(/­/g, "").replace(/\s+/g, " ");
 }
 
 export async function pdfPages(pdf: Buffer): Promise<number> {
   const parse = await load();
+
   return (await parse(pdf)).numpages;
 }

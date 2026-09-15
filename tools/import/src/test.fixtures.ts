@@ -496,11 +496,13 @@ export async function makeFixtureContext(loader?: Loader, tables?: Set<string>):
   writeFileSync(dumpPath, FIXTURE_DUMP);
   const manifest = await extract({ dumpPath, outDir: dir });
   const used = loader ?? new DryRunLoader(path.join(dir, "docs"));
+
   const ctx = new ImportContext(manifest, used, {
     outDir: dir,
     dryRun: true,
     tables,
     clear: false,
   });
+
   return { ctx, dir, loader: used };
 }

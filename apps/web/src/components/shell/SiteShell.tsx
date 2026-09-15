@@ -67,6 +67,7 @@ export function SiteShell({
   const routeKey = /^\/contest\/([a-z0-9._-]+)/i.exec(pathname)?.[1];
   const contest = useQuery(api.contests.navBar, routeKey ? { key: routeKey } : {});
   const problemCode = /^\/problem\/([a-z0-9._-]+)/.exec(pathname)?.[1];
+
   const onContestPage =
     !!contest &&
     (pathname.startsWith(`/contest/${contest.contest.key}`) ||
@@ -76,13 +77,17 @@ export function SiteShell({
    *  guess. One ResizeObserver, writing a custom property, no React state. */
   useLayoutEffect(() => {
     const header = headerRef.current;
+
     if (!header) return;
+
     const publish = () => {
       document.documentElement.style.setProperty("--header-height", `${header.offsetHeight}px`);
     };
+
     publish();
     const observer = new ResizeObserver(publish);
     observer.observe(header);
+
     return () => observer.disconnect();
   }, []);
 

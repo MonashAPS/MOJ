@@ -15,6 +15,7 @@ afterAll(async () => {
 
 /** A real tag carrying an inline event handler. */
 const EVENT_ATTRIBUTE = /<[a-z][^>]*\son[a-z]+\s*=/i;
+
 /** A real tag pointing an URL attribute at a script. */
 const SCRIPT_URL = /<[a-z][^>]*(?:href|src|data|poster)\s*=\s*"?\s*javascript:/i;
 
@@ -97,12 +98,14 @@ describe("comment preset", () => {
 
 describe("no script survives any user preset", () => {
   const userPresets = PRESET_NAMES.filter((preset) => preset !== "problem-full" && preset !== "flatpage");
+
   for (const preset of userPresets) {
     it(preset, async () => {
       const { html } = await renderMarkdown(
         '<script>alert(1)</script>\n\n<a href="javascript:alert(1)">x</a>',
         preset,
       );
+
       expect(html).not.toMatch(/<script/i);
       expect(html).not.toMatch(SCRIPT_URL);
     });

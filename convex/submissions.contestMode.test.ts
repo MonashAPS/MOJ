@@ -25,7 +25,9 @@ async function join(t: T, contestId: Id<"contests">, profileId: Id<"profiles">) 
     profileId,
     realStart: Date.now() - 600_000,
   });
+
   await t.run(async (ctx) => ctx.db.patch(profileId, { currentParticipationId: participationId }));
+
   return participationId;
 }
 
@@ -37,11 +39,13 @@ describe("contest mode", () => {
     const meId = await insertProfile(t, { username: "me" });
     const rivalId = await insertProfile(t, { username: "rival" });
     const now = Date.now();
+
     const contestId = await insertContest(t, {
       startTime: now - 3600_000,
       endTime: now + 3600_000,
       scoreboardVisibility: "H",
     });
+
     const contestProblemId = await insertContestProblem(t, {
       contestId,
       problemId,
@@ -79,6 +83,7 @@ describe("contest mode", () => {
     const page = await asUser(t, "me").query(api.submissions.list, {
       paginationOpts: { numItems: 20, cursor: null },
     });
+
     expect(page.page).toHaveLength(1);
     expect(page.page[0]?.user?.username).toBe("me");
   });
@@ -89,6 +94,7 @@ describe("contest mode", () => {
     const problemId = await insertProblem(t, { allowedLanguageIds: [languageId] });
     const meId = await insertProfile(t, { username: "me" });
     const now = Date.now();
+
     const contestId = await insertContest(t, {
       startTime: now - 7200_000,
       // The freeze started half an hour ago and the contest is still running.
@@ -97,6 +103,7 @@ describe("contest mode", () => {
       blindDuringFreeze: true,
       scoreboardVisibility: "V",
     });
+
     const contestProblemId = await insertContestProblem(t, {
       contestId,
       problemId,
@@ -105,6 +112,7 @@ describe("contest mode", () => {
       isPretested: false,
       order: 1,
     });
+
     const participationId = await join(t, contestId, meId);
 
     const beforeFreeze = await insertSubmission(t, {
@@ -121,6 +129,7 @@ describe("contest mode", () => {
       casePoints: 100,
       caseTotal: 100,
     });
+
     const afterFreeze = await insertSubmission(t, {
       profileId: meId,
       problemId,
@@ -150,9 +159,11 @@ describe("contest mode", () => {
 
     // Staff see straight through it.
     await insertProfile(t, { username: "staff", permissions: ["judge.see_private_contest"] });
+
     const staffView = await asUser(t, "staff").query(api.submissions.detail, {
       submissionId: afterFreeze,
     });
+
     expect(staffView?.submission.masked).toBe(false);
     expect(staffView?.submission.result).toBe("WA");
   });
@@ -164,12 +175,14 @@ describe("contest mode", () => {
     const contestantId = await insertProfile(t, { username: "contestant" });
     await insertProfile(t, { username: "stranger" });
     const now = Date.now();
+
     const hidden = await insertContest(t, {
       key: "hidden",
       startTime: now - 3600_000,
       endTime: now + 3600_000,
       scoreboardVisibility: "H",
     });
+
     const open = await insertContest(t, {
       key: "open",
       startTime: now - 3600_000,
@@ -191,12 +204,14 @@ describe("contest mode", () => {
     const page = await asUser(t, "stranger").query(api.submissions.list, {
       paginationOpts: { numItems: 20, cursor: null },
     });
+
     expect(page.page.map((row) => row.contest?.key)).toEqual(["open"]);
 
     // The author always sees their own.
     const own = await asUser(t, "contestant").query(api.submissions.list, {
       paginationOpts: { numItems: 20, cursor: null },
     });
+
     expect(own.page).toHaveLength(2);
   });
 });

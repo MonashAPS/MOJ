@@ -33,10 +33,14 @@ type BooleanWords = { yes: string; no: string };
 
 function render(value: unknown, words: BooleanWords): string {
   if (value === undefined || value === null) return "—";
+
   if (Array.isArray(value))
     return value.length === 0 ? "—" : value.map((entry) => render(entry, words)).join(", ");
+
   if (typeof value === "object") return JSON.stringify(value);
+
   if (typeof value === "boolean") return value ? words.yes : words.no;
+
   return String(value);
 }
 
@@ -52,17 +56,21 @@ function diff(before: unknown, after: unknown, words: BooleanWords): Change[] {
   const right = asRecord(after);
   const fields = [...new Set([...Object.keys(left), ...Object.keys(right)])].sort();
   const changes: Change[] = [];
+
   for (const field of fields) {
     const a = render(left[field], words);
     const b = render(right[field], words);
+
     if (a !== b) changes.push({ field, before: a, after: b });
   }
+
   return changes;
 }
 
 /** A field the catalogue has no name for, spelled out from its camelCase one. */
 function fallbackLabel(field: string): string {
   const spaced = field.replace(/([A-Z])/g, " $1").toLowerCase();
+
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
@@ -90,6 +98,7 @@ export function RevisionsPanel({
 }) {
   const t = useTranslations("admin.components.revisions");
   const pending = loading || (revisions === undefined && rawRows == null);
+
   const rows: Revision[] =
     revisions ??
     (rawRows ?? []).map((row) => ({
@@ -99,16 +108,19 @@ export function RevisionsPanel({
       author: row.author,
       snapshot: row.snapshot,
     }));
+
   const [leftId, setLeftId] = useState<string | null>(null);
   const [rightId, setRightId] = useState<string | null>(null);
 
   const left = rows.find((row) => row.id === leftId) ?? rows[1] ?? null;
   const right = rows.find((row) => row.id === rightId) ?? rows[0] ?? null;
   const words = useMemo(() => ({ yes: t("booleanTrue"), no: t("booleanFalse") }), [t]);
+
   const changes = useMemo(
     () => (left && right ? diff(left.snapshot, right.snapshot, words) : []),
     [left, right, words],
   );
+
   const panelTitle = title ?? t("title");
 
   function fieldLabel(field: string): string {

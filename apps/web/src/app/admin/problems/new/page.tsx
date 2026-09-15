@@ -4,6 +4,7 @@ import { NewProblemForm } from "./NewProblemForm";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.problems.new");
+
   return { title: t("metaTitle") };
 }
 

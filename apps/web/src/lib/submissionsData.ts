@@ -14,12 +14,15 @@ import { queryAsViewer } from "@/lib/convex-server";
  * contest problem's output-prefix clip and the abort, rejudge and resubmit flags.
  */
 export type ListContext = SubmissionListContext;
+
 export type StatusExtras = SubmissionStatusExtras;
+
 export type SourceView = SubmissionSourceView;
 
 /** `get_searchable_status_codes`: `SC` is never searchable, `IE` only for staff. */
 export function searchableStatuses(staff: boolean): Array<{ code: string; name: string }> {
   const hidden = new Set(staff ? ["SC"] : ["SC", "IE"]);
+
   return SUBMISSION_RESULTS.filter((code) => !hidden.has(code)).map((code) => ({
     code,
     name: USER_DISPLAY_CODES[code] ?? code,

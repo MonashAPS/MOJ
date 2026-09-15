@@ -13,19 +13,23 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
   const t = await getTranslations("organizations.kick");
+
   return { title: t("title", { organization: slugFromHandle(handle) }) };
 }
 
 export default async function KickMemberPage({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
   const slug = slugFromHandle(handle);
+
   const [t, shared] = await Promise.all([
     getTranslations("organizations.kick"),
     getTranslations("organizations.common"),
   ]);
 
   const organization = await queryAsViewer(api.organizations.get, { slug });
+
   if (!organization) notFound();
+
   if (!organization.viewer.canEdit) {
     return <ErrorScreen code={403} id="AccessDenied" description={shared("accessDenied")} />;
   }

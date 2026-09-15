@@ -6,6 +6,7 @@ import { auth } from "@/auth/server";
  *  carried over from the old site instead of an api-key plugin key. */
 export async function POST(request: NextRequest) {
   let body: { keyId?: string; legacy?: boolean } = {};
+
   try {
     body = (await request.json()) as { keyId?: string; legacy?: boolean };
   } catch {
@@ -17,8 +18,10 @@ export async function POST(request: NextRequest) {
   if (body.legacy) {
     const { api } = await import("@convex/_generated/api");
     const { mutateAsViewer } = await import("@/lib/convex-server");
+
     try {
       await mutateAsViewer(api.profiles.apiTokens.revokeLegacy, {});
+
       return NextResponse.json({ status: true });
     } catch {
       return NextResponse.json({ error: { message: t("revokeFailed") } }, { status: 400 });
@@ -31,9 +34,11 @@ export async function POST(request: NextRequest) {
 
   try {
     await auth.api.deleteApiKey({ headers: request.headers, body: { keyId: body.keyId } });
+
     return NextResponse.json({ status: true });
   } catch (error) {
     const status = (error as { statusCode?: number }).statusCode ?? 400;
+
     return NextResponse.json(
       { error: { message: t("revokeFailed") } },
       { status: status === 401 ? 401 : 400 },

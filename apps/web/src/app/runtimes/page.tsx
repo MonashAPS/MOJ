@@ -8,6 +8,7 @@ import { renderContent } from "@/lib/markdown";
 
 export async function generateMetadata() {
   const t = await getTranslations("status.runtimes");
+
   return { title: t("title") };
 }
 
@@ -16,6 +17,7 @@ export const dynamic = "force-dynamic";
 export default async function RuntimesPage() {
   const t = await getTranslations("status.runtimes");
   const [languages, tabs] = await Promise.all([queryAsViewer(api.status.runtimes, {}), statusTabs()]);
+
   // The descriptions are markdown and `renderMarkdown` is async, so they are
   // rendered here rather than inside the table's map.
   const descriptions = Object.fromEntries(

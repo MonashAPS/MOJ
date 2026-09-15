@@ -9,5 +9,6 @@ import { LANGUAGE_COOKIE, normaliseLanguage } from "./language";
  */
 export async function viewerLanguage(): Promise<string> {
   const jar = await cookies();
+
   return normaliseLanguage(jar.get(LANGUAGE_COOKIE)?.value);
 }

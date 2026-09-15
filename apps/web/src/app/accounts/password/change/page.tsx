@@ -4,6 +4,7 @@ import { ChangePasswordForm } from "./ChangePasswordForm";
 
 export async function generateMetadata() {
   const t = await getTranslations("auth.passwordChange");
+
   return { title: t("metaTitle") };
 }
 
@@ -16,5 +17,6 @@ export default async function ChangePasswordPage({
 }) {
   const { compromised } = await searchParams;
   await requireAccount("/accounts/password/change/");
+
   return <ChangePasswordForm compromised={compromised === "1"} />;
 }

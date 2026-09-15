@@ -47,6 +47,7 @@ export function validateEcooConfig(config: unknown): void {
 export function resolveEcooConfig(config: unknown): EcooConfig {
   validateEcooConfig(config);
   const merged = mergeConfig(ECOO_DEFAULTS, config);
+
   return {
     cumtime: Boolean(merged.cumtime),
     firstAcBonus: Number(merged.first_ac_bonus),
@@ -80,8 +81,10 @@ export function updateParticipationEcoo(input: UpdateParticipationInput): Partic
     const dt = secondsSince(start, date);
 
     let bonus = 0;
+
     if (points > 0) {
       if (submissionCount === 1 && points === problemPoints) bonus += config.firstAcBonus;
+
       if (config.timeBonus) {
         bonus += Math.floor(Math.floor((endTime - date) / 1000 / 60) / config.timeBonus);
       }
@@ -92,6 +95,7 @@ export function updateParticipationEcoo(input: UpdateParticipationInput): Partic
 
   let cumtime = 0;
   let score = 0;
+
   for (const entry of Object.values(formatData)) {
     if (config.cumtime) cumtime += entry.time;
     score += entry.points + (entry.bonus ?? 0);
@@ -118,12 +122,15 @@ export const ecooFormat: ContestFormat = {
 
   displayUserProblem(participation, contestProblem, contest) {
     const entry = participation.formatData?.[contestProblem.id];
+
     if (!entry) return null;
+
     return buildProblemCell(entry, contestProblem, contest, { bonus: true });
   },
 
   displayParticipationResult(participation, contest, config) {
     const resolved = resolveEcooConfig(config ?? contest.formatConfig);
+
     return buildParticipationResult(participation, contest, resolved.cumtime);
   },
 
@@ -133,13 +140,17 @@ export const ecooFormat: ContestFormat = {
   getShortFormDisplay(config) {
     const resolved = resolveEcooConfig(config);
     const lines: ScoringLine[] = [{ key: "lastNonCeSubmission" }];
+
     if (resolved.firstAcBonus) {
       lines.push({ key: "firstAcBonus", values: { bonus: resolved.firstAcBonus } });
     }
+
     if (resolved.timeBonus) {
       lines.push({ key: "timeBonus", values: { minutes: resolved.timeBonus } });
     }
+
     lines.push({ key: resolved.cumtime ? "tiesByAllProblems" : "tiesNotBroken" });
+
     return lines;
   },
 };

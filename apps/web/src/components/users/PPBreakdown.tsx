@@ -44,6 +44,7 @@ export function PPBreakdown({
   const t = useTranslations("users.pp");
   const states = useTranslations("common.states");
   const [shown, setShown] = useState(PAGE);
+
   // The window always starts at zero, so one subscription holds every row that
   // has been asked for and nothing has to be stitched together on the client.
   const more = useQuery(

@@ -39,7 +39,9 @@ export function Table({
       {...props}
     />
   );
+
   if (!scrollable) return table;
+
   return (
     <div
       data-slot="table-container"

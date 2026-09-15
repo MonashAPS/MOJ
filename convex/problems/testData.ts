@@ -44,9 +44,12 @@ export const publisherContext = internalQuery({
   args: { code: v.string(), actorProfileId: v.id("profiles") },
   handler: async (ctx, { code, actorProfileId }): Promise<PublisherContext> => {
     const problem = await problemByCode(ctx, code);
+
     if (!problem) return { status: "not_found" };
     const actor = await ctx.db.get(actorProfileId);
+
     if (!actor) return { status: "forbidden" };
+
     const editable = problemIsEditableBy(toCoreProblem(problem), {
       id: actor._id,
       username: actor.username,
@@ -54,7 +57,9 @@ export const publisherContext = internalQuery({
       isSuperuser: actor.isSuperuser,
       permissions: actor.permissions,
     });
+
     if (!editable) return { status: "forbidden" };
+
     return {
       status: "ok",
       problemId: problem._id,
@@ -83,8 +88,10 @@ export const record = internalMutation({
   },
   handler: async (ctx, args): Promise<{ changed: boolean; hash: string; storageId: Id<"_storage"> }> => {
     const existing = await testDataRow(ctx, args.problemId);
+
     if (existing && existing.hash === args.hash) {
       if (existing.storageId !== args.storageId) await ctx.storage.delete(args.storageId);
+
       return { changed: false, hash: existing.hash, storageId: existing.storageId };
     }
 
@@ -97,8 +104,10 @@ export const record = internalMutation({
       uploadedByProfileId: args.actorProfileId,
       uploadedAt: Date.now(),
     };
+
     if (existing) {
       await ctx.db.patch(existing._id, row);
+
       if (existing.storageId !== args.storageId) await ctx.storage.delete(existing.storageId);
     } else {
       await ctx.db.insert("problemTestData", row);
@@ -112,6 +121,7 @@ export const record = internalMutation({
       args.actorProfileId,
       `${actor?.username ?? "Someone"} published test data ${args.hash} through ${where}.`,
     );
+
     return { changed: true, hash: args.hash, storageId: args.storageId };
   },
 });
@@ -129,9 +139,12 @@ export const judgeArchive = internalQuery({
   ): Promise<{ storageId: Id<"_storage">; hash: string; size: number } | null> => {
     await authenticateJudge(ctx, judgeName, authKeyHash);
     const problem = await problemByCode(ctx, code);
+
     if (!problem) return null;
     const row = await testDataRow(ctx, problem._id);
+
     if (!row) return null;
+
     return { storageId: row.storageId, hash: row.hash, size: row.size };
   },
 });

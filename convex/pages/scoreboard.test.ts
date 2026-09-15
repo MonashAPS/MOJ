@@ -38,11 +38,13 @@ async function event(t: T, isPublic = true) {
   return await t.run(async (ctx) => {
     const groupId = await insertProblemGroup(ctx);
     const languageId = await insertLanguage(ctx);
+
     const superuserId = await insertProfile(ctx, {
       username: "root",
       isSuperuser: true,
       isStaff: true,
     });
+
     await insertProfile(ctx, { username: "watcher" });
 
     const adaId = await insertProfile(ctx, { username: "ada" });
@@ -62,6 +64,7 @@ async function event(t: T, isPublic = true) {
       formatConfig: { penalty: 20 },
       labelScheme: "letters",
     });
+
     const divB = await insertContest(ctx, {
       key: "divb",
       name: "Division B",
@@ -78,6 +81,7 @@ async function event(t: T, isPublic = true) {
       order: 0,
       points: 1,
     });
+
     const cpB = await insertContestProblem(ctx, {
       contestId: divB,
       problemId: problemB,
@@ -90,16 +94,19 @@ async function event(t: T, isPublic = true) {
       profileId: adaId,
       realStart: start,
     });
+
     const bob = await insertParticipation(ctx, {
       contestId: divA,
       profileId: bobId,
       realStart: start,
     });
+
     const cid = await insertParticipation(ctx, {
       contestId: divB,
       profileId: cidId,
       realStart: start,
     });
+
     const dot = await insertParticipation(ctx, {
       contestId: divA,
       profileId: dotId,
@@ -222,9 +229,11 @@ describe("the hall event feed", () => {
     await event(t);
 
     const items = await t.query(api.pages.scoreboard.feed, { key: "hall" });
+
     const byUserAndMinute = Object.fromEntries(
       items.map((item) => [`${item.username}:${item.minute}`, item]),
     );
+
     expect(byUserAndMinute["ada:30"]?.state).toBe("correct");
     expect(byUserAndMinute["ada:30"]?.verdict).toBe("AC");
     expect(byUserAndMinute["ada:20"]?.state).toBe("incorrect");

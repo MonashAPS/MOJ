@@ -32,6 +32,7 @@ import { formatDateTime, formatPoints } from "@/lib/format";
 import { contestTabs, joinKindFor } from "../tabs";
 
 const DASH = "—";
+
 const ALL = "__all__";
 
 /**
@@ -47,6 +48,7 @@ function WindowNote({ detail }: { detail: ContestDetail }) {
   const participation = detail.participation ?? detail.liveParticipation;
   const target = participation && !participation.ended ? participation.endsAt : (contest?.endTime ?? null);
   const remaining = useCountdown(detail.timing.ended ? null : target);
+
   if (!contest) return null;
 
   const window = contest.timeLimit
@@ -56,9 +58,11 @@ function WindowNote({ detail }: { detail: ContestDetail }) {
         end: formatDateTime(contest.endTime),
       })
     : null;
+
   const clock = remaining !== null && remaining <= COUNTDOWN_HORIZON ? formatDuration(remaining) : null;
 
   if (!window && !clock) return null;
+
   return (
     <p className="font-mono text-sm tabular-nums text-muted-foreground">
       {clock
@@ -77,9 +81,13 @@ type CellData = NonNullable<RankingRow["problems"][number]>;
 /** DMOJ's `<td class>` for a cell, mapped onto DESIGN.md section 16.1's states. */
 function cellSkin(state: string): string {
   const base = state.replace("pretest-", "");
+
   if (base === "full-score") return "bg-(--cell-solved-bg) text-(--cell-solved-ink)";
+
   if (base === "partial-score") return "bg-warn-bg text-warn";
+
   if (base === "failed-score") return "bg-(--cell-failed-bg) text-(--cell-failed-ink)";
+
   return "text-(--cell-empty-ink)";
 }
 
@@ -115,6 +123,7 @@ function ProblemCell({
   }
 
   const isPretest = cell.state.startsWith("pretest-");
+
   const label = [
     cell.pointsText,
     cell.penaltyText ? t("penalty", { value: cell.penaltyText }) : null,
@@ -170,6 +179,7 @@ function Row({
 
   const toggle = async () => {
     setBusy(true);
+
     try {
       await disqualify({
         key: contestKey,
@@ -326,6 +336,7 @@ export function RankingClient({
     ...(organizationSlug !== ALL ? { organizationSlug } : {}),
     ...(classId !== ALL ? { classId: classId as never } : {}),
   };
+
   const live = useQuery(api.contests.rankings.ranking, args);
   const defaults = !includeVirtual && !includeSpectators && organizationSlug === ALL && classId === ALL;
   const data = live ?? (defaults ? initial : null);
@@ -333,9 +344,11 @@ export function RankingClient({
   const liveFrozen = useQuery(api.pages.contests.frozenCells, { key: contestKey });
   const frozen = liveFrozen === undefined ? initialFrozenCells : liveFrozen;
   const pendingMap = new Map<string, number>();
+
   for (const cell of frozen?.cells ?? []) {
     pendingMap.set(`${cell.participationId}|${cell.contestProblemId}`, cell.pending);
   }
+
   const pendingOf = (participationId: string, contestProblemId: string) =>
     pendingMap.get(`${participationId}|${contestProblemId}`) ?? 0;
 
@@ -356,6 +369,7 @@ export function RankingClient({
 
   const toggleReveal = async (revealed: boolean) => {
     setRevealBusy(true);
+
     try {
       await unfreeze({ key: contestKey, revealed });
       toast.success(revealed ? t("revealed") : t("frozenAgain"));

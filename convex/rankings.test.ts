@@ -98,6 +98,7 @@ describe("rankings.users", () => {
     await t.run(async (ctx) => {
       const inside = await insertProfile(ctx, { username: "member", performancePoints: 10 });
       await insertProfile(ctx, { username: "outsider", performancePoints: 900 });
+
       const organizationId = await ctx.db.insert("organizations", {
         name: "MAPS",
         slug: "maps",
@@ -108,6 +109,7 @@ describe("rankings.users", () => {
         classRequired: false,
         memberCount: 1,
       });
+
       await ctx.db.insert("organizationMemberships", {
         organizationId,
         profileId: inside,
@@ -163,6 +165,7 @@ describe("rankings.find", () => {
 
     const board = await t.query(api.rankings.users, {});
     const order = board.users.map((row) => row.username);
+
     for (let index = 0; index < order.length; index++) {
       const found = await t.query(api.rankings.find, { username: order[index] as string });
       expect(found?.offset).toBe(index);

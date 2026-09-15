@@ -67,6 +67,7 @@ export function JoinControl({
 
   if (kind === "blocked") {
     const why = banned ? t("banned") : t("blocked");
+
     return (
       <Tooltip content={why}>
         <span className={full ? "block w-full" : "inline-block"}>
@@ -85,6 +86,7 @@ export function JoinControl({
         action: t(`confirm.${kind}.action`),
       }
     : null;
+
   const button = (
     <Button
       type="submit"
@@ -144,6 +146,7 @@ export function JoinControl({
 /** A refusal from the server action, which is a sentence and not a field error. */
 function JoinError({ message }: { message: string | null }) {
   if (!message) return null;
+
   return (
     <Alert variant="danger" role="alert" className="mt-2">
       <TriangleAlert size={16} aria-hidden />

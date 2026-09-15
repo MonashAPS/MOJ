@@ -6,6 +6,7 @@ import { ApiKeysPanel } from "./ApiKeysPanel";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.apiKeys");
+
   return { title: t("metaTitle") };
 }
 

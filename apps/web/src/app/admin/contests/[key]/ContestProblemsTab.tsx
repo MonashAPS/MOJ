@@ -63,12 +63,14 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
   const [dragging, setDragging] = useState<string | null>(null);
 
   const matches = useQuery(api.pages.admin.problems.search, pickerOpen ? { term, limit: 10 } : "skip");
+
   const candidates = (matches ?? []).filter(
     (row) => !contest.problems.some((problem) => problem.code === row.code),
   );
 
   async function guard(work: () => Promise<unknown>) {
     setError(null);
+
     try {
       await work();
     } catch (caught) {
@@ -79,8 +81,10 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
   async function move(index: number, delta: number) {
     const next = [...contest.problems];
     const target = index + delta;
+
     if (target < 0 || target >= next.length) return;
     const [moved] = next.splice(index, 1);
+
     if (!moved) return;
     next.splice(target, 0, moved);
     await guard(() =>
@@ -97,8 +101,10 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
     const next = [...contest.problems];
     const from = next.findIndex((row) => row.id === dragging);
     const to = next.findIndex((row) => row.id === targetId);
+
     if (from < 0 || to < 0) return;
     const [moved] = next.splice(from, 1);
+
     if (!moved) return;
     next.splice(to, 0, moved);
     setDragging(null);
@@ -356,6 +362,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
               onClick={async () => {
                 const target = pendingRemove;
                 setPendingRemove(null);
+
                 if (!target) return;
                 await guard(() =>
                   removeProblem({
@@ -385,6 +392,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
               onClick={async () => {
                 const target = pendingRejudge;
                 setPendingRejudge(null);
+
                 if (!target) return;
                 await guard(async () => {
                   const result = await rejudgeProblem({
@@ -392,6 +400,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
                     contestProblemId: target.id as Id<"contestProblems">,
                     reason: `Rejudged ${target.code}`,
                   });
+
                   setJobId(result.jobId);
                   toast.success(t("rejudgeQueued"));
                 });

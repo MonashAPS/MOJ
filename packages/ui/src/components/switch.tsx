@@ -35,7 +35,9 @@ export function Switch({ className, label, ...props }: SwitchProps) {
       />
     </SwitchPrimitive.Root>
   );
+
   if (!label) return control;
+
   return (
     <label
       htmlFor={props.id}

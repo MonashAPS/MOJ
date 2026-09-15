@@ -52,16 +52,19 @@ export function TicketsClient({
     () => ticketQueryArgs(scope, onlyOpen, page, problemCode),
     [scope, onlyOpen, page, problemCode],
   );
+
   const live = useQuery(api.tickets.list, args);
   const key = JSON.stringify(args);
   const result = live ?? (key === initialKey ? initial : undefined);
 
   function setParam(next: Record<string, string | null>) {
     const query = new URLSearchParams(params.toString());
+
     for (const [name, value] of Object.entries(next)) {
       if (value === null) query.delete(name);
       else query.set(name, value);
     }
+
     if (!("page" in next)) query.delete("page");
     const search = query.toString();
     router.replace(search ? `${pathname}?${search}` : pathname, { scroll: false });
@@ -141,9 +144,11 @@ export function TicketsClient({
           totalPages={totalPages}
           hrefFor={(target) => {
             const query = new URLSearchParams(params.toString());
+
             if (target === 1) query.delete("page");
             else query.set("page", String(target));
             const search = query.toString();
+
             return search ? `${pathname}?${search}` : pathname;
           }}
         />
@@ -162,16 +167,20 @@ function emptyMessage(
   if (scope === "assigned") {
     return onlyOpen ? t("emptyAssignedOpen") : t("emptyAssigned");
   }
+
   if (scope === "mine") {
     return onlyOpen ? t("emptyMineOpen") : t("emptyMine");
   }
+
   if (onlyOpen) return t("emptyOpen");
+
   return onProblem ? t("emptyProblem") : t("emptyAny");
 }
 
 function TicketRow({ ticket }: { ticket: TicketSummary }) {
   const t = useTranslations("blog.ticket");
   const state = ticket.isOpen ? t("open") : t("closed");
+
   return (
     <TableRow>
       <TableCell className="pr-0">

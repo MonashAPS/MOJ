@@ -30,7 +30,9 @@ export interface MaxPointsRow {
 
 function counts(submission: ContestSubmissionRow): boolean {
   const result = submission.result;
+
   if (result === null || result === undefined) return false;
+
   return !PENALTY_IGNORED_RESULTS.includes(result);
 }
 
@@ -44,6 +46,7 @@ export function computeMaxPointsRows(
   for (const problemId of orderedProblemIds(groups, contestProblems)) {
     const submissions = groups.get(problemId) as ContestSubmissionRow[];
     const points = Math.max(...submissions.map((submission) => submission.contestPoints));
+
     const time = Math.min(
       ...submissions
         .filter((submission) => submission.contestPoints === points)
@@ -51,6 +54,7 @@ export function computeMaxPointsRows(
     );
 
     let penaltyCount = 0;
+
     if (penaltyMinutes) {
       const scored = submissions.filter(counts);
       penaltyCount = points

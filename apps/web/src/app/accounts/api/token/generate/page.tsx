@@ -10,6 +10,7 @@ import { listApiTokens } from "./actions";
 
 export async function generateMetadata() {
   const t = await getTranslations("auth.apiToken");
+
   return { title: t("metaTitle") };
 }
 
@@ -17,10 +18,12 @@ export const dynamic = "force-dynamic";
 
 export default async function ApiTokenPage() {
   await requireAccount("/accounts/api/token/generate/");
+
   const [tokens, legacy] = await Promise.all([
     listApiTokens(),
     queryAsViewer(api.profiles.apiTokens.mine, {}).catch(() => null),
   ]);
+
   const t = await getTranslations("auth.apiToken");
 
   return (

@@ -16,6 +16,7 @@ import { setupTest } from "./test.setup";
 
 async function seed() {
   const t = setupTest();
+
   const ids = await t.run(async (ctx) => {
     await ctx.db.insert("siteSettings", siteSettingsRow());
     const languageId = await ctx.db.insert("languages", languageRow());
@@ -25,8 +26,10 @@ async function seed() {
       "profiles",
       profileRow({ username: "setter", permissions: ["judge.edit_own_problem"] }),
     );
+
     const reporter = await ctx.db.insert("profiles", profileRow({ username: "reporter" }));
     const bystander = await ctx.db.insert("profiles", profileRow({ username: "bystander" }));
+
     const admin = await ctx.db.insert(
       "profiles",
       profileRow({ username: "ticketadmin", permissions: ["judge.change_ticket"] }),
@@ -36,6 +39,7 @@ async function seed() {
       "problems",
       problemRow({ code: "alpha", groupId, authorProfileIds: [setter] }),
     );
+
     for (const profileId of [reporter, bystander]) {
       await ctx.db.insert(
         "submissions",
@@ -54,6 +58,7 @@ async function seed() {
 
     return { setter, reporter, bystander, admin, problemId };
   });
+
   return { t, ids };
 }
 
@@ -71,6 +76,7 @@ describe("creating tickets", () => {
 
   test("a problem ticket auto-assigns the problem's authors", async () => {
     const { t, ids } = await seed();
+
     const id = await asUser(t, "reporter").mutation(api.tickets.create, {
       title: "Statement typo",
       body: "The bound is wrong.",
@@ -86,10 +92,12 @@ describe("creating tickets", () => {
 
   test("a generic ticket has no assignees", async () => {
     const { t } = await seed();
+
     const id = await asUser(t, "reporter").mutation(api.tickets.create, {
       title: "Account question",
       body: "How do I change my name?",
     });
+
     const ticket = await asUser(t, "reporter").query(api.tickets.get, { id });
     expect(ticket?.assignees).toEqual([]);
     expect(ticket?.linkedType).toBeUndefined();
@@ -112,11 +120,13 @@ describe("creating tickets", () => {
 describe("ticket visibility", () => {
   async function withTicket() {
     const { t, ids } = await seed();
+
     const ticketId = await asUser(t, "reporter").mutation(api.tickets.create, {
       title: "Statement typo",
       body: "The bound is wrong.",
       problemCode: "alpha",
     });
+
     return { t, ids, ticketId };
   }
 
@@ -164,6 +174,7 @@ describe("ticket visibility", () => {
 describe("ticket workflow", () => {
   test("replies append to the thread in order", async () => {
     const { t } = await seed();
+
     const ticketId = await asUser(t, "reporter").mutation(api.tickets.create, {
       title: "Typo",
       body: "First",
@@ -179,6 +190,7 @@ describe("ticket workflow", () => {
 
   test("notes are staff-only", async () => {
     const { t } = await seed();
+
     const ticketId = await asUser(t, "reporter").mutation(api.tickets.create, {
       title: "Typo",
       body: "First",
@@ -202,6 +214,7 @@ describe("ticket workflow", () => {
 
   test("assignment needs judge.change_ticket", async () => {
     const { t, ids } = await seed();
+
     const ticketId = await asUser(t, "reporter").mutation(api.tickets.create, {
       title: "Typo",
       body: "First",

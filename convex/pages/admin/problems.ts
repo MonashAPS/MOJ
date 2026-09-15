@@ -56,6 +56,7 @@ export const list = query({
     args,
   ): Promise<{ items: AdminProblemRow[]; total: number; page: number; pageSize: number }> => {
     const viewer = await staffViewer(ctx);
+
     if (!viewer) return { items: [], total: 0, page: 1, pageSize: 0 };
 
     const page = Math.max(1, Math.floor(args.page ?? 1));
@@ -68,41 +69,55 @@ export const list = query({
           .withIndex("by_name", (q) => q.eq("name", args.group as string))
           .first()
       : null;
+
     const typeRow = args.type
       ? await ctx.db
           .query("problemTypes")
           .withIndex("by_name", (q) => q.eq("name", args.type as string))
           .first()
       : null;
+
     const authorRow = args.author
       ? await ctx.db
           .query("profiles")
           .withIndex("by_username", (q) => q.eq("username", args.author as string))
           .unique()
       : null;
+
     if ((args.group && !groupRow) || (args.type && !typeRow) || (args.author && !authorRow)) {
       return { items: [], total: 0, page, pageSize };
     }
 
     const matched = (await ctx.db.query("problems").collect()).filter((problem) => {
       if (!problemIsInEditableSet(toCoreProblem(problem), viewer.core)) return false;
+
       if (args.isPublic !== undefined && problem.isPublic !== args.isPublic) return false;
+
       if (groupRow && problem.groupId !== groupRow._id) return false;
+
       if (typeRow && !problem.typeIds.includes(typeRow._id)) return false;
+
       if (authorRow && !problem.authorProfileIds.includes(authorRow._id)) return false;
+
       if (!needle) return true;
+
       return problem.code.includes(needle) || problem.name.toLowerCase().includes(needle);
     });
+
     matched.sort((a, b) => a.code.localeCompare(b.code));
 
     const items: AdminProblemRow[] = [];
+
     for (const problem of matched.slice((page - 1) * pageSize, page * pageSize)) {
       const group = await ctx.db.get(problem.groupId);
       const types: string[] = [];
+
       for (const id of problem.typeIds) {
         const row = await ctx.db.get(id);
+
         if (row) types.push(row.fullName || row.name);
       }
+
       items.push({
         code: problem.code,
         name: problem.name,
@@ -119,6 +134,7 @@ export const list = query({
         acRate: problem.acRate,
       });
     }
+
     return { items, total: matched.length, page, pageSize };
   },
 });
@@ -128,6 +144,7 @@ export const options = query({
   args: {},
   handler: async (ctx) => {
     const viewer = await staffViewer(ctx);
+
     if (!viewer) {
       return { groups: [], types: [], licenses: [], languages: [], organizations: [], authors: [] };
     }
@@ -142,12 +159,16 @@ export const options = query({
 
     // `ProblemCreatorListFilter`: only profiles that authored something.
     const authorIds = new Set<string>();
+
     for (const problem of await ctx.db.query("problems").collect()) {
       for (const id of problem.authorProfileIds) authorIds.add(id as string);
     }
+
     const authors: string[] = [];
+
     for (const id of authorIds) {
       const row = await ctx.db.get(id as Id<"profiles">);
+
       if (row) authors.push(row.username);
     }
 
@@ -177,27 +198,38 @@ export const edit = query({
   args: { code: v.string() },
   handler: async (ctx, { code }) => {
     const viewer = await staffViewer(ctx);
+
     if (!viewer) return null;
     const problem = await problemByCode(ctx, code);
+
     if (!problem) return null;
+
     if (!problemIsEditableBy(toCoreProblem(problem), viewer.core)) return null;
 
     const group = await ctx.db.get(problem.groupId);
     const license = problem.licenseId ? await ctx.db.get(problem.licenseId) : null;
 
     const types: string[] = [];
+
     for (const id of problem.typeIds) {
       const row = await ctx.db.get(id);
+
       if (row) types.push(row.name);
     }
+
     const allowedLanguages: string[] = [];
+
     for (const id of problem.allowedLanguageIds) {
       const row = await ctx.db.get(id);
+
       if (row) allowedLanguages.push(row.key);
     }
+
     const organizations: string[] = [];
+
     for (const id of problem.organizationIds) {
       const row = await ctx.db.get(id);
+
       if (row) organizations.push(row.slug);
     }
 
@@ -205,9 +237,12 @@ export const edit = query({
       .query("languageLimits")
       .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
       .collect();
+
     const languageLimits: { languageKey: string; timeLimit: number; memoryLimit: number }[] = [];
+
     for (const limit of limitRows) {
       const language = await ctx.db.get(limit.languageId);
+
       if (language) {
         languageLimits.push({
           languageKey: language.key,
@@ -236,6 +271,7 @@ export const edit = query({
       .sort((a, b) => b.date - a.date);
 
     const solution = await solutionFor(ctx, problem._id);
+
     const editorial = solution
       ? {
           content: solution.content,
@@ -249,14 +285,19 @@ export const edit = query({
       .query("contestProblems")
       .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
       .collect();
+
     const appearances: { contestKey: string; contestName: string; label: string; startTime: number }[] = [];
+
     for (const link of contestLinks) {
       const contest = await ctx.db.get(link.contestId);
+
       if (!contest) continue;
+
       const siblings = await ctx.db
         .query("contestProblems")
         .withIndex("by_contest_order", (q) => q.eq("contestId", contest._id))
         .collect();
+
       siblings.sort((a, b) => a.order - b.order);
       const index = siblings.findIndex((row) => row._id === link._id);
       appearances.push({
@@ -266,6 +307,7 @@ export const edit = query({
         startTime: contest.startTime,
       });
     }
+
     appearances.sort((a, b) => b.startTime - a.startTime);
 
     const submissionCount = (
@@ -323,22 +365,29 @@ export const clone = mutation({
   handler: async (ctx, args): Promise<{ code: string }> => {
     const profile = await requireViewer(ctx);
     const viewer = await loadViewerContext(ctx);
+
     if (!profile.isStaff && !profile.isSuperuser) throw forbidden("Staff only.");
+
     if (!hasPerm(viewer.core, "judge.clone_problem")) {
       throw forbidden("Missing permission judge.clone_problem.");
     }
+
     const problem = await problemByCode(ctx, args.code);
+
     if (!problem) throw invalid(`No such problem: ${args.code}`);
 
     const newCode = args.newCode.trim();
+
     if (!PROBLEM_CODE_PATTERN.test(newCode) || newCode.length > 20) {
       throw invalid("Problem codes may only contain lowercase letters, digits and dots.");
     }
+
     if (await problemByCode(ctx, newCode)) {
       throw mojError("CONFLICT", `A problem with the code "${newCode}" already exists.`);
     }
 
     const { _id, _creationTime, legacyId, ...fields } = problem;
+
     const problemId = await ctx.db.insert("problems", {
       ...fields,
       code: newCode,
@@ -372,6 +421,7 @@ export const clone = mutation({
       reason: args.reason?.trim() || `Cloned problem from ${problem.code}`,
       createdAt: Date.now(),
     });
+
     return { code: newCode };
   },
 });
@@ -380,13 +430,16 @@ export const search = query({
   args: { term: v.string(), limit: v.optional(v.number()) },
   handler: async (ctx, { term, limit }): Promise<{ code: string; name: string; points: number }[]> => {
     const viewer = await staffViewer(ctx);
+
     if (!viewer) return [];
     const needle = term.trim().toLowerCase();
     const take = Math.max(1, Math.min(limit ?? 10, 25));
+
     const rows = (await ctx.db.query("problems").collect())
       .filter((row) => !needle || row.code.includes(needle) || row.name.toLowerCase().includes(needle))
       .sort((a, b) => a.code.localeCompare(b.code))
       .slice(0, take);
+
     return rows.map((row) => ({ code: row.code, name: row.name, points: row.points }));
   },
 });

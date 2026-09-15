@@ -29,6 +29,7 @@ const BEST_PREVIEW = 10;
 export async function generateMetadata({ params }: { params: Promise<{ user: string }> }) {
   const { user } = await params;
   const t = await getTranslations("users.profile");
+
   return { title: t("metaTitle", { username: decodeURIComponent(user) }) };
 }
 
@@ -38,6 +39,7 @@ export default async function UserAboutPage({ params }: { params: Promise<{ user
   const t = await getTranslations("users.profile");
 
   const data = await queryAsViewer(api.profiles.userPage, { username });
+
   if (!data) notFound();
 
   const [gravatar, organizations, about] = await Promise.all([
@@ -47,6 +49,7 @@ export default async function UserAboutPage({ params }: { params: Promise<{ user
   ]);
 
   const organizationLinks: Record<string, string> = {};
+
   for (const organization of organizations) {
     organizationLinks[organization.slug] = organizationHref(organization);
   }

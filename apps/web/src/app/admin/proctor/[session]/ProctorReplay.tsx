@@ -8,6 +8,7 @@ import { ProctorPlayer } from "../ProctorPlayer";
 /** One session on its own page, for a link somebody was sent. */
 export function ProctorReplay({ sessionId }: { sessionId: Id<"proctorSessions"> }) {
   const t = useTranslations("admin.proctor");
+
   return (
     <AdminShell
       title={t("title")}

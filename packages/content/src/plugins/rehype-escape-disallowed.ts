@@ -155,16 +155,20 @@ const KNOWN_HTML = new Set([
 
 function serialiseAttributes(node: Element): string {
   const parts: string[] = [];
+
   for (const [name, value] of Object.entries(node.properties ?? {})) {
     if (value === false || value === null || value === undefined) continue;
     const attribute = name === "className" ? "class" : name;
+
     if (value === true) {
       parts.push(` ${attribute}`);
       continue;
     }
+
     const text = Array.isArray(value) ? value.join(" ") : String(value);
     parts.push(` ${attribute}="${text.replaceAll('"', "&quot;")}"`);
   }
+
   return parts.join("");
 }
 
@@ -176,20 +180,25 @@ const rehypeEscapeDisallowed: Plugin<[EscapeDisallowedOptions], Root> = function
   return (tree: Root) => {
     visit(tree, "element", (node: Element, index, parent: Parent | undefined) => {
       if (!parent || index === undefined) return;
+
       if (allowed.has(node.tagName)) return;
 
       const replacement: ElementContent[] = [
         { type: "text", value: `<${node.tagName}${serialiseAttributes(node)}>` },
         ...node.children,
       ];
+
       if (KNOWN_HTML.has(node.tagName)) {
         replacement.push({ type: "text", value: `</${node.tagName}>` });
       }
+
       parent.children.splice(index, 1, ...(replacement as RootContent[]));
+
       return index;
     });
   };
 };
 
 export default rehypeEscapeDisallowed;
+
 export { rehypeEscapeDisallowed };

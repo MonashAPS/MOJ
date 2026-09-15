@@ -4,6 +4,7 @@ import { NewContestForm } from "./NewContestForm";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.contests.new");
+
   return { title: t("metaTitle") };
 }
 

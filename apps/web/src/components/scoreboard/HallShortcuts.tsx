@@ -41,6 +41,7 @@ export function HallShortcuts({
 }) {
   const t = useTranslations("contests.hall");
   const keys = useTranslations("contests.hall.keys");
+
   const shortcuts = [
     ...BASE,
     ...(hasRoster ? ROSTER : []),

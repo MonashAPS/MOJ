@@ -71,6 +71,7 @@ function SortableHead({
   const active = state.key === column.key;
   const search = new URLSearchParams(params);
   const Chevron = active && !state.descending ? ChevronUp : ChevronDown;
+
   return (
     <TableHead numeric className="p-0">
       <Link
@@ -97,6 +98,7 @@ function KickButton({ slug, username }: { slug: string; username: string }) {
   const actions = useTranslations("common.actions");
   const kick = useMutation(api.organizations.kick);
   const [busy, setBusy] = useState(false);
+
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
@@ -116,6 +118,7 @@ function KickButton({ slug, username }: { slug: string; username: string }) {
             onClick={async (event) => {
               event.preventDefault();
               setBusy(true);
+
               try {
                 await kick({ slug, username });
                 toast.success(t("kicked", { username }));
@@ -166,17 +169,22 @@ export function LeaderboardTable({
   useEffect(() => {
     const apply = () => {
       const hash = window.location.hash;
+
       if (!hash.startsWith("#!")) {
         setTargeted(null);
+
         return;
       }
+
       const username = decodeURIComponent(hash.slice(2));
       setTargeted(username);
       const row = document.getElementById(`user-${username}`);
       row?.scrollIntoView({ block: "center", behavior: "smooth" });
     };
+
     apply();
     window.addEventListener("hashchange", apply);
+
     return () => window.removeEventListener("hashchange", apply);
   }, []);
 
@@ -209,6 +217,7 @@ export function LeaderboardTable({
           rows.map((row) => {
             const chips = organizations?.[row._id] ?? [];
             const isViewer = !!viewerUsername && viewerUsername === row.username;
+
             return (
               <TableRow
                 key={row._id}

@@ -10,7 +10,9 @@ import { makeFixtureContext } from "./test.fixtures.ts";
 function docs(dir: string, table: string): Record<string, unknown>[] {
   const file = path.join(dir, "docs", `${table}.jsonl`);
   const text = readFileSync(file, "utf8").trim();
+
   if (text === "") return [];
+
   return text.split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
 }
 

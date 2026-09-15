@@ -22,8 +22,10 @@ export const list = query({
     const rows = await ctx.db.query("judges").collect();
     rows.sort((a, b) => {
       if (a.online !== b.online) return a.online ? -1 : 1;
+
       return a.name.localeCompare(b.name);
     });
+
     return rows.map((row) => ({
       _id: row._id,
       name: row.name,
@@ -49,6 +51,7 @@ export const get = query({
   args: { id: v.id("judges") },
   handler: async (ctx, { id }) => {
     await requirePerm(ctx, JUDGE_PERM);
+
     return await ctx.db.get(id);
   },
 });
@@ -70,16 +73,20 @@ export const create = mutation({
     const editor = await requirePerm(ctx, JUDGE_PERM);
 
     const name = args.name.trim();
+
     if (name.length === 0) throw invalid("A judge needs a name.");
+
     if (name.length > 50) throw invalid("Judge names are limited to 50 characters.");
 
     const clash = await ctx.db
       .query("judges")
       .withIndex("by_name", (q) => q.eq("name", name))
       .unique();
+
     if (clash) throw invalid(`A judge named ${name} already exists.`);
 
     const authKey = generateJudgeKey();
+
     const id = await ctx.db.insert("judges", {
       name,
       authKeyHash: await sha256Hex(authKey),
@@ -92,6 +99,7 @@ export const create = mutation({
       runtimeKeys: [],
       createdAt: Date.now(),
     });
+
     await writeRevision(
       ctx,
       "judge",
@@ -100,6 +108,7 @@ export const create = mutation({
       editor._id,
       args.reason ?? "Created judge",
     );
+
     return { id, name, authKey };
   },
 });
@@ -117,28 +126,38 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const editor = await requirePerm(ctx, JUDGE_PERM);
     const row = await ctx.db.get(args.id);
+
     if (!row) throw notFound("Judge");
 
     const patch: Partial<Doc<"judges">> = {};
+
     if (args.name !== undefined) {
       const name = args.name.trim();
+
       if (name.length === 0) throw invalid("A judge needs a name.");
+
       if (name !== row.name) {
         const clash = await ctx.db
           .query("judges")
           .withIndex("by_name", (q) => q.eq("name", name))
           .unique();
+
         if (clash) throw invalid(`A judge named ${name} already exists.`);
       }
+
       patch.name = name;
     }
+
     if (args.description !== undefined) patch.description = args.description;
+
     if (args.tier !== undefined) {
       if (!Number.isInteger(args.tier) || args.tier < 0)
         throw invalid("A tier must be a non-negative integer.");
       patch.tier = args.tier;
     }
+
     if (args.isBlocked !== undefined) patch.isBlocked = args.isBlocked;
+
     if (args.isDisabled !== undefined) patch.isDisabled = args.isDisabled;
 
     await writeRevision(ctx, "judge", args.id, row, editor._id, args.reason ?? "Edited judge");
@@ -152,9 +171,11 @@ export const toggleDisabled = mutation({
   handler: async (ctx, { id, reason }) => {
     const editor = await requirePerm(ctx, JUDGE_PERM);
     const row = await ctx.db.get(id);
+
     if (!row) throw notFound("Judge");
     await writeRevision(ctx, "judge", id, row, editor._id, reason ?? "Toggled judge");
     await ctx.db.patch(id, { isDisabled: !row.isDisabled });
+
     return !row.isDisabled;
   },
 });
@@ -168,6 +189,7 @@ export const disconnect = mutation({
   handler: async (ctx, { id, force }) => {
     const editor = await requirePerm(ctx, JUDGE_PERM);
     const row = await ctx.db.get(id);
+
     if (!row) throw notFound("Judge");
     await ctx.db.patch(id, {
       disconnectRequestedAt: Date.now(),
@@ -190,6 +212,7 @@ export const clearDisconnect = mutation({
   handler: async (ctx, { id }) => {
     await requirePerm(ctx, JUDGE_PERM);
     const row = await ctx.db.get(id);
+
     if (!row) throw notFound("Judge");
     await ctx.db.patch(id, { disconnectRequestedAt: undefined, disconnectForce: undefined });
   },
@@ -201,10 +224,12 @@ export const regenerateKey = mutation({
   handler: async (ctx, { id, reason }): Promise<{ authKey: string }> => {
     const editor = await requirePerm(ctx, JUDGE_PERM);
     const row = await ctx.db.get(id);
+
     if (!row) throw notFound("Judge");
     const authKey = generateJudgeKey();
     await ctx.db.patch(id, { authKeyHash: await sha256Hex(authKey) });
     await writeRevision(ctx, "judge", id, { name: row.name }, editor._id, reason ?? "Regenerated judge key");
+
     return { authKey };
   },
 });
@@ -214,12 +239,14 @@ export const remove = mutation({
   handler: async (ctx, { id, reason }) => {
     const editor = await requirePerm(ctx, JUDGE_PERM);
     const row = await ctx.db.get(id);
+
     if (!row) throw notFound("Judge");
 
     const versions = await ctx.db
       .query("runtimeVersions")
       .withIndex("by_judge", (q) => q.eq("judgeId", id))
       .collect();
+
     for (const version of versions) await ctx.db.delete(version._id);
 
     await writeRevision(ctx, "judge", id, row, editor._id, reason ?? "Deleted judge");

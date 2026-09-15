@@ -133,6 +133,7 @@ export type JudgeDataQuery = z.infer<typeof judgeDataQuerySchema>;
 
 /** Headers `GET /judge/data` answers with, so the judge can verify what it got. */
 export const DATA_HASH_HEADER = "X-Moj-Data-Hash";
+
 export const DATA_SIZE_HEADER = "X-Moj-Data-Size";
 
 /* -------------------------------------------------------------------------- */
@@ -140,6 +141,7 @@ export const DATA_SIZE_HEADER = "X-Moj-Data-Size";
 /* -------------------------------------------------------------------------- */
 
 const nullableNumber = z.number().nullable().optional();
+
 const nullableString = z.string().nullable().optional();
 
 /**
@@ -175,6 +177,7 @@ export const gradingBeginEventSchema = z.object({
 });
 
 export const batchBeginEventSchema = z.object({ type: z.literal("batch-begin") });
+
 export const batchEndEventSchema = z.object({ type: z.literal("batch-end") });
 
 export const testCaseStatusEventSchema = z.object({
@@ -216,6 +219,7 @@ export const judgeEventSchema = z.discriminatedUnion("type", [
 ]);
 
 export type JudgeEvent = z.infer<typeof judgeEventSchema>;
+
 export type JudgeEventType = JudgeEvent["type"];
 
 export const JUDGE_EVENT_TYPES: readonly JudgeEventType[] = [
@@ -252,12 +256,19 @@ export const abortResponseSchema = z.object({ abort: z.boolean() });
 /* -------------------------------------------------------------------------- */
 
 export const handshakeResponseSchema = z.object({ ok: z.literal(true), judgeId: z.string() });
+
 export const heartbeatResponseSchema = z.object({ ok: z.literal(true), serverTime: z.number() });
+
 export const eventResponseSchema = z.object({ ok: z.boolean(), error: z.string().optional() });
+
 export const disconnectResponseSchema = z.object({ ok: z.literal(true) });
+
 export const errorResponseSchema = z.object({ error: z.string() });
 
 export type HandshakeResponse = z.infer<typeof handshakeResponseSchema>;
+
 export type HeartbeatResponse = z.infer<typeof heartbeatResponseSchema>;
+
 export type ClaimResponse = z.infer<typeof claimResponseSchema>;
+
 export type AbortResponse = z.infer<typeof abortResponseSchema>;

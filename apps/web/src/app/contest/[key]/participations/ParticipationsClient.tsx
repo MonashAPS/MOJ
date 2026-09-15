@@ -28,9 +28,13 @@ const DASH = "—";
 
 function cellSkin(state: string): string {
   const base = state.replace("pretest-", "");
+
   if (base === "full-score") return "bg-(--cell-solved-bg) text-(--cell-solved-ink)";
+
   if (base === "partial-score") return "bg-warn-bg text-warn";
+
   if (base === "failed-score") return "bg-(--cell-failed-bg) text-(--cell-failed-ink)";
+
   return "text-(--cell-empty-ink)";
 }
 
@@ -59,10 +63,12 @@ export function ParticipationsClient({
   const router = useRouter();
   const [lookup, setLookup] = useState("");
   const live = useQuery(api.contests.participation.participations, isOwn ? { key: contestKey } : "skip");
+
   const liveOther = useQuery(
     api.contests.participation.participationsOfUser,
     !isOwn && subject ? { key: contestKey, username: subject } : "skip",
   );
+
   const rows = (isOwn ? live : liveOther) ?? initial;
   const contest = detail.contest;
   const joinKind = joinKindFor(detail);
@@ -105,6 +111,7 @@ export function ParticipationsClient({
               className="grid gap-1"
               onSubmit={(event) => {
                 event.preventDefault();
+
                 if (lookup.trim()) {
                   router.push(`/contest/${contestKey}/participations/${lookup.trim()}/`);
                 }

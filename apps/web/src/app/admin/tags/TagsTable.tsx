@@ -47,8 +47,10 @@ export function TagsTable() {
     if (!draft) return;
     setBusy(true);
     setError(null);
+
     try {
       const { id, ...fields } = draft;
+
       if (id) await update({ ...fields, id, reason });
       else await create({ ...fields, reason });
       setMessage({ tone: "ok", text: t("savedMessage", { name: draft.name }) });

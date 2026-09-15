@@ -12,6 +12,7 @@ export function formatDuration(ms: number): string {
   const minutes = Math.floor((total % 3600) / 60);
   const seconds = total % 60;
   const pad = (value: number) => String(value).padStart(2, "0");
+
   return days > 0
     ? `${days}d ${pad(hours)}:${pad(minutes)}`
     : `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
@@ -28,9 +29,11 @@ export function useCountdown(endsAt: number | null | undefined): number | null {
   useEffect(() => {
     if (!endsAt) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
+
     return () => clearInterval(id);
   }, [endsAt]);
 
   if (!endsAt) return null;
+
   return Math.max(0, endsAt - now);
 }

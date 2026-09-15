@@ -30,6 +30,7 @@ export function NewProblemForm() {
   const options = useQuery(api.pages.admin.problems.options, {});
   const viewer = useQuery(api.pages.admin.console.viewer, {});
   const create = useMutation(api.admin.problems.create);
+
   const ids = {
     code: useId(),
     name: useId(),
@@ -78,15 +79,21 @@ export function NewProblemForm() {
 
   async function submit() {
     setError(null);
+
     if (!/^[a-z.0-9]+$/.test(code) || code.length > 20) {
       setError(t("invalidCode"));
+
       return;
     }
+
     if (!name.trim()) {
       setError(t("nameRequired"));
+
       return;
     }
+
     setBusy(true);
+
     try {
       await create({
         code,

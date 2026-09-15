@@ -46,19 +46,27 @@ export function NewContestForm() {
 
   async function submit() {
     setError(null);
+
     if (!/^[a-z0-9]+$/.test(key) || key.length > 20) {
       setError(t("errorKey"));
+
       return;
     }
+
     if (!name.trim()) {
       setError(t("errorName"));
+
       return;
     }
+
     if (!startTime || !endTime || endTime <= startTime) {
       setError(t("errorWindow"));
+
       return;
     }
+
     setBusy(true);
+
     try {
       const result = await create({
         key,
@@ -73,6 +81,7 @@ export function NewContestForm() {
         useClarifications,
         reason: reason.trim() || undefined,
       });
+
       router.push(`/admin/contests/${result.key}/`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("errorCreate"));

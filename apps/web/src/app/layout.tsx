@@ -21,6 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const branding = await query(api.site.branding, {}).catch(() => null);
   const name = branding?.siteName ?? "MOJ";
   const longName = branding?.siteLongName ?? "MAPS Online Judge";
+
   return {
     title: { default: name, template: `%s - ${longName}` },
     description: `The ${longName}: problems, contests and rankings for Monash Algorithms and Problem Solving.`,
@@ -60,6 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const theme = resolveTheme(jar.get(THEME_COOKIE)?.value, themeDefault);
 
   const profile = viewerState?.profile ?? null;
+
   const viewer = profile
     ? {
         username: profile.username,

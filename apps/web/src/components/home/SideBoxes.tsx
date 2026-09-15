@@ -41,6 +41,7 @@ function FeedLinks({ base }: { base: string }) {
 
 export function ContestsBox() {
   const contests = useQuery(api.contests.homeSidebar, { limit: 8 });
+
   if (contests === undefined)
     return (
       <Panel title="Contests" icon={<Trophy size={14} />}>
@@ -141,6 +142,7 @@ function OngoingRow({ contest }: { contest: SidebarContest }) {
 
 function UpcomingRow({ contest }: { contest: SidebarContest }) {
   const remaining = useCountdown(contest.startTime);
+
   return (
     <li className="grid min-w-0 gap-0.5 border-b border-border p-3 last:border-b-0">
       <Link href={`/contest/${contest.key}`} className="truncate text-base font-medium text-link">
@@ -160,7 +162,9 @@ function UpcomingRow({ contest }: { contest: SidebarContest }) {
 
 export function RecentCommentsBox() {
   const comments = useQuery(api.comments.recent, { limit: 10 });
+
   if (comments === undefined || comments.length === 0) return null;
+
   return (
     <Panel title="Recent comments" icon={<MessageSquare size={14} />}>
       <ul className="grid min-w-0">
@@ -183,12 +187,15 @@ export function RecentCommentsBox() {
 
 export function NewProblemsBox({ states }: { states?: Record<string, "solved" | "partial" | "attempted"> }) {
   const problems = useQuery(api.problems.recent, { limit: 7 });
+
   if (problems === undefined || problems.length === 0) return null;
+
   return (
     <Panel title="New problems" icon={<Plus size={14} />}>
       <ul className="grid min-w-0">
         {problems.map((problem) => {
           const state = states?.[problem.code];
+
           return (
             <li key={problem._id} className="flex min-w-0 items-center gap-2 py-0.5">
               {state === "solved" ? (
@@ -215,12 +222,15 @@ export function NewProblemsBox({ states }: { states?: Record<string, "solved" | 
 
 export function TopUsersBox({ viewerUsername }: { viewerUsername?: string }) {
   const users = useQuery(api.rankings.topUsers, { limit: 10 });
+
   if (users === undefined || users.length === 0) return null;
+
   return (
     <Panel title="Top users" icon={<Trophy size={14} />}>
       <ol className="grid min-w-0">
         {users.map((user, index) => {
           const isViewer = viewerUsername === user.username;
+
           return (
             <li
               key={user._id}

@@ -14,6 +14,7 @@ export async function GET(request: Request): Promise<Response> {
       username: listFilter(url, "username"),
       organization: listFilter(url, "organization"),
     };
+
     return handleApiRequest(request, (options) => fetchQuery(api.apiV2.users, args, options));
   });
 }

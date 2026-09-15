@@ -21,7 +21,9 @@ import { db, schema } from "../src/auth/db";
 import { auth } from "../src/auth/server";
 
 const username = process.argv[2] ?? "admin";
+
 const password = process.argv[3] ?? "moj-admin-local";
+
 const email = process.argv[4] ?? "admin@example.com";
 
 /** Five fixed scratch codes, in the plugin's `xxxxx-xxxxx` shape. */
@@ -73,7 +75,9 @@ async function main() {
         preferredLanguage: "PY3",
       },
     });
+
     userId = (result as { user?: { id: string } }).user?.id;
+
     if (!userId) {
       const created = await db.select().from(schema.user).where(eq(schema.user.email, email)).limit(1);
       userId = created[0]?.id;

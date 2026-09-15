@@ -56,6 +56,7 @@ describe("access matrix", () => {
 
     const outsider = await t.withIdentity(identityOf("outsider")).query(api.contests.get, { key: "orgonly" });
     expect(outsider.access.kind).toBe("privateContest");
+
     if (outsider.access.kind === "privateContest") {
       expect(outsider.access.organizations.map((row) => row.name)).toEqual(["MAPS"]);
     }
@@ -71,6 +72,7 @@ describe("access matrix", () => {
         username: "author",
         permissions: ["judge.edit_own_contest"],
       });
+
       await insertContest(ctx, { key: "draft", isVisible: false, authorProfileIds: [authorId] });
     });
 
@@ -122,6 +124,7 @@ describe("joining and leaving", () => {
         .query("contests")
         .withIndex("by_key", (q) => q.eq("key", "live"))
         .unique();
+
       expect(contest?.userCount).toBe(1);
     });
 
@@ -169,10 +172,12 @@ describe("joining and leaving", () => {
     await expect(asCoder.mutation(api.contests.participation.join, { key: "gated" })).rejects.toThrow(
       /access code/i,
     );
+
     const joined = await asCoder.mutation(api.contests.participation.join, {
       key: "gated",
       accessCode: "opensesame",
     });
+
     expect(joined.virtual).toBe(0);
     // The code is only asked for when a participation would be created.
     expect((await asCoder.mutation(api.contests.participation.join, { key: "gated" })).participationId).toBe(
@@ -190,6 +195,7 @@ describe("joining and leaving", () => {
     const joined = await t
       .withIdentity(identityOf("author"))
       .mutation(api.contests.participation.join, { key: "spec" });
+
     expect(joined.virtual).toBe(-1);
   });
 
@@ -198,11 +204,13 @@ describe("joining and leaving", () => {
     let participationId: Id<"contestParticipations"> | null = null;
     await t.run(async (ctx) => {
       const profileId = await insertProfile(ctx, { username: "ada" });
+
       const contestId = await insertContest(ctx, {
         key: "over",
         startTime: Date.now() - 5 * HOUR,
         endTime: Date.now() - 4 * HOUR,
       });
+
       participationId = await insertParticipation(ctx, {
         contestId,
         profileId,
@@ -239,19 +247,23 @@ describe("contest problem states", () => {
         startTime: now - 5 * HOUR,
         endTime: now - 4 * HOUR,
       });
+
       const cpDuring = await insertContestProblem(ctx, {
         contestId,
         problemId: during,
         order: 0,
         points: 1,
       });
+
       const cpSince = await insertContestProblem(ctx, { contestId, problemId: since, order: 1, points: 1 });
+
       const cpPartial = await insertContestProblem(ctx, {
         contestId,
         problemId: partial,
         order: 2,
         points: 1,
       });
+
       await insertContestProblem(ctx, { contestId, problemId: untouched, order: 3, points: 1 });
 
       const participationId = await insertParticipation(ctx, {
@@ -337,12 +349,14 @@ describe("contest problem states", () => {
       const profileId = await insertProfile(ctx, { username: "ada" });
       const problemId = await insertProblem(ctx, { code: "aplus" });
       const contestId = await insertContest(ctx, { key: "live" });
+
       const contestProblemId = await insertContestProblem(ctx, {
         contestId,
         problemId,
         order: 0,
         points: 1,
       });
+
       const participationId = await insertParticipation(ctx, { contestId, profileId });
       await ctx.db.patch(profileId, { currentParticipationId: participationId });
       await insertSubmission(ctx, {
@@ -378,6 +392,7 @@ describe("clarifications and statistics", () => {
         username: "author",
         permissions: ["judge.edit_own_contest"],
       });
+
       await insertProfile(ctx, { username: "ada" });
       const problemId = await insertProblem(ctx, { code: "aplus" });
       const contestId = await insertContest(ctx, { key: "live", authorProfileIds: [authorId] });
@@ -401,6 +416,7 @@ describe("clarifications and statistics", () => {
     const rows = await t.withIdentity(identityOf("ada")).query(api.contests.clarifications.list, {
       key: "live",
     });
+
     expect(rows?.length).toBe(1);
     expect(rows?.[0]?.label).toBe("A");
     expect(rows?.[0]?.description).toBe("N is at most 10^5.");
@@ -421,17 +437,20 @@ describe("clarifications and statistics", () => {
         startTime: now - 5 * HOUR,
         endTime: now - 4 * HOUR,
       });
+
       const contestProblemId = await insertContestProblem(ctx, {
         contestId,
         problemId,
         order: 0,
         points: 1,
       });
+
       const participationId = await insertParticipation(ctx, {
         contestId,
         profileId,
         realStart: now - 5 * HOUR,
       });
+
       await insertSubmission(ctx, {
         profileId,
         problemId,
@@ -465,9 +484,11 @@ describe("clarifications and statistics", () => {
     expect(stats?.totalSubmissions).toBe(2);
     expect(stats?.problems[0]?.acRate).toBe(50);
     expect(stats?.languageCount).toEqual([{ name: "Python 3", count: 2 }]);
+
     const results = Object.fromEntries(
       (stats?.problemStatusCount ?? []).map((row) => [row.code, row.counts]),
     );
+
     expect(results.AC).toEqual([1]);
     expect(results.WA).toEqual([1]);
   });
@@ -484,20 +505,24 @@ describe("cloning", () => {
     });
 
     const asCloner = t.withIdentity(identityOf("cloner"));
+
     const cloned = await asCloner.mutation(api.contests.tools.clone, {
       key: "original",
       newKey: "copy",
     });
+
     expect(cloned.key).toBe("copy");
 
     await t.run(async (ctx) => {
       const contest = await ctx.db.get(cloned.contestId);
       expect(contest?.isVisible).toBe(false);
       expect(contest?.userCount).toBe(0);
+
       const problems = await ctx.db
         .query("contestProblems")
         .withIndex("by_contest_order", (q) => q.eq("contestId", cloned.contestId))
         .collect();
+
       expect(problems.length).toBe(1);
       expect(problems[0]?.points).toBe(7);
 
@@ -533,12 +558,14 @@ describe("moss", () => {
         username: "author",
         permissions: ["judge.edit_own_contest", "judge.moss_contest"],
       });
+
       await insertContest(ctx, { key: "live", authorProfileIds: [authorId] });
     });
 
     const payload = await t
       .withIdentity(identityOf("author"))
       .query(api.contests.tools.moss, { key: "live" });
+
     expect(payload).toEqual({ configured: false, message: "MOSS is not configured.", results: [] });
   });
 });

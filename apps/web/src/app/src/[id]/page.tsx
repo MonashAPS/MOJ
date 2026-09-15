@@ -12,13 +12,16 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const view = await loadSourceView(id);
+
   if (!view) return { title: "Submission source" };
+
   return { title: `Submission of ${view.problem.name} by ${view.user.username}` };
 }
 
 export default async function SubmissionSourcePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const view = await loadSourceView(id);
+
   if (!view) notFound();
 
   const tabs: TabItem[] = [

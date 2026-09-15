@@ -5,7 +5,9 @@ import type { api } from "@convex/_generated/api";
 import type { FunctionReturnType } from "convex/server";
 
 export type TicketPage = FunctionReturnType<typeof api.tickets.list>;
+
 export type TicketSummary = TicketPage["page"][number];
+
 export type TicketScope = "all" | "mine" | "assigned";
 
 /** `TicketList.paginate_by` (judge/views/ticket.py:212). */
@@ -22,6 +24,7 @@ export function scopeFromParams(value: string | undefined): TicketScope {
 
 export function ticketQueryArgs(scope: TicketScope, onlyOpen: boolean, page: number, problemCode?: string) {
   const wide = scope === "assigned";
+
   return {
     paginationOpts: {
       numItems: wide ? WIDE_PAGE : PER_PAGE,

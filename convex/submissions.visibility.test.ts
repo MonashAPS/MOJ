@@ -13,6 +13,7 @@ import { setupTest, type T } from "./test.setup";
 async function canSeeDetail(t: T, username: string | null, submissionId: Id<"submissions">) {
   const client = username ? asUser(t, username) : t;
   const detail = await client.query(api.submissions.detail, { submissionId });
+
   return detail?.canSeeDetail ?? false;
 }
 
@@ -38,6 +39,7 @@ describe("submission detail visibility", () => {
       testerProfileIds: [testerId],
       submissionSourceVisibility: "O",
     });
+
     const submissionId = await insertSubmission(t, {
       profileId: ownerId,
       problemId,
@@ -60,10 +62,12 @@ describe("submission detail visibility", () => {
     const languageId = await insertLanguage(t);
     const ownerId = await insertProfile(t, { username: "owner" });
     await insertProfile(t, { username: "stranger" });
+
     const problemId = await insertProblem(t, {
       allowedLanguageIds: [languageId],
       submissionSourceVisibility: "A",
     });
+
     const submissionId = await insertSubmission(t, {
       profileId: ownerId,
       problemId,
@@ -71,6 +75,7 @@ describe("submission detail visibility", () => {
       status: "D",
       result: "AC",
     });
+
     expect(await canSeeDetail(t, "stranger", submissionId)).toBe(true);
     // Still not to a logged-out visitor: `can_see_detail` needs a user.
     expect(await canSeeDetail(t, null, submissionId)).toBe(false);
@@ -81,10 +86,12 @@ describe("submission detail visibility", () => {
     const languageId = await insertLanguage(t);
     const ownerId = await insertProfile(t, { username: "owner" });
     const strangerId = await insertProfile(t, { username: "stranger" });
+
     const problemId = await insertProblem(t, {
       allowedLanguageIds: [languageId],
       submissionSourceVisibility: "S",
     });
+
     const submissionId = await insertSubmission(t, {
       profileId: ownerId,
       problemId,
@@ -115,6 +122,7 @@ describe("submission detail visibility", () => {
     const ownerId = await insertProfile(t, { username: "owner" });
     await insertProfile(t, { username: "stranger" });
     const problemId = await insertProblem(t, { allowedLanguageIds: [languageId] });
+
     const submissionId = await insertSubmission(t, {
       profileId: ownerId,
       problemId,
@@ -123,6 +131,7 @@ describe("submission detail visibility", () => {
       result: "AC",
       source: "print(1 + 1)",
     });
+
     await t.run(async (ctx) =>
       ctx.db.insert("submissionTestCases", {
         submissionId,
@@ -176,17 +185,20 @@ describe("submission lists", () => {
     const ownerId = await insertProfile(t, { username: "owner" });
     await insertProfile(t, { username: "stranger" });
     const publicProblem = await insertProblem(t, { code: "open", allowedLanguageIds: [languageId] });
+
     const secret = await insertProblem(t, {
       code: "secret",
       isPublic: false,
       allowedLanguageIds: [languageId],
     });
+
     await insertSubmission(t, { profileId: ownerId, problemId: publicProblem, languageId });
     await insertSubmission(t, { profileId: ownerId, problemId: secret, languageId });
 
     const page = await asUser(t, "stranger").query(api.submissions.list, {
       paginationOpts: { numItems: 20, cursor: null },
     });
+
     expect(page.page.map((row) => row.problem?.code)).toEqual(["open"]);
   });
 
@@ -238,6 +250,7 @@ describe("submission lists", () => {
       problemCode: "a",
       username: "bob",
     });
+
     expect(both.page).toHaveLength(1);
     expect(both.page[0]?.result).toBe("TLE");
 
@@ -245,12 +258,14 @@ describe("submission lists", () => {
       paginationOpts: opts,
       languageKeys: ["CPP17"],
     });
+
     expect(byLanguage.page).toHaveLength(1);
 
     const byResult = await t.query(api.submissions.list, {
       paginationOpts: opts,
       results: ["AC", "TLE"],
     });
+
     expect(byResult.page).toHaveLength(2);
   });
 
@@ -259,6 +274,7 @@ describe("submission lists", () => {
     const languageId = await insertLanguage(t);
     const authorId = await insertProfile(t, { username: "author" });
     const problemId = await insertProblem(t, { allowedLanguageIds: [languageId] });
+
     for (const result of ["AC", "AC", "WA", "TLE", "MLE", "CE"] as const) {
       await insertSubmission(t, {
         profileId: authorId,

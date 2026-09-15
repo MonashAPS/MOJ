@@ -22,12 +22,15 @@ async function fixture(problemOptions: Overrides<"problems"> = {}) {
   const t = setupTest();
   const languageId = await insertLanguage(t, { key: "PY3" });
   const otherLanguageId = await insertLanguage(t, { key: "CPP17" });
+
   const problemId = await insertProblem(t, {
     code: "aplusb",
     allowedLanguageIds: [languageId],
     ...problemOptions,
   });
+
   const authorId = await insertProfile(t, { username: "author" });
+
   return { t, languageId, otherLanguageId, problemId, authorId };
 }
 
@@ -35,6 +38,7 @@ describe("submissions.submit", () => {
   it("queues a submission with its source", async () => {
     const { t } = await fixture();
     const as = asUser(t, "author");
+
     const { submissionId, id } = await as.mutation(api.submissions.submit, {
       problemCode: "aplusb",
       languageKey: "PY3",
@@ -53,6 +57,7 @@ describe("submissions.submit", () => {
         .withIndex("by_submission", (q) => q.eq("submissionId", submissionId))
         .unique(),
     );
+
     expect(source?.source).toBe("print(1)");
 
     // The integer id continues from the highest one already stored.
@@ -61,6 +66,7 @@ describe("submissions.submit", () => {
       languageKey: "PY3",
       source: "print(2)",
     });
+
     expect(second.id).toBe(2);
   });
 
@@ -153,6 +159,7 @@ describe("submissions.submit", () => {
       languageKey: "PY3",
       source: "print(1)",
     });
+
     expect(result.submissionId).toBeTruthy();
   });
 
@@ -160,10 +167,12 @@ describe("submissions.submit", () => {
     const t = setupTest();
     const languageId = await insertLanguage(t, { key: "PY3" });
     const problemId = await insertProblem(t, { code: "aplusb", allowedLanguageIds: [languageId] });
+
     const authorId = await insertProfile(t, {
       username: "author",
       permissions: ["judge.spam_submission"],
     });
+
     await insertSubmission(t, { profileId: authorId, problemId, languageId, status: "QU" });
     await insertSubmission(t, { profileId: authorId, problemId, languageId, status: "G" });
 
@@ -172,6 +181,7 @@ describe("submissions.submit", () => {
       languageKey: "PY3",
       source: "print(1)",
     });
+
     expect(result.submissionId).toBeTruthy();
   });
 
@@ -179,6 +189,7 @@ describe("submissions.submit", () => {
     const { t } = await fixture();
     const as = asUser(t, "author");
     let rejected = 0;
+
     for (let i = 0; i < 12; i++) {
       try {
         const { submissionId } = await as.mutation(api.submissions.submit, {
@@ -186,12 +197,14 @@ describe("submissions.submit", () => {
           languageKey: "PY3",
           source: `print(${i})`,
         });
+
         // Take it out of flight so only the rate limiter can stop the next one.
         await t.run(async (ctx) => ctx.db.patch(submissionId, { status: "D", result: "AC" }));
       } catch {
         rejected += 1;
       }
     }
+
     expect(rejected).toBeGreaterThan(0);
   });
 
@@ -211,10 +224,12 @@ describe("submissions.submit", () => {
   it("pins to a judge for a problem editor", async () => {
     const t = setupTest();
     const languageId = await insertLanguage(t, { key: "PY3" });
+
     const editorId = await insertProfile(t, {
       username: "editor",
       permissions: ["judge.edit_own_problem", "judge.edit_all_problem"],
     });
+
     await insertProblem(t, {
       code: "aplusb",
       allowedLanguageIds: [languageId],
@@ -228,6 +243,7 @@ describe("submissions.submit", () => {
       source: "print(1)",
       judgePin: "local",
     });
+
     expect((await t.run(async (ctx) => ctx.db.get(submissionId)))?.judgePin).toBe(judgeId);
   });
 });
@@ -235,12 +251,14 @@ describe("submissions.submit", () => {
 describe("submissions.abort", () => {
   it("aborts a queued submission immediately", async () => {
     const { t, languageId, problemId, authorId } = await fixture();
+
     const submissionId = await insertSubmission(t, {
       profileId: authorId,
       problemId,
       languageId,
       status: "QU",
     });
+
     const result = await asUser(t, "author").mutation(api.submissions.abort, { submissionId });
     expect(result).toEqual({ aborted: true, pending: false });
 
@@ -252,12 +270,14 @@ describe("submissions.abort", () => {
 
   it("flags a submission the judge already holds", async () => {
     const { t, languageId, problemId, authorId } = await fixture();
+
     const submissionId = await insertSubmission(t, {
       profileId: authorId,
       problemId,
       languageId,
       status: "G",
     });
+
     const result = await asUser(t, "author").mutation(api.submissions.abort, { submissionId });
     expect(result).toEqual({ aborted: false, pending: true });
     expect((await t.run(async (ctx) => ctx.db.get(submissionId)))?.abortRequested).toBe(true);
@@ -265,6 +285,7 @@ describe("submissions.abort", () => {
 
   it("leaves a finished submission alone", async () => {
     const { t, languageId, problemId, authorId } = await fixture();
+
     const submissionId = await insertSubmission(t, {
       profileId: authorId,
       problemId,
@@ -272,6 +293,7 @@ describe("submissions.abort", () => {
       status: "D",
       result: "AC",
     });
+
     await asUser(t, "author").mutation(api.submissions.abort, { submissionId });
     expect((await t.run(async (ctx) => ctx.db.get(submissionId)))?.status).toBe("D");
   });
@@ -279,12 +301,14 @@ describe("submissions.abort", () => {
   it("refuses someone else's submission without abort_any_submission", async () => {
     const { t, languageId, problemId, authorId } = await fixture();
     await insertProfile(t, { username: "stranger" });
+
     const submissionId = await insertSubmission(t, {
       profileId: authorId,
       problemId,
       languageId,
       status: "QU",
     });
+
     await expect(asUser(t, "stranger").mutation(api.submissions.abort, { submissionId })).rejects.toThrow(
       /may not abort/,
     );
@@ -296,6 +320,7 @@ describe("submissions.abort", () => {
 
   it("refuses a rejudged submission to its own author", async () => {
     const { t, languageId, problemId, authorId } = await fixture();
+
     const submissionId = await insertSubmission(t, {
       profileId: authorId,
       problemId,
@@ -303,6 +328,7 @@ describe("submissions.abort", () => {
       status: "QU",
       rejudgedDate: Date.now(),
     });
+
     await expect(asUser(t, "author").mutation(api.submissions.abort, { submissionId })).rejects.toThrow(
       /may not abort/,
     );
@@ -314,6 +340,7 @@ describe("submissions.rejudge", () => {
     const { t, languageId, problemId, authorId } = await fixture();
     await insertProfile(t, { username: "staff", permissions: ["judge.rejudge_submission"] });
     const judgeId = await insertJudge(t);
+
     const submissionId = await insertSubmission(t, {
       profileId: authorId,
       problemId,
@@ -325,6 +352,7 @@ describe("submissions.rejudge", () => {
       caseTotal: 100,
       currentTestcase: 4,
     });
+
     await t.run(async (ctx) => {
       await ctx.db.patch(submissionId, {
         time: 1.5,
@@ -371,18 +399,21 @@ describe("submissions.rejudge", () => {
         .withIndex("by_submission_case", (q) => q.eq("submissionId", submissionId))
         .collect(),
     );
+
     expect(cases).toHaveLength(0);
   });
 
   it("refuses a submission a judge is already grading", async () => {
     const { t, languageId, problemId, authorId } = await fixture();
     await insertProfile(t, { username: "staff", permissions: ["judge.rejudge_submission"] });
+
     const submissionId = await insertSubmission(t, {
       profileId: authorId,
       problemId,
       languageId,
       status: "G",
     });
+
     await expect(asUser(t, "staff").mutation(api.submissions.rejudge, { submissionId })).rejects.toThrow(
       /already being judged/,
     );
@@ -391,6 +422,7 @@ describe("submissions.rejudge", () => {
   it("refuses without the permission, and refuses a locked submission", async () => {
     const { t, languageId, problemId, authorId } = await fixture();
     await insertProfile(t, { username: "staff", permissions: ["judge.rejudge_submission"] });
+
     const submissionId = await insertSubmission(t, {
       profileId: authorId,
       problemId,

@@ -63,8 +63,11 @@ export type Pictogram = { sport: string; src: string; colour: string };
 export function pictogramFor(divisionKey: string, code: string, index: number): Pictogram | null {
   const named = PROBLEM_SPORTS[divisionKey]?.[code];
   const sport = named ?? SPORTS[index % SPORTS.length];
+
   if (!sport) return null;
   const colour = SPORT_COLOURS[sport];
+
   if (!colour) return null;
+
   return { sport, src: `/scoreboard-themes/olympics/problems/${sport}.svg`, colour };
 }

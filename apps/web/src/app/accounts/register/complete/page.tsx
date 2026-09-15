@@ -15,6 +15,7 @@ import { recallLink } from "@/auth/mail";
 
 export async function generateMetadata() {
   const t = await getTranslations("auth.registerComplete");
+
   return { title: t("metaTitle") };
 }
 

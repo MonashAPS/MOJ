@@ -109,6 +109,7 @@ describe("ProblemDataCompiler.make_init", () => {
       normalCase({ order: 6, inputFile: "03.in", outputFile: "03.out" }),
       normalCase({ order: 7, type: "E" }),
     ];
+
     const files = ["00.in", "00.out", "01.in", "01.out", "02.in", "02.out", "03.in", "03.out"];
 
     const { init } = makeInit(EMPTY_DATA, cases, files);
@@ -139,6 +140,7 @@ describe("ProblemDataCompiler.make_init", () => {
       normalCase({ order: 0, inputFile: "s.in", outputFile: "s.out", points: 0, isPretest: true }),
       normalCase({ order: 1, inputFile: "1.in", outputFile: "1.out", points: 100 }),
     ];
+
     const { init } = makeInit(EMPTY_DATA, cases, ["s.in", "s.out", "1.in", "1.out"]);
     expect(init).toEqual({
       pretest_test_cases: [{ in: "s.in", out: "s.out", points: 0 }],
@@ -157,6 +159,7 @@ describe("ProblemDataCompiler.make_init", () => {
       checker: "floatsabs",
       checkerArgs: '{"precision": 6}',
     };
+
     const cases = [normalCase({ order: 0, inputFile: "1.in", outputFile: "1.out", points: 100 })];
     const { init } = makeInit(data, cases, ["1.in", "1.out"]);
     expect(init).toEqual({
@@ -190,6 +193,7 @@ describe("ProblemDataCompiler.make_init", () => {
       normalCase({ order: 1, inputFile: "1.in", outputFile: "1.out" }),
       normalCase({ order: 2, type: "E" }),
     ];
+
     expect(compileInit(EMPTY_DATA, batchNoPoints, ["1.in", "1.out"]).feedback).toBe(
       "Batch start case #1 requires points.",
     );
@@ -204,6 +208,7 @@ describe("ProblemDataCompiler.make_init", () => {
       normalCase({ order: 1, inputFile: "1.in", outputFile: "1.out" }),
       normalCase({ order: 2, type: "E" }),
     ];
+
     expect(compileInit(EMPTY_DATA, forwardDependency, ["1.in", "1.out"]).feedback).toBe(
       "Dependencies must depend on previous batches for batch start case #1.",
     );
@@ -218,6 +223,7 @@ describe("ProblemDataCompiler.make_init", () => {
         checkerArgs: "not json",
       }),
     ];
+
     expect(compileInit(EMPTY_DATA, badChecker, ["1.in", "1.out"]).feedback).toBe(
       "Checker arguments is invalid JSON.",
     );
@@ -293,16 +299,19 @@ describe("problemData.initYaml", () => {
     const t = setupTest();
     await t.run(async (ctx) => {
       const { groupId } = await insertTaxonomy(ctx);
+
       const staff = await insertProfile(ctx, {
         username: "staff",
         isStaff: true,
         permissions: ["judge.edit_own_problem", "judge.edit_all_problem"],
       });
+
       const problemId = await insertProblem(ctx, {
         code: "aplusb",
         groupId,
         authorProfileIds: [staff],
       });
+
       await ctx.db.insert("problemData", {
         problemId,
         zipfile: "aplusb.zip",
@@ -310,11 +319,13 @@ describe("problemData.initYaml", () => {
         unicode: false,
         nobigmath: false,
       });
+
       const rows: [number, "C" | "S" | "E", string, string, number | null][] = [
         [0, "S", "", "", 100],
         [1, "C", "00.in", "00.out", null],
         [2, "E", "", "", null],
       ];
+
       for (const [order, type, inputFile, outputFile, points] of rows) {
         await ctx.db.insert("problemTestCases", {
           problemId,
@@ -332,10 +343,12 @@ describe("problemData.initYaml", () => {
     });
 
     const asStaff = asUser(t, "staff");
+
     const result = await asStaff.query(api.problems.data.initYaml, {
       code: "aplusb",
       files: ["00.in", "00.out"],
     });
+
     expect(result.feedback).toBe("");
     expect(result.yaml).toBe(
       [
@@ -356,11 +369,13 @@ describe("problemData.initYaml", () => {
     await t.run(async (ctx) => {
       const { groupId } = await insertTaxonomy(ctx);
       await insertProfile(ctx, { username: "nobody" });
+
       const staff = await insertProfile(ctx, {
         username: "staff",
         isStaff: true,
         permissions: ["judge.edit_own_problem", "judge.edit_all_problem"],
       });
+
       await insertProblem(ctx, { code: "aplusb", groupId, authorProfileIds: [staff] });
       const managedId = await insertProblem(ctx, { code: "managed", groupId });
       await ctx.db.patch(managedId, { isManuallyManaged: true });

@@ -8,6 +8,7 @@ export type { BrandingValues };
  */
 export function BrandingStyle({ branding }: { branding: BrandingValues | null }) {
   const css = brandingCss(branding);
+
   if (css === null) return null;
 
   return (

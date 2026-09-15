@@ -43,6 +43,7 @@ export function SkeletonTable({
   className?: string;
 }) {
   const widths = ["w-2/3", "w-1/2", "w-3/4", "w-2/5", "w-5/6", "w-1/3"];
+
   return (
     <div className={cn("overflow-hidden rounded-md border border-border", className)}>
       <div className="flex gap-4 border-b border-border bg-secondary px-3 py-2">

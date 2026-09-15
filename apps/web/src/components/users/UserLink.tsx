@@ -42,6 +42,7 @@ export function UserLink({
   // one place so a username looks the same wherever it appears.
   const cls = ratingClass(rating);
   const name = children ?? displayName ?? username;
+
   const label = (
     <span
       className={cn(getUserCssClass(displayRank ?? "user", rating ?? null), className)}
@@ -71,6 +72,7 @@ export function UserLink({
   );
 
   if (plain) return body;
+
   return (
     <Link href={`/user/${username}/`} className="hover:underline">
       {body}

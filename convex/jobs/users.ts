@@ -29,11 +29,13 @@ export type ExportArgs = {
 export function globToRegExp(glob: string): RegExp {
   const compressed = glob.replace(/\*+/g, "*");
   let source = "";
+
   for (const character of compressed) {
     if (character === "*") source += ".*";
     else if (character === "?") source += ".";
     else source += character.replace(/[.+^${}()|[\]\\]/g, "\\$&");
   }
+
   return new RegExp(`^${source}$`);
 }
 
@@ -80,15 +82,18 @@ export const loadExport = internalQuery({
   args: { jobId: v.id("jobs") },
   handler: async (ctx, { jobId }): Promise<ExportPayload | null> => {
     const job = await ctx.db.get(jobId);
+
     if (!job) return null;
     const args = job.args as ExportArgs;
     const profile = await ctx.db.get(args.profileId);
+
     if (!profile) return null;
 
     const matcher =
       args.submissionProblemGlob && args.submissionProblemGlob !== "*"
         ? globToRegExp(args.submissionProblemGlob)
         : null;
+
     const wantedResults = new Set(args.submissionResults);
 
     const submissions: ExportSubmission[] = [];
@@ -98,16 +103,21 @@ export const loadExport = internalQuery({
         .query("submissions")
         .withIndex("by_profile_date", (q) => q.eq("profileId", args.profileId))
         .collect();
+
       for (const row of rows) {
         if (wantedResults.size > 0 && !(row.result && wantedResults.has(row.result))) continue;
         const problem = await ctx.db.get(row.problemId);
+
         if (!problem) continue;
+
         if (matcher && !matcher.test(problem.code)) continue;
         const language = await ctx.db.get(row.languageId);
+
         const source = await ctx.db
           .query("submissionSources")
           .withIndex("by_submission", (q) => q.eq("submissionId", row._id))
           .unique();
+
         submissions.push({
           id: row._id,
           legacyId: row.legacyId,
@@ -133,6 +143,7 @@ export const loadExport = internalQuery({
         .query("comments")
         .withIndex("by_author", (q) => q.eq("authorProfileId", args.profileId))
         .collect();
+
       for (const row of rows) {
         comments.push({
           id: row._id,
@@ -163,10 +174,15 @@ export const setProgress = internalMutation({
   },
   handler: async (ctx, args) => {
     const patch: Partial<Doc<"jobs">> = {};
+
     if (args.status !== undefined) patch.status = args.status;
+
     if (args.progress !== undefined) patch.progress = args.progress;
+
     if (args.result !== undefined) patch.result = args.result;
+
     if (args.error !== undefined) patch.error = args.error;
+
     if (args.finished) patch.finishedAt = Date.now();
     await ctx.db.patch(args.jobId, patch);
   },
@@ -204,6 +220,7 @@ export const run = internalAction({
       const data: ExportPayload | null = await ctx.runQuery(internal.jobs.users.loadExport, {
         jobId,
       });
+
       if (!data) throw new Error("job or profile is gone");
 
       await ctx.runMutation(internal.jobs.users.setProgress, {
@@ -217,6 +234,7 @@ export const run = internalAction({
         const total = data.submissions.length;
         const submissionInfo: Record<string, unknown> = {};
         let prepared = 0;
+
         for (const submission of data.submissions) {
           const key = String(submission.legacyId ?? submission.id);
           submissionInfo[key] = {
@@ -232,6 +250,7 @@ export const run = internalAction({
           };
           files[`submissions/${key}.${submission.extension}`] = strToU8(submission.source);
           prepared += 1;
+
           if (prepared % CHUNK === 0) {
             await ctx.runMutation(internal.jobs.users.setProgress, {
               jobId,
@@ -239,6 +258,7 @@ export const run = internalAction({
             });
           }
         }
+
         files["submissions/info.json"] = strToU8(sortedJson(submissionInfo));
         await ctx.runMutation(internal.jobs.users.setProgress, {
           jobId,
@@ -250,6 +270,7 @@ export const run = internalAction({
         const total = data.comments.length;
         const commentInfo: Record<string, unknown> = {};
         let prepared = 0;
+
         for (const comment of data.comments) {
           const key = String(comment.legacyId ?? comment.id);
           commentInfo[key] = {
@@ -260,6 +281,7 @@ export const run = internalAction({
           };
           files[`comments/${key}.txt`] = strToU8(comment.body);
           prepared += 1;
+
           if (prepared % CHUNK === 0) {
             await ctx.runMutation(internal.jobs.users.setProgress, {
               jobId,
@@ -267,6 +289,7 @@ export const run = internalAction({
             });
           }
         }
+
         files["comments/info.json"] = strToU8(sortedJson(commentInfo));
         await ctx.runMutation(internal.jobs.users.setProgress, {
           jobId,
@@ -282,6 +305,7 @@ export const run = internalAction({
       const profileId: Id<"profiles"> | null = await ctx.runQuery(internal.jobs.users.exportProfileId, {
         jobId,
       });
+
       if (profileId) {
         await ctx.runMutation(internal.jobs.users.recordUpload, {
           jobId,
@@ -302,6 +326,7 @@ export const run = internalAction({
         },
         finished: true,
       });
+
       return { storageId, count: data.submissions.length + data.comments.length };
     } catch (error) {
       await ctx.runMutation(internal.jobs.users.setProgress, {
@@ -319,6 +344,7 @@ export const exportProfileId = internalQuery({
   args: { jobId: v.id("jobs") },
   handler: async (ctx, { jobId }): Promise<Id<"profiles"> | null> => {
     const job = await ctx.db.get(jobId);
+
     return job ? ((job.args as ExportArgs).profileId ?? null) : null;
   },
 });
@@ -326,6 +352,8 @@ export const exportProfileId = internalQuery({
 /** `json.dumps(..., sort_keys=True, indent=4)`. */
 export function sortedJson(value: Record<string, unknown>): string {
   const sorted: Record<string, unknown> = {};
+
   for (const key of Object.keys(value).sort()) sorted[key] = value[key];
+
   return JSON.stringify(sorted, null, 4);
 }

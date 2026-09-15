@@ -64,12 +64,16 @@ export function ApiTokenPanel({
     event.preventDefault();
     setBusy(true);
     setError(null);
+
     try {
       const result = await generateApiToken({ name, scopes });
+
       if (!result.ok) {
         setError(result.message);
+
         return;
       }
+
       setIssued(result.token);
       setName("");
       router.refresh();
@@ -83,17 +87,21 @@ export function ApiTokenPanel({
   async function revoke(payload: { keyId?: string; legacy?: boolean }) {
     setWorking(true);
     setError(null);
+
     try {
       const response = await fetch("/accounts/api/token/remove/", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
         setError(body?.error?.message ?? t("revokeFailed"));
+
         return;
       }
+
       setPendingDelete(null);
       setRevokingLegacy(false);
       router.refresh();
@@ -290,6 +298,7 @@ export function ApiTokenPanel({
               aria-busy={working || undefined}
               onClick={(event) => {
                 event.preventDefault();
+
                 if (pendingDelete) void revoke({ keyId: pendingDelete.id });
               }}
             >

@@ -70,8 +70,10 @@ export function SubmissionRow({
   const showScore = !grading && row.status !== "IE" && row.status !== "CE" && row.status !== "AB";
   const noUsage = ["QU", "P", "G", "CE", "IE", "AB"].includes(row.status);
   const isOwn = permissions.username !== null && permissions.username === row.user?.username;
+
   const canRejudge =
     permissions.canRejudge && (permissions.canEditAllProblems || permissions.problemEditable);
+
   const canAbort = grading && (permissions.canAbortAny || isOwn);
 
   const href = row.canSeeDetail
@@ -270,7 +272,9 @@ function RelativeStamp({ date, now }: { date: number; now: number }) {
       mounted.current = true;
       setReference(Date.now());
     }
+
     const timer = setInterval(() => setReference(Date.now()), 60_000);
+
     return () => clearInterval(timer);
   }, []);
 

@@ -39,8 +39,10 @@ function firstError(error: unknown): string {
       .split("\n")
       .filter((line) => line.trimStart().startsWith("error:"))
       .map((line) => line.trim());
+
     return lines[0] ?? error.message;
   }
+
   return error instanceof Error ? error.message : String(error);
 }
 
@@ -53,6 +55,7 @@ describe.skipIf(!(await typstAvailable()))("typst corpus", () => {
       const normalised = normaliseForCmarker(fixture.source);
       const source = markdownToTypst(fixture.source, fixture.meta);
       const assets = placeholderAssets(normalised.images);
+
       const row: Row = {
         code: fixture.code,
         name: fixture.meta.name,
@@ -64,12 +67,14 @@ describe.skipIf(!(await typstAvailable()))("typst corpus", () => {
         escapedHtml: normalised.escapedHtml.length,
         reason: "",
       };
+
       try {
         const pdf = await renderPdf(source, { assets });
         row.ok = true;
         row.bytes = pdf.length;
         row.pages = await pdfPages(pdf);
         const text = await pdfText(pdf);
+
         if (!text.includes(fixture.meta.name)) {
           row.ok = false;
           row.reason = "the problem name is missing from the rendered page";
@@ -77,6 +82,7 @@ describe.skipIf(!(await typstAvailable()))("typst corpus", () => {
       } catch (error) {
         row.reason = firstError(error);
       }
+
       rows.push(row);
     }
 

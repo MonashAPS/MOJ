@@ -29,8 +29,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { applyTheme } from "@/components/shell/ThemeToggle";
 
 const RECENTS_KEY = "moj-palette-recents";
+
 const MAX_RECENTS = 6;
+
 const PER_GROUP = 6;
+
 const DEBOUNCE_MS = 120;
 
 type Hit = {
@@ -65,8 +68,10 @@ const PAGES = [
 function readRecents(): Hit[] {
   try {
     const raw = localStorage.getItem(RECENTS_KEY);
+
     if (!raw) return [];
     const parsed = JSON.parse(raw);
+
     return Array.isArray(parsed) ? (parsed as Hit[]).slice(0, MAX_RECENTS) : [];
   } catch {
     return [];
@@ -85,16 +90,19 @@ function pushRecent(hit: Hit) {
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
+
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
 }
 
 function toggleTheme() {
   const root = document.documentElement;
+
   // No attribute means the system is deciding, so the flip has to read what the
   // system is actually showing or the first press appears to do nothing.
   const current =
     root.getAttribute("data-theme") ??
     (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+
   const next = current === "dark" ? "light" : "dark";
   applyTheme(next);
 }
@@ -116,14 +124,17 @@ export function CommandPalette({
 
   useEffect(() => {
     const id = setTimeout(() => setDebounced(term.trim()), DEBOUNCE_MS);
+
     return () => clearTimeout(id);
   }, [term]);
 
   useEffect(() => {
     if (open) {
       setRecents(readRecents());
+
       return;
     }
+
     setTerm("");
     setDebounced("");
   }, [open]);
@@ -132,12 +143,15 @@ export function CommandPalette({
   // open, and it must close whatever else is on the layer stack behind it.
   useEffect(() => {
     if (!open) return;
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.stopPropagation();
       onOpenChange(false);
     };
+
     document.addEventListener("keydown", onKeyDown, true);
+
     return () => document.removeEventListener("keydown", onKeyDown, true);
   }, [open, onOpenChange]);
 
@@ -147,11 +161,14 @@ export function CommandPalette({
 
   const grouped = useMemo(() => {
     const map = new Map<Hit["kind"], Hit[]>();
+
     for (const hit of results ?? []) {
       const bucket = map.get(hit.kind) ?? [];
+
       if (bucket.length < PER_GROUP) bucket.push(hit);
       map.set(hit.kind, bucket);
     }
+
     return map;
   }, [results]);
 
@@ -190,6 +207,7 @@ export function CommandPalette({
           <CommandGroup heading={t("recent")}>
             {recents.map((hit) => {
               const Icon = ICONS[hit.kind];
+
               return (
                 <CommandItem
                   key={`recent-${hit.kind}-${hit.id}`}
@@ -207,8 +225,10 @@ export function CommandPalette({
 
         {GROUPS.map(({ kind, message }) => {
           const hits = grouped.get(kind) ?? [];
+
           if (hits.length === 0) return null;
           const Icon = ICONS[kind];
+
           return (
             <CommandGroup key={kind} heading={t(message)}>
               {hits.map((hit) => (
@@ -274,12 +294,15 @@ export function useCommandPalette(): [boolean, (open: boolean) => void] {
     const onKeyDown = (event: KeyboardEvent) => {
       const isShortcut = (event.key === "k" || event.key === "K") && (event.metaKey || event.ctrlKey);
       const isSlash = event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey;
+
       if (isShortcut || (isSlash && !isTypingTarget(event.target))) {
         event.preventDefault();
         setOpen(true);
       }
     };
+
     window.addEventListener("keydown", onKeyDown);
+
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 

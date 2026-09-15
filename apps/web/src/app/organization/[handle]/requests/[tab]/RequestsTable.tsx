@@ -48,6 +48,7 @@ export function RequestsTable({ rows, showActions }: { rows: RequestRow[]; showA
 
   async function act(id: string, action: "approve" | "reject", username: string) {
     setBusyId(id);
+
     try {
       if (action === "approve") await approve({ requestId: id as never });
       else await reject({ requestId: id as never });

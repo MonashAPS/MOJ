@@ -16,15 +16,18 @@ type Stats = NonNullable<(typeof api.problems.votes.voteStats)["_returnType"]>;
 function Histogram({ stats }: { stats: Stats }) {
   const t = useTranslations("problems.vote");
   const counts = new Map<number, number>();
+
   for (const vote of stats.votes) counts.set(vote, (counts.get(vote) ?? 0) + 1);
   const max = Math.max(1, ...counts.values());
   const values: number[] = [];
+
   for (let value = stats.minPossibleVote; value <= stats.maxPossibleVote; value += 1) values.push(value);
 
   return (
     <div className="flex h-40 items-end gap-px" role="img" aria-label={t("histogramLabel")}>
       {values.map((value) => {
         const count = counts.get(value) ?? 0;
+
         return (
           <span
             key={value}
@@ -63,6 +66,7 @@ export function VoteView({
   async function run(action: () => Promise<unknown>) {
     setBusy(true);
     setError(null);
+
     try {
       await action();
     } catch (thrown) {
@@ -123,10 +127,13 @@ export function VoteView({
           onSubmit={(event) => {
             event.preventDefault();
             const value = Number(points);
+
             if (!Number.isFinite(value) || value < min || value > max) {
               setError(t("outOfRange", { min, max }));
+
               return;
             }
+
             void run(async () => {
               await castVote({ code, points: Math.round(value), note: note || undefined });
               setVoted(true);

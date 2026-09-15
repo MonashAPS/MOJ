@@ -35,6 +35,7 @@ export function NewTicketForm({
 
   const missingTitle = title.trim().length === 0;
   const missingBody = body.trim().length === 0;
+
   const reason = missingTitle
     ? "A ticket needs a title."
     : missingBody
@@ -42,13 +43,16 @@ export function NewTicketForm({
       : previewed
         ? undefined
         : PREVIEW_MESSAGE;
+
   const blocked = reason !== undefined || busy;
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+
     if (blocked) return;
     setBusy(true);
     setError(null);
+
     try {
       const id = await create({ title: title.trim(), body: body.trim(), problemCode });
       router.push(`/ticket/${id}/`);

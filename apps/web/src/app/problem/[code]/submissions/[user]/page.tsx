@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ code: string; user: string }> }) {
   const t = await getTranslations("problems.detail");
   const { code, user } = await params;
+
   return { title: t("userSubmissionsFor", { user, code }) };
 }
 
@@ -21,10 +22,12 @@ export default async function UserProblemSubmissionsPage({
 }) {
   const { code, user } = await params;
   const viewer = await queryAsViewer(api.viewer.current, {});
+
   if (user === "me") {
     if (!viewer.profile) redirect(`/accounts/login/?next=/problem/${code}/submissions/`);
     redirect(`/problem/${code}/submissions/${viewer.profile.username}/`);
   }
+
   return (
     <SubmissionListPage
       filters={{ problemCode: code, username: user }}

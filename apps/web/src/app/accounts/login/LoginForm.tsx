@@ -33,6 +33,7 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
     setBusy(true);
     setError(null);
     setResent(false);
+
     try {
       const result = username.includes("@")
         ? await authClient.signIn.email({ email: username, password })
@@ -44,19 +45,23 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
             ? { message: t("notActivated"), needsActivation: true }
             : { message: t("badCredentials") },
         );
+
         return;
       }
 
       // Better Auth holds the sign-in until a second factor is verified. Nothing
       // is signed in yet, so the challenge gets its own page.
       const data = result.data as { twoFactorRedirect?: boolean; twoFactorMethods?: string[] } | null;
+
       if (data?.twoFactorRedirect) {
         const methods = (data.twoFactorMethods ?? ["totp"]).join(",");
         router.push(
           `/accounts/login/2fa/?next=${encodeURIComponent(next)}&methods=${encodeURIComponent(methods)}`,
         );
+
         return;
       }
+
       finish();
     } catch {
       setError({ message: tError("generic") });
@@ -68,12 +73,16 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
   async function onPasskey() {
     setPasskeyBusy(true);
     setError(null);
+
     try {
       const result = await authClient.signIn.passkey();
+
       if (result?.error) {
         setError({ message: t("passkeyRefused") });
+
         return;
       }
+
       finish();
     } catch {
       // A cancelled WebAuthn prompt is not an error worth shouting about.

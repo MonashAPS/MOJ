@@ -5,6 +5,7 @@ import { ContestsList } from "./ContestsList";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.contests.list");
+
   return { title: t("metaTitle") };
 }
 

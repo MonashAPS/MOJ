@@ -15,6 +15,7 @@ export async function GET(request: Request): Promise<Response> {
       tag: listFilter(url, "tag"),
       organization: listFilter(url, "organization"),
     };
+
     return handleApiRequest(request, (options) => fetchQuery(api.apiV2.contests, args, options));
   });
 }

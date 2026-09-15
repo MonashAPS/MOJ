@@ -41,7 +41,9 @@ import { viewerContext } from "../submissions";
  *  and `IE` only for staff. */
 function searchableStatusCodes(isStaff: boolean): Array<{ code: string; name: string }> {
   const hidden = new Set<string>(["SC"]);
+
   if (!isStaff) hidden.add("IE");
+
   return SUBMISSION_RESULTS.filter((code) => !hidden.has(code)).map((code) => ({
     code,
     name: USER_DISPLAY_CODES[code] ?? code,
@@ -137,6 +139,7 @@ export const listContext = query({
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", args.username as string))
         .unique();
+
       if (!author) return { ...base, found: false };
       base.user = {
         username: author.username,
@@ -147,16 +150,20 @@ export const listContext = query({
     }
 
     let problem: Doc<"problems"> | null = null;
+
     if (args.problemCode) {
       problem = await ctx.db
         .query("problems")
         .withIndex("by_code", (q) => q.eq("code", args.problemCode as string))
         .unique();
+
       if (!problem) return { ...base, found: false };
+
       // `ProblemSubmissionsBase.access_check`.
       if (!problemIsAccessibleBy(toCoreProblem(problem), viewer)) {
         return { ...base, allowed: false };
       }
+
       base.problem = {
         code: problem.code,
         name: problem.name,
@@ -169,6 +176,7 @@ export const listContext = query({
         .query("contests")
         .withIndex("by_key", (q) => q.eq("key", args.contestKey as string))
         .unique();
+
       if (!contest) return { ...base, found: false };
 
       // `ForceContestMixin.access_check`: an invisible or unstarted contest is a
@@ -178,6 +186,7 @@ export const listContext = query({
       }
 
       let problemNumber: number | null = null;
+
       if (problem) {
         const contestProblem = (
           await ctx.db
@@ -185,16 +194,20 @@ export const listContext = query({
             .withIndex("by_contest_order", (q) => q.eq("contestId", contest._id))
             .collect()
         ).find((row) => row.problemId === problem?._id);
+
         problemNumber = contestProblem?.order ?? null;
+
         if (contestProblem === undefined) return { ...base, found: false };
       }
 
       let isParticipant = false;
+
       if (base.user) {
         const author = await ctx.db
           .query("profiles")
           .withIndex("by_username", (q) => q.eq("username", base.user?.username as string))
           .unique();
+
         if (author) {
           const participation = await ctx.db
             .query("contestParticipations")
@@ -202,6 +215,7 @@ export const listContext = query({
               q.eq("contestId", contest._id).eq("profileId", author._id),
             )
             .first();
+
           isParticipant = participation !== null;
         }
       }
@@ -218,6 +232,7 @@ export const listContext = query({
       // `UserAllContestSubmissions.access_check`: the user has to have taken
       // part, and someone else's list needs the full scoreboard.
       if (!isParticipant) return { ...base, found: false };
+
       if (!base.user?.isSelf && !full) return { ...base, allowed: false };
     }
 
@@ -267,6 +282,7 @@ export const statusExtras = query({
   handler: async (ctx, args): Promise<SubmissionStatusExtras | null> => {
     const now = Date.now();
     const submission = await resolveSubmission(ctx, args.submissionId);
+
     if (!submission) return null;
 
     const viewerCtx = await viewerContext(ctx);
@@ -275,10 +291,12 @@ export const statusExtras = query({
     const problem = await ctx.db.get(submission.problemId);
     const author = await ctx.db.get(submission.profileId);
     const language = await ctx.db.get(submission.languageId);
+
     if (!problem || !author) return null;
 
     const contest = submission.contestId ? await ctx.db.get(submission.contestId) : null;
     const solved = await hasSolvedProblem(ctx, viewer?.id as Id<"profiles"> | undefined, problem._id);
+
     const canSeeDetail = viewer
       ? canSeeSubmissionDetail({ profileId: submission.profileId }, viewer, {
           problem: toCoreProblem(problem),
@@ -294,20 +312,25 @@ export const statusExtras = query({
     // `SubmissionStatus.get_context_data`: the language limit wins over the
     // problem's own.
     let timeLimit = problem.timeLimit;
+
     const limits = await ctx.db
       .query("languageLimits")
       .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
       .collect();
+
     const limit = limits.find((row) => row.languageId === submission.languageId);
+
     if (limit) timeLimit = limit.timeLimit;
 
     const cases = await ctx.db
       .query("submissionTestCases")
       .withIndex("by_submission_case", (q) => q.eq("submissionId", submission._id))
       .collect();
+
     const maxExecutionTime = cases.reduce((slowest, row) => Math.max(slowest, row.time), 0);
 
     let contestProblem: Doc<"contestProblems"> | null = null;
+
     if (submission.contestProblemId) contestProblem = await ctx.db.get(submission.contestProblemId);
 
     const isOwn = viewerCtx.profile?._id === submission.profileId;
@@ -401,6 +424,7 @@ export const sourceView = query({
   handler: async (ctx, args): Promise<SubmissionSourceView | null> => {
     const now = Date.now();
     const submission = await resolveSubmission(ctx, args.submissionId);
+
     if (!submission) return null;
 
     const viewerCtx = await viewerContext(ctx);
@@ -409,11 +433,14 @@ export const sourceView = query({
     const problem = await ctx.db.get(submission.problemId);
     const author = await ctx.db.get(submission.profileId);
     const language = await ctx.db.get(submission.languageId);
+
     if (!problem || !author) return null;
+
     if (!problemIsVisibleTo(toCoreProblem(problem), viewer)) return null;
 
     const contest = submission.contestId ? await ctx.db.get(submission.contestId) : null;
     const solved = await hasSolvedProblem(ctx, viewer?.id as Id<"profiles"> | undefined, problem._id);
+
     const canSee = viewer
       ? canSeeSubmissionDetail({ profileId: submission.profileId }, viewer, {
           problem: toCoreProblem(problem),

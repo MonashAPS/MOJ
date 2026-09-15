@@ -32,12 +32,19 @@ export const STATUS_BIT = {
  */
 export function decodeCaseStatus(status: number): SubmissionResult {
   if (status & STATUS_BIT.TLE) return "TLE";
+
   if (status & STATUS_BIT.MLE) return "MLE";
+
   if (status & STATUS_BIT.OLE) return "OLE";
+
   if (status & STATUS_BIT.RTE) return "RTE";
+
   if (status & STATUS_BIT.IR) return "IR";
+
   if (status & STATUS_BIT.WA) return "WA";
+
   if (status & STATUS_BIT.SC) return "SC";
+
   return "AC";
 }
 
@@ -97,6 +104,7 @@ export function computeGradingEnd(
       total += testCase.total;
     } else {
       const batch = batches.get(testCase.batch);
+
       if (batch) {
         batch.points = Math.min(batch.points, testCase.points);
         batch.total = Math.max(batch.total, testCase.total);
@@ -108,6 +116,7 @@ export function computeGradingEnd(
     memory = Math.max(memory, testCase.memory ?? 0);
 
     const index = STATUS_CODES.indexOf(testCase.status);
+
     if (index > statusIndex) statusIndex = index;
   }
 
@@ -120,6 +129,7 @@ export function computeGradingEnd(
   total = pyRound(total, 1);
 
   let awarded = pyRound(total > 0 ? (points / total) * problem.points : 0, 3);
+
   if (!problem.partial && awarded !== problem.points) awarded = 0;
 
   return {
@@ -145,7 +155,9 @@ export function computeContestSubmissionPoints(
     submission.caseTotal > 0 ? (submission.casePoints / submission.caseTotal) * contestProblem.points : 0,
     3,
   );
+
   if (!contestProblem.partial && points !== contestProblem.points) return 0;
+
   return points;
 }
 
@@ -155,9 +167,13 @@ export function computeContestSubmissionPoints(
 
 /** judge/judge_priority.py. */
 export const CONTEST_SUBMISSION_PRIORITY = 0;
+
 export const DEFAULT_PRIORITY = 1;
+
 export const REJUDGE_PRIORITY = 2;
+
 export const BATCH_REJUDGE_PRIORITY = 3;
+
 /** `JudgeList.priorities`. */
 export const PRIORITY_COUNT = 4;
 
@@ -171,7 +187,9 @@ export interface PriorityInput {
 /** `judge_submission` (judge/judgeapi.py:53) choosing a queue priority. */
 export function submissionPriority(input: PriorityInput): number {
   if (input.batchRejudge) return BATCH_REJUDGE_PRIORITY;
+
   if (input.rejudge) return REJUDGE_PRIORITY;
+
   return input.inContest ? CONTEST_SUBMISSION_PRIORITY : DEFAULT_PRIORITY;
 }
 
@@ -228,16 +246,20 @@ function judgeIsAvailableForTier(judge: JudgeRow): boolean {
 /** `JudgeList._update_min_tier`: the lowest tier among usable online judges. */
 export function minimumOnlineTier(judges: readonly JudgeRow[]): number | null {
   let min: number | null = null;
+
   for (const judge of judges) {
     if (!judgeIsAvailableForTier(judge)) continue;
+
     if (min === null || judge.tier < min) min = judge.tier;
   }
+
   return min;
 }
 
 /** `JudgeList.current_tier_judges`. */
 export function currentTierJudges(judges: readonly JudgeRow[], minTier: number | null): JudgeRow[] {
   if (minTier === null) return [];
+
   return judges.filter((judge) => judge.tier === minTier && !judge.isDisabled && judge.online);
 }
 
@@ -247,8 +269,10 @@ export function currentTierJudges(judges: readonly JudgeRow[], minTier: number |
  */
 export function shouldReserveJudge(judges: readonly JudgeRow[], minTier: number | null): boolean {
   const tierJudges = currentTierJudges(judges, minTier);
+
   if (tierJudges.length <= 1) return false;
   const free = tierJudges.filter((judge) => !judgeIsWorking(judge)).length;
+
   return free <= 1;
 }
 
@@ -266,15 +290,20 @@ export function judgeCanJudge(
   siteHasData = false,
 ): boolean {
   if (!siteHasData && !judge.problemCodes.includes(problemCode)) return false;
+
   if (!judge.runtimeKeys.includes(languageKey)) return false;
+
   if (judgePin) return judge.name === judgePin;
+
   return !judge.isDisabled;
 }
 
 /** The queue order: priority ascending, then oldest first. */
 export function compareQueued(a: ClaimableSubmission, b: ClaimableSubmission): number {
   if (a.priority !== b.priority) return a.priority - b.priority;
+
   if (a.date !== b.date) return a.date - b.date;
+
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
 
@@ -295,6 +324,7 @@ export function selectClaim(
   if (!judge.online || judge.isBlocked) return null;
 
   const minTier = minimumOnlineTier(judges);
+
   if (minTier === null || judge.tier > minTier) return null;
 
   const reserve = shouldReserveJudge(judges, minTier);
@@ -302,6 +332,7 @@ export function selectClaim(
 
   for (const submission of candidates) {
     if (submission.priority >= REJUDGE_PRIORITY && reserve) return null;
+
     if (
       !judgeCanJudge(
         judge,
@@ -313,8 +344,10 @@ export function selectClaim(
     ) {
       continue;
     }
+
     return submission;
   }
+
   return null;
 }
 
@@ -325,5 +358,6 @@ export function canClaim(
   judges: readonly JudgeRow[],
 ): boolean {
   if (submission.status !== "QU") return false;
+
   return selectClaim(judge, [submission], judges)?.id === submission.id;
 }

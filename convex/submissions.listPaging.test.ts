@@ -20,6 +20,7 @@ describe("submissions.list paging", () => {
     const authorId = await insertProfile(t, { username: "author" });
 
     const total = 25;
+
     for (let index = 0; index < total; index += 1) {
       await insertSubmission(t, {
         profileId: authorId,
@@ -34,6 +35,7 @@ describe("submissions.list paging", () => {
 
     const seen = new Set<number>();
     let cursor: string | null = null;
+
     for (let guard = 0; guard < 20; guard += 1) {
       const page: {
         page: Array<{ id: number | string }>;
@@ -43,7 +45,9 @@ describe("submissions.list paging", () => {
         paginationOpts: { numItems: 5, cursor },
         problemCode: "aplusb",
       });
+
       for (const row of page.page) seen.add(Number(row.id));
+
       if (page.isDone) break;
       cursor = page.continueCursor;
     }
@@ -72,6 +76,7 @@ describe("submissions.list paging", () => {
 
     const seen = new Set<number>();
     let cursor: string | null = null;
+
     for (let guard = 0; guard < 30; guard += 1) {
       const page: {
         page: Array<{ id: number | string }>;
@@ -82,7 +87,9 @@ describe("submissions.list paging", () => {
         problemCode: "aplusb",
         results: ["WA"],
       });
+
       for (const row of page.page) seen.add(Number(row.id));
+
       if (page.isDone) break;
       cursor = page.continueCursor;
     }

@@ -55,7 +55,9 @@ import {
 import type { ContestSubmissionRow } from "./types";
 
 const START = NOW;
+
 const END = START + 5 * HOUR;
+
 const FREEZE_OFFSET = 4 * 3600; // seconds; a one hour freeze on a five hour contest
 
 const contest = createContest("hall", {
@@ -78,14 +80,17 @@ function attempt(
 describe("attempt classification", () => {
   it("ignores IE, CE and AB", () => {
     expect(IGNORED_RESULTS).toEqual(["IE", "CE", "AB"]);
+
     for (const result of IGNORED_RESULTS) {
       expect(attemptIgnored(attempt("u", "p", 10, result))).toBe(true);
     }
+
     expect(attemptIgnored(attempt("u", "p", 10, "WA"))).toBe(false);
   });
 
   it("treats null, empty, D and the grading statuses as pending", () => {
     expect(PENDING_RESULTS).toEqual([null, "", "D", "QU", "P", "G"]);
+
     for (const result of PENDING_RESULTS) {
       expect(attemptPending(attempt("u", "p", 10, result))).toBe(true);
       expect(attemptAccepted(attempt("u", "p", 10, result, 1))).toBe(false);
@@ -108,6 +113,7 @@ describe("attempt classification", () => {
       status: "D",
       date: START + 10 * MINUTE,
     };
+
     expect(toAttempt(submission, contest, 1)).toEqual({
       participation: "u1",
       problem: "pa",
@@ -126,6 +132,7 @@ describe("cells", () => {
       FREEZE_OFFSET,
       20,
     );
+
     expect(cell).toEqual({ state: SOLVED, wrong: 1, pending: 0, time: 1200, penalty: 40 });
     expect(cellPenalty(1200, 1, 20)).toBe(40);
     expect(cellPenalty(119, 0, 20)).toBe(1);
@@ -172,6 +179,7 @@ describe("cells", () => {
       FREEZE_OFFSET,
       20,
     );
+
     expect(cell.wrong).toBe(1);
     expect(cell.time).toBe(1200);
   });
@@ -182,11 +190,13 @@ describe("buildScoreboard", () => {
     { id: "pa", label: "A" },
     { id: "pb", label: "B" },
   ];
+
   const participants = [
     { id: "u1", username: "alice" },
     { id: "u2", username: "bob" },
     { id: "u3", username: "carol" },
   ];
+
   const attempts = [
     attempt("u1", "pa", 600, "WA"),
     attempt("u1", "pa", 1200, "AC"),
@@ -221,6 +231,7 @@ describe("buildScoreboard", () => {
       attempts: [attempt("u1", "unknown", 100, "AC")],
       freezeOffset: FREEZE_OFFSET,
     });
+
     expect(stray.rows.every((row) => row.solved === 0)).toBe(true);
   });
 
@@ -231,6 +242,7 @@ describe("buildScoreboard", () => {
       { id: "3", username: "bob", cells: [], solved: 2, penalty: 99, rank: 0 },
       { id: "4", username: "cat", cells: [], solved: 1, penalty: 5, rank: 0 },
     ];
+
     const ranked = rankRows(rows);
     expect(ranked.map((row) => row.username)).toEqual(["bob", "cat", "amy", "zoe"]);
     expect(ranked.map((row) => row.rank)).toEqual([1, 2, 3, 3]);
@@ -256,16 +268,19 @@ describe("classifyEvent", () => {
 
 describe("reveal", () => {
   const problems = [{ id: "pa" }, { id: "pb" }];
+
   const participants = [
     { id: "u1", username: "alice" },
     { id: "u2", username: "bob" },
   ];
+
   const attempts = [
     attempt("u1", "pa", 600, "AC"),
     attempt("u1", "pb", 15000, "AC"),
     attempt("u2", "pa", 16000, "AC"),
     attempt("u2", "pb", 300, "WA"),
   ];
+
   const board = buildScoreboard({
     problems,
     participants,
@@ -331,6 +346,7 @@ describe("reveal", () => {
       penaltyMinutes: 20,
       includeReveal: false,
     });
+
     const state = revealStep(startReveal(blind.rows));
     const revealed = state.rows.flatMap((row) => row.cells).filter((cell) => cell.state === FAILED);
     expect(revealed.length).toBeGreaterThan(0);
@@ -410,6 +426,7 @@ describe("applyFreeze", () => {
       contestProblems: [problem],
       now,
     });
+
     expect(row?.frozen).toBe(true);
     expect(row?.update.score).toBe(50);
   });
@@ -417,10 +434,12 @@ describe("applyFreeze", () => {
   it("shows the real standings to viewers who see through the freeze", () => {
     const editorContest = { ...contest, curatorProfileIds: ["normal"] };
     const editor = createUser("normal", { permissions: ["edit_own_contest"] });
+
     const [row] = applyFreeze([{ participation, submissions }], editorContest, editor, {
       contestProblems: [problem],
       now,
     });
+
     expect(row?.frozen).toBe(false);
     expect(row?.update.score).toBe(100);
   });
@@ -440,6 +459,7 @@ describe("applyFreeze", () => {
       users.normal,
       { contestProblems: [problem], now },
     );
+
     expect(row?.frozen).toBe(false);
     expect(row?.update.score).toBe(100);
   });
@@ -449,6 +469,7 @@ describe("applyFreeze", () => {
       contestProblems: [problem],
       now: START + HOUR,
     });
+
     expect(early[0]?.frozen).toBe(false);
 
     const revealed = applyFreeze([{ participation, submissions }], contest, users.normal, {
@@ -456,6 +477,7 @@ describe("applyFreeze", () => {
       now,
       revealed: true,
     });
+
     expect(revealed[0]?.frozen).toBe(false);
     expect(revealed[0]?.update.score).toBe(100);
   });

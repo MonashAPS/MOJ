@@ -29,6 +29,7 @@ describe("problems.list", () => {
 
   test("authors and testers see their own private problems", async () => {
     const t = setupTest();
+
     const { authorId, testerId } = await t.run(async (ctx) => {
       const { groupId } = await insertTaxonomy(ctx);
       const author = await insertProfile(ctx, { username: "author" });
@@ -40,8 +41,10 @@ describe("problems.list", () => {
         authorProfileIds: [author],
         testerProfileIds: [tester],
       });
+
       return { authorId: author, testerId: tester };
     });
+
     expect(authorId).toBeDefined();
     expect(testerId).toBeDefined();
 
@@ -120,6 +123,7 @@ describe("problems.list", () => {
           points: 100,
         });
       }
+
       await insertSubmission(ctx, {
         profileId: me,
         problemId: both,
@@ -153,6 +157,7 @@ describe("problems.list", () => {
         points: 10,
         authorProfileIds: [author],
       });
+
       await insertProblem(ctx, { code: "plain", groupId, typeIds: [typeId], points: 50 });
       await insertProblem(ctx, { code: "olympiad", groupId: otherGroup, points: 100 });
 
@@ -270,12 +275,14 @@ describe("problems.list", () => {
     await t.run(async (ctx) => {
       const { groupId, typeId } = await insertTaxonomy(ctx);
       const viewer = await insertProfile(ctx, { username: "player" });
+
       const inside = await insertProblem(ctx, {
         code: "inside",
         groupId,
         typeIds: [typeId],
         points: 100,
       });
+
       await insertProblem(ctx, { code: "outside", groupId, typeIds: [typeId] });
 
       const contest = await insertContest(ctx, { key: "live" });
@@ -327,6 +334,7 @@ describe("problems.get", () => {
         authorProfileIds: [author],
         allowedLanguageIds: [languageId, cppId],
       });
+
       await ctx.db.insert("languageLimits", {
         problemId,
         languageId,
@@ -390,12 +398,14 @@ describe("problems.get", () => {
     await t.run(async (ctx) => {
       const { groupId, typeId } = await insertTaxonomy(ctx);
       const viewer = await insertProfile(ctx, { username: "player" });
+
       const problemId = await insertProblem(ctx, {
         code: "inside",
         groupId,
         typeIds: [typeId],
         isPublic: false,
       });
+
       const contest = await insertContest(ctx, { key: "live", hideProblemTags: true });
       await insertContestProblem(ctx, { contestId: contest, problemId, order: 0 });
       const participation = await insertParticipation(ctx, { contestId: contest, profileId: viewer });
@@ -454,6 +464,7 @@ describe("problems.editorial", () => {
 
     await t.run(async (ctx) => {
       const solution = await ctx.db.query("solutions").first();
+
       if (solution) await ctx.db.patch(solution._id, { isPublic: true });
     });
 
@@ -600,12 +611,15 @@ describe("problem point voting", () => {
     const t = setupTest();
     await t.run(async (ctx) => {
       const { groupId, languageId } = await insertTaxonomy(ctx);
+
       const banned = await insertProfile(ctx, {
         username: "banned",
         isBannedFromProblemVoting: true,
       });
+
       const player = await insertProfile(ctx, { username: "player" });
       const problemId = await insertProblem(ctx, { code: "aplusb", groupId });
+
       for (const profileId of [banned, player]) {
         await insertSubmission(ctx, {
           profileId,
@@ -616,6 +630,7 @@ describe("problem point voting", () => {
           points: 100,
         });
       }
+
       const contest = await insertContest(ctx, { key: "live" });
       await insertContestProblem(ctx, { contestId: contest, problemId, order: 0 });
       const participation = await insertParticipation(ctx, { contestId: contest, profileId: player });

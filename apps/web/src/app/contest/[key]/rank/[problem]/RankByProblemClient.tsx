@@ -47,11 +47,13 @@ export function RankByProblemClient({
   const columns = useTranslations("contests.columns");
   const tabLabels = useTranslations("contests.tabs");
   const [languageKeys, setLanguageKeys] = useState<string[]>([]);
+
   const live = useQuery(api.contests.rankings.rankByProblem, {
     key: contestKey,
     problemCode,
     ...(languageKeys.length > 0 ? { languageKeys } : {}),
   });
+
   const data = live ?? (languageKeys.length === 0 ? initial : null);
   const joinKind = joinKindFor(detail);
   const precision = detail.contest?.pointsPrecision ?? 2;

@@ -156,8 +156,11 @@ function camelise(name: string): string {
 export function propertyNames(attribute: string): string[] {
   const names = new Set<string>([attribute]);
   const known = PROPERTY_NAMES[attribute];
+
   if (known) names.add(known);
+
   if (attribute.includes("-")) names.add(camelise(attribute));
+
   return [...names];
 }
 
@@ -165,16 +168,20 @@ function mergeAttributeMaps(
   ...maps: readonly Readonly<Record<string, readonly string[]>>[]
 ): Record<string, string[]> {
   const out: Record<string, Set<string>> = {};
+
   for (const map of maps) {
     for (const [tag, attrs] of Object.entries(map)) {
       let set = out[tag];
+
       if (!set) {
         set = new Set();
         out[tag] = set;
       }
+
       for (const attr of attrs) for (const name of propertyNames(attr)) set.add(name);
     }
   }
+
   return Object.fromEntries(Object.entries(out).map(([tag, set]) => [tag, [...set]]));
 }
 

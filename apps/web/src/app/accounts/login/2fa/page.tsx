@@ -4,6 +4,7 @@ import { TwoFactorChallenge } from "./TwoFactorChallenge";
 
 export async function generateMetadata() {
   const t = await getTranslations("auth.twoFactor.challenge");
+
   return { title: t("metaTitle") };
 }
 
@@ -14,5 +15,6 @@ export default async function LoginTwoFactorPage({
 }) {
   const params = await searchParams;
   const methods = (params.methods ?? "totp").split(",");
+
   return <TwoFactorChallenge next={safeNext(params.next)} hasTotp={methods.includes("totp")} />;
 }

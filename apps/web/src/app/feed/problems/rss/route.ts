@@ -5,5 +5,6 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const { meta, entries } = await loadFeed("problems", "rss");
+
   return xmlResponse(renderRss(meta, entries), RSS_CONTENT_TYPE);
 }

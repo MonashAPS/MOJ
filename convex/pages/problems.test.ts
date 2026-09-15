@@ -113,12 +113,14 @@ describe("pages/problems.rejudgePreview", () => {
       problemCode: "aplusb",
       results: ["WA"],
     });
+
     expect(wrong.count).toBe(2);
 
     const otherLanguage = await staff.query(api.pages.problems.rejudgePreview, {
       problemCode: "aplusb",
       languageKeys: ["CPP20"],
     });
+
     expect(otherLanguage.count).toBe(0);
 
     await expect(
@@ -133,9 +135,11 @@ describe("pages/problems.rejudgePreview", () => {
     await t.run(async (ctx) => {
       await insertProfile(ctx, { username: "staff", isStaff: true });
     });
+
     const preview = await asUser(t, "staff").query(api.pages.problems.rejudgePreview, {
       problemCode: "nope",
     });
+
     expect(preview.count).toBe(0);
   });
 });

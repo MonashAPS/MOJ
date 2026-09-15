@@ -9,6 +9,7 @@ export async function generateMetadata({ params }: { params: Promise<{ key: stri
   const { key } = await params;
   const t = await getTranslations("contests.leave");
   const detail = await queryAsViewer(api.contests.get, { key }).catch(() => null);
+
   return {
     title: detail?.contest ? t("leaveTitle", { name: detail.contest.name }) : t("metaFallback"),
   };
@@ -21,7 +22,9 @@ export default async function ContestLeavePage({ params }: { params: Promise<{ k
   const detail = await queryAsViewer(api.contests.get, { key }).catch(() => null);
 
   if (!detail || detail.access.kind === "notFound" || detail.access.kind === "inaccessible") notFound();
+
   if (!detail.contest) notFound();
+
   if (!detail.viewer.inContest) redirect(`/contest/${key}/`);
 
   const spectating = detail.participation?.virtual === -1;

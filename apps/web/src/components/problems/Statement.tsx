@@ -17,37 +17,46 @@ export function Statement({ html, className }: { html: string; className?: strin
 
   useEffect(() => {
     const node = root.current;
+
     if (!node) return;
     const timers = new Set<ReturnType<typeof setTimeout>>();
 
     async function onClick(event: MouseEvent) {
       const target = event.target as HTMLElement | null;
       const button = target?.closest<HTMLButtonElement>("[data-statement-copy]");
+
       if (!button) return;
       const figure = button.closest("figure");
       const body = figure?.querySelector("[data-statement-code]");
+
       if (!body) return;
 
       try {
         await navigator.clipboard.writeText((body.textContent ?? "").replace(/\n$/, ""));
       } catch {
         setAnnouncement(t("copyUnavailable"));
+
         return;
       }
+
       button.innerHTML = STATEMENT_COPY_ICONS.check;
       button.style.color = "var(--v-good)";
       setAnnouncement(t("copied"));
+
       const timer = setTimeout(() => {
         button.innerHTML = STATEMENT_COPY_ICONS.copy;
         button.style.removeProperty("color");
         timers.delete(timer);
       }, 1200);
+
       timers.add(timer);
     }
 
     node.addEventListener("click", onClick);
+
     return () => {
       node.removeEventListener("click", onClick);
+
       for (const timer of timers) clearTimeout(timer);
     };
   }, [t]);

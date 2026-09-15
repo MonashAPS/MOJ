@@ -99,7 +99,9 @@ export const list = query({
     const profile = await optionalViewer(ctx);
     const viewer = await coreViewer(ctx, profile);
     const resolved = await loadCommentTarget(ctx, args.targetType, args.targetKey);
+
     if (!resolved.exists) return null;
+
     if (!commentIsAccessibleBy(resolved.target, viewer)) return null;
 
     const settings = await siteSettings(ctx);
@@ -118,20 +120,24 @@ export const list = query({
     const visible = canModerate ? rows : rows.filter((row) => !row.hidden);
 
     const votes = new Map<string, number>();
+
     if (profile) {
       for (const row of visible) {
         const vote = await ctx.db
           .query("commentVotes")
           .withIndex("by_voter_comment", (q) => q.eq("voterProfileId", profile._id).eq("commentId", row._id))
           .unique();
+
         if (vote) votes.set(row._id, vote.score);
       }
     }
 
     const authors = new Map<string, AuthorSummary>();
+
     for (const row of visible) {
       if (authors.has(row.authorProfileId)) continue;
       const author = await ctx.db.get(row.authorProfileId);
+
       if (author) authors.set(row.authorProfileId, authorSummary(author));
     }
 
@@ -139,11 +145,14 @@ export const list = query({
       .query("commentLocks")
       .withIndex("by_target", (q) => q.eq("targetType", args.targetType).eq("targetKey", args.targetKey))
       .unique();
+
     const locked = lock !== null && !hasPerm(viewer, "judge.override_comment_lock");
 
     const ordered = orderTree(visible);
+
     const comments: CommentNode[] = ordered.map(({ row, depth }) => {
       const isAuthor = !!profile && row.authorProfileId === profile._id;
+
       return {
         _id: row._id,
         legacyId: row.legacyId,
@@ -197,8 +206,10 @@ function orderTree(rows: Doc<"comments">[]): Array<{ row: Doc<"comments">; depth
 
   for (const row of rows) {
     const parent = row.parentId;
+
     if (parent && byId.has(parent)) {
       const list = children.get(parent);
+
       if (list) list.push(row);
       else children.set(parent, [row]);
     } else {
@@ -207,16 +218,21 @@ function orderTree(rows: Doc<"comments">[]): Array<{ row: Doc<"comments">; depth
   }
 
   roots.sort((a, b) => b.time - a.time || (a._id < b._id ? -1 : 1));
+
   for (const list of children.values()) {
     list.sort((a, b) => a.time - b.time || (a._id < b._id ? -1 : 1));
   }
 
   const out: Array<{ row: Doc<"comments">; depth: number }> = [];
+
   const walk = (row: Doc<"comments">, depth: number) => {
     out.push({ row, depth });
+
     for (const child of children.get(row._id) ?? []) walk(child, depth + 1);
   };
+
   for (const root of roots) walk(root, 0);
+
   return out;
 }
 
@@ -235,16 +251,20 @@ export const history = query({
   args: { commentId: v.id("comments") },
   handler: async (ctx, { commentId }): Promise<CommentRevision[] | null> => {
     const comment = await ctx.db.get(commentId);
+
     if (!comment) return null;
     const profile = await optionalViewer(ctx);
     const viewer = await coreViewer(ctx, profile);
+
     if (!(await commentAccessible(ctx, comment, viewer))) return null;
+
     if (comment.hidden && !hasPerm(viewer, "judge.change_comment")) return null;
 
     const rows = await revisionsFor(ctx, "comment", commentId);
     rows.sort((a, b) => a.createdAt - b.createdAt);
 
     const out: CommentRevision[] = [];
+
     for (const [index, row] of rows.entries()) {
       const author = row.authorProfileId ? await ctx.db.get(row.authorProfileId) : null;
       out.push({
@@ -256,6 +276,7 @@ export const history = query({
         reason: row.reason,
       });
     }
+
     return out;
   },
 });
@@ -266,6 +287,7 @@ export const votes = query({
   handler: async (ctx, { commentId }) => {
     const profile = await optionalViewer(ctx);
     const viewer = await coreViewer(ctx, profile);
+
     if (!hasPerm(viewer, "judge.change_comment")) return null;
 
     const rows = await ctx.db
@@ -274,6 +296,7 @@ export const votes = query({
       .collect();
 
     const out = [];
+
     for (const row of rows) {
       const voter = await ctx.db.get(row.voterProfileId);
       out.push({
@@ -282,6 +305,7 @@ export const votes = query({
         voter: voter ? authorSummary(voter) : null,
       });
     }
+
     return out;
   },
 });
@@ -327,12 +351,16 @@ export const recent = query({
       if (out.length >= take) break;
       const cacheKey = `${row.targetType}:${row.targetKey}`;
       let resolved = cache.get(cacheKey);
+
       if (!resolved) {
         resolved = await loadCommentTarget(ctx, row.targetType, row.targetKey);
         cache.set(cacheKey, resolved);
       }
+
       if (!resolved.exists) continue;
+
       if (!commentIsAccessibleBy(resolved.target, viewer)) continue;
+
       if (
         resolved.target.type === "solution" &&
         (!resolved.problem || !problemIsAccessibleBy(coreRow(resolved.problem), viewer))
@@ -355,6 +383,7 @@ export const recent = query({
         bodyPreset: COMMENT_PRESET,
       });
     }
+
     return out;
   },
 });
@@ -366,7 +395,9 @@ async function commentAccessible(
   viewer: Awaited<ReturnType<typeof coreViewer>>,
 ): Promise<boolean> {
   const resolved = await loadCommentTarget(ctx, comment.targetType, comment.targetKey);
+
   if (!resolved.exists) return false;
+
   return commentIsAccessibleBy(resolved.target, viewer);
 }
 
@@ -392,36 +423,46 @@ export const post = mutation({
     }
 
     const resolved = await loadCommentTarget(ctx, args.targetType, args.targetKey);
+
     if (!resolved.exists) throw notFound("Page");
+
     if (!commentIsAccessibleBy(resolved.target, viewer)) throw forbidden();
 
     const lock = await ctx.db
       .query("commentLocks")
       .withIndex("by_target", (q) => q.eq("targetType", args.targetType).eq("targetKey", args.targetKey))
       .unique();
+
     if (lock && !hasPerm(viewer, "judge.override_comment_lock")) {
       throw forbidden("Comments are disabled on this page.");
     }
 
     if (profile.mute) throw invalid("Your part is silent, little toad.");
+
     if (!isStaff(viewer) && !(await hasAnySolve(ctx, profile._id))) {
       throw invalid("You must solve at least one problem before your voice can be heard.");
     }
 
     const body = args.body.trim();
+
     if (body.length === 0) throw invalid("Invalid comment body.");
     const maxBody = commentMaxBody(settings);
+
     if (body.length > maxBody) {
       throw invalid(`Comments are limited to ${maxBody} characters.`);
     }
 
     const now = Date.now();
+
     if (args.parentId) {
       const parent = await ctx.db.get(args.parentId);
+
       if (!parent || parent.hidden) throw notFound("Comment");
+
       if (parent.targetType !== args.targetType || parent.targetKey !== args.targetKey) {
         throw invalid("That comment is on another page.");
       }
+
       if (!hasPerm(viewer, "judge.change_comment") && parent.time <= now - replyTimeframeMs(settings)) {
         throw forbidden("That comment is too old to reply to.");
       }
@@ -440,7 +481,9 @@ export const post = mutation({
       hidden: false,
       revisions: 1,
     });
+
     await writeRevision(ctx, "comment", commentId, { body }, profile._id, "Posted comment");
+
     return commentId;
   },
 });
@@ -452,7 +495,9 @@ export const edit = mutation({
     const profile = await requireViewer(ctx);
     const viewer = await coreViewer(ctx, profile);
     const comment = await ctx.db.get(commentId);
+
     if (!comment) throw notFound("Comment");
+
     if (!(await commentAccessible(ctx, comment, viewer))) throw notFound("Comment");
 
     if (!hasPerm(viewer, "judge.change_comment")) {
@@ -462,15 +507,19 @@ export const edit = mutation({
     }
 
     const trimmed = body.trim();
+
     if (trimmed.length === 0) throw invalid("Invalid comment body.");
     const maxBody = commentMaxBody(await siteSettings(ctx));
+
     if (trimmed.length > maxBody) {
       throw invalid(`Comments are limited to ${maxBody} characters.`);
     }
+
     if (trimmed === comment.body) return commentId;
 
     await ctx.db.patch(commentId, { body: trimmed, revisions: comment.revisions + 1 });
     await writeRevision(ctx, "comment", commentId, { body: trimmed }, profile._id, "Edited from site");
+
     return commentId;
   },
 });
@@ -478,10 +527,13 @@ export const edit = mutation({
 async function requireVoter(ctx: MutationCtx): Promise<Doc<"profiles">> {
   const profile = await requireViewer(ctx);
   const viewer = await coreViewer(ctx, profile);
+
   if (!isStaff(viewer) && !(await hasAnySolve(ctx, profile._id))) {
     throw invalid("You must solve at least one problem before you can vote.");
   }
+
   if (profile.mute) throw invalid("Your part is silent, little toad.");
+
   return profile;
 }
 
@@ -496,7 +548,9 @@ export const vote = mutation({
   handler: async (ctx, { commentId, delta }) => {
     const profile = await requireVoter(ctx);
     const comment = await ctx.db.get(commentId);
+
     if (!comment || comment.hidden) throw notFound("Comment");
+
     if (comment.authorProfileId === profile._id) {
       throw invalid("You cannot vote on your own comments.");
     }
@@ -513,12 +567,14 @@ export const vote = mutation({
         score: delta,
       });
       await ctx.db.patch(commentId, { score: comment.score + delta });
+
       return { score: comment.score + delta, myVote: delta };
     }
 
     if (-existing.score !== delta) throw invalid("You already voted.");
     await ctx.db.delete(existing._id);
     await ctx.db.patch(commentId, { score: comment.score - existing.score });
+
     return { score: comment.score - existing.score, myVote: 0 };
   },
 });
@@ -529,16 +585,19 @@ export const unvote = mutation({
   handler: async (ctx, { commentId }) => {
     const profile = await requireViewer(ctx);
     const comment = await ctx.db.get(commentId);
+
     if (!comment) throw notFound("Comment");
 
     const existing = await ctx.db
       .query("commentVotes")
       .withIndex("by_voter_comment", (q) => q.eq("voterProfileId", profile._id).eq("commentId", commentId))
       .unique();
+
     if (!existing) return { score: comment.score, myVote: 0 };
 
     await ctx.db.delete(existing._id);
     await ctx.db.patch(commentId, { score: comment.score - existing.score });
+
     return { score: comment.score - existing.score, myVote: 0 };
   },
 });
@@ -546,18 +605,23 @@ export const unvote = mutation({
 async function descendants(ctx: MutationCtx, root: Id<"comments">): Promise<Id<"comments">[]> {
   const out: Id<"comments">[] = [root];
   const queue: Id<"comments">[] = [root];
+
   while (queue.length > 0) {
     const next = queue.pop();
+
     if (!next) break;
+
     const children = await ctx.db
       .query("comments")
       .withIndex("by_parent", (q) => q.eq("parentId", next))
       .collect();
+
     for (const child of children) {
       out.push(child._id);
       queue.push(child._id);
     }
   }
+
   return out;
 }
 
@@ -567,7 +631,9 @@ export const hide = mutation({
   handler: async (ctx, { commentId }) => {
     await requirePerm(ctx, "judge.change_comment");
     const comment = await ctx.db.get(commentId);
+
     if (!comment) throw notFound("Comment");
+
     for (const id of await descendants(ctx, commentId)) {
       await ctx.db.patch(id, { hidden: true });
     }
@@ -580,8 +646,10 @@ export const unhide = mutation({
   handler: async (ctx, { commentId, includeReplies }) => {
     await requirePerm(ctx, "judge.change_comment");
     const comment = await ctx.db.get(commentId);
+
     if (!comment) throw notFound("Comment");
     const ids = includeReplies ? await descendants(ctx, commentId) : [commentId];
+
     for (const id of ids) await ctx.db.patch(id, { hidden: false });
   },
 });
@@ -591,11 +659,14 @@ export const lock = mutation({
   args: { targetType, targetKey: v.string() },
   handler: async (ctx, args) => {
     await requirePerm(ctx, "judge.change_commentlock");
+
     const existing = await ctx.db
       .query("commentLocks")
       .withIndex("by_target", (q) => q.eq("targetType", args.targetType).eq("targetKey", args.targetKey))
       .unique();
+
     if (existing) return existing._id;
+
     return await ctx.db.insert("commentLocks", {
       targetType: args.targetType,
       targetKey: args.targetKey,
@@ -607,10 +678,12 @@ export const unlock = mutation({
   args: { targetType, targetKey: v.string() },
   handler: async (ctx, args) => {
     await requirePerm(ctx, "judge.change_commentlock");
+
     const existing = await ctx.db
       .query("commentLocks")
       .withIndex("by_target", (q) => q.eq("targetType", args.targetType).eq("targetKey", args.targetKey))
       .unique();
+
     if (existing) await ctx.db.delete(existing._id);
   },
 });
@@ -621,10 +694,12 @@ export const locks = query({
   handler: async (ctx) => {
     const profile = await optionalViewer(ctx);
     const viewer = await coreViewer(ctx, profile);
+
     if (!hasPerm(viewer, "judge.change_commentlock")) return [];
 
     const rows = await ctx.db.query("commentLocks").collect();
     const out = [];
+
     for (const row of rows) {
       const resolved = await loadCommentTarget(ctx, row.targetType, row.targetKey);
       out.push({
@@ -635,6 +710,7 @@ export const locks = query({
         href: resolved.href,
       });
     }
+
     return out;
   },
 });

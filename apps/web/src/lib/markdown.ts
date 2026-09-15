@@ -7,6 +7,7 @@ import { cache } from "react";
 export const renderContent = cache(async (source: string, preset: Preset = "default"): Promise<string> => {
   if (!source || source.trim().length === 0) return "";
   const { html } = await renderMarkdown(source, preset);
+
   return html;
 });
 

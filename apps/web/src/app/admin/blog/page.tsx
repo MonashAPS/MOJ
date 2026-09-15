@@ -7,6 +7,7 @@ import { BlogTable } from "./BlogTable";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.blog");
+
   return { title: t("metaTitle") };
 }
 

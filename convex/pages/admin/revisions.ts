@@ -33,26 +33,33 @@ export const byKey = query({
   },
   handler: async (ctx, args) => {
     const viewer = await staffViewer(ctx);
+
     if (!viewer) return [];
 
     let entityId: string | null = null;
+
     if (args.entityType === "problem") {
       const problem = await problemByCode(ctx, args.key);
+
       if (problem && problemIsEditableBy(toCoreProblem(problem), viewer.core)) entityId = problem._id;
     } else if (args.entityType === "contest") {
       const contest = await contestByKey(ctx, args.key);
       const contestViewer = await toViewerRowInContest(ctx, viewer.profile);
+
       if (contest && contestIsEditableBy(toContestRow(contest), contestViewer)) entityId = contest._id;
     } else {
       const event = await ctx.db
         .query("scoreboardEvents")
         .withIndex("by_key", (q) => q.eq("key", args.key))
         .unique();
+
       if (event) entityId = event._id;
     }
+
     if (!entityId) return [];
 
     const limit = Math.max(1, Math.min(Math.floor(args.limit ?? 50), 200));
+
     const rows = await ctx.db
       .query("revisions")
       .withIndex("by_entity", (q) => q.eq("entityType", args.entityType).eq("entityId", entityId as string))
@@ -60,6 +67,7 @@ export const byKey = query({
       .take(limit);
 
     const out = [];
+
     for (const row of rows) {
       const author = row.authorProfileId ? await ctx.db.get(row.authorProfileId) : null;
       out.push({
@@ -70,6 +78,7 @@ export const byKey = query({
         snapshot: row.snapshot ?? null,
       });
     }
+
     return out;
   },
 });
@@ -83,14 +92,17 @@ export const byId = query({
   },
   handler: async (ctx, args): Promise<ConsoleRevision[]> => {
     await requireStaff(ctx);
+
     const rows = await ctx.db
       .query("revisions")
       .withIndex("by_entity", (q) => q.eq("entityType", args.entityType).eq("entityId", args.entityId))
       .collect();
+
     rows.sort((a, b) => b.createdAt - a.createdAt);
 
     const limited = rows.slice(0, Math.max(1, Math.min(args.limit ?? 25, 200)));
     const out: ConsoleRevision[] = [];
+
     for (const row of limited) {
       const author = row.authorProfileId ? await ctx.db.get(row.authorProfileId) : null;
       out.push({
@@ -100,6 +112,7 @@ export const byId = query({
         author: author ? author.usernameDisplayOverride || author.username : null,
       });
     }
+
     return out;
   },
 });

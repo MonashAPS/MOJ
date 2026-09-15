@@ -20,7 +20,9 @@ export interface DemoteHeadingsOptions {
  */
 const remarkDemoteHeadings: Plugin<[DemoteHeadingsOptions], Root> = function remarkDemoteHeadings(options) {
   const by = options.by;
+
   if (!by) return;
+
   return (tree: Root) => {
     visit(tree, "heading", (node: Heading) => {
       node.depth = Math.min(6, Math.max(1, node.depth + by)) as Heading["depth"];
@@ -108,20 +110,26 @@ const remarkCollect: Plugin<[CollectOptions], Root> = function remarkCollect(opt
           });
           break;
         }
+
         case "image": {
           const url = (node as { url?: string }).url;
+
           if (url) into.images.push(url);
           break;
         }
+
         case "link": {
           const url = (node as { url?: string }).url;
+
           if (url) into.links.push(url);
           break;
         }
+
         case "html": {
           into.hasRawHtml = true;
           break;
         }
+
         case "inlineMath":
         case "math": {
           const display = node.type === "math";
@@ -131,6 +139,7 @@ const remarkCollect: Plugin<[CollectOptions], Root> = function remarkCollect(opt
           into.math[delimiter] += 1;
           break;
         }
+
         default:
           break;
       }

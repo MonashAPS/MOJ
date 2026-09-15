@@ -75,9 +75,11 @@ export class TypstCompileError extends Error {
 function assertInside(root: string, target: string): string {
   const full = resolve(root, target);
   const prefix = root.endsWith(sep) ? root : root + sep;
+
   if (!full.startsWith(prefix)) {
     throw new Error(`asset path escapes the work directory: ${target}`);
   }
+
   return full;
 }
 
@@ -89,8 +91,10 @@ async function writeAssets(
     if (isAbsolute(name) && normalize(name) !== name) {
       throw new Error(`asset path must be relative: ${name}`);
     }
+
     const target = assertInside(workdir, name.replace(/^[/\\]+/, ""));
     await mkdir(dirname(target), { recursive: true });
+
     if (typeof value === "string") await copyFile(value, target);
     else await writeFile(target, value);
   }
@@ -113,9 +117,11 @@ function run(
       env: options.env,
       stdio: ["ignore", "pipe", "pipe"],
     });
+
     let stdout = "";
     let stderr = "";
     let timedOut = false;
+
     const timer = setTimeout(() => {
       timedOut = true;
       child.kill("SIGKILL");
@@ -133,10 +139,13 @@ function run(
     });
     child.on("close", (code) => {
       clearTimeout(timer);
+
       if (timedOut) {
         rejectPromise(new Error(`typst timed out after ${options.timeoutMs} ms`));
+
         return;
       }
+
       resolvePromise({ code, stdout, stderr });
     });
   });
@@ -150,6 +159,7 @@ export async function typstAvailable(bin = typstBinary()): Promise<boolean> {
       env: process.env,
       timeoutMs: 10_000,
     });
+
     return result.code === 0;
   } catch {
     return false;
@@ -163,9 +173,11 @@ export async function renderPdf(typstSource: string, options: RenderPdfOptions =
   const timeoutMs = options.timeoutMs ?? 120_000;
 
   const temporary = options.workdir === undefined;
+
   const workdir = temporary
     ? await mkdtemp(join(tmpdir(), "moj-typst-"))
     : resolve(options.workdir as string);
+
   if (!temporary) await mkdir(workdir, { recursive: true });
 
   try {
@@ -174,6 +186,7 @@ export async function renderPdf(typstSource: string, options: RenderPdfOptions =
         await copyFile(join(TYPST_TEMPLATE_DIR, file), join(workdir, file));
       }
     }
+
     if (options.assets) await writeAssets(workdir, options.assets);
 
     const entryPath = assertInside(workdir, entry);
@@ -182,6 +195,7 @@ export async function renderPdf(typstSource: string, options: RenderPdfOptions =
 
     const output = join(workdir, "out.pdf");
     const args = ["compile", "--root", workdir];
+
     for (const fontPath of options.fontPaths ?? []) args.push("--font-path", fontPath);
     args.push(entryPath, output);
 

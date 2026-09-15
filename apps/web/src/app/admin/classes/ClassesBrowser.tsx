@@ -28,6 +28,7 @@ export function ClassesBrowser({
 }) {
   const t = useTranslations("admin.classes");
   const [slug, setSlug] = useState(organizations[0]?.slug ?? "");
+
   const rows = useQuery(
     api.classes.listForOrganization,
     slug ? { organizationSlug: slug, activeOnly: false } : "skip",

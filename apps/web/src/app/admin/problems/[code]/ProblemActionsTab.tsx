@@ -61,6 +61,7 @@ export function ProblemActionsTab({
 
   const range =
     idFrom.trim() && idTo.trim() ? { start: Number(idFrom) || 0, end: Number(idTo) || 0 } : undefined;
+
   const preview = useQuery(
     api.admin.problems.rejudgePreview,
     problem.permissions.rejudgeSubmission
@@ -77,6 +78,7 @@ export function ProblemActionsTab({
   async function run(action: "rejudge" | "rescore" | "visibility") {
     setConfirm(null);
     setError(null);
+
     try {
       if (action === "rejudge") {
         const result = await rejudgeAll({
@@ -87,6 +89,7 @@ export function ProblemActionsTab({
           archiveLocked,
           reason: reason.trim() || undefined,
         });
+
         setJobId(result.jobId);
         toast.success(t("rejudgeQueued"));
       } else if (action === "rescore") {
@@ -249,12 +252,14 @@ export function ProblemActionsTab({
             }
             onClick={async () => {
               setError(null);
+
               try {
                 const result = await cloneProblem({
                   code: problem.code,
                   newCode: cloneCode.trim(),
                   reason: reason.trim() || undefined,
                 });
+
                 router.push(`/admin/problems/${result.code}/`);
               } catch (caught) {
                 setError(caught instanceof Error ? caught.message : t("cloneRefused"));

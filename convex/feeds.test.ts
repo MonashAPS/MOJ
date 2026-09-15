@@ -15,18 +15,21 @@ import { setupTest } from "./test.setup";
 
 async function seed() {
   const t = setupTest();
+
   const ids = await t.run(async (ctx) => {
     await insertSiteSettings(ctx);
     const author = await insertProfile(ctx, { username: "author" });
     await insertProfile(ctx, { username: "ghost", isUnlisted: true });
 
     const groupId = await insertProblemGroup(ctx, { name: "misc" });
+
     const publicProblem = await insertProblem(ctx, {
       code: "alpha",
       groupId,
       date: 2_000,
       description: "Public statement.",
     });
+
     await insertProblem(ctx, { code: "beta", groupId, date: 3_000, isPublic: false });
     await insertProblem(ctx, {
       code: "gamma",
@@ -40,6 +43,7 @@ async function seed() {
       publishOn: 1_000,
       summary: "A <summary>.",
     });
+
     await insertBlogPost(ctx, { title: "Draft", visible: false });
 
     await insertContest(ctx, { key: "open", startTime: 10_000, endTime: 20_000 });
@@ -79,6 +83,7 @@ async function seed() {
 
     return { author, publicProblem, post };
   });
+
   return { t, ids };
 }
 

@@ -9,6 +9,7 @@ import type { Id, SubmissionResult } from "./types";
 
 /** `settings.DMOJ_PP_STEP`. */
 export const PP_STEP = 0.95;
+
 /** `settings.DMOJ_PP_ENTRIES`. */
 export const PP_ENTRIES = 100;
 
@@ -68,14 +69,17 @@ export function calculateProfilePoints(
 
   for (const submission of submissions) {
     if (submission.isArchived) continue;
+
     if (submission.isPublicProblem === false) continue;
 
     if (submission.points !== null && submission.points !== undefined) {
       const current = bestPoints.get(submission.problemId);
+
       if (current === undefined || submission.points > current) {
         bestPoints.set(submission.problemId, submission.points);
       }
     }
+
     if (isFullSolve(submission)) solved.add(submission.problemId);
   }
 
@@ -83,10 +87,12 @@ export function calculateProfilePoints(
   const data = [...bestPoints.values()].filter((value) => value > 0).sort((a, b) => b - a);
 
   let points = 0;
+
   for (const value of data) points += value;
 
   const entries = Math.min(data.length, table.length);
   let performancePoints = 0;
+
   for (let i = 0; i < entries; i++) performancePoints += (table[i] as number) * (data[i] as number);
   performancePoints += ppBonus(solved.size);
 
@@ -118,8 +124,10 @@ export function computeProblemStats(submissions: readonly ProblemStatsSubmission
 
   for (const submission of submissions) {
     if (submission.isUserUnlisted) continue;
+
     if (submission.isArchived) continue;
     total += 1;
+
     if (isFullSolve(submission)) {
       accepted += 1;
       solvers.add(submission.profileId);
@@ -157,13 +165,16 @@ export function ranker<T>(
 
   for (const item of items) {
     const current = key(item);
+
     if (current !== last) {
       rank += delta;
       delta = 0;
     }
+
     delta += 1;
     ranked.push({ rank, item });
     last = current;
   }
+
   return ranked;
 }

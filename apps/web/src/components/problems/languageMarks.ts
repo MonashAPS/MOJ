@@ -94,15 +94,20 @@ const FALLBACK_HEX: Record<string, string> = {
 
 export function markFor(commonName: string): LanguageMark {
   const mark = MARKS[commonName];
+
   if (mark) return mark;
+
   return { path: "", hex: FALLBACK_HEX[commonName] ?? "64748B" };
 }
 
 /** Two characters that stand for the language when nothing was ever drawn. */
 export function monogramFor(commonName: string): string {
   const cleaned = commonName.replace(/[^A-Za-z0-9+#]/g, "");
+
   if (cleaned.length <= 2) return cleaned.toUpperCase();
   const capitals = cleaned.replace(/[^A-Z]/g, "");
+
   if (capitals.length >= 2) return capitals.slice(0, 2);
+
   return cleaned.slice(0, 2).toUpperCase();
 }

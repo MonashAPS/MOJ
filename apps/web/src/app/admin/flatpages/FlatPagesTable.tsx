@@ -65,8 +65,10 @@ export function FlatPagesTable() {
     if (!draft) return;
     setBusy(true);
     setError(null);
+
     try {
       const { id, ...fields } = draft;
+
       if (id) await update({ ...fields, id, reason });
       else await create({ ...fields, reason });
       setMessage({ tone: "ok", text: t("saved", { title: draft.title }) });

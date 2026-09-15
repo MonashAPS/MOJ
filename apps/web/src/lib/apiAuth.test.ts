@@ -18,9 +18,11 @@ import { beforeAll, describe, expect, test } from "vitest";
 // `@/auth/db` builds a pg Pool at import time, and `@/auth/server` needs a
 // secret. Neither connects to anything in these tests.
 process.env.DATABASE_URL ??= "postgresql://moj:moj@127.0.0.1:5433/moj_auth";
+
 process.env.AUTH_SECRET ??= "test-secret-for-unit-tests-only-0123456789";
 
 type ApiAuth = typeof import("./apiAuth");
+
 let apiAuth: ApiAuth;
 
 beforeAll(async () => {
@@ -31,10 +33,12 @@ const SECRET_KEY = "django-insecure-moj-test-key";
 
 /** `generate_api_token` for user 4919 with `secret = bytes(range(32))`. */
 const DMOJ_TOKEN = "AAATNwABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4f";
+
 const DMOJ_DIGEST = "e8ac60acafafb009ad576a6f0d7aef237a3aefbde3e7d29faf19797463023c25";
 
 /** The same, with a secret that forces `-` and `_` into the base64url alphabet. */
 const DMOJ_TOKEN_URLSAFE = "AAAAAfv_-__7__v_-__7__v_-__7__v_-__7__v_-__7__v_";
+
 const DMOJ_DIGEST_URLSAFE = "cf6f3650bbefe5166c60025e31f9d5fdbdd9fe34397fdc9c6f575d39d8a55005";
 
 describe("legacy token decoding", () => {
@@ -145,6 +149,7 @@ describe("the API v2 envelope", () => {
       ["UNAUTHENTICATED", 403, "login required"],
       ["INVALID", 400, "invalid filter value type"],
     ];
+
     for (const [code, status, message] of cases) {
       const response = apiAuth.errorResponse(request, { data: { code, message: "whatever" } });
       expect(response.status).toBe(status);
@@ -157,6 +162,7 @@ describe("the API v2 envelope", () => {
     const response = apiAuth.errorResponse(request, {
       data: { code: "FORBIDDEN", message: "login required" },
     });
+
     const body = (await response.json()) as { error: { message: string } };
     expect(body.error.message).toBe("login required");
   });
@@ -199,10 +205,13 @@ describe("query-string filters", () => {
 
   test("withFilters turns a bad filter into the error envelope", async () => {
     const request = new Request("http://x/api/v2/problems?partial=maybe");
+
     const response = await apiAuth.withFilters(request, async (target) => {
       apiAuth.booleanFilter(target, "partial");
+
       return new Response("unreachable");
     });
+
     expect(response.status).toBe(400);
     const body = (await response.json()) as { error: { message: string } };
     expect(body.error.message).toBe("invalid filter value type");
@@ -210,10 +219,13 @@ describe("query-string filters", () => {
 
   test("withFilters turns a bad page into a not-found envelope", async () => {
     const request = new Request("http://x/api/v2/problems?page=0");
+
     const response = await apiAuth.withFilters(request, async (target) => {
       apiAuth.pageFilter(target);
+
       return new Response("unreachable");
     });
+
     expect(response.status).toBe(404);
     const body = (await response.json()) as { error: { message: string } };
     expect(body.error.message).toBe("page/object not found");

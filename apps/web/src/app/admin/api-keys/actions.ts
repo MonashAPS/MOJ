@@ -14,22 +14,28 @@ import type { ConsoleKeyRow } from "./scopes";
  *  `resource:action`, which is what the problems API reads. */
 function toPermissions(scopes: string[]): Record<string, string[]> {
   const out: Record<string, string[]> = {};
+
   for (const scope of scopes) {
     const [resource, action] = scope.split(":");
+
     if (!resource || !action) continue;
     const bucket = out[resource];
+
     if (bucket) bucket.push(action);
     else out[resource] = [action];
   }
+
   return out;
 }
 
 function fromPermissions(permissions: unknown): string[] {
   if (!permissions || typeof permissions !== "object") return [];
   const out: string[] = [];
+
   for (const [resource, actions] of Object.entries(permissions as Record<string, string[]>)) {
     for (const action of actions ?? []) out.push(`${resource}:${action}`);
   }
+
   return out;
 }
 
@@ -40,6 +46,7 @@ function sha256Hex(value: string): string {
 function millis(value: unknown): number | null {
   if (!value) return null;
   const date = value instanceof Date ? value : new Date(value as string);
+
   return Number.isNaN(date.getTime()) ? null : date.getTime();
 }
 
@@ -55,6 +62,7 @@ export async function listKeysAction(): Promise<ActionResult<ConsoleKeyRow[]>> {
     const rows: ConsoleKeyRow[] = (keys as Record<string, unknown>[]).map((key) => {
       const start = (key.start as string | null) ?? null;
       const match = start ? byPrefix.get(start) : undefined;
+
       return {
         id: String(key.id),
         name: (key.name as string | null) ?? t("unnamedKey"),
@@ -68,7 +76,9 @@ export async function listKeysAction(): Promise<ActionResult<ConsoleKeyRow[]>> {
         convexId: match ? (match._id as string) : null,
       };
     });
+
     rows.sort((a, b) => b.createdAt - a.createdAt);
+
     return { ok: true, data: rows };
   } catch (error) {
     return failed(error);
@@ -94,10 +104,13 @@ export async function createKeyAction(input: {
     const viewer = await requireConsoleViewer();
     const t = await getTranslations("admin.apiKeys");
     const name = input.name.trim();
+
     if (name.length === 0) return { ok: false, error: t("nameRequired") };
+
     if (input.scopes.length === 0) return { ok: false, error: t("scopeRequired") };
 
     const expiresIn = input.expiresInDays ? input.expiresInDays * 24 * 60 * 60 : undefined;
+
     const created = await auth.api.createApiKey({
       body: {
         name,
@@ -112,6 +125,7 @@ export async function createKeyAction(input: {
 
     let mirrored = true;
     let warning: string | undefined;
+
     try {
       await mutateAsViewer(api.pages.admin.apiKeys.record, {
         keyHash: sha256Hex(created.key),
@@ -158,11 +172,13 @@ export async function revokeKeyAction(
   try {
     await requireConsoleViewer();
     await auth.api.deleteApiKey({ body: { keyId }, headers: await authHeaders() });
+
     if (convexId) {
       await mutateAsViewer(api.pages.admin.apiKeys.revoke, {
         id: convexId as Id<"apiKeys">,
       }).catch(() => undefined);
     }
+
     return { ok: true, data: undefined };
   } catch (error) {
     return failed(error);

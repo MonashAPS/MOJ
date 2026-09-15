@@ -14,8 +14,10 @@ const NUMBER = new Intl.NumberFormat("en-AU");
  *  catalogue instead. */
 export function JobStatusBadge({ status }: { status: string }) {
   const t = useTranslations("admin.components.jobStatus");
+
   const variant =
     status === "done" ? "good" : status === "failed" ? "bad" : status === "running" ? "run" : "neutral";
+
   const label =
     status === "done"
       ? t("done")
@@ -24,6 +26,7 @@ export function JobStatusBadge({ status }: { status: string }) {
         : status === "running"
           ? t("running")
           : t("queued");
+
   return (
     <Badge variant={variant} shape="square">
       {label}
@@ -54,6 +57,7 @@ export function JobProgress({
   useEffect(() => {
     if (!running) return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
+
     return () => window.clearInterval(timer);
   }, [running]);
 
@@ -61,13 +65,17 @@ export function JobProgress({
 
   function elapsedText(from: number, to: number): string {
     const seconds = Math.max(0, Math.round((to - from) / 1000));
+
     if (seconds < 60) return t("elapsedSeconds", { seconds });
     const minutes = Math.floor(seconds / 60);
+
     if (minutes < 60) return t("elapsedMinutes", { minutes, seconds: seconds % 60 });
+
     return t("elapsedHours", { hours: Math.floor(minutes / 60), minutes: minutes % 60 });
   }
 
   if (!jobId) return null;
+
   if (job === undefined) {
     return (
       <Panel title={panelTitle} className={className} bodyClassName="p-3">
@@ -75,6 +83,7 @@ export function JobProgress({
       </Panel>
     );
   }
+
   if (job === null) {
     return (
       <Panel title={panelTitle} className={className} bodyClassName="p-3">
@@ -85,8 +94,10 @@ export function JobProgress({
 
   const total = job.progress?.total ?? 0;
   const done = job.progress?.done ?? 0;
+
   const percent =
     total > 0 ? Math.min(100, Math.round((done / total) * 100)) : job.status === "done" ? 100 : 0;
+
   const finishedAt = job.finishedAt ?? now;
   const typeName = t.has(`types.${job.type}`) ? t(`types.${job.type}`) : job.type;
 

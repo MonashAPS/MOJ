@@ -10,6 +10,7 @@ const WORDMARK_PATH =
 export function Wordmark({ className, title = "MAPS Online Judge" }: { className?: string; title?: string }) {
   const raw = useId();
   const maskId = `wordmark-mask-${raw.replace(/[^a-zA-Z0-9]/g, "")}`;
+
   return (
     <svg
       viewBox="0 0 679.88 200"

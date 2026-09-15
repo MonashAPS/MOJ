@@ -16,17 +16,21 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [extras, t] = await Promise.all([loadStatusExtras(id), getTranslations("submissions.meta")]);
+
   if (!extras) return { title: t("detail") };
+
   return { title: t("detailOf", { problem: extras.problem.name, username: extras.user.username }) };
 }
 
 export default async function SubmissionStatusPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const t = await getTranslations("submissions.detail");
+
   const [detail, extras] = await Promise.all([
     queryAsViewer(api.submissions.detail, { submissionId: id }),
     loadStatusExtras(id),
   ]);
+
   if (!detail || !extras) notFound();
 
   const source = detail.canSeeDetail ? await loadSourceView(id) : null;

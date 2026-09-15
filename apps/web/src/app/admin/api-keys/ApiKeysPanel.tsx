@@ -40,6 +40,7 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
   function refresh() {
     startTransition(async () => {
       const result = await listKeysAction();
+
       if (result.ok) setRows(result.data);
       else {
         setRows([]);
@@ -54,16 +55,21 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
     if (!draft) return;
     setBusy(true);
     setError(null);
+
     const result = await createKeyAction({
       name: draft.name,
       scopes: draft.scopes,
       expiresInDays: draft.expiresInDays.trim() === "" ? null : Number(draft.expiresInDays),
     });
+
     setBusy(false);
+
     if (!result.ok) {
       setError(result.error);
+
       return;
     }
+
     setIssued(result.data);
     setDraft(null);
     refresh();
@@ -143,6 +149,7 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
           confirmLabel={t("revokeConfirm")}
           onConfirm={async () => {
             const result = await revokeKeyAction(row.id, row.convexId);
+
             if (result.ok) {
               setMessage({ tone: "ok", text: t("revokedMessage", { name: row.name }) });
               refresh();

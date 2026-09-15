@@ -25,9 +25,11 @@ describe("statement fixtures", () => {
 
   it("finds tilde maths in most of the corpus", async () => {
     let withTilde = 0;
+
     for (const fixture of fixtures) {
       if (countTildePairs(fixture.source) > 0) withTilde += 1;
     }
+
     expect(withTilde).toBeGreaterThan(fixtures.length / 2);
   });
 });
@@ -45,6 +47,7 @@ describe("metadata", () => {
       "print(1)",
       "```",
     ].join("\n");
+
     const { meta } = await renderMarkdown(source, "problem");
     expect(meta.headings).toEqual([
       { depth: 4, text: "Input", id: "input" },
@@ -77,6 +80,7 @@ describe("dmoj rewrites", () => {
       "comment",
       { nofollowExcluded: ["judge.example.org"] },
     );
+
     expect(html).toContain('<a href="https://example.com" rel="nofollow">out</a>');
     expect(html).toContain('<a href="/problems/">in</a>');
     expect(html).toContain('<a href="https://judge.example.org/x">keep</a>');
@@ -106,6 +110,7 @@ describe("dmoj rewrites", () => {
     const { html } = await renderMarkdown("![x](http://example.com/a.png)", "problem", {
       camo: { server: "https://camo.test", key: "secret" },
     });
+
     expect(html).toContain('src="https://camo.test/');
     expect(html).not.toContain("http://example.com/a.png");
   });
@@ -114,6 +119,7 @@ describe("dmoj rewrites", () => {
     const { html } = await renderMarkdown("[x](/problem/abc) ![y](/media/y.png)", "problem", {
       baseUrl: "https://judge.example.org/problem/abc/pdf",
     });
+
     expect(html).toContain('href="https://judge.example.org/problem/abc"');
     expect(html).toContain('src="https://judge.example.org/media/y.png"');
   });

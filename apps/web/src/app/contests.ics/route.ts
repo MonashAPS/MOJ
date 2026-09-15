@@ -21,22 +21,28 @@ function stamp(time: number): string {
 /** Content lines are folded at 75 octets, continuations start with a space. */
 function fold(line: string): string {
   const bytes = new TextEncoder().encode(line);
+
   if (bytes.length <= 75) return line;
 
   const out: string[] = [];
   let current = "";
   let size = 0;
+
   for (const character of line) {
     const width = new TextEncoder().encode(character).length;
+
     if (size + width > (out.length === 0 ? 75 : 74)) {
       out.push(current);
       current = "";
       size = 0;
     }
+
     current += character;
     size += width;
   }
+
   if (current) out.push(current);
+
   return out.map((part, index) => (index === 0 ? part : ` ${part}`)).join("\r\n");
 }
 
@@ -71,9 +77,11 @@ export async function GET() {
       `SUMMARY:${escapeText(contest.name)}`,
       `URL:${siteUrl()}${contest.link}`,
     );
+
     if (contest.summary) lines.push(`DESCRIPTION:${escapeText(contest.summary)}`);
     lines.push("END:VEVENT");
   }
+
   lines.push("END:VCALENDAR");
 
   return new Response(`${lines.map(fold).join("\r\n")}\r\n`, {

@@ -20,6 +20,7 @@ export const site = query({
   args: {},
   handler: async (ctx): Promise<FeedSite> => {
     const settings = await siteSettings(ctx);
+
     return {
       siteName: settings?.siteName ?? "MOJ",
       siteLongName: settings?.siteLongName ?? "MOJ, the MAPS Online Judge",
@@ -45,6 +46,7 @@ async function publicProblems(ctx: AnyCtx): Promise<Doc<"problems">[]> {
     .withIndex("by_public_date", (q) => q.eq("isPublic", true))
     .order("desc")
     .collect();
+
   return rows.filter((row) => !row.isOrganizationPrivate);
 }
 
@@ -55,6 +57,7 @@ export const problems = query({
     const take = Math.max(1, Math.min(limit ?? 25, 100));
     const rows = await publicProblems(ctx);
     rows.sort((a, b) => b.date - a.date || (a._id < b._id ? 1 : -1));
+
     return rows.slice(0, take).map((row) => ({
       id: row.code,
       title: row.name,
@@ -72,6 +75,7 @@ export const comments = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, { limit }): Promise<FeedItem[]> => {
     const take = Math.max(1, Math.min(limit ?? 25, 100));
+
     const rows = await ctx.db
       .query("comments")
       .order("desc")
@@ -85,12 +89,16 @@ export const comments = query({
       if (out.length >= take) break;
       const cacheKey = `${row.targetType}:${row.targetKey}`;
       let resolved = cache.get(cacheKey);
+
       if (!resolved) {
         resolved = await loadCommentTarget(ctx, row.targetType, row.targetKey);
         cache.set(cacheKey, resolved);
       }
+
       if (!resolved.exists) continue;
+
       if (!commentIsAccessibleBy(resolved.target, null)) continue;
+
       if (resolved.target.type === "solution") {
         if (
           !resolved.problem ||
@@ -112,6 +120,7 @@ export const comments = query({
         updated: row.time,
       });
     }
+
     return out;
   },
 });
@@ -121,6 +130,7 @@ export const blog = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, { limit }): Promise<FeedItem[]> => {
     const now = Date.now();
+
     const rows = await ctx.db
       .query("blogPosts")
       .withIndex("by_visible_publishOn", (q) => q.eq("visible", true).lte("publishOn", now))
@@ -129,10 +139,12 @@ export const blog = query({
 
     rows.sort((a, b) => {
       if (a.sticky !== b.sticky) return a.sticky ? -1 : 1;
+
       return b.publishOn - a.publishOn;
     });
 
     const take = Math.max(1, Math.min(limit ?? 25, 100));
+
     return rows.slice(0, take).map((row) => ({
       id: String(row.legacyId ?? row._id),
       title: row.title,
@@ -157,12 +169,14 @@ export const sitemap = query({
   args: {},
   handler: async (ctx): Promise<SitemapEntry[]> => {
     const now = Date.now();
+
     const out: SitemapEntry[] = [
       { location: "/", changefreq: "hourly", priority: 1.0 },
       { location: "/about/", changefreq: "daily", priority: 0.9 },
     ];
 
     const problemRows = await publicProblems(ctx);
+
     for (const row of problemRows) {
       out.push({
         location: `/problem/${row.code}`,
@@ -174,10 +188,13 @@ export const sitemap = query({
 
     const publicProblemIds = new Set(problemRows.map((row) => row._id as string));
     const solutions = await ctx.db.query("solutions").collect();
+
     for (const solution of solutions) {
       if (!solution.isPublic || solution.publishOn > now) continue;
+
       if (!publicProblemIds.has(solution.problemId)) continue;
       const problem = problemRows.find((row) => row._id === solution.problemId);
+
       if (!problem) continue;
       out.push({
         location: `/problem/${problem.code}/editorial`,
@@ -191,6 +208,7 @@ export const sitemap = query({
       .query("blogPosts")
       .withIndex("by_visible_publishOn", (q) => q.eq("visible", true).lte("publishOn", now))
       .collect();
+
     for (const post of posts) {
       out.push({
         location: blogPostHref(post),
@@ -204,6 +222,7 @@ export const sitemap = query({
       .query("contests")
       .withIndex("by_visible_start", (q) => q.eq("isVisible", true))
       .collect();
+
     for (const contest of contestRows) {
       if (contest.isPrivate || contest.isOrganizationPrivate) continue;
       out.push({
@@ -215,6 +234,7 @@ export const sitemap = query({
     }
 
     const organizations = await ctx.db.query("organizations").collect();
+
     for (const organization of organizations) {
       out.push({
         location: `/organization/${organization.legacyId ?? organization._id}-${organization.slug}`,
@@ -224,6 +244,7 @@ export const sitemap = query({
     }
 
     const profiles = await ctx.db.query("profiles").collect();
+
     for (const profile of profiles) {
       if (profile.isUnlisted) continue;
       out.push({

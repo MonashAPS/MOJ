@@ -5,6 +5,7 @@ import { FlatPagesTable } from "./FlatPagesTable";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.flatpages");
+
   return { title: t("metaTitle") };
 }
 

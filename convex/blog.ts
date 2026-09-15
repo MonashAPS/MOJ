@@ -67,18 +67,23 @@ async function visiblePosts(
 
   // Authors and `judge.edit_all_post` holders also see drafts and future posts.
   let rows = published;
+
   if (profile) {
     const all = await ctx.db.query("blogPosts").collect();
+
     const extra = all.filter(
       (row) => !(row.visible && row.publishOn <= now) && blogPostCanSee(coreRow(row), viewer, now),
     );
+
     rows = [...published, ...extra];
   }
 
   rows.sort((a, b) => {
     if (a.sticky !== b.sticky) return a.sticky ? -1 : 1;
+
     return b.publishOn - a.publishOn;
   });
+
   return rows;
 }
 
@@ -87,6 +92,7 @@ async function decorate(
   row: Doc<"blogPosts">,
 ): Promise<BlogListItem> {
   const authors = await authorSummaries(ctx, row.authorProfileIds);
+
   const comments = await ctx.db
     .query("comments")
     .withIndex("by_target_time", (q) => q.eq("targetType", "blog").eq("targetKey", row._id))
@@ -124,6 +130,7 @@ export const list = query({
     const profile = await optionalViewer(ctx);
     const rows = await visiblePosts(ctx, profile);
     const take = rows.slice(0, Math.max(1, Math.min(limit ?? 10, 50)));
+
     return await Promise.all(take.map((row) => decorate(ctx, row)));
   },
 });
@@ -137,6 +144,7 @@ export const paginated = query({
     const perPage = paginationOpts.numItems || settings?.blogPostsPerPage || 10;
     const rows = await visiblePosts(ctx, profile);
     const sliced = sliceOffset(rows, paginationOpts.cursor, perPage);
+
     return {
       ...sliced,
       page: await Promise.all(sliced.page.map((row) => decorate(ctx, row))),
@@ -149,13 +157,16 @@ export const get = query({
   args: { id: v.string() },
   handler: async (ctx, { id }): Promise<BlogPostDetail | null> => {
     const row = await blogPostByKey(ctx, id);
+
     if (!row) return null;
 
     const profile = await optionalViewer(ctx);
     const viewer = await coreViewer(ctx, profile);
+
     if (!blogPostCanSee(coreRow(row), viewer)) return null;
 
     const base = await decorate(ctx, row);
+
     return {
       ...base,
       authorProfiles: await authorSummaries(ctx, row.authorProfileIds),
@@ -170,6 +181,7 @@ export const published = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, { limit }) => {
     const now = Date.now();
+
     const rows = await ctx.db
       .query("blogPosts")
       .withIndex("by_visible_publishOn", (q) => q.eq("visible", true).lte("publishOn", now))
@@ -178,10 +190,12 @@ export const published = query({
 
     rows.sort((a, b) => {
       if (a.sticky !== b.sticky) return a.sticky ? -1 : 1;
+
       return b.publishOn - a.publishOn;
     });
 
     const take = limit === undefined ? rows : rows.slice(0, Math.max(1, Math.min(limit, 200)));
+
     return take.map((row) => ({
       _id: row._id,
       legacyId: row.legacyId,

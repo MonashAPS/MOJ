@@ -47,6 +47,7 @@ const USAGE = `Usage: npm run import -w tools/import -- --dump <file> [options]
 
 function parseArgs(argv: string[]): Options {
   const here = path.dirname(fileURLToPath(import.meta.url));
+
   const options: Options = {
     dump: "",
     dryRun: false,
@@ -62,11 +63,15 @@ function parseArgs(argv: string[]): Options {
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i] as string;
+
     const next = () => {
       const value = argv[++i];
+
       if (value === undefined) throw new Error(`${arg} needs a value`);
+
       return value;
     };
+
     switch (arg) {
       case "--dump":
         options.dump = next();
@@ -120,14 +125,17 @@ function parseArgs(argv: string[]): Options {
   }
 
   if (options.dump === "") throw new Error("--dump is required");
+
   if (options.tables) {
     const unknown = [...options.tables].filter((table) => !STEP_TABLES.includes(table));
+
     if (unknown.length > 0) {
       throw new Error(
         `--tables lists tables the importer does not fill: ${unknown.join(", ")}\nknown tables: ${STEP_TABLES.join(", ")}`,
       );
     }
   }
+
   return options;
 }
 
@@ -140,25 +148,30 @@ async function main(): Promise<void> {
   const env = loadEnvFiles(process.cwd());
 
   log(`reading ${options.dump}`);
+
   const manifest = await extract({
     dumpPath: options.dump,
     outDir: options.out,
     force: options.forceExtract,
   });
+
   const totalRows = Object.values(manifest.tables).reduce((sum, table) => sum + table.rows, 0);
   log(`${Object.keys(manifest.tables).length} tables, ${totalRows} rows in the dump`);
 
   let loader: Loader;
+
   if (options.dryRun) {
     loader = new DryRunLoader(path.join(options.out, "docs"));
   } else {
     const url = env.CONVEX_SELF_HOSTED_URL;
     const adminKey = env.CONVEX_SELF_HOSTED_ADMIN_KEY;
+
     if (!url || !adminKey) {
       throw new Error(
         "CONVEX_SELF_HOSTED_URL and CONVEX_SELF_HOSTED_ADMIN_KEY must be set (see .env.local), or pass --dry-run",
       );
     }
+
     loader = ConvexLoader.fromAdminKey(url, adminKey);
   }
 
@@ -174,16 +187,20 @@ async function main(): Promise<void> {
   // --resume decides whether finished tables are skipped, --fresh forgets them.
   const previous = options.fresh ? null : await readState(options.out);
   const mode = options.dryRun ? "dry-run" : "load";
+
   if (previous && options.resume && previous.mode !== mode) {
     throw new Error(
       `--resume found a ${previous.mode} state file in ${options.out}; start a fresh run or use a different --out`,
     );
   }
+
   const carried =
     previous && previous.mode === mode && previous.dump === manifest.dump.path ? previous : null;
+
   if (previous && !carried) {
     log(`ignoring the state file in ${options.out}: it is for a different dump or mode`);
   }
+
   const state: StateFile = carried ?? {
     mode,
     dump: manifest.dump.path,
@@ -199,31 +216,39 @@ async function main(): Promise<void> {
 
   if (!options.skipAuth) {
     let djangoSecretKey: string | undefined;
+
     if (options.secretKeyFile) {
       djangoSecretKey = parseSecretKeyFile(await readFile(options.secretKeyFile, "utf8")).secretKey;
     }
+
     const authSecret = env.AUTH_SECRET ?? env.BETTER_AUTH_SECRET;
     const rows = await buildAuthRows(ctx, { djangoSecretKey, authSecret });
+
     const summary =
       `better auth: ${rows.stats.users} users, ${rows.stats.accounts} credential accounts, ` +
       `${rows.stats.twoFactors} two factor rows, ${rows.stats.passkeys} passkeys, ` +
       `${rows.stats.rewrittenEmails} rewritten emails`;
+
     log(summary);
     ctx.report.note(summary);
+
     if (options.dryRun) {
       log("dry run, not writing to Postgres");
     } else {
       const databaseUrl = env.DATABASE_URL;
+
       if (!databaseUrl) throw new Error("DATABASE_URL must be set to write the Better Auth tables");
       const { Client } = await import("pg");
       const client = new Client({ connectionString: databaseUrl });
       await client.connect();
+
       try {
         const result = await writeBetterAuthRows(client, rows);
         log(
           `postgres: wrote ${result.users} user, ${result.accounts} account, ` +
             `${result.twoFactors} twoFactor and ${result.passkeys} passkey rows`,
         );
+
         if (result.droppedColumns.length > 0) {
           log(`postgres: columns missing from the schema, not written: ${result.droppedColumns.join(", ")}`);
         }
@@ -231,6 +256,7 @@ async function main(): Promise<void> {
         await client.end();
       }
     }
+
     state.finished.betterAuth = { docs: rows.stats.users, at: new Date().toISOString() };
     await writeState(options.out, state);
   }

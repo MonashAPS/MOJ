@@ -28,8 +28,10 @@ type Messages = Record<string, unknown>;
  *  English for what it is missing rather than a blank or a raw key. */
 function fillGaps(base: Messages, over: Messages): Messages {
   const merged: Messages = { ...base };
+
   for (const [key, value] of Object.entries(over)) {
     const existing = merged[key];
+
     if (
       value &&
       typeof value === "object" &&
@@ -43,6 +45,7 @@ function fillGaps(base: Messages, over: Messages): Messages {
       merged[key] = value;
     }
   }
+
   return merged;
 }
 
@@ -57,10 +60,12 @@ async function read(language: string, namespace: Namespace): Promise<Messages> {
 
 export async function loadMessages(language: string): Promise<Messages> {
   const messages: Messages = {};
+
   for (const namespace of NAMESPACES) {
     const english = await read(DEFAULT_LANGUAGE, namespace);
     messages[namespace] =
       language === DEFAULT_LANGUAGE ? english : fillGaps(english, await read(language, namespace));
   }
+
   return messages;
 }

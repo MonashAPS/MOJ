@@ -4,6 +4,7 @@ import { ScoreboardForm } from "../ScoreboardForm";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.scoreboards");
+
   return { title: t("newMetaTitle") };
 }
 

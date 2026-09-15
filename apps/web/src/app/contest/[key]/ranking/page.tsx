@@ -9,6 +9,7 @@ export async function generateMetadata({ params }: { params: Promise<{ key: stri
   const { key } = await params;
   const t = await getTranslations("contests.ranking");
   const detail = await queryAsViewer(api.contests.get, { key }).catch(() => null);
+
   return { title: detail?.contest ? t("metaTitle", { name: detail.contest.name }) : t("metaFallback") };
 }
 
@@ -22,6 +23,7 @@ export default async function ContestRankingPage({ params }: { params: Promise<{
   ]);
 
   if (!detail || detail.access.kind === "notFound" || detail.access.kind === "inaccessible") notFound();
+
   if (!detail.contest) notFound();
 
   // The class filter's options: the classes of the organisations the contest is

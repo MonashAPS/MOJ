@@ -25,22 +25,28 @@ export async function requestEmailChange(input: {
     await auth.api.verifyPassword({ headers: requestHeaders, body: { password: input.password } });
   } catch (error) {
     const status = (error as { statusCode?: number }).statusCode;
+
     if (status === 401) return { ok: false, field: "form", message: t("reauth") };
+
     return { ok: false, field: "password", message: tPassword("wrong") };
   }
 
   try {
     await auth.api.changeEmail({ headers: requestHeaders, body: { newEmail: input.newEmail } });
+
     return { ok: true };
   } catch (error) {
     const status = (error as { statusCode?: number }).statusCode;
     const message = (error as { body?: { message?: string } }).body?.message;
+
     if (status === 429) {
       return { ok: false, field: "form", message: t("tooMany") };
     }
+
     if (message === DISPOSABLE_EMAIL_KEY) {
       return { ok: false, field: "email", message: tError(DISPOSABLE_EMAIL_KEY) };
     }
+
     return { ok: false, field: "email", message: message ?? t("addressUnusable") };
   }
 }

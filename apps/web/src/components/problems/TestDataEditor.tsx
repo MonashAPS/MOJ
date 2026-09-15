@@ -50,6 +50,7 @@ const CASE_TYPES = [
 ] as const;
 
 type Payload = NonNullable<(typeof api.problems.data.get)["_returnType"]>;
+
 type CaseRow = Payload["cases"][number] & { key: string };
 
 const OPTIONAL_COLUMNS = [
@@ -64,8 +65,10 @@ type ColumnKey = (typeof OPTIONAL_COLUMNS)[number];
 
 function numberOrNull(value: string): number | null {
   const trimmed = value.trim();
+
   if (trimmed === "") return null;
   const parsed = Number(trimmed);
+
   return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -88,6 +91,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
   const [rows, setRows] = useState<CaseRow[]>(() =>
     data.cases.map((row, index) => ({ ...row, key: `${row.id ?? "new"}-${index}` })),
   );
+
   const [form, setForm] = useState({
     checker: data.data?.checker ?? "",
     checkerArgs: data.data?.checkerArgs ?? "",
@@ -97,6 +101,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
     nobigmath: data.data?.nobigmath ?? false,
     generator: data.data?.generator ?? "",
   });
+
   const [visible, setVisible] = useState<Record<ColumnKey, boolean>>(() => ({
     outputPrefix: data.cases.some((row) => row.outputPrefix !== null),
     outputLimit: data.cases.some((row) => row.outputLimit !== null),
@@ -104,6 +109,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
     generatorArgs: data.cases.some((row) => row.generatorArgs !== ""),
     batchDependencies: data.cases.some((row) => row.batchDependencies.length > 0),
   }));
+
   const [files, setFiles] = useState<string[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -120,11 +126,13 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
     setRows((current) => {
       const next = [...current];
       const target = index + delta;
+
       if (target < 0 || target >= next.length) return current;
       const a = next[index] as CaseRow;
       const b = next[target] as CaseRow;
       next[index] = b;
       next[target] = a;
+
       return next.map((row, position) => ({ ...row, order: position + 1 }));
     });
   }
@@ -133,6 +141,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
     setBusy(true);
     setError(null);
     setStatus(null);
+
     try {
       await action();
     } catch (thrown) {
@@ -154,11 +163,13 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
   async function upload(file: File) {
     await withErrors(async () => {
       const url = await generateUploadUrl({ code });
+
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": file.type || "application/zip" },
         body: file,
       });
+
       if (!response.ok) throw new Error("upload failed");
       const { storageId } = (await response.json()) as { storageId: Id<"_storage"> };
       const result = await publishArchive({ code, zipfile: file.name, storageId });
@@ -265,6 +276,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
                 className="sr-only"
                 onChange={(event) => {
                   const file = event.target.files?.[0];
+
                   if (file) void upload(file);
                   event.target.value = "";
                 }}

@@ -51,13 +51,17 @@ export function CommentHistoryDialog({
 
   useEffect(() => {
     let live = true;
+
     if (body.trim().length === 0) {
       setHtml("");
+
       return;
     }
+
     void renderUserMarkdown(body, preset).then((rendered) => {
       if (live) setHtml(rendered);
     });
+
     return () => {
       live = false;
     };

@@ -51,9 +51,11 @@ export function SubmissionActions({
 
   async function run() {
     const kind = open;
+
     if (!kind) return;
     setOpen(null);
     setBusy(true);
+
     try {
       if (kind === "rejudge") {
         await rejudge({ submissionId });

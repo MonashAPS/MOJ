@@ -12,6 +12,7 @@ import { renderContent } from "@/lib/markdown";
 
 export async function generateMetadata() {
   const t = await getTranslations("common.nav");
+
   return { title: t("home") };
 }
 
@@ -21,6 +22,7 @@ const DAY = 24 * 3600_000;
 
 export default async function HomePage() {
   const t = await getTranslations("common.home");
+
   const [misc, posts, session] = await Promise.all([
     query(api.site.miscConfig, {}).catch(() => ({}) as Record<string, string>),
     queryAsViewer(api.blog.list, { limit: 10 }).catch(() => []),
@@ -166,5 +168,6 @@ export default async function HomePage() {
 
 function firstParagraph(content: string): string {
   const paragraph = content.split(/\n\s*\n/)[0] ?? "";
+
   return paragraph.length > 280 ? `${paragraph.slice(0, 280)}…` : paragraph;
 }

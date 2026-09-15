@@ -113,6 +113,7 @@ describe("brandingCss", () => {
       ...BRANDED,
       accentColor: '#fff"} body{display:none}<script>',
     });
+
     expect(css).not.toContain("<script>");
     expect(css).not.toContain("body{display:none}");
   });

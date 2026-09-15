@@ -20,6 +20,7 @@ import type { ContestEdit } from "./types";
 export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
   const t = useTranslations("admin.contests.people");
   const update = useMutation(api.admin.contests.update);
+
   const ids = {
     authors: useId(),
     curators: useId(),
@@ -49,20 +50,26 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
     ...viewScoreboard,
     ...viewSubmissions,
   ];
+
   const profiles = useQuery(api.pages.admin.console.resolveProfiles, { usernames });
 
   function idsFor(list: string[]): Id<"profiles">[] {
     const map = profiles?.ids ?? {};
+
     return list.map((username) => map[username]).filter((id): id is Id<"profiles"> => !!id);
   }
 
   async function save() {
     setError(null);
+
     if (authors.length === 0) {
       setError(t("errorNoAuthor"));
+
       return;
     }
+
     setBusy(true);
+
     try {
       await update({
         key: contest.key,
@@ -81,6 +88,7 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("refused"));
     }
+
     setBusy(false);
   }
 

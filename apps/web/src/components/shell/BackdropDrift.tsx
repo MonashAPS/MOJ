@@ -20,13 +20,16 @@ const FACTOR = 0.12;
 export function BackdropDrift() {
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+
     if (reduced.matches) return;
 
     let frame = 0;
+
     const apply = () => {
       frame = 0;
       document.body.style.setProperty("--backdrop-shift", `${-window.scrollY * FACTOR}px`);
     };
+
     const onScroll = () => {
       // One write a frame however often the browser fires the event.
       if (!frame) frame = requestAnimationFrame(apply);
@@ -34,8 +37,10 @@ export function BackdropDrift() {
 
     apply();
     window.addEventListener("scroll", onScroll, { passive: true });
+
     return () => {
       window.removeEventListener("scroll", onScroll);
+
       if (frame) cancelAnimationFrame(frame);
       document.body.style.removeProperty("--backdrop-shift");
     };

@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("common.proctor");
+
   return { title: t("title") };
 }
 
@@ -26,6 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ProctorPage() {
   const t = await getTranslations("common.proctor");
   const session = await getServerSession().catch(() => null);
+
   // Signing in is the first thing this needs, so send them to do it and bring
   // them back, rather than refusing a page they are entitled to.
   if (!session) redirect(`/accounts/login/?next=${encodeURIComponent("/proctor/")}`);

@@ -29,8 +29,10 @@ describe("django-fernet-fields key derivation", () => {
     // the throwaway SECRET_KEY above.
     const key = deriveFernetKey(SECRET_KEY);
     expect(key.toString("base64")).toBe("cm3PvUHkj8tCygjeV3W0VuNAxi6u76IXNUIqwhc61H4=");
+
     const token =
       "gAAAAABqoo5FSprdcwrjOYh-g3IXMCdEfYLGSnxgrrUjvn52QEHeUi0bI0XlGkHM6CB3OYeyFD4Nzpx75IjPy8QujLiLJ4_KSx64utpr_MjPPpxajr9UGOza_iWXtH2da_PrPPur9Rn7";
+
     expect(fernetDecryptString(key, token)).toBe("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567");
     expect(fernetDecryptString(key, Buffer.from(token, "ascii"))).toBe("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567");
   });
@@ -81,6 +83,7 @@ describe("better auth symmetric encryption", () => {
     // Produced with better-auth 1.7.3: symmetricEncrypt({ key, data }).
     const vector =
       "ec0269d76a3c1e866205d46fca7f2c3e1af3f2a4ed7271dc932c412e56f2a2744927977e9fe533238533aef7960518cdcbe1d2025a9d7dc4aa16a5f966486671fae11388fc";
+
     expect(symmetricDecrypt(authSecret, vector)).toBe('["ABCDE-FGHIJ","KLMNO-PQRST"]');
     expect(decodeBackupCodes(authSecret, vector)).toEqual(["ABCDE-FGHIJ", "KLMNO-PQRST"]);
   });

@@ -25,17 +25,22 @@ import {
 import { judgeClient, setupTest, type T } from "../test.setup";
 
 const KEY = "moj_test_key_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
 const READ_ONLY_KEY = "moj_test_key_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
 const OUTSIDER_KEY = "moj_test_key_cccccccccccccccccccccccccccccccc";
 
 function archive(files: Record<string, string>): Uint8Array {
   const entries: Record<string, Uint8Array> = {};
+
   for (const [name, content] of Object.entries(files)) entries[name] = strToU8(content);
+
   return zipSync(entries, { level: 0 });
 }
 
 async function sha256OfBytes(bytes: Uint8Array): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", bytes as unknown as ArrayBuffer);
+
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
@@ -53,11 +58,13 @@ async function fixture() {
   const t = setupTest();
   const languageId = await insertLanguage(t, { key: "PY3" });
   const problemId = await insertProblem(t, { code: "aplusb", allowedLanguageIds: [languageId] });
+
   const setterId = await insertProfile(t, {
     username: "setter",
     isStaff: true,
     permissions: ["judge.edit_own_problem", "judge.edit_all_problem"],
   });
+
   const outsiderId = await insertProfile(t, { username: "outsider" });
 
   await t.run(async (ctx) => {
@@ -111,6 +118,7 @@ function postData(t: T, code: string, body: unknown, key: string | null = KEY) {
 /** Store an archive and record it, the way a repository publishes one. */
 async function publish(t: T, code: string, bytes: Uint8Array, key: string = KEY) {
   const storageId = await store(t, bytes);
+
   const response = await postData(
     t,
     code,
@@ -122,6 +130,7 @@ async function publish(t: T, code: string, bytes: Uint8Array, key: string = KEY)
     },
     key,
   );
+
   return { storageId, response };
 }
 
@@ -131,11 +140,13 @@ async function revisionReasons(t: T, problemId: Id<"problems">): Promise<string[
       .query("revisions")
       .withIndex("by_entity", (q) => q.eq("entityType", "problem").eq("entityId", problemId))
       .collect();
+
     return rows.map((row) => row.reason);
   });
 }
 
 const FIRST = archive({ "init.yml": "archive: tests.zip\n", "tests/1.in": "1 2\n" });
+
 const SECOND = archive({ "init.yml": "archive: tests.zip\n", "tests/1.in": "3 4\n" });
 
 describe("POST /api/problems/:code/data", () => {
@@ -166,6 +177,7 @@ describe("POST /api/problems/:code/data", () => {
         .withIndex("by_problem", (q) => q.eq("problemId", problemId))
         .unique(),
     );
+
     expect(row?.hash).toBe(hash);
     expect(row?.fileCount).toBe(2);
     expect(await revisionReasons(t, problemId)).toEqual([
@@ -188,12 +200,14 @@ describe("POST /api/problems/:code/data", () => {
     // The upload that just arrived is gone; the stored copy is untouched.
     expect(await blobExists(t, again.storageId)).toBe(false);
     expect(await blobExists(t, first.storageId)).toBe(true);
+
     const row = await t.run(async (ctx) =>
       ctx.db
         .query("problemTestData")
         .withIndex("by_problem", (q) => q.eq("problemId", problemId))
         .unique(),
     );
+
     expect(row?.storageId).toBe(first.storageId);
     expect(await revisionReasons(t, problemId)).toHaveLength(1);
   });
@@ -217,6 +231,7 @@ describe("POST /api/problems/:code/data", () => {
         .withIndex("by_problem", (q) => q.eq("problemId", problemId))
         .unique(),
     );
+
     expect(row?.storageId).toBe(second.storageId);
     expect(await revisionReasons(t, problemId)).toHaveLength(2);
   });
@@ -224,6 +239,7 @@ describe("POST /api/problems/:code/data", () => {
   it("refuses an unauthenticated, unscoped or unauthorised key, and an unknown problem", async () => {
     const { t } = await fixture();
     const storageId = await store(t, FIRST);
+
     const body = {
       storageId,
       hash: await sha256OfBytes(FIRST),
@@ -254,6 +270,7 @@ describe("POST /api/problems/:code/data", () => {
       size: 1,
       fileCount: 1,
     });
+
     expect(badHash.status).toBe(422);
     expect((await badHash.json()).error.message).toMatch(/hash/);
 
@@ -263,6 +280,7 @@ describe("POST /api/problems/:code/data", () => {
       size: 1,
       fileCount: 1,
     });
+
     expect(gone.status).toBe(422);
   });
 
@@ -287,10 +305,12 @@ describe("POST /api/problems/:code/data", () => {
 describe("POST /api/problems/:code/data/upload-url", () => {
   it("hands out an upload URL to a key that may edit the problem", async () => {
     const { t } = await fixture();
+
     const response = await t.fetch("/api/problems/aplusb/data/upload-url", {
       method: "POST",
       headers: { authorization: `Bearer ${KEY}` },
     });
+
     expect(response.status).toBe(200);
     const body = (await response.json()) as { ok: boolean; uploadUrl: string };
     expect(body.ok).toBe(true);
@@ -298,10 +318,12 @@ describe("POST /api/problems/:code/data/upload-url", () => {
 
     const anonymous = await t.fetch("/api/problems/aplusb/data/upload-url", { method: "POST" });
     expect(anonymous.status).toBe(401);
+
     const unknown = await t.fetch("/api/problems/nosuch/data/upload-url", {
       method: "POST",
       headers: { authorization: `Bearer ${KEY}` },
     });
+
     expect(unknown.status).toBe(404);
   });
 });
@@ -312,7 +334,9 @@ describe("GET /judge/data", () => {
 
   function dataUrl(judge: { name: string; key: string }, code: string, hash?: string) {
     const query = new URLSearchParams({ judgeName: judge.name, judgeKey: judge.key, code });
+
     if (hash) query.set("hash", hash);
+
     return `/judge/data?${query.toString()}`;
   }
 
@@ -335,20 +359,24 @@ describe("GET /judge/data", () => {
   it("survives an archive far larger than a request body may be", async () => {
     const { t } = await fixture();
     await insertJudge(t, LOCAL);
+
     // Incompressible, so the stored blob really is this big.
     const big = archive({
       "init.yml": "x\n",
       "tests/1.in": Array.from({ length: 3_000_000 }, (_, i) => String.fromCharCode(33 + (i % 90))).join(""),
     });
+
     expect(big.byteLength).toBeGreaterThan(3_000_000);
 
     const storageId = await store(t, big);
+
     const recorded = await postData(t, "aplusb", {
       storageId,
       hash: await sha256OfBytes(big),
       size: big.byteLength,
       fileCount: 2,
     });
+
     expect(recorded.status).toBe(200);
 
     const response = await t.fetch(dataUrl(LOCAL, "aplusb"), { method: "GET" });
@@ -402,6 +430,7 @@ describe("GET /judge/data", () => {
 describe("claiming with site-owned data", () => {
   async function queued(t: T, languageId: Id<"languages">, problemId: Id<"problems">) {
     const profileId = await insertProfile(t);
+
     return await insertSubmission(t, { profileId, problemId, languageId, status: "QU" });
   }
 
@@ -429,9 +458,11 @@ describe("claiming with site-owned data", () => {
     await queued(t, languageId, problemId);
 
     const response = await judgeClient(t, "local").claim();
+
     const body = (await response.json()) as {
       submission: { problemCode: string; problemDataHash: string | null } | null;
     };
+
     expect(body.submission?.problemCode).toBe("aplusb");
     expect(body.submission?.problemDataHash).toBeNull();
   });
@@ -469,6 +500,7 @@ describe("the test data editor", () => {
       zipfile: "aplusb.zip",
       storageId,
     });
+
     expect(published.changed).toBe(true);
     expect(published.hash).toBe(await sha256OfBytes(FIRST));
     expect(published.files.sort()).toEqual(["init.yml", "tests/1.in"]);
@@ -492,6 +524,7 @@ describe("the test data editor", () => {
       zipfile: "aplusb.zip",
       storageId: await store(t, FIRST),
     });
+
     expect(again.changed).toBe(false);
     expect(await revisionReasons(t, problemId)).toHaveLength(1);
   });

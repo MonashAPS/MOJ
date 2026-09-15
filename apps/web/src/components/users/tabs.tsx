@@ -6,6 +6,7 @@ import { getTranslations } from "next-intl/server";
  *  one tab bar. */
 export async function userListTabs(): Promise<TabItem[]> {
   const t = await getTranslations("users.tabs");
+
   return [
     { key: "list", label: t("leaderboard"), href: "/users/", icon: <Users aria-hidden /> },
     {

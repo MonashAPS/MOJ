@@ -7,7 +7,9 @@ import { useTranslations } from "next-intl";
 
 function SignalIcon({ code }: { code: number }) {
   if (code === 403) return <ShieldAlert size={14} strokeWidth={2} aria-hidden />;
+
   if (code === 404) return <FileQuestion size={14} strokeWidth={2} aria-hidden />;
+
   return <TriangleAlert size={14} strokeWidth={2} aria-hidden />;
 }
 

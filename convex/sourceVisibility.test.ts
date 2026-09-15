@@ -39,6 +39,7 @@ async function seed(t: T, visibility?: "all" | "all-solved" | "only-own") {
       caseTotal: 100,
       priority: 0,
     });
+
     return { submissionId };
   });
 }

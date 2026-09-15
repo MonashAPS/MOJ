@@ -24,7 +24,9 @@ async function claim(client: JudgeClient): Promise<number> {
   const body = (await (await client.claim()).json()) as {
     submission: { submissionId: number } | null;
   };
+
   if (!body.submission) throw new Error("nothing to claim");
+
   return body.submission.submissionId;
 }
 
@@ -40,6 +42,7 @@ async function makeContest(
   options: { formatName?: string; points?: number; partial?: boolean } = {},
 ) {
   const now = Date.now();
+
   const contestId = await insertContest(t, {
     key: "test",
     name: "Test contest",
@@ -47,6 +50,7 @@ async function makeContest(
     endTime: now + 3600_000,
     formatName: options.formatName ?? "default",
   });
+
   const contestProblemId = await insertContestProblem(t, {
     contestId,
     problemId,
@@ -55,6 +59,7 @@ async function makeContest(
     isPretested: false,
     order: 1,
   });
+
   return { contestId, contestProblemId };
 }
 
@@ -66,6 +71,7 @@ describe("grading-end bookkeeping", () => {
     const author = await insertProfile(t);
     await insertJudge(t, { name: "local" });
     const client = judgeClient(t, "local");
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -135,12 +141,14 @@ describe("grading-end bookkeeping", () => {
   it("leaves points alone for a private problem", async () => {
     const t = setupTest();
     const languageId = await insertLanguage(t);
+
     const problemId = await insertProblem(t, {
       code: "secret",
       isPublic: false,
       points: 25,
       partial: true,
     });
+
     const author = await insertProfile(t);
     await insertJudge(t, { name: "local", problemCodes: ["secret"] });
     const client = judgeClient(t, "local");
@@ -203,6 +211,7 @@ describe("grading-end bookkeeping", () => {
       profileId: author,
       realStart: Date.now() - 600_000,
     });
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -231,11 +240,13 @@ describe("grading-end bookkeeping", () => {
     const problemId = await insertProblem(t);
     const author = await insertProfile(t);
     const { contestId, contestProblemId } = await makeContest(t, problemId);
+
     const participationId = await insertParticipation(t, {
       contestId,
       profileId: author,
       realStart: Date.now(),
     });
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,

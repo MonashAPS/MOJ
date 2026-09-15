@@ -38,23 +38,30 @@ export const filterOptions = query({
     const groupCounts = new Map<string, number>();
     let min = Number.POSITIVE_INFINITY;
     let max = Number.NEGATIVE_INFINITY;
+
     for (const row of visible) {
       for (const id of row.typeIds) typeCounts.set(id, (typeCounts.get(id) ?? 0) + 1);
       groupCounts.set(row.groupId, (groupCounts.get(row.groupId) ?? 0) + 1);
+
       if (row.points < min) min = row.points;
+
       if (row.points > max) max = row.points;
     }
 
     const types = [];
+
     for (const row of await ctx.db.query("problemTypes").collect()) {
       types.push({ name: row.name, fullName: row.fullName, count: typeCounts.get(row._id) ?? 0 });
     }
+
     types.sort((a, b) => b.count - a.count || a.fullName.localeCompare(b.fullName));
 
     const groups = [];
+
     for (const row of await ctx.db.query("problemGroups").collect()) {
       groups.push({ name: row.name, fullName: row.fullName, count: groupCounts.get(row._id) ?? 0 });
     }
+
     groups.sort((a, b) => a.fullName.localeCompare(b.fullName));
 
     // Only contests that actually carry a problem the viewer can see; a contest
@@ -64,13 +71,17 @@ export const filterOptions = query({
     const contests: { key: string; name: string; startTime: number; problemCount: number }[] = [];
     const rows = (await ctx.db.query("contests").collect()).filter((row: Doc<"contests">) => row.isVisible);
     rows.sort((a, b) => b.startTime - a.startTime);
+
     for (const contest of rows) {
       if (contests.length >= limit) break;
+
       const links = await ctx.db
         .query("contestProblems")
         .withIndex("by_contest_order", (q) => q.eq("contestId", contest._id))
         .collect();
+
       const count = links.filter((link) => visibleIds.has(link.problemId as string)).length;
+
       if (count === 0) continue;
       contests.push({
         key: contest.key,
@@ -115,20 +126,24 @@ export const rejudgePreview = query({
   },
   handler: async (ctx, args) => {
     const profile = await optionalViewer(ctx);
+
     if (!profile || !(profile.isStaff || profile.isSuperuser)) throw forbidden("Staff only.");
 
     const problem = await ctx.db
       .query("problems")
       .withIndex("by_code", (q) => q.eq("code", args.problemCode))
       .unique();
+
     if (!problem) return { count: 0, capped: false };
 
     const languageIds: Id<"languages">[] = [];
+
     for (const key of args.languageKeys ?? []) {
       const language = await ctx.db
         .query("languages")
         .withIndex("by_key", (q) => q.eq("key", key))
         .first();
+
       if (language) languageIds.push(language._id);
     }
 
@@ -144,10 +159,12 @@ export const rejudgePreview = query({
     };
 
     const now = Date.now();
+
     const rows = await ctx.db
       .query("submissions")
       .withIndex("by_problem_date", (q) => q.eq("problemId", problem._id))
       .take(MAX_SCAN);
+
     return {
       count: rows.filter((row) => matchesFilter(row, filter, now)).length,
       capped: rows.length >= MAX_SCAN,

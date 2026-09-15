@@ -46,15 +46,18 @@ const LANGUAGE_ALIASES: Readonly<Record<string, string>> = {
 
 export function normaliseLanguage(language: string): string {
   const lower = language.trim().toLowerCase();
+
   return LANGUAGE_ALIASES[lower] ?? lower;
 }
 
 function languageOf(code: Element): string | undefined {
   const classes = code.properties?.className;
   const list = Array.isArray(classes) ? classes.map(String) : [];
+
   for (const name of list) {
     if (name.startsWith("language-")) return name.slice("language-".length);
   }
+
   return undefined;
 }
 
@@ -63,6 +66,7 @@ function textOf(code: Element): string {
   visit(code, "text", (node) => {
     out += node.value;
   });
+
   return out;
 }
 
@@ -71,14 +75,18 @@ export function collectFenceLanguages(tree: Root): string[] {
   const languages = new Set<string>();
   visit(tree, "element", (node: Element) => {
     if (node.tagName !== "pre") return;
+
     const code = node.children.find(
       (child): child is Element => child.type === "element" && child.tagName === "code",
     );
+
     if (!code) return;
     const language = languageOf(code);
+
     if (!language || language === "math") return;
     languages.add(normaliseLanguage(language));
   });
+
   return [...languages];
 }
 
@@ -88,22 +96,28 @@ const rehypeCodehilite: Plugin<[CodehiliteOptions], Root> = function rehypeCodeh
   return (tree: Root) => {
     visit(tree, "element", (node: Element, index, parent) => {
       if (node.tagName !== "pre" || !parent || index === undefined) return;
+
       const code = node.children.find(
         (child): child is Element => child.type === "element" && child.tagName === "code",
       );
+
       if (!code) return;
 
       const raw = languageOf(code);
+
       // `language-math` blocks belong to KaTeX, which has already had its turn.
       if (!raw || raw === "math") return;
 
       const language = normaliseLanguage(raw);
+
       if (!isSupported(language)) {
         onLanguage?.(language, false);
         // Pygments with no lexer: a plain `<pre><code>` and no `codehilite` wrapper.
         delete code.properties.className;
+
         return;
       }
+
       onLanguage?.(language, true);
 
       const highlighted = highlighter.codeToHast(textOf(code).replace(/\n$/, ""), {
@@ -119,11 +133,14 @@ const rehypeCodehilite: Plugin<[CodehiliteOptions], Root> = function rehypeCodeh
         properties: { className: ["codehilite"] },
         children: highlighted.children.filter((child): child is Element => child.type === "element"),
       };
+
       parent.children.splice(index, 1, wrapper);
+
       return index + 1;
     });
   };
 };
 
 export default rehypeCodehilite;
+
 export { rehypeCodehilite };

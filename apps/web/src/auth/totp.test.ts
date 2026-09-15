@@ -23,7 +23,9 @@ const TOTP_URI = createOTP(SECRET, OPTIONS).url("MOJ", "member@example.org");
 
 function phone(): TOTP {
   const parsed = URI.parse(TOTP_URI);
+
   if (!(parsed instanceof TOTP)) throw new Error("The enrolment URI is not a TOTP URI.");
+
   return parsed;
 }
 

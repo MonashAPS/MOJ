@@ -141,6 +141,7 @@ export function AdminTable<Row>({
               : data.map((row) => {
                   const key = rowKey(row);
                   const target = href?.(row);
+
                   return (
                     <TableRow key={key} selected={selectedSet.has(key)}>
                       {selectable ? (
@@ -151,6 +152,7 @@ export function AdminTable<Row>({
                             checked={selectedSet.has(key)}
                             onCheckedChange={(checked) => {
                               const next = new Set(selectedSet);
+
                               if (checked) next.add(key);
                               else next.delete(key);
                               selection?.onChange([...next]);
@@ -263,6 +265,7 @@ export function AdminPager({
   const totalPages = Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(total, page * pageSize);
+
   return (
     <div className="flex flex-wrap items-center gap-3">
       <span className="font-mono text-sm tabular-nums text-muted-foreground">

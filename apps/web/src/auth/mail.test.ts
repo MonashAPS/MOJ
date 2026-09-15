@@ -4,6 +4,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 const sesSend = vi.fn(async (_command: { input: ReturnType<typeof sesSendInput> }) => ({
   MessageId: "ses-1",
 }));
+
 const sesClientConfig = vi.fn();
 
 vi.mock("@aws-sdk/client-ses", () => {
@@ -13,9 +14,11 @@ vi.mock("@aws-sdk/client-ses", () => {
     }
     send = sesSend;
   }
+
   class SendEmailCommand {
     constructor(readonly input: unknown) {}
   }
+
   return { SESClient, SendEmailCommand };
 });
 
@@ -53,6 +56,7 @@ afterEach(() => {
     if (saved[key] === undefined) delete process.env[key];
     else process.env[key] = saved[key];
   }
+
   resetMailTransport();
   vi.clearAllMocks();
 });
@@ -63,6 +67,7 @@ async function freePort(): Promise<number> {
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address() as { port: number };
   await new Promise<void>((resolve) => server.close(() => resolve()));
+
   return port;
 }
 
@@ -129,10 +134,12 @@ describe("SES", () => {
         Body: { Text: { Data: "T", Charset: "UTF-8" } },
       },
     });
+
     const withHtml = sesSendInput(
       { to: "a@example.org", subject: "S", text: "T", html: "<p>T</p>" },
       "from@example.org",
     );
+
     expect(withHtml.Message.Body).toHaveProperty("Html", { Data: "<p>T</p>", Charset: "UTF-8" });
   });
 
@@ -141,6 +148,7 @@ describe("SES", () => {
       region: "ap-southeast-2",
       credentials: { accessKeyId: "AK", secretAccessKey: "SK" },
     });
+
     await transport.send({ to: "a@example.org", subject: "S", text: "T" }, "from@example.org");
 
     expect(sesClientConfig).toHaveBeenCalledWith({
@@ -149,6 +157,7 @@ describe("SES", () => {
     });
     expect(sesSend).toHaveBeenCalledTimes(1);
     const command = sesSend.mock.calls[0]?.[0];
+
     if (!command) throw new Error("no SES command was sent");
     expect(command.input.Destination.ToAddresses).toEqual(["a@example.org"]);
     expect(command.input.Source).toBe("from@example.org");
@@ -166,6 +175,7 @@ describe("SES", () => {
 
     expect(sesSend).toHaveBeenCalledTimes(1);
     const command = sesSend.mock.calls[0]?.[0];
+
     if (!command) throw new Error("no SES command was sent");
     expect(command.input.Source).toBe("judge@example.org");
     expect(command.input.Message.Subject.Data).toBe("Activate");
@@ -237,6 +247,7 @@ describe("SMTP", () => {
     const { SMTPServer } = await import("smtp-server");
 
     const received: { from: string; to: string[]; body: string }[] = [];
+
     const server = new SMTPServer({
       authOptional: false,
       disabledCommands: ["STARTTLS"],
@@ -257,6 +268,7 @@ describe("SMTP", () => {
         });
       },
     });
+
     await new Promise<void>((resolve) => server.listen(port, "127.0.0.1", resolve));
 
     try {

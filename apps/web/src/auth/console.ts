@@ -20,8 +20,11 @@ export async function consoleViewer(): Promise<ConsoleViewer | null> {
     queryAsViewer(api.viewer.current, {}).catch(() => null),
     getServerSession().catch(() => null),
   ]);
+
   const profile = state?.profile ?? null;
+
   if (!profile || !(profile.isStaff || profile.isSuperuser)) return null;
+
   return {
     userId: profile.userId,
     username: profile.username,
@@ -36,19 +39,23 @@ export async function consoleViewer(): Promise<ConsoleViewer | null> {
 
 export async function requireConsoleViewer(): Promise<ConsoleViewer> {
   const viewer = await consoleViewer();
+
   if (!viewer) {
     const t = await getTranslations("admin.shell.errors");
     throw new Error(t("accessDenied"));
   }
+
   return viewer;
 }
 
 export async function requireSuperuser(): Promise<ConsoleViewer> {
   const viewer = await requireConsoleViewer();
+
   if (!viewer.isSuperuser) {
     const t = await getTranslations("admin.shell.errors");
     throw new Error(t("superuserOnly"));
   }
+
   return viewer;
 }
 
@@ -58,9 +65,11 @@ export function can(viewer: ConsoleViewer, code: string): boolean {
 
 export async function requirePermission(code: string): Promise<ConsoleViewer> {
   const viewer = await requireConsoleViewer();
+
   if (!can(viewer, code)) {
     const t = await getTranslations("admin.shell.errors");
     throw new Error(t("missingPermission", { code }));
   }
+
   return viewer;
 }

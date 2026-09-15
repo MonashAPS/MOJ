@@ -24,6 +24,7 @@ import {
 } from "./index";
 
 const START = NOW;
+
 const HOURS = 3_600_000;
 
 const contest = createContest("c", {
@@ -33,7 +34,9 @@ const contest = createContest("c", {
 });
 
 const p1 = createContestProblem("c", "one", { points: 100, order: 1 });
+
 const p2 = createContestProblem("c", "two", { points: 100, order: 2 });
+
 const contestProblems = [p1, p2];
 
 const participation = createParticipation("c", "user", { realStart: START });
@@ -210,11 +213,13 @@ describe("ioi16 format", () => {
     { case: 2, status: "AC", points: 20, total: 20, batch: 1 },
     { case: 3, status: "WA", points: 0, total: 30, batch: 2 },
   ]);
+
   const second = batched(20, [
     { case: 1, status: "AC", points: 20, total: 20, batch: 1 },
     { case: 2, status: "AC", points: 20, total: 20, batch: 1 },
     { case: 3, status: "AC", points: 30, total: 30, batch: 2 },
   ]);
+
   const third = batched(30, [
     { case: 1, status: "AC", points: 20, total: 20, batch: 1 },
     { case: 2, status: "WA", points: 0, total: 30, batch: 2 },
@@ -238,6 +243,7 @@ describe("ioi16 format", () => {
       { case: 1, status: "AC", points: 5, total: 10 },
       { case: 2, status: "AC", points: 15, total: 10 },
     ]);
+
     const update = run("ioi16", [unbatched]);
     expect(update.formatData[p1.id]).toEqual({ points: 5, time: 0 });
   });
@@ -246,6 +252,7 @@ describe("ioi16 format", () => {
     const queued = batched(40, [{ case: 1, status: "AC", points: 100, total: 100, batch: 1 }], {
       status: "QU",
     });
+
     const update = run("ioi16", [first, queued]);
     expect(update.formatData[p1.id]).toEqual({ points: 10, time: 0 });
   });
@@ -280,6 +287,7 @@ describe("atcoder format", () => {
       submission(p1.id, 5, 0),
       submission(p1.id, 10, 100),
     ];
+
     const update = run("atcoder", noisy);
     expect(update.formatData[p1.id]?.penalty).toBe(1);
   });
@@ -369,6 +377,7 @@ describe("ecoo format", () => {
       submission(p1.id, 6, 0, { result: "IE" }),
       submission(p1.id, 10, 100),
     ]);
+
     // Only one counted submission, so the first-AC bonus still applies.
     expect(update.formatData[p1.id]?.bonus).toBe(10 + Math.floor((5 * 60 - 10) / 5));
   });
@@ -377,6 +386,7 @@ describe("ecoo format", () => {
     const update = run("ecoo", [submission(p1.id, 10, 100), submission(p2.id, 20, 100)], {
       cumtime: true,
     });
+
     expect(update.cumtime).toBe(10 * 60 + 20 * 60);
   });
 
@@ -404,6 +414,7 @@ describe("disqualification", () => {
       contestProblems,
       contest,
     });
+
     expect(update).toMatchObject({ score: -9999, cumtime: 0, tiebreaker: 0 });
   });
 });

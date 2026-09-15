@@ -6,6 +6,7 @@ import { registerProblemsApiRoutes } from "./http/problemsApi";
 const http = httpRouter();
 
 registerJudgeRoutes(http);
+
 registerProblemsApiRoutes(http);
 
 http.route({

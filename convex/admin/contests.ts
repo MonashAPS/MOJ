@@ -96,6 +96,7 @@ function nullToUndefined<T>(value: T | null | undefined): T | undefined {
 /** Turn the argument object into a patch, dropping keys that were not sent. */
 function buildPatch(args: Record<string, unknown>): WritablePatch {
   const patch: Record<string, unknown> = {};
+
   const nullable = new Set([
     "summary",
     "timeLimit",
@@ -107,20 +108,26 @@ function buildPatch(args: Record<string, unknown>): WritablePatch {
     "accessCode",
     "lockedAfter",
   ]);
+
   for (const [key, value] of Object.entries(args)) {
     if (value === undefined) continue;
+
     if (!(key in writable)) continue;
     patch[key] = nullable.has(key) ? nullToUndefined(value) : value;
   }
+
   return patch as WritablePatch;
 }
 
 async function requireEditable(ctx: MutationCtx, key: string) {
   const profile = await requireViewer(ctx);
   const contest = await contestByKey(ctx, key);
+
   if (!contest) throw notFound(`Contest "${key}"`);
   const viewer = await toViewerRowInContest(ctx, profile);
+
   if (!contestIsEditableBy(toContestRow(contest), viewer)) throw forbidden();
+
   return { profile, contest, viewer };
 }
 
@@ -136,15 +143,19 @@ function checkGatedFields(
   if (changed("isVisible") && !hasPermCode(viewer, "judge.change_contest_visibility")) {
     throw forbidden("Missing permission judge.change_contest_visibility.");
   }
+
   if (changed("lockedAfter") && !hasPermCode(viewer, "judge.lock_contest")) {
     throw forbidden("Missing permission judge.lock_contest.");
   }
+
   if (changed("accessCode") && !hasPermCode(viewer, "judge.contest_access_code")) {
     throw forbidden("Missing permission judge.contest_access_code.");
   }
+
   if (changed("performanceCeilingOverride") && !hasPermCode(viewer, "judge.override_performance_ceiling")) {
     throw forbidden("Missing permission judge.override_performance_ceiling.");
   }
+
   if (
     (changed("isPrivate") || changed("isOrganizationPrivate")) &&
     !hasPermCode(viewer, "judge.create_private_contest")
@@ -155,25 +166,32 @@ function checkGatedFields(
 
 function hasPermCode(viewer: Awaited<ReturnType<typeof toViewerRowInContest>>, code: string): boolean {
   if (!viewer) return false;
+
   if (viewer.isSuperuser) return true;
+
   return viewer.permissions.includes(code);
 }
 
 function validateTiming(patch: WritablePatch, before: Doc<"contests"> | null): void {
   const startTime = patch.startTime ?? before?.startTime;
   const endTime = patch.endTime ?? before?.endTime;
+
   if (startTime !== undefined && endTime !== undefined && endTime <= startTime) {
     throw invalid("The contest must end after it starts.");
   }
+
   const freezeMinutes = patch.freezeMinutes ?? before?.freezeMinutes ?? 0;
+
   if (freezeMinutes < 0) throw invalid("The freeze cannot be negative.");
   const precision = patch.pointsPrecision ?? before?.pointsPrecision ?? 3;
+
   if (precision < 0 || precision > 10) throw invalid("Points precision must be between 0 and 10.");
 }
 
 function validateFormat(patch: WritablePatch, before: Doc<"contests"> | null): void {
   const formatName = patch.formatName ?? before?.formatName ?? "default";
   const formatConfig = "formatConfig" in patch ? patch.formatConfig : before?.formatConfig;
+
   try {
     validateContestFormatConfig(formatName, formatConfig);
   } catch (error) {
@@ -215,12 +233,14 @@ export const list = query({
     const editable = all.filter((contest) => contestIsEditableBy(toContestRow(contest), viewer));
 
     const needle = (args.search ?? "").trim().toLowerCase();
+
     const filtered = needle
       ? editable.filter(
           (contest) =>
             contest.name.toLowerCase().includes(needle) || contest.key.toLowerCase().includes(needle),
         )
       : editable;
+
     filtered.sort((a, b) => b.startTime - a.startTime || a.key.localeCompare(b.key));
 
     const numItems = Math.max(1, Math.min(args.paginationOpts?.numItems ?? 50, 200));
@@ -228,6 +248,7 @@ export const list = query({
     const slice = filtered.slice(offset, offset + numItems);
 
     const page: AdminContestRow[] = [];
+
     for (const contest of slice) {
       const problems = await loadContestProblems(ctx, contest._id);
       page.push({
@@ -265,12 +286,15 @@ export const get = query({
   handler: async (ctx, { key }): Promise<AdminContestDetail> => {
     const profile = await optionalViewer(ctx);
     const contest = await contestByKey(ctx, key);
+
     if (!contest) return null;
     const viewer = await toViewerRowInContest(ctx, profile);
+
     if (!contestIsEditableBy(toContestRow(contest), viewer)) return null;
 
     const rows = await loadContestProblems(ctx, contest._id);
     const problems: (Doc<"contestProblems"> & { code: string; name: string; label: string })[] = [];
+
     for (const [index, row] of rows.entries()) {
       const problem = await ctx.db.get(row.problemId);
       problems.push({
@@ -280,23 +304,28 @@ export const get = query({
         label: labelOf(contest, index),
       });
     }
+
     return { contest, problems };
   },
 });
 
 function labelOf(contest: Doc<"contests">, index: number): string {
   if (contest.labelScheme === "numbers") return String(index + 1);
+
   if (contest.labelScheme === "custom") return contest.customLabels[index] ?? letters(index);
+
   return letters(index);
 }
 
 function letters(index: number): string {
   let value = index + 1;
   let label = "";
+
   while (value > 0) {
     label = String.fromCharCode(((value - 1) % 26) + 65) + label;
     value = Math.floor((value - 1) / 26);
   }
+
   return label;
 }
 
@@ -316,14 +345,17 @@ export const create = mutation({
   handler: async (ctx, args): Promise<{ contestId: Id<"contests">; key: string }> => {
     const profile = await requireViewer(ctx);
     const viewer = await toViewerRowInContest(ctx, profile);
+
     if (!hasPerm(profile, "judge.edit_own_contest") && !hasPerm(profile, "judge.edit_all_contest")) {
       throw forbidden("Missing permission judge.edit_own_contest.");
     }
 
     const key = args.key.trim();
+
     if (!CONTEST_KEY_PATTERN.test(key) || key.length > 20) {
       throw invalid("Contest id must be lowercase letters and digits, at most 20 characters.");
     }
+
     if (await contestByKey(ctx, key)) throw mojError("CONFLICT", "That contest id is already taken.");
 
     const patch = buildPatch(args as Record<string, unknown>);
@@ -391,6 +423,7 @@ export const create = mutation({
       profile._id,
       args.reason ?? "Created contest",
     );
+
     return { contestId, key };
   },
 });
@@ -400,6 +433,7 @@ export const update = mutation({
   handler: async (ctx, args): Promise<null> => {
     const { profile, contest, viewer } = await requireEditable(ctx, args.key);
     const patch = buildPatch(args as Record<string, unknown>);
+
     if (Object.keys(patch).length === 0) return null;
 
     checkGatedFields(patch, contest, viewer);
@@ -415,13 +449,16 @@ export const update = mutation({
       profile._id,
       args.reason ?? "Edited contest",
     );
+
     return null;
   },
 });
 
 function pick(row: Doc<"contests">, keys: string[]): Record<string, unknown> {
   const out: Record<string, unknown> = {};
+
   for (const key of keys) out[key] = (row as unknown as Record<string, unknown>)[key];
+
   return out;
 }
 
@@ -429,9 +466,11 @@ export const setVisibility = mutation({
   args: { key: v.string(), isVisible: v.boolean(), reason: v.optional(v.string()) },
   handler: async (ctx, { key, isVisible, reason }): Promise<null> => {
     const { profile, contest, viewer } = await requireEditable(ctx, key);
+
     if (!hasPermCode(viewer, "judge.change_contest_visibility")) {
       throw forbidden("Missing permission judge.change_contest_visibility.");
     }
+
     await ctx.db.patch(contest._id, { isVisible });
     await writeRevision(
       ctx,
@@ -441,6 +480,7 @@ export const setVisibility = mutation({
       profile._id,
       reason ?? (isVisible ? "Made contest visible" : "Hid contest"),
     );
+
     return null;
   },
 });
@@ -454,9 +494,11 @@ export const setLocked = mutation({
   },
   handler: async (ctx, { key, lockedAfter, reason }): Promise<null> => {
     const { profile, contest, viewer } = await requireEditable(ctx, key);
+
     if (!hasPermCode(viewer, "judge.lock_contest")) {
       throw forbidden("Missing permission judge.lock_contest.");
     }
+
     await ctx.db.patch(contest._id, { lockedAfter: lockedAfter ?? undefined });
     await writeRevision(
       ctx,
@@ -466,6 +508,7 @@ export const setLocked = mutation({
       profile._id,
       reason ?? (lockedAfter === null ? "Unlocked contest" : "Locked contest"),
     );
+
     return null;
   },
 });
@@ -488,16 +531,20 @@ export const addProblem = mutation({
   },
   handler: async (ctx, args): Promise<Id<"contestProblems">> => {
     const { profile, contest } = await requireEditable(ctx, args.key);
+
     const problem = await ctx.db
       .query("problems")
       .withIndex("by_code", (q) => q.eq("code", args.problemCode))
       .unique();
+
     if (!problem) throw notFound(`Problem "${args.problemCode}"`);
 
     const existing = await loadContestProblems(ctx, contest._id);
+
     if (existing.some((row) => row.problemId === problem._id)) {
       throw mojError("CONFLICT", "That problem is already in this contest.");
     }
+
     if (args.maxSubmissions !== undefined && args.maxSubmissions !== null && args.maxSubmissions < 1) {
       throw invalid("Why include a problem you can't submit to?");
     }
@@ -521,6 +568,7 @@ export const addProblem = mutation({
       profile._id,
       args.reason ?? `Added problem ${problem.code}`,
     );
+
     return id;
   },
 });
@@ -539,21 +587,29 @@ export const updateProblem = mutation({
   handler: async (ctx, args): Promise<null> => {
     const { profile, contest } = await requireEditable(ctx, args.key);
     const row = await ctx.db.get(args.contestProblemId);
+
     if (!row || row.contestId !== contest._id) throw notFound("Contest problem");
 
     const patch: Partial<Doc<"contestProblems">> = {};
+
     if (args.points !== undefined) patch.points = args.points;
+
     if (args.partial !== undefined) patch.partial = args.partial;
+
     if (args.isPretested !== undefined) patch.isPretested = args.isPretested;
+
     if (args.maxSubmissions !== undefined) {
       if (args.maxSubmissions !== null && args.maxSubmissions < 1) {
         throw invalid("Why include a problem you can't submit to?");
       }
+
       patch.maxSubmissions = args.maxSubmissions ?? undefined;
     }
+
     if (args.outputPrefixOverride !== undefined) {
       patch.outputPrefixOverride = args.outputPrefixOverride ?? undefined;
     }
+
     if (Object.keys(patch).length === 0) return null;
 
     await ctx.db.patch(args.contestProblemId, patch);
@@ -565,6 +621,7 @@ export const updateProblem = mutation({
       profile._id,
       args.reason ?? "Edited contest problem",
     );
+
     return null;
   },
 });
@@ -578,11 +635,13 @@ export const removeProblem = mutation({
   handler: async (ctx, { key, contestProblemId, reason }): Promise<null> => {
     const { profile, contest } = await requireEditable(ctx, key);
     const row = await ctx.db.get(contestProblemId);
+
     if (!row || row.contestId !== contest._id) throw notFound("Contest problem");
 
     await ctx.db.delete(contestProblemId);
     // Close the gap so the labels stay contiguous.
     const remaining = await loadContestProblems(ctx, contest._id);
+
     for (const [index, entry] of remaining.entries()) {
       if (entry.order !== index) await ctx.db.patch(entry._id, { order: index });
     }
@@ -595,6 +654,7 @@ export const removeProblem = mutation({
       profile._id,
       reason ?? "Removed contest problem",
     );
+
     return null;
   },
 });
@@ -609,9 +669,11 @@ export const reorderProblems = mutation({
     const { profile, contest } = await requireEditable(ctx, key);
     const rows = await loadContestProblems(ctx, contest._id);
     const known = new Set(rows.map((row) => row._id as string));
+
     if (order.length !== rows.length || order.some((id) => !known.has(id))) {
       throw invalid("The new order must list every problem in the contest exactly once.");
     }
+
     for (const [index, id] of order.entries()) await ctx.db.patch(id, { order: index });
     await writeRevision(
       ctx,
@@ -621,6 +683,7 @@ export const reorderProblems = mutation({
       profile._id,
       reason ?? "Reordered contest problems",
     );
+
     return null;
   },
 });
@@ -633,6 +696,7 @@ export const rescore = mutation({
   args: { key: v.string(), reason: v.optional(v.string()) },
   handler: async (ctx, { key, reason }): Promise<{ jobId: Id<"jobs">; total: number }> => {
     const { profile, contest } = await requireEditable(ctx, key);
+
     const participations = await ctx.db
       .query("contestParticipations")
       .withIndex("by_contest_virtual_score", (q) => q.eq("contestId", contest._id))
@@ -646,12 +710,14 @@ export const rescore = mutation({
       createdByProfileId: profile._id,
       createdAt: Date.now(),
     });
+
     await ctx.scheduler.runAfter(0, internal.jobs.contests.rescoreChunk, {
       jobId,
       contestId: contest._id,
       cursor: 0,
     });
     await writeRevision(ctx, "contest", contest._id, {}, profile._id, reason ?? "Rescored contest");
+
     return { jobId, total: participations.length };
   },
 });
@@ -660,10 +726,13 @@ export const rate = mutation({
   args: { key: v.string(), reason: v.optional(v.string()) },
   handler: async (ctx, { key, reason }): Promise<{ jobId: Id<"jobs"> }> => {
     const profile = await requireViewer(ctx);
+
     if (!hasPerm(profile, "judge.contest_rating")) {
       throw forbidden("Missing permission judge.contest_rating.");
     }
+
     const contest = await contestByKey(ctx, key);
+
     if (!contest) throw notFound(`Contest "${key}"`);
 
     const jobId = await ctx.db.insert("jobs", {
@@ -674,11 +743,13 @@ export const rate = mutation({
       createdByProfileId: profile._id,
       createdAt: Date.now(),
     });
+
     await ctx.scheduler.runAfter(0, internal.jobs.contests.rateContestJob, {
       jobId,
       contestId: contest._id,
     });
     await writeRevision(ctx, "contest", contest._id, {}, profile._id, reason ?? "Rated contest");
+
     return { jobId };
   },
 });
@@ -692,6 +763,7 @@ export const rejudgeProblem = mutation({
   handler: async (ctx, { key, contestProblemId, reason }): Promise<{ jobId: Id<"jobs">; total: number }> => {
     const { profile, contest } = await requireEditable(ctx, key);
     const row = await ctx.db.get(contestProblemId);
+
     if (!row || row.contestId !== contest._id) throw notFound("Contest problem");
 
     const submissions = (
@@ -709,6 +781,7 @@ export const rejudgeProblem = mutation({
       createdByProfileId: profile._id,
       createdAt: Date.now(),
     });
+
     await ctx.scheduler.runAfter(0, internal.jobs.contests.rejudgeContestProblemChunk, {
       jobId,
       contestId: contest._id,
@@ -723,6 +796,7 @@ export const rejudgeProblem = mutation({
       profile._id,
       reason ?? "Rejudged contest problem",
     );
+
     return { jobId, total: submissions.length };
   },
 });
@@ -735,15 +809,18 @@ export const tags = query({
   args: {},
   handler: async (ctx): Promise<Doc<"contestTags">[]> => {
     const rows = await ctx.db.query("contestTags").collect();
+
     return rows.sort((a, b) => a.name.localeCompare(b.name));
   },
 });
 
 async function requireTagEditor(ctx: MutationCtx) {
   const profile = await requireViewer(ctx);
+
   if (!hasPerm(profile, "judge.edit_all_contest")) {
     throw forbidden("Missing permission judge.edit_all_contest.");
   }
+
   return profile;
 }
 
@@ -757,11 +834,14 @@ export const createTag = mutation({
   handler: async (ctx, { name, color, description, reason }): Promise<Id<"contestTags">> => {
     const profile = await requireTagEditor(ctx);
     const trimmed = name.trim();
+
     if (!trimmed) throw invalid("A tag needs a name.");
+
     const existing = await ctx.db
       .query("contestTags")
       .withIndex("by_name", (q) => q.eq("name", trimmed))
       .unique();
+
     if (existing) throw mojError("CONFLICT", "That tag already exists.");
 
     const id = await ctx.db.insert("contestTags", {
@@ -769,6 +849,7 @@ export const createTag = mutation({
       color,
       description: description ?? "",
     });
+
     await writeRevision(
       ctx,
       "contestTag",
@@ -777,6 +858,7 @@ export const createTag = mutation({
       profile._id,
       reason ?? "Created tag",
     );
+
     return id;
   },
 });
@@ -792,16 +874,22 @@ export const updateTag = mutation({
   handler: async (ctx, { tagId, name, color, description, reason }): Promise<null> => {
     const profile = await requireTagEditor(ctx);
     const tag = await ctx.db.get(tagId);
+
     if (!tag) throw notFound("Tag");
 
     const patch: Partial<Doc<"contestTags">> = {};
+
     if (name !== undefined) patch.name = name.trim();
+
     if (color !== undefined) patch.color = color;
+
     if (description !== undefined) patch.description = description;
+
     if (Object.keys(patch).length === 0) return null;
 
     await ctx.db.patch(tagId, patch);
     await writeRevision(ctx, "contestTag", tagId, patch, profile._id, reason ?? "Edited tag");
+
     return null;
   },
 });
@@ -811,17 +899,21 @@ export const deleteTag = mutation({
   handler: async (ctx, { tagId, reason }): Promise<null> => {
     const profile = await requireTagEditor(ctx);
     const tag = await ctx.db.get(tagId);
+
     if (!tag) throw notFound("Tag");
 
     const contests = await ctx.db.query("contests").collect();
+
     for (const contest of contests) {
       if (!contest.tagIds.includes(tagId)) continue;
       await ctx.db.patch(contest._id, {
         tagIds: contest.tagIds.filter((id) => id !== tagId),
       });
     }
+
     await ctx.db.delete(tagId);
     await writeRevision(ctx, "contestTag", tagId, { name: tag.name }, profile._id, reason ?? "Deleted tag");
+
     return null;
   },
 });

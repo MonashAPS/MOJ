@@ -24,11 +24,14 @@ export const list = query({
   args: {},
   handler: async (ctx) => {
     await requirePerm(ctx, LANGUAGE_PERM);
+
     const [languages, problems] = await Promise.all([
       ctx.db.query("languages").collect(),
       ctx.db.query("problems").collect(),
     ]);
+
     languages.sort((a, b) => a.key.localeCompare(b.key));
+
     return languages.map((row) => ({
       ...row,
       problemCount: problems.filter((problem) => problem.allowedLanguageIds.includes(row._id)).length,
@@ -40,6 +43,7 @@ export const get = query({
   args: { id: v.id("languages") },
   handler: async (ctx, { id }) => {
     await requirePerm(ctx, LANGUAGE_PERM);
+
     return await ctx.db.get(id);
   },
 });
@@ -62,13 +66,16 @@ export const create = mutation({
     const editor = await requirePerm(ctx, LANGUAGE_PERM);
 
     const key = args.key.trim();
+
     if (key.length === 0) throw invalid("A language needs a short identifier.");
+
     if (key.length > 6) throw invalid("Short identifiers are limited to 6 characters.");
 
     const clash = await ctx.db
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", key))
       .first();
+
     if (clash) throw invalid(`A language with the identifier ${key} already exists.`);
 
     const id = await ctx.db.insert("languages", {
@@ -83,6 +90,7 @@ export const create = mutation({
       description: args.description ?? "",
       extension: args.extension,
     });
+
     await writeRevision(
       ctx,
       "language",
@@ -91,6 +99,7 @@ export const create = mutation({
       editor._id,
       args.reason ?? "Created language",
     );
+
     return id;
   },
 });
@@ -113,29 +122,44 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const editor = await requirePerm(ctx, LANGUAGE_PERM);
     const row = await ctx.db.get(args.id);
+
     if (!row) throw notFound("Language");
 
     const patch: Partial<Doc<"languages">> = {};
+
     if (args.key !== undefined) {
       const key = args.key.trim();
+
       if (key.length === 0) throw invalid("A language needs a short identifier.");
+
       if (key !== row.key) {
         const clash = await ctx.db
           .query("languages")
           .withIndex("by_key", (q) => q.eq("key", key))
           .first();
+
         if (clash) throw invalid(`A language with the identifier ${key} already exists.`);
       }
+
       patch.key = key;
     }
+
     if (args.name !== undefined) patch.name = args.name;
+
     if (args.shortName !== undefined) patch.shortName = args.shortName;
+
     if (args.commonName !== undefined) patch.commonName = args.commonName;
+
     if (args.editorMode !== undefined) patch.editorMode = args.editorMode;
+
     if (args.shikiLang !== undefined) patch.shikiLang = args.shikiLang;
+
     if (args.template !== undefined) patch.template = args.template;
+
     if (args.info !== undefined) patch.info = args.info;
+
     if (args.description !== undefined) patch.description = args.description;
+
     if (args.extension !== undefined) patch.extension = args.extension;
 
     await writeRevision(ctx, "language", args.id, row, editor._id, args.reason ?? "Edited language");
@@ -148,29 +172,36 @@ export const remove = mutation({
   handler: async (ctx, { id, reason }) => {
     const editor = await requirePerm(ctx, LANGUAGE_PERM);
     const row = await ctx.db.get(id);
+
     if (!row) throw notFound("Language");
 
     const submission = await ctx.db
       .query("submissions")
       .withIndex("by_language_date", (q) => q.eq("languageId", id))
       .first();
+
     if (submission) throw invalid("That language has submissions and cannot be deleted.");
 
     const problems = await ctx.db.query("problems").collect();
+
     for (const problem of problems) {
       if (!problem.allowedLanguageIds.includes(id)) continue;
       await ctx.db.patch(problem._id, {
         allowedLanguageIds: problem.allowedLanguageIds.filter((entry) => entry !== id),
       });
     }
+
     const limits = await ctx.db.query("languageLimits").collect();
+
     for (const limit of limits) {
       if (limit.languageId === id) await ctx.db.delete(limit._id);
     }
+
     const versions = await ctx.db
       .query("runtimeVersions")
       .withIndex("by_language", (q) => q.eq("languageId", id))
       .collect();
+
     for (const version of versions) await ctx.db.delete(version._id);
 
     await writeRevision(ctx, "language", id, row, editor._id, reason ?? "Deleted language");
@@ -192,19 +223,25 @@ export const copyLanguage = mutation({
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", sourceKey))
       .first();
+
     if (!source) throw invalid(`Invalid source language: ${sourceKey}`);
+
     const target = await ctx.db
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", targetKey))
       .first();
+
     if (!target) throw invalid(`Invalid target language: ${targetKey}`);
+
     if (source._id === target._id) throw invalid("Pick two different languages.");
 
     const problems = await ctx.db.query("problems").collect();
     let allowed = 0;
+
     for (const problem of problems) {
       const hasSource = problem.allowedLanguageIds.includes(source._id);
       const hasTarget = problem.allowedLanguageIds.includes(target._id);
+
       if (hasSource && !hasTarget) {
         await ctx.db.patch(problem._id, {
           allowedLanguageIds: [...problem.allowedLanguageIds, target._id],
@@ -220,11 +257,14 @@ export const copyLanguage = mutation({
 
     const limits = await ctx.db.query("languageLimits").collect();
     let copied = 0;
+
     for (const limit of limits) {
       if (limit.languageId !== source._id) continue;
+
       const existing = limits.find(
         (row) => row.problemId === limit.problemId && row.languageId === target._id,
       );
+
       if (existing) continue;
       await ctx.db.insert("languageLimits", {
         problemId: limit.problemId,
@@ -243,6 +283,7 @@ export const copyLanguage = mutation({
       editor._id,
       reason ?? `Copied ${source.key} to ${target.key}`,
     );
+
     return { problems: allowed, limits: copied };
   },
 });
@@ -296,29 +337,40 @@ type SurvivorMap = Map<Id<"languages">, Id<"languages">>;
  */
 function planDuplicates(rows: Doc<"languages">[]): { keys: string[]; survivorOf: SurvivorMap } {
   const byKey = new Map<string, Doc<"languages">[]>();
+
   for (const row of rows) {
     const group = byKey.get(row.key);
+
     if (group) group.push(row);
     else byKey.set(row.key, [row]);
   }
 
   const keys: string[] = [];
   const survivorOf: SurvivorMap = new Map();
+
   for (const [key, group] of byKey) {
     if (group.length < 2) continue;
     keys.push(key);
+
     const ranked = [...group].sort((a, b) => {
       // The imported row wins: the submissions point at it.
       const aImported = a.legacyId === undefined ? 1 : 0;
       const bImported = b.legacyId === undefined ? 1 : 0;
+
       if (aImported !== bImported) return aImported - bImported;
+
       if (a._creationTime !== b._creationTime) return a._creationTime - b._creationTime;
+
       return a._id < b._id ? -1 : a._id > b._id ? 1 : 0;
     });
+
     const survivor = ranked[0] as Doc<"languages">;
+
     for (const loser of ranked.slice(1)) survivorOf.set(loser._id, survivor._id);
   }
+
   keys.sort();
+
   return { keys, survivorOf };
 }
 
@@ -347,6 +399,7 @@ async function scanPage(
   cursor: number | null,
 ): Promise<{ _creationTime: number }[]> {
   const query = ctx.db.query(table);
+
   return await (cursor === null
     ? query.withIndex("by_creation_time")
     : query.withIndex("by_creation_time", (q) => q.gt("_creationTime", cursor))
@@ -378,12 +431,17 @@ async function rewriteTablePage(
               .query("runtimeVersions")
               .withIndex("by_language", (q) => q.eq("languageId", loser))
               .take(DEDUPE_PAGE);
+
       budget.reads -= Math.max(rows.length, 1);
+
       if (rows.length === 0) continue;
+
       for (const row of rows) await ctx.db.patch(row._id, { languageId: survivor });
       budget.writes -= rows.length;
+
       return { rewritten: rows.length, cursor: null, isDone: false };
     }
+
     return { rewritten: 0, cursor: null, isDone: true };
   }
 
@@ -391,21 +449,28 @@ async function rewriteTablePage(
     const rows = await scanPage(ctx, "languageLimits", cursor);
     budget.reads -= Math.max(rows.length, 1);
     let rewritten = 0;
+
     for (const row of rows) {
       const survivor = survivorOf.get(row.languageId);
+
       if (!survivor) continue;
+
       // Repointing must not leave a problem with two limits for one language.
       const siblings = await ctx.db
         .query("languageLimits")
         .withIndex("by_problem", (q) => q.eq("problemId", row.problemId))
         .collect();
+
       budget.reads -= Math.max(siblings.length, 1);
       const clash = siblings.some((other) => other._id !== row._id && other.languageId === survivor);
+
       if (clash) await ctx.db.delete(row._id);
       else await ctx.db.patch(row._id, { languageId: survivor });
       rewritten += 1;
     }
+
     budget.writes -= rewritten;
+
     return { rewritten, ...nextPage(rows) };
   }
 
@@ -413,31 +478,41 @@ async function rewriteTablePage(
     const rows = await scanPage(ctx, "profiles", cursor);
     budget.reads -= Math.max(rows.length, 1);
     let rewritten = 0;
+
     for (const row of rows) {
       if (row.languageId === undefined) continue;
       const survivor = survivorOf.get(row.languageId);
+
       if (!survivor) continue;
       await ctx.db.patch(row._id, { languageId: survivor });
       rewritten += 1;
     }
+
     budget.writes -= rewritten;
+
     return { rewritten, ...nextPage(rows) };
   }
 
   const rows = await scanPage(ctx, "problems", cursor);
   budget.reads -= Math.max(rows.length, 1);
   let rewritten = 0;
+
   for (const row of rows) {
     if (!row.allowedLanguageIds.some((id) => survivorOf.has(id))) continue;
     const next: Id<"languages">[] = [];
+
     for (const id of row.allowedLanguageIds) {
       const mapped = survivorOf.get(id) ?? id;
+
       if (!next.includes(mapped)) next.push(mapped);
     }
+
     await ctx.db.patch(row._id, { allowedLanguageIds: next });
     rewritten += 1;
   }
+
   budget.writes -= rewritten;
+
   return { rewritten, ...nextPage(rows) };
 }
 
@@ -450,17 +525,21 @@ async function rewriteReferences(
 ): Promise<{ rewritten: number; next: DedupeState<DedupeTable> | null }> {
   const start = Math.max(DEDUPE_TABLES.indexOf(from.table), 0);
   let rewritten = 0;
+
   for (let i = start; i < DEDUPE_TABLES.length; i++) {
     const table = DEDUPE_TABLES[i] as DedupeTable;
     let cursor = i === start ? from.cursor : null;
+
     for (;;) {
       if (budget.reads <= 0 || budget.writes <= 0) return { rewritten, next: { table, cursor } };
       const step = await rewriteTablePage(ctx, table, survivorOf, cursor, budget);
       rewritten += step.rewritten;
+
       if (step.isDone) break;
       cursor = step.cursor;
     }
   }
+
   return { rewritten, next: null };
 }
 
@@ -477,6 +556,7 @@ async function dedupePass(
 ): Promise<{ report: DedupeReport; next: DedupeState<DedupeTable> | null }> {
   const rows = await ctx.db.query("languages").collect();
   const { keys, survivorOf } = planDuplicates(rows);
+
   if (keys.length === 0) {
     return {
       report: { keys: [], keysRepaired: 0, rowsDeleted: 0, referencesRewritten: 0, isDone: true },
@@ -486,6 +566,7 @@ async function dedupePass(
 
   const budget = newBudget();
   const { rewritten, next } = await rewriteReferences(ctx, survivorOf, from, budget);
+
   if (next) {
     return {
       report: { keys, keysRepaired: 0, rowsDeleted: 0, referencesRewritten: rewritten, isDone: false },
@@ -495,8 +576,10 @@ async function dedupePass(
 
   const byId = new Map(rows.map((row) => [row._id, row]));
   let deleted = 0;
+
   for (const [loser, survivor] of survivorOf) {
     const row = byId.get(loser);
+
     if (!row) continue;
     await writeRevision(ctx, "language", survivor, { mergedFrom: row }, editorProfileId, reason);
     await ctx.db.delete(loser);
@@ -528,12 +611,14 @@ export const dedupeByKey = mutation({
   handler: async (ctx, { reason }): Promise<DedupeReport> => {
     const editor = await requireSuperuser(ctx);
     const why = reason ?? DEDUPE_REASON;
+
     const { report, next } = await dedupePass(
       ctx,
       { table: DEDUPE_TABLES[0], cursor: null },
       editor._id,
       why,
     );
+
     if (next) {
       await ctx.scheduler.runAfter(0, internal.admin.languages.dedupeByKeyStep, {
         table: next.table,
@@ -543,6 +628,7 @@ export const dedupeByKey = mutation({
         reason: why,
       });
     }
+
     return report;
   },
 });
@@ -565,13 +651,16 @@ export const dedupeByKeyStep = internalMutation({
   returns: dedupeReportValidator,
   handler: async (ctx, args): Promise<DedupeReport> => {
     const reason = args.reason ?? DEDUPE_REASON;
+
     const { report, next } = await dedupePass(
       ctx,
       { table: args.table ?? DEDUPE_TABLES[0], cursor: args.cursor ?? null },
       args.editorProfileId,
       reason,
     );
+
     const total = (args.rewritten ?? 0) + report.referencesRewritten;
+
     if (next) {
       await ctx.scheduler.runAfter(0, internal.admin.languages.dedupeByKeyStep, {
         table: next.table,
@@ -581,6 +670,7 @@ export const dedupeByKeyStep = internalMutation({
         reason,
       });
     }
+
     return { ...report, referencesRewritten: total };
   },
 });

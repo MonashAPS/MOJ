@@ -9,9 +9,11 @@ const STORAGE_KEY = "moj-announcement-dismissed";
 
 function hashOf(value: string): string {
   let hash = 0;
+
   for (let index = 0; index < value.length; index++) {
     hash = (hash * 31 + value.charCodeAt(index)) | 0;
   }
+
   return String(hash);
 }
 
@@ -25,6 +27,7 @@ export function Announcement({ html }: { html?: string }) {
 
   useEffect(() => {
     if (!hash) return;
+
     try {
       setDismissed(localStorage.getItem(STORAGE_KEY) === hash);
     } catch {
@@ -51,6 +54,7 @@ export function Announcement({ html }: { html?: string }) {
         title={t("dismiss")}
         onClick={() => {
           setDismissed(true);
+
           try {
             localStorage.setItem(STORAGE_KEY, hash);
           } catch {

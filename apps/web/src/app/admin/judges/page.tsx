@@ -5,12 +5,14 @@ import { JudgesTable } from "./JudgesTable";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.judges");
+
   return { title: t("metaTitle") };
 }
 
 export default async function AdminJudgesPage() {
   const t = await getTranslations("admin.judges");
   const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
   return (
     <>
       <TitleRow title={t("title")} />

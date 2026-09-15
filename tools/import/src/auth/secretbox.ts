@@ -15,11 +15,13 @@ function keyFor(secret: string): Uint8Array {
 
 export function symmetricEncrypt(secret: string, data: string): string {
   const cipher = managedNonce(xchacha20poly1305)(keyFor(secret));
+
   return bytesToHex(cipher.encrypt(utf8ToBytes(data)));
 }
 
 export function symmetricDecrypt(secret: string, hex: string): string {
   const cipher = managedNonce(xchacha20poly1305)(keyFor(secret));
+
   return new TextDecoder().decode(cipher.decrypt(hexToBytes(hex)));
 }
 
@@ -35,5 +37,6 @@ export function encodeBackupCodes(secret: string, codes: string[]): string {
 
 export function decodeBackupCodes(secret: string, value: string): string[] {
   const parsed = JSON.parse(symmetricDecrypt(secret, value)) as unknown;
+
   return Array.isArray(parsed) ? (parsed as string[]) : [];
 }

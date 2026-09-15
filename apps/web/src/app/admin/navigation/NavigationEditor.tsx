@@ -38,15 +38,19 @@ const EMPTY: Draft = { id: null, key: "", label: "", path: "/", regex: "", paren
  *  tree the bar actually draws. */
 function flatten(rows: NavRow[]): FlatRow[] {
   const byParent = new Map<string, NavRow[]>();
+
   for (const row of rows) {
     const key = row.parentId ?? "";
     const bucket = byParent.get(key);
+
     if (bucket) bucket.push(row);
     else byParent.set(key, [row]);
   }
+
   for (const bucket of byParent.values()) bucket.sort((a, b) => a.order - b.order);
 
   const out: FlatRow[] = [];
+
   const walk = (parent: string, depth: number) => {
     const siblings = byParent.get(parent) ?? [];
     siblings.forEach((row, index) => {
@@ -54,7 +58,9 @@ function flatten(rows: NavRow[]): FlatRow[] {
       walk(row._id, depth + 1);
     });
   };
+
   walk("", 0);
+
   return out;
 }
 
@@ -96,6 +102,7 @@ export function NavigationEditor() {
     if (!draft) return;
     setBusy(true);
     setError(null);
+
     try {
       if (draft.id) {
         await updateItem({
@@ -118,6 +125,7 @@ export function NavigationEditor() {
           reason,
         });
       }
+
       setMessage({ tone: "ok", text: t("saved", { label: draft.label }) });
       setDraft(null);
     } catch (caught) {
@@ -139,6 +147,7 @@ export function NavigationEditor() {
   /** Swapping two siblings' orders is the whole of "move up" and "move down". */
   function move(row: FlatRow, direction: -1 | 1) {
     const target = row.siblings[row.index + direction];
+
     if (!target) return;
     void run(
       () =>
@@ -156,6 +165,7 @@ export function NavigationEditor() {
    *  its grandparent, which is DMOJ's two-level bar. */
   function indent(row: FlatRow) {
     const previous = row.siblings[row.index - 1];
+
     if (!previous) return;
     void run(
       () => reorder({ items: [{ id: row._id, order: row.order, parentId: previous._id }] }),

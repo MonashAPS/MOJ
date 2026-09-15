@@ -13,6 +13,7 @@ export async function GET(request: Request): Promise<Response> {
       is_open: booleanFilter(url, "is_open"),
       id: listFilter(url, "id"),
     };
+
     return handleApiRequest(request, (options) => fetchQuery(api.apiV2.organizations, args, options));
   });
 }

@@ -22,6 +22,7 @@ import {
 import { COMPROMISED_COOKIE } from "./password-compromised";
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
 const issuer = process.env.AUTH_ISSUER ?? appUrl;
 
 /** DMOJ's `DMOJ_REQUIRE_STAFF_2FA`: staff must keep a second factor, so the last
@@ -36,9 +37,12 @@ async function remainingFactorsAfterRemoval(
     db.select({ id: schema.passkey.id }).from(schema.passkey).where(eq(schema.passkey.userId, userId)),
     db.select({ id: schema.twoFactor.id }).from(schema.twoFactor).where(eq(schema.twoFactor.userId, userId)),
   ]);
+
   const totpCount = removing === "totp" ? 0 : totps.length;
+
   const passkeyCount =
     removing === "passkey" ? passkeys.filter((row) => row.id !== passkeyId).length : passkeys.length;
+
   return totpCount + passkeyCount;
 }
 
@@ -47,7 +51,9 @@ async function remainingFactorsAfterRemoval(
 function verificationTarget(token: string): { email?: string; updateTo?: string } {
   try {
     const payload = token.split(".")[1];
+
     if (!payload) return {};
+
     return JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
       email?: string;
       updateTo?: string;
@@ -103,11 +109,15 @@ export const auth = betterAuth({
       hash: (password) => hashPassword(password),
       verify: async ({ hash, password }) => {
         if (isUnusablePassword(hash)) return false;
+
         if (isDjangoHash(hash)) {
           const ok = verifyDjangoPassword(password, hash);
+
           if (ok) await rehashLegacyPassword(hash, password);
+
           return ok;
         }
+
         return verifyPassword({ hash, password });
       },
     },
@@ -135,9 +145,11 @@ export const auth = betterAuth({
         const name = user.name || updateTo;
         rememberLink(updateTo, "email-change", url);
         await sendMail({ ...emailChangeActivationEmail(name, url), to: updateTo });
+
         if (previousEmail && previousEmail !== updateTo) {
           await sendMail({ ...emailChangeNotifyEmail(name, updateTo), to: previousEmail });
         }
+
         return;
       }
 
@@ -177,6 +189,7 @@ export const auth = betterAuth({
     before: createAuthMiddleware(async (ctx) => {
       if (ctx.path === "/sign-up/email" || ctx.path === "/change-email") {
         const address = String(ctx.body?.email ?? ctx.body?.newEmail ?? "");
+
         if (isDisposableEmail(address)) {
           throw new APIError("BAD_REQUEST", { message: DISPOSABLE_EMAIL_KEY });
         }
@@ -185,11 +198,14 @@ export const auth = betterAuth({
       if (ctx.path === "/two-factor/disable" || ctx.path === "/passkey/delete-passkey") {
         const session = await getSessionFromCtx(ctx);
         const user = session?.user as { id: string; isStaff?: boolean } | undefined;
+
         if (!user?.isStaff) return;
+
         const remaining =
           ctx.path === "/two-factor/disable"
             ? await remainingFactorsAfterRemoval(user.id, "totp")
             : await remainingFactorsAfterRemoval(user.id, "passkey", String(ctx.body?.id ?? ""));
+
         if (remaining < 1) {
           throw new APIError("BAD_REQUEST", {
             message: "Staff accounts must keep two factor authentication enabled.",
@@ -203,26 +219,33 @@ export const auth = betterAuth({
       // Pwned and, on a hit, forces a change before anything else can be read.
       if (ctx.path === "/sign-in/email" || ctx.path === "/sign-in/username") {
         const password = ctx.body?.password;
+
         if (typeof password !== "string" || !password) return;
         const returned = ctx.context.returned as { status?: number } | undefined;
+
         if (returned instanceof APIError || returned?.status) return;
+
         try {
           if (await isPasswordCompromised(password)) {
             ctx.setCookie(COMPROMISED_COOKIE, "1", { path: "/", sameSite: "lax", maxAge: 60 * 60 * 24 });
+
             return;
           }
         } catch {
           // A login must never fail because the breach service was unreachable.
         }
+
         // DMOJ keeps the flag in the session, so it dies with it. The cookie
         // outlives a sign-out, so a clean login has to clear it or the next
         // account inherits the last one's interstitial.
         ctx.setCookie(COMPROMISED_COOKIE, "", { path: "/", maxAge: 0 });
+
         return;
       }
 
       if (ctx.path === "/change-password" || ctx.path === "/reset-password" || ctx.path === "/sign-out") {
         ctx.setCookie(COMPROMISED_COOKIE, "", { path: "/", maxAge: 0 });
+
         return;
       }
 
@@ -231,11 +254,14 @@ export const auth = betterAuth({
       // turn a successful enrolment into an error.
       if (ctx.path === "/two-factor/enable" || ctx.path === "/two-factor/disable") {
         const returned = ctx.context.returned as { status?: number } | undefined;
+
         if (returned instanceof APIError || returned?.status) return;
         const session = await getSessionFromCtx(ctx).catch(() => null);
         const user = session?.user as { email?: string; name?: string; username?: string } | undefined;
+
         if (!user?.email) return;
         const action = ctx.path === "/two-factor/enable" ? "enabled" : "disabled";
+
         try {
           await sendMail({
             ...twoFactorNoticeEmail(user.username || user.name || user.email, action),

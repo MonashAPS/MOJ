@@ -133,6 +133,7 @@ export const REQUIRED_COLUMNS: Record<string, string[]> = {
 
 function quote(identifier: string): string {
   if (identifier.includes('"')) throw new Error(`invalid identifier ${identifier}`);
+
   return `"${identifier}"`;
 }
 
@@ -143,14 +144,17 @@ export function buildUpsert(
 ): { text: string; values: unknown[] } {
   const used = columns.filter((column) => values[column] !== undefined);
   const placeholders = used.map((_, index) => `$${index + 1}`);
+
   const updates = used
     .filter((column) => column !== "id")
     .map((column) => `${quote(column)} = EXCLUDED.${quote(column)}`);
+
   const text =
     `INSERT INTO ${quote(table)} (${used.map(quote).join(", ")}) VALUES (${placeholders.join(", ")})` +
     (updates.length > 0
       ? ` ON CONFLICT (id) DO UPDATE SET ${updates.join(", ")}`
       : " ON CONFLICT (id) DO NOTHING");
+
   return { text, values: used.map((column) => values[column]) };
 }
 
@@ -159,6 +163,7 @@ export async function introspectColumns(client: SqlExecutor, table: string): Pro
     "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = $1",
     [table],
   );
+
   return new Set(result.rows.map((row) => String(row.column_name)));
 }
 
@@ -186,24 +191,31 @@ async function writeTable(
 ): Promise<number> {
   if (rows.length === 0) return 0;
   const present = await introspectColumns(client, table);
+
   if (present.size === 0) {
     throw new Error(
       `table "${table}" does not exist in the Better Auth database; run the Drizzle migrations first`,
     );
   }
+
   for (const column of REQUIRED_COLUMNS[table] ?? []) {
     if (!present.has(column)) throw new Error(`table "${table}" is missing the required column "${column}"`);
   }
+
   const usable = columns.filter((column) => present.has(column));
+
   for (const column of columns) {
     if (!present.has(column)) dropped.push(`${table}.${column}`);
   }
+
   let written = 0;
+
   for (const row of rows) {
     const statement = buildUpsert(table, usable, row);
     await client.query(statement.text, statement.values);
     written++;
   }
+
   return written;
 }
 
@@ -212,6 +224,7 @@ export async function writeBetterAuthRows(
   input: AuthWriteInput,
 ): Promise<AuthWriteResult> {
   const droppedColumns: string[] = [];
+
   const users = await writeTable(
     client,
     "user",
@@ -219,6 +232,7 @@ export async function writeBetterAuthRows(
     input.users as unknown as Record<string, unknown>[],
     droppedColumns,
   );
+
   const accounts = await writeTable(
     client,
     "account",
@@ -226,6 +240,7 @@ export async function writeBetterAuthRows(
     input.accounts as unknown as Record<string, unknown>[],
     droppedColumns,
   );
+
   const twoFactors = await writeTable(
     client,
     "two_factor",
@@ -233,6 +248,7 @@ export async function writeBetterAuthRows(
     input.twoFactors as unknown as Record<string, unknown>[],
     droppedColumns,
   );
+
   const passkeys = await writeTable(
     client,
     "passkey",
@@ -240,5 +256,6 @@ export async function writeBetterAuthRows(
     input.passkeys as unknown as Record<string, unknown>[],
     droppedColumns,
   );
+
   return { users, accounts, twoFactors, passkeys, droppedColumns };
 }

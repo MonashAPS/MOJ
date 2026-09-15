@@ -35,15 +35,18 @@ async function seedProblem(t: T) {
       isSuperuser: true,
       permissions: ["judge.rejudge_submission", "judge.rejudge_submission_lot", "judge.edit_all_problem"],
     });
+
     const authorId = await insertProfile(ctx, { username: "author" });
     const languageId = await insertLanguage(ctx, { key: "PY3" });
     const groupId = await insertProblemGroup(ctx);
+
     const problemId = await insertProblem(ctx, {
       code: "aplusb",
       groupId,
       points: 10,
       allowedLanguageIds: [languageId],
     });
+
     const submissionId = await insertSubmission(ctx, {
       profileId: authorId,
       problemId,
@@ -54,6 +57,7 @@ async function seedProblem(t: T) {
       caseTotal: 1,
       legacyId: 1,
     });
+
     return { staffId, authorId, languageId, problemId, submissionId };
   });
 }
@@ -89,6 +93,7 @@ describe("jobs.run dispatch", () => {
   test("a rejudge job resolves the problem by code and requeues the submissions", async () => {
     const t = setupTest();
     const { submissionId } = await seedProblem(t);
+
     const jobId = await insertJob(t, "rejudge", {
       problemCode: "aplusb",
       idRange: { start: 1, end: 100 },
@@ -140,6 +145,7 @@ describe("jobs.run dispatch", () => {
   test("a userExport job reaches the action in jobs/users", async () => {
     const t = setupTest();
     const { authorId } = await seedProblem(t);
+
     const jobId = await insertJob(t, "userExport", {
       profileId: authorId,
       submissionDownload: true,
@@ -158,6 +164,7 @@ describe("jobs.run dispatch", () => {
 
   test("pdf and sitemap are marked done without a runner", async () => {
     const t = setupTest();
+
     for (const type of ["pdf", "sitemap"] as const) {
       const jobId = await insertJob(t, type, {});
       await t.mutation(internal.jobs.run, { jobId });
@@ -184,6 +191,7 @@ describe("jobs.run dispatch", () => {
     const { jobId } = await asUser(t, "root").mutation(api.admin.problems.rejudgeAll, {
       code: "aplusb",
     });
+
     await t.finishAllScheduledFunctions(() => {});
 
     expect((await job(t, jobId))?.status).toBe("done");
@@ -197,6 +205,7 @@ describe("the cron targets", () => {
     await t.run(async (ctx) => {
       const profileId = await insertProfile(ctx, { username: "ghost" });
       const contestId = await insertContest(ctx, { key: "over" });
+
       const participationId = await ctx.db.insert("contestParticipations", {
         contestId,
         profileId,
@@ -208,17 +217,20 @@ describe("the cron targets", () => {
         virtual: 0,
         formatData: {},
       });
+
       await ctx.db.patch(profileId, { currentParticipationId: participationId });
       await ctx.db.delete(contestId);
     });
 
     expect(await t.mutation(internal.jobs.contests.sweepContestMode, {})).toEqual({ cleared: 1 });
+
     const profile = await t.run(async (ctx) =>
       ctx.db
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", "ghost"))
         .unique(),
     );
+
     expect(profile?.currentParticipationId).toBeUndefined();
   });
 });

@@ -32,8 +32,11 @@ export type Editor = { profile: Doc<"profiles">; viewer: Awaited<ReturnType<type
 
 export async function requireStaffViewer(ctx: QueryCtx): Promise<Editor> {
   const viewer = await loadViewerContext(ctx);
+
   if (!viewer.profile) throw forbidden("You must be logged in to do that.");
+
   if (!viewer.profile.isStaff && !viewer.profile.isSuperuser) throw forbidden("Staff only.");
+
   return { profile: viewer.profile, viewer };
 }
 
@@ -44,19 +47,24 @@ async function requireProblemEditor(
 ): Promise<Editor & { problem: Doc<"problems"> }> {
   const { profile, viewer } = await requireStaffViewer(ctx);
   const problem = await problemByCode(ctx, code);
+
   if (!problem) throw notFound("Problem");
+
   if (!problemIsEditableBy(toCoreProblem(problem), viewer.core)) {
     throw forbidden("You may not edit this problem.");
   }
+
   return { profile, viewer, problem };
 }
 
 /** `ProblemAdmin.has_change_permission(None)`, used for the add form. */
 async function requireProblemCreator(ctx: QueryCtx): Promise<Editor> {
   const editor = await requireStaffViewer(ctx);
+
   if (!hasPerm(editor.viewer.core, "judge.edit_own_problem")) {
     throw forbidden("Missing permission judge.edit_own_problem.");
   }
+
   return editor;
 }
 
@@ -71,8 +79,11 @@ function assertMayPublish(
   isOrganizationPrivate: boolean,
 ): void {
   if (!isPublic) return;
+
   if (hasPerm(viewer.core, "judge.change_public_visibility")) return;
+
   if (!isOrganizationPrivate) throw forbidden("Missing permission judge.change_public_visibility.");
+
   if (!hasPerm(viewer.core, "judge.create_private_problem")) {
     throw forbidden("Missing permission judge.create_private_problem.");
   }
@@ -103,28 +114,37 @@ function assertMayManage(
 /** Everything the console diffs, gathered into one snapshot. */
 export async function snapshotProblem(ctx: QueryCtx, problemId: Id<"problems">) {
   const problem = await ctx.db.get(problemId);
+
   if (!problem) return null;
 
   const names = async (ids: readonly Id<"profiles">[]) => {
     const out: string[] = [];
+
     for (const id of ids) {
       const row = await ctx.db.get(id);
+
       if (row) out.push(row.username);
     }
+
     return out.sort();
   };
 
   const typeNames: string[] = [];
+
   for (const id of problem.typeIds) {
     const row = await ctx.db.get(id);
+
     if (row) typeNames.push(row.name);
   }
+
   const group = await ctx.db.get(problem.groupId);
   const license = problem.licenseId ? await ctx.db.get(problem.licenseId) : null;
 
   const languageKeys: string[] = [];
+
   for (const id of problem.allowedLanguageIds) {
     const row = await ctx.db.get(id);
+
     if (row) languageKeys.push(row.key);
   }
 
@@ -132,9 +152,12 @@ export async function snapshotProblem(ctx: QueryCtx, problemId: Id<"problems">) 
     .query("languageLimits")
     .withIndex("by_problem", (q) => q.eq("problemId", problemId))
     .collect();
+
   const languageLimits: Record<string, { timeLimit: number; memoryLimit: number }> = {};
+
   for (const limit of limitRows) {
     const lang = await ctx.db.get(limit.languageId);
+
     if (lang) {
       languageLimits[lang.key] = { timeLimit: limit.timeLimit, memoryLimit: limit.memoryLimit };
     }
@@ -144,10 +167,12 @@ export async function snapshotProblem(ctx: QueryCtx, problemId: Id<"problems">) 
     .query("problemTranslations")
     .withIndex("by_problem_language", (q) => q.eq("problemId", problemId))
     .collect();
+
   const clarifications = await ctx.db
     .query("problemClarifications")
     .withIndex("by_problem", (q) => q.eq("problemId", problemId))
     .collect();
+
   const solution = await solutionFor(ctx, problemId);
 
   return {
@@ -215,14 +240,17 @@ async function profileIdsFor(
 ): Promise<{ ids: Id<"profiles">[]; missing: string[] }> {
   const ids: Id<"profiles">[] = [];
   const missing: string[] = [];
+
   for (const username of usernames) {
     const row = await ctx.db
       .query("profiles")
       .withIndex("by_username", (q) => q.eq("username", username))
       .unique();
+
     if (row) ids.push(row._id);
     else missing.push(username);
   }
+
   return { ids, missing };
 }
 
@@ -235,8 +263,11 @@ export async function groupIdByName(
     .query("problemGroups")
     .withIndex("by_name", (q) => q.eq("name", name))
     .first();
+
   if (existing) return existing._id;
+
   if (!createMissing) throw invalid(`No such problem group: ${name}`);
+
   return await ctx.db.insert("problemGroups", { name, fullName: name });
 }
 
@@ -246,31 +277,38 @@ export async function typeIdsByName(
   createMissing = false,
 ): Promise<Id<"problemTypes">[]> {
   const ids: Id<"problemTypes">[] = [];
+
   for (const name of names) {
     const existing = await ctx.db
       .query("problemTypes")
       .withIndex("by_name", (q) => q.eq("name", name))
       .first();
+
     if (existing) {
       ids.push(existing._id);
       continue;
     }
+
     if (!createMissing) throw invalid(`No such problem type: ${name}`);
     ids.push(await ctx.db.insert("problemTypes", { name, fullName: name }));
   }
+
   return ids;
 }
 
 async function languageIdsByKey(ctx: QueryCtx, keys: readonly string[]): Promise<Id<"languages">[]> {
   const ids: Id<"languages">[] = [];
+
   for (const key of keys) {
     const row = await ctx.db
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", key))
       .first();
+
     if (!row) throw invalid(`No such language: ${key}`);
     ids.push(row._id);
   }
+
   return ids;
 }
 
@@ -312,19 +350,23 @@ export const create = mutation({
     if (!PROBLEM_CODE_PATTERN.test(args.code) || args.code.length > 20) {
       throw invalid("Problem codes may only contain lowercase letters, digits and dots.");
     }
+
     if (await problemByCode(ctx, args.code)) {
       throw invalid(`A problem with the code "${args.code}" already exists.`);
     }
 
     const organizationIds: Id<"organizations">[] = [];
+
     for (const slug of args.organizationSlugs ?? []) {
       const row = await ctx.db
         .query("organizations")
         .withIndex("by_slug", (q) => q.eq("slug", slug))
         .unique();
+
       if (!row) throw invalid(`No such organization: ${slug}`);
       organizationIds.push(row._id);
     }
+
     const isOrganizationPrivate = organizationIds.length > 0;
 
     assertMayPublish(viewer, args.isPublic ?? false, isOrganizationPrivate);
@@ -333,6 +375,7 @@ export const create = mutation({
 
     const groupId = await groupIdByName(ctx, args.group ?? "uncategorized", true);
     const typeIds = await typeIdsByName(ctx, args.types ?? ["uncategorized"], true);
+
     const license = args.licenseKey
       ? await ctx.db
           .query("licenses")
@@ -345,6 +388,7 @@ export const create = mutation({
     const testers = await profileIdsFor(ctx, args.testers ?? []);
 
     const allLanguages = await ctx.db.query("languages").collect();
+
     const allowedLanguageIds = args.allowedLanguages
       ? await languageIdsByKey(ctx, args.allowedLanguages)
       : allLanguages.map((row) => row._id);
@@ -379,6 +423,7 @@ export const create = mutation({
     });
 
     await writeProblemRevision(ctx, problemId, profile._id, args.reason ?? "Created the problem.");
+
     return {
       id: problemId,
       code: args.code,
@@ -418,6 +463,7 @@ export const update = mutation({
 
     assertMayUseFullMarkup(viewer, args.isFullMarkup);
     assertMayManage(viewer, args.isManuallyManaged);
+
     if (problem.isFullMarkup && !hasPerm(viewer.core, "judge.problem_full_markup")) {
       if (args.description !== undefined) {
         throw forbidden("Missing permission judge.problem_full_markup.");
@@ -425,32 +471,48 @@ export const update = mutation({
     }
 
     const patch: Partial<Doc<"problems">> = {};
+
     if (args.name !== undefined) patch.name = args.name;
+
     if (args.description !== undefined) patch.description = args.description;
+
     if (args.summary !== undefined) patch.summary = args.summary ?? undefined;
+
     if (args.points !== undefined) patch.points = args.points;
+
     if (args.partial !== undefined) patch.partial = args.partial;
+
     if (args.timeLimit !== undefined) patch.timeLimit = args.timeLimit;
+
     if (args.memoryLimit !== undefined) patch.memoryLimit = args.memoryLimit;
+
     if (args.shortCircuit !== undefined) patch.shortCircuit = args.shortCircuit;
+
     if (args.isManuallyManaged !== undefined) patch.isManuallyManaged = args.isManuallyManaged;
+
     if (args.isFullMarkup !== undefined) patch.isFullMarkup = args.isFullMarkup;
+
     if (args.date !== undefined) patch.date = args.date;
+
     if (args.ogImage !== undefined) patch.ogImage = args.ogImage ?? undefined;
+
     if (args.submissionSourceVisibility !== undefined) {
       patch.submissionSourceVisibility = args.submissionSourceVisibility;
     }
 
     if (args.organizationSlugs !== undefined) {
       const ids: Id<"organizations">[] = [];
+
       for (const slug of args.organizationSlugs) {
         const row = await ctx.db
           .query("organizations")
           .withIndex("by_slug", (q) => q.eq("slug", slug))
           .unique();
+
         if (!row) throw invalid(`No such organization: ${slug}`);
         ids.push(row._id);
       }
+
       patch.organizationIds = ids;
       // `save_model`: organizations drive is_organization_private.
       patch.isOrganizationPrivate = ids.length > 0;
@@ -462,20 +524,25 @@ export const update = mutation({
     }
 
     if (args.group !== undefined) patch.groupId = await groupIdByName(ctx, args.group, true);
+
     if (args.types !== undefined) patch.typeIds = await typeIdsByName(ctx, args.types, true);
+
     if (args.licenseKey !== undefined) {
       if (args.licenseKey === null) {
         patch.licenseId = undefined;
       } else {
         const licenseKey = args.licenseKey;
+
         const license = await ctx.db
           .query("licenses")
           .withIndex("by_key", (q) => q.eq("key", licenseKey))
           .first();
+
         if (!license) throw invalid(`No such license: ${licenseKey}`);
         patch.licenseId = license._id;
       }
     }
+
     if (args.allowedLanguages !== undefined) {
       patch.allowedLanguageIds = await languageIdsByKey(ctx, args.allowedLanguages);
     }
@@ -486,6 +553,7 @@ export const update = mutation({
     // `save_model` rescores when any of these change.
     const rescoreFields: (keyof Doc<"problems">)[] = ["isPublic", "organizationIds", "points", "partial"];
     const needsRescore = rescoreFields.some((field) => patch[field] !== undefined);
+
     if (needsRescore) await scheduleJob(ctx, "rescore", { problemCode: problem.code }, profile._id);
 
     return { ok: true, rescoreScheduled: needsRescore };
@@ -497,15 +565,20 @@ export const setVisibility = mutation({
   handler: async (ctx, args) => {
     const { profile, viewer } = await requireStaffViewer(ctx);
     const changed: string[] = [];
+
     for (const code of args.codes) {
       const problem = await problemByCode(ctx, code);
+
       if (!problem) continue;
+
       if (!problemIsInEditableSet(toCoreProblem(problem), viewer.core)) continue;
+
       // `make_public` / `make_private` filter to organization-private problems
       // when the viewer cannot change public visibility.
       if (!hasPerm(viewer.core, "judge.change_public_visibility") && !problem.isOrganizationPrivate) {
         continue;
       }
+
       await ctx.db.patch(problem._id, { isPublic: args.isPublic });
       await writeProblemRevision(
         ctx,
@@ -516,6 +589,7 @@ export const setVisibility = mutation({
       await scheduleJob(ctx, "rescore", { problemCode: problem.code }, profile._id);
       changed.push(code);
     }
+
     return { changed };
   },
 });
@@ -532,23 +606,28 @@ export const setOwnership = mutation({
     const { profile, problem } = await requireProblemEditor(ctx, args.code);
     const patch: Partial<Doc<"problems">> = {};
     const warnings: string[] = [];
+
     if (args.authors !== undefined) {
       const resolved = await profileIdsFor(ctx, args.authors);
       patch.authorProfileIds = resolved.ids;
       warnings.push(...resolved.missing);
     }
+
     if (args.curators !== undefined) {
       const resolved = await profileIdsFor(ctx, args.curators);
       patch.curatorProfileIds = resolved.ids;
       warnings.push(...resolved.missing);
     }
+
     if (args.testers !== undefined) {
       const resolved = await profileIdsFor(ctx, args.testers);
       patch.testerProfileIds = resolved.ids;
       warnings.push(...resolved.missing);
     }
+
     await ctx.db.patch(problem._id, patch);
     await writeProblemRevision(ctx, problem._id, profile._id, args.reason ?? "Changed ownership.");
+
     return { ok: true, warnings };
   },
 });
@@ -560,6 +639,7 @@ export const setBannedUsers = mutation({
     const resolved = await profileIdsFor(ctx, args.usernames);
     await ctx.db.patch(problem._id, { bannedProfileIds: resolved.ids });
     await writeProblemRevision(ctx, problem._id, profile._id, args.reason ?? "Changed banned users.");
+
     return { ok: true, warnings: resolved.missing };
   },
 });
@@ -582,12 +662,14 @@ export const setLanguageLimits = mutation({
   },
   handler: async (ctx, args) => {
     const { profile, problem } = await requireProblemEditor(ctx, args.code);
+
     for (const existing of await ctx.db
       .query("languageLimits")
       .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
       .collect()) {
       await ctx.db.delete(existing._id);
     }
+
     for (const limit of args.limits) {
       const [languageId] = await languageIdsByKey(ctx, [limit.languageKey]);
       await ctx.db.insert("languageLimits", {
@@ -597,7 +679,9 @@ export const setLanguageLimits = mutation({
         memoryLimit: limit.memoryLimit,
       });
     }
+
     await writeProblemRevision(ctx, problem._id, profile._id, args.reason ?? "Changed language limits.");
+
     return { ok: true };
   },
 });
@@ -612,10 +696,12 @@ export const setTranslation = mutation({
   },
   handler: async (ctx, args) => {
     const { profile, problem } = await requireProblemEditor(ctx, args.code);
+
     const existing = await ctx.db
       .query("problemTranslations")
       .withIndex("by_problem_language", (q) => q.eq("problemId", problem._id).eq("language", args.language))
       .unique();
+
     if (existing) {
       await ctx.db.patch(existing._id, { name: args.name, description: args.description });
     } else {
@@ -626,12 +712,14 @@ export const setTranslation = mutation({
         description: args.description,
       });
     }
+
     await writeProblemRevision(
       ctx,
       problem._id,
       profile._id,
       args.reason ?? `Edited the ${args.language} translation.`,
     );
+
     return { ok: true };
   },
 });
@@ -640,10 +728,12 @@ export const deleteTranslation = mutation({
   args: { code: v.string(), language: v.string(), reason: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const { profile, problem } = await requireProblemEditor(ctx, args.code);
+
     const existing = await ctx.db
       .query("problemTranslations")
       .withIndex("by_problem_language", (q) => q.eq("problemId", problem._id).eq("language", args.language))
       .unique();
+
     if (existing) await ctx.db.delete(existing._id);
     await writeProblemRevision(
       ctx,
@@ -651,6 +741,7 @@ export const deleteTranslation = mutation({
       profile._id,
       args.reason ?? `Removed the ${args.language} translation.`,
     );
+
     return { ok: true };
   },
 });
@@ -664,12 +755,15 @@ export const addClarification = mutation({
   },
   handler: async (ctx, args) => {
     const { profile, problem } = await requireProblemEditor(ctx, args.code);
+
     const id = await ctx.db.insert("problemClarifications", {
       problemId: problem._id,
       description: args.description,
       date: args.date ?? Date.now(),
     });
+
     await writeProblemRevision(ctx, problem._id, profile._id, args.reason ?? "Added a clarification.");
+
     return { id };
   },
 });
@@ -683,9 +777,11 @@ export const deleteClarification = mutation({
   handler: async (ctx, args) => {
     const { profile, problem } = await requireProblemEditor(ctx, args.code);
     const existing = await ctx.db.get(args.clarificationId);
+
     if (!existing || existing.problemId !== problem._id) throw notFound("Clarification");
     await ctx.db.delete(args.clarificationId);
     await writeProblemRevision(ctx, problem._id, profile._id, args.reason ?? "Removed a clarification.");
+
     return { ok: true };
   },
 });
@@ -706,8 +802,11 @@ export const setEditorial = mutation({
 
     if (existing) {
       const patch: Partial<Doc<"solutions">> = { content: args.content };
+
       if (args.isPublic !== undefined) patch.isPublic = args.isPublic;
+
       if (args.publishOn !== undefined) patch.publishOn = args.publishOn;
+
       if (authors) patch.authorProfileIds = authors.ids;
       await ctx.db.patch(existing._id, patch);
     } else {
@@ -719,7 +818,9 @@ export const setEditorial = mutation({
         content: args.content,
       });
     }
+
     await writeProblemRevision(ctx, problem._id, profile._id, args.reason ?? "Edited the editorial.");
+
     return { ok: true, warnings: authors?.missing ?? [] };
   },
 });
@@ -729,8 +830,10 @@ export const deleteEditorial = mutation({
   handler: async (ctx, args) => {
     const { profile, problem } = await requireProblemEditor(ctx, args.code);
     const existing = await solutionFor(ctx, problem._id);
+
     if (existing) await ctx.db.delete(existing._id);
     await writeProblemRevision(ctx, problem._id, profile._id, args.reason ?? "Removed the editorial.");
+
     return { ok: true };
   },
 });
@@ -760,7 +863,9 @@ async function scheduleJob(
     createdByProfileId,
     createdAt: Date.now(),
   });
+
   await ctx.scheduler.runAfter(0, jobsRun, { jobId });
+
   return jobId;
 }
 
@@ -776,13 +881,16 @@ export const rejudgeAll = mutation({
   },
   handler: async (ctx, args) => {
     const { profile, viewer, problem } = await requireProblemEditor(ctx, args.code);
+
     // `ManageProblemSubmissionMixin`: Problem.is_subs_manageable_by.
     if (!hasPerm(viewer.core, "judge.rejudge_submission")) {
       throw forbidden("Missing permission judge.rejudge_submission.");
     }
+
     if (!hasPerm(viewer.core, "judge.rejudge_submission_lot")) {
       throw forbidden("Missing permission judge.rejudge_submission_lot.");
     }
+
     const jobId = await scheduleJob(
       ctx,
       "rejudge",
@@ -795,12 +903,14 @@ export const rejudgeAll = mutation({
       },
       profile._id,
     );
+
     await writeProblemRevision(
       ctx,
       problem._id,
       profile._id,
       args.reason ?? "Scheduled a rejudge of every submission.",
     );
+
     return { jobId };
   },
 });
@@ -810,9 +920,11 @@ export const rescoreAll = mutation({
   args: { code: v.string(), reason: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const { profile, viewer, problem } = await requireProblemEditor(ctx, args.code);
+
     if (!hasPerm(viewer.core, "judge.rejudge_submission")) {
       throw forbidden("Missing permission judge.rejudge_submission.");
     }
+
     const jobId = await scheduleJob(ctx, "rescore", { problemCode: problem.code }, profile._id);
     await writeProblemRevision(
       ctx,
@@ -820,6 +932,7 @@ export const rescoreAll = mutation({
       profile._id,
       args.reason ?? "Scheduled a rescore of every submission.",
     );
+
     return { jobId };
   },
 });
@@ -837,30 +950,40 @@ export const rejudgePreview = query({
   },
   handler: async (ctx, args) => {
     const { viewer, problem } = await requireProblemEditor(ctx, args.code);
+
     if (!hasPerm(viewer.core, "judge.rejudge_submission")) {
       throw forbidden("Missing permission judge.rejudge_submission.");
     }
+
     const languageIds = new Set<string>();
+
     for (const key of args.languages ?? []) {
       const row = await ctx.db
         .query("languages")
         .withIndex("by_key", (q) => q.eq("key", key))
         .first();
+
       if (row) languageIds.add(row._id);
     }
+
     const results = new Set(args.results ?? []);
+
     const submissions = await ctx.db
       .query("submissions")
       .withIndex("by_problem_date", (q) => q.eq("problemId", problem._id))
       .take(20_000);
 
     let count = 0;
+
     for (const submission of submissions) {
       if (languageIds.size > 0 && !languageIds.has(submission.languageId)) continue;
+
       if (results.size > 0 && !(submission.result && results.has(submission.result))) continue;
+
       if (!args.archiveLocked && submission.lockedAfter !== undefined) continue;
       count += 1;
     }
+
     return { count, total: submissions.length };
   },
 });
@@ -874,6 +997,7 @@ export const revisions = query({
   handler: async (ctx, args) => {
     const { problem } = await requireProblemEditor(ctx, args.code);
     const limit = Math.max(1, Math.min(Math.floor(args.limit ?? 50), 200));
+
     const rows = await ctx.db
       .query("revisions")
       .withIndex("by_entity", (q) => q.eq("entityType", "problem").eq("entityId", problem._id as string))
@@ -881,6 +1005,7 @@ export const revisions = query({
       .take(limit);
 
     const out = [];
+
     for (const row of rows) {
       const author = row.authorProfileId ? await ctx.db.get(row.authorProfileId) : null;
       out.push({
@@ -893,6 +1018,7 @@ export const revisions = query({
         snapshot: row.snapshot,
       });
     }
+
     return { problemCode: problem.code, revisions: out };
   },
 });
@@ -907,12 +1033,16 @@ export const editable = query({
 
     const rows = (await ctx.db.query("problems").take(20_000)).filter((row) => {
       if (!problemIsInEditableSet(toCoreProblem(row), viewer.core)) return false;
+
       if (!search) return true;
+
       return row.code.includes(search) || row.name.toLowerCase().includes(search);
     });
+
     rows.sort((a, b) => a.code.localeCompare(b.code));
 
     const out = [];
+
     for (const row of rows.slice(0, limit)) {
       const group = await ctx.db.get(row.groupId);
       out.push({
@@ -929,6 +1059,7 @@ export const editable = query({
         acRate: row.acRate,
       });
     }
+
     return { items: out, total: rows.length };
   },
 });
@@ -938,18 +1069,24 @@ export const contestUsage = query({
   args: { code: v.string() },
   handler: async (ctx, { code }) => {
     const { problem } = await requireProblemEditor(ctx, code);
+
     const links = await ctx.db
       .query("contestProblems")
       .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
       .collect();
+
     const out = [];
+
     for (const link of links) {
       const contest = await ctx.db.get(link.contestId);
+
       if (!contest) continue;
+
       const siblings = await ctx.db
         .query("contestProblems")
         .withIndex("by_contest_order", (q) => q.eq("contestId", contest._id))
         .collect();
+
       siblings.sort((a, b) => a.order - b.order);
       const index = siblings.findIndex((row) => row._id === link._id);
       out.push({
@@ -960,7 +1097,9 @@ export const contestUsage = query({
         startTime: contest.startTime,
       });
     }
+
     out.sort((a, b) => b.startTime - a.startTime);
+
     return out;
   },
 });

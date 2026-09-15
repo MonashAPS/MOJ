@@ -23,8 +23,10 @@ export async function GET(request: Request): Promise<Response> {
       language: listFilter(url, "language"),
       result: listFilter(url, "result"),
     };
+
     return handleApiRequest(request, async (options) => {
       const { used_basic_filters: _used, ...data } = await fetchQuery(api.apiV2.submissions, args, options);
+
       return data;
     });
   });

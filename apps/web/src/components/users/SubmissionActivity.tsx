@@ -8,6 +8,7 @@ import { type SyntheticEvent, useMemo, useState } from "react";
 /** The grid's rows and columns are named in the catalogue, so the keys rather
  *  than the names are what the layout is indexed by. */
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
+
 const MONTHS = [
   "january",
   "february",
@@ -22,17 +23,23 @@ const MONTHS = [
   "november",
   "december",
 ] as const;
+
 const LEVELS = 5;
+
 /** The heat ramp's steps, `--heat-0` to `--heat-4`. */
 const HEAT_STEPS = [0, 1, 2, 3, 4];
 
 /** GitHub's proportions: an 11px square on a 13px pitch, so a year is 53 columns
  *  wide however the panel around it is sized. */
 const CELL = 11;
+
 const GAP = 2;
+
 const LABEL_WIDTH = 28;
+
 /** Fixed both ways, so a cell is a square whatever the column it lands in. */
 const CELL_BOX = { width: CELL, height: CELL, aspectRatio: "1" } as const;
+
 /** A month label needs two columns of room before the next one starts. */
 const MONTH_LABEL_COLUMNS = 2;
 
@@ -42,6 +49,7 @@ function isoDate(date: Date) {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
   const day = `${date.getDate()}`.padStart(2, "0");
+
   return `${year}-${month}-${day}`;
 }
 
@@ -52,6 +60,7 @@ const LABEL_DATE = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "sh
 function buildDays(year: number, currentYear: number, counts: Record<string, number>): Day[] {
   let start: Date;
   let end: Date;
+
   if (year === currentYear) {
     end = new Date();
     start = new Date(end.getFullYear() - 1, end.getMonth(), end.getDate() + 1);
@@ -61,6 +70,7 @@ function buildDays(year: number, currentYear: number, counts: Record<string, num
   }
 
   const days: Day[] = [];
+
   for (const cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
     const key = isoDate(cursor);
     days.push({
@@ -70,6 +80,7 @@ function buildDays(year: number, currentYear: number, counts: Record<string, num
       activity: counts[key] ?? 0,
     });
   }
+
   return days;
 }
 
@@ -79,15 +90,19 @@ function buildWeeks(days: Day[]): (Day | null)[][] {
   const weeks: (Day | null)[][] = [];
   let column: (Day | null)[] = new Array(7).fill(null);
   let filled = false;
+
   for (const day of days) {
     if (day.weekday === 0 && filled) {
       weeks.push(column);
       column = new Array(7).fill(null);
     }
+
     column[day.weekday] = day;
     filled = true;
   }
+
   if (filled) weeks.push(column);
+
   return weeks;
 }
 
@@ -97,13 +112,17 @@ function buildWeeks(days: Day[]): (Day | null)[][] {
 function buildMonths(weeks: (Day | null)[][], names: string[]) {
   const labels: { key: string; column: number; label: string }[] = [];
   let previousMonth = -1;
+
   for (const [column, week] of weeks.entries()) {
     const day = week.find((slot): slot is Day => slot !== null);
+
     if (!day) continue;
     const month = day.date.getMonth();
+
     if (month === previousMonth) continue;
     previousMonth = month;
     const last = labels[labels.length - 1];
+
     if (last && column - last.column < MONTH_LABEL_COLUMNS) continue;
     labels.push({
       key: `${day.date.getFullYear()}-${month}`,
@@ -114,15 +133,19 @@ function buildMonths(weeks: (Day | null)[][], names: string[]) {
 
   const spans: { key: string; span: number; label: string }[] = [];
   let cursor = 0;
+
   for (const [index, label] of labels.entries()) {
     if (label.column > cursor) {
       spans.push({ key: `lead-${cursor}`, span: label.column - cursor, label: "" });
     }
+
     const next = labels[index + 1]?.column ?? weeks.length;
     spans.push({ key: label.key, span: next - label.column, label: label.label });
     cursor = next;
   }
+
   if (cursor < weeks.length) spans.push({ key: "tail", span: weeks.length - cursor, label: "" });
+
   return spans;
 }
 
@@ -162,11 +185,15 @@ export function SubmissionActivity({
 
   function onCellOver(event: SyntheticEvent<HTMLTableSectionElement>) {
     const cell = (event.target as HTMLElement).closest<HTMLElement>("[data-activity-label]");
+
     if (!cell) {
       setHint(null);
+
       return;
     }
+
     const container = event.currentTarget.closest<HTMLElement>("[data-activity-root]");
+
     if (!container) return;
     const cellBox = cell.getBoundingClientRect();
     const rootBox = container.getBoundingClientRect();
@@ -260,6 +287,7 @@ export function SubmissionActivity({
                 </th>
                 {weeks.map((week, column) => {
                   const day = week[weekday];
+
                   if (!day) {
                     return (
                       <td
@@ -271,7 +299,9 @@ export function SubmissionActivity({
                       </td>
                     );
                   }
+
                   const level = Math.ceil((day.activity / max) * (LEVELS - 1));
+
                   return (
                     <td
                       key={day.key}

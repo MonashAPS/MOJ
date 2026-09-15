@@ -62,7 +62,9 @@ export function Chart({
      them would tear the chart down and rebuild it on every render. */
   useEffect(() => {
     const canvas = canvasRef.current;
+
     if (!canvas) return;
+
     const chart = new ChartJS(canvas, {
       type,
       data: { labels, datasets },
@@ -73,6 +75,7 @@ export function Chart({
         ...options,
       },
     });
+
     return () => chart.destroy();
   }, [key, type]);
 

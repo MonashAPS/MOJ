@@ -26,8 +26,10 @@ export function contestListTabs({
       icon: <CalendarDays aria-hidden />,
     },
   ];
+
   if (canEdit) {
     tabs.push({ key: "admin", label: t("admin"), href: "/admin/contests/", icon: <Pencil aria-hidden /> });
   }
+
   return tabs;
 }

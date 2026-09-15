@@ -18,16 +18,22 @@ import type { ProblemRow, Viewer } from "./types";
 import { isGraded, isLocked, longStatus, resultClass, shortStatus } from "./verdicts";
 
 const users = commonUsers();
+
 users.staff_submission_view_all = createUser("staff_submission_view_all", {
   isStaff: true,
   permissions: ["view_all_submission"],
 });
 
 const basicProblem = createProblem("basic");
+
 const _fullAcProblem = createProblem("full_ac");
+
 const _lockedProblem = createProblem("locked");
+
 const _futureLockedProblem = createProblem("future_locked");
+
 const ieProblem = createProblem("ie", { isPublic: true });
+
 const queuedProblem = createProblem("queued");
 
 const basicSubmission = {
@@ -175,6 +181,7 @@ describe("SubmissionTestCase", () => {
       problem: { ...publicProblem, submissionSourceVisibility: "S" as const },
       hasSolvedProblem: true,
     };
+
     expect(canSeeSubmissionDetail(submission, users.normal, solvedContext)).toBe(true);
     expect(
       canSeeSubmissionDetail(submission, users.normal, { ...solvedContext, hasSolvedProblem: false }),
@@ -189,6 +196,7 @@ describe("SubmissionTestCase", () => {
       },
       hasSolvedProblem: true,
     };
+
     expect(canSeeSubmissionDetail(submission, users.normal, privateSolved)).toBe(true);
 
     // O: only testers see others' submissions.
@@ -230,12 +238,14 @@ describe("SubmissionTestCase", () => {
       testerProfileIds: ["normal"],
       testerSeeSubmissions: true,
     });
+
     expect(canSeeSubmissionDetail(submission, users.normal, { problem, contest: testerSees })).toBe(true);
 
     const testerBlind = createContest("c", {
       testerProfileIds: ["normal"],
       testerSeeSubmissions: false,
     });
+
     expect(canSeeSubmissionDetail(submission, users.normal, { problem, contest: testerBlind })).toBe(false);
   });
 });

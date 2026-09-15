@@ -107,6 +107,7 @@ function CalendarEntry({
   const t = useTranslations("contests.calendar");
   const Icon = kind === "start" ? StepForward : kind === "end" ? StepBack : Play;
   const label = kind === "start" ? t("entryStart") : kind === "end" ? t("entryEnd") : t("entryOneday");
+
   return (
     <li className="flex items-start gap-1.5 text-sm leading-tight">
       <Icon size={12} className="mt-0.5 shrink-0 text-muted-foreground" aria-hidden />

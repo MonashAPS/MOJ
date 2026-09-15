@@ -105,6 +105,7 @@ function DetailsForm({ organization }: { organization: OrganizationRow }) {
 
   async function save() {
     setBusy(true);
+
     try {
       await update({
         slug: organization.slug,
@@ -191,6 +192,7 @@ const EMPTY_CLASS: ClassDraft = {
 function Classes({ organization }: { organization: OrganizationRow }) {
   const t = useTranslations("admin.organizations.classes");
   const actions = useTranslations("common.actions");
+
   const rows = useQuery(api.classes.listForOrganization, {
     organizationSlug: organization.slug,
     activeOnly: false,
@@ -210,6 +212,7 @@ function Classes({ organization }: { organization: OrganizationRow }) {
     if (!draft) return;
     setBusy(true);
     setError(null);
+
     try {
       if (draft.originalSlug) {
         await update({
@@ -222,6 +225,7 @@ function Classes({ organization }: { organization: OrganizationRow }) {
           accessCode: draft.accessCode,
           adminUsernames: parseUsernames(draft.adminUsernames),
         });
+
         if (draft.memberUsernames.trim() !== "") {
           await setMembers({
             organizationSlug: organization.slug,
@@ -240,6 +244,7 @@ function Classes({ organization }: { organization: OrganizationRow }) {
           adminUsernames: parseUsernames(draft.adminUsernames),
         });
       }
+
       setMessage({ tone: "ok", text: t("saved", { name: draft.name }) });
       setDraft(null);
     } catch (caught) {

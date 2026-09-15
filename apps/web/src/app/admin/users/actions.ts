@@ -40,6 +40,7 @@ export async function searchAccountsAction(term: string): Promise<ActionResult<A
   try {
     await requirePermission(CHANGE_PROFILE);
     const needle = term.trim();
+
     if (needle.length < 2) return { ok: true, data: [] };
 
     const rows = await db
@@ -81,6 +82,7 @@ export async function accountForUserAction(
 ): Promise<ActionResult<{ account: AccountRow | null; passkeys: PasskeyRow[]; sessions: number }>> {
   try {
     await requirePermission(CHANGE_PROFILE);
+
     const [row] = await db
       .select({
         userId: schema.user.id,
@@ -99,6 +101,7 @@ export async function accountForUserAction(
     if (!row) return { ok: true, data: { account: null, passkeys: [], sessions: 0 } };
 
     const passkeys = await db.select().from(schema.passkey).where(eq(schema.passkey.userId, userId));
+
     const sessions = await db
       .select({ id: schema.session.id })
       .from(schema.session)
@@ -155,7 +158,9 @@ export async function setAccountActiveAction(
         headers: requestHeaders,
       });
     }
+
     revalidatePath(`/admin/users/${username}`);
+
     return { ok: true, data: { isActive: result.isActive } };
   } catch (error) {
     return failed(error);
@@ -166,12 +171,15 @@ export async function setAccountActiveAction(
 export async function impersonateAction(userId: string): Promise<ActionResult<undefined>> {
   try {
     await requireSuperuser();
+
     const { headers: responseHeaders } = await auth.api.impersonateUser({
       body: { userId },
       headers: await authHeaders(),
       returnHeaders: true,
     });
+
     await applySetCookies(responseHeaders);
+
     return { ok: true, data: undefined };
   } catch (error) {
     return failed(error);
@@ -184,7 +192,9 @@ export async function stopImpersonatingAction(): Promise<ActionResult<undefined>
       headers: await authHeaders(),
       returnHeaders: true,
     });
+
     await applySetCookies(responseHeaders);
+
     return { ok: true, data: undefined };
   } catch (error) {
     return failed(error);
@@ -202,6 +212,7 @@ export async function resetTwoFactorAction(userId: string): Promise<ActionResult
     await db.delete(schema.twoFactor).where(eq(schema.twoFactor.userId, userId));
     await db.update(schema.user).set({ twoFactorEnabled: false }).where(eq(schema.user.id, userId));
     await auth.api.revokeUserSessions({ body: { userId }, headers: await authHeaders() });
+
     return { ok: true, data: undefined };
   } catch (error) {
     return failed(error);
@@ -217,6 +228,7 @@ export async function removePasskeyAction(
     await db
       .delete(schema.passkey)
       .where(and(eq(schema.passkey.id, passkeyId), eq(schema.passkey.userId, userId)));
+
     return { ok: true, data: undefined };
   } catch (error) {
     return failed(error);
@@ -227,6 +239,7 @@ export async function revokeSessionsAction(userId: string): Promise<ActionResult
   try {
     await requirePermission(CHANGE_PROFILE);
     await auth.api.revokeUserSessions({ body: { userId }, headers: await authHeaders() });
+
     return { ok: true, data: undefined };
   } catch (error) {
     return failed(error);

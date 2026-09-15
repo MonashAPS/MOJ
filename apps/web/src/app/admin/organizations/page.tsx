@@ -5,6 +5,7 @@ import { OrganizationsTable } from "./OrganizationsTable";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.organizations.list");
+
   return { title: t("title") };
 }
 

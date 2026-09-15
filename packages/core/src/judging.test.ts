@@ -63,6 +63,7 @@ describe("computeGradingEnd", () => {
       ],
       problem,
     );
+
     expect(result.status).toBe("D");
     expect(result.result).toBe("WA");
     expect(result.time).toBeCloseTo(0.75, 10);
@@ -81,6 +82,7 @@ describe("computeGradingEnd", () => {
       ],
       problem,
     );
+
     expect(result.casePoints).toBe(5);
     expect(result.caseTotal).toBe(15);
     expect(result.result).toBe("WA");
@@ -94,17 +96,20 @@ describe("computeGradingEnd", () => {
       ],
       problem,
     );
+
     expect(result.casePoints).toBe(20);
     expect(result.caseTotal).toBe(20);
   });
 
   it("orders the result by the worst status", () => {
     expect(STATUS_CODES).toEqual(["SC", "AC", "WA", "MLE", "TLE", "IR", "RTE", "OLE"]);
+
     const worst = (statuses: SubmissionTestCaseRow["status"][]) =>
       computeGradingEnd(
         statuses.map((status, index) => testCase({ case: index, status })),
         problem,
       ).result;
+
     expect(worst(["AC", "AC"])).toBe("AC");
     expect(worst(["SC", "SC"])).toBe("SC");
     expect(worst(["AC", "SC"])).toBe("AC");
@@ -142,6 +147,7 @@ describe("computeGradingEnd", () => {
       ],
       { points: 7, partial: true },
     );
+
     expect(result.casePoints).toBe(1);
     expect(result.caseTotal).toBe(3);
     expect(result.points).toBe(2.333);
@@ -271,12 +277,14 @@ describe("claiming", () => {
 
   it("orders the queue by priority then date", () => {
     const j = judge("j");
+
     const queue = [
       queued("late", { priority: DEFAULT_PRIORITY, date: 3000 }),
       queued("rejudge", { priority: REJUDGE_PRIORITY, date: 1 }),
       queued("contest", { priority: CONTEST_SUBMISSION_PRIORITY, date: 2000 }),
       queued("early", { priority: DEFAULT_PRIORITY, date: 2000 }),
     ];
+
     expect([...queue].sort(compareQueued).map((row) => row.id)).toEqual([
       "contest",
       "early",

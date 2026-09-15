@@ -46,7 +46,9 @@ export type ContestTagPayload = {
 /** `ContestTag.text_color` (judge/models/contest.py): luma over 0.5 goes black. */
 export function tagTextColor(color: string): string {
   const hex = color.replace("#", "");
+
   if (hex.length !== 3 && hex.length !== 6) return "#000000";
+
   const full =
     hex.length === 3
       ? hex
@@ -54,10 +56,13 @@ export function tagTextColor(color: string): string {
           .map((char) => char + char)
           .join("")
       : hex;
+
   const red = Number.parseInt(full.slice(0, 2), 16) / 255;
   const green = Number.parseInt(full.slice(2, 4), 16) / 255;
   const blue = Number.parseInt(full.slice(4, 6), 16) / 255;
+
   if (!Number.isFinite(red + green + blue)) return "#000000";
+
   return 0.299 * red + 0.587 * green + 0.114 * blue > 0.5 ? "#000000" : "#ffffff";
 }
 
@@ -69,7 +74,9 @@ export const tag = query({
       .query("contestTags")
       .withIndex("by_name", (q) => q.eq("name", name))
       .unique();
+
     if (!row) return null;
+
     return {
       _id: row._id,
       name: row.name,
@@ -86,11 +93,14 @@ export const tag = query({
 
 async function accessibleContest(ctx: QueryCtx, key: string): Promise<Doc<"contests"> | null> {
   const contest = await contestByKey(ctx, key);
+
   if (!contest) return null;
   const profile = await optionalViewer(ctx);
   const viewer = await toViewerRowInContest(ctx, profile);
   const current = profile?.currentParticipationId ? await ctx.db.get(profile.currentParticipationId) : null;
+
   if (current?.contestId === contest._id) return contest;
+
   return contestAccessCheck(toContestRow(contest), viewer).kind === "ok" ? contest : null;
 }
 
@@ -119,6 +129,7 @@ export const frozenCells = query({
   args: { key: v.string() },
   handler: async (ctx, { key }): Promise<FrozenCells> => {
     const contest = await accessibleContest(ctx, key);
+
     if (!contest) return null;
 
     const now = Date.now();
@@ -127,16 +138,20 @@ export const frozenCells = query({
     const contestRow = toContestRow(contest);
 
     const cutoff = freezeTime(contestRow);
+
     if (cutoff === null) return null;
+
     if (!isFrozenFor(contestRow, viewer, { now, revealed: contestIsRevealed(contest) })) return null;
 
     const participations = await ctx.db
       .query("contestParticipations")
       .withIndex("by_contest_virtual_score", (q) => q.eq("contestId", contest._id))
       .collect();
+
     const live = participations.filter((row) => row.virtual === PARTICIPATION_LIVE);
 
     const liveOfViewer = (profile ? live.find((row) => row.profileId === profile._id) : null) ?? null;
+
     if (
       !contestCanSeeFullScoreboard(contestRow, viewer, {
         now,
@@ -151,14 +166,17 @@ export const frozenCells = query({
     const known = new Set<string>(contestProblems.map((row) => row._id));
 
     const counts = new Map<string, number>();
+
     for (const participation of live) {
       const submissions = await ctx.db
         .query("submissions")
         .withIndex("by_participation", (q) => q.eq("participationId", participation._id))
         .collect();
+
       for (const submission of submissions) {
         if (submission.date < cutoff) continue;
         const contestProblemId = submission.contestProblemId;
+
         if (!contestProblemId || !known.has(contestProblemId)) continue;
         const cellKey = `${participation._id}|${contestProblemId}`;
         counts.set(cellKey, (counts.get(cellKey) ?? 0) + 1);
@@ -169,6 +187,7 @@ export const frozenCells = query({
       frozenAt: cutoff,
       cells: [...counts.entries()].map(([cellKey, pending]) => {
         const [participationId, contestProblemId] = cellKey.split("|");
+
         return {
           participationId: participationId as Id<"contestParticipations">,
           contestProblemId: contestProblemId as Id<"contestProblems">,
@@ -189,9 +208,11 @@ export const deleteMossResults = mutation({
   handler: async (ctx, { key }): Promise<{ deleted: number }> => {
     const profile = await requireViewer(ctx);
     const contest = await contestByKey(ctx, key);
+
     if (!contest) throw notFound(`Contest "${key}"`);
 
     const viewer = await toViewerRowInContest(ctx, profile);
+
     if (!hasPerm(viewer, "judge.moss_contest") || !contestIsEditableBy(toContestRow(contest), viewer)) {
       throw forbidden();
     }
@@ -200,7 +221,9 @@ export const deleteMossResults = mutation({
       .query("contestMoss")
       .withIndex("by_contest", (q) => q.eq("contestId", contest._id))
       .collect();
+
     for (const row of rows) await ctx.db.delete(row._id);
+
     return { deleted: rows.length };
   },
 });

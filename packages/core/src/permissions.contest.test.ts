@@ -60,6 +60,7 @@ const METHODS = [
 ] as const;
 
 type Method = (typeof METHODS)[number];
+
 type Matrix = Record<string, Partial<Record<Method, boolean>>>;
 
 function buildUsers(): Record<string, Viewer> {
@@ -90,6 +91,7 @@ function buildUsers(): Record<string, Viewer> {
     currentParticipationId: "hidden_scoreboard:normal:0",
     currentContestId: "hidden_scoreboard",
   });
+
   return users;
 }
 
@@ -234,12 +236,14 @@ const contests = {
 } satisfies Record<string, ContestRow>;
 
 const participations: ContestParticipationRow[] = [];
+
 for (const key of ["contest_scoreboard", "particip_scoreboard", "visible_scoreboard"] as const) {
   participations.push(
     createParticipation(key, "normal_during_window", { realStart: NOW - HOUR }),
     createParticipation(key, "normal_after_window", { realStart: NOW - 3 * DAY }),
   );
 }
+
 participations.push(
   createParticipation("particip_scoreboard", "normal", { realStart: NOW - 3 * DAY }),
   createParticipation("particip_scoreboard", "normal", {
@@ -272,6 +276,7 @@ function checkMatrix(contest: ContestRow, matrix: Matrix): void {
   for (const [username, methods] of Object.entries(matrix)) {
     const viewer = users[username] as Viewer;
     const ctx = context(contest, viewer);
+
     for (const [method, expected] of Object.entries(methods) as [Method, boolean][]) {
       const actual = {
         can_see_own_scoreboard: () => contestCanSeeOwnScoreboard(contest, viewer, ctx),
@@ -283,6 +288,7 @@ function checkMatrix(contest: ContestRow, matrix: Matrix): void {
         is_in_contest: () => contestIsInContest(contest, viewer),
         has_completed_contest: () => contestHasCompletedContest(contest, viewer, ctx),
       }[method]();
+
       expect(actual, `${method}/${username}/${contest.key}`).toBe(expected);
     }
   }
@@ -303,6 +309,7 @@ describe("ContestTestCase", () => {
   it("test_hidden_scoreboard_contest", () => {
     const contest = contests.hidden_scoreboard;
     expect(contestShowScoreboard(contest, NOW)).toBe(false);
+
     for (let i = 0; i < 3; i++) {
       expect(getContestLabelForProblem(contest, i)).toBe(String(i));
     }
@@ -613,6 +620,7 @@ describe("ContestTestCase", () => {
         "normal_open_org",
       ],
     };
+
     expect(contestAccessCheck(withUser, normalOpenOrg)).toEqual({
       kind: "privateContest",
       organizationIds: [],
@@ -862,15 +870,18 @@ describe("ContestTestCase", () => {
 
   it("test_contests_list: is_accessible_by and get_visible_contests agree", () => {
     const all = Object.values(contests);
+
     for (const [username, viewer] of Object.entries(users)) {
       const accessible = all
         .filter((contest) => contestIsAccessibleBy(contest, viewer))
         .map((contest) => contest.key)
         .sort();
+
       const visible = all
         .filter((contest) => contestIsVisibleTo(contest, viewer))
         .map((contest) => contest.key)
         .sort();
+
       expect(visible, `visible contests for ${username}`).toEqual(accessible);
     }
   });
@@ -887,9 +898,11 @@ describe("ContestTestCase", () => {
 
   it("test_spectating_participation", () => {
     const contest = contests.hidden_scoreboard;
+
     const participation = createParticipation("hidden_scoreboard", "superuser", {
       virtual: PARTICIPATION_SPECTATE,
     });
+
     expect(participationIsLive(participation)).toBe(false);
     expect(participationIsSpectating(participation)).toBe(true);
     expect(participationStart(participation, contest)).toBe(contest.startTime);

@@ -25,6 +25,7 @@ export const mine = query({
   args: {},
   handler: async (ctx): Promise<ApiTokenInfo> => {
     const profile = await requireViewer(ctx);
+
     return {
       hasLegacyToken: !!profile.legacyApiTokenHash,
       legacyTokenHint: profile.legacyApiTokenHash ? `${profile.legacyApiTokenHash.slice(0, 8)}...` : null,
@@ -51,9 +52,13 @@ export const verifyLegacy = query({
       .query("profiles")
       .withIndex("by_legacyUserId", (q) => q.eq("legacyUserId", legacyUserId))
       .unique();
+
     if (!profile?.legacyApiTokenHash) return null;
+
     if (profile.isActive === false) return null;
+
     if (!constantTimeEquals(profile.legacyApiTokenHash, digest)) return null;
+
     return {
       userId: profile.userId,
       username: profile.username,
@@ -65,7 +70,9 @@ export const verifyLegacy = query({
 function constantTimeEquals(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let difference = 0;
+
   for (let i = 0; i < a.length; i++) difference |= a.charCodeAt(i) ^ b.charCodeAt(i);
+
   return difference === 0;
 }
 
@@ -75,6 +82,7 @@ export const revokeLegacy = mutation({
   handler: async (ctx) => {
     const profile = await requireViewer(ctx);
     await ctx.db.patch(profile._id, { legacyApiTokenHash: undefined });
+
     return true;
   },
 });

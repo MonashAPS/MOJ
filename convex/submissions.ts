@@ -43,8 +43,10 @@ import { hasSolvedProblem, toCoreProblem } from "./problems";
 
 /** `settings.DMOJ_SUBMISSION_LIMIT`: submissions in flight at once. */
 export const SUBMISSION_LIMIT = 2;
+
 /** `ProblemSubmitForm.source`: `CharField(max_length=65536)`. */
 export const MAX_SOURCE_LENGTH = 65536;
+
 /**
  * How many rows a filtered page walks before giving up on filling itself.
  *
@@ -91,17 +93,21 @@ export async function coreProfile(
     .query("organizationMemberships")
     .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
     .collect();
+
   const organizationIds = memberships.map((row) => row.organizationId as string);
 
   const adminOfOrganizationIds: string[] = [];
+
   for (const membership of memberships) {
     const organization = await ctx.db.get(membership.organizationId);
+
     if (organization?.adminProfileIds.includes(profile._id)) {
       adminOfOrganizationIds.push(organization._id);
     }
   }
 
   let currentContestId: string | null = null;
+
   if (profile.currentParticipationId) {
     const participation = await ctx.db.get(profile.currentParticipationId);
     currentContestId = participation?.contestId ?? null;
@@ -144,15 +150,19 @@ export interface ViewerContext {
 export async function viewerContext(ctx: QueryCtx): Promise<ViewerContext> {
   const profile = await optionalViewer(ctx);
   const viewer = await coreProfile(ctx, profile);
+
   if (!profile?.currentParticipationId) {
     return { profile, viewer, participation: null, contest: null, inContest: false };
   }
+
   const participation = await ctx.db.get(profile.currentParticipationId);
   const contest = participation ? await ctx.db.get(participation.contestId) : null;
+
   const live =
     participation !== null &&
     contest !== null &&
     (participationIsLive(coreParticipation(participation)) || participation.virtual > 0);
+
   return { profile, viewer, participation, contest, inContest: live && contest !== null };
 }
 
@@ -163,19 +173,26 @@ export async function viewerContext(ctx: QueryCtx): Promise<ViewerContext> {
  */
 function contestSubmissionsVisible(contest: Doc<"contests">, viewer: CoreViewer, now: number): boolean {
   if (contest.scoreboardVisibility === "V") return true;
+
   if (
     contest.endTime < now &&
     (contest.scoreboardVisibility === "P" || contest.scoreboardVisibility === "C")
   ) {
     return true;
   }
+
   if (!viewer) return false;
+
   if (contest.authorProfileIds.includes(viewer.id as Id<"profiles">)) return true;
+
   if (contest.curatorProfileIds.includes(viewer.id as Id<"profiles">)) return true;
+
   if (contest.viewContestSubmissionsProfileIds.includes(viewer.id as Id<"profiles">)) return true;
+
   if (contest.testerSeeSubmissions && contest.testerProfileIds.includes(viewer.id as Id<"profiles">)) {
     return true;
   }
+
   return false;
 }
 
@@ -235,6 +252,7 @@ async function cachedGet<T extends "problems" | "languages" | "profiles" | "cont
   id: Id<T>,
 ): Promise<Doc<T> | null> {
   if (!cache.has(id)) cache.set(id, await ctx.db.get(id));
+
   return cache.get(id) ?? null;
 }
 
@@ -246,9 +264,11 @@ async function hasSolved(
   problemId: Id<"problems">,
 ): Promise<boolean> {
   const cached = caches.solved.get(problemId);
+
   if (cached !== undefined) return cached;
   const solved = await hasSolvedProblem(ctx, profileId, problemId);
   caches.solved.set(problemId, solved);
+
   return solved;
 }
 
@@ -266,11 +286,13 @@ async function buildRow(
 
   const viewer = viewerCtx.viewer;
   let canSee = false;
+
   if (problem && viewer) {
     const solved =
       viewer.id === submission.profileId
         ? false
         : await hasSolved(ctx, caches, viewer.id as Id<"profiles">, submission.problemId);
+
     canSee = canSeeSubmissionDetail({ profileId: submission.profileId }, viewer, {
       problem: toCoreProblem(problem),
       contest: contest ? toContestRow(contest) : null,
@@ -282,6 +304,7 @@ async function buildRow(
   // `contests.blindDuringFreeze`: a contestant's own verdicts read as pending
   // between the freeze point and the end of the contest.
   let masked = false;
+
   let view = {
     status: submission.status,
     result: (submission.result ?? null) as SubmissionResult | null,
@@ -289,6 +312,7 @@ async function buildRow(
     casePoints: submission.casePoints,
     caseTotal: submission.caseTotal,
   };
+
   if (contest) {
     const blinded = blindDuringFreeze(
       { profileId: submission.profileId as string, date: submission.date, ...view },
@@ -296,6 +320,7 @@ async function buildRow(
       viewer,
       { now },
     );
+
     if ((blinded as { masked?: boolean }).masked) {
       masked = true;
       view = {
@@ -378,12 +403,14 @@ export const list = query({
           .withIndex("by_username", (q) => q.eq("username", args.username as string))
           .unique()
       : null;
+
     const problem = args.problemCode
       ? await ctx.db
           .query("problems")
           .withIndex("by_code", (q) => q.eq("code", args.problemCode as string))
           .unique()
       : null;
+
     const requestedContest = args.contestKey
       ? await ctx.db
           .query("contests")
@@ -403,22 +430,28 @@ export const list = query({
     // unless they can see the full scoreboard.
     const contestFilter = viewerCtx.inContest ? viewerCtx.contest : requestedContest;
     let profileFilter = author;
+
     if (viewerCtx.inContest && viewerCtx.contest && viewerCtx.profile) {
       const full = contestCanSeeFullScoreboard(toContestRow(viewerCtx.contest), viewer, { now });
+
       if (!full) profileFilter = viewerCtx.profile;
     }
 
     const languageIds = new Set<Id<"languages">>();
+
     if (args.languageKeys?.length) {
       for (const key of args.languageKeys) {
         const language = await ctx.db
           .query("languages")
           .withIndex("by_key", (q) => q.eq("key", key))
           .first();
+
         if (language) languageIds.add(language._id);
       }
+
       if (languageIds.size === 0) return { page: [], isDone: true, continueCursor: "" };
     }
+
     const resultFilter = args.results?.length ? new Set(args.results) : null;
 
     const paginationOpts = {
@@ -433,6 +466,7 @@ export const list = query({
       isDone: boolean;
       continueCursor: string;
     };
+
     if (profileFilter && problem) {
       result = await ctx.db
         .query("submissions")
@@ -465,10 +499,14 @@ export const list = query({
 
     const caches = newCaches();
     const page: SubmissionListRow[] = [];
+
     for (const submission of result.page) {
       if (contestFilter && submission.contestId !== contestFilter._id) continue;
+
       if (languageIds.size > 0 && !languageIds.has(submission.languageId)) continue;
+
       if (resultFilter && !resultFilter.has(submission.result ?? "")) continue;
+
       if (!(await isListable(ctx, caches, submission, viewerCtx, now))) continue;
       page.push(await buildRow(ctx, caches, submission, viewerCtx, now));
     }
@@ -498,14 +536,20 @@ async function isListable(
   }
 
   const problem = await cachedGet(ctx, caches.problems, submission.problemId);
+
   if (!problem) return false;
+
   if (!problemIsVisibleTo(toCoreProblem(problem), viewer)) return false;
 
   if (!submission.contestId) return true;
+
   if (viewer && submission.profileId === viewer.id) return true;
+
   if (coreHasPerm(viewer, "judge.see_private_contest")) return true;
   const contest = await cachedGet(ctx, caches.contests, submission.contestId);
+
   if (!contest) return true;
+
   return contestSubmissionsVisible(contest, viewer, now);
 }
 
@@ -518,6 +562,7 @@ export const detail = query({
   handler: async (ctx, args) => {
     const now = Date.now();
     const submission = await resolveSubmission(ctx, args.submissionId);
+
     if (!submission) return null;
 
     const viewerCtx = await viewerContext(ctx);
@@ -561,17 +606,20 @@ export const source = query({
   args: { submissionId: v.union(v.string(), v.number()) },
   handler: async (ctx, args) => {
     const submission = await resolveSubmission(ctx, args.submissionId);
+
     if (!submission) return null;
 
     const viewerCtx = await viewerContext(ctx);
     const caches = newCaches();
     const row = await buildRow(ctx, caches, submission, viewerCtx, Date.now());
+
     if (!row.canSeeDetail) return { canSeeSource: false, source: null, language: row.language };
 
     const stored = await ctx.db
       .query("submissionSources")
       .withIndex("by_submission", (q) => q.eq("submissionId", submission._id))
       .unique();
+
     return { canSeeSource: true, source: stored?.source ?? "", language: row.language };
   },
 });
@@ -585,19 +633,23 @@ export const resubmit = query({
   handler: async (ctx, args) => {
     const viewer = await requireViewer(ctx);
     const submission = await resolveSubmission(ctx, args.submissionId);
+
     if (!submission) return null;
 
     const core = await coreProfile(ctx, viewer);
+
     if (submission.profileId !== viewer._id && !coreHasPerm(core, "judge.resubmit_other")) {
       throw forbidden("You may not resubmit someone else's submission.");
     }
 
     const problem = await ctx.db.get(submission.problemId);
     const language = await ctx.db.get(submission.languageId);
+
     const stored = await ctx.db
       .query("submissionSources")
       .withIndex("by_submission", (q) => q.eq("submissionId", submission._id))
       .unique();
+
     if (!problem || !language) return null;
 
     return {
@@ -620,11 +672,13 @@ export const resultsForProblem = query({
     const scan = Math.max(1, Math.min(args.limit ?? 5000, 8000));
 
     let rows: Doc<"submissions">[];
+
     if (args.problemCode) {
       const problem = await ctx.db
         .query("problems")
         .withIndex("by_code", (q) => q.eq("code", args.problemCode as string))
         .unique();
+
       if (!problem) return { categories: [], total: 0 };
       rows = await ctx.db
         .query("submissions")
@@ -636,11 +690,13 @@ export const resultsForProblem = query({
     }
 
     let total = 0;
+
     for (const row of rows) {
       const key = row.result ?? "";
       counts[key] = (counts[key] ?? 0) + 1;
       total += 1;
     }
+
     const count = (code: string) => counts[code] ?? 0;
 
     return {
@@ -674,19 +730,23 @@ async function contestSubmissionCount(
     .query("submissions")
     .withIndex("by_participation", (q) => q.eq("participationId", participation._id))
     .collect();
+
   return rows.filter((row) => row.contestProblemId === contestProblemId && row.status !== "IE").length;
 }
 
 /** `Submission.objects.filter(user=..., rejudged_date__isnull=True).exclude(status__in=[...])`. */
 async function submissionsInFlight(ctx: QueryCtx, profileId: Id<"profiles">): Promise<number> {
   let count = 0;
+
   for (const status of ["QU", "P", "G"] as const) {
     const rows = await ctx.db
       .query("submissions")
       .withIndex("by_profile_status", (q) => q.eq("profileId", profileId).eq("status", status))
       .take(SUBMISSION_LIMIT + 8);
+
     count += rows.filter((row) => row.rejudgedDate === undefined).length;
   }
+
   return count;
 }
 
@@ -703,6 +763,7 @@ export const submit = mutation({
 
     // `ProblemSubmitForm.source` is a CharField(max_length=65536).
     if (args.source.length === 0) throw invalid("A submission needs some source.");
+
     if (args.source.length > MAX_SOURCE_LENGTH) {
       throw invalid(`Source must be at most ${MAX_SOURCE_LENGTH} characters.`);
     }
@@ -711,25 +772,30 @@ export const submit = mutation({
       .query("problems")
       .withIndex("by_code", (q) => q.eq("code", args.problemCode))
       .unique();
+
     if (!problem) throw notFound("Problem");
 
     const language = await ctx.db
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", args.languageKey))
       .first();
+
     if (!language) throw notFound("Language");
 
     // Contest mode first: a contest problem is accessible even when the problem
     // itself is not, and it decides the priority and the lock.
     const viewerCtx = await viewerContext(ctx);
     let contestProblem: Doc<"contestProblems"> | null = null;
+
     const proctorBlocked =
       viewerCtx.contest !== null && (await proctorBlocksContestProblems(ctx, viewerCtx.contest, profile._id));
+
     if (viewerCtx.inContest && viewerCtx.contest && !proctorBlocked) {
       const contestProblems = await ctx.db
         .query("contestProblems")
         .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
         .collect();
+
       contestProblem = contestProblems.find((row) => row.contestId === viewerCtx.contest?._id) ?? null;
     }
 
@@ -752,15 +818,19 @@ export const submit = mutation({
       if ((await submissionsInFlight(ctx, profile._id)) >= SUBMISSION_LIMIT) {
         throw mojError("RATE_LIMITED", "You submitted too many submissions.");
       }
+
       const burst = await rateLimiter.limit(ctx, "submit", { key: profile._id });
+
       if (!burst.ok) throw mojError("RATE_LIMITED", "You submitted too many submissions.");
       const daily = await rateLimiter.limit(ctx, "submitDaily", { key: profile._id });
+
       if (!daily.ok) throw mojError("RATE_LIMITED", "You submitted too many submissions.");
     }
 
     if (!problem.allowedLanguageIds.includes(language._id)) {
       throw forbidden("That language is not allowed for this problem.");
     }
+
     if (!profile.isSuperuser && problem.bannedProfileIds.includes(profile._id)) {
       throw forbidden(
         "You have been declared persona non grata for this problem. " +
@@ -770,27 +840,32 @@ export const submit = mutation({
 
     if (contestProblem?.maxSubmissions && viewerCtx.participation) {
       const used = await contestSubmissionCount(ctx, viewerCtx.participation, contestProblem._id);
+
       if (used >= contestProblem.maxSubmissions) {
         throw forbidden("You have exceeded the submission limit for this problem.");
       }
     }
 
     let judgePin: Id<"judges"> | undefined;
+
     if (args.judgePin) {
       // DMOJ only offers the judge picker to a problem's editors.
       if (!problemIsEditableBy(toCoreProblem(problem), viewer)) {
         throw forbidden("You may not pin a submission to a judge.");
       }
+
       const judge = await ctx.db
         .query("judges")
         .withIndex("by_name", (q) => q.eq("name", args.judgePin as string))
         .unique();
+
       if (!judge) throw notFound("Judge");
       judgePin = judge._id;
     }
 
     const now = Date.now();
     const live = viewerCtx.participation?.virtual === 0;
+
     const isPretested =
       contestProblem !== null &&
       (viewerCtx.contest?.runPretestsOnly ?? false) &&
@@ -831,6 +906,7 @@ export const submit = mutation({
 
     // Nothing is pushed: the judge is polling /judge/claim and will pick this up.
     const stored = await ctx.db.get(submissionId);
+
     return { submissionId, id: stored?.legacyId ?? 0 };
   },
 });
@@ -852,6 +928,7 @@ export const abort = mutation({
     const profile = await requireViewer(ctx);
     const viewer = await coreProfile(ctx, profile);
     const submission = await resolveSubmission(ctx, args.submissionId);
+
     if (!submission) throw notFound("Submission");
 
     if (!coreHasPerm(viewer, "judge.abort_any_submission")) {
@@ -872,11 +949,13 @@ export const abort = mutation({
         claimedByJudgeId: undefined,
         claimedAt: undefined,
       });
+
       return { aborted: true, pending: false };
     }
 
     if (submission.status === "P" || submission.status === "G") {
       await ctx.db.patch(submission._id, { abortRequested: true });
+
       return { aborted: false, pending: true };
     }
 
@@ -890,11 +969,13 @@ export const rejudge = mutation({
   handler: async (ctx, args) => {
     const profile = await requireViewer(ctx);
     const viewer = await coreProfile(ctx, profile);
+
     if (!coreHasPerm(viewer, "judge.rejudge_submission")) {
       throw forbidden("Missing permission judge.rejudge_submission.");
     }
 
     const submission = await resolveSubmission(ctx, args.submissionId);
+
     if (!submission) throw notFound("Submission");
 
     if (isLocked({ lockedAfter: submission.lockedAfter ?? null }) && !coreIsSuperuser(viewer)) {
@@ -902,7 +983,9 @@ export const rejudge = mutation({
     }
 
     const queued = await queueSubmission(ctx, submission._id, { rejudge: true });
+
     if (!queued) throw invalid("This submission is already being judged.");
+
     return { ok: true };
   },
 });

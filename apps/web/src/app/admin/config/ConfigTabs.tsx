@@ -137,13 +137,16 @@ function SettingsForm({
 
   function optionalNumber(value: string): number | undefined {
     const trimmed = value.trim();
+
     if (trimmed === "") return undefined;
     const parsed = Number(trimmed);
+
     return Number.isFinite(parsed) ? parsed : undefined;
   }
 
   async function submit() {
     setBusy(true);
+
     try {
       await save({
         siteName: form.siteName,
@@ -459,9 +462,11 @@ type ConfigRow = { _id: string; key: string; value: string };
 function MiscConfig() {
   const t = useTranslations("admin.config.misc");
   const actions = useTranslations("common.actions");
+
   const data = useQuery(api.admin.site.configRows, {}) as
     | { rows: ConfigRow[]; knownKeys: string[] }
     | undefined;
+
   const setConfig = useMutation(api.admin.site.setConfig);
   const deleteConfig = useMutation(api.admin.site.deleteConfig);
 
@@ -481,17 +486,20 @@ function MiscConfig() {
   const rows = useMemo(() => {
     if (!data) return undefined;
     const byKey = new Map(data.rows.map((row) => [row.key, row]));
+
     const merged = data.knownKeys.map((key) => ({
       key,
       value: byKey.get(key)?.value ?? "",
       set: byKey.has(key),
       known: true,
     }));
+
     for (const row of data.rows) {
       if (!data.knownKeys.includes(row.key)) {
         merged.push({ key: row.key, value: row.value, set: true, known: false });
       }
     }
+
     return merged;
   }, [data]);
 
@@ -499,6 +507,7 @@ function MiscConfig() {
     if (!draft) return;
     setBusy(true);
     setError(null);
+
     try {
       await setConfig({ key: draft.key, value: draft.value, reason });
       setMessage({ tone: "ok", text: t("saved", { key: draft.key }) });
@@ -516,6 +525,7 @@ function MiscConfig() {
       header: t("columnKey"),
       cell: (row) => {
         const line = help(row.key);
+
         return (
           <span className="grid">
             <span className="font-mono text-mono font-medium text-foreground">{row.key}</span>

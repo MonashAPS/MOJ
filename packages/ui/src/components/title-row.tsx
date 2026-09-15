@@ -101,6 +101,7 @@ export function PageTabs({
     >
       {tabs.map((tab) => {
         const isActive = tab.key === active;
+
         const inner = (
           <>
             {tab.icon ? (
@@ -109,6 +110,7 @@ export function PageTabs({
             <span className="whitespace-nowrap">{tab.label}</span>
           </>
         );
+
         const classes = cn(
           "inline-flex h-[34px] items-center gap-1.5 rounded-t-md px-3 text-base transition-colors",
           isActive
@@ -116,6 +118,7 @@ export function PageTabs({
             : "border border-transparent text-subtle hover:bg-accent hover:text-foreground",
           focusRing,
         );
+
         if (isActive || (!tab.href && !tab.onSelect)) {
           return (
             <span key={tab.key} className={classes} aria-current={isActive ? "page" : undefined}>
@@ -123,6 +126,7 @@ export function PageTabs({
             </span>
           );
         }
+
         return tab.href ? (
           <Link key={tab.key} href={tab.href} className={classes}>
             {inner}

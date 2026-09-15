@@ -31,6 +31,7 @@ const PRECISION = 9;
 
 function closeTo(actual: readonly number[], expected: readonly number[]): void {
   expect(actual).toHaveLength(expected.length);
+
   for (const [i, value] of actual.entries()) {
     expect(value).toBeCloseTo(expected[i] as number, PRECISION);
   }
@@ -72,6 +73,7 @@ describe("tie_ranker", () => {
       { score: 10, cumtime: 5 },
       { score: 10, cumtime: 7 },
     ];
+
     expect(tieRanker(items, (item) => [item.score, item.cumtime])).toEqual([1, 2]);
   });
 
@@ -104,6 +106,7 @@ describe("recalculate_ratings golden cases", () => {
       [[], [], [], []],
       null,
     );
+
     expect(result.rating).toEqual([1901, 1493, 1200, 792]);
     closeTo(result.mean, [2054.8117718081685, 1646.6551817318596, 1353.344881857663, 945.1882281918315]);
     closeTo(result.performance, [2182.367751638652, 1679.1300621513783, 1320.87001558157, 817.6322483613482]);
@@ -117,6 +120,7 @@ describe("recalculate_ratings golden cases", () => {
       [[], [], [], []],
       null,
     );
+
     expect(result.rating).toEqual([1901, 1347, 1347, 792]);
     closeTo(result.mean, [2054.8117718081685, 1500, 1500, 945.1882281918315]);
     closeTo(result.performance, [2182.367751638652, 1500, 1500, 817.6322483613482]);
@@ -130,6 +134,7 @@ describe("recalculate_ratings golden cases", () => {
       [[1750, 1600, 1500], [1450], []],
       2000,
     );
+
     expect(result.rating).toEqual([1721, 1399, 891]);
     closeTo(result.mean, [1758.717015419988, 1487.064419856683, 1044.6742852582906]);
     closeTo(result.performance, [1905.1183406409646, 1472.1745212163116, 987.8242438750557]);
@@ -178,6 +183,7 @@ describe("rateContest", () => {
       ],
       {},
     );
+
     expect(result.map((row) => row.profileId)).toEqual(["b", "c", "a", "d"]);
   });
 
@@ -213,6 +219,7 @@ describe("rateContest", () => {
       ],
       { contest: { rateExcludeProfileIds: ["excluded"] } },
     );
+
     expect(result.map((row) => row.profileId)).toEqual(["a", "b", "c", "d"]);
   });
 
@@ -230,6 +237,7 @@ describe("rateContest", () => {
       ],
       { contest: { rateAll: true } },
     );
+
     expect(result).toHaveLength(1);
   });
 
@@ -263,6 +271,7 @@ describe("rateContest", () => {
         lastRating: 2500,
       },
     ];
+
     expect(rateContest(field, { contest: { ratingFloor: 1000 } }).map((row) => row.profileId)).toEqual([
       "mid",
       "high",
@@ -319,6 +328,7 @@ describe("rateContest", () => {
         priorHistory: { a: [1750, 1600, 1500], b: [1450], c: [] },
       },
     );
+
     expect(result.map((row) => row.rating)).toEqual([1721, 1399, 891]);
   });
 
@@ -334,10 +344,12 @@ describe("monotonicity", () => {
   /** Deterministic PRNG so a failure is reproducible. */
   function mulberry32(seed: number): () => number {
     let a = seed >>> 0;
+
     return () => {
       a = (a + 0x6d2b79f5) >>> 0;
       let t = Math.imul(a ^ (a >>> 15), 1 | a);
       t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   }
@@ -349,9 +361,11 @@ describe("monotonicity", () => {
       const n = 2 + Math.floor(random() * 12);
       const oldMean = Array.from({ length: n }, () => 800 + random() * 1600);
       const timesRanked = Array.from({ length: n }, () => Math.floor(random() * 8));
+
       const historical = timesRanked.map((times) =>
         Array.from({ length: times }, () => 800 + random() * 1600),
       );
+
       const ranking = Array.from({ length: n }, (_unused, i) => i + 1);
 
       const { rating, performance } = recalculateRatings(ranking, oldMean, timesRanked, historical, null);
@@ -371,9 +385,11 @@ describe("monotonicity", () => {
         Array.from({ length: n }, () => []),
         null,
       );
+
       for (let i = 1; i < n; i++) {
         expect(uniform.rating[i] as number).toBeLessThanOrEqual(uniform.rating[i - 1] as number);
       }
+
       expect(rating.every((value) => value >= 1)).toBe(true);
     }
   });

@@ -66,6 +66,7 @@ export function ProblemsList() {
   const [pendingVisibility, setPendingVisibility] = useState<boolean | null>(null);
 
   const options = useQuery(api.pages.admin.problems.options, {});
+
   const data = useQuery(api.pages.admin.problems.list, {
     search: search || undefined,
     isPublic: visibility === "any" ? undefined : visibility === "public",
@@ -75,16 +76,20 @@ export function ProblemsList() {
     page,
     pageSize: PAGE_SIZE,
   });
+
   const setVisibility = useMutation(api.admin.problems.setVisibility);
 
   function withParams(next: Record<string, string | null>): string {
     const query = new URLSearchParams(params.toString());
+
     for (const [key, value] of Object.entries(next)) {
       if (value === null || value === "") query.delete(key);
       else query.set(key, value);
     }
+
     if (!("page" in next)) query.delete("page");
     const text = query.toString();
+
     return text ? `${pathname}?${text}` : pathname;
   }
 
@@ -182,6 +187,7 @@ export function ProblemsList() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : shared("changeRefused"));
     }
+
     setPendingVisibility(null);
   }
 

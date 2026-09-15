@@ -22,24 +22,33 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+
 const COMPOSE_FILE = join("infra", "compose.dev.yml");
+
 const ENV_LOCAL = join(ROOT, ".env.local");
+
 const WEB_ENV_LOCAL = join(ROOT, "apps", "web", ".env.local");
 
 const CONVEX_URL = process.env.CONVEX_URL ?? "http://127.0.0.1:3210";
+
 const CONVEX_SITE_URL = process.env.CONVEX_SITE_URL ?? "http://127.0.0.1:3211";
+
 const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
+
 /**
  * What the Convex deployment calls to verify a problems-API key against Better
  * Auth. The backend is in Docker, so the host gateway, not localhost.
  */
 const AUTH_URL = process.env.AUTH_URL ?? "http://host.docker.internal:3000";
+
 const DATABASE_URL = process.env.DATABASE_URL ?? "postgresql://moj:moj@127.0.0.1:5433/moj_auth";
 
 /** Fixed so a code for the dev superuser can be generated from a test, and so
  *  a re-run of setup does not lock the account out of an authenticator app. */
 const DEV_TOTP_SECRET = "mojdevtotpsecretdonotuseinprod01";
+
 const ADMIN_USERNAME = process.env.MOJ_ADMIN_USERNAME ?? "admin";
+
 /**
  * Not `admin`: that one is in the Have I Been Pwned corpus forty million times
  * over, and the site's own breached-password check would send the documented
@@ -47,6 +56,7 @@ const ADMIN_USERNAME = process.env.MOJ_ADMIN_USERNAME ?? "admin";
  * corpus, and it is still obviously a throwaway.
  */
 const ADMIN_PASSWORD = process.env.MOJ_ADMIN_PASSWORD ?? "moj-admin-local";
+
 const ADMIN_EMAIL = process.env.MOJ_ADMIN_EMAIL ?? "admin@example.com";
 
 // DMOJ's permission codes, from spec section 3.
@@ -80,7 +90,9 @@ const ADMIN_PERMISSIONS = [
 const CPU_PIN = process.env.MOJ_CPUSET ? ["taskset", "-c", process.env.MOJ_CPUSET] : [];
 
 const CYAN = "\u001b[36m";
+
 const RED = "\u001b[31m";
+
 const RESET = "\u001b[0m";
 
 function step(message) {
@@ -98,18 +110,22 @@ function run(command, args, options = {}) {
     env: { ...process.env, ...options.env },
     encoding: "utf8",
   });
+
   if (result.status !== 0 && !options.allowFailure) {
     if (options.capture) {
       process.stderr.write(result.stdout ?? "");
       process.stderr.write(result.stderr ?? "");
     }
+
     throw new Error(`${command} ${args.join(" ")} exited with ${result.status}`);
   }
+
   return result;
 }
 
 function pinned(command, args, options) {
   if (CPU_PIN.length === 0) return run(command, args, options);
+
   return run(CPU_PIN[0], [...CPU_PIN.slice(1), command, ...args], options);
 }
 
@@ -120,18 +136,23 @@ function compose(args, options) {
 async function waitFor(label, check, { timeoutMs = 180_000, intervalMs = 1000 } = {}) {
   const deadline = Date.now() + timeoutMs;
   let announced = false;
+
   while (Date.now() < deadline) {
     if (await check()) {
       if (announced) process.stdout.write("\n");
+
       return;
     }
+
     if (!announced) {
       process.stdout.write(`    waiting for ${label}`);
       announced = true;
     }
+
     process.stdout.write(".");
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
+
   if (announced) process.stdout.write("\n");
   throw new Error(`timed out waiting for ${label}`);
 }
@@ -139,13 +160,17 @@ async function waitFor(label, check, { timeoutMs = 180_000, intervalMs = 1000 } 
 function parseEnvFile(path) {
   if (!existsSync(path)) return {};
   const out = {};
+
   for (const line of readFileSync(path, "utf8").split("\n")) {
     const trimmed = line.trim();
+
     if (!trimmed || trimmed.startsWith("#")) continue;
     const index = trimmed.indexOf("=");
+
     if (index === -1) continue;
     out[trimmed.slice(0, index)] = trimmed.slice(index + 1);
   }
+
   return out;
 }
 
@@ -174,6 +199,7 @@ async function backendCanReachHost(jwksUrl) {
 
   const port = Number(new URL(APP_URL).port || "3000");
   let server;
+
   try {
     server = createServer((_request, response) => {
       response.writeHead(200, { "content-type": "application/json" });
@@ -203,6 +229,7 @@ async function main() {
   await waitFor("convex-backend", async () => {
     try {
       const response = await fetch(`${CONVEX_URL}/version`, { signal: AbortSignal.timeout(2000) });
+
       return response.ok;
     } catch {
       return false;
@@ -211,22 +238,27 @@ async function main() {
   info(`backend up at ${CONVEX_URL}`);
 
   step("Generating the Convex admin key");
+
   const keyResult = compose(["exec", "-T", "convex-backend", "./generate_admin_key.sh"], {
     capture: true,
   });
+
   const adminKey = (keyResult.stdout ?? "")
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
     .at(-1);
+
   if (!adminKey?.includes("|")) {
     throw new Error(`could not parse the admin key from generate_admin_key.sh:\n${keyResult.stdout}`);
   }
+
   info(`admin key ${adminKey.slice(0, 12)}...`);
 
   step("Writing .env.local");
   const existing = parseEnvFile(ENV_LOCAL);
   const authSecret = existing.AUTH_SECRET || randomBytes(32).toString("base64url");
+
   const env = {
     CONVEX_SELF_HOSTED_URL: CONVEX_URL,
     CONVEX_SELF_HOSTED_ADMIN_KEY: adminKey,
@@ -251,6 +283,7 @@ async function main() {
     // production deploy must not carry this, and setup is a dev script.
     MOJ_DEV_TOTP_SECRET: existing.MOJ_DEV_TOTP_SECRET || DEV_TOTP_SECRET,
   };
+
   const rendered = renderEnvFile(env);
   writeFileSync(ENV_LOCAL, rendered);
   rmSync(WEB_ENV_LOCAL, { force: true });
@@ -269,6 +302,7 @@ async function main() {
 
   let jwksValue = env.AUTH_JWKS_URL;
   const hostReachable = await backendCanReachHost(env.AUTH_JWKS_URL);
+
   if (hostReachable) {
     info(`AUTH_JWKS_URL=${jwksValue}`);
   } else {
@@ -276,15 +310,18 @@ async function main() {
     // rotating the signing keys so the deployment picks up the new set.
     const printed = pinned("npx", ["tsx", "apps/web/scripts/print-jwks.ts"], { env, capture: true });
     const jwks = (printed.stdout ?? "").trim().split("\n").at(-1);
+
     if (!jwks?.startsWith("{")) {
       process.stderr.write(printed.stdout ?? "");
       process.stderr.write(printed.stderr ?? "");
       throw new Error("could not read the JWKS from print-jwks.ts");
     }
+
     jwksValue = `data:text/plain;charset=utf-8;base64,${Buffer.from(jwks, "utf8").toString("base64")}`;
     info("the convex container cannot reach the host, so the JWKS is inlined as a data URI");
     info("re-run npm run setup if the Better Auth signing keys are ever rotated");
   }
+
   pinned("npx", ["convex", "env", "set", "AUTH_JWKS_URL", jwksValue], { env, capture: true });
 
   // `convex/http/problemsApi.ts` verifies API keys against Better Auth over
@@ -316,24 +353,29 @@ async function main() {
   pinned("npx", ["convex", "dev", "--once"], { env });
 
   step("Seeding languages, navigation, config and the sample problem");
+
   // SPEC section 24: an operator names the instance from the environment.
   const seedArgs = JSON.stringify({
     ...(process.env.MOJ_SITE_NAME ? { siteName: process.env.MOJ_SITE_NAME } : {}),
     ...(process.env.MOJ_SITE_LONG_NAME ? { siteLongName: process.env.MOJ_SITE_LONG_NAME } : {}),
   });
+
   const seed = pinned("npx", ["convex", "run", "seed:run", seedArgs], { env, capture: true });
   info((seed.stdout ?? "").trim().replace(/\n/g, "\n    "));
 
   step(`Creating the development superuser ${ADMIN_USERNAME}`);
   info("enrolling it in two factor authentication against MOJ_DEV_TOTP_SECRET");
+
   const created = pinned(
     "npx",
     ["tsx", "apps/web/scripts/create-admin.ts", ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL],
     { env, capture: true },
   );
+
   const lastLine = (created.stdout ?? "").trim().split("\n").at(-1) ?? "";
   let userId;
   let totpUri;
+
   try {
     ({ userId, totpUri } = JSON.parse(lastLine));
   } catch {
@@ -341,7 +383,9 @@ async function main() {
     process.stderr.write(created.stderr ?? "");
     throw new Error("could not read the admin user id from create-admin.ts");
   }
+
   info(`better auth user ${userId}`);
+
   if (totpUri) info(`totp ${totpUri}`);
 
   pinned(

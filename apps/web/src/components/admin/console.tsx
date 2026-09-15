@@ -74,6 +74,7 @@ export function ConfirmAction({
 
   async function run() {
     setBusy(true);
+
     try {
       await onConfirm();
       setOpen(false);
@@ -122,6 +123,7 @@ export function Flag({
   tone?: "accent" | "bad" | "warn" | "good";
 }) {
   if (!on) return null;
+
   return (
     <Badge variant={tone} shape="square">
       {label}
@@ -136,7 +138,9 @@ export function Flags({
   flags: Array<{ on: boolean; label: string; tone?: "accent" | "bad" | "warn" | "good" }>;
 }) {
   const on = flags.filter((flag) => flag.on);
+
   if (on.length === 0) return <span className="text-muted-foreground">{DASH}</span>;
+
   return (
     <span className="flex flex-wrap gap-1">
       {on.map((flag) => (
@@ -157,6 +161,7 @@ export function CopyButton({ value, label }: { value: string; label?: string }) 
   useEffect(() => {
     if (!copied) return;
     const timer = window.setTimeout(() => setCopied(false), 1600);
+
     return () => window.clearTimeout(timer);
   }, [copied]);
 
@@ -181,6 +186,7 @@ export function CopyButton({ value, label }: { value: string; label?: string }) 
 /** The console's status line: one sentence, never a toast for a local action. */
 export function StatusLine({ tone, children }: { tone: "ok" | "bad"; children: ReactNode }) {
   if (!children) return null;
+
   return (
     <p className={cn("text-sm", tone === "ok" ? "text-success-ink" : "text-danger-ink")} role="status">
       {children}

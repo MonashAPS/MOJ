@@ -46,13 +46,16 @@ export function CommentsClient({
     const missing = data.comments
       .map((comment) => ({ key: commentHtmlKey(comment), source: comment.body, preset: comment.bodyPreset }))
       .filter((item) => !requested.current.has(item.key));
+
     if (missing.length === 0) return;
+
     for (const item of missing) requested.current.add(item.key);
 
     let alive = true;
     void renderUserMarkdownBatch(missing).then((rendered) => {
       if (alive) setHtml((previous) => ({ ...previous, ...rendered }));
     });
+
     return () => {
       alive = false;
     };
@@ -120,6 +123,7 @@ function NewComment({
   onSubmit: (body: string) => Promise<unknown>;
 }) {
   const t = useTranslations("blog.comments");
+
   if (data.locked) return null;
 
   return (

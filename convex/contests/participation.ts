@@ -45,16 +45,20 @@ export async function requireAccessibleContest(
   profile: Doc<"profiles">,
 ): Promise<Doc<"contests">> {
   const contest = await contestByKey(ctx, key);
+
   if (!contest) throw notFound(`Contest "${key}"`);
 
   if (profile.currentParticipationId) {
     const participation = await ctx.db.get(profile.currentParticipationId);
+
     if (participation?.contestId === contest._id) return contest;
   }
 
   const viewer = await toViewerRowInContest(ctx, profile);
   const access = contestAccessCheck(toContestRow(contest), viewer);
+
   if (access.kind === "ok") return contest;
+
   if (access.kind === "inaccessible") throw notFound(`Contest "${key}"`);
   throw forbidden(`Access to contest "${contest.name}" denied.`);
 }
@@ -66,7 +70,9 @@ async function updateUserCount(ctx: MutationCtx, contestId: Id<"contests">): Pro
       q.eq("contestId", contestId).eq("virtual", PARTICIPATION_LIVE),
     )
     .collect();
+
   await ctx.db.patch(contestId, { userCount: live.length });
+
   return live.length;
 }
 
@@ -94,6 +100,7 @@ export const join = mutation({
     const now = Date.now();
 
     let participations = await participationsOf(ctx, contest._id, profile._id);
+
     const decision = contestJoinDecision(contestRow, viewer, {
       now,
       participations: participations.map(toParticipationRow),
@@ -103,15 +110,18 @@ export const join = mutation({
     if (decision.kind === "loginRequired") {
       throw mojError("UNAUTHENTICATED", "You must be logged in to join a contest.");
     }
+
     if (decision.kind === "notStarted") {
       throw invalid(`"${contest.name}" is not currently ongoing.`);
     }
+
     if (decision.kind === "banned") {
       throw forbidden(
         "You have been declared persona non grata for this contest. " +
           "You are permanently barred from joining this contest.",
       );
     }
+
     if (decision.kind === "accessCodeRequired") {
       throw new ConvexError({
         code: "INVALID",
@@ -119,6 +129,7 @@ export const join = mutation({
         reason: "accessCodeRequired",
       });
     }
+
     if (decision.kind === "cannotEnter") {
       throw forbidden("You are not able to join this contest.");
     }
@@ -131,7 +142,9 @@ export const join = mutation({
         participations = await participationsOf(ctx, contest._id, profile._id);
         const highest = participations.reduce((max, row) => Math.max(max, row.virtual), 0);
         const virtualId = Math.max(highest + 1, 1);
+
         if (participations.some((row) => row.virtual === virtualId)) continue;
+
         const id = await ctx.db.insert("contestParticipations", {
           contestId: contest._id,
           profileId: profile._id,
@@ -143,11 +156,14 @@ export const join = mutation({
           virtual: virtualId,
           formatData: {},
         });
+
         participation = await ctx.db.get(id);
       }
+
       if (!participation) throw mojError("CONFLICT", "Could not start a virtual participation.");
     } else {
       const wanted = decision.kind === "live" ? PARTICIPATION_LIVE : PARTICIPATION_SPECTATE;
+
       const existing =
         (decision.participationId
           ? participations.find((row) => row._id === decision.participationId)
@@ -167,6 +183,7 @@ export const join = mutation({
           virtual: wanted,
           formatData: {},
         });
+
         participation = await ctx.db.get(id);
       }
     }
@@ -175,6 +192,7 @@ export const join = mutation({
 
     await ctx.db.patch(profile._id, { currentParticipationId: participation._id });
     await updateUserCount(ctx, contest._id);
+
     return { participationId: participation._id, virtual: participation.virtual };
   },
 });
@@ -185,16 +203,19 @@ export const leave = mutation({
   handler: async (ctx, { key }): Promise<null> => {
     const profile = await requireViewer(ctx);
     const contest = await contestByKey(ctx, key);
+
     if (!contest) throw notFound(`Contest "${key}"`);
 
     const participation = profile.currentParticipationId
       ? await ctx.db.get(profile.currentParticipationId)
       : null;
+
     if (!participation || participation.contestId !== contest._id) {
       throw notFound(`You are not in contest "${contest.key}"`);
     }
 
     await ctx.db.patch(profile._id, { currentParticipationId: undefined });
+
     return null;
   },
 });
@@ -209,25 +230,33 @@ export const clearStaleContest = mutation({
   args: {},
   handler: async (ctx): Promise<{ cleared: boolean }> => {
     const profile = await requireViewer(ctx);
+
     if (!profile.currentParticipationId) return { cleared: false };
 
     const participation = await ctx.db.get(profile.currentParticipationId);
+
     if (!participation) {
       await ctx.db.patch(profile._id, { currentParticipationId: undefined });
+
       return { cleared: true };
     }
+
     const contest = await ctx.db.get(participation.contestId);
+
     if (!contest) {
       await ctx.db.patch(profile._id, { currentParticipationId: undefined });
+
       return { cleared: true };
     }
 
     const viewer = await toViewerRowInContest(ctx, profile);
+
     if (!shouldLeaveContest(toParticipationRow(participation), toContestRow(contest), viewer, Date.now())) {
       return { cleared: false };
     }
 
     await ctx.db.patch(profile._id, { currentParticipationId: undefined });
+
     return { cleared: true };
   },
 });
@@ -291,8 +320,10 @@ async function participationRows(
   const labels = contestProblems.map((_row, index) => labelForProblem(contest, index));
 
   const out: ParticipationRow[] = [];
+
   for (const participation of rows) {
     const profile = await ctx.db.get(participation.profileId);
+
     if (!profile) continue;
     const participationRow = toParticipationRow(participation);
     out.push({
@@ -309,7 +340,9 @@ async function participationRows(
       result: format.displayParticipationResult(participationRow, contestRow),
       problems: problemRows.map((problem, index) => {
         const cell = safeDisplay(format, participationRow, problem, contestRow);
+
         if (!cell) return null;
+
         return {
           contestProblemId: problem.id as Id<"contestProblems">,
           label: labels[index] as string,
@@ -325,6 +358,7 @@ async function participationRows(
       }),
     });
   }
+
   return out;
 }
 
@@ -333,17 +367,22 @@ export const participations = query({
   args: { key: v.string() },
   handler: async (ctx, { key }): Promise<ParticipationRow[] | null> => {
     const profile = await optionalViewer(ctx);
+
     if (!profile) return null;
     const contest = await contestByKey(ctx, key);
+
     if (!contest) return null;
 
     const viewer = await toViewerRowInContest(ctx, profile);
+
     if (contestAccessCheck(toContestRow(contest), viewer).kind !== "ok") return null;
 
     const now = Date.now();
+
     const rows = (await participationsOf(ctx, contest._id, profile._id))
       .filter((row) => row.virtual >= 0)
       .sort((a, b) => b.virtual - a.virtual);
+
     return await participationRows(ctx, contest, rows, await loadContestProblems(ctx, contest._id), now);
   },
 });
@@ -353,26 +392,32 @@ export const participationsOfUser = query({
   args: { key: v.string(), username: v.string() },
   handler: async (ctx, { key, username }): Promise<ParticipationRow[] | null> => {
     const profile = await optionalViewer(ctx);
+
     if (!profile) return null;
     const contest = await contestByKey(ctx, key);
+
     if (!contest) return null;
 
     const target = await ctx.db
       .query("profiles")
       .withIndex("by_username", (q) => q.eq("username", username))
       .unique();
+
     if (!target) return null;
 
     const viewer = await toViewerRowInContest(ctx, profile);
     const contestRow = toContestRow(contest);
+
     if (contestAccessCheck(contestRow, viewer).kind !== "ok") return null;
 
     const now = Date.now();
     const liveParticipation = await liveParticipationOf(ctx, contest._id, profile._id);
+
     const context = {
       now,
       liveParticipation: liveParticipation ? toParticipationRow(liveParticipation) : null,
     };
+
     if (target._id !== profile._id && !contestCanSeeFullScoreboard(contestRow, viewer, context)) {
       return null;
     }
@@ -380,6 +425,7 @@ export const participationsOfUser = query({
     const rows = (await participationsOf(ctx, contest._id, target._id))
       .filter((row) => row.virtual >= 0)
       .sort((a, b) => b.virtual - a.virtual);
+
     return await participationRows(ctx, contest, rows, await loadContestProblems(ctx, contest._id), now);
   },
 });
@@ -397,26 +443,32 @@ export const disqualify = mutation({
   handler: async (ctx, { key, participationId, disqualified }): Promise<null> => {
     const profile = await requireViewer(ctx);
     const contest = await contestByKey(ctx, key);
+
     if (!contest) throw notFound(`Contest "${key}"`);
     const viewer = await toViewerRowInContest(ctx, profile);
+
     if (!contestIsEditableBy(toContestRow(contest), viewer)) throw forbidden();
 
     const participation = await ctx.db.get(participationId);
+
     if (!participation || participation.contestId !== contest._id) throw notFound("Participation");
 
     await ctx.db.patch(participationId, { isDisqualified: disqualified });
     await ctx.runMutation(internal.contests.rankings.recomputeParticipation, { participationId });
 
     const banned = new Set<Id<"profiles">>(contest.bannedProfileIds);
+
     if (disqualified) {
       banned.add(participation.profileId);
       const target = await ctx.db.get(participation.profileId);
+
       if (target?.currentParticipationId === participationId) {
         await ctx.db.patch(target._id, { currentParticipationId: undefined });
       }
     } else {
       banned.delete(participation.profileId);
     }
+
     await ctx.db.patch(contest._id, { bannedProfileIds: [...banned] });
 
     // DMOJ re-rates the contest chain when the contest is rated and has ratings.
@@ -425,6 +477,7 @@ export const disqualify = mutation({
         .query("ratings")
         .withIndex("by_contest", (q) => q.eq("contestId", contest._id))
         .first();
+
       if (rated) {
         await ctx.scheduler.runAfter(0, internal.ratings.rateContestInternal, {
           contestId: contest._id,
@@ -440,6 +493,7 @@ export const disqualify = mutation({
       reason: disqualified ? "Disqualified participation" : "Reinstated participation",
       createdAt: Date.now(),
     });
+
     return null;
   },
 });

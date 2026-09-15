@@ -32,6 +32,7 @@ async function seed(t: T): Promise<Seeded> {
     const other = await ctx.db.insert("profiles", profileRow({ username: "other" }));
     const newbie = await ctx.db.insert("profiles", profileRow({ username: "newbie" }));
     await ctx.db.insert("profiles", profileRow({ username: "staffy", isStaff: true }));
+
     const moderator = await ctx.db.insert(
       "profiles",
       profileRow({
@@ -76,11 +77,13 @@ describe("posting rules", () => {
   test("staff may post without solving anything", async () => {
     const t = setupTest();
     const seeded = await seed(t);
+
     const id = await asUser(t, "staffy").mutation(api.comments.post, {
       targetType: "problem",
       targetKey: seeded.problemCode,
       body: "staff note",
     });
+
     expect(id).toBeTruthy();
   });
 
@@ -151,11 +154,13 @@ describe("posting rules", () => {
   test("replies to comments older than the timeframe are refused", async () => {
     const t = setupTest();
     const seeded = await seed(t);
+
     const parent = await asUser(t, "solver").mutation(api.comments.post, {
       targetType: "problem",
       targetKey: seeded.problemCode,
       body: "ancient",
     });
+
     await t.run(async (ctx) => {
       await ctx.db.patch(parent, { time: Date.now() - 400 * 24 * 60 * 60 * 1000 });
     });
@@ -176,6 +181,7 @@ describe("posting rules", () => {
       parentId: parent,
       body: "moderator reply",
     });
+
     expect(reply).toBeTruthy();
   });
 
@@ -200,25 +206,30 @@ describe("posting rules", () => {
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", "solver"))
         .unique();
+
       if (profile) {
         await ctx.db.patch(profile._id, { permissions: ["judge.override_comment_lock"] });
       }
     });
+
     const id = await asUser(t, "solver").mutation(api.comments.post, {
       targetType: "problem",
       targetKey: seeded.problemCode,
       body: "override",
     });
+
     expect(id).toBeTruthy();
 
     await asUser(t, "mod").mutation(api.comments.unlock, {
       targetType: "problem",
       targetKey: seeded.problemCode,
     });
+
     const list = await t.query(api.comments.list, {
       targetType: "problem",
       targetKey: seeded.problemCode,
     });
+
     expect(list?.locked).toBe(false);
   });
 });
@@ -235,17 +246,20 @@ describe("tree ordering and the hide threshold", () => {
       targetKey: seeded.problemCode,
       body: "first root",
     });
+
     const second = await other.mutation(api.comments.post, {
       targetType: "problem",
       targetKey: seeded.problemCode,
       body: "second root",
     });
+
     const replyA = await other.mutation(api.comments.post, {
       targetType: "problem",
       targetKey: seeded.problemCode,
       parentId: first,
       body: "reply a",
     });
+
     const replyB = await solver.mutation(api.comments.post, {
       targetType: "problem",
       targetKey: seeded.problemCode,
@@ -265,6 +279,7 @@ describe("tree ordering and the hide threshold", () => {
       targetType: "problem",
       targetKey: seeded.problemCode,
     });
+
     expect(list).not.toBeNull();
     expect(list?.comments.map((comment) => comment.body)).toEqual([
       "second root",
@@ -278,11 +293,13 @@ describe("tree ordering and the hide threshold", () => {
   test("a comment at or below the threshold is flagged for collapsing", async () => {
     const t = setupTest();
     const seeded = await seed(t);
+
     const id = await asUser(t, "solver").mutation(api.comments.post, {
       targetType: "problem",
       targetKey: seeded.problemCode,
       body: "unpopular",
     });
+
     await t.run(async (ctx) => {
       await ctx.db.patch(id, { score: -5 });
     });
@@ -291,27 +308,32 @@ describe("tree ordering and the hide threshold", () => {
       targetType: "problem",
       targetKey: seeded.problemCode,
     });
+
     expect(list?.voteHideThreshold).toBe(-5);
     expect(list?.comments[0]?.belowThreshold).toBe(true);
 
     await t.run(async (ctx) => {
       await ctx.db.patch(id, { score: -4 });
     });
+
     const better = await t.query(api.comments.list, {
       targetType: "problem",
       targetKey: seeded.problemCode,
     });
+
     expect(better?.comments[0]?.belowThreshold).toBe(false);
   });
 
   test("hiding a comment hides its replies and drops them from the page", async () => {
     const t = setupTest();
     const seeded = await seed(t);
+
     const root = await asUser(t, "solver").mutation(api.comments.post, {
       targetType: "problem",
       targetKey: seeded.problemCode,
       body: "root",
     });
+
     await asUser(t, "other").mutation(api.comments.post, {
       targetType: "problem",
       targetKey: seeded.problemCode,
@@ -327,6 +349,7 @@ describe("tree ordering and the hide threshold", () => {
       targetType: "problem",
       targetKey: seeded.problemCode,
     });
+
     expect(anonymous?.comments).toHaveLength(0);
     expect(anonymous?.hasComments).toBe(false);
 
@@ -334,6 +357,7 @@ describe("tree ordering and the hide threshold", () => {
       targetType: "problem",
       targetKey: seeded.problemCode,
     });
+
     expect(asModerator?.comments).toHaveLength(2);
     expect(asModerator?.comments.every((comment) => comment.hidden)).toBe(true);
 
@@ -341,10 +365,12 @@ describe("tree ordering and the hide threshold", () => {
       commentId: root,
       includeReplies: true,
     });
+
     const restored = await t.query(api.comments.list, {
       targetType: "problem",
       targetKey: seeded.problemCode,
     });
+
     expect(restored?.comments).toHaveLength(2);
   });
 });
@@ -353,6 +379,7 @@ describe("voting", () => {
   test("an upvote raises the score and is recorded for the viewer", async () => {
     const t = setupTest();
     const seeded = await seed(t);
+
     const id = await asUser(t, "solver").mutation(api.comments.post, {
       targetType: "problem",
       targetKey: seeded.problemCode,
@@ -363,12 +390,14 @@ describe("voting", () => {
       commentId: id,
       delta: 1,
     });
+
     expect(result).toEqual({ score: 1, myVote: 1 });
 
     const list = await asUser(t, "other").query(api.comments.list, {
       targetType: "problem",
       targetKey: seeded.problemCode,
     });
+
     expect(list?.comments[0]?.score).toBe(1);
     expect(list?.comments[0]?.myVote).toBe(1);
   });
@@ -376,11 +405,13 @@ describe("voting", () => {
   test("voting the other way removes the vote, voting again is refused", async () => {
     const t = setupTest();
     const seeded = await seed(t);
+
     const id = await asUser(t, "solver").mutation(api.comments.post, {
       targetType: "problem",
       targetKey: seeded.problemCode,
       body: "vote me",
     });
+
     const voter = asUser(t, "other");
 
     await voter.mutation(api.comments.vote, { commentId: id, delta: 1 });
@@ -401,6 +432,7 @@ describe("voting", () => {
   test("nobody votes on their own comment, and unsolved users cannot vote", async () => {
     const t = setupTest();
     const seeded = await seed(t);
+
     const id = await asUser(t, "solver").mutation(api.comments.post, {
       targetType: "problem",
       targetKey: seeded.problemCode,
@@ -428,6 +460,7 @@ describe("editing", () => {
     const t = setupTest();
     const seeded = await seed(t);
     const solver = asUser(t, "solver");
+
     const id = await solver.mutation(api.comments.post, {
       targetType: "problem",
       targetKey: seeded.problemCode,
@@ -442,6 +475,7 @@ describe("editing", () => {
       targetType: "problem",
       targetKey: seeded.problemCode,
     });
+
     expect(list?.comments[0]?.revisions).toBe(2);
     expect(list?.comments[0]?.body).toBe("second draft");
   });
@@ -449,6 +483,7 @@ describe("editing", () => {
   test("other users cannot edit, moderators can", async () => {
     const t = setupTest();
     const seeded = await seed(t);
+
     const id = await asUser(t, "solver").mutation(api.comments.post, {
       targetType: "problem",
       targetKey: seeded.problemCode,
@@ -466,10 +501,12 @@ describe("editing", () => {
       commentId: id,
       body: "moderated",
     });
+
     const list = await t.query(api.comments.list, {
       targetType: "problem",
       targetKey: seeded.problemCode,
     });
+
     expect(list?.comments[0]?.body).toBe("moderated");
   });
 });
@@ -486,10 +523,12 @@ describe("recent comments", () => {
 
     await t.run(async (ctx) => {
       await insertProblem(ctx, { code: "hidden", isPublic: false });
+
       const author = await ctx.db
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", "solver"))
         .unique();
+
       if (!author) throw new Error("no author");
       await ctx.db.insert("comments", {
         targetType: "problem",

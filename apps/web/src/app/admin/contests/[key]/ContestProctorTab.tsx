@@ -21,6 +21,7 @@ export function ContestProctorTab({ contest }: { contest: ContestEdit }) {
   async function save() {
     setBusy(true);
     setError(null);
+
     try {
       await update({
         key: contest.key,

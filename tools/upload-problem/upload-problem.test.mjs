@@ -31,11 +31,13 @@ afterEach(async () => {
 async function writeProblem(code, files) {
   const dir = path.join(workdir, "problems", code);
   await fs.mkdir(dir, { recursive: true });
+
   for (const [name, content] of Object.entries(files)) {
     const target = path.join(dir, name);
     await fs.mkdir(path.dirname(target), { recursive: true });
     await fs.writeFile(target, content);
   }
+
   return dir;
 }
 
@@ -60,6 +62,7 @@ function sha256Hex(buffer) {
 function haveCommand(command) {
   try {
     execFileSync(command, ["-v"], { stdio: "ignore" });
+
     return true;
   } catch (error) {
     return error.code !== "ENOENT";
@@ -88,6 +91,7 @@ function mockJudge({ existing = new Set(), failFor = new Set(), data = new Map()
       if (method !== "PUT" && method !== "POST") {
         return jsonResponse(405, { error: { code: "invalid", message: "Method not allowed." } });
       }
+
       storageCounter += 1;
       const storageId = `kg${storageCounter}`;
       const bytes = Buffer.from(init.body);
@@ -98,26 +102,34 @@ function mockJudge({ existing = new Set(), failFor = new Set(), data = new Map()
         size: bytes.length,
         contentType: init.headers?.["content-type"],
       });
+
       return jsonResponse(200, { storageId });
     }
 
     const uploadUrlMatch = /^\/api\/problems\/([a-z.0-9]+)\/data\/upload-url$/.exec(pathname);
+
     if (uploadUrlMatch && method === "POST") {
       calls.uploadUrls.push({ code: uploadUrlMatch[1] });
+
       return jsonResponse(200, { ok: true, uploadUrl: "https://storage.test/upload" });
     }
 
     const dataMatch = /^\/api\/problems\/([a-z.0-9]+)\/data$/.exec(pathname);
+
     if (dataMatch) {
       const code = dataMatch[1];
+
       if (!existing.has(code)) {
         return jsonResponse(404, { error: { code: "not_found", message: "No such problem." } });
       }
+
       if (method === "GET") {
         calls.dataReads.push({ code });
         const row = data.get(code);
+
         return jsonResponse(200, row ? { ok: true, ...row } : { ok: true, hash: null });
       }
+
       if (method === "POST") {
         const body = JSON.parse(init.body);
         calls.dataWrites.push({ code, body, authorization: init.headers.authorization });
@@ -128,16 +140,19 @@ function mockJudge({ existing = new Set(), failFor = new Set(), data = new Map()
           fileCount: body.fileCount,
           uploadedAt: 1_700_000_000_000,
         });
+
         return jsonResponse(200, { ok: true, hash: body.hash, changed });
       }
     }
 
     const imageMatch = /^\/api\/problems\/([a-z.0-9]+)\/images$/.exec(pathname);
+
     if (imageMatch) {
       const form = init.body;
       const file = form.get("file");
       calls.images.push({ code: imageMatch[1], name: file.name, size: file.size });
       imageCounter += 1;
+
       return jsonResponse(200, {
         status: 200,
         link: `https://judge.test/api/problems/images/img${imageCounter}`,
@@ -145,6 +160,7 @@ function mockJudge({ existing = new Set(), failFor = new Set(), data = new Map()
     }
 
     const putMatch = /^\/api\/problems\/([a-z.0-9]+)$/.exec(pathname);
+
     if (putMatch && method === "PUT") {
       const code = putMatch[1];
       const body = JSON.parse(init.body);
@@ -155,8 +171,10 @@ function mockJudge({ existing = new Set(), failFor = new Set(), data = new Map()
           error: { code: "invalid", message: "A new problem requires a name." },
         });
       }
+
       const created = !existing.has(code);
       existing.add(code);
+
       return jsonResponse(200, {
         ok: true,
         created,
@@ -179,6 +197,7 @@ function jsonResponse(status, body) {
 
 function silent() {
   const lines = [];
+
   return {
     lines,
     log: (line) => lines.push(line),
@@ -200,6 +219,7 @@ describe("parseArgs", () => {
       "--dry-run",
       "--json",
     ]);
+
     expect(args.problemDirs).toEqual(["a", "b"]);
     expect(args.include).toEqual(["x*"]);
     expect(args.dryRun).toBe(true);
@@ -232,6 +252,7 @@ describe("problemCodesFromChanged", () => {
       "README.md",
       "other/thing/file.txt",
     ].join("\n");
+
     expect(problemCodesFromChanged(changed, "problems").sort()).toEqual(["aplusb", "mst"]);
   });
 
@@ -253,6 +274,7 @@ describe("buildRequest", () => {
       "statement.md": "Read two integers.\n",
       "config.json": JSON.stringify({ title: "A plus B" }),
     });
+
     const request = await buildRequest(dir);
     expect(request.code).toBe("aplusb");
     expect(request.body).toEqual({ statement: "Read two integers.\n", name: "A plus B" });
@@ -273,6 +295,7 @@ describe("buildRequest", () => {
         public: true,
       }),
     });
+
     const request = await buildRequest(dir);
     expect(request.body).toEqual({
       statement: "Build a tree.\n",
@@ -298,6 +321,7 @@ describe("buildRequest", () => {
       "statement.md": "x",
       "config.json": JSON.stringify({ title: "Plain", timeLimit: 2, memoryLimit: 262144 }),
     });
+
     const request = await buildRequest(dir);
     expect(request.body.languageLimits).toEqual({
       python3: { timeLimit: 2, memoryLimit: 262144 },
@@ -310,6 +334,7 @@ describe("buildRequest", () => {
       "statement.md": "x",
       "config.json": JSON.stringify({ title: "Owned", authors: ["swofty", " jane "] }),
     });
+
     expect((await buildRequest(dir)).body.authors).toEqual(["swofty", "jane"]);
   });
 
@@ -319,6 +344,7 @@ describe("buildRequest", () => {
       "editorial.md": "   \n",
       "config.json": JSON.stringify({ title: "Blank" }),
     });
+
     expect((await buildRequest(dir)).body).not.toHaveProperty("editorial");
   });
 
@@ -328,6 +354,7 @@ describe("buildRequest", () => {
       "editorial.md": "y",
       "config.json": JSON.stringify({ title: "A plus B", points: 5 }),
     });
+
     const request = await buildRequest(dir, { statementOnly: true });
     expect(Object.keys(request.body).sort()).toEqual(["editorial", "statement"]);
   });
@@ -350,6 +377,7 @@ describe("buildRequest", () => {
       "statement.md": "x",
       "config.json": JSON.stringify({ title: "N", points: -1 }),
     });
+
     await expect(buildRequest(negative)).rejects.toThrow(/config.points/);
   });
 
@@ -367,6 +395,7 @@ describe("collectLocalImageRefs", () => {
       "![Absolute](/media/x.png)",
       "![Data](data:image/png;base64,AAAA)",
     ].join("\n");
+
     expect(collectLocalImageRefs(markdown).map((ref) => ref.localPath)).toEqual([
       "tree.png",
       "figures/graph.svg",
@@ -392,6 +421,7 @@ describe("run", () => {
 
     const judge = mockJudge();
     const out = silent();
+
     const result = await run(["--problems-root", path.join(workdir, "problems")], {
       ...out,
       env: ENV,
@@ -410,6 +440,7 @@ describe("run", () => {
     await writeProblem("mst", { "statement.md": "b", "config.json": '{"title":"B"}' });
 
     const judge = mockJudge();
+
     const result = await run(
       [
         "--problems-root",
@@ -429,10 +460,12 @@ describe("run", () => {
     await writeProblem("mst", { "statement.md": "c", "config.json": '{"title":"C"}' });
 
     const judge = mockJudge();
+
     const result = await run(
       ["--problems-root", path.join(workdir, "problems"), "--include", "ap*", "--exclude", "apples"],
       { ...silent(), env: ENV, fetchImpl: judge.fetchImpl },
     );
+
     expect(result.uploaded.map((item) => item.code)).toEqual(["aplusb"]);
   });
 
@@ -454,6 +487,7 @@ describe("run", () => {
       "editorial.md": "Also ![A tree](tree.png).\n",
       "config.json": '{"title":"Figures"}',
     });
+
     await fs.writeFile(path.join(dir, "tree.png"), Buffer.from([1, 2, 3]));
     await fs.writeFile(path.join(dir, "graph.png"), Buffer.from([4, 5, 6, 7]));
 
@@ -475,6 +509,7 @@ describe("run", () => {
     const registry = JSON.parse(
       await fs.readFile(path.join(workdir, "problems", ".image-registry.json"), "utf8"),
     );
+
     expect(Object.keys(registry).sort()).toEqual(["figures/graph.png", "figures/tree.png"]);
 
     const second = mockJudge();
@@ -491,6 +526,7 @@ describe("run", () => {
       "statement.md": "![A tree](tree.png)\n",
       "config.json": '{"title":"Figures"}',
     });
+
     await fs.writeFile(path.join(dir, "tree.png"), Buffer.from([1]));
 
     const first = mockJudge();
@@ -508,8 +544,10 @@ describe("run", () => {
       "statement.md": "![Gone](missing.png)\n",
       "config.json": '{"title":"Figures"}',
     });
+
     const judge = mockJudge();
     const out = silent();
+
     const result = await run(["--problem-dir", dir], {
       ...out,
       env: ENV,
@@ -525,6 +563,7 @@ describe("run", () => {
     await writeProblem("aplusb", { "statement.md": "a", "config.json": '{"title":"A"}' });
     const judge = mockJudge();
     const out = silent();
+
     const result = await run(["--problems-root", path.join(workdir, "problems"), "--dry-run"], {
       ...out,
       env: ENV,
@@ -543,6 +582,7 @@ describe("run", () => {
 
     const judge = mockJudge({ failFor: new Set(["bad"]) });
     const out = silent();
+
     const result = await run(["--problems-root", path.join(workdir, "problems")], {
       ...out,
       env: ENV,
@@ -590,10 +630,12 @@ describe("run", () => {
   test("says so when nothing is selected", async () => {
     await fs.mkdir(path.join(workdir, "problems"), { recursive: true });
     const out = silent();
+
     const result = await run(["--problems-root", path.join(workdir, "problems")], {
       ...out,
       env: ENV,
     });
+
     expect(result.uploaded).toHaveLength(0);
     expect(out.lines.join("\n")).toContain("No problems selected.");
   });
@@ -654,6 +696,7 @@ describe("collectDataFiles", () => {
       "tests/b.in": "b",
       "tests/a.in": "a",
     });
+
     const paths = (await collectDataFiles(dir)).map((file) => file.archivePath);
     expect(paths).toEqual([...paths].sort());
     expect(paths).toEqual(["alpha.txt", "init.yml", "tests/a.in", "tests/b.in", "zeta.txt"]);
@@ -690,6 +733,7 @@ describe("buildDataArchive", () => {
       ],
       { encoding: "utf8" },
     );
+
     expect(JSON.parse(listing)).toEqual({
       "init.yml": INIT_YML,
       "sol.py": "print(sum(map(int, input().split())))\n",
@@ -706,6 +750,7 @@ describe("buildDataArchive", () => {
 
     const zipPath = path.join(workdir, "big.zip");
     await fs.writeFile(zipPath, archive.bytes);
+
     const output = execFileSync(
       "python3",
       [
@@ -715,6 +760,7 @@ describe("buildDataArchive", () => {
       ],
       { encoding: "utf8" },
     );
+
     expect(output).toBe(body);
   });
 
@@ -724,9 +770,11 @@ describe("buildDataArchive", () => {
 
     // Two checkouts of one commit differ in mtime and in nothing else.
     const stamp = new Date("2001-02-03T04:05:06Z");
+
     for (const name of ["init.yml", "tests/1.in", "tests/1.out", "tests/2.in", "tests/2.out"]) {
       await fs.utimes(path.join(dir, name), stamp, stamp);
     }
+
     const second = await buildDataArchive(dir);
 
     expect(second.hash).toBe(first.hash);
@@ -757,6 +805,7 @@ describe("buildDataArchive", () => {
     const dir = await writeProblem("huge", { "init.yml": INIT_YML });
     const target = path.join(dir, "tests.zip");
     const fourGiB = 4 * 1024 ** 3;
+
     try {
       const handle = await fs.open(target, "w");
       await handle.truncate(fourGiB);
@@ -764,6 +813,7 @@ describe("buildDataArchive", () => {
     } catch {
       return; // no sparse files here, and writing four real gigabytes is not a unit test
     }
+
     if ((await fs.stat(target)).size !== fourGiB) return;
 
     await expect(buildDataArchive(dir)).rejects.toThrow(/4 GB/);
@@ -775,6 +825,7 @@ describe("run, publishing test data", () => {
     await writeDataProblem("aplusb");
     const judge = mockJudge();
     const out = silent();
+
     const result = await run(["--problems-root", path.join(workdir, "problems")], {
       ...out,
       env: ENV,
@@ -836,10 +887,12 @@ describe("run, publishing test data", () => {
   test("falls back to POST when the storage host refuses PUT", async () => {
     await writeDataProblem("aplusb");
     const judge = mockJudge();
+
     const fetchImpl = async (url, init = {}) => {
       if (new URL(url).host === "storage.test" && (init.method ?? "GET") === "PUT") {
         return jsonResponse(405, { error: { code: "invalid", message: "Method not allowed." } });
       }
+
       return await judge.fetchImpl(url, init);
     };
 
@@ -848,6 +901,7 @@ describe("run, publishing test data", () => {
       env: ENV,
       fetchImpl,
     });
+
     expect(result.exitCode).toBe(0);
     expect(judge.calls.blobs.map((blob) => blob.method)).toEqual(["POST"]);
   });
@@ -855,6 +909,7 @@ describe("run, publishing test data", () => {
   test("--skip-data publishes the statement and nothing else", async () => {
     await writeDataProblem("aplusb");
     const judge = mockJudge();
+
     const result = await run(["--problems-root", path.join(workdir, "problems"), "--skip-data"], {
       ...silent(),
       env: ENV,
@@ -882,6 +937,7 @@ describe("run, publishing test data", () => {
     await writeDataProblem("aplusb");
     const judge = mockJudge({ existing: new Set(["aplusb"]) });
     const out = silent();
+
     const result = await run(["--problems-root", path.join(workdir, "problems"), "--data-only"], {
       ...out,
       env: ENV,
@@ -900,6 +956,7 @@ describe("run, publishing test data", () => {
     await writeDataProblem("aplusb");
     const judge = mockJudge();
     const out = silent();
+
     const result = await run(["--problems-root", path.join(workdir, "problems"), "--data-only"], {
       ...out,
       env: ENV,
@@ -919,6 +976,7 @@ describe("run, publishing test data", () => {
     });
     const judge = mockJudge();
     const out = silent();
+
     const result = await run(["--problems-root", path.join(workdir, "problems")], {
       ...out,
       env: ENV,
@@ -937,6 +995,7 @@ describe("run, publishing test data", () => {
       "config.json": '{"title":"Text only"}',
     });
     const judge = mockJudge({ existing: new Set(["textonly"]) });
+
     const result = await run(["--problems-root", path.join(workdir, "problems"), "--data-only"], {
       ...silent(),
       env: ENV,
@@ -951,6 +1010,7 @@ describe("run, publishing test data", () => {
     const dir = await writeDataProblem("aplusb");
     const judge = mockJudge({ existing: new Set(["aplusb"]) });
     const out = silent();
+
     const result = await run(["--problem-dir", dir, "--dry-run"], {
       ...out,
       env: ENV,
@@ -979,11 +1039,13 @@ describe("run, publishing test data", () => {
     await run(["--problem-dir", dir], { ...silent(), env: ENV, fetchImpl: judge.fetchImpl });
 
     const out = silent();
+
     const result = await run(["--problem-dir", dir, "--dry-run"], {
       ...out,
       env: ENV,
       fetchImpl: judge.fetchImpl,
     });
+
     expect(result.skipped[0].data.status).toBe("unchanged");
     expect(out.lines.join("\n")).toContain("data: unchanged");
   });

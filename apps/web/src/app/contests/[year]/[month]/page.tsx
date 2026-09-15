@@ -32,6 +32,7 @@ export async function generateMetadata({
   const t = await getTranslations("contests.calendar");
   const index = Number.parseInt(month, 10) - 1;
   const name = MONTHS[index];
+
   return { title: name ? t("metaTitle", { month: t(`months.${name}`), year }) : t("metaFallback") };
 }
 
@@ -46,6 +47,7 @@ export default async function ContestCalendarPage({
   const { year: yearParam, month: monthParam } = await params;
   const year = Number.parseInt(yearParam, 10);
   const month = Number.parseInt(monthParam, 10);
+
   if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) notFound();
 
   const [calendar, permissions] = await Promise.all([
@@ -54,10 +56,12 @@ export default async function ContestCalendarPage({
       codes: ["judge.edit_all_contest", "judge.edit_own_contest"],
     }).catch(() => ({}) as Record<string, boolean>),
   ]);
+
   if (!calendar) notFound();
 
   const canEditContests =
     permissions["judge.edit_all_contest"] === true || permissions["judge.edit_own_contest"] === true;
+
   const now = new Date();
 
   return (

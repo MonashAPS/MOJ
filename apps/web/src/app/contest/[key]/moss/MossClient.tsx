@@ -62,6 +62,7 @@ export function MossClient({
   const results = data?.results ?? [];
   const languages = [...new Set(results.map((row) => row.languageKey))].sort();
   const byProblem = new Map<string, { name: string; cells: Map<string, (typeof results)[number]> }>();
+
   for (const row of results) {
     const entry = byProblem.get(row.problemCode) ?? { name: row.problemName, cells: new Map() };
     entry.cells.set(row.languageKey, row);
@@ -70,6 +71,7 @@ export function MossClient({
 
   const remove = async () => {
     setBusy(true);
+
     try {
       const { deleted } = await deleteResults({ key: contestKey });
       toast.success(t("deleted", { count: deleted }));
@@ -125,6 +127,7 @@ export function MossClient({
                   </TableCell>
                   {languages.map((language) => {
                     const cell = entry.cells.get(language);
+
                     return (
                       <TableCell key={language} className="whitespace-nowrap">
                         {cell?.submissionCount ? (

@@ -67,6 +67,7 @@ export function ProblemEditorialTab({ problem }: { problem: ProblemEdit }) {
   async function save() {
     setError(null);
     setBusy(true);
+
     try {
       await setEditorial({
         code: problem.code,
@@ -81,11 +82,13 @@ export function ProblemEditorialTab({ problem }: { problem: ProblemEdit }) {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : shared("changeRefused"));
     }
+
     setBusy(false);
   }
 
   async function remove() {
     setConfirmDelete(false);
+
     try {
       await deleteEditorial({ code: problem.code, reason: reason.trim() || "Removed the editorial." });
       setContent("");
@@ -181,11 +184,15 @@ export function ProblemTranslationsTab({ problem }: { problem: ProblemEdit }) {
 
   async function save() {
     setError(null);
+
     if (!language.trim()) {
       setError(t("languageRequired"));
+
       return;
     }
+
     setBusy(true);
+
     try {
       await setTranslation({
         code: problem.code,
@@ -199,6 +206,7 @@ export function ProblemTranslationsTab({ problem }: { problem: ProblemEdit }) {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : shared("changeRefused"));
     }
+
     setBusy(false);
   }
 
@@ -310,6 +318,7 @@ export function ProblemLanguageLimitsTab({
   async function save() {
     setError(null);
     setBusy(true);
+
     try {
       await setLanguageLimits({ code: problem.code, limits, reason: reason.trim() });
       setReason("");
@@ -317,6 +326,7 @@ export function ProblemLanguageLimitsTab({
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : shared("changeRefused"));
     }
+
     setBusy(false);
   }
 
@@ -443,11 +453,15 @@ export function ProblemClarificationsTab({ problem }: { problem: ProblemEdit }) 
 
   async function add() {
     setError(null);
+
     if (!description.trim()) {
       setError(t("descriptionRequired"));
+
       return;
     }
+
     setBusy(true);
+
     try {
       await addClarification({
         code: problem.code,
@@ -460,6 +474,7 @@ export function ProblemClarificationsTab({ problem }: { problem: ProblemEdit }) 
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : shared("changeRefused"));
     }
+
     setBusy(false);
   }
 

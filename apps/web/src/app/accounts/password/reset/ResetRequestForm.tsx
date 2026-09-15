@@ -23,12 +23,16 @@ export function ResetRequestForm() {
     event.preventDefault();
     setBusy(true);
     setError(null);
+
     try {
       const result = await authClient.requestPasswordReset({ email: email.trim() });
+
       if (result.error?.status === 429) {
         setError(t("tooMany"));
+
         return;
       }
+
       // Anything else, including an address nobody has, lands on the same page.
       router.push(`/accounts/reset/done/?email=${encodeURIComponent(email.trim())}`);
     } catch {

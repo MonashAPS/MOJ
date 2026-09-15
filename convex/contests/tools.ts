@@ -26,6 +26,7 @@ export const clone = mutation({
   handler: async (ctx, { key, newKey }): Promise<{ contestId: Id<"contests">; key: string }> => {
     const profile = await requireViewer(ctx);
     const viewer = await toViewerRowInContest(ctx, profile);
+
     if (!hasPerm(viewer, "judge.clone_contest")) {
       throw forbidden("Missing permission judge.clone_contest.");
     }
@@ -33,14 +34,17 @@ export const clone = mutation({
     const contest = await requireAccessibleContest(ctx, key, profile);
 
     const wanted = newKey.trim();
+
     if (!CONTEST_KEY_PATTERN.test(wanted) || wanted.length > 20) {
       throw invalid("Contest id must be lowercase letters and digits, at most 20 characters.");
     }
+
     if (await contestByKey(ctx, wanted)) {
       throw mojError("CONFLICT", "That contest id is already taken.");
     }
 
     const { _id, _creationTime, legacyId, ...fields } = contest;
+
     const contestId = await ctx.db.insert("contests", {
       ...fields,
       key: wanted,
@@ -61,6 +65,7 @@ export const clone = mutation({
         legacyId: _problemLegacyId,
         ...problemFields
       } = contestProblem;
+
       await ctx.db.insert("contestProblems", { ...problemFields, contestId });
     }
 
@@ -97,18 +102,23 @@ export const moss = query({
   args: { key: v.string() },
   handler: async (ctx, { key }): Promise<MossPayload | null> => {
     const profile = await optionalViewer(ctx);
+
     if (!profile) return null;
     const contest = await contestByKey(ctx, key);
+
     if (!contest) return null;
 
     const viewer = await toViewerRowInContest(ctx, profile);
+
     if (!hasPerm(viewer, "judge.moss_contest")) return null;
+
     if (!contestIsEditableBy(toContestRow(contest), viewer)) return null;
 
     const settings = await ctx.db
       .query("siteSettings")
       .withIndex("by_singleton", (q) => q.eq("singleton", "site"))
       .unique();
+
     if (!settings?.mossApiKey) {
       return { configured: false, message: "MOSS is not configured.", results: [] };
     }
@@ -119,6 +129,7 @@ export const moss = query({
       .collect();
 
     const results: MossPayload["results"] = [];
+
     for (const row of rows) {
       const problem = await ctx.db.get(row.problemId);
       results.push({
@@ -129,6 +140,7 @@ export const moss = query({
         url: row.url ?? null,
       });
     }
+
     return { configured: true, message: null, results };
   },
 });

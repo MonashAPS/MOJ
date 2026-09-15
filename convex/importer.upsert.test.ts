@@ -100,14 +100,17 @@ describe("importer.insertBatch upserts the reference tables", () => {
   test("a language id from the mapping resolves on a table imported after it", async () => {
     const t = setupTest();
     await t.mutation(internal.seed.run, {});
+
     const mapping = await t.mutation(internal.importer.insertBatch, {
       table: "languages",
       docs: [importedLanguage("PY3", 4)],
     });
+
     const languageId = mapping[0]?.id as Id<"languages">;
 
     const problemId = await t.run(async (ctx) => {
       const groupId = await insertProblemGroup(ctx, { name: "imported" });
+
       return await insertProblem(ctx, {
         code: "dumped",
         groupId,
@@ -169,8 +172,10 @@ describe("importer.insertBatch upserts the reference tables", () => {
 
   test("a table with no natural key still just inserts", async () => {
     const t = setupTest();
+
     const ids = await t.run(async (ctx) => {
       const groupId = await insertProblemGroup(ctx);
+
       return { problemId: await insertProblem(ctx, { code: "aplusb", groupId }) };
     });
 
@@ -204,6 +209,7 @@ describe("the judge handshake survives duplicate languages", () => {
       problems: [["aplusb", 100]],
       executors: { PY3: [["python3", [3, 11, 0]]], CPP17: [["g++", [12, 2, 0]]], NOSUCH: [["x", [1]]] },
     });
+
     expect(result.ok).toBe(true);
 
     const runtimes = await t.run(async (ctx) => await ctx.db.query("runtimeVersions").collect());
@@ -217,6 +223,7 @@ describe("the judge handshake survives duplicate languages", () => {
           .withIndex("by_name", (q) => q.eq("name", "judge.example.com"))
           .first(),
     );
+
     expect(judge?.online).toBe(true);
     expect(judge?.runtimeKeys).toEqual(["CPP17", "NOSUCH", "PY3"]);
   });
@@ -236,25 +243,30 @@ interface DuplicateFixture {
 async function seedDuplicates(t: T, submissionCount = 3): Promise<DuplicateFixture> {
   return await t.run(async (ctx) => {
     await insertProfile(ctx, { username: "root", isStaff: true, isSuperuser: true });
+
     // The seeded row comes first and carries no legacyId; the imported row does.
     const loser = await ctx.db.insert("languages", {
       ...importedLanguage("PY3", 0),
       name: "seeded",
       legacyId: undefined,
     });
+
     const survivor = await ctx.db.insert("languages", importedLanguage("PY3", 4));
     const keeper = await ctx.db.insert("languages", importedLanguage("CPP17", 9));
 
     const groupId = await insertProblemGroup(ctx);
+
     const problemId = await insertProblem(ctx, {
       code: "aplusb",
       groupId,
       allowedLanguageIds: [loser, keeper, survivor],
     });
+
     const profileId = await insertProfile(ctx, { username: "ada" });
     await ctx.db.patch(profileId, { languageId: loser });
 
     const submissionIds: Id<"submissions">[] = [];
+
     for (let i = 0; i < submissionCount; i++) {
       submissionIds.push(await insertSubmission(ctx, { profileId, problemId, languageId: loser, date: i }));
     }
@@ -265,7 +277,9 @@ async function seedDuplicates(t: T, submissionCount = 3): Promise<DuplicateFixtu
       timeLimit: 5,
       memoryLimit: 65536,
     });
+
     const judgeId = await ctx.db.insert("judges", offlineJudgeRow());
+
     const runtimeId = await ctx.db.insert("runtimeVersions", {
       languageId: loser,
       judgeId,
@@ -301,6 +315,7 @@ describe("admin/languages.dedupeByKey", () => {
       for (const submissionId of ids.submissionIds) {
         expect((await ctx.db.get(submissionId))?.languageId).toBe(ids.survivor);
       }
+
       const problem = await ctx.db.get(ids.problemId);
       // The loser folds into the survivor without duplicating it.
       expect(problem?.allowedLanguageIds).toEqual([ids.survivor, ids.keeper]);
@@ -365,10 +380,12 @@ describe("admin/languages.dedupeByKey", () => {
 
     await t.run(async (ctx) => {
       expect(await ctx.db.get(ids.loser)).toBeNull();
+
       const stragglers = await ctx.db
         .query("submissions")
         .withIndex("by_language_date", (q) => q.eq("languageId", ids.loser))
         .collect();
+
       expect(stragglers).toHaveLength(0);
       expect((await ctx.db.get(ids.profileId))?.languageId).toBe(ids.survivor);
       expect((await ctx.db.get(ids.problemId))?.allowedLanguageIds).toEqual([ids.survivor, ids.keeper]);

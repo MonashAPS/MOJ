@@ -28,17 +28,21 @@ export const source = query({
   args: { code: v.string(), language: v.optional(v.string()) },
   handler: async (ctx, { code, language }) => {
     const problem = await problemByCode(ctx, code);
+
     if (!problem) return null;
 
     const viewer = await loadViewerContext(ctx);
+
     if (!(await canAccessProblem(ctx, problem, viewer))) return null;
 
     const lang = language ?? "en";
     const translation = await translationFor(ctx, problem._id, lang);
 
     const authors: string[] = [];
+
     for (const id of problem.authorProfileIds) {
       const row = await ctx.db.get(id);
+
       if (row) authors.push(row.username);
     }
 
@@ -47,9 +51,12 @@ export const source = query({
       .query("languageLimits")
       .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
       .collect();
+
     let pythonTimeLimit: number | null = null;
+
     for (const limit of limits) {
       const lang3 = await ctx.db.get(limit.languageId);
+
       if (lang3 && (lang3.key === "PY3" || lang3.key.toLowerCase().startsWith("py"))) {
         pythonTimeLimit = limit.timeLimit;
         break;
@@ -93,7 +100,9 @@ export const uploadUrl = mutation({
   handler: async (ctx, { code }) => {
     const problem = await requireProblem(ctx, code);
     const viewer = await loadViewerContext(ctx);
+
     if (!(await canAccessProblem(ctx, problem, viewer))) throw notFound("Problem");
+
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -108,6 +117,7 @@ export const save = mutation({
   handler: async (ctx, args) => {
     const problem = await requireProblem(ctx, args.code);
     const viewer = await loadViewerContext(ctx);
+
     if (!(await canAccessProblem(ctx, problem, viewer))) throw notFound("Problem");
 
     const existing = await ctx.db

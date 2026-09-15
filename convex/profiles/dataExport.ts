@@ -58,6 +58,7 @@ export const status = query({
     const running = job?.status === "queued" || job?.status === "running";
 
     let download: DataExportStatus["download"] = null;
+
     if (job?.status === "done" && job.result?.storageId) {
       download = {
         storageId: job.result.storageId as Id<"_storage">,
@@ -90,18 +91,22 @@ export const prepare = mutation({
   args: { options: dataExportOptions },
   handler: async (ctx, { options }): Promise<Id<"jobs">> => {
     const profile = await requireViewer(ctx);
+
     if (profile.mute) throw forbidden("Your part is silent, little toad.");
+
     if (!options.submissionDownload && !options.commentDownload) {
       throw invalid("Please select at least one thing to download.");
     }
 
     const now = Date.now();
     const last = profile.dataLastDownloaded;
+
     if (last !== undefined && last + DATA_DOWNLOAD_RATELIMIT_MS > now) {
       throw mojError("RATE_LIMITED", "You may only prepare your data once a day.");
     }
 
     const existing = await latestExportJob(ctx, profile._id);
+
     if (existing && (existing.status === "queued" || existing.status === "running")) {
       throw mojError("CONFLICT", "Your data is already being prepared.");
     }
@@ -123,6 +128,7 @@ export const prepare = mutation({
 
     await ctx.db.patch(profile._id, { dataLastDownloaded: now });
     await ctx.scheduler.runAfter(0, internal.jobs.users.run, { jobId });
+
     return jobId;
   },
 });

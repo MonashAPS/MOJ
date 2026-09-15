@@ -36,25 +36,31 @@ export const list = query({
   args: { key: v.string() },
   handler: async (ctx, { key }): Promise<Clarification[] | null> => {
     const contest = await contestByKey(ctx, key);
+
     if (!contest) return null;
 
     const profile = await optionalViewer(ctx);
     const viewer = await toViewerRowInContest(ctx, profile);
     const current = profile?.currentParticipationId ? await ctx.db.get(profile.currentParticipationId) : null;
     const inThisContest = current?.contestId === contest._id;
+
     if (!inThisContest && contestAccessCheck(toContestRow(contest), viewer).kind !== "ok") {
       return null;
     }
 
     const contestProblems = await loadContestProblems(ctx, contest._id);
     const out: Clarification[] = [];
+
     for (const [index, contestProblem] of contestProblems.entries()) {
       const problem = await ctx.db.get(contestProblem.problemId);
+
       if (!problem) continue;
+
       const rows = await ctx.db
         .query("problemClarifications")
         .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
         .collect();
+
       for (const row of rows) {
         out.push({
           _id: row._id,
@@ -67,6 +73,7 @@ export const list = query({
         });
       }
     }
+
     return out.sort((a, b) => b.date - a.date);
   },
 });
@@ -76,20 +83,25 @@ export const add = mutation({
   handler: async (ctx, { key, problemCode, description }): Promise<Id<"problemClarifications">> => {
     const profile = await requireViewer(ctx);
     const contest = await contestByKey(ctx, key);
+
     if (!contest) throw notFound(`Contest "${key}"`);
     const viewer = await toViewerRowInContest(ctx, profile);
+
     if (!contestIsEditableBy(toContestRow(contest), viewer)) throw forbidden();
 
     const body = description.trim();
+
     if (!body) throw invalid("A clarification needs a body.");
 
     const problem = await ctx.db
       .query("problems")
       .withIndex("by_code", (q) => q.eq("code", problemCode))
       .unique();
+
     if (!problem) throw notFound(`Problem "${problemCode}"`);
 
     const contestProblems = await loadContestProblems(ctx, contest._id);
+
     if (!contestProblems.some((row) => row.problemId === problem._id)) {
       throw invalid(`"${problemCode}" is not in this contest.`);
     }

@@ -24,6 +24,7 @@ async function seed() {
     });
     await insertProfile(ctx, { username: "member", points: 10, performancePoints: 9 });
   });
+
   return t;
 }
 
@@ -100,6 +101,7 @@ describe("admin/organizations", () => {
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", "clerk"))
         .unique();
+
       await insertOrganization(ctx, {
         slug: "maps",
         name: "MAPS",
@@ -161,7 +163,9 @@ describe("admin/organizations", () => {
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", "member"))
         .unique();
+
       const organizationId = await insertOrganization(ctx, { slug: "doomed", isOpen: false });
+
       if (member) {
         await ctx.db.insert("organizationMemberships", {
           organizationId,
@@ -176,6 +180,7 @@ describe("admin/organizations", () => {
           reason: "",
         });
       }
+
       await ctx.db.insert("classes", {
         organizationId,
         name: "Class",
@@ -194,6 +199,7 @@ describe("admin/organizations", () => {
       classes: (await ctx.db.query("classes").collect()).length,
       requests: (await ctx.db.query("organizationRequests").collect()).length,
     }));
+
     expect(left).toEqual({ organizations: 0, memberships: 0, classes: 0, requests: 0 });
   });
 
@@ -204,7 +210,9 @@ describe("admin/organizations", () => {
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", "member"))
         .unique();
+
       const organizationId = await insertOrganization(ctx, { slug: "drifted" });
+
       if (member) {
         await ctx.db.insert("organizationMemberships", {
           organizationId,
@@ -212,6 +220,7 @@ describe("admin/organizations", () => {
           order: 0,
         });
       }
+
       await ctx.db.patch(organizationId, { memberCount: 99 });
     });
 

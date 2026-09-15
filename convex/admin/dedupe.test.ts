@@ -72,15 +72,18 @@ describe("admin/dedupe.dedupeNaturalKeys on the navigation bar", () => {
     return await t.run(async (ctx) => {
       const seededProblems = await makeNavItem(ctx, "problems", 1, { label: "Problems", legacyId: 1 });
       const seededAbout = await makeNavItem(ctx, "about", 6, { label: "About", legacyId: 6 });
+
       const seededStatus = await makeNavItem(ctx, "status", 7, {
         label: "Status",
         parentId: seededAbout,
         legacyId: 7,
       });
+
       const custom = await makeNavItem(ctx, "faq", 8, { label: "FAQ", parentId: seededAbout });
 
       const importedProblems = await makeNavItem(ctx, "problems", 1, { label: "Problems", legacyId: 1 });
       const importedAbout = await makeNavItem(ctx, "about", 6, { label: "About", legacyId: 6 });
+
       const importedStatus = await makeNavItem(ctx, "status", 7, {
         label: "Status",
         parentId: importedAbout,
@@ -117,11 +120,14 @@ describe("admin/dedupe.dedupeNaturalKeys on the navigation bar", () => {
     await t.run(async (ctx) => {
       const rows = await ctx.db.query("navigationBar").collect();
       expect(rows.map((row) => row.key).sort()).toEqual(["about", "faq", "problems", "status"]);
+
       for (const gone of [ids.seededProblems, ids.seededAbout, ids.seededStatus]) {
         expect(await ctx.db.get(gone)).toBeNull();
       }
+
       expect((await ctx.db.get(ids.custom))?.parentId).toBe(ids.importedAbout);
       expect((await ctx.db.get(ids.importedStatus))?.parentId).toBe(ids.importedAbout);
+
       // Nothing may still name a deleted row.
       for (const row of rows) {
         if (row.parentId === undefined) continue;
@@ -164,17 +170,20 @@ describe("admin/dedupe.dedupeNaturalKeys on the problem taxonomy", () => {
         name: "uncategorized",
         fullName: "Uncategorized",
       });
+
       const importedType = await ctx.db.insert("problemTypes", {
         name: "uncategorized",
         fullName: "uncategorized",
         legacyId: 1,
       });
+
       const mathType = await ctx.db.insert("problemTypes", { name: "math", fullName: "Mathematics" });
 
       const seededGroup = await ctx.db.insert("problemGroups", {
         name: "uncategorized",
         fullName: "Uncategorized",
       });
+
       const importedGroup = await ctx.db.insert("problemGroups", {
         name: "uncategorized",
         fullName: "uncategorized",
@@ -189,13 +198,16 @@ describe("admin/dedupe.dedupeNaturalKeys on the problem taxonomy", () => {
         groupId: seededGroup,
         typeIds: [seededType, mathType],
       });
+
       await ctx.db.patch(seededSide, { licenseId: seededLicense });
+
       // A problem that was edited to carry both rows of the duplicated type.
       const bothSides = await insertProblem(ctx, {
         code: "helloworld",
         groupId: importedGroup,
         typeIds: [seededType, importedType],
       });
+
       const untouched = await insertProblem(ctx, {
         code: "fizzbuzz",
         groupId: importedGroup,
@@ -282,10 +294,12 @@ describe("admin/dedupe.dedupeNaturalKeys on the problem taxonomy", () => {
 
     await t.run(async (ctx) => {
       expect(await ctx.db.get(ids.seededGroup)).toBeNull();
+
       const stragglers = await ctx.db
         .query("problems")
         .withIndex("by_group", (q) => q.eq("groupId", ids.seededGroup))
         .collect();
+
       expect(stragglers).toHaveLength(0);
       expect((await ctx.db.get(ids.seededSide))?.groupId).toBe(ids.importedGroup);
     });
@@ -317,16 +331,19 @@ describe("admin/dedupe.dedupeNaturalKeys picks the survivor", () => {
   test("keeps the imported row even when it was created first", async () => {
     const t = setupTest();
     await makeRoot(t);
+
     const ids = await t.run(async (ctx) => {
       const imported = await ctx.db.insert("problemTypes", {
         name: "uncategorized",
         fullName: "uncategorized",
         legacyId: 1,
       });
+
       const seeded = await ctx.db.insert("problemTypes", {
         name: "uncategorized",
         fullName: "Uncategorized",
       });
+
       return { imported, seeded };
     });
 
@@ -342,10 +359,12 @@ describe("admin/dedupe.dedupeNaturalKeys picks the survivor", () => {
   test("keeps the newest row when the legacy ids do not decide it", async () => {
     const t = setupTest();
     await makeRoot(t);
+
     const ids = await t.run(async (ctx) => {
       // Neither row was imported.
       const oldMisc = await ctx.db.insert("miscConfig", { key: "announcement", value: "old" });
       const newMisc = await ctx.db.insert("miscConfig", { key: "announcement", value: "new" });
+
       // Both were, by two imports of the same dump.
       const oldPage = await ctx.db.insert("flatPages", {
         url: "/about/",
@@ -353,12 +372,14 @@ describe("admin/dedupe.dedupeNaturalKeys picks the survivor", () => {
         content: "",
         legacyId: 1,
       });
+
       const newPage = await ctx.db.insert("flatPages", {
         url: "/about/",
         title: "new",
         content: "",
         legacyId: 1,
       });
+
       return { oldMisc, newMisc, oldPage, newPage };
     });
 
@@ -380,16 +401,19 @@ describe("admin/dedupe.dedupeNaturalKeys picks the survivor", () => {
   test("records what it merged on the row it kept", async () => {
     const t = setupTest();
     await makeRoot(t);
+
     const ids = await t.run(async (ctx) => {
       const seeded = await ctx.db.insert("problemGroups", {
         name: "uncategorized",
         fullName: "Uncategorized",
       });
+
       const imported = await ctx.db.insert("problemGroups", {
         name: "uncategorized",
         fullName: "uncategorized",
         legacyId: 1,
       });
+
       return { seeded, imported };
     });
 
@@ -400,6 +424,7 @@ describe("admin/dedupe.dedupeNaturalKeys picks the survivor", () => {
         .query("revisions")
         .withIndex("by_entity", (q) => q.eq("entityType", "problemGroup").eq("entityId", ids.imported))
         .collect();
+
       expect(revisions).toHaveLength(1);
       const revision = revisions[0] as Doc<"revisions">;
       const merged = (revision.snapshot as { mergedFrom: Doc<"problemGroups"> }).mergedFrom;
@@ -430,11 +455,13 @@ describe("admin/dedupe.dedupeNaturalKeys on a clean deployment", () => {
       referencesRewritten: 0,
       isDone: true,
     });
+
     const after = await t.run(async (ctx) => ({
       navigation: (await ctx.db.query("navigationBar").collect()).length,
       misc: (await ctx.db.query("miscConfig").collect()).length,
       types: (await ctx.db.query("problemTypes").collect()).length,
     }));
+
     expect(after).toEqual(before);
   });
 

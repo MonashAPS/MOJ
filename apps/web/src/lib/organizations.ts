@@ -22,5 +22,6 @@ export function classHref(organization: Addressable, klass: Addressable, suffix 
 export function slugFromHandle(handle: string): string {
   const decoded = decodeURIComponent(handle);
   const match = /^(\d+)-(.+)$/.exec(decoded);
+
   return match?.[2] ?? decoded;
 }

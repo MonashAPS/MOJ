@@ -54,9 +54,11 @@ function hasTimeLimit(contest: ContestRow): boolean {
  */
 export function participationStart(participation: ContestParticipationRow, contest: ContestRow): number {
   const untimed = contest.timeLimit == null;
+
   if (untimed && (participationIsLive(participation) || participationIsSpectating(participation))) {
     return contest.startTime;
   }
+
   return participation.realStart;
 }
 
@@ -72,10 +74,12 @@ export function participationEndTime(participation: ContestParticipationRow, con
 
   if (participation.virtual !== PARTICIPATION_LIVE) {
     if (hasTimeLimit(contest)) return participation.realStart + (contest.timeLimit as number) * 1000;
+
     return participation.realStart + (contest.endTime - contest.startTime);
   }
 
   if (contest.timeLimit == null) return contest.endTime;
+
   return Math.min(participation.realStart + contest.timeLimit * 1000, contest.endTime);
 }
 
@@ -95,6 +99,7 @@ export function participationTimeRemaining(
   now: number = Date.now(),
 ): number | null {
   const end = participationEndTime(participation, contest);
+
   return end >= now ? end - now : null;
 }
 
@@ -150,13 +155,16 @@ export function contestJoinDecision(
 
   const now = options.now ?? Date.now();
   const participations = options.participations ?? [];
+
   const liveParticipation =
     participations.find((p) => p.virtual === PARTICIPATION_LIVE && p.profileId === viewer.id) ?? null;
+
   const context = { now, liveParticipation };
 
   const isEditor =
     (contest.authorProfileIds ?? []).includes(viewer.id) ||
     (contest.curatorProfileIds ?? []).includes(viewer.id);
+
   const isTester = (contest.testerProfileIds ?? []).includes(viewer.id);
 
   if (contest.startTime > now && !(isEditor || isTester)) return { kind: "notStarted" };
@@ -167,28 +175,34 @@ export function contestJoinDecision(
 
   const canEdit =
     hasPerm(viewer, "judge.edit_all_contest") || (hasPerm(viewer, "judge.edit_own_contest") && isEditor);
+
   const requiresAccessCode = !canEdit && !!contest.accessCode && options.accessCode !== contest.accessCode;
 
   if (contest.endTime < now) {
     if (requiresAccessCode) return { kind: "accessCodeRequired" };
     const highest = participations.reduce((max, p) => Math.max(max, p.virtual), 0);
+
     return { kind: "virtual", virtualId: Math.max(highest + 1, 1) };
   }
 
   let type: number;
+
   if (contestIsLiveJoinableBy(contest, viewer, context)) type = PARTICIPATION_LIVE;
   else if (contestIsSpectatableBy(contest, viewer)) type = PARTICIPATION_SPECTATE;
   else return { kind: "cannotEnter" };
 
   const existing = participations.find((p) => p.virtual === type) ?? null;
+
   if (!existing) {
     if (requiresAccessCode) return { kind: "accessCodeRequired" };
+
     return type === PARTICIPATION_LIVE ? { kind: "live" } : { kind: "spectate" };
   }
 
   if (participationHasEnded(existing, contest, now)) {
     // A finished window drops the user into spectating.
     const spectating = participations.find((p) => p.virtual === PARTICIPATION_SPECTATE) ?? null;
+
     return spectating ? { kind: "spectate", participationId: spectating.id } : { kind: "spectate" };
   }
 
@@ -209,5 +223,6 @@ export function shouldLeaveContest(
   now: number = Date.now(),
 ): boolean {
   if (!participation || !contest) return false;
+
   return participationHasEnded(participation, contest, now) || !contestIsAccessibleBy(contest, viewer);
 }

@@ -14,16 +14,19 @@ export async function GET(request: NextRequest) {
   if (!handle) return NextResponse.redirect(new URL("/users/", origin), 302);
 
   const found = await query(api.rankings.find, { username: handle }).catch(() => null);
+
   if (!found) {
     // DMOJ raises a 404; the leaderboard with the handle still in the box is
     // kinder and keeps the member on the page they asked for.
     return NextResponse.redirect(new URL(`/users/?missing=${encodeURIComponent(handle)}`, origin), 302);
   }
+
   if (found.isUnlisted) {
     return NextResponse.redirect(new URL(`/user/${encodeURIComponent(found.username)}`, origin), 302);
   }
 
   const suffix = `#!${encodeURIComponent(found.username)}`;
   const path = found.page > 1 ? `/users/?page=${found.page}${suffix}` : `/users/${suffix}`;
+
   return NextResponse.redirect(new URL(path, origin), 302);
 }

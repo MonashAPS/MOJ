@@ -77,6 +77,7 @@ async function linkedProblem(
   ticket: Doc<"tickets">,
 ): Promise<Doc<"problems"> | null> {
   if (ticket.linkedType !== "problem" || !ticket.linkedKey) return null;
+
   return await ctx.db
     .query("problems")
     .withIndex("by_code", (q) => q.eq("code", ticket.linkedKey ?? ""))
@@ -94,9 +95,12 @@ async function canSeeTicket(
   viewer: CoreViewer,
 ): Promise<boolean> {
   if (!profile) return false;
+
   if (hasPerm(viewer, "judge.change_ticket")) return true;
+
   if (isOwnTicket(ticket, profile._id)) return true;
   const problem = await linkedProblem(ctx, ticket);
+
   return problem !== null && problemIsEditableBy(coreRow(problem), viewer);
 }
 
@@ -108,12 +112,14 @@ async function canManageTicket(
 ): Promise<boolean> {
   if (hasPerm(viewer, "judge.change_ticket")) return true;
   const problem = await linkedProblem(ctx, ticket);
+
   return problem !== null && problemIsEditableBy(coreRow(problem), viewer);
 }
 
 async function summarise(ctx: QueryCtx | MutationCtx, ticket: Doc<"tickets">): Promise<TicketSummary> {
   const author = await ctx.db.get(ticket.profileId);
   const assignees = await authorSummaries(ctx, ticket.assigneeProfileIds);
+
   const messages = await ctx.db
     .query("ticketMessages")
     .withIndex("by_ticket_time", (q) => q.eq("ticketId", ticket._id))
@@ -121,6 +127,7 @@ async function summarise(ctx: QueryCtx | MutationCtx, ticket: Doc<"tickets">): P
 
   let linkedTitle: string | null = null;
   let linkedHref: string | null = null;
+
   if (ticket.linkedType === "problem" && ticket.linkedKey) {
     const problem = await linkedProblem(ctx, ticket);
     linkedTitle = problem?.name ?? ticket.linkedKey;
@@ -150,14 +157,18 @@ async function summarise(ctx: QueryCtx | MutationCtx, ticket: Doc<"tickets">): P
 
 async function ticketByKey(ctx: QueryCtx | MutationCtx, key: string): Promise<Doc<"tickets"> | null> {
   const numeric = Number(key);
+
   if (Number.isInteger(numeric) && key.trim() !== "") {
     const byLegacy = await ctx.db
       .query("tickets")
       .withIndex("by_legacyId", (q) => q.eq("legacyId", numeric))
       .unique();
+
     if (byLegacy) return byLegacy;
   }
+
   const id = ctx.db.normalizeId("tickets", key);
+
   return id ? await ctx.db.get(id) : null;
 }
 
@@ -180,23 +191,29 @@ export const list = query({
       continueCursor: "0",
       totalCount: 0,
     };
+
     const profile = await optionalViewer(ctx);
+
     if (!profile) return empty;
     const viewer = await coreViewer(ctx, profile);
     const settings = await siteSettings(ctx);
 
     let rows: Doc<"tickets">[];
+
     if (args.problemCode) {
       const problem = await ctx.db
         .query("problems")
         .withIndex("by_code", (q) => q.eq("code", args.problemCode ?? ""))
         .unique();
+
       if (!problem) return empty;
+
       if (!problemIsAccessibleBy(coreRow(problem), viewer)) return empty;
       rows = await ctx.db
         .query("tickets")
         .withIndex("by_linked", (q) => q.eq("linkedType", "problem").eq("linkedKey", problem.code))
         .collect();
+
       if (!problemIsEditableBy(coreRow(problem), viewer)) {
         rows = rows.filter((row) => isOwnTicket(row, profile._id));
       }
@@ -211,13 +228,16 @@ export const list = query({
     }
 
     if (args.onlyOpen) rows = rows.filter((row) => row.isOpen);
+
     if (args.onlyOwn) {
       rows = rows.filter((row) => isOwnTicket(row, profile._id));
     } else if (!hasPerm(viewer, "judge.change_ticket")) {
       const kept: Doc<"tickets">[] = [];
+
       for (const row of rows) {
         if (await canSeeTicket(ctx, row, profile, viewer)) kept.push(row);
       }
+
       rows = kept;
     }
 
@@ -225,6 +245,7 @@ export const list = query({
 
     const perPage = args.paginationOpts?.numItems || settings?.ticketsPerPage || 50;
     const sliced = sliceOffset(rows, args.paginationOpts?.cursor, perPage);
+
     return {
       ...sliced,
       page: await Promise.all(sliced.page.map((row) => summarise(ctx, row))),
@@ -237,18 +258,22 @@ export const get = query({
   args: { id: v.string() },
   handler: async (ctx, { id }): Promise<TicketDetail | null> => {
     const ticket = await ticketByKey(ctx, id);
+
     if (!ticket) return null;
     const profile = await optionalViewer(ctx);
     const viewer = await coreViewer(ctx, profile);
+
     if (!(await canSeeTicket(ctx, ticket, profile, viewer))) return null;
 
     const rows = await ctx.db
       .query("ticketMessages")
       .withIndex("by_ticket_time", (q) => q.eq("ticketId", ticket._id))
       .collect();
+
     rows.sort((a, b) => a.time - b.time);
 
     const messages: TicketMessage[] = [];
+
     for (const row of rows) {
       const author = await ctx.db.get(row.profileId);
       messages.push({
@@ -261,6 +286,7 @@ export const get = query({
     }
 
     const manages = await canManageTicket(ctx, ticket, viewer);
+
     return {
       ...(await summarise(ctx, ticket)),
       messages,
@@ -277,6 +303,7 @@ export const openForViewer = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, { limit }): Promise<{ own: TicketSummary[]; staff: TicketSummary[] }> => {
     const profile = await optionalViewer(ctx);
+
     if (!profile) return { own: [], staff: [] };
     const viewer = await coreViewer(ctx, profile);
     const take = Math.max(1, Math.min(limit ?? 10, 50));
@@ -290,9 +317,11 @@ export const openForViewer = query({
     const own = open.filter((row) => row.profileId === profile._id).slice(0, take);
 
     const staff: Doc<"tickets">[] = [];
+
     if (isStaff(viewer)) {
       for (const row of open) {
         if (staff.length >= take) break;
+
         if (await canSeeTicket(ctx, row, profile, viewer)) staff.push(row);
       }
     }
@@ -324,16 +353,21 @@ export const create = mutation({
 
     if (profile.mute) throw invalid("Your part is silent, little toad.");
     const inContest = profile.currentParticipationId !== undefined;
+
     if (!inContest && !isStaff(viewer) && !(await hasAnySolve(ctx, profile._id))) {
       throw invalid("You must solve at least one problem before you can create a ticket.");
     }
 
     const title = args.title.trim();
+
     if (title.length === 0) throw invalid("A ticket needs a title.");
+
     if (title.length > TICKET_MAX_TITLE) {
       throw invalid(`Ticket titles are limited to ${TICKET_MAX_TITLE} characters.`);
     }
+
     const body = args.body.trim();
+
     if (body.length === 0) throw invalid("A ticket needs a message.");
 
     let assignees: Id<"profiles">[] = [];
@@ -345,7 +379,9 @@ export const create = mutation({
         .query("problems")
         .withIndex("by_code", (q) => q.eq("code", args.problemCode ?? ""))
         .unique();
+
       if (!problem) throw notFound("Problem");
+
       if (!problemIsAccessibleBy(coreRow(problem), viewer)) throw forbidden();
       linkedType = "problem";
       linkedKey = problem.code;
@@ -354,14 +390,17 @@ export const create = mutation({
       // In contest, the contest's authors take the ticket instead.
       if (profile.currentParticipationId) {
         const participation = await ctx.db.get(profile.currentParticipationId);
+
         if (participation) {
           const inThisContest = await ctx.db
             .query("contestProblems")
             .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
             .filter((q) => q.eq(q.field("contestId"), participation.contestId))
             .first();
+
           if (inThisContest) {
             const contest = await ctx.db.get(participation.contestId);
+
             if (contest) assignees = [...contest.authorProfileIds];
           }
         }
@@ -369,6 +408,7 @@ export const create = mutation({
     }
 
     const now = Date.now();
+
     const ticketId = await ctx.db.insert("tickets", {
       title,
       profileId: profile._id,
@@ -379,12 +419,14 @@ export const create = mutation({
       linkedKey,
       isOpen: true,
     });
+
     await ctx.db.insert("ticketMessages", {
       ticketId,
       profileId: profile._id,
       body,
       time: now,
     });
+
     return ticketId;
   },
 });
@@ -396,8 +438,11 @@ async function loadForWrite(
   const profile = await requireViewer(ctx);
   const viewer = await coreViewer(ctx, profile);
   const ticket = await ctx.db.get(ticketId);
+
   if (!ticket) throw notFound("Ticket");
+
   if (!(await canSeeTicket(ctx, ticket, profile, viewer))) throw forbidden();
+
   return { ticket, profile, viewer };
 }
 
@@ -406,9 +451,12 @@ export const reply = mutation({
   args: { ticketId: v.id("tickets"), body: v.string() },
   handler: async (ctx, { ticketId, body }): Promise<Id<"ticketMessages">> => {
     const { profile } = await loadForWrite(ctx, ticketId);
+
     if (profile.mute) throw invalid("Your part is silent, little toad.");
     const trimmed = body.trim();
+
     if (trimmed.length === 0) throw invalid("A message needs a body.");
+
     return await ctx.db.insert("ticketMessages", {
       ticketId,
       profileId: profile._id,
@@ -423,6 +471,7 @@ export const setOpen = mutation({
   args: { ticketId: v.id("tickets"), open: v.boolean() },
   handler: async (ctx, { ticketId, open }) => {
     const { ticket } = await loadForWrite(ctx, ticketId);
+
     if (ticket.isOpen === open) return;
     await ctx.db.patch(ticketId, { isOpen: open });
   },
@@ -433,6 +482,7 @@ export const setNotes = mutation({
   args: { ticketId: v.id("tickets"), notes: v.string() },
   handler: async (ctx, { ticketId, notes }) => {
     const { ticket, viewer } = await loadForWrite(ctx, ticketId);
+
     if (!(await canManageTicket(ctx, ticket, viewer))) throw forbidden();
     await ctx.db.patch(ticketId, { notes });
   },
@@ -443,11 +493,14 @@ export const assign = mutation({
   args: { ticketId: v.id("tickets"), profileIds: v.array(v.id("profiles")) },
   handler: async (ctx, { ticketId, profileIds }) => {
     const { viewer } = await loadForWrite(ctx, ticketId);
+
     if (!hasPerm(viewer, "judge.change_ticket")) throw forbidden();
     const unique = [...new Set(profileIds)];
+
     for (const id of unique) {
       if (!(await ctx.db.get(id))) throw notFound("Profile");
     }
+
     await ctx.db.patch(ticketId, { assigneeProfileIds: unique });
   },
 });

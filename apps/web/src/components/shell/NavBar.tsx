@@ -22,7 +22,9 @@ import { activeNavKeys, type NavNode } from "@/lib/nav";
 import { UserBlock, type ViewerSummary } from "./UserBlock";
 
 const MOBILE_BREAKPOINT = 760;
+
 const WIDE_SEARCH_BREAKPOINT = 1100;
+
 /** Reserved for the More trigger while measuring, so the last item never lands
  *  on top of it. */
 const MORE_WIDTH = 84;
@@ -67,6 +69,7 @@ export function NavBar({
     frame.current = requestAnimationFrame(() => {
       const list = listRef.current;
       const measure = measureRef.current;
+
       if (!list || !measure) return;
 
       setWideSearch(window.innerWidth >= WIDE_SEARCH_BREAKPOINT);
@@ -74,8 +77,10 @@ export function NavBar({
       if (window.innerWidth <= MOBILE_BREAKPOINT) {
         setIsMobile(true);
         setVisibleCount(nav.length);
+
         return;
       }
+
       setIsMobile(false);
 
       const widths = Array.from(measure.children).map((child) => (child as HTMLElement).offsetWidth);
@@ -83,12 +88,15 @@ export function NavBar({
 
       let used = 0;
       let fits = 0;
+
       for (let index = 0; index < widths.length; index++) {
         used += widths[index] ?? 0;
         const needsMore = index < widths.length - 1;
+
         if (used + (needsMore ? MORE_WIDTH : 0) > available) break;
         fits++;
       }
+
       setVisibleCount(Math.max(0, Math.min(fits, widths.length)));
     });
   }, [nav]);
@@ -99,14 +107,17 @@ export function NavBar({
 
   useEffect(() => {
     const list = listRef.current;
+
     if (!list) return;
     const observer = new ResizeObserver(recalculate);
     observer.observe(list);
     window.addEventListener("resize", recalculate, { passive: true });
+
     // Web fonts change the measured widths once they land.
     if (typeof document !== "undefined" && "fonts" in document) {
       document.fonts.ready.then(recalculate).catch(() => undefined);
     }
+
     return () => {
       observer.disconnect();
       window.removeEventListener("resize", recalculate);
@@ -321,6 +332,7 @@ export function NavBar({
 
 function NavItem({ node, active }: { node: NavNode; active: Set<string> }) {
   const isActive = active.has(node.key);
+
   const classes = cn(
     itemBase,
     "relative text-nav-ink/90 hover:bg-nav-hover hover:text-nav-ink",

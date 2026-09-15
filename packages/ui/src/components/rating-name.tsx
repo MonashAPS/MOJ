@@ -38,26 +38,32 @@ const RATING_LEVELS: readonly string[] = [
 /** `rating_level(rating)`. */
 export function ratingLevel(rating: number): number {
   let level = 0;
+
   while (level < RATING_VALUES.length && rating >= (RATING_VALUES[level] as number)) level++;
+
   return level;
 }
 
 export function ratingClass(rating: number | null | undefined): RatingClass {
   if (rating === null || rating === undefined) return "rate-none";
+
   return RATING_CLASSES[ratingLevel(rating)] as RatingClass;
 }
 
 export function ratingTitle(rating: number | null | undefined): string {
   if (rating === null || rating === undefined) return "Unrated";
+
   return RATING_LEVELS[ratingLevel(rating)] as string;
 }
 
 /** `rating_progress(rating)`: how far through the current band, in [0, 1]. */
 export function ratingProgress(rating: number): number {
   const level = ratingLevel(rating);
+
   if (level === RATING_VALUES.length) return 1;
   const previous = level === 0 ? 0 : (RATING_VALUES[level - 1] as number);
   const next = RATING_VALUES[level] as number;
+
   return (rating - previous) / (next - previous);
 }
 
@@ -81,6 +87,7 @@ export function RatingName({
 }) {
   const cls = cn("rating font-mono font-medium", ratingClass(rating), isAdmin && "admin", className);
   const text = children ?? displayName ?? username;
+
   return (
     <span className={cls} title={ratingTitle(rating)}>
       {href ? <a href={href}>{text}</a> : text}
@@ -91,6 +98,7 @@ export function RatingName({
 /** Always signed, always mono. */
 export function RatingDelta({ delta, className }: { delta: number; className?: string }) {
   if (!Number.isFinite(delta)) return null;
+
   return (
     <span
       className={cn(

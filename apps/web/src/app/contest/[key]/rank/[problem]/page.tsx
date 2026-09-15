@@ -12,10 +12,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { key, problem } = await params;
   const t = await getTranslations("contests.rankByProblem");
+
   const payload = await queryAsViewer(api.contests.rankings.rankByProblem, {
     key,
     problemCode: problem,
   }).catch(() => null);
+
   return { title: payload ? t("metaTitle", { name: payload.problemName }) : t("metaFallback") };
 }
 
@@ -25,6 +27,7 @@ export default async function ContestRankByProblemPage({
   params: Promise<{ key: string; problem: string }>;
 }) {
   const { key, problem } = await params;
+
   const [detail, payload, viewerState] = await Promise.all([
     queryAsViewer(api.contests.get, { key }).catch(() => null),
     queryAsViewer(api.contests.rankings.rankByProblem, { key, problemCode: problem }).catch(() => null),
@@ -32,7 +35,9 @@ export default async function ContestRankByProblemPage({
   ]);
 
   if (!detail || detail.access.kind === "notFound" || detail.access.kind === "inaccessible") notFound();
+
   if (!detail.contest) notFound();
+
   // A problem that is not in this contest has no page here, as DMOJ 404s it.
   if (!detail.problems.some((entry) => entry.code === problem)) notFound();
 

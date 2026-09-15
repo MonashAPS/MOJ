@@ -28,6 +28,7 @@ export const current = query({
   args: {},
   handler: async (ctx): Promise<ViewerState> => {
     const profile = await optionalViewer(ctx);
+
     if (!profile) {
       return {
         profile: null,
@@ -49,6 +50,7 @@ export const current = query({
     }
 
     const participation = await ctx.db.get(profile.currentParticipationId);
+
     if (!participation) {
       return {
         profile,
@@ -60,11 +62,13 @@ export const current = query({
     }
 
     const contest = await ctx.db.get(participation.contestId);
+
     if (!contest) {
       return { profile, participation, contest: null, inContest: false, contestModeStale: true };
     }
 
     const viewer = await toViewerRowInContest(ctx, profile);
+
     const stale = shouldLeaveContest(
       toParticipationRow(participation),
       toContestRow(contest),
@@ -92,9 +96,11 @@ export const permissions = query({
   handler: async (ctx, { codes }) => {
     const profile = await optionalViewer(ctx);
     const out: Record<string, boolean> = {};
+
     for (const code of codes) {
       out[code] = !!profile && (profile.isSuperuser || profile.permissions.includes(code));
     }
+
     return out;
   },
 });

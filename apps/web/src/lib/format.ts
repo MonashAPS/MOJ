@@ -21,6 +21,7 @@ export function formatDateTime(ms: number): string {
 }
 
 const RELATIVE = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+
 const UNITS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
   ["year", 365 * 24 * 3600_000],
   ["month", 30 * 24 * 3600_000],
@@ -33,11 +34,13 @@ const UNITS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
 
 export function formatRelative(ms: number, now = Date.now()): string {
   const delta = ms - now;
+
   for (const [unit, size] of UNITS) {
     if (Math.abs(delta) >= size || unit === "second") {
       return RELATIVE.format(Math.round(delta / size), unit);
     }
   }
+
   return "just now";
 }
 
@@ -46,5 +49,6 @@ export function formatRelative(ms: number, now = Date.now()): string {
 export function formatPoints(value: number, precision = 2): string {
   if (!Number.isFinite(value)) return "0";
   const rounded = Number(value.toFixed(Math.max(0, precision)));
+
   return Number.isInteger(rounded) ? String(rounded) : String(rounded);
 }

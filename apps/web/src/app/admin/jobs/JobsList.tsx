@@ -37,24 +37,31 @@ const STATUSES = ["any", "queued", "running", "done", "failed"] as const;
 function describeArgs(args: unknown): string {
   if (!args || typeof args !== "object") return "—";
   const record = args as Record<string, unknown>;
+
   for (const field of ["problemCode", "key", "code"]) {
     const value = record[field];
+
     if (typeof value === "string") return value;
   }
+
   return "—";
 }
 
 function outcome(row: Row): string {
   if (row.error) return row.error;
+
   if (row.result && typeof row.result === "object") {
     const record = row.result as Record<string, unknown>;
+
     const parts = Object.entries(record)
       .filter(
         ([, value]) => typeof value === "number" || typeof value === "string" || typeof value === "boolean",
       )
       .map(([field, value]) => `${field}: ${value}`);
+
     if (parts.length > 0) return parts.join(", ");
   }
+
   return "—";
 }
 
@@ -76,10 +83,12 @@ export function JobsList() {
 
   function go(next: Record<string, string | null>) {
     const query = new URLSearchParams(params.toString());
+
     for (const [key, value] of Object.entries(next)) {
       if (value === null || value === "") query.delete(key);
       else query.set(key, value);
     }
+
     const text = query.toString();
     router.replace(text ? `${pathname}?${text}` : pathname, { scroll: false });
   }

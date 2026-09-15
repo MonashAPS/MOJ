@@ -23,6 +23,7 @@ export const API_VERSION = "2.0";
 
 /** DMOJ ids are integers; MOJ falls back to the Convex document id. */
 export const apiId = z.union([z.number(), z.string()]);
+
 export type ApiId = z.infer<typeof apiId>;
 
 /* -------------------------------------------------------------------------- */
@@ -33,6 +34,7 @@ export const apiErrorBody = z.object({
   code: z.number(),
   message: z.string(),
 });
+
 export type ApiErrorBody = z.infer<typeof apiErrorBody>;
 
 const baseResponse = {
@@ -42,6 +44,7 @@ const baseResponse = {
 };
 
 export const apiErrorResponse = z.object({ ...baseResponse, error: apiErrorBody });
+
 export type ApiErrorResponse = z.infer<typeof apiErrorResponse>;
 
 /**
@@ -92,6 +95,7 @@ export const apiContestListObject = z.object({
   rate_all: z.boolean(),
   tags: z.array(z.string()),
 });
+
 export type ApiContestListObject = z.infer<typeof apiContestListObject>;
 
 export const apiContestProblem = z.object({
@@ -103,6 +107,7 @@ export const apiContestProblem = z.object({
   name: z.string(),
   code: z.string(),
 });
+
 export type ApiContestProblem = z.infer<typeof apiContestProblem>;
 
 /** `ContestFormat.get_problem_breakdown` output, one entry per contest problem. */
@@ -125,6 +130,7 @@ export const apiContestRanking = z.object({
   is_disqualified: z.boolean(),
   solutions: z.array(apiSolution),
 });
+
 export type ApiContestRanking = z.infer<typeof apiContestRanking>;
 
 export const apiContestDetailObject = apiContestListObject.extend({
@@ -141,6 +147,7 @@ export const apiContestDetailObject = apiContestListObject.extend({
   problems: z.array(apiContestProblem),
   rankings: z.array(apiContestRanking),
 });
+
 export type ApiContestDetailObject = z.infer<typeof apiContestDetailObject>;
 
 export const apiParticipationObject = z.object({
@@ -154,6 +161,7 @@ export const apiParticipationObject = z.object({
   is_disqualified: z.boolean(),
   virtual_participation_number: z.number(),
 });
+
 export type ApiParticipationObject = z.infer<typeof apiParticipationObject>;
 
 /* -------------------------------------------------------------------------- */
@@ -170,6 +178,7 @@ export const apiProblemListObject = z.object({
   is_organization_private: z.boolean(),
   is_public: z.boolean(),
 });
+
 export type ApiProblemListObject = z.infer<typeof apiProblemListObject>;
 
 export const apiLanguageResourceLimit = z.object({
@@ -195,6 +204,7 @@ export const apiProblemDetailObject = z.object({
   organizations: z.array(apiId),
   is_public: z.boolean(),
 });
+
 export type ApiProblemDetailObject = z.infer<typeof apiProblemDetailObject>;
 
 /* -------------------------------------------------------------------------- */
@@ -210,6 +220,7 @@ export const apiUserListObject = z.object({
   rank: z.string(),
   rating: z.number().nullable(),
 });
+
 export type ApiUserListObject = z.infer<typeof apiUserListObject>;
 
 export const apiUserContestHistory = z.object({
@@ -234,6 +245,7 @@ export const apiUserDetailObject = z.object({
   organizations: z.array(apiId),
   contests: z.array(apiUserContestHistory),
 });
+
 export type ApiUserDetailObject = z.infer<typeof apiUserDetailObject>;
 
 /* -------------------------------------------------------------------------- */
@@ -261,6 +273,7 @@ export const apiSubmissionListObject = z.object({
   result: z.string().nullable(),
   contest: apiSubmissionContest,
 });
+
 export type ApiSubmissionListObject = z.infer<typeof apiSubmissionListObject>;
 
 export const apiSubmissionCase = z.object({
@@ -282,6 +295,7 @@ export const apiSubmissionBatch = z.object({
 });
 
 export const apiSubmissionCaseEntry = z.union([apiSubmissionCase, apiSubmissionBatch]);
+
 export type ApiSubmissionCaseEntry = z.infer<typeof apiSubmissionCaseEntry>;
 
 export const apiSubmissionDetailObject = z.object({
@@ -299,6 +313,7 @@ export const apiSubmissionDetailObject = z.object({
   case_total: z.number(),
   cases: z.array(apiSubmissionCaseEntry),
 });
+
 export type ApiSubmissionDetailObject = z.infer<typeof apiSubmissionDetailObject>;
 
 /* -------------------------------------------------------------------------- */
@@ -312,6 +327,7 @@ export const apiOrganizationObject = z.object({
   is_open: z.boolean(),
   member_count: z.number(),
 });
+
 export type ApiOrganizationObject = z.infer<typeof apiOrganizationObject>;
 
 export const apiLanguageObject = z.object({
@@ -323,6 +339,7 @@ export const apiLanguageObject = z.object({
   pygments_name: z.string(),
   code_template: z.string(),
 });
+
 export type ApiLanguageObject = z.infer<typeof apiLanguageObject>;
 
 export const apiJudgeObject = z.object({
@@ -332,6 +349,7 @@ export const apiJudgeObject = z.object({
   load: z.number().nullable(),
   languages: z.array(z.string()),
 });
+
 export type ApiJudgeObject = z.infer<typeof apiJudgeObject>;
 
 /* -------------------------------------------------------------------------- */
@@ -363,7 +381,9 @@ export const API_LIST_FILTERS: Readonly<Record<string, readonly string[]>> = {
 /** `?partial=true` and friends: Django's `BooleanField.to_python`. */
 export function parseApiBoolean(value: string): boolean {
   const lowered = value.trim().toLowerCase();
+
   if (lowered === "true" || lowered === "1") return true;
+
   if (lowered === "false" || lowered === "0") return false;
   throw new TypeError("invalid filter value type");
 }
@@ -371,7 +391,9 @@ export function parseApiBoolean(value: string): boolean {
 /** `?page=`: DMOJ 404s on a page that is not a positive integer. */
 export function parsePageNumber(value: string | null): number {
   if (value === null || value === "") return 1;
+
   if (!/^\d+$/.test(value)) return Number.NaN;
   const page = Number.parseInt(value, 10);
+
   return page >= 1 ? page : Number.NaN;
 }

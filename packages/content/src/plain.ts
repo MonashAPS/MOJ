@@ -41,6 +41,7 @@ export function plainTextFromMdast(root: Root, options: PlainTextOptions = {}): 
       case "text":
       case "inlineCode":
         chunks.push(node.value);
+
         return;
       case "code":
         if (includeCode) {
@@ -48,16 +49,20 @@ export function plainTextFromMdast(root: Root, options: PlainTextOptions = {}): 
         } else {
           chunks.push("\n\n");
         }
+
         return;
       case "inlineMath":
       case "math":
         if (includeMath) chunks.push((node as { value: string }).value);
+
         return;
       case "image":
         if (includeImageAlt && node.alt) chunks.push(node.alt);
+
         return;
       case "break":
         chunks.push(" ");
+
         return;
       case "html":
         return;
@@ -66,9 +71,12 @@ export function plainTextFromMdast(root: Root, options: PlainTextOptions = {}): 
     }
 
     const block = BLOCK_TYPES.has(node.type);
+
     if (block) chunks.push("\n\n");
     const children = (node as { children?: MdastNodes[] }).children;
+
     if (children) for (const child of children) walk(child);
+
     if (block) chunks.push("\n\n");
   };
 
@@ -93,10 +101,12 @@ export function truncateSummary(text: string, options: SummaryOptions = {}): str
   const maxLength = options.maxLength ?? 200;
   const ellipsis = options.ellipsis ?? "…";
   const flat = text.replace(/\s+/g, " ").trim();
+
   if (flat.length <= maxLength) return flat;
 
   const cut = flat.slice(0, maxLength);
   const space = cut.lastIndexOf(" ");
   const head = (space > maxLength * 0.5 ? cut.slice(0, space) : cut).replace(/[\s,.;:—-]+$/, "");
+
   return head + ellipsis;
 }

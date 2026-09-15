@@ -35,6 +35,7 @@ const GO_TO: Record<string, string> = {
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
+
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
 }
 
@@ -49,21 +50,25 @@ export function ShortcutLayer() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
+
       if (isTypingTarget(event.target)) return;
 
       if (event.key === "?") {
         event.preventDefault();
         setOpen(true);
+
         return;
       }
 
       if (event.key === "g") {
         pending.current = Date.now();
+
         return;
       }
 
       if (Date.now() - pending.current < 1000) {
         const target = GO_TO[event.key.toLowerCase()];
+
         if (target) {
           event.preventDefault();
           pending.current = 0;
@@ -72,7 +77,9 @@ export function ShortcutLayer() {
         }
       }
     };
+
     window.addEventListener("keydown", onKeyDown);
+
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [router]);
 

@@ -69,6 +69,7 @@ function blockedDomains(): Set<string> {
 
 function blockedPatterns(): RegExp[] {
   const extra = fromEnvironment("BAD_MAIL_PROVIDER_REGEX").map((source) => new RegExp(source));
+
   return [...BUILT_IN_PATTERNS, ...extra];
 }
 
@@ -82,7 +83,10 @@ export const DISPOSABLE_EMAIL_KEY = "disposableEmail";
 export function isDisposableEmail(email: string): boolean {
   if (!email.includes("@")) return false;
   const domain = email.split("@").pop()?.toLowerCase().trim();
+
   if (!domain) return false;
+
   if (blockedDomains().has(domain)) return true;
+
   return blockedPatterns().some((pattern) => pattern.test(domain));
 }

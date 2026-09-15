@@ -62,6 +62,7 @@ function Banner({ detail }: { detail: ContestDetail }) {
   const clock = readable ? formatDuration(remaining) : null;
 
   let sentence: string;
+
   if (spectating) sentence = clock ? t("spectatingEndsIn", { time: clock }) : t("spectating");
   else if (virtual) sentence = clock ? t("virtualRemaining", { time: clock }) : t("virtual");
   else if (!detail.timing.started) sentence = clock ? t("startingIn", { time: clock }) : t("notStarted");
@@ -254,6 +255,7 @@ function Sidebar({ detail }: { detail: ContestDetail }) {
   const scoring = useTranslations("contests.scoring");
   const humanDuration = useHumanDuration();
   const contest = detail.contest;
+
   if (!contest) return null;
 
   // The bounds go in as text: they are ratings, not quantities, and a
@@ -370,9 +372,11 @@ export function ContestDetailClient({
   const live = useQuery(api.contests.get, { key: contestKey });
   const detail = live?.contest ? live : initial;
   const contest = detail.contest;
+
   if (!contest) return null;
 
   const joinKind = joinKindFor(detail);
+
   const showProblems =
     detail.timing.ended ||
     detail.viewer.isEditor ||
@@ -380,6 +384,7 @@ export function ContestDetailClient({
     detail.viewer.canEdit ||
     (detail.viewer.isSpectator && detail.timing.started) ||
     detail.viewer.inContest;
+
   const showState = detail.viewer.isAuthenticated;
   const precision = contest.pointsPrecision;
 
@@ -485,7 +490,9 @@ export function ContestDetailClient({
  *  turned into a `strong` here rather than shown as asterisks. */
 function emphasise(line: string): React.ReactNode {
   const parts = line.split("**");
+
   if (parts.length < 3) return line;
+
   return parts.map((part, index) =>
     index % 2 === 1 ? (
       // biome-ignore lint/suspicious/noArrayIndexKey: the split is positional

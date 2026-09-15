@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
   const t = await getTranslations("problems.detail");
   const { code } = await params;
+
   return { title: t("allSubmissionsFor", { code }) };
 }
 
@@ -17,6 +18,7 @@ export default async function ProblemSubmissionsPage({
   searchParams: Promise<SearchParams>;
 }) {
   const { code } = await params;
+
   return (
     <SubmissionListPage
       filters={{ problemCode: code }}

@@ -59,6 +59,7 @@ type Fixture = {
 /** One small world that every endpoint reads: DMOJ's shapes need real joins. */
 async function seed(): Promise<Fixture> {
   const t = setupTest();
+
   const ids = await t.run(async (ctx) => {
     const alice = await insertProfile(ctx, {
       username: "alice",
@@ -69,6 +70,7 @@ async function seed(): Promise<Fixture> {
       problemCount: 2,
       rating: 1500,
     });
+
     await insertProfile(ctx, { username: "hidden", isUnlisted: true, legacyId: 2 });
     await insertProfile(ctx, { username: "gone", isActive: false, legacyId: 3 });
 
@@ -78,11 +80,13 @@ async function seed(): Promise<Fixture> {
       shortName: "MAPS",
       legacyId: 11,
     });
+
     await insertMembership(ctx, { organizationId: organization, profileId: alice });
     await ctx.db.patch(organization, { memberCount: 1 });
 
     const type = await insertProblemType(ctx, { name: "dp", fullName: "Dynamic Programming" });
     const group = await insertProblemGroup(ctx, { name: "Uncategorised" });
+
     const language = await insertLanguage(ctx, {
       key: "PY3",
       commonName: "Python",
@@ -98,6 +102,7 @@ async function seed(): Promise<Fixture> {
       allowedLanguageIds: [language],
       authorProfileIds: [alice],
     });
+
     await ctx.db.insert("languageLimits", {
       problemId: problem,
       languageId: language,
@@ -110,6 +115,7 @@ async function seed(): Promise<Fixture> {
       color: "#fff",
       description: "",
     });
+
     const contest = await insertContest(ctx, {
       key: "spring",
       name: "Spring Contest",
@@ -120,6 +126,7 @@ async function seed(): Promise<Fixture> {
       legacyId: 31,
       formatConfig: {},
     });
+
     const contestProblem = await insertContestProblem(ctx, {
       contestId: contest,
       problemId: problem,
@@ -127,6 +134,7 @@ async function seed(): Promise<Fixture> {
       order: 0,
       maxSubmissions: 5,
     });
+
     const participation = await insertParticipation(ctx, {
       contestId: contest,
       profileId: alice,
@@ -135,6 +143,7 @@ async function seed(): Promise<Fixture> {
       cumtime: 600,
       formatData: { [contestProblem]: { points: 100, time: 600 } },
     });
+
     await ctx.db.insert("ratings", {
       profileId: alice,
       contestId: contest,
@@ -159,6 +168,7 @@ async function seed(): Promise<Fixture> {
       memory: 4096,
       legacyId: 41,
     });
+
     await ctx.db.patch(submission, {
       contestId: contest,
       contestProblemId: contestProblem,
@@ -218,6 +228,7 @@ async function seed(): Promise<Fixture> {
       problemCodes: ["aplusb"],
       runtimeKeys: ["PY3"],
     });
+
     await ctx.db.insert("runtimeVersions", {
       languageId: language,
       judgeId: judge,
@@ -228,6 +239,7 @@ async function seed(): Promise<Fixture> {
 
     return { alice, problem, contest, submission };
   });
+
   return { t, ids };
 }
 
@@ -237,10 +249,12 @@ function expectListShape<T extends z.ZodTypeAny>(object: T, data: unknown) {
   expect(parsed.objects_per_page).toBe(API_PAGE_SIZE);
   expect(parsed.page_index).toBe(1);
   expect(parsed.current_object_count).toBe(parsed.objects.length);
+
   return parsed;
 }
 
 let fixture: Fixture;
+
 beforeEach(async () => {
   fixture = await seed();
 });
@@ -487,10 +501,12 @@ describe("submissions", () => {
         .query("problemGroups")
         .withIndex("by_name", (q) => q.eq("name", "Uncategorised"))
         .unique();
+
       const language = await ctx.db
         .query("languages")
         .withIndex("by_key", (q) => q.eq("key", "PY3"))
         .unique();
+
       if (!group || !language) throw new Error("fixture is missing");
       const later = await insertProblem(ctx, { code: "later", groupId: group._id, points: 10 });
       await insertSubmission(ctx, {

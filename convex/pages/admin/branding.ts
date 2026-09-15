@@ -17,6 +17,7 @@ export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx): Promise<string> => {
     await requireSuperuser(ctx);
+
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -40,41 +41,53 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const editor = await requireSuperuser(ctx);
+
     const existing = await ctx.db
       .query("siteSettings")
       .withIndex("by_singleton", (q) => q.eq("singleton", "site"))
       .unique();
+
     if (!existing) throw notFound("Site settings");
 
     const patch: Record<string, unknown> = {};
+
     if (args.siteName !== undefined) {
       const name = args.siteName.trim();
+
       if (name.length === 0) throw invalid("The site needs a name.");
+
       if (name.length > 40) throw invalid("Site names are limited to 40 characters.");
       patch.siteName = name;
     }
+
     if (args.siteLongName !== undefined) {
       const name = args.siteLongName.trim();
+
       if (name.length === 0) throw invalid("The site needs a long name.");
       patch.siteLongName = name;
     }
+
     for (const [key, value] of [
       ["accentColor", args.accentColor],
       ["navColor", args.navColor],
     ] as const) {
       if (value === undefined) continue;
       const trimmed = value.trim();
+
       if (trimmed === "") {
         patch[key] = undefined;
         continue;
       }
+
       if (!HEX.test(trimmed)) throw invalid("A colour must be a hex value like #2941a5.");
       patch[key] = trimmed.toLowerCase();
     }
+
     if (args.customCss !== undefined) {
       if (args.customCss.length > 20_000) throw invalid("That is more custom CSS than the page will carry.");
       patch.customCss = args.customCss || undefined;
     }
+
     if (args.themeDefault !== undefined) patch.themeDefault = args.themeDefault;
 
     // A replaced upload is deleted, so the storage does not fill with old logos.
@@ -82,12 +95,15 @@ export const update = mutation({
       if (existing.logoStorageId && existing.logoStorageId !== args.logoStorageId) {
         await ctx.storage.delete(existing.logoStorageId);
       }
+
       patch.logoStorageId = args.logoStorageId ?? undefined;
     }
+
     if (args.faviconStorageId !== undefined) {
       if (existing.faviconStorageId && existing.faviconStorageId !== args.faviconStorageId) {
         await ctx.storage.delete(existing.faviconStorageId);
       }
+
       patch.faviconStorageId = args.faviconStorageId ?? undefined;
     }
 

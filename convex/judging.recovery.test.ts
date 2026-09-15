@@ -32,6 +32,7 @@ describe("judge recovery", () => {
     const problemId = await insertProblem(t);
     const author = await insertProfile(t);
     const judgeId = await insertJudge(t, { lastSeen: LONG_AGO });
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -41,6 +42,7 @@ describe("judge recovery", () => {
       claimedAt: Date.now(),
       currentTestcase: 3,
     });
+
     await t.run(async (ctx) => ctx.db.patch(judgeId, { currentSubmissionId: submissionId }));
 
     let result = await t.mutation(internal.judging.recoverStuckSubmissions, {});
@@ -75,6 +77,7 @@ describe("judge recovery", () => {
     const problemId = await insertProblem(t);
     const author = await insertProfile(t);
     const judgeId = await insertJudge(t, { lastSeen: Date.now() });
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -84,6 +87,7 @@ describe("judge recovery", () => {
       claimedAt: Date.now(),
       currentTestcase: 2,
     });
+
     await t.run(async (ctx) => ctx.db.patch(judgeId, { currentSubmissionId: submissionId }));
 
     expect(await t.mutation(internal.judging.recoverStuckSubmissions, {})).toEqual({
@@ -100,6 +104,7 @@ describe("judge recovery", () => {
     const problemId = await insertProblem(t);
     const author = await insertProfile(t);
     const judgeId = await insertJudge(t, { lastSeen: LONG_AGO });
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -109,6 +114,7 @@ describe("judge recovery", () => {
       claimedAt: Date.now(),
       currentTestcase: 2,
     });
+
     await t.run(async (ctx) => ctx.db.patch(submissionId, { abortRequested: true }));
 
     expect(await t.mutation(internal.judging.recoverStuckSubmissions, {})).toEqual({
@@ -128,6 +134,7 @@ describe("judge recovery", () => {
     const problemId = await insertProblem(t);
     const author = await insertProfile(t);
     const judgeId = await insertJudge(t, { lastSeen: Date.now() });
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -137,6 +144,7 @@ describe("judge recovery", () => {
       claimedAt: Date.now() - 20 * 60_000,
       currentTestcase: 0,
     });
+
     await t.run(async (ctx) => ctx.db.patch(judgeId, { currentSubmissionId: submissionId }));
 
     expect(await t.mutation(internal.judging.recoverStuckSubmissions, {})).toEqual({
@@ -174,6 +182,7 @@ describe("judge offline marking", () => {
         .withIndex("by_judge", (q) => q.eq("judgeId", quiet))
         .collect(),
     );
+
     expect(runtimes).toHaveLength(0);
   });
 });
@@ -205,6 +214,7 @@ describe("batch jobs", () => {
       status: "D",
       result: "WA",
     });
+
     const wrongLanguage = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -213,6 +223,7 @@ describe("batch jobs", () => {
       status: "D",
       result: "WA",
     });
+
     const grading = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -220,6 +231,7 @@ describe("batch jobs", () => {
       legacyId: 3,
       status: "G",
     });
+
     const locked = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -236,6 +248,7 @@ describe("batch jobs", () => {
       results: ["WA"],
       archiveLocked: true,
     });
+
     await t.finishAllScheduledFunctions(vi.runAllTimers);
 
     const job = await asUser(t, "staff").query(api.jobs.status, { jobId });
@@ -266,6 +279,7 @@ describe("batch jobs", () => {
       ],
     });
     const problemId = await insertProblem(t, { code: "aplusb", allowedLanguageIds: [py] });
+
     const locked = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -279,6 +293,7 @@ describe("batch jobs", () => {
     const { jobId } = await asUser(t, "staff").mutation(api.admin.submissions.batchRejudge, {
       problemCode: "aplusb",
     });
+
     await t.finishAllScheduledFunctions(vi.runAllTimers);
 
     const job = await asUser(t, "staff").query(api.jobs.status, { jobId });
@@ -296,12 +311,14 @@ describe("batch jobs", () => {
       isStaff: true,
       permissions: ["judge.rejudge_submission", "judge.edit_own_problem", "judge.edit_all_problem"],
     });
+
     const problemId = await insertProblem(t, {
       code: "aplusb",
       allowedLanguageIds: [py],
       points: 100,
       partial: true,
     });
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -319,6 +336,7 @@ describe("batch jobs", () => {
     const { jobId } = await asUser(t, "staff").mutation(api.admin.submissions.rescoreProblem, {
       problemCode: "aplusb",
     });
+
     await t.finishAllScheduledFunctions(vi.runAllTimers);
 
     const job = await asUser(t, "staff").query(api.jobs.status, { jobId });
@@ -338,9 +356,11 @@ describe("batch jobs", () => {
       permissions: ["judge.rejudge_submission", "judge.edit_own_problem", "judge.edit_all_problem"],
     });
     await insertProblem(t, { code: "aplusb", allowedLanguageIds: [py] });
+
     const { jobId } = await asUser(t, "staff").mutation(api.admin.submissions.rescoreProblem, {
       problemCode: "aplusb",
     });
+
     await t.finishAllScheduledFunctions(vi.runAllTimers);
 
     await expect(asUser(t, "stranger").query(api.jobs.status, { jobId })).rejects.toThrow(/Staff only/);

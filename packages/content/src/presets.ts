@@ -99,6 +99,7 @@ export const PRESETS: Readonly<Record<Preset, PresetConfig>> = {
 
 export function presetConfig(preset: Preset | string): PresetConfig {
   const found = (PRESETS as Record<string, PresetConfig | undefined>)[preset];
+
   return found ?? PRESETS.default;
 }
 

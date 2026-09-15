@@ -26,19 +26,23 @@ async function fixture() {
   const languageId = await insertLanguage(t, { key: "PY3" });
   const open1 = await insertProblem(t, { code: "open1", isPublic: true, allowedLanguageIds: [languageId] });
   const open2 = await insertProblem(t, { code: "open2", isPublic: true, allowedLanguageIds: [languageId] });
+
   const secret = await insertProblem(t, {
     code: "secret",
     isPublic: false,
     allowedLanguageIds: [languageId],
   });
+
   const memberId = await insertProfile(t, { username: "member" });
 
   const now = Date.now();
+
   const contestId = await insertContest(t, {
     key: "past",
     startTime: now - 7_200_000,
     endTime: now - 3_600_000,
   });
+
   await insertContestProblem(t, { contestId, problemId: open1, order: 1, points: 1 });
   await insertContestProblem(t, { contestId, problemId: open2, order: 2, points: 1 });
   await insertContestProblem(t, { contestId, problemId: secret, order: 3, points: 1 });
@@ -52,6 +56,7 @@ async function progressFor(f: Fixture) {
   const payload = await asUser(f.t, "member").query(api.contests.list, {
     paginationOpts: { numItems: 20, cursor: null },
   });
+
   return payload.past.page[0]?.progress ?? null;
 }
 
@@ -98,9 +103,11 @@ describe("a contest the viewer took part in", () => {
 describe("signed out", () => {
   it("gets no progress at all rather than an empty one", async () => {
     const f = await fixture();
+
     const payload = await f.t.query(api.contests.list, {
       paginationOpts: { numItems: 20, cursor: null },
     });
+
     expect(payload.past.page[0]?.progress).toBeNull();
   });
 });
@@ -113,11 +120,13 @@ describe("a contest that has not finished", () => {
     await f.t.run(async (ctx) =>
       ctx.db.patch(f.contestId, { startTime: now - 60_000, endTime: now + 3_600_000 }),
     );
+
     return f;
   }
 
   it("tells an ordinary viewer nothing, because the names would come with it", async () => {
     const f = await ongoing();
+
     const payload = await asUser(f.t, "member").query(api.contests.list, {
       paginationOpts: { numItems: 20, cursor: null },
     });
@@ -136,6 +145,7 @@ describe("a contest that has not finished", () => {
     const payload = await asUser(f.t, "author").query(api.contests.list, {
       paginationOpts: { numItems: 20, cursor: null },
     });
+
     expect(payload.current[0]?.progress?.total).toBe(3);
   });
 });

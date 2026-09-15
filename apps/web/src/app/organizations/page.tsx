@@ -9,11 +9,13 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
   const t = await getTranslations("organizations.list");
+
   return { title: t("title") };
 }
 
 export default async function OrganizationsPage() {
   const t = await getTranslations("organizations.list");
+
   const [organizations, tabs] = await Promise.all([
     queryAsViewer(api.organizations.list, {}).catch(() => []),
     userListTabs(),

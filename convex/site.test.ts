@@ -23,6 +23,7 @@ async function seed() {
     });
     await insertProfile(ctx, { username: "root", isSuperuser: true, isStaff: true });
   });
+
   return t;
 }
 
@@ -38,6 +39,7 @@ describe("navigation bar", () => {
       regex: "^/problems?/",
       order: 2,
     });
+
     await admin.mutation(api.admin.site.createNavItem, {
       key: "home",
       label: "Home",
@@ -71,6 +73,7 @@ describe("navigation bar", () => {
   test("deleting a parent lifts its children up a level", async () => {
     const t = await seed();
     const admin = asUser(t, "navadmin");
+
     const parent = await admin.mutation(api.admin.site.createNavItem, {
       key: "parent",
       label: "Parent",
@@ -78,6 +81,7 @@ describe("navigation bar", () => {
       regex: "^/p/",
       order: 1,
     });
+
     await admin.mutation(api.admin.site.createNavItem, {
       key: "child",
       label: "Child",
@@ -142,6 +146,7 @@ describe("navigation bar", () => {
   test("reordering moves rows without touching the rest", async () => {
     const t = await seed();
     const admin = asUser(t, "navadmin");
+
     const a = await admin.mutation(api.admin.site.createNavItem, {
       key: "a",
       label: "A",
@@ -149,6 +154,7 @@ describe("navigation bar", () => {
       regex: "^/a/",
       order: 1,
     });
+
     const b = await admin.mutation(api.admin.site.createNavItem, {
       key: "b",
       label: "B",
@@ -244,10 +250,12 @@ describe("site settings", () => {
     });
     await t.run(async (ctx) => {
       const groupId = await insertProblemGroup(ctx, { name: "misc" });
+
       const author = await ctx.db
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", "plain"))
         .unique();
+
       if (!author) throw new Error("no author");
       await insertProblem(ctx, { code: "alpha", name: "Alpha", description: "", groupId });
       await ctx.db.insert("comments", {
@@ -280,6 +288,7 @@ const TOLERANCE = 8;
 
 function channels(hex: string): [number, number, number] {
   const int = Number.parseInt(hex.replace("#", ""), 16);
+
   return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
 }
 
@@ -288,6 +297,7 @@ function channels(hex: string): [number, number, number] {
 function distance(got: string, want: string): number {
   const a = channels(got);
   const b = channels(want);
+
   return Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]));
 }
 
@@ -332,10 +342,13 @@ describe("brandingPalette", () => {
   test("the dark chrome separates, in order, whatever the operator picked", () => {
     for (const nav of ["#101a3d", "#1a1a2e", "#0f3b2a", "#4a1020", "#2b2b2b"]) {
       const { navDark, titlebarDark, contestBarDark } = brandingPalette("#2f4fd0", nav);
+
       const lightness = (hex: string) => {
         const [r, g, b] = channels(hex);
+
         return 0.2126 * r + 0.7152 * g + 0.0722 * b;
       };
+
       expect(lightness(navDark)).toBeGreaterThanOrEqual(lightness(nav));
       expect(lightness(contestBarDark)).toBeGreaterThan(lightness(navDark));
       expect(lightness(titlebarDark)).toBeGreaterThan(lightness(contestBarDark));
@@ -346,11 +359,15 @@ describe("brandingPalette", () => {
     const luminance = (hex: string) => {
       const channel = (value: number) => {
         const c = value / 255;
+
         return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
       };
+
       const [r, g, b] = channels(hex);
+
       return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
     };
+
     const onWhite = (hex: string) => 1.05 / (luminance(hex) + 0.05);
 
     for (const accent of ["#2f4fd0", "#2941a5", "#b3001b", "#0f6b3f", "#7a4b00"]) {
@@ -358,6 +375,7 @@ describe("brandingPalette", () => {
         accent,
         "#101a3d",
       );
+
       expect(onWhite(accentFillDark)).toBeGreaterThanOrEqual(4.5);
       // Hover lifts off the fill and pressed drops below it, as tokens.css has it.
       expect(luminance(accentFillHoverDark)).toBeGreaterThan(luminance(accentFillDark));

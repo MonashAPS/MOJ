@@ -7,6 +7,7 @@ import { RecentJobs } from "./jobs/RecentJobs";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.shell.overview");
+
   return { title: t("metaTitle") };
 }
 
@@ -21,6 +22,7 @@ export default async function AdminOverviewPage() {
             <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {group.items.map((item) => {
                 const Icon = item.icon;
+
                 return (
                   <li key={item.key}>
                     <Link

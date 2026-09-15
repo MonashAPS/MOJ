@@ -16,6 +16,7 @@ async function load(key: string) {
 
 export async function generateMetadata({ params }: Props) {
   const license = await load((await params).key);
+
   return { title: license?.name ?? "Page not found" };
 }
 
@@ -23,12 +24,14 @@ export async function generateMetadata({ params }: Props) {
  *  the source link in DMOJ's `info_float`. */
 export default async function LicensePage({ params }: Props) {
   const license = await load((await params).key);
+
   if (!license) notFound();
 
   const [html, viewerState] = await Promise.all([
     renderContent(license.text, license.textPreset),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
   ]);
+
   const canEdit = viewerState?.profile?.permissions.includes("judge.change_license");
 
   return (

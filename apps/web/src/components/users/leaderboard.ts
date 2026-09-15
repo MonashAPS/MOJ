@@ -39,6 +39,7 @@ export function parseUserOrder(raw: string | null | undefined): UserSortState {
   const order = bare in CONVEX_SORT && !bare.startsWith("-") ? candidate : DEFAULT_USER_ORDER;
   const descending = order.startsWith("-");
   const key = (descending ? order.slice(1) : order) as UserSortKey;
+
   return { order, key, descending, sort: CONVEX_SORT[key] };
 }
 
@@ -49,13 +50,16 @@ export function sortHref(basePath: string, params: URLSearchParams, key: UserSor
   next.delete("page");
   // `links[current]` flips the active column; every other column starts descending.
   next.set("order", key === state.key ? (state.descending ? key : `-${key}`) : `-${key}`);
+
   return `${basePath}?${next.toString()}`;
 }
 
 export function pageHref(basePath: string, params: URLSearchParams, page: number) {
   const next = new URLSearchParams(params);
+
   if (page <= 1) next.delete("page");
   else next.set("page", String(page));
   const query = next.toString();
+
   return query ? `${basePath}?${query}` : basePath;
 }

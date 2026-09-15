@@ -4,7 +4,9 @@ import { useEffect, useRef } from "react";
 
 /** How long the tour sits still at the top and at the bottom of a division. */
 const TOP_MS = 4000;
+
 const BOTTOM_MS = 4000;
+
 /** One screenful of crawl. A long division takes proportionally longer. */
 const SCREEN_MS = 12000;
 
@@ -57,9 +59,11 @@ export function useAutoTour({
     const crawl = (node: HTMLElement, next: () => void) => {
       const start = node.scrollTop;
       const distance = Math.max(0, node.scrollHeight - node.clientHeight) - start;
+
       if (still || distance < 8 || !node.clientHeight) {
         node.scrollTop = start + Math.max(0, distance);
         next();
+
         return;
       }
 
@@ -68,6 +72,7 @@ export function useAutoTour({
 
       const step = (now: number) => {
         if (cancelled) return;
+
         if (began === null) began = now;
         const t = Math.min(1, (now - began) / duration);
         // Ease in and out so the start and the stop are not abrupt, while the
@@ -75,14 +80,17 @@ export function useAutoTour({
         const eased = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
         const reach = Math.max(0, node.scrollHeight - node.clientHeight) - start;
         node.scrollTop = start + reach * eased;
+
         if (t < 1) frame = window.requestAnimationFrame(step);
         else next();
       };
+
       frame = window.requestAnimationFrame(step);
     };
 
     const cycle = () => {
       const node = panelRef.current();
+
       if (!node) return;
       node.scrollTop = 0;
       wait(TOP_MS, () => {
@@ -98,7 +106,9 @@ export function useAutoTour({
 
     return () => {
       cancelled = true;
+
       if (timer !== undefined) window.clearTimeout(timer);
+
       if (frame !== undefined) window.cancelAnimationFrame(frame);
     };
   }, [on, restartKey]);

@@ -14,6 +14,7 @@ const CHIP: Record<string, string> = {
   incorrect: "chipIncorrect",
   pending: "chipPending",
 };
+
 const LINE: Record<string, string> = {
   correct: "lineCorrect",
   incorrect: "lineIncorrect",
@@ -50,31 +51,39 @@ export function EventFeed({
   const fresh = useMemo(() => {
     const keys = new Set(entries.map((entry) => entry.id));
     const arrived = new Set<string>();
+
     if (painted.current) {
       for (const key of keys) if (!positions.current.has(key)) arrived.add(key);
     }
+
     return arrived;
   }, [entries]);
 
   useLayoutEffect(() => {
     const list = listRef.current;
+
     if (!list) return;
     const still = prefersReducedMotion();
     const next = new Map<string, number>();
+
     for (const node of list.querySelectorAll<HTMLLIElement>("li[data-entry]")) {
       const key = node.dataset.entry;
+
       if (!key) continue;
       const top = node.offsetTop;
       next.set(key, top);
       const before = positions.current.get(key);
+
       if (still || before === undefined) continue;
       const delta = before - top;
+
       if (Math.abs(delta) < 2 || typeof node.animate !== "function") continue;
       node.animate([{ transform: `translateY(${delta}px)` }, { transform: "none" }], {
         duration: SHIFT_MS,
         easing: `cubic-bezier(${EASE_OUT.join(",")})`,
       });
     }
+
     positions.current = next;
     painted.current = true;
   });

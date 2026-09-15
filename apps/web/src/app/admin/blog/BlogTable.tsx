@@ -54,13 +54,16 @@ const EMPTY: Draft = {
 function toLocalInput(ms: number): string {
   const date = new Date(ms);
   const pad = (value: number) => String(value).padStart(2, "0");
+
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function fromLocalInput(value: string): number | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/.exec(value.trim());
+
   if (!match) return null;
   const [, year, month, day, hour, minute] = match;
+
   return new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute)).getTime();
 }
 
@@ -68,9 +71,11 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
   const t = useTranslations("admin.blog");
   const actions = useTranslations("common.actions");
   const [search, setSearch] = useState("");
+
   const posts = useQuery(api.admin.blog.list, search.trim() ? { search: search.trim() } : {}) as
     | PostRow[]
     | undefined;
+
   const create = useMutation(api.admin.blog.create);
   const update = useMutation(api.admin.blog.update);
   const remove = useMutation(api.admin.blog.remove);
@@ -102,12 +107,16 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
   async function save() {
     if (!draft) return;
     const publishOn = draft.publishOn.trim() === "" ? Date.now() : fromLocalInput(draft.publishOn);
+
     if (publishOn === null) {
       setError(t("publishTimeInvalid"));
+
       return;
     }
+
     setBusy(true);
     setError(null);
+
     try {
       const payload = {
         title: draft.title,
@@ -120,6 +129,7 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
         authorProfileIds: draft.authorProfileIds as Id<"profiles">[],
         reason,
       };
+
       if (draft.id) await update({ ...payload, id: draft.id });
       else await create(payload);
       setMessage({ tone: "ok", text: t("saved", { title: draft.title }) });

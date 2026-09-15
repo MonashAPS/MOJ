@@ -11,6 +11,7 @@ export async function GET(
   context: { params: Promise<{ code: string }> },
 ): Promise<Response> {
   const { code } = await context.params;
+
   return withFilters(request, async () =>
     handleApiRequest(request, async (options) => ({
       object: await fetchQuery(api.apiV2.problem, { code }, options),

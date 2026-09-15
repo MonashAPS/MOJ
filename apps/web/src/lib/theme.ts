@@ -7,6 +7,7 @@ export const THEME_STORAGE_KEY = "moj-theme";
  *  bootstrap script below ever runs, which is what keeps a hard refresh honest
  *  for a viewer whose browser declines to run inline scripts. */
 export const THEME_COOKIE = "moj-theme";
+
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 /** Following the system is stored under this value rather than as a missing key.
@@ -23,6 +24,7 @@ export function resolveTheme(
   defaultTheme: ThemeDefault,
 ): "light" | "dark" | null {
   const value = stored === "dark" || stored === "light" || stored === THEME_SYSTEM ? stored : defaultTheme;
+
   return value === "dark" || value === "light" ? value : null;
 }
 
@@ -43,6 +45,7 @@ export function themeBootstrap(defaultTheme: ThemeDefault): string {
   const cookie = JSON.stringify(THEME_COOKIE);
   const fallback = JSON.stringify(defaultTheme);
   const system = JSON.stringify(THEME_SYSTEM);
+
   return `(function(){try{var r=document.documentElement;var t=localStorage.getItem(${key});if(t!=="dark"&&t!=="light"&&t!==${system}){t=${fallback};}else{document.cookie=${cookie}+"="+t+";path=/;max-age=${COOKIE_MAX_AGE};samesite=lax";}if(t==="dark"||t==="light"){r.setAttribute("data-theme",t);}else{r.removeAttribute("data-theme");}}catch(e){}})();`;
 }
 

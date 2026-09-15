@@ -13,18 +13,22 @@ import { setupTest } from "../test.setup";
 describe("pages/users.organizationsFor", () => {
   test("returns each profile's organisations, sorted by short name", async () => {
     const t = setupTest();
+
     const ids = await t.run(async (ctx) => {
       const keen = await insertProfile(ctx, { username: "keen" });
       const lonely = await insertProfile(ctx, { username: "lonely" });
+
       const maps = await insertOrganization(ctx, {
         slug: "maps",
         name: "MAPS",
         shortName: "MAPS",
         legacyId: 5,
       });
+
       const acs = await insertOrganization(ctx, { slug: "acs", name: "ACS", shortName: "ACS" });
       await insertMembership(ctx, { organizationId: maps, profileId: keen, order: 0 });
       await insertMembership(ctx, { organizationId: acs, profileId: keen, order: 1 });
+
       return { keen, lonely };
     });
 
@@ -45,6 +49,7 @@ describe("pages/users.organizationsFor", () => {
     const rows = await t.query(api.pages.users.organizationsFor, {
       profileIds: [keen, keen, keen],
     });
+
     expect(rows).toHaveLength(1);
   });
 });
@@ -62,6 +67,7 @@ describe("pages/users.dataExportDownload", () => {
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", "keen"))
         .unique();
+
       if (!profile) throw new Error("no profile");
       await ctx.db.insert("jobs", {
         type: "userExport",
@@ -85,6 +91,7 @@ describe("pages/users.dataExportDownload", () => {
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", "keen"))
         .unique();
+
       if (!profile) throw new Error("no profile");
       const storageId = await ctx.storage.store(new Blob(["archive"], { type: "application/zip" }));
       await ctx.db.insert("jobs", {

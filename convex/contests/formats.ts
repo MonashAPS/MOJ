@@ -146,19 +146,24 @@ export async function toViewerRow(ctx: AnyCtx, profile: Doc<"profiles"> | null):
     .query("organizationMemberships")
     .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
     .collect();
+
   const organizationIds = memberships.map((row) => row.organizationId as string);
 
   const classIds: string[] = [];
   const adminOfOrganizationIds: string[] = [];
+
   for (const membership of memberships) {
     const organization = await ctx.db.get(membership.organizationId);
+
     if (organization?.adminProfileIds.includes(profile._id)) {
       adminOfOrganizationIds.push(organization._id);
     }
+
     const classes = await ctx.db
       .query("classes")
       .withIndex("by_organization", (q) => q.eq("organizationId", membership.organizationId))
       .collect();
+
     for (const row of classes) {
       if (row.memberProfileIds.includes(profile._id)) classIds.push(row._id);
     }
@@ -194,8 +199,10 @@ export async function toViewerRowInContest(
   profile: Doc<"profiles"> | null,
 ): Promise<ProfileRow | null> {
   const viewer = await toViewerRow(ctx, profile);
+
   if (!viewer || !profile?.currentParticipationId) return viewer;
   const participation = await ctx.db.get(profile.currentParticipationId);
+
   return { ...viewer, currentContestId: participation?.contestId ?? null };
 }
 
@@ -218,6 +225,7 @@ export async function loadContestProblems(
     .query("contestProblems")
     .withIndex("by_contest_order", (q) => q.eq("contestId", contestId))
     .collect();
+
   return rows.sort((a, b) => a.order - b.order);
 }
 
@@ -239,15 +247,18 @@ export async function contestSubmissionRows(
 ): Promise<ContestSubmissionRow[]> {
   const submissions = await loadParticipationSubmissions(ctx, participationId);
   const rows: ContestSubmissionRow[] = [];
+
   for (const submission of submissions) {
     if (!submission.contestProblemId) continue;
     // Only ioi16 reads per-case rows, so nothing else pays for the query.
     let testCases: SubmissionTestCaseRow[] | undefined;
+
     if (formatName === "ioi16") {
       const cases = await ctx.db
         .query("submissionTestCases")
         .withIndex("by_submission_case", (q) => q.eq("submissionId", submission._id))
         .collect();
+
       testCases = cases.map((row) => ({
         case: row.case,
         status: row.status as SubmissionTestCaseRow["status"],
@@ -258,8 +269,10 @@ export async function contestSubmissionRows(
         batch: row.batch ?? null,
       }));
     }
+
     rows.push(toContestSubmissionRow(submission, testCases));
   }
+
   return rows;
 }
 
@@ -293,6 +306,7 @@ export const list = query({
   handler: async (): Promise<FormatChoice[]> => {
     return formatChoices().map(([name, displayName]) => {
       const format = getFormatOrDefault(name);
+
       return {
         name,
         displayName,
@@ -309,6 +323,7 @@ export const describe = query({
   handler: async (_ctx, { name, config }): Promise<{ lines: ScoringLine[]; error: string | null }> => {
     try {
       const format = getFormatOrDefault(name);
+
       return { lines: format.getShortFormDisplay(config), error: null };
     } catch (error) {
       return { lines: [], error: describeFormatError(error) };
@@ -322,6 +337,7 @@ export const validate = query({
   handler: async (_ctx, { name, config }): Promise<{ ok: boolean; error: string | null }> => {
     try {
       getFormatOrDefault(name).validate(config);
+
       return { ok: true, error: null };
     } catch (error) {
       return { ok: false, error: describeFormatError(error) };
@@ -333,5 +349,6 @@ export function describeFormatError(error: unknown): string {
   if (error instanceof FormatConfigError || error instanceof UnknownContestFormatError) {
     return error.message;
   }
+
   return "Invalid contest format configuration.";
 }

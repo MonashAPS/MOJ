@@ -10,6 +10,7 @@ export async function getServerSession() {
 export async function getConvexToken(): Promise<string | null> {
   try {
     const result = await auth.api.getToken({ headers: await headers() });
+
     return (result as { token?: string } | null)?.token ?? null;
   } catch {
     return null;

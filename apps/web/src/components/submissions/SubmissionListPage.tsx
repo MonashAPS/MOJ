@@ -17,6 +17,7 @@ export type SearchParams = Record<string, string | string[] | undefined>;
 
 function listOf(value: string | string[] | undefined): string[] {
   if (value === undefined) return [];
+
   return Array.isArray(value) ? value : [value];
 }
 
@@ -46,7 +47,9 @@ export async function SubmissionListPage({
 }) {
   const t = await getTranslations("submissions.list");
   const context = await loadListContext(filters);
+
   if (!context.found) notFound();
+
   // `authInterrupts` is not enabled, so an access failure renders DMOJ's 403
   // page in place rather than throwing an interrupt.
   if (!context.allowed) {
@@ -60,6 +63,7 @@ export async function SubmissionListPage({
   // counts globally or for one problem, so it is only asked for the lists it can
   // answer honestly.
   const wantsResults = !filters.username && !filters.contestKey;
+
   const [page, results] = await Promise.all([
     queryAsViewer(api.submissions.list, {
       paginationOpts: { numItems: PAGE_SIZE, cursor: null },
@@ -79,11 +83,13 @@ export async function SubmissionListPage({
   const isOwn = context.user?.isSelf ?? false;
 
   const allHref = filters.problemCode ? `/problem/${filters.problemCode}/submissions/` : "/submissions/";
+
   const myHref = me
     ? filters.problemCode
       ? `/problem/${filters.problemCode}/submissions/${me}/`
       : `/submissions/user/${me}/`
     : null;
+
   const tabs: TabItem[] = [
     { key: "all", label: t("tabAll"), href: allHref, icon: <List aria-hidden /> },
     ...(myHref ? [{ key: "mine", label: t("tabMine"), href: myHref, icon: <User aria-hidden /> }] : []),
@@ -144,6 +150,7 @@ async function contentTitle(
   const viewedUser = context.user;
   const viewedProblem = context.problem;
   const viewedContest = context.contest;
+
   const user = viewedUser
     ? () => (
         <RatingName
@@ -155,6 +162,7 @@ async function contentTitle(
         />
       )
     : null;
+
   const problem = viewedProblem
     ? () => (
         <Link href={`/problem/${viewedProblem.code}`} className="text-link hover:text-link-hover">
@@ -162,6 +170,7 @@ async function contentTitle(
         </Link>
       )
     : null;
+
   const contest = viewedContest
     ? () => (
         <Link href={`/contest/${viewedContest.key}`} className="text-link hover:text-link-hover">
@@ -173,17 +182,23 @@ async function contentTitle(
   if (contest && problem && user) {
     return t.rich("titleUserProblemContest", { user, problem, contest });
   }
+
   if (contest && user) {
     return isOwn ? t.rich("titleMineContest", { contest }) : t.rich("titleUserContest", { user, contest });
   }
+
   if (problem && user) {
     return isOwn ? t.rich("titleMineProblem", { problem }) : t.rich("titleUserProblem", { user, problem });
   }
+
   if (problem) return t.rich("titleProblem", { problem });
+
   if (user) {
     return isOwn ? t("titleMine") : t.rich("titleUser", { user });
   }
+
   if (filters.contestKey) return t("titleContest");
+
   return t("titleAll");
 }
 
@@ -194,6 +209,7 @@ async function emptyCopy(
 ): Promise<{ emptyTitle: string; emptyDescription: string; emptyAction?: { label: string; href: string } }> {
   const t = await getTranslations("submissions.list");
   const browse = { label: t("browseProblems"), href: "/problems/" };
+
   if (isOwn) {
     return {
       emptyTitle: t("emptyTitle"),
@@ -201,18 +217,21 @@ async function emptyCopy(
       emptyAction: browse,
     };
   }
+
   if (context.user) {
     return {
       emptyTitle: t("emptyTitle"),
       emptyDescription: t("emptyUser", { username: context.user.username }),
     };
   }
+
   if (context.problem) {
     return {
       emptyTitle: t("emptyTitle"),
       emptyDescription: t("emptyProblem", { problem: context.problem.name }),
     };
   }
+
   return {
     emptyTitle: t("emptyTitle"),
     emptyDescription: t("emptyAny"),

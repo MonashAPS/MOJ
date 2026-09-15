@@ -66,11 +66,13 @@ export class ConvexLoader implements Loader {
    */
   private async withRetry<T>(what: string, run: () => Promise<T>): Promise<T> {
     let wait = 250;
+
     for (let attempt = 0; ; attempt++) {
       try {
         return await run();
       } catch (error) {
         const message = (error as Error).message ?? String(error);
+
         const transient =
           message.includes("TooManyWrites") ||
           message.includes("Too many writes") ||
@@ -79,6 +81,7 @@ export class ConvexLoader implements Loader {
           message.includes("Transient") ||
           message.includes("ECONNRESET") ||
           message.includes("fetch failed");
+
         if (!transient || attempt >= this.retries) throw error;
         process.stderr.write(`  ${what}: ${message.split("\n")[0]}, retrying in ${wait}ms\n`);
         await new Promise((resolve) => setTimeout(resolve, wait));
@@ -93,7 +96,9 @@ export class ConvexLoader implements Loader {
     const client = new ConvexHttpClient(url) as ConvexHttpClient & {
       setAdminAuth(key: string): void;
     };
+
     client.setAdminAuth(adminKey);
+
     return new ConvexLoader(client as unknown as ConvexClientLike);
   }
 
@@ -113,6 +118,7 @@ export class ConvexLoader implements Loader {
 
   async clear(table: string): Promise<number> {
     let deleted = 0;
+
     for (;;) {
       const result = await this.withRetry(
         `clear ${table}`,
@@ -122,7 +128,9 @@ export class ConvexLoader implements Loader {
             isDone: boolean;
           },
       );
+
       deleted += result.deleted;
+
       if (result.isDone) return deleted;
     }
   }
@@ -130,6 +138,7 @@ export class ConvexLoader implements Loader {
   async mapping(table: string): Promise<InsertedId[]> {
     const out: InsertedId[] = [];
     let cursor: string | null = null;
+
     for (;;) {
       const page = await this.withRetry(
         `mapping ${table}`,
@@ -140,7 +149,9 @@ export class ConvexLoader implements Loader {
             isDone: boolean;
           },
       );
+
       out.push(...page.page);
+
       if (page.isDone || !page.continueCursor) return out;
       cursor = page.continueCursor;
     }
@@ -166,39 +177,48 @@ export class DryRunLoader implements Loader {
   async insert(table: string, docs: ImportDoc[]): Promise<InsertedId[]> {
     let ordinal = this.inserted.get(table) ?? 0;
     const out: InsertedId[] = [];
+
     for (const doc of docs) {
       const legacyId = typeof doc.legacyId === "number" ? doc.legacyId : null;
       out.push({ legacyId, id: DryRunLoader.fakeId(table, legacyId, ordinal) });
       ordinal++;
     }
+
     this.inserted.set(table, ordinal);
+
     return out;
   }
 
   async patch(table: string, patches: { id: string; fields: ImportDoc }[]): Promise<number> {
     this.patched.set(table, (this.patched.get(table) ?? 0) + patches.length);
+
     return patches.length;
   }
 
   async clear(table: string): Promise<number> {
     this.cleared.push(table);
     this.inserted.set(table, 0);
+
     return 0;
   }
 
   async mapping(table: string): Promise<InsertedId[]> {
     if (!this.docsDir) return [];
     const file = path.join(this.docsDir, `${table}.jsonl`);
+
     if (!existsSync(file)) return [];
     const out: InsertedId[] = [];
     let ordinal = 0;
     const seen = new Set<string>();
+
     for await (const row of readRows(file, seen)) {
       const legacyId = typeof row.data.legacyId === "number" ? (row.data.legacyId as number) : null;
       out.push({ legacyId, id: DryRunLoader.fakeId(table, legacyId, ordinal) });
       ordinal++;
     }
+
     this.inserted.set(table, ordinal);
+
     return out;
   }
 }

@@ -13,6 +13,7 @@ function moveBetweenChips(ref: { current: HTMLDivElement | null }) {
     if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
     const chips = Array.from(ref.current?.querySelectorAll<HTMLElement>("[data-chip]") ?? []);
     const index = chips.indexOf(event.currentTarget);
+
     if (index === -1) return;
     event.preventDefault();
     const next = event.key === "ArrowRight" ? index + 1 : index - 1;
@@ -59,6 +60,7 @@ export function ContestBar({
   // DMOJ's open-ended tutorial contests run to the year 9999; "2911824d" is not
   // a deadline, so the bar stops counting.
   const openEnded = !ended && remaining !== null && remaining > COUNTDOWN_HORIZON;
+
   const urgency =
     ended || openEnded
       ? "text-contest-bar-ink"
@@ -88,6 +90,7 @@ export function ContestBar({
         >
           {data.problems.map((problem) => {
             const isCurrent = currentCode === problem.code;
+
             return (
               <Link
                 key={problem.contestProblemId}

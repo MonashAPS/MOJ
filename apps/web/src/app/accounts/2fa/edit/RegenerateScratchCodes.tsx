@@ -24,17 +24,22 @@ export function RegenerateScratchCodes({ next, remaining }: { next: string; rema
     event.preventDefault();
     setBusy(true);
     setError(null);
+
     try {
       const response = await fetch("/accounts/2fa/scratchcode/generate/", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ password }),
       });
+
       const body = (await response.json()) as { data?: { codes?: string[] }; error?: { message?: string } };
+
       if (!response.ok || !body.data?.codes) {
         setError(body.error?.message ?? t("failed"));
+
         return;
       }
+
       setCodes(body.data.codes);
       router.refresh();
     } catch {

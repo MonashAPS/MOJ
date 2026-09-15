@@ -48,18 +48,22 @@ export async function runPipeline(
 
     const finished = options.resume && state.finished[step.table] !== undefined;
     const selected = ctx.selected(step.table);
+
     if (finished || !selected) {
       if (MAP_TARGETS.has(step.table)) {
         const mapping = await ctx.loader.mapping(step.table);
+
         for (const entry of mapping) {
           if (entry.legacyId !== null) ctx.ids.set(step.table, entry.legacyId, entry.id);
         }
+
         log(
           `${step.table}: ${finished ? "already done" : "not selected"}, ${mapping.length} ids loaded from ${ctx.loader.name}`,
         );
       } else {
         log(`${step.table}: ${finished ? "already done" : "not selected"}, skipped`);
       }
+
       continue;
     }
 
@@ -81,21 +85,29 @@ export async function runPipeline(
 async function patchProfileParticipations(ctx: ImportContext, log: (message: string) => void): Promise<void> {
   if (!ctx.selected("profiles")) return;
   const patches: { id: string; fields: Record<string, unknown> }[] = [];
+
   for await (const row of ctx.rows("judge_profile")) {
     const participationLegacyId = row.nOpt("current_contest_id");
+
     if (participationLegacyId === undefined) continue;
     const profileId = ctx.ids.get("profiles", row.id());
+
     if (!profileId) continue;
     const participationId = ctx.ids.get("contestParticipations", participationLegacyId);
+
     if (!participationId) {
       ctx.report.unresolvedRef("judge_profile", "current_contest_id", "contestParticipations", row.id());
       continue;
     }
+
     patches.push({ id: profileId, fields: { currentParticipationId: participationId } });
   }
+
   if (patches.length === 0) return;
+
   for (let i = 0; i < patches.length; i += BATCH_SIZE) {
     await ctx.loader.patch("profiles", patches.slice(i, i + BATCH_SIZE));
   }
+
   log(`profiles: patched ${patches.length} currentParticipationId references`);
 }

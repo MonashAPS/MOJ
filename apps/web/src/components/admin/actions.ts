@@ -15,6 +15,7 @@ export async function previewAction(
 ): Promise<ActionResult<string>> {
   try {
     await requireConsoleViewer();
+
     return { ok: true, data: await renderContent(source, preset) };
   } catch (error) {
     return failed(error);

@@ -33,7 +33,9 @@ const RESULTS = ["AB", "AC", "CE", "IE", "IR", "MLE", "OLE", "RTE", "TLE", "WA"]
 function duration(ms: number) {
   const hours = Math.floor(ms / 3_600_000);
   const minutes = Math.round((ms % 3_600_000) / 60_000);
+
   if (hours >= 1) return `${hours} ${hours === 1 ? "hour" : "hours"} ${minutes} min`;
+
   return `${Math.max(1, minutes)} min`;
 }
 
@@ -63,6 +65,7 @@ export function PrepareDataForm() {
 
   async function submit() {
     setBusy(true);
+
     try {
       await prepare({
         options: {

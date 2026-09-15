@@ -45,8 +45,10 @@ export function ProctorPlayer({
   const jumped = useRef<number | null>(null);
   useEffect(() => {
     if (startAt === undefined || chunks.length === 0) return;
+
     if (jumped.current === startAt) return;
     const index = chunks.findIndex((chunk) => chunk.index === startAt);
+
     if (index >= 0) {
       jumped.current = startAt;
       setFollowing(false);
@@ -64,6 +66,7 @@ export function ProctorPlayer({
   }, [live]);
 
   if (data === undefined) return <SkeletonPanel lines={4} />;
+
   if (data === null) return <p className="text-sm text-muted-foreground">{t("missing")}</p>;
 
   const { session } = data;
@@ -137,9 +140,11 @@ export function ProctorPlayer({
             <div className="flex flex-wrap gap-px">
               {chunks.map((chunk, index) => {
                 const previous = chunks[index - 1];
+
                 const gap = previous
                   ? chunk.startedAt - (previous.startedAt + previous.durationMs) > GAP_MS
                   : false;
+
                 return (
                   <span key={chunk.index} className="flex items-center gap-px">
                     {gap ? <span className="w-2" title={t("gap")} aria-hidden /> : null}

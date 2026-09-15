@@ -57,6 +57,7 @@ export function ContestActionsTab({ contest }: { contest: ContestEdit }) {
 
   async function guard(work: () => Promise<unknown>) {
     setError(null);
+
     try {
       await work();
     } catch (caught) {

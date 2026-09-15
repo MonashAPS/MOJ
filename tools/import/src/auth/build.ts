@@ -34,6 +34,7 @@ export function userIdFor(legacyUserId: number): string {
 
 function placeholderEmail(username: string, legacyUserId: number): string {
   const safe = username.replace(/[^A-Za-z0-9_.-]/g, "") || "user";
+
   return `${safe}.${legacyUserId}@imported.invalid`;
 }
 
@@ -47,6 +48,7 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
   const accounts: AuthAccountRow[] = [];
   const twoFactors: AuthTwoFactorRow[] = [];
   const passkeys: AuthPasskeyRow[] = [];
+
   const stats = {
     users: 0,
     accounts: 0,
@@ -60,14 +62,18 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
   // Language keys and organisation slugs live on the Better Auth user, so the
   // web app can bootstrap a Convex profile from the session alone.
   const languageKeys = new Map<number, string>();
+
   for await (const row of ctx.rows("judge_language")) languageKeys.set(row.id(), row.s("key"));
 
   const organizationSlugs = new Map<number, string>();
+
   for await (const row of ctx.rows("judge_organization")) organizationSlugs.set(row.id(), row.s("slug"));
 
   const slugsByProfile = new Map<number, { slug: string; order: number }[]>();
+
   for await (const row of ctx.rows("judge_profile_organizations")) {
     const slug = organizationSlugs.get(row.n("organization_id"));
+
     if (slug === undefined) continue;
     const list = slugsByProfile.get(row.n("profile_id")) ?? [];
     list.push({ slug, order: row.n("sort_value") });
@@ -76,14 +82,17 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
 
   // profile id -> auth_user id, plus the per user columns the user row needs.
   const profileToUser = new Map<number, number>();
+
   const totpByUser = new Map<
     number,
     { enabled: boolean; totpKey: Buffer | null; scratchCodes: Buffer | null }
   >();
+
   const profileByUser = new Map<
     number,
     { timezone: string; languageKey: string | null; slugs: string | null }
   >();
+
   for await (const row of ctx.rows("judge_profile")) {
     const legacyUserId = row.n("user_id");
     profileToUser.set(row.id(), legacyUserId);
@@ -92,9 +101,11 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
       totpKey: row.blob("totp_key"),
       scratchCodes: row.blob("scratch_codes"),
     });
+
     const slugs = (slugsByProfile.get(row.id()) ?? [])
       .sort((a, b) => a.order - b.order)
       .map((entry) => entry.slug);
+
     profileByUser.set(legacyUserId, {
       timezone: row.s("timezone"),
       languageKey: languageKeys.get(row.n("language_id")) ?? null,
@@ -104,11 +115,13 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
   }
 
   const emails = new Set<string>();
+
   for await (const row of ctx.rows("auth_user")) {
     const legacyUserId = row.id();
     const id = userIdFor(legacyUserId);
     const username = row.s("username");
     let email = row.s("email").trim();
+
     if (email === "") {
       email = placeholderEmail(username, legacyUserId);
       ctx.report.warn("betterAuth.user", "empty email replaced with a placeholder", legacyUserId);
@@ -118,6 +131,7 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
       ctx.report.warn("betterAuth.user", "duplicate email replaced with a placeholder", legacyUserId);
       stats.rewrittenEmails++;
     }
+
     emails.add(email.toLowerCase());
 
     const joined = row.t("date_joined");
@@ -147,6 +161,7 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
     stats.users++;
 
     const password = row.s("password");
+
     if (password === "" || password.startsWith("!")) {
       stats.unusablePasswords++;
       ctx.report.warn("betterAuth.account", "unusable Django password, no credential account", legacyUserId);
@@ -165,6 +180,7 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
   }
 
   const fernetKey = options.djangoSecretKey ? deriveFernetKey(options.djangoSecretKey) : null;
+
   for (const [legacyUserId, totp] of totpByUser) {
     if (!totp.enabled || totp.totpKey === null) {
       if (totp.scratchCodes !== null || totp.totpKey !== null) {
@@ -174,8 +190,10 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
           legacyUserId,
         );
       }
+
       continue;
     }
+
     if (!fernetKey || !options.authSecret) {
       stats.twoFactorFailures++;
       ctx.report.warn(
@@ -187,14 +205,18 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
       );
       continue;
     }
+
     try {
       const secret = fernetDecryptString(fernetKey, totp.totpKey);
       let codes: string[] = [];
+
       if (totp.scratchCodes) {
         const decoded = fernetDecryptString(fernetKey, totp.scratchCodes);
         const parsed = JSON.parse(decoded) as unknown;
+
         if (Array.isArray(parsed)) codes = parsed.map((code) => String(code));
       }
+
       const id = userIdFor(legacyUserId);
       twoFactors.push({
         id: `${id}-totp`,
@@ -218,10 +240,12 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
 
   for await (const row of ctx.rows("judge_webauthncredential")) {
     const legacyUserId = profileToUser.get(row.n("user_id"));
+
     if (legacyUserId === undefined) {
       ctx.report.skip("betterAuth.passkey", "credential has no profile", row.id());
       continue;
     }
+
     const id = userIdFor(legacyUserId);
     passkeys.push({
       id: `pk${row.id()}`,

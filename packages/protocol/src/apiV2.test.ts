@@ -24,6 +24,7 @@ import {
 describe("the envelope", () => {
   test("a list response is DMOJ's `get_base_response` plus `get_api_data`", () => {
     const schema = listResponse(apiUserListObject);
+
     const parsed = schema.parse({
       api_version: "2.0",
       method: "get",
@@ -48,11 +49,13 @@ describe("the envelope", () => {
         ],
       },
     });
+
     expect(parsed.data.objects_per_page).toBe(1000);
   });
 
   test("an infinite page omits the totals", () => {
     const schema = listResponse(apiUserListObject);
+
     const parsed = schema.parse({
       api_version: API_VERSION,
       method: "get",
@@ -65,12 +68,14 @@ describe("the envelope", () => {
         objects: [],
       },
     });
+
     expect(parsed.data.total_objects).toBeUndefined();
     expect(parsed.data.total_pages).toBeUndefined();
   });
 
   test("a detail response wraps a single object", () => {
     const schema = detailResponse(apiContestListObject);
+
     const parsed = schema.parse({
       api_version: "2.0",
       method: "get",
@@ -88,6 +93,7 @@ describe("the envelope", () => {
         },
       },
     });
+
     expect(parsed.data.object.key).toBe("spring");
   });
 
@@ -98,6 +104,7 @@ describe("the envelope", () => {
       fetched: "2026-09-10T00:00:00.000Z",
       error: { code: 404, message: "page/object not found" },
     });
+
     expect(parsed.error.code).toBe(404);
     expect("data" in parsed).toBe(false);
   });

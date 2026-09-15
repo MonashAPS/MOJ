@@ -41,7 +41,9 @@ export function MarkdownField({
     setHtml(null);
     startTransition(async () => {
       const result = await previewAction(value, preset);
+
       if (cancelled) return;
+
       if (result.ok) {
         setHtml(result.data);
         setError(null);
@@ -50,6 +52,7 @@ export function MarkdownField({
         setError(result.error);
       }
     });
+
     return () => {
       cancelled = true;
     };

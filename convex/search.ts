@@ -17,6 +17,7 @@ export const global = query({
   args: { term: v.string(), limit: v.optional(v.number()) },
   handler: async (ctx, { term, limit }): Promise<SearchHit[]> => {
     const needle = term.trim();
+
     if (needle.length === 0) return [];
     const perKind = Math.max(1, Math.min(limit ?? PER_KIND, 20));
     const viewer = await optionalViewer(ctx);
@@ -38,6 +39,7 @@ export const global = query({
     ]);
 
     const hits: SearchHit[] = [];
+
     for (const problem of problems) {
       hits.push({
         kind: "problem",
@@ -47,6 +49,7 @@ export const global = query({
         href: `/problem/${problem.code}`,
       });
     }
+
     for (const profile of users) {
       hits.push({
         kind: "user",
@@ -56,6 +59,7 @@ export const global = query({
         href: `/user/${profile.username}`,
       });
     }
+
     for (const contest of contests) {
       hits.push({
         kind: "contest",
@@ -65,6 +69,7 @@ export const global = query({
         href: `/contest/${contest.key}`,
       });
     }
+
     for (const organization of organizations) {
       hits.push({
         kind: "organization",
@@ -74,6 +79,7 @@ export const global = query({
         href: `/organization/${organization.legacyId ?? organization._id}-${organization.slug}`,
       });
     }
+
     return hits;
   },
 });
@@ -90,6 +96,7 @@ async function searchProblems(
       .withSearchIndex("search_name_desc", (q: any) => q.search("name", needle))
       .take(perKind);
   }
+
   return await ctx.db
     .query("problems")
     .withSearchIndex("search_name_desc", (q: any) =>
@@ -110,6 +117,7 @@ async function searchContests(
       .withSearchIndex("search_name", (q: any) => q.search("name", needle))
       .take(perKind);
   }
+
   return await ctx.db
     .query("contests")
     .withSearchIndex("search_name", (q: any) =>

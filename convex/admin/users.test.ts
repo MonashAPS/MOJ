@@ -30,6 +30,7 @@ async function seed() {
     });
     await insertProfile(ctx, { username: "member", points: 10, performancePoints: 9 });
   });
+
   return t;
 }
 
@@ -120,9 +121,11 @@ describe("admin/users", () => {
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", "member"))
         .unique();
+
       const groupId = await insertProblemGroup(ctx);
       const languageId = await insertLanguage(ctx);
       const problemId = await insertProblem(ctx, { code: "aplusb", groupId, points: 100 });
+
       if (member) {
         await insertSubmission(ctx, {
           profileId: member._id,
@@ -139,14 +142,17 @@ describe("admin/users", () => {
     const results = await asUser(t, "clerk").mutation(api.admin.users.recalculatePoints, {
       usernames: ["member"],
     });
+
     expect(results[0]).toMatchObject({ username: "member", points: 100 });
   });
 
   test("deactivating unlists the account and returns the Better Auth user id", async () => {
     const t = await seed();
+
     const result = await asUser(t, "clerk").mutation(api.admin.users.deactivate, {
       username: "member",
     });
+
     expect(result).toEqual({ userId: "user_member", username: "member", isActive: false });
 
     const row = await asUser(t, "clerk").query(api.admin.users.get, { username: "member" });

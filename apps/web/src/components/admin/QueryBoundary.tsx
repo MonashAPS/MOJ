@@ -28,6 +28,7 @@ export class QueryBoundary extends Component<
         </Panel>
       );
     }
+
     return this.props.children;
   }
 }

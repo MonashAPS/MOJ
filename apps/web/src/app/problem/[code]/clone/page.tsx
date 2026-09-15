@@ -11,18 +11,22 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("problems.clone");
+
   return { title: t("metaTitle") };
 }
 
 export default async function ClonePage({ params }: { params: Promise<{ code: string }> }) {
   const t = await getTranslations("problems.clone");
   const { code } = await params;
+
   const [problem, viewerState] = await Promise.all([
     queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
   ]);
+
   if (!problem) notFound();
   const username = viewerState?.profile?.username;
+
   if (!problem.canEdit || !username) forbidden();
 
   return (

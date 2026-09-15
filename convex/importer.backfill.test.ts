@@ -27,12 +27,14 @@ async function seed(t: T) {
       order: 1,
       legacyId: 1,
     });
+
     const cpB = await insertContestProblem(ctx, {
       contestId,
       problemId: problemB,
       order: 2,
       legacyId: 4,
     });
+
     // Same legacy id, different contest: the backfill must not borrow it.
     await insertContestProblem(ctx, {
       contestId: otherContestId,
@@ -56,6 +58,7 @@ async function seed(t: T) {
       },
       legacyId: 100,
     });
+
     const alreadyMapped = await insertParticipation(ctx, {
       contestId,
       profileId,
@@ -66,6 +69,7 @@ async function seed(t: T) {
       formatData: { [cpA]: { time: 30, points: 100 } },
       legacyId: 101,
     });
+
     const empty = await insertParticipation(ctx, {
       contestId,
       profileId,
@@ -74,6 +78,7 @@ async function seed(t: T) {
       formatData: null,
       legacyId: 102,
     });
+
     // A cross contest legacy id that must be dropped rather than remapped.
     const foreign = await insertParticipation(ctx, {
       contestId,
@@ -83,6 +88,7 @@ async function seed(t: T) {
       formatData: { "7": { time: 5, points: 10 } },
       legacyId: 103,
     });
+
     return { cpA, cpB, legacy, alreadyMapped, empty, foreign };
   });
 }
@@ -91,6 +97,7 @@ async function runAll(t: T) {
   let cursor: string | null = null;
   let rewritten = 0;
   let droppedKeys = 0;
+
   for (;;) {
     const result: {
       rewritten: number;
@@ -98,11 +105,14 @@ async function runAll(t: T) {
       continueCursor: string | null;
       isDone: boolean;
     } = await t.mutation(internal.importer.backfillFormatDataKeys, { cursor, numItems: 2 });
+
     rewritten += result.rewritten;
     droppedKeys += result.droppedKeys;
+
     if (result.isDone) break;
     cursor = result.continueCursor;
   }
+
   return { rewritten, droppedKeys };
 }
 
@@ -147,20 +157,25 @@ describe("importer.backfillLabelScheme", () => {
   async function run(t: T) {
     let cursor: string | null = null;
     let rewritten = 0;
+
     for (;;) {
       const result: { rewritten: number; continueCursor: string | null; isDone: boolean } = await t.mutation(
         internal.importer.backfillLabelScheme,
         { cursor, numItems: 10 },
       );
+
       rewritten += result.rewritten;
+
       if (result.isDone) break;
       cursor = result.continueCursor;
     }
+
     return rewritten;
   }
 
   it("numbers the formats that DMOJ numbers and leaves icpc lettered", async () => {
     const t = setupTest();
+
     const ids = await t.run(async (ctx) => ({
       def: await insertContest(ctx, { key: "a", formatName: "default" }),
       icpc: await insertContest(ctx, { key: "b", formatName: "icpc" }),
@@ -180,9 +195,11 @@ describe("importer.backfillLabelScheme", () => {
 
   it("leaves a contest that carries custom labels alone", async () => {
     const t = setupTest();
+
     const id = await t.run(async (ctx) => {
       const contestId = await insertContest(ctx, { key: "custom", formatName: "default" });
       await ctx.db.patch(contestId, { customLabels: ["P1", "P2"] });
+
       return contestId;
     });
 

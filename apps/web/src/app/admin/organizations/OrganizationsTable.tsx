@@ -64,6 +64,7 @@ export function OrganizationsTable() {
     if (!draft) return;
     setBusy(true);
     setError(null);
+
     try {
       await create({
         name: draft.name,

@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
   const t = await getTranslations("organizations.request");
+
   return { title: t("title", { organization: slugFromHandle(handle) }) };
 }
 
@@ -22,15 +23,19 @@ export default async function RequestJoinPage({ params }: { params: Promise<{ ha
   const t = await getTranslations("organizations.request");
 
   const session = await getServerSession();
+
   if (!session) redirect(`/accounts/login/?next=/organization/${handle}/request/`);
 
   const organization = await queryAsViewer(api.organizations.get, { slug });
+
   if (!organization) notFound();
+
   // `RequestJoinOrganization` 404s on an open organisation: there is nothing to
   // request, you simply join.
   if (organization.isOpen) notFound();
 
   const base = organizationHref(organization);
+
   const classes = await queryAsViewer(api.classes.listForOrganization, {
     organizationSlug: slug,
     activeOnly: true,

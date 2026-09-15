@@ -4,6 +4,7 @@ import { insertProblem, insertProfile, insertTaxonomy } from "../test.fixtures";
 import { setupTest } from "../test.setup";
 
 const KEY = "moj_test_key_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
 const WEAK_KEY = "moj_test_key_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
 /**
@@ -12,13 +13,16 @@ const WEAK_KEY = "moj_test_key_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
  */
 async function setup() {
   const t = setupTest();
+
   const ids = await t.run(async (ctx) => {
     const { groupId, languageId, cppId } = await insertTaxonomy(ctx);
+
     const setter = await insertProfile(ctx, {
       username: "setter",
       isStaff: true,
       permissions: ["judge.edit_own_problem", "judge.edit_all_problem", "judge.change_public_visibility"],
     });
+
     const weak = await insertProfile(ctx, { username: "weak" });
     await insertProfile(ctx, { username: "coauthor" });
 
@@ -38,8 +42,10 @@ async function setup() {
       enabled: true,
       createdAt: Date.now(),
     });
+
     return { groupId, languageId, cppId, setter };
   });
+
   return { t, ids };
 }
 
@@ -90,6 +96,7 @@ describe("PUT /api/problems/:code authentication", () => {
         .query("apiKeys")
         .withIndex("by_keyHash", (q) => q.eq("keyHash", keyHash))
         .unique();
+
       if (row) await ctx.db.patch(row._id, { enabled: false });
     });
     expect((await put(t, "aplusb", { name: "A" })).status).toBe(401);
@@ -103,6 +110,7 @@ describe("PUT /api/problems/:code authentication", () => {
         .query("apiKeys")
         .withIndex("by_keyHash", (q) => q.eq("keyHash", keyHash))
         .unique();
+
       if (row) await ctx.db.patch(row._id, { expiresAt: Date.now() - 1000 });
     });
     expect((await put(t, "aplusb", { name: "A" })).status).toBe(401);
@@ -112,10 +120,12 @@ describe("PUT /api/problems/:code authentication", () => {
 describe("PUT /api/problems/:code create", () => {
   test("creates with the uploader's defaults", async () => {
     const { t } = await setup();
+
     const response = await put(t, "aplusb", {
       name: "A plus B",
       statement: "Read two integers.\n",
     });
+
     expect(response.status).toBe(200);
     const body = await response.json();
 
@@ -140,6 +150,7 @@ describe("PUT /api/problems/:code create", () => {
         .query("problems")
         .withIndex("by_code", (q) => q.eq("code", "aplusb"))
         .unique();
+
       // The statement is stored verbatim.
       expect(problem?.description).toBe("Read two integers.\n");
       // The publish date defaults to now.
@@ -159,6 +170,7 @@ describe("PUT /api/problems/:code create", () => {
       headers: { authorization: `Bearer ${KEY}`, "content-type": "application/json" },
       body: JSON.stringify({ name: "Nope" }),
     });
+
     expect(badCode.status).toBe(404);
   });
 
@@ -170,6 +182,7 @@ describe("PUT /api/problems/:code create", () => {
       headers: { authorization: `Bearer ${KEY}`, "content-type": "application/json" },
       body: "{",
     });
+
     expect(notJson.status).toBe(422);
 
     const unknown = await put(t, "aplusb", { name: "A", surprise: true });
@@ -179,6 +192,7 @@ describe("PUT /api/problems/:code create", () => {
   test("honours group, types and publishOn on create", async () => {
     const { t } = await setup();
     const publishOn = Date.parse("2024-03-01T00:00:00Z");
+
     const response = await put(t, "graphy", {
       name: "Graphy",
       statement: "Graph things.",
@@ -186,6 +200,7 @@ describe("PUT /api/problems/:code create", () => {
       types: ["graphs", "trees"],
       publishOn,
     });
+
     const body = await response.json();
     expect(body.problem.group).toBe("olympiad");
     expect(body.problem.types.sort()).toEqual(["graphs", "trees"]);
@@ -194,6 +209,7 @@ describe("PUT /api/problems/:code create", () => {
 
   test("writes the python language limits it is given", async () => {
     const { t } = await setup();
+
     const response = await put(t, "aplusb", {
       name: "A plus B",
       statement: "Hello.",
@@ -203,6 +219,7 @@ describe("PUT /api/problems/:code create", () => {
         PY3: { timeLimit: 3, memoryLimit: 512_000 },
       },
     });
+
     const body = await response.json();
     expect(body.problem.languageLimits).toEqual({
       PY3: { timeLimit: 3, memoryLimit: 512_000 },
@@ -239,6 +256,7 @@ describe("PUT /api/problems/:code partial update", () => {
         .query("problems")
         .withIndex("by_code", (q) => q.eq("code", "aplusb"))
         .unique();
+
       expect(problem?.description).toBe("New statement.");
     });
   });
@@ -265,6 +283,7 @@ describe("PUT /api/problems/:code partial update", () => {
       publishOn: 1,
       checkAll: true,
     });
+
     const body = await response.json();
     expect(body.problem.group).toBe("uncategorized");
     expect(body.problem.types).toEqual([]);
@@ -276,6 +295,7 @@ describe("PUT /api/problems/:code partial update", () => {
       statement: "Still fine.",
       authors: ["ghost"],
     });
+
     const body = await response.json();
     expect(body.ok).toBe(true);
     expect(body.warnings).toEqual(["No such user: ghost"]);
@@ -286,6 +306,7 @@ describe("PUT /api/problems/:code partial update", () => {
     const response = await put(harness.t, "aplusb", {
       editorial: { content: "Add the two numbers." },
     });
+
     expect((await response.json()).problem.hasEditorial).toBe(true);
 
     await harness.t.run(async (ctx) => {
@@ -323,6 +344,7 @@ describe("PUT /api/problems/:code partial update", () => {
         .query("apiKeys")
         .withIndex("by_keyHash", (q) => q.eq("keyHash", weakHash))
         .unique();
+
       if (row) await ctx.db.patch(row._id, { scopes: ["problems:write"] });
     });
 
@@ -337,6 +359,7 @@ describe("PUT /api/problems/:code partial update", () => {
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", "setter"))
         .unique();
+
       if (setter) {
         await ctx.db.patch(setter._id, {
           permissions: ["judge.edit_own_problem", "judge.edit_all_problem"],
@@ -353,6 +376,7 @@ describe("PUT /api/problems/:code partial update", () => {
       method: "DELETE",
       headers: { authorization: `Bearer ${KEY}` },
     });
+
     expect(response.status).toBe(405);
   });
 });
@@ -372,6 +396,7 @@ describe("POST /api/problems/:code/images", () => {
       headers: { authorization: `Bearer ${KEY}` },
       body: form,
     });
+
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.status).toBe(200);
@@ -380,11 +405,13 @@ describe("POST /api/problems/:code/images", () => {
     // The same bytes come back with the same link rather than a second copy.
     const again = new FormData();
     again.append("file", new Blob([new Uint8Array([1, 2, 3, 4])], { type: "image/png" }), "d.png");
+
     const second = await t.fetch("/api/problems/aplusb/images", {
       method: "POST",
       headers: { authorization: `Bearer ${KEY}` },
       body: again,
     });
+
     expect((await second.json()).link).toBe(body.link);
 
     const uploads = await t.run(async (ctx) => ctx.db.query("uploads").collect());
@@ -402,6 +429,7 @@ describe("POST /api/problems/:code/images", () => {
       headers: { authorization: `Bearer ${KEY}` },
       body: form,
     });
+
     expect(missing.status).toBe(404);
 
     const form2 = new FormData();

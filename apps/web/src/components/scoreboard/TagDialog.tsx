@@ -44,9 +44,11 @@ export function TagDialog({
   useEffect(() => {
     if (!row) return;
     const held: Record<string, boolean> = {};
+
     for (const badge of badges) {
       held[badge.key] = badge.attendance ? row.inPerson : row.badges.includes(badge.key);
     }
+
     setChecked(held);
     setInitial(held);
     setError(null);
@@ -56,12 +58,16 @@ export function TagDialog({
   const save = async () => {
     if (!row) return;
     const changes = badges.filter((badge) => checked[badge.key] !== initial[badge.key]);
+
     if (changes.length === 0) {
       onClose();
+
       return;
     }
+
     setSaving(true);
     setError(null);
+
     try {
       for (const badge of changes) {
         await setTag({
@@ -71,6 +77,7 @@ export function TagDialog({
           on: checked[badge.key] === true,
         });
       }
+
       onClose();
     } catch (failure) {
       // Stay open with the boxes as they were left, so a failed save can be

@@ -31,19 +31,25 @@ import { IN_PROGRESS_GRADING_STATUS } from "./verdicts";
 
 /** Accepted, and the accept happened before the freeze. */
 export const SOLVED = "solved";
+
 /** Something was submitted at or after the freeze: an answer is being withheld. */
 export const FROZEN = "frozen";
+
 /** Still being judged, but all of it predates the freeze. Nothing is withheld. */
 export const JUDGING = "judging";
+
 /** Attempted, no accept, nothing outstanding. */
 export const FAILED = "failed";
+
 /** Never attempted. */
 export const EMPTY = "empty";
 
 export type CellState = typeof SOLVED | typeof FROZEN | typeof JUDGING | typeof FAILED | typeof EMPTY;
 
 export const CORRECT = "correct";
+
 export const PENDING = "pending";
+
 export const INCORRECT = "incorrect";
 
 export type EventState = typeof CORRECT | typeof PENDING | typeof INCORRECT;
@@ -62,6 +68,7 @@ export const IGNORED_RESULTS: readonly string[] = ["IE", "CE", "AB"];
 export const PENDING_RESULTS: readonly (string | null)[] = [null, "", "D", ...IN_PROGRESS_GRADING_STATUS];
 
 export const DEFAULT_PENALTY_MINUTES = 20;
+
 export const DEFAULT_FREEZE_MINUTES = 60;
 
 /* -------------------------------------------------------------------------- */
@@ -96,7 +103,9 @@ export function attemptPending(attempt: Attempt): boolean {
 /** `Attempt.accepted`. */
 export function attemptAccepted(attempt: Attempt): boolean {
   if (attemptPending(attempt)) return false;
+
   if (attempt.result === "AC") return true;
+
   // Fall back to points for formats that award full marks without an 'AC'.
   return attempt.maxPoints > 0 && attempt.points >= attempt.maxPoints;
 }
@@ -149,15 +158,20 @@ interface Resolution {
 function resolve(attempts: readonly Attempt[], upto?: number): Resolution {
   let wrong = 0;
   let pending = 0;
+
   for (const attempt of attempts) {
     if (attemptIgnored(attempt)) continue;
+
     if (upto !== undefined && attempt.time >= upto) continue;
+
     if (attemptAccepted(attempt)) {
       return { solved: true, solveTime: attempt.time, wrong, pending: 0 };
     }
+
     if (attemptPending(attempt)) pending += 1;
     else wrong += 1;
   }
+
   return { solved: false, solveTime: null, wrong, pending };
 }
 
@@ -180,6 +194,7 @@ export function buildCell(
 
   if (before.solved) {
     const solveTime = before.solveTime as number;
+
     return {
       state: SOLVED,
       wrong: before.wrong,
@@ -194,6 +209,7 @@ export function buildCell(
   ).length;
 
   let state: CellState;
+
   if (frozenCount) state = FROZEN;
   else if (before.pending) state = JUDGING;
   else if (before.wrong) state = FAILED;
@@ -272,10 +288,12 @@ export function buildScoreboard(input: BuildScoreboardInput): Scoreboard {
   const known = new Set(problemOrder);
 
   const buckets = new Map<string, Attempt[]>();
+
   for (const attempt of input.attempts) {
     if (!known.has(attempt.problem)) continue;
     const key = `${attempt.participation} ${attempt.problem}`;
     const bucket = buckets.get(key);
+
     if (bucket) bucket.push(attempt);
     else buckets.set(key, [attempt]);
   }
@@ -289,6 +307,7 @@ export function buildScoreboard(input: BuildScoreboardInput): Scoreboard {
         includeReveal,
       ),
     );
+
     return {
       ...participant,
       cells,
@@ -317,12 +336,15 @@ export function rankRows(rows: ScoreboardRow[]): ScoreboardRow[] {
   let rank = 0;
   rows.forEach((row, index) => {
     const key = `${row.solved}/${row.penalty}`;
+
     if (key !== lastKey) {
       rank = index + 1;
       lastKey = key;
     }
+
     row.rank = rank;
   });
+
   return rows;
 }
 
@@ -335,27 +357,34 @@ export function rankRows(rows: ScoreboardRow[]): ScoreboardRow[] {
  */
 export function classifyEvent(attempt: Attempt, freezeOffset: number): [EventState, boolean] {
   if (attempt.time >= freezeOffset) return [PENDING, true];
+
   if (attemptPending(attempt)) return [PENDING, false];
+
   return [attemptAccepted(attempt) ? CORRECT : INCORRECT, false];
 }
 
 /** First accepted solve per problem index, for the first-blood highlight. */
 export function firstSolves(rows: readonly ScoreboardRow[]): Map<number, number> {
   const best = new Map<number, number>();
+
   for (const row of rows) {
     row.cells.forEach((cell, index) => {
       if (cell.state !== SOLVED || cell.time === null) return;
       const current = best.get(index);
+
       if (current === undefined || cell.time < current) best.set(index, cell.time);
     });
   }
+
   return best;
 }
 
 /** Whether a cell holds the first solve of its problem. */
 export function isFirstBlood(rows: readonly ScoreboardRow[], row: ScoreboardRow, cellIndex: number): boolean {
   const cell = row.cells[cellIndex];
+
   if (!cell || cell.state !== SOLVED || cell.time === null) return false;
+
   return firstSolves(rows).get(cellIndex) === cell.time;
 }
 
@@ -365,9 +394,11 @@ export function freezeOffsetFor(
   freezeMinutes = contest.freezeMinutes,
 ): number {
   const duration = (contest.endTime - contest.startTime) / 1000;
+
   if (freezeMinutes && freezeMinutes > 0) {
     return Math.max(0, duration - freezeMinutes * 60);
   }
+
   // No freeze: push the cutoff past the end of the contest.
   return duration + 1;
 }
@@ -377,6 +408,7 @@ export function freezeTime(
   contest: Pick<ContestRow, "startTime" | "endTime" | "freezeMinutes">,
 ): number | null {
   if (!contest.freezeMinutes || contest.freezeMinutes <= 0) return null;
+
   return Math.max(contest.startTime, contest.endTime - contest.freezeMinutes * 60_000);
 }
 
@@ -384,14 +416,18 @@ export function freezeTime(
 export function penaltyMinutesFor(contest: Pick<ContestRow, "formatName" | "formatConfig">): number {
   const format = getContestFormat(contest);
   let config: Record<string, unknown>;
+
   try {
     config = format.resolveConfig(contest.formatConfig);
   } catch {
     return DEFAULT_PENALTY_MINUTES;
   }
+
   const penalty = config.penalty ?? DEFAULT_PENALTY_MINUTES;
   const value = Number(penalty);
+
   if (!Number.isFinite(value)) return DEFAULT_PENALTY_MINUTES;
+
   return Math.max(0, Math.trunc(value));
 }
 
@@ -402,7 +438,9 @@ export function penaltyMinutesFor(contest: Pick<ContestRow, "formatName" | "form
  */
 export function canReveal(viewer: Viewer, contests: readonly ContestRow[]): boolean {
   if (!isAuthenticated(viewer)) return false;
+
   if (isSuperuser(viewer)) return true;
+
   return contests.every((contest) => contestIsEditableBy(contest, viewer));
 }
 
@@ -441,12 +479,14 @@ export function startReveal(rows: readonly ScoreboardRow[]): RevealState {
 export function nextRevealTarget(rows: readonly ScoreboardRow[]): RevealTarget | null {
   for (let r = rows.length - 1; r >= 0; r--) {
     const row = rows[r] as ScoreboardRow;
+
     for (let c = 0; c < row.cells.length; c++) {
       if ((row.cells[c] as ScoreboardCell).state === FROZEN) {
         return { rowIndex: r, cellIndex: c, rank: row.rank };
       }
     }
   }
+
   return null;
 }
 
@@ -466,6 +506,7 @@ function applyReveal(rows: ScoreboardRow[], target: RevealTarget): void {
     cell.state = FAILED;
     cell.penalty = 0;
   }
+
   cell.pending = 0;
   delete cell.reveal;
 
@@ -477,10 +518,12 @@ function applyReveal(rows: ScoreboardRow[], target: RevealTarget): void {
 /** Reveal one cell, bottom-up. Returns the state unchanged when nothing is left. */
 export function revealStep(state: RevealState): RevealState {
   const target = nextRevealTarget(state.rows);
+
   if (!target) return state;
   const history = [...state.history, cloneRows(state.rows)];
   const rows = cloneRows(state.rows);
   applyReveal(rows, target);
+
   return { rows, history };
 }
 
@@ -489,6 +532,7 @@ export function revealUndo(state: RevealState): RevealState {
   if (state.history.length === 0) return state;
   const history = [...state.history];
   const rows = history.pop() as ScoreboardRow[];
+
   return { rows, history };
 }
 
@@ -497,9 +541,11 @@ export function revealAll(state: RevealState): RevealState {
   if (!nextRevealTarget(state.rows)) return state;
   const history = [...state.history, cloneRows(state.rows)];
   const rows = cloneRows(state.rows);
+
   for (let target = nextRevealTarget(rows); target; target = nextRevealTarget(rows)) {
     applyReveal(rows, target);
   }
+
   return { rows, history };
 }
 
@@ -514,11 +560,15 @@ export function revealAll(state: RevealState): RevealState {
  */
 export function canSeeThroughFreeze(contest: ContestRow, viewer: Viewer): boolean {
   if (!isAuthenticated(viewer)) return false;
+
   if (isSuperuser(viewer)) return true;
+
   if (hasPerm(viewer, "judge.see_private_contest") || hasPerm(viewer, "judge.edit_all_contest")) {
     return true;
   }
+
   if (contestIsEditableBy(contest, viewer)) return true;
+
   return (contest.viewContestScoreboardProfileIds ?? []).includes(viewer.id);
 }
 
@@ -536,9 +586,13 @@ export interface FreezeStatusOptions {
  */
 export function isFrozenFor(contest: ContestRow, viewer: Viewer, options: FreezeStatusOptions = {}): boolean {
   const cutoff = freezeTime(contest);
+
   if (cutoff === null) return false;
+
   if (options.revealed) return false;
+
   if (canSeeThroughFreeze(contest, viewer)) return false;
+
   return (options.now ?? Date.now()) >= cutoff;
 }
 
@@ -579,6 +633,7 @@ export function applyFreeze(
   return rows.map((row) => {
     const isVirtual = row.participation.virtual > 0;
     const freeze = frozenForViewer && !isVirtual && cutoff !== null;
+
     const submissions = freeze
       ? row.submissions.filter((submission) => submission.date < (cutoff as number))
       : row.submissions;
@@ -640,17 +695,22 @@ export function blindDuringFreeze<T extends { readonly profileId: Id; readonly d
   if (!contest.blindDuringFreeze) return submission;
 
   const cutoff = freezeTime(contest);
+
   if (cutoff === null) return submission;
 
   const now = options.now ?? Date.now();
+
   if (now < cutoff) return submission;
+
   // Blind mode lifts when the contest ends.
   if (now > contest.endTime) return submission;
 
   if (canSeeThroughFreeze(contest, viewer)) return submission;
 
   const viewerId = options.viewerProfileId ?? (isAuthenticated(viewer) ? viewer.id : undefined);
+
   if (viewerId === undefined || submission.profileId !== viewerId) return submission;
+
   if (submission.date < cutoff) return submission;
 
   return { ...submission, ...MASKED };

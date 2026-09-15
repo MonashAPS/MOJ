@@ -25,7 +25,9 @@ const CREATE = [
 
 function tupleValues(statement: string) {
   const insert = parseInsert(statement);
+
   if (!insert) throw new Error("not an insert");
+
   return [...readTuples(statement, insert.at)];
 }
 
@@ -64,6 +66,7 @@ describe("value parsing", () => {
     const stmt =
       "INSERT INTO `widget` VALUES " +
       "(1,'it\\'s','a\\nb\\r\\nc\\td\\\\e\\\"f\\Z\\0g',1,-1.5e-3,'2024-01-02 03:04:05.500000',0x4142),";
+
     const rows = tupleValues(`${stmt}(2,'','',0,NULL,NULL,NULL);`);
     expect(rows).toHaveLength(2);
     expect(rows[0]).toEqual([
@@ -93,6 +96,7 @@ describe("value parsing", () => {
     const rows = tupleValues(
       "INSERT INTO `widget` VALUES (1,'a',NULL,0,NULL,NULL,0XdeadBEEF),(2,'b',NULL,0,NULL,NULL,x'0a0B'),(3,'c',NULL,0,NULL,NULL,_binary 'AB');",
     );
+
     expect(rows[0]?.[6]).toEqual({ $hex: "deadbeef" });
     expect(rows[1]?.[6]).toEqual({ $hex: "0a0b" });
     expect(rows[2]?.[6]).toEqual({ $hex: "4142" });
@@ -125,6 +129,7 @@ describe("StatementSplitter", () => {
     for (const size of [1, 3, 7, 64, 1024]) {
       const splitter = new StatementSplitter();
       const out: string[] = [];
+
       for (let i = 0; i < script.length; i += size) out.push(...splitter.push(script.slice(i, i + size)));
       out.push(...splitter.end());
       expect(out, `chunk size ${size}`).toEqual(expected);
@@ -146,6 +151,7 @@ describe("readDump", () => {
     const file = path.join(dir, "dump.sql");
     writeFileSync(file, script);
     const events = [];
+
     for await (const event of readDump(file)) events.push(event);
     expect(events[0]).toMatchObject({ kind: "table" });
     expect(events[1]).toMatchObject({ kind: "rows", table: "widget" });
@@ -157,9 +163,11 @@ describe("readDump", () => {
     const file = path.join(dir, "dump.sql.gz");
     writeFileSync(file, gzipSync(Buffer.from(script, "utf8")));
     const rows = [];
+
     for await (const event of readDump(file)) {
       if (event.kind === "rows") rows.push(...event.rows);
     }
+
     expect(rows).toHaveLength(2);
     expect(rows[0]?.[1]).toBe("a");
   });
@@ -168,15 +176,19 @@ describe("readDump", () => {
     const dir = mkdtempSync(path.join(tmpdir(), "moj-import-"));
     const file = path.join(dir, "big.sql");
     const filler = "x".repeat(4096);
+
     const tuples = Array.from(
       { length: 400 },
       (_, i) => `(${i},'n${i}','${filler};,\\'quoted\\'',1,NULL,NULL,NULL)`,
     ).join(",");
+
     writeFileSync(file, `${CREATE}\nINSERT INTO \`widget\` VALUES ${tuples};\n`);
     let count = 0;
+
     for await (const event of readDump(file)) {
       if (event.kind === "rows") count += event.rows.length;
     }
+
     expect(count).toBe(400);
   });
 });

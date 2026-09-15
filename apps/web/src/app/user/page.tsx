@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function OwnUserPage() {
   const viewer = await queryAsViewer(api.viewer.current, {}).catch(() => null);
   const username = viewer?.profile?.username;
+
   if (!username) redirect("/accounts/login/?next=/user/");
   redirect(`/user/${encodeURIComponent(username)}/`);
 }

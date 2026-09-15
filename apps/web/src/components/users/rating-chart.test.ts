@@ -29,6 +29,7 @@ describe("buildRatingChart", () => {
     expect(chart.dots[chart.dots.length - 1]?.x).toBe(chart.plot.x + chart.plot.width);
     // A higher rating is drawn further up.
     expect(chart.dots[0]?.y).toBeGreaterThan(chart.dots[chart.dots.length - 1]?.y as number);
+
     for (const dot of chart.dots) {
       expect(dot.y).toBeGreaterThanOrEqual(chart.plot.y);
       expect(dot.y).toBeLessThanOrEqual(chart.plot.y + chart.plot.height);
@@ -58,6 +59,7 @@ describe("buildRatingChart", () => {
     const chart = buildRatingChart(HISTORY);
 
     expect(chart.yTicks.map((tick) => tick.value)).toEqual([1200, 1400, 1600, 1800, 2000, 2200]);
+
     for (const tick of chart.yTicks) {
       expect(tick.y).toBeGreaterThanOrEqual(chart.plot.y);
       expect(tick.y).toBeLessThanOrEqual(chart.plot.y + chart.plot.height);

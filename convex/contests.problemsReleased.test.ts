@@ -25,23 +25,29 @@ import { setupTest, type T } from "./test.setup";
 type Window = { startTime: number; endTime: number };
 
 const ended: Window = { startTime: Date.now() - 2 * HOUR, endTime: Date.now() - HOUR };
+
 const running: Window = { startTime: Date.now() - HOUR, endTime: Date.now() + HOUR };
+
 const upcoming: Window = { startTime: Date.now() + HOUR, endTime: Date.now() + 2 * HOUR };
 
 async function contestWith(t: T, window: Window, overrides: Overrides<"contests"> = {}) {
   const languageId = await insertLanguage(t, { key: "PY3" });
+
   const problemId = await insertProblem(t, {
     code: "alpha",
     isPublic: true,
     allowedLanguageIds: [languageId],
   });
+
   const contestId = await insertContest(t, { key: "gated", ...window, ...overrides });
   await insertContestProblem(t, { contestId, problemId, order: 1, points: 1 });
+
   return contestId;
 }
 
 async function detailFor(t: T, username?: string) {
   const caller = username ? asUser(t, username) : t;
+
   return await caller.query(api.contests.get, { key: "gated" });
 }
 

@@ -44,6 +44,7 @@ function Stat({ label, children }: { label: string; children: ReactNode }) {
 
 function RatingValue({ rating }: { rating: number }) {
   const t = useTranslations("users.ratings");
+
   return (
     <span className={cn("rating", ratingClass(rating))} title={t(ratingTitleKey(rating))}>
       {rating}
@@ -70,6 +71,7 @@ export function UserShell({
 }) {
   const t = useTranslations("users.shell");
   const { profile } = data;
+
   const tabs: TabItem[] = [
     { key: "about", label: t("about"), href: `/user/${profile.username}/`, icon: <Info aria-hidden /> },
     {
@@ -85,6 +87,7 @@ export function UserShell({
       icon: <List aria-hidden />,
     },
   ];
+
   if (isViewer) {
     tabs.push({
       key: "edit",

@@ -28,6 +28,7 @@ export type AccountSecurity = {
 export async function readAccountSecurity(): Promise<AccountSecurity | null> {
   const requestHeaders = await headers();
   const session = await auth.api.getSession({ headers: requestHeaders });
+
   if (!session) return null;
 
   const user = session.user as typeof session.user & {
@@ -73,6 +74,8 @@ export async function readAccountSecurity(): Promise<AccountSecurity | null> {
  *  login page and comes back to where they were headed. */
 export async function requireAccount(next: string): Promise<AccountSecurity> {
   const account = await readAccountSecurity();
+
   if (!account) redirect(`/accounts/login/?next=${encodeURIComponent(next)}`);
+
   return account;
 }

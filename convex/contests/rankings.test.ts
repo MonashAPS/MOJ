@@ -28,17 +28,21 @@ async function frozenContest(t: T, extra: Overrides<"contests"> = {}) {
   const now = Date.now();
   const start = now - 3 * HOUR;
   const end = now - HOUR;
+
   return await t.run(async (ctx) => {
     const languageId = await insertLanguage(ctx);
+
     const editorId = await insertProfile(ctx, {
       username: "editor",
       permissions: ["judge.edit_own_contest"],
     });
+
     const adaId = await insertProfile(ctx, { username: "ada" });
     const bobId = await insertProfile(ctx, { username: "bob" });
     await insertProfile(ctx, { username: "watcher" });
 
     const problemId = await insertProblem(ctx, { code: "aplus" });
+
     const contestId = await insertContest(ctx, {
       key: "icpc",
       startTime: start,
@@ -49,6 +53,7 @@ async function frozenContest(t: T, extra: Overrides<"contests"> = {}) {
       authorProfileIds: [editorId],
       ...extra,
     });
+
     const contestProblemId = await insertContestProblem(ctx, {
       contestId,
       problemId,
@@ -61,6 +66,7 @@ async function frozenContest(t: T, extra: Overrides<"contests"> = {}) {
       profileId: adaId,
       realStart: start,
     });
+
     const bobParticipation = await insertParticipation(ctx, {
       contestId,
       profileId: bobId,
@@ -132,6 +138,7 @@ describe("ranking with a freeze", () => {
     const publicView = await t
       .withIdentity(identityOf("watcher"))
       .query(api.contests.rankings.ranking, { key: "icpc" });
+
     expect(publicView?.isFrozen).toBe(true);
     expect(publicView?.canSeeFullScoreboard).toBe(true);
     const publicRows = Object.fromEntries((publicView?.rows ?? []).map((row) => [row.user.username, row]));
@@ -146,6 +153,7 @@ describe("ranking with a freeze", () => {
     const editorView = await t
       .withIdentity(identityOf("editor"))
       .query(api.contests.rankings.ranking, { key: "icpc" });
+
     expect(editorView?.isFrozen).toBe(false);
     const editorRows = Object.fromEntries((editorView?.rows ?? []).map((row) => [row.user.username, row]));
     expect(editorRows.bob?.points).toBe(1);
@@ -172,8 +180,10 @@ describe("ranking with a freeze", () => {
         .query("contests")
         .withIndex("by_key", (q) => q.eq("key", "icpc"))
         .unique();
+
       return row;
     });
+
     const masked = blindDuringFreeze(
       { profileId: "p1", date: (contest?.endTime ?? 0) - 30 * MINUTE, result: "AC" },
       {
@@ -191,6 +201,7 @@ describe("ranking with a freeze", () => {
       null,
       { now: (contest?.endTime ?? 0) - MINUTE, viewerProfileId: "p1" },
     );
+
     expect((masked as { masked?: boolean }).masked).toBe(true);
   });
 
@@ -205,6 +216,7 @@ describe("ranking with a freeze", () => {
     const publicView = await t
       .withIdentity(identityOf("watcher"))
       .query(api.contests.rankings.ranking, { key: "icpc" });
+
     expect(publicView?.isFrozen).toBe(false);
     expect(publicView?.isRevealed).toBe(true);
     const rows = Object.fromEntries((publicView?.rows ?? []).map((row) => [row.user.username, row]));
@@ -215,10 +227,12 @@ describe("ranking with a freeze", () => {
 
   test("a hidden scoreboard shows the viewer their own row and nothing else", async () => {
     const t = setupTest();
+
     const fixture = await frozenContest(t, {
       scoreboardVisibility: "C",
       endTime: Date.now() + HOUR,
     });
+
     // DMOJ only shows the own row to someone who is in the contest.
     await t.run(async (ctx) => {
       await ctx.db.patch(fixture.adaId, { currentParticipationId: fixture.adaParticipation });
@@ -233,15 +247,18 @@ describe("ranking with a freeze", () => {
     const outsider = await t
       .withIdentity(identityOf("watcher"))
       .query(api.contests.rankings.ranking, { key: "icpc" });
+
     expect(outsider).toBeNull();
   });
 
   test("best solutions for a contest problem come back highest first", async () => {
     const t = setupTest();
     await frozenContest(t);
+
     const payload = await t
       .withIdentity(identityOf("editor"))
       .query(api.contests.rankings.rankByProblem, { key: "icpc", problemCode: "aplus" });
+
     expect(payload?.label).toBe("A");
     expect(payload?.rows.map((row) => row.user.username)).toEqual(["ada", "bob"]);
   });
@@ -278,6 +295,7 @@ describe("recomputing", () => {
     const job = await t
       .withIdentity(identityOf("editor"))
       .mutation(api.contests.rankings.rescoreContest, { key: "icpc" });
+
     expect(job.total).toBe(2);
     await t.finishAllScheduledFunctions(() => {});
 
@@ -311,6 +329,7 @@ describe("recomputing", () => {
     const view = await t
       .withIdentity(identityOf("editor"))
       .query(api.contests.rankings.ranking, { key: "icpc" });
+
     expect(view?.rows.at(-1)?.user.username).toBe("ada");
   });
 });
@@ -319,6 +338,7 @@ describe("ratings", () => {
   test("rating a contest re-rates every later rated contest", async () => {
     const t = setupTest();
     const now = Date.now();
+
     const fixture = await t.run(async (ctx) => {
       const languageId = await insertLanguage(ctx);
       const adaId = await insertProfile(ctx, { username: "ada" });
@@ -337,12 +357,14 @@ describe("ratings", () => {
           endTime: now - endsAgo,
           isRated: true,
         });
+
         const contestProblemId = await insertContestProblem(ctx, {
           contestId,
           problemId,
           order: 0,
           points: 1,
         });
+
         for (const [profileId, score] of [
           [adaId, adaScore],
           [bobId, bobScore],
@@ -354,6 +376,7 @@ describe("ratings", () => {
             score,
             cumtime: 100,
           });
+
           await insertSubmission(ctx, {
             profileId,
             problemId,
@@ -368,6 +391,7 @@ describe("ratings", () => {
             contestPoints: score,
           });
         }
+
         return contestId;
       };
 
@@ -386,10 +410,12 @@ describe("ratings", () => {
         .query("ratings")
         .withIndex("by_contest", (q) => q.eq("contestId", fixture.first))
         .collect();
+
       const secondRatings = await ctx.db
         .query("ratings")
         .withIndex("by_contest", (q) => q.eq("contestId", fixture.second))
         .collect();
+
       expect(firstRatings.length).toBe(2);
       expect(secondRatings.length).toBe(2);
 
@@ -427,6 +453,7 @@ describe("the hall scoreboard", () => {
     const now = Date.now();
     const start = now - 3 * HOUR;
     const end = now - HOUR;
+
     return await t.run(async (ctx) => {
       const languageId = await insertLanguage(ctx);
       const staffId = await insertProfile(ctx, { username: "staff", isSuperuser: true, isStaff: true });
@@ -439,6 +466,7 @@ describe("the hall scoreboard", () => {
 
       const first = await insertProblem(ctx, { code: "aplus" });
       const second = await insertProblem(ctx, { code: "bminus" });
+
       const contestId = await insertContest(ctx, {
         key: "divone",
         startTime: start,
@@ -446,12 +474,14 @@ describe("the hall scoreboard", () => {
         formatName: "icpc",
         formatConfig: { penalty: 20 },
       });
+
       const cpFirst = await insertContestProblem(ctx, {
         contestId,
         problemId: first,
         order: 0,
         points: 1,
       });
+
       const cpSecond = await insertContestProblem(ctx, {
         contestId,
         problemId: second,
@@ -464,6 +494,7 @@ describe("the hall scoreboard", () => {
         profileId: adaId,
         realStart: start,
       });
+
       const bobParticipation = await insertParticipation(ctx, {
         contestId,
         profileId: bobId,
@@ -555,6 +586,7 @@ describe("the hall scoreboard", () => {
     const staffPayload = await t
       .withIdentity(identityOf("staff"))
       .query(api.scoreboard.event, { key: "winter" });
+
     expect(staffPayload?.canReveal).toBe(true);
     const staffBob = (staffPayload?.divisions[0]?.rows ?? []).find((row) => row.username === "bob");
     expect(staffBob?.cells[1]?.reveal?.state).toBe("solved");
@@ -606,6 +638,7 @@ describe("the hall scoreboard", () => {
       slug: "onsite",
       on: true,
     });
+
     expect(on.badges).toEqual(["onsite"]);
     expect(on.inPerson).toBe(true);
 
@@ -615,6 +648,7 @@ describe("the hall scoreboard", () => {
       slug: "onsite",
       on: false,
     });
+
     expect(off.badges).toEqual([]);
 
     await expect(
@@ -650,12 +684,14 @@ describe("the hall scoreboard", () => {
 describe("the staff console", () => {
   test("creating, editing and reordering a contest writes revisions", async () => {
     const t = setupTest();
+
     const ids = await t.run(async (ctx) => {
       await insertProfile(ctx, {
         username: "author",
         permissions: ["judge.edit_own_contest", "judge.change_contest_visibility", "judge.lock_contest"],
         isStaff: true,
       });
+
       return {
         first: await insertProblem(ctx, { code: "aplus" }),
         second: await insertProblem(ctx, { code: "bminus" }),
@@ -664,6 +700,7 @@ describe("the staff console", () => {
 
     const asAuthor = t.withIdentity(identityOf("author"));
     const now = Date.now();
+
     const created = await asAuthor.mutation(api.admin.contests.create, {
       key: "newone",
       name: "New one",
@@ -674,6 +711,7 @@ describe("the staff console", () => {
       freezeMinutes: 30,
       reason: "Set up the weekly",
     });
+
     expect(created.key).toBe("newone");
 
     const a = await asAuthor.mutation(api.admin.contests.addProblem, {
@@ -681,6 +719,7 @@ describe("the staff console", () => {
       problemCode: "aplus",
       points: 1,
     });
+
     const b = await asAuthor.mutation(api.admin.contests.addProblem, {
       key: "newone",
       problemCode: "bminus",
@@ -745,6 +784,7 @@ describe("the staff console", () => {
         username: "author",
         permissions: ["judge.edit_own_contest"],
       });
+
       await insertContest(ctx, { key: "mine", authorProfileIds: [authorId], isVisible: false });
     });
     await expect(
@@ -837,6 +877,7 @@ describe("contest formats", () => {
       name: "icpc",
       config: { penalty: 20 },
     });
+
     expect(described.error).toBeNull();
     // The lines are message keys rather than English: the web app resolves them
     // against `contests.scoring`, so the same format reads in the viewer's
@@ -848,6 +889,7 @@ describe("contest formats", () => {
       name: "icpc",
       config: { penalty: -5 },
     });
+
     expect(invalidConfig.ok).toBe(false);
   });
 });

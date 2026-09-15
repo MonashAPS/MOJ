@@ -14,6 +14,7 @@ import { useTranslations } from "next-intl";
  */
 export function ContestProgress({ progress }: { progress: Progress }) {
   const t = useTranslations("contests.progress");
+
   if (progress.total === 0) return null;
 
   return (

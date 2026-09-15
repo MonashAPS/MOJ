@@ -12,9 +12,11 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
   const t = await getTranslations("problems");
   const { code } = await params;
+
   const problem = await queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }).catch(
     () => null,
   );
+
   return {
     title: problem ? t("rank.titleFor", { name: problem.statement.name }) : t("detail.noSuchProblem"),
   };
@@ -23,10 +25,12 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
 export default async function RankPage({ params }: { params: Promise<{ code: string }> }) {
   const t = await getTranslations("problems.rank");
   const { code } = await params;
+
   const [problem, ranks] = await Promise.all([
     queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }),
     queryAsViewer(api.problems.ranks, { code }),
   ]);
+
   if (!problem || !ranks) notFound();
 
   return (

@@ -44,6 +44,7 @@ function mathNodes(source: string): MathNode[] {
       delimiter: data?.mojDelimiter ?? "dollar",
     });
   });
+
   return found;
 }
 

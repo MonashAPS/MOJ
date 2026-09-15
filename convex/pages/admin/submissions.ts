@@ -54,6 +54,7 @@ export const list = query({
     args,
   ): Promise<{ items: AdminSubmissionRow[]; total: number; page: number; pageSize: number }> => {
     const viewer = await staffViewer(ctx);
+
     if (!viewer) return { items: [], total: 0, page: 1, pageSize: 0 };
 
     const page = Math.max(1, Math.floor(args.page ?? 1));
@@ -65,14 +66,17 @@ export const list = query({
           .withIndex("by_username", (q) => q.eq("username", args.username as string))
           .unique()
       : null;
+
     const problem = args.problemCode ? await problemByCode(ctx, args.problemCode) : null;
     const contest = args.contestKey ? await contestByKey(ctx, args.contestKey) : null;
+
     const judge = args.judgeName
       ? await ctx.db
           .query("judges")
           .withIndex("by_name", (q) => q.eq("name", args.judgeName as string))
           .unique()
       : null;
+
     if (
       (args.username && !profile) ||
       (args.problemCode && !problem) ||
@@ -83,16 +87,20 @@ export const list = query({
     }
 
     const languageIds = new Set<string>();
+
     for (const key of args.languageKeys ?? []) {
       const row = await ctx.db
         .query("languages")
         .withIndex("by_key", (q) => q.eq("key", key))
         .first();
+
       if (row) languageIds.add(row._id as string);
     }
+
     if ((args.languageKeys?.length ?? 0) > 0 && languageIds.size === 0) {
       return { items: [], total: 0, page, pageSize };
     }
+
     const results = new Set(args.results ?? []);
 
     const source = problem
@@ -104,22 +112,34 @@ export const list = query({
           : ctx.db.query("submissions").withIndex("by_date");
 
     const scanned = await source.order("desc").take(20_000);
+
     const matched = scanned.filter((submission) => {
       if (profile && submission.profileId !== profile._id) return false;
+
       if (problem && submission.problemId !== problem._id) return false;
+
       if (contest && submission.contestId !== contest._id) return false;
+
       if (judge && submission.judgedOnJudgeId !== judge._id) return false;
+
       if (languageIds.size > 0 && !languageIds.has(submission.languageId as string)) return false;
+
       if (results.size > 0 && !(submission.result && results.has(submission.result))) return false;
+
       if (args.status && submission.status !== args.status) return false;
       const id = submission.legacyId ?? null;
+
       if (args.idFrom !== undefined && (id === null || id < args.idFrom)) return false;
+
       if (args.idTo !== undefined && (id === null || id > args.idTo)) return false;
+
       return true;
     });
+
     matched.sort((a, b) => b.date - a.date);
 
     const items: AdminSubmissionRow[] = [];
+
     for (const submission of matched.slice((page - 1) * pageSize, page * pageSize)) {
       const [author, problemRow, language, judgeRow, contestRow] = await Promise.all([
         ctx.db.get(submission.profileId),
@@ -128,6 +148,7 @@ export const list = query({
         submission.judgedOnJudgeId ? ctx.db.get(submission.judgedOnJudgeId) : Promise.resolve(null),
         submission.contestId ? ctx.db.get(submission.contestId) : Promise.resolve(null),
       ]);
+
       items.push({
         id: submission._id,
         legacyId: submission.legacyId ?? null,
@@ -148,6 +169,7 @@ export const list = query({
         isLocked: submission.lockedAfter !== undefined,
       });
     }
+
     return { items, total: matched.length, page, pageSize };
   },
 });

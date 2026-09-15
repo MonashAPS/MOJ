@@ -46,10 +46,12 @@ class TableWriter {
 
   async write(table: string, line: string): Promise<void> {
     let stream = this.streams.get(table);
+
     if (!stream) {
       stream = createWriteStream(path.join(this.dir, `${table}.jsonl`), { encoding: "utf8" });
       this.streams.set(table, stream);
     }
+
     if (!stream.write(line)) await once(stream, "drain");
   }
 
@@ -58,14 +60,17 @@ class TableWriter {
       stream.end();
       await once(stream, "close");
     }
+
     this.streams.clear();
   }
 }
 
 function rowToObject(columns: string[], values: SqlValue[]): Record<string, SqlValue> {
   const out: Record<string, SqlValue> = {};
+
   for (let i = 0; i < columns.length; i++)
     out[columns[i] as string] = i < values.length ? (values[i] as SqlValue) : null;
+
   return out;
 }
 
@@ -85,6 +90,7 @@ export async function extract(options: ExtractOptions): Promise<ExtractManifest>
   const { dumpPath, outDir } = options;
   const stat = statSync(dumpPath);
   const existing = await readManifest(outDir);
+
   if (
     !options.force &&
     existing &&
@@ -109,15 +115,20 @@ export async function extract(options: ExtractOptions): Promise<ExtractManifest>
         );
         continue;
       }
+
       const columns = columnNames.get(event.table);
+
       if (!columns) continue;
       const entry = tables[event.table];
+
       if (!entry) continue;
       let buffer = "";
+
       for (const values of event.rows) {
         buffer += `${JSON.stringify(rowToObject(columns, values))}\n`;
         entry.rows++;
       }
+
       if (buffer.length > 0) await writer.write(event.table, buffer);
       options.onProgress?.(event.table, entry.rows);
     }
@@ -135,6 +146,8 @@ export async function extract(options: ExtractOptions): Promise<ExtractManifest>
     extractedAt: new Date().toISOString(),
     tables,
   };
+
   await writeFile(manifestPath(outDir), `${JSON.stringify(manifest, null, 2)}\n`);
+
   return manifest;
 }

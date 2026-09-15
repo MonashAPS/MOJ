@@ -33,6 +33,7 @@ export function validateLegacyIoiConfig(config: unknown): void {
 export function resolveLegacyIoiConfig(config: unknown): { cumtime: boolean } {
   validateLegacyIoiConfig(config);
   const merged = mergeConfig(LEGACY_IOI_DEFAULTS, config);
+
   return { cumtime: Boolean(merged.cumtime) };
 }
 
@@ -46,6 +47,7 @@ export function updateParticipationLegacyIoi(input: UpdateParticipationInput): P
   const formatData: FormatData = {};
 
   const groups = groupByProblem(submissions, participation.id);
+
   for (const problemId of orderedProblemIds(groups, contestProblems)) {
     const rows = groups.get(problemId) as { date: number; contestPoints: number }[];
     const points = Math.max(...rows.map((row) => row.contestPoints));
@@ -53,8 +55,10 @@ export function updateParticipationLegacyIoi(input: UpdateParticipationInput): P
     const time = Math.min(...rows.filter((row) => row.contestPoints === points).map((row) => row.date));
 
     let dt = 0;
+
     if (config.cumtime) {
       dt = secondsSince(start, time);
+
       if (points) cumtime += dt;
     }
 
@@ -83,13 +87,16 @@ export const legacyIoiFormat: ContestFormat = {
 
   displayUserProblem(participation, contestProblem, contest, config) {
     const entry = participation.formatData?.[contestProblem.id];
+
     if (!entry) return null;
     const resolved = resolveLegacyIoiConfig(config ?? contest.formatConfig);
+
     return buildProblemCell(entry, contestProblem, contest, { showTime: resolved.cumtime });
   },
 
   displayParticipationResult(participation, contest, config) {
     const resolved = resolveLegacyIoiConfig(config ?? contest.formatConfig);
+
     return buildParticipationResult(participation, contest, resolved.cumtime);
   },
 
@@ -100,6 +107,7 @@ export const legacyIoiFormat: ContestFormat = {
     const resolved = resolveLegacyIoiConfig(config);
     const lines: ScoringLine[] = [{ key: "maxScoreSubmission" }];
     lines.push({ key: resolved.cumtime ? "tiesByScoreAltering" : "tiesNotBroken" });
+
     return lines;
   },
 };

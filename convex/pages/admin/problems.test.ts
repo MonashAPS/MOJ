@@ -22,13 +22,16 @@ import { setupTest } from "../../test.setup";
 
 async function seed() {
   const t = setupTest();
+
   const ids = await t.run(async (ctx) => {
     const root = await insertProfile(ctx, { username: "root", isStaff: true, isSuperuser: true });
+
     const setter = await insertProfile(ctx, {
       username: "setter",
       isStaff: true,
       permissions: ["judge.edit_own_problem"],
     });
+
     const member = await insertProfile(ctx, { username: "member" });
 
     const group = await insertProblemGroup(ctx, { name: "uncategorized", fullName: "uncategorized" });
@@ -45,6 +48,7 @@ async function seed() {
       allowedLanguageIds: [language],
       points: 50,
     });
+
     const beta = await insertProblem(ctx, {
       code: "beta",
       groupId: graphs,
@@ -122,6 +126,7 @@ async function seed() {
 
     return { root, setter, member, alpha, beta, contest };
   });
+
   return { t, ids };
 }
 
@@ -193,6 +198,7 @@ describe("pages/admin problems", () => {
       code: "alpha",
       newCode: "alpha2",
     });
+
     expect(result.code).toBe("alpha2");
 
     const clone = await asUser(t, "root").query(api.pages.admin.problems.edit, { code: "alpha2" });

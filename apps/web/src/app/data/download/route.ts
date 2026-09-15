@@ -10,6 +10,8 @@ import { queryAsViewer } from "@/lib/convex-server";
 export async function GET(request: NextRequest) {
   const origin = request.nextUrl.origin;
   const download = await queryAsViewer(api.pages.users.dataExportDownload, {});
+
   if (!download) return NextResponse.redirect(new URL("/data/prepare/", origin), 302);
+
   return NextResponse.redirect(download.url, 302);
 }

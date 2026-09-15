@@ -32,6 +32,7 @@ const OTPAUTH = "otpauth://totp/MOJ:admin@example.com?secret=JBSWY3DPEHPK3PXPJBS
 
 function render(text: string): string {
   const { modules } = encodeQr(text);
+
   return modules.map((row) => row.map((module) => (module ? "#" : ".")).join("")).join("\n");
 }
 

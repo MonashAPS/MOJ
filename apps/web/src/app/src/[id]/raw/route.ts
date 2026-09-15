@@ -10,10 +10,13 @@ export const dynamic = "force-dynamic";
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const view = await loadSourceView(id);
+
   if (!view) return new Response("Submission not found", { status: 404 });
+
   if (!view.canSeeSource) return new Response("Access denied", { status: 403 });
 
   const extension = view.language?.extension || "txt";
+
   return new Response(view.source, {
     status: 200,
     headers: {

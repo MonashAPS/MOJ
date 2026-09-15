@@ -61,10 +61,14 @@ const REMOTE = /^(?:[a-z][a-z0-9+.-]*:)?\/\//i;
  */
 export function defaultResolveImage(src: string): string | null {
   if (!src) return null;
+
   if (src.startsWith("data:")) return null;
+
   if (REMOTE.test(src)) return null;
   const cleaned = src.replace(/^\.\//, "").replace(/^\/+/, "");
+
   if (!cleaned || cleaned.startsWith("../")) return null;
+
   return `/${cleaned}`;
 }
 
@@ -74,18 +78,22 @@ export function dropAllImages(): null {
 }
 
 const IMG_TAG = /<img\b([^>]*)>/gi;
+
 const ATTRIBUTE = /([a-zA-Z_:][-\w:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/g;
+
 const COMMENT = /^\s*<!--[\s\S]*?-->\s*$/;
 
 function attributesOf(raw: string): Record<string, string> {
   const out: Record<string, string> = {};
   ATTRIBUTE.lastIndex = 0;
   let match = ATTRIBUTE.exec(raw);
+
   while (match) {
     const [, name, doubleQuoted, singleQuoted, bare] = match;
     out[(name as string).toLowerCase()] = doubleQuoted ?? singleQuoted ?? bare ?? "";
     match = ATTRIBUTE.exec(raw);
   }
+
   return out;
 }
 
@@ -96,21 +104,28 @@ function htmlToNodes(value: string): RootContent[] {
   let last = 0;
   IMG_TAG.lastIndex = 0;
   let match = IMG_TAG.exec(value);
+
   while (match) {
     if (match.index > last) {
       nodes.push({ type: "text", value: value.slice(last, match.index) });
     }
+
     const attributes = attributesOf(match[1] as string);
     const src = attributes.src;
+
     if (src) {
       const image: Image = { type: "image", url: src, alt: attributes.alt ?? "" };
+
       if (attributes.title) image.title = attributes.title;
       nodes.push(image);
     }
+
     last = match.index + match[0].length;
     match = IMG_TAG.exec(value);
   }
+
   if (last < value.length) nodes.push({ type: "text", value: value.slice(last) });
+
   return nodes;
 }
 
@@ -131,12 +146,15 @@ export function normaliseForCmarker(source: string, options: NormaliseOptions = 
     .use(remarkGfm, { singleTilde: false })
     .use(remarkMath, { singleDollarTextMath: options.singleDollarMath ?? true })
     .use(remarkTildeMath);
+
   const tree = parser.parse(source) as Root;
 
   // 1. The leading `# Title`, which duplicates `config.json`'s `title`.
   const first = tree.children[0];
+
   if (first && first.type === "heading" && first.depth === 1) {
     title = plainHeading(first);
+
     if (options.dropTitleHeading !== false) tree.children.shift();
   }
 
@@ -145,6 +163,7 @@ export function normaliseForCmarker(source: string, options: NormaliseOptions = 
   visit(tree, "heading", (node: Heading) => {
     minDepth = Math.min(minDepth, node.depth);
   });
+
   if (minDepth < topLevel && minDepth <= 6) {
     const shift = topLevel - minDepth;
     visit(tree, "heading", (node: Heading) => {
@@ -156,20 +175,26 @@ export function normaliseForCmarker(source: string, options: NormaliseOptions = 
   visit(tree, "html", (node, index, parent) => {
     if (!parent || index === undefined) return;
     const replacement = htmlToNodes(node.value);
+
     if (replacement.length === 0) {
       parent.children.splice(index, 1);
+
       return index;
     }
+
     escapedHtml.push(node.value);
+
     if (parent.type === "root" && isBlockish(replacement)) {
       const wrapped: Paragraph = {
         type: "paragraph",
         children: replacement as Paragraph["children"],
       };
+
       parent.children.splice(index, 1, wrapped);
     } else {
       parent.children.splice(index, 1, ...(replacement as never[]));
     }
+
     return index;
   });
 
@@ -178,11 +203,14 @@ export function normaliseForCmarker(source: string, options: NormaliseOptions = 
     if (!parent || index === undefined) return;
     const resolved = resolveImage(node.url);
     options.onImage?.({ original: node.url, resolved });
+
     if (resolved === null) {
       droppedImages.push(node.url);
       parent.children.splice(index, 1);
+
       return index;
     }
+
     node.url = resolved;
     images.push(resolved);
   });
@@ -209,11 +237,15 @@ export function normaliseForCmarker(source: string, options: NormaliseOptions = 
 
 function plainHeading(node: Heading): string {
   let out = "";
+
   const walk = (current: MdastNodes): void => {
     if ("value" in current && typeof current.value === "string") out += current.value;
     const children = (current as { children?: MdastNodes[] }).children;
+
     if (children) for (const child of children) walk(child);
   };
+
   walk(node);
+
   return out.trim();
 }

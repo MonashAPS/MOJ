@@ -22,10 +22,13 @@ export function ActivateEmailClient({ token }: { token: string }) {
     started.current = true;
     (async () => {
       const result = await authClient.verifyEmail({ query: { token } });
+
       if (result.error) {
         setState("failed");
+
         return;
       }
+
       setState("done");
       router.refresh();
     })();

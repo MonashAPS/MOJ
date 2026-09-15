@@ -77,6 +77,7 @@ export function MembershipActions({
 
   async function doJoin(accessCode?: string) {
     setBusy(true);
+
     try {
       await join({ slug, accessCode });
       toast.success(t("joined", { organization: name }));
@@ -110,6 +111,7 @@ export function MembershipActions({
               onClick={async (event) => {
                 event.preventDefault();
                 setBusy(true);
+
                 try {
                   await leave({ slug });
                   toast.success(t("left", { organization: name }));
@@ -137,6 +139,7 @@ export function MembershipActions({
         </Button>
       );
     }
+
     return (
       <Dialog open={codeOpen} onOpenChange={setCodeOpen}>
         <Button full onClick={() => setCodeOpen(true)}>

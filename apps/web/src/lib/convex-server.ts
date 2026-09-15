@@ -22,6 +22,7 @@ export async function queryAsViewer<Q extends FunctionReference<"query">>(
   args: Q["_args"],
 ): Promise<Q["_returnType"]> {
   const token = await getConvexToken();
+
   return await fetchQuery(reference, args, convexOptions(token));
 }
 
@@ -30,5 +31,6 @@ export async function mutateAsViewer<M extends FunctionReference<"mutation">>(
   args: M["_args"],
 ): Promise<M["_returnType"]> {
   const token = await getConvexToken();
+
   return await fetchMutation(reference, args, convexOptions(token));
 }

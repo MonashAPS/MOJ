@@ -6,11 +6,13 @@ import { AuthCard } from "@/components/auth/AuthCard";
 
 export async function generateMetadata() {
   const t = await getTranslations("auth.passwordChangeDone");
+
   return { title: t("metaTitle") };
 }
 
 export default async function PasswordChangeDonePage() {
   const t = await getTranslations("auth.passwordChangeDone");
+
   return (
     <AuthCard
       title={t("title")}

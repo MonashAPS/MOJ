@@ -64,6 +64,7 @@ export function EditOrganizationForm({
         if (live) setPreview(html);
       });
     });
+
     return () => {
       live = false;
     };
@@ -71,6 +72,7 @@ export function EditOrganizationForm({
 
   async function save() {
     setBusy(true);
+
     try {
       await edit({ slug, about, logoOverrideImage: logo, adminUsernames: admins });
       toast.success(t("saved"));

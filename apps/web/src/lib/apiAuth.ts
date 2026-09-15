@@ -54,6 +54,7 @@ export type BearerOutcome =
 /** `base64url` decode without the padding Node insists on. */
 function decodeBase64Url(value: string): Buffer {
   const padded = value.replace(/-/g, "+").replace(/_/g, "/");
+
   return Buffer.from(padded, "base64");
 }
 
@@ -65,10 +66,12 @@ export type LegacyToken = { legacyUserId: number; digest: string };
  */
 export function legacyTokenDigest(token: string, secretKey: string): LegacyToken | null {
   const raw = decodeBase64Url(token);
+
   if (raw.length !== 36) return null;
   const legacyUserId = raw.readUInt32BE(0);
   const secret = raw.subarray(4);
   const digest = createHmac("sha256", secretKey).update(secret).digest("hex");
+
   return { legacyUserId, digest };
 }
 
@@ -77,21 +80,26 @@ export function buildLegacyToken(legacyUserId: number, secret: Buffer): string {
   const packed = Buffer.alloc(36);
   packed.writeUInt32BE(legacyUserId, 0);
   secret.copy(packed, 4, 0, 32);
+
   return packed.toString("base64url");
 }
 
 export function safeEqual(a: string, b: string): boolean {
   const left = Buffer.from(a, "utf8");
   const right = Buffer.from(b, "utf8");
+
   if (left.length !== right.length) return false;
+
   return timingSafeEqual(left, right);
 }
 
 async function verifyApiKeyToken(token: string): Promise<ApiIdentity | null> {
   try {
     const result = await auth.api.verifyApiKey({ body: { key: token } });
+
     if (!result?.valid || !result.key) return null;
     const userId = (result.key as { userId?: string }).userId;
+
     if (!userId) return null;
 
     const rows = await db
@@ -105,11 +113,14 @@ async function verifyApiKeyToken(token: string): Promise<ApiIdentity | null> {
       .from(schema.user)
       .where(eq(schema.user.id, userId))
       .limit(1);
+
     const record = rows[0];
+
     if (!record || record.banned) return null;
 
     let permissions: Record<string, string[]> = {};
     const raw = (result.key as { permissions?: unknown }).permissions;
+
     if (typeof raw === "string") {
       try {
         permissions = JSON.parse(raw) as Record<string, string[]>;
@@ -134,9 +145,11 @@ async function verifyApiKeyToken(token: string): Promise<ApiIdentity | null> {
 
 async function verifyLegacyToken(token: string): Promise<ApiIdentity | null> {
   const secretKey = process.env.LEGACY_SECRET_KEY;
+
   if (!secretKey) return null;
 
   const decoded = legacyTokenDigest(token, secretKey);
+
   if (!decoded) return null;
 
   const profile = await fetchQuery(
@@ -144,6 +157,7 @@ async function verifyLegacyToken(token: string): Promise<ApiIdentity | null> {
     { legacyUserId: decoded.legacyUserId, digest: decoded.digest },
     { url: convexUrl },
   );
+
   if (!profile) return null;
 
   return {
@@ -158,14 +172,18 @@ async function verifyLegacyToken(token: string): Promise<ApiIdentity | null> {
 /** Resolve the `Authorization` header of an API v2 request. */
 export async function authenticateRequest(request: Request): Promise<BearerOutcome> {
   const header = request.headers.get("authorization");
+
   if (!header) return { status: "anonymous" };
 
   const match = BEARER_PATTERN.exec(header);
+
   if (!match) return { status: "malformed" };
   const token = match[1] as string;
 
   const identity = (await verifyApiKeyToken(token)) ?? (await verifyLegacyToken(token));
+
   if (!identity) return { status: "invalid" };
+
   return { status: "ok", identity };
 }
 
@@ -175,6 +193,7 @@ export async function authenticateRequest(request: Request): Promise<BearerOutco
  */
 export async function mintConvexToken(identity: ApiIdentity): Promise<string> {
   const issuedAt = Math.floor(Date.now() / 1000);
+
   const result = await auth.api.signJWT({
     body: {
       payload: {
@@ -186,6 +205,7 @@ export async function mintConvexToken(identity: ApiIdentity): Promise<string> {
       },
     },
   });
+
   return (result as { token: string }).token;
 }
 
@@ -195,6 +215,7 @@ export type ConvexCallOptions = { url: string; token?: string };
 export async function convexOptionsFor(outcome: BearerOutcome): Promise<ConvexCallOptions> {
   if (outcome.status !== "ok") return { url: convexUrl };
   const token = await mintConvexToken(outcome.identity);
+
   return { url: convexUrl, token };
 }
 
@@ -216,6 +237,7 @@ export function apiJson(request: Request, data: unknown, status = 200): Response
 
 export function apiError(request: Request, code: number, message: string): Response {
   const error: ApiErrorBody = { code, message };
+
   return Response.json({ ...baseResponse(request), error }, { status: code });
 }
 
@@ -237,16 +259,21 @@ export function errorResponse(request: Request, error: unknown): Response {
   if (code === "NOT_FOUND") {
     return apiError(request, API_ERRORS.notFound.code, API_ERRORS.notFound.message);
   }
+
   if (code === "FORBIDDEN") {
     const message = data?.message === "login required" ? "login required" : "permission denied";
+
     return apiError(request, 403, message);
   }
+
   if (code === "UNAUTHENTICATED" || code === "NO_PROFILE") {
     return apiError(request, API_ERRORS.loginRequired.code, API_ERRORS.loginRequired.message);
   }
+
   if (code === "INVALID") {
     return apiError(request, API_ERRORS.invalidFilter.code, API_ERRORS.invalidFilter.message);
   }
+
   throw error;
 }
 
@@ -264,6 +291,7 @@ export async function handleApiRequest(
   if (outcome.status === "malformed") {
     return new Response("Invalid authorization header", { status: 400 });
   }
+
   if (outcome.status === "invalid") {
     return new Response("Invalid token", {
       status: 401,
@@ -274,6 +302,7 @@ export async function handleApiRequest(
   try {
     const options = await convexOptionsFor(outcome);
     const data = await run(options, outcome.status === "ok" ? outcome.identity : null);
+
     return apiJson(request, data);
   } catch (error) {
     return errorResponse(request, error);
@@ -287,44 +316,57 @@ export async function handleApiRequest(
 /** A `basic_filter`: the single value DMOJ's `request.GET.get(key)` returns. */
 export function basicFilter(url: URL, key: string): string | undefined {
   const value = url.searchParams.get(key);
+
   return value === null ? undefined : value;
 }
 
 /** A `list_filter`: every repetition, as `request.GET.getlist(key)` returns. */
 export function listFilter(url: URL, key: string): string[] | undefined {
   const values = url.searchParams.getAll(key);
+
   return values.length > 0 ? values : undefined;
 }
 
 export function booleanFilter(url: URL, key: string): boolean | undefined {
   const value = basicFilter(url, key);
+
   if (value === undefined) return undefined;
   const lowered = value.trim().toLowerCase();
+
   if (lowered === "true" || lowered === "1") return true;
+
   if (lowered === "false" || lowered === "0") return false;
   throw new TypeError("invalid filter value type");
 }
 
 export function numberFilter(url: URL, key: string): number | undefined {
   const value = basicFilter(url, key);
+
   if (value === undefined) return undefined;
+
   if (!/^-?\d+$/.test(value.trim())) throw new TypeError("invalid filter value type");
+
   return Number.parseInt(value, 10);
 }
 
 /** `?page=`: not a positive integer means DMOJ's paginator raises Http404. */
 export function pageFilter(url: URL): number {
   const value = url.searchParams.get("page");
+
   if (value === null || value === "") return 1;
+
   if (!/^\d+$/.test(value)) throw new RangeError("page");
   const page = Number.parseInt(value, 10);
+
   if (page < 1) throw new RangeError("page");
+
   return page;
 }
 
 /** Wrap a handler so a bad filter or page value becomes DMOJ's error envelope. */
 export function withFilters(request: Request, build: (url: URL) => Promise<Response>): Promise<Response> {
   let url: URL;
+
   try {
     url = new URL(request.url);
   } catch {
@@ -332,13 +374,16 @@ export function withFilters(request: Request, build: (url: URL) => Promise<Respo
       apiError(request, API_ERRORS.invalidFilter.code, API_ERRORS.invalidFilter.message),
     );
   }
+
   return build(url).catch((error: unknown) => {
     if (error instanceof RangeError) {
       return apiError(request, API_ERRORS.notFound.code, API_ERRORS.notFound.message);
     }
+
     if (error instanceof TypeError) {
       return apiError(request, API_ERRORS.invalidFilter.code, API_ERRORS.invalidFilter.message);
     }
+
     return errorResponse(request, error);
   });
 }

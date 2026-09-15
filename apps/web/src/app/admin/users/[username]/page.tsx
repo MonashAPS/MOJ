@@ -12,6 +12,7 @@ import { UserEditor } from "./UserEditor";
 
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
+
   return { title: decodeURIComponent(username) };
 }
 
@@ -20,9 +21,11 @@ export default async function AdminUserPage({ params }: { params: Promise<{ user
   const username = decodeURIComponent(raw);
 
   const viewer = await consoleViewer();
+
   if (!viewer) notFound();
 
   const t = await getTranslations("admin.users.detail");
+
   const [user, extras, permissionCodes, languages, organizations] = await Promise.all([
     queryAsViewer(api.admin.users.get, { username }).catch(() => null),
     queryAsViewer(api.pages.admin.users.extras, { username }),

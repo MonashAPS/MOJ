@@ -8,6 +8,7 @@ import { BrandingForm } from "./BrandingForm";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.branding");
+
   return { title: t("metaTitle") };
 }
 

@@ -17,7 +17,9 @@ export type ThemeChoice = "auto" | "light" | "dark";
 export function storedTheme(): ThemeChoice | null {
   try {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
+
     if (stored === "dark" || stored === "light") return stored;
+
     return stored === THEME_SYSTEM ? "auto" : null;
   } catch {
     return null;
@@ -26,12 +28,14 @@ export function storedTheme(): ThemeChoice | null {
 
 export function applyTheme(theme: ThemeChoice) {
   const root = document.documentElement;
+
   if (theme === "auto") root.removeAttribute("data-theme");
   else root.setAttribute("data-theme", theme);
   const value = theme === "auto" ? THEME_SYSTEM : theme;
   // The cookie is what the next page load is rendered from, so it is written
   // first: it is the half that works when storage is unavailable.
   writeThemeCookie(value);
+
   try {
     localStorage.setItem(THEME_STORAGE_KEY, value);
   } catch {
@@ -49,6 +53,7 @@ function useTheme(initial: ThemeChoice) {
     // server rendered, which on a page the browser replays from its cache can be
     // older than the choice sitting in storage.
     const choice = storedTheme() ?? (initial === "auto" ? null : initial);
+
     if (!choice) return;
     // Applied, not just recorded: whatever the page arrived carrying, the stored
     // choice is the truth, and updating only this component's state is how the
@@ -62,11 +67,14 @@ function useTheme(initial: ThemeChoice) {
     function sync(event: StorageEvent) {
       if (event.key !== null && event.key !== THEME_STORAGE_KEY) return;
       const choice = storedTheme();
+
       if (!choice) return;
       setTheme(choice);
       applyTheme(choice);
     }
+
     window.addEventListener("storage", sync);
+
     return () => window.removeEventListener("storage", sync);
   }, []);
 
@@ -93,6 +101,7 @@ export function ThemeSegmented({
 }) {
   const t = useTranslations("common.nav");
   const [theme, choose] = useTheme(initial);
+
   return (
     <ToggleGroup
       type="single"

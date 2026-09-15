@@ -28,26 +28,34 @@ export function ChangePasswordForm({ compromised }: { compromised: boolean }) {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const found: Errors = {};
+
     if (next.length < 8) found.next = tPassword("tooShort");
     else if (/^\d+$/.test(next)) found.next = tPassword("numeric");
+
     if (next !== confirm) found.confirm = tPassword("mismatch");
     setErrors(found);
+
     if (Object.keys(found).length > 0) return;
 
     setBusy(true);
+
     try {
       const result = await authClient.changePassword({
         currentPassword: current,
         newPassword: next,
         revokeOtherSessions: true,
       });
+
       if (result.error) {
         const message = result.error.message ?? "";
+
         if (/breach|compromised/i.test(message)) setErrors({ next: message });
         else if (result.error.status === 400) setErrors({ current: tPassword("wrong") });
         else setErrors({ form: message || t("failed") });
+
         return;
       }
+
       router.push("/accounts/password/change/done/");
       router.refresh();
     } catch {

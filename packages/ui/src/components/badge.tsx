@@ -52,6 +52,7 @@ export type BadgeProps = ComponentProps<"span"> &
 
 export function Badge({ className, variant, shape, size, mono, asChild, accent, ...props }: BadgeProps) {
   const Component = asChild ? Slot : "span";
+
   return (
     <Component
       data-slot="badge"

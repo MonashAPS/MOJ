@@ -22,6 +22,7 @@ export async function GET(request: Request): Promise<Response> {
       is_disqualified: booleanFilter(url, "is_disqualified"),
       virtual_participation_number: numberFilter(url, "virtual_participation_number"),
     };
+
     return handleApiRequest(request, (options) => fetchQuery(api.apiV2.participations, args, options));
   });
 }

@@ -38,7 +38,9 @@ export async function activeProctorSession(
     .withIndex("by_profile_started", (q) => q.eq("profileId", profileId))
     .order("desc")
     .first();
+
   if (!latest || latest.endedAt !== undefined) return null;
+
   return latest.lastSeenAt + PROCTOR_LIVE_WINDOW_MS > now ? latest : null;
 }
 
@@ -48,6 +50,7 @@ export async function isProctored(
   now: number = Date.now(),
 ): Promise<boolean> {
   if (!profileId) return false;
+
   return (await activeProctorSession(ctx, profileId, now)) !== null;
 }
 
@@ -65,6 +68,7 @@ export async function proctorBlocksContestProblems(
   profileId: Id<"profiles"> | null,
 ): Promise<boolean> {
   if (!contest.proctorRequired) return false;
+
   return !(await isProctored(ctx, profileId));
 }
 

@@ -19,37 +19,47 @@ class FakeConvexClient implements ConvexClientLike {
   private record(reference: unknown, args: unknown): Call {
     const call = { name: getFunctionName(reference as never), args: args as Record<string, unknown> };
     this.calls.push(call);
+
     return call;
   }
 
   async mutation(reference: unknown, args: unknown): Promise<unknown> {
     const call = this.record(reference, args);
     const table = call.args.table as string;
+
     if (call.name === "importer:insertBatch") {
       const docs = call.args.docs as { legacyId?: number }[];
+
       const inserted: InsertedId[] = docs.map((doc) => ({
         legacyId: typeof doc.legacyId === "number" ? doc.legacyId : null,
         id: `id_${++this.counter}`,
       }));
+
       this.rows.set(table, [...(this.rows.get(table) ?? []), ...inserted]);
+
       return inserted;
     }
+
     if (call.name === "importer:patchBatch") {
       return (call.args.patches as unknown[]).length;
     }
+
     if (call.name === "importer:clearTable") {
       const remaining = this.rows.get(table) ?? [];
       const limit = (call.args.limit as number) ?? 2000;
       const deleted = remaining.splice(0, limit).length;
       this.rows.set(table, remaining);
+
       return { deleted, isDone: remaining.length === 0 };
     }
+
     throw new Error(`unexpected mutation ${call.name}`);
   }
 
   async query(reference: unknown, args: unknown): Promise<unknown> {
     const call = this.record(reference, args);
     const table = call.args.table as string;
+
     if (call.name !== "importer:mapping") throw new Error(`unexpected query ${call.name}`);
     const all = this.rows.get(table) ?? [];
     const cursor = call.args.cursor as string | null;
@@ -58,6 +68,7 @@ class FakeConvexClient implements ConvexClientLike {
     const page = all.slice(start, start + numItems);
     const next = start + page.length;
     const isDone = next >= all.length;
+
     return { page, continueCursor: isDone ? null : String(next), isDone };
   }
 }
@@ -123,9 +134,11 @@ describe("pipeline against a fake Convex", () => {
 
     const inserts = client.calls.filter((call) => call.name === "importer:insertBatch");
     expect(inserts.length).toBeGreaterThan(0);
+
     for (const call of inserts) {
       expect((call.args.docs as unknown[]).length).toBeLessThanOrEqual(BATCH_SIZE);
     }
+
     const problemInsert = inserts.find((call) => call.args.table === "problems");
     const problems = problemInsert?.args.docs as Record<string, unknown>[];
     expect(problems[0]?.groupId).toBe(fixture.ctx.ids.get("problemGroups", 1));

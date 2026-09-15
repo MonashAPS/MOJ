@@ -8,6 +8,7 @@ export type AccountTab = "profile" | "two-factor" | "passkeys" | "email" | "toke
  *  edit-profile page. */
 export async function accountTabs(): Promise<TabItem[]> {
   const t = await getTranslations("auth.accounts.tabs");
+
   return [
     { key: "profile", label: t("profile"), href: "/edit/profile/", icon: <UserCog aria-hidden /> },
     { key: "two-factor", label: t("twoFactor"), href: "/accounts/2fa/", icon: <ShieldCheck aria-hidden /> },

@@ -10,6 +10,7 @@ function run(
 ): { attribute: string | null; cookie: string } {
   let attribute: string | null = alreadyOn ?? null;
   let cookie = "";
+
   const documentElement = {
     setAttribute: (_name: string, value: string) => {
       attribute = value;
@@ -18,6 +19,7 @@ function run(
       attribute = null;
     },
   };
+
   const document = {
     documentElement,
     set cookie(value: string) {
@@ -27,9 +29,11 @@ function run(
       return cookie;
     },
   };
+
   new Function("document", "localStorage", themeBootstrap(defaultTheme))(document, {
     getItem: () => stored,
   });
+
   return { attribute, cookie };
 }
 
@@ -70,11 +74,13 @@ describe("themeBootstrap", () => {
       },
       removeAttribute: () => undefined,
     };
+
     const blocked = {
       getItem: () => {
         throw new Error("blocked");
       },
     };
+
     expect(() =>
       new Function("document", "localStorage", themeBootstrap("light"))({ documentElement }, blocked),
     ).not.toThrow();

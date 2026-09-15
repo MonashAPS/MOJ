@@ -68,6 +68,7 @@ export function EditProfileForm({
   // read the same however the wording there is revised.
   const nav = useTranslations("common.nav");
   const update = useMutation(api.profiles.updateProfile);
+
   const [baseline, setBaseline] = useState<FormState>({
     about,
     timezone,
@@ -76,6 +77,7 @@ export function EditProfileForm({
     editorTheme,
     organizationSlugs,
   });
+
   const [form, setForm] = useState<FormState>(baseline);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -96,10 +98,13 @@ export function EditProfileForm({
 
   useEffect(() => {
     if (!dirty) return;
+
     function warn(event: BeforeUnloadEvent) {
       event.preventDefault();
     }
+
     window.addEventListener("beforeunload", warn);
+
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
@@ -118,6 +123,7 @@ export function EditProfileForm({
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setStatus("saving");
+
     try {
       await update({
         about: canEditAbout ? form.about : undefined,

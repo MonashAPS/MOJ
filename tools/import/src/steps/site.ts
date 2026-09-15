@@ -26,7 +26,9 @@ const SHIKI_ALIASES: Record<string, string> = {
 
 export function shikiLangFor(pygments: string): string {
   const key = pygments.trim().toLowerCase();
+
   if (key === "") return "plaintext";
+
   return SHIKI_ALIASES[key] ?? key;
 }
 
@@ -35,6 +37,7 @@ export const languagesStep: Step = {
   sources: ["judge_language"],
   async run(ctx) {
     const emitter = ctx.emitter("languages");
+
     for await (const row of ctx.rows("judge_language")) {
       ctx.report.counts("languages").read++;
       const pygments = row.s("pygments");
@@ -60,6 +63,7 @@ export const problemTypesStep: Step = {
   sources: ["judge_problemtype"],
   async run(ctx) {
     const emitter = ctx.emitter("problemTypes");
+
     for await (const row of ctx.rows("judge_problemtype")) {
       ctx.report.counts("problemTypes").read++;
       await emitter.emit({
@@ -76,6 +80,7 @@ export const problemGroupsStep: Step = {
   sources: ["judge_problemgroup"],
   async run(ctx) {
     const emitter = ctx.emitter("problemGroups");
+
     for await (const row of ctx.rows("judge_problemgroup")) {
       ctx.report.counts("problemGroups").read++;
       await emitter.emit({
@@ -92,6 +97,7 @@ export const licensesStep: Step = {
   sources: ["judge_license"],
   async run(ctx) {
     const emitter = ctx.emitter("licenses");
+
     for await (const row of ctx.rows("judge_license")) {
       ctx.report.counts("licenses").read++;
       await emitter.emit({
@@ -116,9 +122,11 @@ export const navigationBarStep: Step = {
     rows.sort(
       (a, b) => a.n("level") - b.n("level") || a.n("tree_id") - b.n("tree_id") || a.n("lft") - b.n("lft"),
     );
+
     for (const row of rows) {
       ctx.report.counts("navigationBar").read++;
       const parentLegacy = row.nOpt("parent_id");
+
       if (parentLegacy !== undefined && emitter.isPending(parentLegacy)) await emitter.flush();
       await emitter.emit({
         order: row.n("order"),
@@ -138,6 +146,7 @@ export const miscConfigStep: Step = {
   sources: ["judge_miscconfig"],
   async run(ctx) {
     const emitter = ctx.emitter("miscConfig");
+
     for await (const row of ctx.rows("judge_miscconfig")) {
       ctx.report.counts("miscConfig").read++;
       await emitter.emit({
@@ -154,6 +163,7 @@ export const flatPagesStep: Step = {
   sources: ["django_flatpage"],
   async run(ctx) {
     const emitter = ctx.emitter("flatPages");
+
     for await (const row of ctx.rows("django_flatpage")) {
       ctx.report.counts("flatPages").read++;
       await emitter.emit({

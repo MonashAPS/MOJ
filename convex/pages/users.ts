@@ -39,12 +39,15 @@ export const organizationsFor = query({
         .collect();
 
       const organizations: ProfileOrganization[] = [];
+
       for (const membership of memberships) {
         let organization = cache.get(membership.organizationId);
+
         if (organization === undefined) {
           organization = await ctx.db.get(membership.organizationId);
           cache.set(membership.organizationId, organization);
         }
+
         if (!organization) continue;
         organizations.push({
           slug: organization.slug,
@@ -53,6 +56,7 @@ export const organizationsFor = query({
           legacyId: organization.legacyId,
         });
       }
+
       organizations.sort((a, b) => a.shortName.localeCompare(b.shortName));
       rows.push({ profileId, organizations });
     }
@@ -70,6 +74,7 @@ export const dataExportDownload = query({
   args: {},
   handler: async (ctx): Promise<{ url: string; name: string; createdAt: number } | null> => {
     const profile = await requireViewer(ctx);
+
     const job = await ctx.db
       .query("jobs")
       .withIndex("by_creator_type_createdAt", (q) =>
@@ -77,11 +82,14 @@ export const dataExportDownload = query({
       )
       .order("desc")
       .first();
+
     if (job?.status !== "done") return null;
 
     const storageId = job.result?.storageId as Id<"_storage"> | undefined;
+
     if (!storageId) return null;
     const url = await ctx.storage.getUrl(storageId);
+
     if (!url) return null;
 
     return { url, name: `${profile.username}-data.zip`, createdAt: job.finishedAt ?? job.createdAt };

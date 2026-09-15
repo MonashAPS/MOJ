@@ -21,6 +21,7 @@ import type { ContestEdit, ContestOptions } from "./types";
 
 function toJson(value: unknown): string {
   if (value === null || value === undefined) return "";
+
   return JSON.stringify(value, null, 2);
 }
 
@@ -71,16 +72,20 @@ export function ContestGeneralTab({
   const [summary, setSummary] = useState(contest.summary);
   const [startTime, setStartTime] = useState<number | null>(contest.startTime);
   const [endTime, setEndTime] = useState<number | null>(contest.endTime);
+
   const [timeLimit, setTimeLimit] = useState(
     contest.timeLimit === null ? "" : String(Math.round(contest.timeLimit / 60)),
   );
+
   const [isVisible, setIsVisible] = useState(contest.isVisible);
   const [isRated, setIsRated] = useState(contest.isRated);
   const [ratingFloor, setRatingFloor] = useState(contest.ratingFloor?.toString() ?? "");
   const [ratingCeiling, setRatingCeiling] = useState(contest.ratingCeiling?.toString() ?? "");
+
   const [performanceCeiling, setPerformanceCeiling] = useState(
     contest.performanceCeilingOverride?.toString() ?? "",
   );
+
   const [rateAll, setRateAll] = useState(contest.rateAll);
   const [rateExclude, setRateExclude] = useState<string[]>(contest.rateExclude);
   const [formatName, setFormatName] = useState(contest.formatName);
@@ -115,7 +120,9 @@ export function ContestGeneralTab({
 
   const parsedConfig = useMemo(() => {
     const text = formatConfig.trim();
+
     if (!text) return { ok: true as const, value: null };
+
     try {
       return { ok: true as const, value: JSON.parse(text) as unknown };
     } catch {
@@ -127,6 +134,7 @@ export function ContestGeneralTab({
     api.contests.formats.validate,
     parsedConfig.ok ? { name: formatName, config: parsedConfig.value } : "skip",
   );
+
   const described = useQuery(
     api.contests.formats.describe,
     parsedConfig.ok ? { name: formatName, config: parsedConfig.value } : "skip",
@@ -134,6 +142,7 @@ export function ContestGeneralTab({
 
   const usernames = [...privateContestants, ...rateExclude, ...bannedUsers];
   const profiles = useQuery(api.pages.admin.console.resolveProfiles, { usernames });
+
   const refs = useQuery(api.pages.admin.console.resolveContestRefs, {
     organizationSlugs,
     joinOrganizationSlugs,
@@ -146,16 +155,21 @@ export function ContestGeneralTab({
 
   function idsFor(list: string[]): Id<"profiles">[] {
     const map = profiles?.ids ?? {};
+
     return list.map((username) => map[username]).filter((id): id is Id<"profiles"> => !!id);
   }
 
   async function save() {
     setError(null);
+
     if (configError) {
       setError(configError);
+
       return;
     }
+
     setBusy(true);
+
     try {
       await update({
         key: contest.key,
@@ -208,6 +222,7 @@ export function ContestGeneralTab({
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("refused"));
     }
+
     setBusy(false);
   }
 
@@ -368,6 +383,7 @@ export function ContestGeneralTab({
             onValueChange={(value) => {
               setFormatName(value);
               const chosen = (formats ?? []).find((row) => row.name === value);
+
               if (chosen) setFormatConfig(toJson(chosen.configDefaults));
             }}
             options={(formats ?? []).map((row) => ({ value: row.name, label: row.displayName }))}

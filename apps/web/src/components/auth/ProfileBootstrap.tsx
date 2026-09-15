@@ -24,6 +24,7 @@ export function ProfileBootstrap() {
    *  stale and the shell runs the mutation once. */
   useEffect(() => {
     if (!isAuthenticated || clearedStale.current) return;
+
     if (!viewer?.contestModeStale) return;
     clearedStale.current = true;
     void clearStaleContest({}).catch(() => {
@@ -33,12 +34,16 @@ export function ProfileBootstrap() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
+
     if (viewer === undefined || viewer.profile !== null) return;
+
     const user = session?.user as
       | { id?: string; name?: string; username?: string; timezone?: string; preferredLanguage?: string }
       | undefined;
+
     if (!user) return;
     const key = user.id ?? user.username ?? "user";
+
     if (attempted.current === key) return;
 
     attempted.current = key;

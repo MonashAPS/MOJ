@@ -44,7 +44,9 @@ async function fetchSession(request: NextRequest): Promise<SessionResponse> {
       headers: { cookie: request.headers.get("cookie") ?? "" },
       cache: "no-store",
     });
+
     if (!response.ok) return null;
+
     return (await response.json()) as SessionResponse;
   } catch {
     return null;
@@ -71,6 +73,7 @@ export async function proxy(request: NextRequest) {
     // path we were already on and loops.
     const url = new URL(request.url);
     url.pathname = `${pathname}/`;
+
     return NextResponse.redirect(url, 308);
   }
 
@@ -78,21 +81,25 @@ export async function proxy(request: NextRequest) {
 
   // Cheap negative check: no session cookie, nothing to gate.
   const cookieHeader = request.headers.get("cookie") ?? "";
+
   if (!cookieHeader.includes("moj.session_token")) return NextResponse.next();
 
   if (request.cookies.get(COMPROMISED_COOKIE)?.value === "1") {
     const url = request.nextUrl.clone();
     url.pathname = "/accounts/password/change/";
     url.searchParams.set("compromised", "1");
+
     return NextResponse.redirect(url);
   }
 
   const session = await fetchSession(request);
   const user = session?.user;
+
   if (user?.isStaff && !user.twoFactorEnabled) {
     const url = request.nextUrl.clone();
     url.pathname = "/accounts/2fa/";
     url.search = `?required=1&next=${encodeURIComponent(pathname)}`;
+
     return NextResponse.redirect(url);
   }
 

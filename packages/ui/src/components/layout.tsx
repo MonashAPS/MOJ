@@ -51,6 +51,7 @@ export function ContentDescription({
       />
     );
   }
+
   return (
     <div className={cn("content-description", className)} {...props}>
       {children}

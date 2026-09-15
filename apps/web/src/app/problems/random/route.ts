@@ -27,5 +27,6 @@ export async function GET(request: NextRequest) {
   }).catch(() => null);
 
   if (!picked) return NextResponse.redirect(new URL("/problems/", request.url));
+
   return NextResponse.redirect(new URL(`/problem/${picked.code}`, request.url));
 }

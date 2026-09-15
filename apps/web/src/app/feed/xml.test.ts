@@ -112,6 +112,7 @@ describe("escaping", () => {
         updated: 0,
       },
     ]);
+
     expect(XMLValidator.validate(xml)).toBe(true);
     const item = parser.parse(xml).rss.channel.item;
     expect(item.title).toBe("</title><script>alert(1)</script>");

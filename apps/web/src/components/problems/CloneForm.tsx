@@ -45,10 +45,13 @@ export function CloneForm({ source, username }: { source: CloneSource; username:
       onSubmit={(event) => {
         event.preventDefault();
         const wanted = code.trim();
+
         if (!/^[a-z0-9_-]+$/i.test(wanted)) {
           setError(t("invalidCode"));
+
           return;
         }
+
         setBusy(true);
         setError(null);
         void (async () => {

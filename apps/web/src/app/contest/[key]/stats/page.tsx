@@ -9,11 +9,13 @@ export async function generateMetadata({ params }: { params: Promise<{ key: stri
   const { key } = await params;
   const t = await getTranslations("contests.stats");
   const detail = await queryAsViewer(api.contests.get, { key }).catch(() => null);
+
   return { title: detail?.contest ? t("metaTitle", { name: detail.contest.name }) : t("metaFallback") };
 }
 
 export default async function ContestStatsPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
+
   const [detail, stats, viewerState] = await Promise.all([
     queryAsViewer(api.contests.get, { key }).catch(() => null),
     queryAsViewer(api.contests.stats, { key }).catch(() => null),
@@ -21,6 +23,7 @@ export default async function ContestStatsPage({ params }: { params: Promise<{ k
   ]);
 
   if (!detail || detail.access.kind === "notFound" || detail.access.kind === "inaccessible") notFound();
+
   if (!detail.contest) notFound();
 
   return (

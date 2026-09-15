@@ -112,9 +112,12 @@ async function organizationsOf(ctx: QueryCtx, profileId: Id<"profiles">): Promis
     .query("organizationMemberships")
     .withIndex("by_profile", (q) => q.eq("profileId", profileId))
     .collect();
+
   const out: OrganizationRef[] = [];
+
   for (const membership of memberships) {
     const organization = await ctx.db.get(membership.organizationId);
+
     if (organization) {
       out.push({
         _id: organization._id,
@@ -124,6 +127,7 @@ async function organizationsOf(ctx: QueryCtx, profileId: Id<"profiles">): Promis
       });
     }
   }
+
   return out;
 }
 
@@ -151,6 +155,7 @@ export const ranking = query({
   handler: async (ctx, args): Promise<RankingPayload> => {
     const now = Date.now();
     const contest = await contestByKey(ctx, args.key);
+
     if (!contest) return null;
 
     const profile = await optionalViewer(ctx);
@@ -159,12 +164,14 @@ export const ranking = query({
 
     const current = profile?.currentParticipationId ? await ctx.db.get(profile.currentParticipationId) : null;
     const inThisContest = current?.contestId === contest._id;
+
     if (!inThisContest && contestAccessCheck(contestRow, viewer).kind !== "ok") return null;
 
     const allParticipations = await ctx.db
       .query("contestParticipations")
       .withIndex("by_contest_virtual_score", (q) => q.eq("contestId", contest._id))
       .collect();
+
     const liveParticipation =
       (profile
         ? allParticipations.find((row) => row.profileId === profile._id && row.virtual === PARTICIPATION_LIVE)
@@ -174,6 +181,7 @@ export const ranking = query({
       now,
       liveParticipation: liveParticipation ? toParticipationRow(liveParticipation) : null,
     };
+
     if (!contestCanSeeOwnScoreboard(contestRow, viewer, context)) return null;
     const canSeeFull = contestCanSeeFullScoreboard(contestRow, viewer, context);
 
@@ -182,6 +190,7 @@ export const ranking = query({
     const labels = contestProblems.map((_row, index) => labelForProblem(contest, index));
 
     const problems: RankingProblem[] = [];
+
     for (const [index, contestProblem] of contestProblems.entries()) {
       const problem = await ctx.db.get(contestProblem.problemId);
       problems.push({
@@ -197,12 +206,15 @@ export const ranking = query({
 
     // Which participations are in the table.
     let selected: Doc<"contestParticipations">[];
+
     if (!canSeeFull) {
       selected = liveParticipation ? [liveParticipation] : [];
     } else {
       selected = allParticipations.filter((row) => {
         if (row.virtual === PARTICIPATION_LIVE) return true;
+
         if (row.virtual > 0) return args.includeVirtual === true;
+
         return args.includeSpectators === true;
       });
     }
@@ -211,6 +223,7 @@ export const ranking = query({
     // with a '-' rank, as `get_contest_ranking_list` does.
     const currentVirtual =
       canSeeFull && current && current.contestId === contest._id && current.virtual !== 0 ? current : null;
+
     if (currentVirtual && !selected.some((row) => row._id === currentVirtual._id)) {
       selected = [...selected, currentVirtual];
     }
@@ -220,17 +233,20 @@ export const ranking = query({
 
     const withSubmissions: { participation: Doc<"contestParticipations">; rows: FrozenRankingRow }[] = [];
     const freezeInput = [];
+
     for (const participation of selected) {
       freezeInput.push({
         participation: toParticipationRow(participation),
         submissions: await contestSubmissionRows(ctx, participation._id, contest.formatName),
       });
     }
+
     const frozenRows = applyFreeze(freezeInput, contestRow, viewer, {
       now,
       revealed,
       contestProblems: problemRows,
     });
+
     frozenRows.forEach((row, index) => {
       withSubmissions.push({ participation: selected[index] as Doc<"contestParticipations">, rows: row });
     });
@@ -239,19 +255,24 @@ export const ranking = query({
       .query("ratings")
       .withIndex("by_contest", (q) => q.eq("contestId", contest._id))
       .collect();
+
     const ratingByParticipation = new Map<string, number>();
+
     for (const row of ratingRows) ratingByParticipation.set(row.participationId, row.rating);
 
     const format = formatFor(contest);
+
     type Built = {
       row: RankingRow;
       sortKey: [number, number, number, number, number];
     };
+
     const built: Built[] = [];
 
     for (const entry of withSubmissions) {
       const participation = entry.participation;
       const profileDoc = await ctx.db.get(participation.profileId);
+
       if (!profileDoc) continue;
 
       // Organisation and class filters.
@@ -260,19 +281,25 @@ export const ranking = query({
           .query("organizationMemberships")
           .withIndex("by_profile", (q) => q.eq("profileId", profileDoc._id))
           .collect();
+
         if (args.organizationSlug) {
           let matched = false;
+
           for (const membership of memberships) {
             const organization = await ctx.db.get(membership.organizationId);
+
             if (organization?.slug === args.organizationSlug) {
               matched = true;
               break;
             }
           }
+
           if (!matched) continue;
         }
+
         if (args.classId) {
           const klass = await ctx.db.get(args.classId);
+
           if (!klass?.memberProfileIds.includes(profileDoc._id)) continue;
         }
       }
@@ -317,7 +344,9 @@ export const ranking = query({
           result: format.displayParticipationResult(scored, contestRow),
           problems: problemRows.map((problem, index) => {
             const cell = safeDisplay(format, scored, problem, contestRow);
+
             if (!cell) return null;
+
             return {
               contestProblemId: problem.id as Id<"contestProblems">,
               label: labels[index] as string,
@@ -338,8 +367,10 @@ export const ranking = query({
     built.sort((a, b) => {
       for (let i = 0; i < a.sortKey.length; i++) {
         const delta = (a.sortKey[i] as number) - (b.sortKey[i] as number);
+
         if (delta !== 0) return delta;
       }
+
       return 0;
     });
 
@@ -347,6 +378,7 @@ export const ranking = query({
     const virtualRows = currentVirtual
       ? built.filter((entry) => entry.row.participationId === currentVirtual._id)
       : [];
+
     const tableRows = built.filter(
       (entry) => !virtualRows.some((row) => row.row.participationId === entry.row.participationId),
     );
@@ -355,10 +387,12 @@ export const ranking = query({
       tableRows.map((entry) => entry.row),
       (row) => `${row.points}/${row.cumtime}/${row.tiebreaker}`,
     );
+
     for (const { rank, item } of ranked) {
       item.rank = canSeeFull ? rank : null;
       item.rankLabel = canSeeFull ? String(rank) : "???";
     }
+
     for (const entry of virtualRows) {
       entry.row.rank = null;
       entry.row.rankLabel = "-";
@@ -430,14 +464,17 @@ export const rankByProblem = query({
   args: { key: v.string(), problemCode: v.string(), languageKeys: v.optional(v.array(v.string())) },
   handler: async (ctx, { key, problemCode, languageKeys }): Promise<RankByProblemPayload> => {
     const contest = await contestByKey(ctx, key);
+
     if (!contest) return null;
 
     const profile = await optionalViewer(ctx);
     const viewer = await toViewerRowInContest(ctx, profile);
     const contestRow = toContestRow(contest);
+
     if (contestAccessCheck(contestRow, viewer).kind !== "ok") return null;
 
     const now = Date.now();
+
     const liveParticipation = profile
       ? ((
           await ctx.db
@@ -448,20 +485,24 @@ export const rankByProblem = query({
             .collect()
         ).find((row) => row.virtual === PARTICIPATION_LIVE) ?? null)
       : null;
+
     const context = {
       now,
       liveParticipation: liveParticipation ? toParticipationRow(liveParticipation) : null,
     };
+
     if (!contestCanSeeFullScoreboard(contestRow, viewer, context)) return null;
 
     const problem = await ctx.db
       .query("problems")
       .withIndex("by_code", (q) => q.eq("code", problemCode))
       .unique();
+
     if (!problem) return null;
 
     const contestProblems = await loadContestProblems(ctx, contest._id);
     const index = contestProblems.findIndex((row) => row.problemId === problem._id);
+
     if (index === -1) return null;
 
     const wanted = languageKeys && languageKeys.length > 0 ? new Set(languageKeys) : null;
@@ -474,18 +515,24 @@ export const rankByProblem = query({
     ).filter((row) => row.problemId === problem._id && !row.isArchived);
 
     const best = new Map<string, Doc<"submissions">>();
+
     for (const submission of submissions) {
       const points = submission.contestPoints ?? 0;
+
       if (points <= 0) continue;
       const language = await ctx.db.get(submission.languageId);
+
       if (wanted && (!language || !wanted.has(language.key))) continue;
 
       const currentBest = best.get(submission.profileId);
+
       if (!currentBest) {
         best.set(submission.profileId, submission);
         continue;
       }
+
       const bestPoints = currentBest.contestPoints ?? 0;
+
       if (points > bestPoints) {
         best.set(submission.profileId, submission);
       } else if (
@@ -497,8 +544,10 @@ export const rankByProblem = query({
     }
 
     const rows: RankedSubmissionRow[] = [];
+
     for (const submission of best.values()) {
       const owner = await ctx.db.get(submission.profileId);
+
       if (!owner || owner.isUnlisted) continue;
       const language = await ctx.db.get(submission.languageId);
       rows.push({
@@ -552,13 +601,16 @@ export async function recompute(
   participationId: Id<"contestParticipations">,
 ): Promise<void> {
   const participation = await ctx.db.get(participationId);
+
   if (!participation) return;
   const contest = await ctx.db.get(participation.contestId);
+
   if (!contest) return;
 
   const contestProblems = (await loadContestProblems(ctx, contest._id)).map((row) =>
     toContestProblemRow(row),
   );
+
   const submissions = await contestSubmissionRows(ctx, participationId, contest.formatName);
   const format = formatFor(contest);
 
@@ -576,6 +628,7 @@ export async function recompute(
       tiebreaker: 0,
       formatData: update.formatData,
     });
+
     return;
   }
 
@@ -592,6 +645,7 @@ export const recomputeParticipation = internalMutation({
   args: { participationId: v.id("contestParticipations") },
   handler: async (ctx, { participationId }): Promise<null> => {
     await recompute(ctx, participationId);
+
     return null;
   },
 });
@@ -607,8 +661,10 @@ export const rescoreContest = mutation({
   handler: async (ctx, { key }): Promise<{ jobId: Id<"jobs">; total: number }> => {
     const profile = await requireViewer(ctx);
     const contest = await contestByKey(ctx, key);
+
     if (!contest) throw notFound(`Contest "${key}"`);
     const viewer = await toViewerRowInContest(ctx, profile);
+
     if (!contestIsEditableBy(toContestRow(contest), viewer)) throw forbidden();
 
     const participations = await ctx.db

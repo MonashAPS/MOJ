@@ -44,6 +44,7 @@ export function RecentJobs({ limit = 5 }: { limit?: number }) {
           {jobs.map((job) => {
             const total = job.progress?.total ?? 0;
             const done = job.progress?.done ?? 0;
+
             return (
               <li key={job._id} className="grid gap-1 px-3 py-2">
                 <div className="flex flex-wrap items-center gap-2">

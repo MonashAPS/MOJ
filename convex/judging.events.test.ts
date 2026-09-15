@@ -24,6 +24,7 @@ import { type JudgeClient, judgeCase, judgeClient, setupTest, type T } from "./t
 async function fixture(problemOptions: Overrides<"problems"> = {}) {
   const t = setupTest();
   const languageId = await insertLanguage(t, { key: "PY3" });
+
   const problemId = await insertProblem(t, {
     code: "aplusb",
     allowedLanguageIds: [languageId],
@@ -31,9 +32,11 @@ async function fixture(problemOptions: Overrides<"problems"> = {}) {
     partial: true,
     ...problemOptions,
   });
+
   const author = await insertProfile(t, { username: "author" });
   const judgeId = await insertJudge(t, { name: "local" });
   const client = judgeClient(t, "local");
+
   return { t, languageId, problemId, author, judgeId, client };
 }
 
@@ -41,7 +44,9 @@ async function claim(client: JudgeClient): Promise<number> {
   const body = (await (await client.claim()).json()) as {
     submission: { submissionId: number } | null;
   };
+
   if (!body.submission) throw new Error("nothing to claim");
+
   return body.submission.submissionId;
 }
 
@@ -62,12 +67,14 @@ async function readCases(t: T, submissionId: Id<"submissions">) {
       .withIndex("by_submission_case", (q) => q.eq("submissionId", submissionId))
       .collect(),
   );
+
   return rows.sort((a, b) => a.case - b.case);
 }
 
 describe("the grading sequence", () => {
   it("grades an accepted submission across two batches", async () => {
     const { t, languageId, problemId, author, client } = await fixture();
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -75,6 +82,7 @@ describe("the grading sequence", () => {
       status: "QU",
       legacyId: 1,
     });
+
     const id = await claim(client);
     expect(id).toBe(1);
 
@@ -124,6 +132,7 @@ describe("the grading sequence", () => {
 
   it("collapses a short-circuited batch to its minimum points", async () => {
     const { t, languageId, problemId, author, client } = await fixture();
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -131,6 +140,7 @@ describe("the grading sequence", () => {
       status: "QU",
       legacyId: 2,
     });
+
     const id = await claim(client);
 
     await send(client, id, { type: "grading-begin", pretested: false });
@@ -158,6 +168,7 @@ describe("the grading sequence", () => {
 
   it("decodes a timed-out case that also carries the RTE and WA bits", async () => {
     const { t, languageId, problemId, author, client } = await fixture();
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -165,6 +176,7 @@ describe("the grading sequence", () => {
       status: "QU",
       legacyId: 3,
     });
+
     const id = await claim(client);
 
     await send(client, id, { type: "grading-begin", pretested: false });
@@ -185,6 +197,7 @@ describe("the grading sequence", () => {
 
   it("aborts a submission the judge already holds", async () => {
     const { t, languageId, problemId, author, client } = await fixture();
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -192,6 +205,7 @@ describe("the grading sequence", () => {
       status: "QU",
       legacyId: 4,
     });
+
     const id = await claim(client);
     await send(client, id, { type: "grading-begin", pretested: false });
 
@@ -215,6 +229,7 @@ describe("the grading sequence", () => {
 
   it("records a compile error and frees the judge", async () => {
     const { t, languageId, problemId, author, judgeId, client } = await fixture();
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -222,6 +237,7 @@ describe("the grading sequence", () => {
       status: "QU",
       legacyId: 5,
     });
+
     const id = await claim(client);
     await send(client, id, { type: "compile-error", log: "SyntaxError: bad" });
 
@@ -234,6 +250,7 @@ describe("the grading sequence", () => {
 
   it("records an internal error", async () => {
     const { t, languageId, problemId, author, client } = await fixture();
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -241,6 +258,7 @@ describe("the grading sequence", () => {
       status: "QU",
       legacyId: 6,
     });
+
     const id = await claim(client);
     await send(client, id, { type: "internal-error", message: "Traceback..." });
 
@@ -252,6 +270,7 @@ describe("the grading sequence", () => {
 
   it("keeps a non-empty compile message as the submission's error", async () => {
     const { t, languageId, problemId, author, client } = await fixture();
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -259,6 +278,7 @@ describe("the grading sequence", () => {
       status: "QU",
       legacyId: 7,
     });
+
     const id = await claim(client);
     await send(client, id, { type: "compile-message", log: "warning: unused variable" });
     expect((await readSubmission(t, submissionId))?.error).toBe("warning: unused variable");
@@ -266,6 +286,7 @@ describe("the grading sequence", () => {
 
   it("zeroes a non-partial problem that did not score full marks", async () => {
     const { t, languageId, problemId, author, client } = await fixture({ partial: false });
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -273,6 +294,7 @@ describe("the grading sequence", () => {
       status: "QU",
       legacyId: 8,
     });
+
     const id = await claim(client);
     await send(client, id, { type: "grading-begin", pretested: false });
     await send(client, id, {
@@ -292,6 +314,7 @@ describe("the grading sequence", () => {
 describe("repeated events", () => {
   it("is idempotent when the judge retries a packet", async () => {
     const { t, languageId, problemId, author, client } = await fixture();
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -299,6 +322,7 @@ describe("repeated events", () => {
       status: "QU",
       legacyId: 9,
     });
+
     const id = await claim(client);
 
     await send(client, id, { type: "grading-begin", pretested: false });
@@ -326,6 +350,7 @@ describe("repeated events", () => {
 
   it("answers an event for a submission that no longer exists", async () => {
     const { t, languageId, problemId, author, client } = await fixture();
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -333,6 +358,7 @@ describe("repeated events", () => {
       status: "QU",
       legacyId: 10,
     });
+
     await claim(client);
     await t.run(async (ctx) => ctx.db.delete(submissionId));
 
@@ -343,6 +369,7 @@ describe("repeated events", () => {
 
   it("accepts a Convex document id as the submission id", async () => {
     const { t, languageId, problemId, author, client } = await fixture();
+
     const submissionId = await insertSubmission(t, {
       profileId: author,
       problemId,
@@ -350,6 +377,7 @@ describe("repeated events", () => {
       status: "QU",
       legacyId: 11,
     });
+
     await claim(client);
     await send(client, submissionId, { type: "grading-begin", pretested: true });
     const submission = await readSubmission(t, submissionId);

@@ -88,7 +88,9 @@ export function ProblemGeneralTab({
 
   const ownershipDirty =
     !same(authors, problem.authors) || !same(curators, problem.curators) || !same(testers, problem.testers);
+
   const bannedDirty = !same(banned, problem.bannedUsers);
+
   const dirty =
     ownershipDirty ||
     bannedDirty ||
@@ -114,6 +116,7 @@ export function ProblemGeneralTab({
   async function save() {
     setError(null);
     setBusy(true);
+
     try {
       const result = await update({
         code: problem.code,
@@ -137,17 +140,21 @@ export function ProblemGeneralTab({
         ogImage: ogImage.trim() || null,
         reason: reason.trim(),
       });
+
       if (ownershipDirty) {
         await setOwnership({ code: problem.code, authors, curators, testers, reason: reason.trim() });
       }
+
       if (bannedDirty) {
         await setBannedUsers({ code: problem.code, usernames: banned, reason: reason.trim() });
       }
+
       setReason("");
       toast.success(result?.rescoreScheduled ? t("savedRescoreQueued") : t("saved"));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : shared("changeRefused"));
     }
+
     setBusy(false);
   }
 

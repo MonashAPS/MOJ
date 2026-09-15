@@ -23,6 +23,7 @@ export function ContestEditor({ contestKey }: { contestKey: string }) {
 
   const contest = useQuery(api.pages.admin.contests.edit, { key: contestKey });
   const options = useQuery(api.pages.admin.contests.options, {});
+
   const revisions = useQuery(
     api.pages.admin.revisions.byKey,
     active === "revisions" ? { entityType: "contest" as const, key: contestKey } : "skip",

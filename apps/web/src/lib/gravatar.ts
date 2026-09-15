@@ -5,6 +5,7 @@ import { db, schema } from "@/auth/db";
 export function gravatarUrl(email: string | null | undefined, size = 32): string {
   const normalized = (email ?? "").trim().toLowerCase();
   const hash = createHash("md5").update(normalized).digest("hex");
+
   return `https://www.gravatar.com/avatar/${hash}?d=identicon&s=${size}`;
 }
 
@@ -19,6 +20,7 @@ export async function gravatarUrlsForUserIds(
 ): Promise<Map<string, string>> {
   const wanted = [...new Set(userIds.filter(Boolean))];
   const urls = new Map<string, string>();
+
   if (wanted.length === 0) return urls;
 
   try {
@@ -26,6 +28,7 @@ export async function gravatarUrlsForUserIds(
       .select({ id: schema.user.id, email: schema.user.email })
       .from(schema.user)
       .where(inArray(schema.user.id, wanted));
+
     for (const row of rows) urls.set(row.id, gravatarUrl(row.email, size));
   } catch {
     // A page that is otherwise readable should not fail on the avatar; the
@@ -35,6 +38,7 @@ export async function gravatarUrlsForUserIds(
   for (const id of wanted) {
     if (!urls.has(id)) urls.set(id, gravatarUrl(null, size));
   }
+
   return urls;
 }
 

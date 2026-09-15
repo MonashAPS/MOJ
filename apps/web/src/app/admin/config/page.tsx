@@ -9,11 +9,13 @@ import { ConfigTabs } from "./ConfigTabs";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.config");
+
   return { title: t("metaTitle") };
 }
 
 export default async function AdminConfigPage() {
   const t = await getTranslations("admin.config");
+
   const [settings, languages] = await Promise.all([
     queryAsViewer(api.site.settings, {}).catch(() => null),
     queryAsViewer(api.languages.list, {}).catch(() => []),

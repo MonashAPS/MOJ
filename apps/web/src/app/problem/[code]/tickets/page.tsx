@@ -23,9 +23,11 @@ export async function generateMetadata({ params }: Props) {
   const t = await getTranslations("problems.tickets");
   const states = await getTranslations("common.states");
   const { code } = await params;
+
   const problem = await queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }).catch(
     () => null,
   );
+
   return {
     title: problem
       ? t.markup("listTitle", { name: problem.name, link: (chunks) => chunks })
@@ -41,18 +43,21 @@ export default async function ProblemTicketsPage({ params, searchParams }: Props
   const detail = await getTranslations("problems.detail");
   const { code } = await params;
   const query = await searchParams;
+
   const [problem, viewerState] = await Promise.all([
     queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
   ]);
 
   if (!viewerState?.profile) redirect(`/accounts/login/?next=/problem/${encodeURIComponent(code)}/tickets/`);
+
   if (!problem) notFound();
 
   const scope = scopeFromParams(one(query.scope));
   const onlyOpen = one(query.open) === "1";
   const page = Math.max(1, Number(one(query.page) ?? 1) || 1);
   const args = ticketQueryArgs(scope, onlyOpen, page, problem.code);
+
   const initial = await queryAsViewer(api.tickets.list, args).catch(() => ({
     page: [],
     isDone: true,

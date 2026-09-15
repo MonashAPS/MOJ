@@ -27,6 +27,7 @@ async function requireSubsManageable(ctx: Parameters<typeof requireViewer>[0], p
   const problem = await requireProblem(ctx, problemCode);
 
   const staff = profile.isStaff || profile.isSuperuser;
+
   if (
     !staff ||
     !coreHasPerm(viewer, "judge.rejudge_submission") ||
@@ -34,6 +35,7 @@ async function requireSubsManageable(ctx: Parameters<typeof requireViewer>[0], p
   ) {
     throw forbidden("You may not manage submissions for this problem.");
   }
+
   return { profile, viewer, problem };
 }
 
@@ -43,16 +45,23 @@ export const rejudgeOne = mutation({
   handler: async (ctx, args) => {
     const profile = await requireViewer(ctx);
     const viewer = await coreProfile(ctx, profile);
+
     if (!coreHasPerm(viewer, "judge.rejudge_submission")) {
       throw forbidden("Missing permission judge.rejudge_submission.");
     }
+
     const submission = await resolveSubmission(ctx, args.submissionId);
+
     if (!submission) throw notFound("Submission");
+
     if (isLocked({ lockedAfter: submission.lockedAfter ?? null }) && !profile.isSuperuser) {
       throw forbidden("This submission is locked.");
     }
+
     const queued = await queueSubmission(ctx, submission._id, { rejudge: true });
+
     if (!queued) throw invalid("This submission is already being judged.");
+
     return { ok: true };
   },
 });
@@ -71,6 +80,7 @@ export const batchRejudge = mutation({
   },
   handler: async (ctx, args): Promise<{ jobId: Id<"jobs"> }> => {
     const { profile, viewer, problem } = await requireSubsManageable(ctx, args.problemCode);
+
     if (!coreHasPerm(viewer, "judge.rejudge_submission_lot")) {
       throw forbidden("Missing permission judge.rejudge_submission_lot.");
     }
@@ -78,16 +88,19 @@ export const batchRejudge = mutation({
     if (args.idRange && args.idRange.length !== 2) {
       throw invalid("An id range is a pair of submission ids.");
     }
+
     if (args.idRange && (args.idRange[0] as number) > (args.idRange[1] as number)) {
       throw invalid("The id range starts after it ends.");
     }
 
     const languageIds: Id<"languages">[] = [];
+
     for (const key of args.languageKeys ?? []) {
       const language = await ctx.db
         .query("languages")
         .withIndex("by_key", (q) => q.eq("key", key))
         .first();
+
       if (language) languageIds.push(language._id);
     }
 
@@ -100,6 +113,7 @@ export const batchRejudge = mutation({
     };
 
     const jobId = await startRejudgeJob(ctx, problem._id, filter, profile._id);
+
     return { jobId };
   },
 });
@@ -113,6 +127,7 @@ export const rescoreProblem = mutation({
   handler: async (ctx, args): Promise<{ jobId: Id<"jobs"> }> => {
     const { profile, problem } = await requireSubsManageable(ctx, args.problemCode);
     const jobId = await startRescoreJob(ctx, problem._id, profile._id);
+
     return { jobId };
   },
 });

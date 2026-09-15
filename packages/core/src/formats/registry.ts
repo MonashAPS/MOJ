@@ -23,13 +23,16 @@ export const FORMATS: Readonly<Record<string, ContestFormat>> = {
 /** `contest_format.formats[name]`; throws for an unknown name. */
 export function getFormat(name: string): ContestFormat {
   const format = FORMATS[name];
+
   if (!format) throw new UnknownContestFormatError(name);
+
   return format;
 }
 
 /** Like `getFormat`, but falls back to `default` for an absent or unknown name. */
 export function getFormatOrDefault(name: string | null | undefined): ContestFormat {
   if (!name) return defaultFormat;
+
   return FORMATS[name] ?? defaultFormat;
 }
 

@@ -13,13 +13,17 @@ const FRAME =
   // The statement stylesheet loads after Tailwind's utilities layer, so the
   // frame has to win the margin and border back explicitly.
   "[&_pre]:m-0! [&_pre]:rounded-none! [&_pre]:border-0! [&_.codehilite]:m-0! [&_.codehilite]:rounded-none! [&_.codehilite]:border-0!";
+
 const BAR = "flex h-[26px] items-center justify-between gap-2 bg-titlebar pl-3 pr-1 text-titlebar-ink";
+
 const BAR_LABEL = "font-sans text-xs font-semibold uppercase tracking-label";
+
 const COPY_BUTTON =
   "inline-flex size-[22px] items-center justify-center rounded-sm text-titlebar-ink-2 hover:bg-white/10 hover:text-titlebar-ink focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-royal";
 
 const COPY_ICON =
   '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
+
 const CHECK_ICON =
   '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="check"><path d="M20 6 9 17l-5-5"/></svg>';
 
@@ -33,10 +37,12 @@ function findBlocks(html: string): Block[] {
   const blocks: Block[] = [];
   const pattern = /<div class="codehilite">[\s\S]*?<\/div>|<pre(?:\s[^>]*)?>[\s\S]*?<\/pre>/g;
   let match = pattern.exec(html);
+
   while (match !== null) {
     blocks.push({ start: match.index, end: match.index + match[0].length, html: match[0] });
     match = pattern.exec(html);
   }
+
   return blocks;
 }
 
@@ -48,14 +54,20 @@ function roleFor(html: string, at: number): { label: string; role: "input" | "ou
   let heading: string | null = null;
   HEADING.lastIndex = 0;
   let match = HEADING.exec(html);
+
   while (match !== null && match.index < at) {
     heading = match[1] ?? null;
     match = HEADING.exec(html);
   }
+
   const text = (heading ?? "").replace(/<[^>]*>/g, "").trim();
+
   if (/\binput\b/i.test(text)) return { label: "Input", role: "input" };
+
   if (/\boutput\b/i.test(text)) return { label: "Output", role: "output" };
+
   if (/\bsample\b|\bexample\b/i.test(text)) return { label: "Sample", role: "code" };
+
   return { label: "Code", role: "code" };
 }
 
@@ -65,6 +77,7 @@ function escapeAttribute(value: string): string {
 
 function frame(inner: string, label: string, role: string, index: number): string {
   const name = escapeAttribute(`Copy ${label.toLowerCase()} ${index}`);
+
   return [
     `<figure class="${FRAME}" data-sample-role="${role}">`,
     `<figcaption class="${BAR}">`,
@@ -83,12 +96,15 @@ function frame(inner: string, label: string, role: string, index: number): strin
  */
 export function decorateStatement(html: string): string {
   const blocks = findBlocks(html);
+
   if (blocks.length === 0) return html;
 
   const counters: Record<string, number> = {};
+
   const frames = blocks.map((block) => {
     const { label, role } = roleFor(html, block.start);
     counters[label] = (counters[label] ?? 0) + 1;
+
     return { role, label, html: frame(block.html, label, role, counters[label] as number) };
   });
 
@@ -96,21 +112,26 @@ export function decorateStatement(html: string): string {
   function pairs(index: number): boolean {
     const left = frames[index];
     const right = frames[index + 1];
+
     if (!left || !right || left.role !== "input" || right.role !== "output") return false;
     const between = html.slice((blocks[index] as Block).end, (blocks[index + 1] as Block).start);
+
     const text = between
       .replace(/<[^>]*>/g, " ")
       .replace(/output/gi, " ")
       .replace(/[\s\d:.\u2014-]+/g, "");
+
     return text === "";
   }
 
   const out: string[] = [];
   let cursor = 0;
   let index = 0;
+
   while (index < frames.length) {
     const block = blocks[index] as Block;
     out.push(html.slice(cursor, block.start));
+
     if (pairs(index)) {
       const next = blocks[index + 1] as Block;
       out.push(
@@ -126,6 +147,8 @@ export function decorateStatement(html: string): string {
       index += 1;
     }
   }
+
   out.push(html.slice(cursor));
+
   return out.join("");
 }

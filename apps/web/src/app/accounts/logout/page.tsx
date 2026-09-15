@@ -8,6 +8,7 @@ import { logOut } from "./actions";
 
 export async function generateMetadata() {
   const t = await getTranslations("auth.logout");
+
   return { title: t("metaTitle") };
 }
 

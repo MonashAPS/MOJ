@@ -22,6 +22,7 @@ import { forbidden } from "./lib/errors";
 
 /** How many submissions one scheduled step touches, per SPEC section 6. */
 export const JOB_CHUNK_SIZE = 100;
+
 /**
  * A job's `total` is counted up front so the progress bar has a denominator.
  * The count is one transaction, so it is capped; a bigger job still runs, its
@@ -73,7 +74,9 @@ export async function createJob(
 /** Marks a queued job running under the stage it is about to work through. */
 export async function startJob(ctx: MutationCtx, jobId: Id<"jobs">, stage: string): Promise<void> {
   const job = await ctx.db.get(jobId);
+
   if (!job) return;
+
   if (job.status === "queued") {
     await ctx.db.patch(jobId, { status: "running", progress: { ...job.progress, stage } });
   }
@@ -86,6 +89,7 @@ export async function advance(
   stage?: string,
 ): Promise<Doc<"jobs"> | null> {
   const job = await ctx.db.get(jobId);
+
   if (!job) return null;
   await ctx.db.patch(jobId, {
     status: "running",
@@ -95,12 +99,14 @@ export async function advance(
       stage: stage ?? job.progress.stage,
     },
   });
+
   return job;
 }
 
 /** A finished job reads as complete: the bar is filled to its own total. */
 export async function finishJob(ctx: MutationCtx, jobId: Id<"jobs">, result: unknown): Promise<void> {
   const job = await ctx.db.get(jobId);
+
   if (!job) return;
   const total = Math.max(job.progress.total, job.progress.done);
   await ctx.db.patch(jobId, {
@@ -120,9 +126,12 @@ export const status = query({
   args: { jobId: v.id("jobs") },
   handler: async (ctx, { jobId }) => {
     const profile = await optionalViewer(ctx);
+
     if (!profile || !(profile.isStaff || profile.isSuperuser)) throw forbidden("Staff only.");
     const job = await ctx.db.get(jobId);
+
     if (!job) return null;
+
     return {
       _id: job._id,
       type: job.type,
@@ -141,8 +150,10 @@ export const recent = query({
   args: { limit: v.optional(v.number()), type: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const profile = await optionalViewer(ctx);
+
     if (!profile || !(profile.isStaff || profile.isSuperuser)) throw forbidden("Staff only.");
     const take = Math.max(1, Math.min(args.limit ?? 25, 100));
+
     const rows = args.type
       ? await ctx.db
           .query("jobs")
@@ -150,6 +161,7 @@ export const recent = query({
           .order("desc")
           .take(take)
       : await ctx.db.query("jobs").withIndex("by_type_createdAt").order("desc").take(take);
+
     return rows;
   },
 });
@@ -168,16 +180,23 @@ export function matchesFilter(submission: Doc<"submissions">, filter: RejudgeFil
   if (submission.status === "QU" || submission.status === "P" || submission.status === "G") {
     return false;
   }
+
   if (filter.idRange) {
     const id = submission.legacyId;
+
     if (id === undefined) return false;
+
     if (id < filter.idRange[0] || id > filter.idRange[1]) return false;
   }
+
   if (filter.languageIds?.length && !filter.languageIds.includes(submission.languageId)) return false;
+
   if (filter.results?.length && !filter.results.includes(submission.result ?? "")) return false;
+
   if (!filter.archiveLocked) {
     if (submission.lockedAfter !== undefined && submission.lockedAfter < now) return false;
   }
+
   return true;
 }
 
@@ -195,6 +214,7 @@ async function countMatching(
     .query("submissions")
     .withIndex("by_problem_date", (q) => q.eq("problemId", problemId))
     .take(JOB_COUNT_LIMIT);
+
   return rows.filter((row) => matchesFilter(row, filter, now)).length;
 }
 
@@ -210,12 +230,14 @@ export async function startRejudgeJob(
 ): Promise<Id<"jobs">> {
   const now = Date.now();
   const total = await countMatching(ctx, problemId, filter, now);
+
   const jobId = await createJob(
     ctx,
     "rejudge",
     { problemId, ...filter },
     { total, stage: "Rejudging submissions", createdByProfileId },
   );
+
   await ctx.scheduler.runAfter(0, internal.jobs.rejudgeChunk, {
     jobId,
     problemId,
@@ -225,6 +247,7 @@ export async function startRejudgeJob(
     rejudged: 0,
     archived: 0,
   });
+
   return jobId;
 }
 
@@ -248,9 +271,11 @@ export const rejudgeChunk = internalMutation({
   },
   handler: async (ctx, args): Promise<null> => {
     const job = await advance(ctx, args.jobId, args.done);
+
     if (!job || job.status === "failed") return null;
 
     const now = Date.now();
+
     const filter: RejudgeFilter = {
       ...args.filter,
       idRange:
@@ -265,9 +290,11 @@ export const rejudgeChunk = internalMutation({
       .paginate({ numItems: JOB_CHUNK_SIZE, cursor: args.cursor });
 
     let { done, rejudged, archived } = args;
+
     for (const submission of page.page) {
       if (!matchesFilter(submission, filter, now)) continue;
       done += 1;
+
       if (isSubmissionLocked(submission, now)) {
         // `Submission.archive()`: a locked submission is filed away rather than
         // regraded, so the contest it belongs to keeps its results.
@@ -283,8 +310,10 @@ export const rejudgeChunk = internalMutation({
 
     if (page.isDone) {
       await finishJob(ctx, args.jobId, { rejudged, archived });
+
       return null;
     }
+
     await ctx.scheduler.runAfter(0, internal.jobs.rejudgeChunk, {
       ...args,
       cursor: page.continueCursor,
@@ -292,6 +321,7 @@ export const rejudgeChunk = internalMutation({
       rejudged,
       archived,
     });
+
     return null;
   },
 });
@@ -309,12 +339,14 @@ export async function startRescoreJob(
     .query("submissions")
     .withIndex("by_problem_date", (q) => q.eq("problemId", problemId))
     .take(JOB_COUNT_LIMIT);
+
   const jobId = await createJob(
     ctx,
     "rescore",
     { problemId },
     { total: rows.length, stage: "Modifying submissions", createdByProfileId },
   );
+
   await ctx.scheduler.runAfter(0, internal.jobs.rescoreChunk, {
     jobId,
     problemId,
@@ -322,6 +354,7 @@ export async function startRescoreJob(
     done: 0,
     profileIds: [],
   });
+
   return jobId;
 }
 
@@ -342,11 +375,14 @@ export const rescoreChunk = internalMutation({
   },
   handler: async (ctx, args): Promise<null> => {
     const job = await advance(ctx, args.jobId, args.done, "Modifying submissions");
+
     if (!job) return null;
 
     const problem = await ctx.db.get(args.problemId);
+
     if (!problem) {
       await failJob(ctx, args.jobId, "problem vanished");
+
       return null;
     }
 
@@ -364,8 +400,11 @@ export const rescoreChunk = internalMutation({
         submission.caseTotal ? (submission.casePoints / submission.caseTotal) * problem.points : 0,
         1,
       );
+
       if (!problem.partial && points < problem.points) points = 0;
+
       if (submission.points !== points) await ctx.db.patch(submission._id, { points });
+
       if (submission.participationId) participationIds.add(submission.participationId);
       profileIds.add(submission.profileId);
       done += 1;
@@ -374,6 +413,7 @@ export const rescoreChunk = internalMutation({
     for (const participationId of participationIds) {
       await recomputeParticipation(ctx, participationId);
     }
+
     await advance(ctx, args.jobId, done);
 
     if (page.isDone) {
@@ -384,14 +424,17 @@ export const rescoreChunk = internalMutation({
         index: 0,
         rescored: done,
       });
+
       return null;
     }
+
     await ctx.scheduler.runAfter(0, internal.jobs.rescoreChunk, {
       ...args,
       cursor: page.continueCursor,
       done,
       profileIds: [...profileIds],
     });
+
     return null;
   },
 });
@@ -407,6 +450,7 @@ export const rescoreProfilesChunk = internalMutation({
   },
   handler: async (ctx, args): Promise<null> => {
     const job = await ctx.db.get(args.jobId);
+
     if (!job) return null;
     await ctx.db.patch(args.jobId, {
       status: "running",
@@ -421,6 +465,7 @@ export const rescoreProfilesChunk = internalMutation({
     // time rather than a hundred.
     const batch = 10;
     const end = Math.min(args.index + batch, args.profileIds.length);
+
     for (let i = args.index; i < end; i++) {
       await recomputeProfilePoints(ctx, args.profileIds[i] as Id<"profiles">);
     }
@@ -437,10 +482,12 @@ export const rescoreProfilesChunk = internalMutation({
         rescored: args.rescored,
         users: args.profileIds.length,
       });
+
       return null;
     }
 
     await ctx.scheduler.runAfter(0, internal.jobs.rescoreProfilesChunk, { ...args, index: end });
+
     return null;
   },
 });
@@ -457,13 +504,16 @@ function jobArgs(job: Doc<"jobs">): JobArgs {
 
 async function resolveProblemId(ctx: MutationCtx, args: JobArgs): Promise<Id<"problems"> | null> {
   if (typeof args.problemId === "string") return args.problemId as Id<"problems">;
+
   if (typeof args.problemCode === "string") {
     const problem = await ctx.db
       .query("problems")
       .withIndex("by_code", (q) => q.eq("code", args.problemCode as string))
       .unique();
+
     return problem?._id ?? null;
   }
+
   return null;
 }
 
@@ -471,22 +521,29 @@ async function resolveLanguageIds(ctx: MutationCtx, args: JobArgs): Promise<Id<"
   if (Array.isArray(args.languageIds)) return args.languageIds as Id<"languages">[];
   const keys = Array.isArray(args.languages) ? (args.languages as string[]) : [];
   const ids: Id<"languages">[] = [];
+
   for (const key of keys) {
     const row = await ctx.db
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", key))
       .first();
+
     if (row) ids.push(row._id);
   }
+
   return ids;
 }
 
 function resolveIdRange(args: JobArgs): [number, number] | undefined {
   const raw = args.idRange;
+
   if (!raw) return undefined;
+
   if (Array.isArray(raw) && raw.length === 2) return [Number(raw[0]), Number(raw[1])];
   const range = raw as { start?: number; end?: number };
+
   if (typeof range.start === "number" && typeof range.end === "number") return [range.start, range.end];
+
   return undefined;
 }
 
@@ -504,7 +561,9 @@ export const run = internalMutation({
   },
   handler: async (ctx, params): Promise<null> => {
     const job = await ctx.db.get(params.jobId);
+
     if (!job) return null;
+
     if (job.status === "done" || job.status === "failed") return null;
 
     const jobId = job._id;
@@ -521,13 +580,18 @@ export const run = internalMutation({
             contestProblemId: args.contestProblemId as Id<"contestProblems">,
             cursor: 0,
           });
+
           return null;
         }
+
         const problemId = await resolveProblemId(ctx, args);
+
         if (!problemId) {
           await failJob(ctx, jobId, "The problem no longer exists.");
+
           return null;
         }
+
         const filter: RejudgeFilter = {
           problemId,
           idRange: resolveIdRange(args),
@@ -535,6 +599,7 @@ export const run = internalMutation({
           results: Array.isArray(args.results) ? (args.results as string[]) : [],
           archiveLocked: args.archiveLocked === true,
         };
+
         const total = await countMatching(ctx, problemId, filter, Date.now());
         await ctx.db.patch(jobId, {
           status: "running",
@@ -555,20 +620,25 @@ export const run = internalMutation({
           rejudged: 0,
           archived: 0,
         });
+
         return null;
       }
 
       case "rescore": {
         if (contestId) return await runContestRescore(ctx, jobId, contestId);
         const problemId = await resolveProblemId(ctx, args);
+
         if (!problemId) {
           await failJob(ctx, jobId, "The problem no longer exists.");
+
           return null;
         }
+
         const rows = await ctx.db
           .query("submissions")
           .withIndex("by_problem_date", (q) => q.eq("problemId", problemId))
           .take(JOB_COUNT_LIMIT);
+
         await ctx.db.patch(jobId, {
           status: "running",
           progress: { done: 0, total: rows.length, stage: "Modifying submissions" },
@@ -580,6 +650,7 @@ export const run = internalMutation({
           done: 0,
           profileIds: [],
         });
+
         return null;
       }
 
@@ -589,37 +660,47 @@ export const run = internalMutation({
       case "rateContest": {
         if (!contestId) {
           await failJob(ctx, jobId, "The contest no longer exists.");
+
           return null;
         }
+
         await ctx.scheduler.runAfter(0, internal.jobs.contests.rateContestJob, { jobId, contestId });
+
         return null;
       }
 
       case "rejudgeContestProblem": {
         if (!contestId || typeof args.contestProblemId !== "string") {
           await failJob(ctx, jobId, "The contest problem no longer exists.");
+
           return null;
         }
+
         await ctx.scheduler.runAfter(0, internal.jobs.contests.rejudgeContestProblemChunk, {
           jobId,
           contestId,
           contestProblemId: args.contestProblemId as Id<"contestProblems">,
           cursor: 0,
         });
+
         return null;
       }
 
       case "moss": {
         if (!contestId) {
           await failJob(ctx, jobId, "The contest no longer exists.");
+
           return null;
         }
+
         await ctx.scheduler.runAfter(0, internal.jobs.contests.mossJob, { jobId, contestId });
+
         return null;
       }
 
       case "userExport": {
         await ctx.scheduler.runAfter(0, internal.jobs.users.run, { jobId });
+
         return null;
       }
 
@@ -632,11 +713,13 @@ export const run = internalMutation({
           progress: { ...job.progress, stage: type === "pdf" ? "Rendering PDF" : "Building sitemap" },
         });
         await finishJob(ctx, jobId, { skipped: true, reason: `${type} is rendered by the web app` });
+
         return null;
       }
 
       default:
         await failJob(ctx, jobId, `Unknown job type "${type}".`);
+
         return null;
     }
   },
@@ -649,16 +732,20 @@ async function runContestRescore(
 ): Promise<null> {
   if (!contestId) {
     await failJob(ctx, jobId, "The contest no longer exists.");
+
     return null;
   }
+
   const participations = await ctx.db
     .query("contestParticipations")
     .withIndex("by_contest_virtual_score", (q) => q.eq("contestId", contestId))
     .collect();
+
   await ctx.db.patch(jobId, {
     status: "running",
     progress: { done: 0, total: participations.length, stage: "Recalculating contest scores" },
   });
   await ctx.scheduler.runAfter(0, internal.jobs.contests.rescoreChunk, { jobId, contestId, cursor: 0 });
+
   return null;
 }

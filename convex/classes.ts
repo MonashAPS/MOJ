@@ -23,12 +23,16 @@ async function classBySlug(
   classSlug: string,
 ): Promise<{ organization: Doc<"organizations">; klass: Doc<"classes"> } | null> {
   const organization = await organizationBySlug(ctx, organizationSlug);
+
   if (!organization) return null;
+
   const klass = await ctx.db
     .query("classes")
     .withIndex("by_organization_slug", (q) => q.eq("organizationId", organization._id).eq("slug", classSlug))
     .unique();
+
   if (!klass) return null;
+
   return { organization, klass };
 }
 
@@ -38,7 +42,9 @@ async function requireClass(
   classSlug: string,
 ): Promise<{ organization: Doc<"organizations">; klass: Doc<"classes"> }> {
   const found = await classBySlug(ctx, organizationSlug, classSlug);
+
   if (!found) throw notFound("Class");
+
   return found;
 }
 
@@ -49,8 +55,11 @@ function canManage(
   profile: Doc<"profiles"> | null,
 ): boolean {
   if (!profile) return false;
+
   if (profile.isSuperuser || profile.permissions.includes("judge.edit_all_organization")) return true;
+
   if (organizationCanEdit(asOrganizationRow(organization), asViewerRow(profile))) return true;
+
   return klass.adminProfileIds.includes(profile._id);
 }
 
@@ -85,13 +94,16 @@ export const get = query({
   args: { organizationSlug: v.string(), classSlug: v.string() },
   handler: async (ctx, args): Promise<ClassDetail | null> => {
     const found = await classBySlug(ctx, args.organizationSlug, args.classSlug);
+
     if (!found) return null;
     const { organization, klass } = found;
     const profile = await optionalViewer(ctx);
 
     const admins: ClassDetail["admins"] = [];
+
     for (const adminId of klass.adminProfileIds) {
       const admin = await ctx.db.get(adminId);
+
       if (!admin) continue;
       admins.push({
         _id: admin._id,
@@ -101,11 +113,13 @@ export const get = query({
     }
 
     let isOrganizationMember = false;
+
     if (profile) {
       const memberships = await ctx.db
         .query("organizationMemberships")
         .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
         .collect();
+
       isOrganizationMember = memberships.some((row) => row.organizationId === organization._id);
     }
 
@@ -148,13 +162,16 @@ export const members = query({
   },
   handler: async (ctx, args): Promise<ClassMemberRow[]> => {
     const found = await classBySlug(ctx, args.organizationSlug, args.classSlug);
+
     if (!found) return [];
     const sort = args.sort ?? "performancePoints";
     const descending = args.descending ?? true;
 
     const rows: Doc<"profiles">[] = [];
+
     for (const profileId of found.klass.memberProfileIds) {
       const member = await ctx.db.get(profileId);
+
       if (member && !member.isUnlisted) rows.push(member);
     }
 
@@ -170,9 +187,12 @@ export const members = query({
           return member.performancePoints;
       }
     };
+
     rows.sort((a, b) => {
       const delta = value(a) - value(b);
+
       if (delta !== 0) return descending ? -delta : delta;
+
       return a._id < b._id ? -1 : a._id > b._id ? 1 : 0;
     });
 
@@ -207,6 +227,7 @@ export const join = mutation({
       .query("organizationMemberships")
       .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
       .collect();
+
     if (!memberships.some((row) => row.organizationId === organization._id)) {
       throw forbidden(`You must join ${organization.name} first.`);
     }
@@ -214,9 +235,11 @@ export const join = mutation({
     if (klass.memberProfileIds.includes(profile._id)) {
       throw invalid("You are already in that class.");
     }
+
     if (!klass.accessCode) {
       throw forbidden("This class does not accept access codes; ask to join instead.");
     }
+
     if (args.accessCode !== klass.accessCode) {
       throw forbidden("That access code is not correct.");
     }
@@ -224,6 +247,7 @@ export const join = mutation({
     await ctx.db.patch(klass._id, {
       memberProfileIds: [...klass.memberProfileIds, profile._id],
     });
+
     return klass._id;
   },
 });
@@ -233,10 +257,12 @@ export const leave = mutation({
   handler: async (ctx, args) => {
     const profile = await requireViewer(ctx);
     const { klass } = await requireClass(ctx, args.organizationSlug, args.classSlug);
+
     if (!klass.memberProfileIds.includes(profile._id)) throw invalid("You are not in that class.");
     await ctx.db.patch(klass._id, {
       memberProfileIds: klass.memberProfileIds.filter((id) => id !== profile._id),
     });
+
     return klass._id;
   },
 });
@@ -258,7 +284,9 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const profile = await requireViewer(ctx);
     const organization = await organizationBySlug(ctx, args.organizationSlug);
+
     if (!organization) throw notFound("Organization");
+
     if (!organizationCanEdit(asOrganizationRow(organization), asViewerRow(profile))) {
       if (!profile.isSuperuser && !profile.permissions.includes("judge.edit_all_organization")) {
         throw forbidden("You are not allowed to edit this organization.");
@@ -271,6 +299,7 @@ export const create = mutation({
         q.eq("organizationId", organization._id).eq("slug", args.slug),
       )
       .unique();
+
     if (existing) throw invalid("A class with that slug already exists.");
 
     return await ctx.db.insert("classes", {
@@ -300,18 +329,27 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const profile = await requireViewer(ctx);
     const { organization, klass } = await requireClass(ctx, args.organizationSlug, args.classSlug);
+
     if (!canManage(organization, klass, profile)) throw forbidden();
 
     const patch: Partial<Doc<"classes">> = {};
+
     if (args.name !== undefined) patch.name = args.name;
+
     if (args.slug !== undefined) patch.slug = args.slug;
+
     if (args.description !== undefined) patch.description = args.description;
+
     if (args.isActive !== undefined) patch.isActive = args.isActive;
+
     if (args.accessCode !== undefined) patch.accessCode = args.accessCode || undefined;
+
     if (args.adminUsernames !== undefined) {
       patch.adminProfileIds = await usernamesToIds(ctx, args.adminUsernames);
     }
+
     await ctx.db.patch(klass._id, patch);
+
     return klass._id;
   },
 });
@@ -325,9 +363,11 @@ export const setMembers = mutation({
   handler: async (ctx, args) => {
     const profile = await requireViewer(ctx);
     const { organization, klass } = await requireClass(ctx, args.organizationSlug, args.classSlug);
+
     if (!canManage(organization, klass, profile)) throw forbidden();
     const ids = await usernamesToIds(ctx, args.usernames);
     await ctx.db.patch(klass._id, { memberProfileIds: ids });
+
     return klass._id;
   },
 });
@@ -337,20 +377,25 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const profile = await requireViewer(ctx);
     const { organization, klass } = await requireClass(ctx, args.organizationSlug, args.classSlug);
+
     if (!organizationCanEdit(asOrganizationRow(organization), asViewerRow(profile))) {
       if (!profile.isSuperuser && !profile.permissions.includes("judge.edit_all_organization")) {
         throw forbidden();
       }
     }
+
     // Join requests pointing at this class would dangle otherwise.
     const requests = await ctx.db
       .query("organizationRequests")
       .withIndex("by_organization_state", (q) => q.eq("organizationId", organization._id).eq("state", "P"))
       .collect();
+
     for (const entry of requests) {
       if (entry.classId === klass._id) await ctx.db.patch(entry._id, { classId: undefined });
     }
+
     await ctx.db.delete(klass._id);
+
     return true;
   },
 });
@@ -360,11 +405,14 @@ export const listForOrganization = query({
   args: { organizationSlug: v.string(), activeOnly: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
     const organization = await organizationBySlug(ctx, args.organizationSlug);
+
     if (!organization) return [];
+
     const rows = await ctx.db
       .query("classes")
       .withIndex("by_organization", (q) => q.eq("organizationId", organization._id))
       .collect();
+
     return rows
       .filter((klass) => (args.activeOnly === false ? true : klass.isActive))
       .sort((a, b) => a.name.localeCompare(b.name))

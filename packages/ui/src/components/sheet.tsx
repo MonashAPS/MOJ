@@ -30,6 +30,7 @@ export function SheetContent({
   showCloseButton?: boolean;
 }) {
   const ui = useUiText();
+
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay

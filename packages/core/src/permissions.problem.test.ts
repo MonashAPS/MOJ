@@ -47,20 +47,24 @@ function buildUsers(): Record<string, Viewer> {
   users.staff_problem_edit_public = withOrganizationAdmin(users.staff_problem_edit_public as ProfileRow, [
     "problem organization",
   ]);
+
   return users;
 }
 
 function checkMatrix(problem: ProblemRow, users: Record<string, Viewer>, matrix: Matrix): void {
   for (const [username, methods] of Object.entries(matrix)) {
     const viewer = users[username] as Viewer;
+
     if (methods.is_accessible_by !== undefined) {
       expect(problemIsAccessibleBy(problem, viewer), `is_accessible_by/${username}`).toBe(
         methods.is_accessible_by,
       );
     }
+
     if (methods.is_editable_by !== undefined) {
       expect(problemIsEditableBy(problem, viewer), `is_editable_by/${username}`).toBe(methods.is_editable_by);
     }
+
     if (methods.is_subs_manageable_by !== undefined) {
       expect(problemIsSubsManageableBy(problem, viewer), `is_subs_manageable_by/${username}`).toBe(
         methods.is_subs_manageable_by,
@@ -186,9 +190,11 @@ describe("ProblemTestCase", () => {
         .filter((problem) => problemIsAccessibleBy(problem, viewer))
         .map((problem) => problem.code)
         .sort();
+
       const visible = getVisibleProblems(problems, viewer)
         .map((problem) => problem.code)
         .sort();
+
       expect(visible, `visible problems for ${username}`).toEqual(accessible);
     }
   });
@@ -204,6 +210,7 @@ describe("ProblemTestCase", () => {
 
 describe("ProblemTestCase.test_problem_voting_permissions", () => {
   const users = buildUsers();
+
   const basicProblem = createProblem("basic", {
     points: 1,
     authorProfileIds: ["normal"],
@@ -221,6 +228,7 @@ describe("ProblemTestCase.test_problem_voting_permissions", () => {
       currentParticipationId: "basic:in_contest:0",
       currentContestId: "basic",
     });
+
     expect(votePermissionForUser(basicProblem, inContest, { hasSolvedProblem: true })).toBe("NONE");
   });
 
@@ -256,6 +264,7 @@ describe("SolutionTestCase", () => {
   const basicSolution = createSolution("basic");
 
   const privateProblem = createProblem("private");
+
   const privateSolution = createSolution("private", {
     isPublic: false,
     publishOn: NOW - 100 * DAY,
@@ -265,6 +274,7 @@ describe("SolutionTestCase", () => {
     name: "Unpublished",
     authorProfileIds: ["staff_problem_edit_own"],
   });
+
   const unpublishedSolution = createSolution("unpublished", {
     isPublic: false,
     publishOn: NOW + 100 * DAY,

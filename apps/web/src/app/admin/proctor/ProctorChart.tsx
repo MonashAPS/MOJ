@@ -9,6 +9,7 @@ import { useMemo, useState } from "react";
 import { formatDateTime } from "@/lib/format";
 
 const MINUTE = 60_000;
+
 const HOUR = 60 * MINUTE;
 
 /** A break longer than this starts a new bar rather than widening the old one. */
@@ -16,7 +17,9 @@ const GAP_MS = 20_000;
 
 /** Room for the axis labels, which are angled and so need more than a line. */
 const AXIS_HEIGHT = 46;
+
 const LANE_HEIGHT = 26;
+
 const LANE_GAP = 4;
 
 /**
@@ -25,7 +28,9 @@ const LANE_GAP = 4;
  */
 function hue(key: string): number {
   let total = 0;
+
   for (let i = 0; i < key.length; i += 1) total = (total * 31 + key.charCodeAt(i)) % 360;
+
   return total;
 }
 
@@ -54,15 +59,19 @@ export type Segment = {
  */
 export function segmentsOf(data: Timeline): Segment[] {
   const out: Segment[] = [];
+
   for (const row of data.rows) {
     let current: Segment | null = null;
+
     for (const slice of row.slices) {
       const contiguous =
         current !== null && slice.contestKey === current.contestKey && slice.startedAt - current.to <= GAP_MS;
+
       if (contiguous && current) {
         current.to = slice.startedAt + slice.durationMs;
         continue;
       }
+
       if (current) out.push(current);
       current = {
         sessionId: row.sessionId,
@@ -75,8 +84,10 @@ export function segmentsOf(data: Timeline): Segment[] {
         live: row.live,
       };
     }
+
     if (current) out.push(current);
   }
+
   return out.sort((a, b) => a.from - b.from);
 }
 
@@ -91,8 +102,10 @@ function pack(segments: Segment[], msPerPixel: number): Segment[][] {
   // Bars need room for their label, so they claim a little more than they take.
   const padding = msPerPixel * 8;
   const lanes: { end: number; items: Segment[] }[] = [];
+
   for (const segment of segments) {
     const lane = lanes.find((candidate) => candidate.end + padding <= segment.from);
+
     if (lane) {
       lane.end = segment.to;
       lane.items.push(segment);
@@ -100,6 +113,7 @@ function pack(segments: Segment[], msPerPixel: number): Segment[][] {
       lanes.push({ end: segment.to, items: [segment] });
     }
   }
+
   return lanes.map((lane) => lane.items);
 }
 
@@ -108,6 +122,7 @@ function ticksFor(from: number, to: number, count: number): { at: number; label:
   const span = to - from;
   const withDate = span > 12 * HOUR;
   const out: { at: number; label: string }[] = [];
+
   for (let i = 0; i <= count; i += 1) {
     const at = from + (span * i) / count;
     const date = new Date(at);
@@ -119,14 +134,18 @@ function ticksFor(from: number, to: number, count: number): { at: number; label:
         : time,
     });
   }
+
   return out;
 }
 
 function duration(ms: number): string {
   const seconds = Math.round(ms / 1000);
+
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.floor(seconds / 60);
+
   if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
+
   return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }
 
@@ -136,7 +155,9 @@ function Preview({ segment }: { segment: Segment }) {
     sessionId: segment.sessionId,
     index: segment.firstIndex,
   });
+
   if (!url) return <div className="h-28 w-48 animate-pulse rounded bg-secondary" />;
+
   return (
     <video
       src={url}
@@ -169,6 +190,7 @@ export function ProctorChart({
     const first = Math.min(...segments.map((s) => s.from));
     const last = Math.max(...segments.map((s) => s.to));
     const pad = Math.max((last - first) * 0.05, 30_000);
+
     return { from: first - pad, to: last + pad };
   }, [segments, data.from, data.to]);
 
@@ -206,8 +228,10 @@ export function ProctorChart({
           >
             {lane.map((segment) => {
               const width = Math.max(left(segment.to) - left(segment.from), 0.6);
+
               const isSelected =
                 selected?.sessionId === segment.sessionId && selected?.firstIndex === segment.firstIndex;
+
               return (
                 <button
                   type="button"

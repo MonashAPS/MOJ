@@ -5,6 +5,7 @@ import { SubmissionsAdmin } from "./SubmissionsAdmin";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.submissions");
+
   return { title: t("metaTitle") };
 }
 

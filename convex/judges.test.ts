@@ -17,22 +17,27 @@ import { setupTest } from "./test.setup";
 
 async function seed() {
   const t = setupTest();
+
   const ids = await t.run(async (ctx) => {
     await ctx.db.insert("siteSettings", siteSettingsRow());
     await ctx.db.insert("profiles", profileRow({ username: "plain" }));
     await ctx.db.insert("profiles", profileRow({ username: "staffy", isStaff: true }));
+
     const admin = await ctx.db.insert(
       "profiles",
       profileRow({ username: "judgeadmin", permissions: ["judge.change_judge"], isStaff: true }),
     );
+
     return { admin };
   });
+
   return { t, ids };
 }
 
 describe("judge keys", () => {
   test("creation returns the key once and stores only its hash", async () => {
     const { t } = await seed();
+
     const created = await asUser(t, "judgeadmin").mutation(api.admin.judges.create, {
       name: "judge.example.com",
       description: "Main judge",
@@ -129,6 +134,7 @@ describe("status page", () => {
         "judges",
         judgeRow({ name: "j.example.com", authKeyHash: "hash", online: true }),
       );
+
       const python = await ctx.db.insert("languages", languageRow({ key: "PY3", name: "Python 3" }));
       const cpp = await ctx.db.insert("languages", languageRow({ key: "CPP17", name: "C++17" }));
       await ctx.db.insert("runtimeVersions", {
@@ -165,11 +171,13 @@ describe("status page", () => {
 describe("languages", () => {
   test("copy_language mirrors the allowed problems and the limits", async () => {
     const { t } = await seed();
+
     const ids = await t.run(async (ctx) => {
       const admin = await ctx.db
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", "judgeadmin"))
         .unique();
+
       if (admin) await ctx.db.patch(admin._id, { permissions: ["judge.change_language"] });
 
       const groupId = await ctx.db.insert("problemGroups", { name: "misc", fullName: "Misc" });
@@ -183,6 +191,7 @@ describe("languages", () => {
         timeLimit: 3,
         memoryLimit: 131072,
       });
+
       return { source, target, problemId };
     });
 
@@ -190,6 +199,7 @@ describe("languages", () => {
       sourceKey: "PY3",
       targetKey: "PYPY3",
     });
+
     expect(result).toEqual({ problems: 1, limits: 1 });
 
     const problem = await t.run(async (ctx) => await ctx.db.get(ids.problemId));
@@ -208,6 +218,7 @@ describe("languages", () => {
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", "judgeadmin"))
         .unique();
+
       if (admin) await ctx.db.patch(admin._id, { permissions: ["judge.change_language"] });
       await ctx.db.insert("languages", languageRow({ key: "PY3", name: "Python 3" }));
     });
@@ -241,6 +252,7 @@ describe("language statistics", () => {
           caseTotal: 100,
           priority: 0,
         });
+
       await ctx.db.insert("submissions", accepted());
       await ctx.db.insert("submissions", accepted());
       await ctx.db.insert(

@@ -42,6 +42,7 @@ import {
 import { formatDateTime, formatRelative } from "@/lib/format";
 
 const RESULTS = ["AC", "WA", "TLE", "MLE", "OLE", "IR", "RTE", "CE", "IE", "SC", "AB"];
+
 const STATUSES = [
   { value: "any", labelKey: "any" },
   { value: "QU", labelKey: "queued" },
@@ -52,6 +53,7 @@ const STATUSES = [
   { value: "IE", labelKey: "internalError" },
   { value: "AB", labelKey: "aborted" },
 ] as const;
+
 const PAGE_SIZE = 50;
 
 type Row = {
@@ -84,7 +86,9 @@ export function SubmissionsAdmin() {
 
   function memoryText(kb: number | null): string {
     if (kb === null) return "—";
+
     if (kb >= 1024) return t("units.megabytes", { value: (kb / 1024).toFixed(1) });
+
     return t("units.kilobytes", { value: kb });
   }
 
@@ -114,6 +118,7 @@ export function SubmissionsAdmin() {
   const languages = useQuery(api.languages.list, {});
   const judges = useQuery(api.judges.list, {});
   const judgeNames = Array.isArray(judges) ? [] : (judges?.judges ?? []).map((judge) => judge.name);
+
   const data = useQuery(api.pages.admin.submissions.list, {
     username: username || undefined,
     problemCode: problemCode || undefined,
@@ -148,12 +153,15 @@ export function SubmissionsAdmin() {
 
   function withParams(next: Record<string, string | null>): string {
     const query = new URLSearchParams(params.toString());
+
     for (const [key, value] of Object.entries(next)) {
       if (value === null || value === "") query.delete(key);
       else query.set(key, value);
     }
+
     if (!("page" in next)) query.delete("page");
     const text = query.toString();
+
     return text ? `${pathname}?${text}` : pathname;
   }
 
@@ -162,6 +170,7 @@ export function SubmissionsAdmin() {
   }
 
   const rows: Row[] = data?.items ?? [];
+
   const filtered =
     !!username ||
     !!problemCode ||
@@ -175,6 +184,7 @@ export function SubmissionsAdmin() {
 
   async function guard(work: () => Promise<unknown>) {
     setError(null);
+
     try {
       await work();
     } catch (caught) {
@@ -582,6 +592,7 @@ export function SubmissionsAdmin() {
                     languageKeys: languageKeys.length > 0 ? languageKeys : undefined,
                     results: results.length > 0 ? results : undefined,
                   });
+
                   setJobId(result.jobId);
                   toast.success(t("toasts.rejudgeQueued"));
                 });

@@ -28,14 +28,17 @@ const FALLBACK = [
 
 export function timezoneList(): string[] {
   const supported = (Intl as unknown as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf;
+
   if (typeof supported === "function") {
     try {
       const zones = supported("timeZone");
+
       if (zones.length > 0) return zones;
     } catch {
       // fall through
     }
   }
+
   return FALLBACK;
 }
 

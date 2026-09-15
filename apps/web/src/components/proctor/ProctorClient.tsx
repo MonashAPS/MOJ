@@ -57,6 +57,7 @@ type BrowserCheck = { ok: boolean; name: string | null; version: number | null }
  */
 function checkBrowser(): BrowserCheck {
   const agent = navigator.userAgent;
+
   const data = (
     navigator as Navigator & { userAgentData?: { brands?: { brand: string; version: string }[] } }
   ).userAgentData;
@@ -64,28 +65,37 @@ function checkBrowser(): BrowserCheck {
   for (const brand of data?.brands ?? []) {
     if (/microsoft edge/i.test(brand.brand)) {
       const version = Number.parseInt(brand.version, 10);
+
       return { ok: version >= MIN_CHROMIUM, name: "Edge", version };
     }
+
     if (/google chrome/i.test(brand.brand)) {
       const version = Number.parseInt(brand.version, 10);
+
       return { ok: version >= MIN_CHROMIUM, name: "Chrome", version };
     }
   }
 
   const edge = /Edg\/(\d+)/.exec(agent);
+
   if (edge?.[1]) {
     const version = Number.parseInt(edge[1], 10);
+
     return { ok: version >= MIN_CHROMIUM, name: "Edge", version };
   }
+
   // Opera and friends carry Chrome/ in the agent as well; they are Chromium and
   // report the same settings, but naming them here would be guesswork.
   const chrome = /Chrome\/(\d+)/.exec(agent);
+
   if (chrome?.[1] && !/OPR\//.test(agent)) {
     const version = Number.parseInt(chrome[1], 10);
+
     return { ok: version >= MIN_CHROMIUM, name: "Chrome", version };
   }
 
   const name = /Firefox\//.test(agent) ? "Firefox" : /Safari\//.test(agent) ? "Safari" : null;
+
   return { ok: false, name, version: null };
 }
 
@@ -110,6 +120,7 @@ export function ProctorClient() {
   useEffect(() => {
     const check = checkBrowser();
     setBrowser(check);
+
     if (!check.ok) setPhase("unsupported");
   }, []);
 
@@ -117,10 +128,12 @@ export function ProctorClient() {
   const teardown = useCallback(() => {
     const recorder = recorderRef.current;
     recorderRef.current = null;
+
     // Drop the stream first: the slice loop restarts itself from `onstop` and
     // checks for one, so clearing it is what makes the last stop the last.
     for (const track of streamRef.current?.getTracks() ?? []) track.stop();
     streamRef.current = null;
+
     if (recorder && recorder.state !== "inactive") recorder.stop();
   }, []);
 
@@ -130,6 +143,7 @@ export function ProctorClient() {
       sessionRef.current = null;
       teardown();
       setPhase("stopped");
+
       if (sessionId) await stop({ sessionId, reason }).catch(() => undefined);
     },
     [stop, teardown],
@@ -138,15 +152,19 @@ export function ProctorClient() {
   const send = useCallback(
     async (blob: Blob, startedAt: number) => {
       const sessionId = sessionRef.current;
+
       if (!sessionId || blob.size === 0) return;
       const index = indexRef.current++;
+
       try {
         const url = await uploadUrl({});
+
         const response = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": blob.type || "video/webm" },
           body: blob,
         });
+
         const { storageId } = (await response.json()) as { storageId: Id<"_storage"> };
         await addChunk({
           sessionId,
@@ -169,6 +187,7 @@ export function ProctorClient() {
     setError(null);
     setPhase("starting");
     let stream: MediaStream;
+
     try {
       stream = await navigator.mediaDevices.getDisplayMedia({
         // A hint only: the browser may still offer tabs and windows, so what
@@ -181,24 +200,29 @@ export function ProctorClient() {
       } as DisplayMediaStreamOptions);
     } catch {
       setPhase("denied");
+
       return;
     }
 
     const [track] = stream.getVideoTracks();
     const surface = track?.getSettings().displaySurface;
+
     if (surface !== REQUIRED_SURFACE) {
       for (const each of stream.getTracks()) each.stop();
       setPhase("wrongSurface");
+
       return;
     }
 
     let sessionId: Id<"proctorSessions">;
+
     try {
       ({ sessionId } = await start({ displaySurface: surface, userAgent: navigator.userAgent }));
     } catch (caught) {
       for (const each of stream.getTracks()) each.stop();
       setError(caught instanceof Error ? caught.message : t("failed"));
       setPhase("idle");
+
       return;
     }
 
@@ -221,10 +245,12 @@ export function ProctorClient() {
 
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) parts.push(event.data);
+
         // The first one lands on the encoder's own clock; stopping here flushes
         // the rest and closes the file.
         if (recorder.state === "recording") recorder.stop();
       };
+
       recorder.onstop = () => {
         void send(new Blob(parts, { type: mimeType }), startedAt);
         recordSlice();
@@ -242,14 +268,17 @@ export function ProctorClient() {
   // the stream does and stops the moment it does not.
   useEffect(() => {
     if (phase !== "sharing") return;
+
     const timer = setInterval(() => {
       const sessionId = sessionRef.current;
+
       if (!sessionId) return;
       void heartbeat({ sessionId }).then((result) => {
         // A newer tab took the stream over; this one is no longer the session.
         if (!result.ok) void finish("replaced");
       });
     }, HEARTBEAT_MS);
+
     return () => clearInterval(timer);
   }, [phase, heartbeat, finish]);
 
@@ -257,9 +286,12 @@ export function ProctorClient() {
   useEffect(() => {
     const onUnload = () => {
       const sessionId = sessionRef.current;
+
       if (sessionId) void stop({ sessionId, reason: "closed the tab" });
     };
+
     window.addEventListener("pagehide", onUnload);
+
     return () => window.removeEventListener("pagehide", onUnload);
   }, [stop]);
 
@@ -363,6 +395,7 @@ function Step({
   children: ReactNode;
 }) {
   const active = current === index;
+
   return (
     <section className={active || done || failed ? "" : "opacity-50"}>
       <h2 className="flex items-center gap-2 text-sm font-semibold">

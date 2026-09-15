@@ -45,12 +45,15 @@ export function ContestsList() {
 
   function withParams(next: Record<string, string | null>): string {
     const query = new URLSearchParams(params.toString());
+
     for (const [key, value] of Object.entries(next)) {
       if (value === null || value === "") query.delete(key);
       else query.set(key, value);
     }
+
     if (!("page" in next)) query.delete("page");
     const text = query.toString();
+
     return text ? `${pathname}?${text}` : pathname;
   }
 

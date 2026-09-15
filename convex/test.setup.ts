@@ -32,6 +32,7 @@ export function setupTest(): T {
   aggregateTest.register(t, "profilesByRating");
   aggregateTest.register(t, "profilesByProblemCount");
   rateLimiterTest.register(t, "rateLimiter");
+
   return t;
 }
 
@@ -85,6 +86,7 @@ export class JudgeClient {
       judgeKey: this.judgeKey,
       submissionId: String(submissionId),
     });
+
     return this.t.fetch(`/judge/abort?${query.toString()}`, { method: "GET" });
   }
 

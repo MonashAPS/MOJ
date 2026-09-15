@@ -12,17 +12,22 @@ export type JoinResult = { error: string } | never;
 function messageOf(error: unknown, fallback: string): string {
   if (error instanceof ConvexError) {
     const data = error.data as { message?: string; reason?: string } | string;
+
     if (typeof data === "string") return data;
+
     return data.message ?? fallback;
   }
+
   return error instanceof Error ? error.message : fallback;
 }
 
 function reasonOf(error: unknown): string | null {
   if (error instanceof ConvexError) {
     const data = error.data as { reason?: string } | string;
+
     if (typeof data === "object" && data.reason) return data.reason;
   }
+
   return null;
 }
 
@@ -36,6 +41,7 @@ export async function joinContest(_state: JoinResult | null, formData: FormData)
   const t = await getTranslations("contests.actions");
   const key = String(formData.get("key") ?? "");
   const accessCode = formData.get("accessCode");
+
   if (!key) return { error: t("noSuchContest") };
 
   try {
@@ -48,6 +54,7 @@ export async function joinContest(_state: JoinResult | null, formData: FormData)
       if (typeof accessCode === "string" && accessCode) return { error: t("invalidAccessCode") };
       redirect(`/contest/${key}/join/`);
     }
+
     return { error: messageOf(error, t("cannotJoin")) };
   }
 
@@ -60,12 +67,15 @@ export async function joinContest(_state: JoinResult | null, formData: FormData)
 export async function leaveContest(_state: JoinResult | null, formData: FormData): Promise<JoinResult> {
   const t = await getTranslations("contests.actions");
   const key = String(formData.get("key") ?? "");
+
   if (!key) return { error: t("noSuchContest") };
+
   try {
     await mutateAsViewer(api.contests.participation.leave, { key });
   } catch (error) {
     return { error: messageOf(error, t("cannotJoin")) };
   }
+
   revalidatePath(`/contest/${key}`);
   redirect(`/contest/${key}/`);
 }
@@ -84,11 +94,14 @@ export async function cloneContest(_state: CloneResult | null, formData: FormDat
   const t = await getTranslations("contests.actions");
   const key = String(formData.get("key") ?? "");
   const newKey = String(formData.get("newKey") ?? "").trim();
+
   if (!newKey) return { error: t("newKeyRequired") };
+
   try {
     await mutateAsViewer(api.contests.tools.clone, { key, newKey });
   } catch (error) {
     return { error: messageOf(error, t("cannotJoin")) };
   }
+
   redirect(`/admin/contests/${newKey}/`);
 }

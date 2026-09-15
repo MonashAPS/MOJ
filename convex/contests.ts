@@ -107,6 +107,7 @@ export type UserRef = {
 };
 
 export type TagRef = { _id: Id<"contestTags">; name: string; color: string; description: string };
+
 export type OrganizationRef = {
   _id: Id<"organizations">;
   name: string;
@@ -188,21 +189,27 @@ export function userRef(profile: Doc<"profiles">): UserRef {
 
 async function userRefs(ctx: QueryCtx | MutationCtx, ids: readonly Id<"profiles">[]): Promise<UserRef[]> {
   const out: UserRef[] = [];
+
   for (const id of ids) {
     const profile = await ctx.db.get(id);
+
     if (profile) out.push(userRef(profile));
   }
+
   return out;
 }
 
 async function tagRefs(ctx: QueryCtx | MutationCtx, ids: readonly Id<"contestTags">[]): Promise<TagRef[]> {
   const out: TagRef[] = [];
+
   for (const id of ids) {
     const tag = await ctx.db.get(id);
+
     if (tag) {
       out.push({ _id: tag._id, name: tag.name, color: tag.color, description: tag.description });
     }
   }
+
   return out;
 }
 
@@ -211,8 +218,10 @@ async function organizationRefs(
   ids: readonly Id<"organizations">[],
 ): Promise<OrganizationRef[]> {
   const out: OrganizationRef[] = [];
+
   for (const id of ids) {
     const organization = await ctx.db.get(id);
+
     if (organization) {
       out.push({
         _id: organization._id,
@@ -222,6 +231,7 @@ async function organizationRefs(
       });
     }
   }
+
   return out;
 }
 
@@ -239,6 +249,7 @@ export async function liveParticipationOf(
     .query("contestParticipations")
     .withIndex("by_profile_contest", (q) => q.eq("profileId", profileId).eq("contestId", contestId))
     .collect();
+
   return rows.find((row) => row.virtual === PARTICIPATION_LIVE) ?? null;
 }
 
@@ -289,6 +300,7 @@ export async function problemStateFor(
     .query("submissions")
     .withIndex("by_profile_problem", (q) => q.eq("profileId", profileId).eq("problemId", problem._id))
     .collect();
+
   if (submissions.length === 0) return UNTOUCHED;
 
   let bestScore = 0;
@@ -299,13 +311,18 @@ export async function problemStateFor(
 
   for (const submission of submissions) {
     const points = submission.points ?? 0;
+
     if (points > bestScore) bestScore = points;
     const full = isFullSolve(submission) || (problem.points > 0 && points >= problem.points);
+
     if (full) solved = true;
+
     if (contestId && submission.contestId === contestId) {
       contestAttemptCount += 1;
       const contestPoints = submission.contestPoints ?? 0;
+
       if (contestPoints > contestBestScore) contestBestScore = contestPoints;
+
       if (full) solvedDuringContest = true;
     }
   }
@@ -333,6 +350,7 @@ export const homeSidebar = query({
   handler: async (ctx, { limit }): Promise<HomeSidebarContest[]> => {
     const take = Math.max(1, Math.min(limit ?? 5, 20));
     const now = Date.now();
+
     const rows = await ctx.db
       .query("contests")
       .withIndex("by_visible_start", (q) => q.eq("isVisible", true))
@@ -343,6 +361,7 @@ export const homeSidebar = query({
         (row) => !row.isPrivate && !row.isOrganizationPrivate && row.startTime <= now && row.endTime > now,
       )
       .sort((a, b) => a.endTime - b.endTime);
+
     const upcoming = rows
       .filter((row) => !row.isPrivate && !row.isOrganizationPrivate && row.startTime > now)
       .sort((a, b) => a.startTime - b.startTime);
@@ -381,15 +400,19 @@ export const navBar = query({
 
     if (key) {
       contest = await contestByKey(ctx, key);
+
       if (contest && profile) {
         const rows = await participationsOf(ctx, contest._id, profile._id);
+
         const current = profile.currentParticipationId
           ? (rows.find((row) => row._id === profile.currentParticipationId) ?? null)
           : null;
+
         participation = current ?? rows.sort((a, b) => b.virtual - a.virtual)[0] ?? null;
       }
     } else if (profile?.currentParticipationId) {
       participation = await ctx.db.get(profile.currentParticipationId);
+
       if (participation) contest = await ctx.db.get(participation.contestId);
     }
 
@@ -398,14 +421,18 @@ export const navBar = query({
     const viewer = await toViewerRowInContest(ctx, profile);
     const contestRow = toContestRow(contest);
     const isCurrent = !!participation && profile?.currentParticipationId === participation._id;
+
     if (!isCurrent && contestAccessCheck(contestRow, viewer).kind !== "ok") return null;
 
     const contestProblems = problemsReleasedFor(contest, profile, isCurrent, Date.now())
       ? await loadContestProblems(ctx, contest._id)
       : [];
+
     const problems: ContestBarProblem[] = [];
+
     for (const [index, contestProblem] of contestProblems.entries()) {
       const problem = await ctx.db.get(contestProblem.problemId);
+
       if (!problem) continue;
       const state = await problemStateFor(ctx, profile?._id ?? null, problem, contest._id);
       problems.push({
@@ -420,10 +447,12 @@ export const navBar = query({
     }
 
     const liveParticipation = profile ? await liveParticipationOf(ctx, contest._id, profile._id) : null;
+
     const context = {
       now,
       liveParticipation: liveParticipation ? toParticipationRow(liveParticipation) : null,
     };
+
     const endsAt = participation ? endTimeOf(contest, participation) : contest.endTime;
 
     return {
@@ -457,14 +486,18 @@ export const navBar = query({
 /* -------------------------------------------------------------------------- */
 
 const SORTS = ["name", "userCount", "startTime"] as const;
+
 type Sort = (typeof SORTS)[number];
 
 function compareContests(a: Doc<"contests">, b: Doc<"contests">, sort: Sort, descending: boolean): number {
   let result: number;
+
   if (sort === "name") result = a.name.localeCompare(b.name);
   else if (sort === "userCount") result = a.userCount - b.userCount;
   else result = a.startTime - b.startTime;
+
   if (result === 0) result = a.key.localeCompare(b.key);
+
   return descending ? -result : result;
 }
 
@@ -491,7 +524,9 @@ function problemsReleasedFor(
   now: number,
 ): boolean {
   if (contest.endTime <= now) return true;
+
   if (!profile) return false;
+
   if (
     profile.isSuperuser ||
     contest.authorProfileIds.includes(profile._id) ||
@@ -500,7 +535,9 @@ function problemsReleasedFor(
   ) {
     return true;
   }
+
   const started = contest.startTime <= now;
+
   return started && (taking || contest.spectatorProfileIds.includes(profile._id));
 }
 
@@ -511,6 +548,7 @@ async function progressFor(
   released: boolean,
 ): Promise<ContestProgress | null> {
   if (!solved) return null;
+
   if (!released) return null;
 
   const links = await ctx.db
@@ -519,8 +557,10 @@ async function progressFor(
     .collect();
 
   const problems: ContestProgress["problems"] = [];
+
   for (const [index, link] of links.entries()) {
     const problem = await ctx.db.get(link.problemId);
+
     if (!problem) continue;
     problems.push({
       code: problem.code,
@@ -593,12 +633,15 @@ export const list = query({
     const visible = all.filter((contest) => contestIsVisibleTo(toContestRow(contest), viewer));
 
     let tagId: Id<"contestTags"> | null = null;
+
     if (args.tagName) {
       const tagName = args.tagName;
+
       const tag = await ctx.db
         .query("contestTags")
         .withIndex("by_name", (q) => q.eq("name", tagName))
         .unique();
+
       if (!tag) {
         return {
           now,
@@ -610,6 +653,7 @@ export const list = query({
           totalPast: 0,
         };
       }
+
       tagId = tag._id;
     }
 
@@ -628,14 +672,17 @@ export const list = query({
     // whether a live contest's problems may be named to them.
     let solvedIds: Set<string> | null = null;
     const joinedContests = new Set<string>();
+
     if (profile) {
       const submissions = await ctx.db
         .query("submissions")
         .withIndex("by_profile_date", (q) => q.eq("profileId", profile._id))
         .take(MAX_SUBMISSION_SCAN);
+
       solvedIds = new Set(
         submissions.filter((row) => row.result === "AC").map((row) => row.problemId as string),
       );
+
       for (const row of await ctx.db
         .query("contestParticipations")
         .withIndex("by_profile_contest", (q) => q.eq("profileId", profile._id))
@@ -649,8 +696,10 @@ export const list = query({
 
     const running: Doc<"contests">[] = [];
     const future: Doc<"contests">[] = [];
+
     for (const contest of filtered) {
       if (contest.endTime < now) continue;
+
       if (contest.startTime > now) future.push(contest);
       else running.push(contest);
     }
@@ -658,17 +707,21 @@ export const list = query({
     const activeParticipations: ActiveParticipation[] = [];
     const finishedKeys: string[] = [];
     const current: Doc<"contests">[] = [];
+
     for (const contest of running) {
       const participation = profile ? await liveParticipationOf(ctx, contest._id, profile._id) : null;
+
       if (!participation) {
         current.push(contest);
         continue;
       }
+
       if (participationHasEnded(toParticipationRow(participation), toContestRow(contest), now)) {
         finishedKeys.push(contest.key);
         current.push(contest);
         continue;
       }
+
       const endsAt = endTimeOf(contest, participation);
       activeParticipations.push({
         participationId: participation._id,
@@ -685,6 +738,7 @@ export const list = query({
 
     const needle = (args.search ?? "").trim().toLowerCase();
     let past = filtered.filter((contest) => contest.endTime < now);
+
     if (needle) {
       past = past.filter(
         (contest) =>
@@ -701,6 +755,7 @@ export const list = query({
     const slice = past.slice(offset, offset + numItems);
 
     const pastRows: ContestListRow[] = [];
+
     for (const contest of slice) {
       const participation = profile ? await liveParticipationOf(ctx, contest._id, profile._id) : null;
       pastRows.push(
@@ -709,6 +764,7 @@ export const list = query({
     }
 
     const currentRows: ContestListRow[] = [];
+
     for (const contest of current) {
       currentRows.push(
         await listRow(
@@ -721,7 +777,9 @@ export const list = query({
         ),
       );
     }
+
     const futureRows: ContestListRow[] = [];
+
     for (const contest of future) {
       futureRows.push(
         await listRow(ctx, contest, editorOrTester(contest), false, solvedIds, released(contest)),
@@ -789,7 +847,9 @@ function calendarDays(year: number, month: number): string[] {
   const lastOfMonth = Date.UTC(year, month, 0);
   const end = lastOfMonth + (6 - new Date(lastOfMonth).getUTCDay()) * DAY;
   const days: string[] = [];
+
   for (let day = start; day <= end; day += DAY) days.push(new Date(day).toISOString().slice(0, 10));
+
   return days;
 }
 
@@ -799,6 +859,7 @@ function comparePair(a: [number, number], b: [number, number]): number {
 
 function stepMonth(year: number, month: number, delta: number): { year: number; month: number } {
   const index = year * 12 + (month - 1) + delta;
+
   return { year: Math.floor(index / 12), month: (index % 12) + 1 };
 }
 
@@ -820,8 +881,11 @@ export const calendar = query({
     const contests = all.filter((contest) => contestIsVisibleTo(toContestRow(contest), viewer));
 
     const days = calendarDays(year, month);
+
     type Bucket = { starts: CalendarContest[]; ends: CalendarContest[]; oneday: CalendarContest[] };
+
     const buckets = new Map<string, Bucket>();
+
     for (const day of days) buckets.set(day, { starts: [], ends: [], oneday: [] });
 
     for (const contest of contests) {
@@ -829,6 +893,7 @@ export const calendar = query({
       // DMOJ takes the day of `end_time - 1s`, so a contest ending at midnight
       // belongs to the previous day.
       const endDay = dayKey(contest.endTime - 1000, offset);
+
       const row: CalendarContest = {
         _id: contest._id,
         key: contest.key,
@@ -837,6 +902,7 @@ export const calendar = query({
         endTime: contest.endTime,
         isRated: contest.isRated,
       };
+
       if (startDay === endDay) buckets.get(startDay)?.oneday.push(row);
       else {
         buckets.get(startDay)?.starts.push(row);
@@ -847,10 +913,12 @@ export const calendar = query({
     const today = dayKey(now, offset);
     const monthPrefix = `${year}-${String(month).padStart(2, "0")}`;
     const weeks: CalendarDay[][] = [];
+
     for (let i = 0; i < days.length; i += 7) {
       weeks.push(
         days.slice(i, i + 7).map((date) => {
           const bucket = buckets.get(date) as Bucket;
+
           return {
             date,
             isPad: !date.startsWith(monthPrefix),
@@ -867,16 +935,20 @@ export const calendar = query({
     const nowDate = new Date(now + offset * 60_000);
     let minMonth: [number, number] = [nowDate.getUTCFullYear(), nowDate.getUTCMonth() + 1];
     let maxMonth: [number, number] = [minMonth[0], minMonth[1]];
+
     for (const contest of all) {
       const start = new Date(contest.startTime + offset * 60_000);
       const end = new Date(contest.endTime + offset * 60_000);
       const startPair: [number, number] = [start.getUTCFullYear(), start.getUTCMonth() + 1];
       const endPair: [number, number] = [end.getUTCFullYear(), end.getUTCMonth() + 1];
+
       if (comparePair(startPair, minMonth) < 0) minMonth = startPair;
+
       if (comparePair(endPair, maxMonth) > 0) maxMonth = endPair;
     }
 
     const here: [number, number] = [year, month];
+
     if (comparePair(here, minMonth) < 0 || comparePair(here, maxMonth) > 0) return null;
 
     return {
@@ -905,6 +977,7 @@ export const ical = query({
     const profile = await optionalViewer(ctx);
     const viewer = await toViewerRowInContest(ctx, profile);
     const all = await ctx.db.query("contests").collect();
+
     return all
       .filter((contest) => contestIsVisibleTo(toContestRow(contest), viewer))
       .sort((a, b) => a.startTime - b.startTime)
@@ -1123,6 +1196,7 @@ function summarise(
 ): ParticipationSummary {
   const contestRow = toContestRow(contest);
   const participationRow = toParticipationRow(participation);
+
   return {
     _id: participation._id,
     virtual: participation.virtual,
@@ -1146,6 +1220,7 @@ export const get = query({
   handler: async (ctx, { key }): Promise<ContestDetail> => {
     const now = Date.now();
     const contest = await contestByKey(ctx, key);
+
     if (!contest) return emptyDetail({ kind: "notFound" }, now);
 
     const profile = await optionalViewer(ctx);
@@ -1156,17 +1231,22 @@ export const get = query({
     const currentParticipationDoc = profile?.currentParticipationId
       ? await ctx.db.get(profile.currentParticipationId)
       : null;
+
     const inThisContest = currentParticipationDoc?.contestId === contest._id;
 
     const access: ContestAccess = contestAccessCheck(contestRow, viewer);
+
     if (!inThisContest && access.kind !== "ok") {
       if (access.kind === "inaccessible") return emptyDetail({ kind: "inaccessible" }, now);
       const organizations = await organizationRefs(ctx, contest.organizationIds);
       const classes: { _id: Id<"classes">; name: string; slug: string }[] = [];
+
       for (const id of contest.classIds) {
         const row = await ctx.db.get(id);
+
         if (row) classes.push({ _id: row._id, name: row.name, slug: row.slug });
       }
+
       return emptyDetail(
         {
           kind: "privateContest",
@@ -1200,17 +1280,22 @@ export const get = query({
 
     for (const [index, contestProblem] of problemsReleased ? contestProblems.entries() : []) {
       const problem = await ctx.db.get(contestProblem.problemId);
+
       if (!problem) continue;
 
       const solution = await ctx.db
         .query("solutions")
         .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
         .unique();
+
       const hasPublicEditorial = !!solution && solution.isPublic && solution.publishOn <= now;
+
       if (problem.isPublic && hasPublicEditorial) hasPublicEditorials = true;
 
       if (contestProblem.partial && problem.partial) hasPartials = true;
+
       if (contestProblem.isPretested && contest.runPretestsOnly) hasPretests = true;
+
       if (contestProblem.maxSubmissions) hasSubmissionCap = true;
 
       const state = await problemStateFor(ctx, profile?._id ?? null, problem, contest._id);
@@ -1240,6 +1325,7 @@ export const get = query({
 
     const participations = profile ? await participationsOf(ctx, contest._id, profile._id) : [];
     const liveParticipation = participations.find((row) => row.virtual === PARTICIPATION_LIVE) ?? null;
+
     const currentParticipation =
       participations.find((row) => row._id === profile?.currentParticipationId) ?? null;
 
@@ -1247,11 +1333,15 @@ export const get = query({
       now,
       liveParticipation: liveParticipation ? toParticipationRow(liveParticipation) : null,
     };
+
     const canEdit = contestIsEditableBy(contestRow, viewer);
+
     const isEditor =
       !!profile &&
       (contest.authorProfileIds.includes(profile._id) || contest.curatorProfileIds.includes(profile._id));
+
     const isTester = !!profile && contest.testerProfileIds.includes(profile._id);
+
     const decision = contestJoinDecision(contestRow, viewer, {
       now,
       participations: participations.map(toParticipationRow),
@@ -1261,10 +1351,12 @@ export const get = query({
       .query("siteSettings")
       .withIndex("by_singleton", (q) => q.eq("singleton", "site"))
       .unique();
+
     const rating = await ctx.db
       .query("ratings")
       .withIndex("by_contest", (q) => q.eq("contestId", contest._id))
       .first();
+
     const mossRow = await ctx.db
       .query("contestMoss")
       .withIndex("by_contest", (q) => q.eq("contestId", contest._id))
@@ -1272,6 +1364,7 @@ export const get = query({
 
     const format = formatFor(contest);
     let shortFormDisplay: ScoringLine[] = [];
+
     try {
       shortFormDisplay = format.getShortFormDisplay(contest.formatConfig);
     } catch {
@@ -1393,22 +1486,27 @@ export const stats = query({
   args: { key: v.string() },
   handler: async (ctx, { key }): Promise<ContestStats> => {
     const contest = await contestByKey(ctx, key);
+
     if (!contest) return null;
 
     const profile = await optionalViewer(ctx);
     const viewer = await toViewerRowInContest(ctx, profile);
     const contestRow = toContestRow(contest);
+
     if (contestAccessCheck(contestRow, viewer).kind !== "ok") return null;
 
     const now = Date.now();
     const canEdit = contestIsEditableBy(contestRow, viewer);
+
     if (!contestEnded(contestRow, now) && !canEdit) return null;
 
     const contestProblems = await loadContestProblems(ctx, contest._id);
     const problemIndex = new Map<string, number>();
     const problems: { label: string; code: string; name: string; acRate: number; total: number }[] = [];
+
     for (const [index, contestProblem] of contestProblems.entries()) {
       const problem = await ctx.db.get(contestProblem.problemId);
+
       if (!problem) continue;
       problemIndex.set(problem._id, problems.length);
       problems.push({
@@ -1432,11 +1530,13 @@ export const stats = query({
     for (const submission of submissions) {
       const index = problemIndex.get(submission.problemId);
       const code = submission.result ?? submission.status;
+
       if (index !== undefined) {
         const row = statusCounts.get(code) ?? new Array<number>(problems.length).fill(0);
         row[index] = (row[index] as number) + 1;
         statusCounts.set(code, row);
         (problems[index] as { total: number }).total += 1;
+
         if (submission.result === "AC") accepted[index] = (accepted[index] as number) + 1;
       }
 
@@ -1444,6 +1544,7 @@ export const stats = query({
       const name = language?.name ?? "Unknown";
       const bucket = languageTotals.get(name) ?? { count: 0, accepted: 0 };
       bucket.count += 1;
+
       if (submission.result === "AC") bucket.accepted += 1;
       languageTotals.set(name, bucket);
     }

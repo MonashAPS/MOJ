@@ -65,13 +65,16 @@ describe("organizations.join", () => {
     const t = setupTest();
     await t.run(async (ctx) => {
       await insertProfile(ctx, { username: "collector" });
+
       for (const slug of ["a", "b", "c", "d"]) await insertOrganization(ctx, { slug });
     });
 
     const asCollector = asUser(t, "collector");
+
     for (const slug of ["a", "b", "c"]) {
       await asCollector.mutation(api.organizations.join, { slug });
     }
+
     await expect(asCollector.mutation(api.organizations.join, { slug: "d" })).rejects.toThrow(
       /more than 3 public organizations/,
     );
@@ -156,10 +159,12 @@ describe("organizations.leave and kick", () => {
 
     const detail = await t.query(api.organizations.get, { slug: "maps" });
     expect(detail?.memberCount).toBe(0);
+
     const members = await t.query(api.classes.members, {
       organizationSlug: "maps",
       classSlug: "beginners",
     });
+
     expect(members).toHaveLength(0);
   });
 
@@ -213,12 +218,14 @@ describe("organizations join requests", () => {
     await t.run(async (ctx) => {
       const admin = await insertProfile(ctx, { username: "admin" });
       await insertProfile(ctx, { username: "hopeful" });
+
       const organizationId = await insertOrganization(ctx, {
         slug: "private",
         name: "Private",
         isOpen: false,
         adminProfileIds: [admin],
       });
+
       await ctx.db.insert("classes", {
         organizationId,
         name: "Tutorial 1",
@@ -228,6 +235,7 @@ describe("organizations join requests", () => {
         memberProfileIds: [],
       });
     });
+
     return t;
   }
 
@@ -280,6 +288,7 @@ describe("organizations join requests", () => {
 
   test("approving adds the member and the class", async () => {
     const t = await seed();
+
     const requestId = (await asUser(t, "hopeful").mutation(api.organizations.request, {
       slug: "private",
       reason: "please",
@@ -290,21 +299,25 @@ describe("organizations join requests", () => {
 
     const detail = await t.query(api.organizations.get, { slug: "private" });
     expect(detail?.memberCount).toBe(1);
+
     const members = await t.query(api.classes.members, {
       organizationSlug: "private",
       classSlug: "tut1",
     });
+
     expect(members.map((row) => row.username)).toEqual(["hopeful"]);
 
     const log = await asUser(t, "admin").query(api.organizations.reviewRequests, {
       slug: "private",
       tab: "log",
     });
+
     expect(log.requests.map((row) => row.state)).toEqual(["A"]);
   });
 
   test("rejecting leaves the organisation untouched", async () => {
     const t = await seed();
+
     const requestId = (await asUser(t, "hopeful").mutation(api.organizations.request, {
       slug: "private",
       reason: "please",
@@ -314,10 +327,12 @@ describe("organizations join requests", () => {
 
     const detail = await t.query(api.organizations.get, { slug: "private" });
     expect(detail?.memberCount).toBe(0);
+
     const rejected = await asUser(t, "admin").query(api.organizations.reviewRequests, {
       slug: "private",
       tab: "rejected",
     });
+
     expect(rejected.requests).toHaveLength(1);
   });
 
@@ -339,11 +354,13 @@ describe("organizations join requests", () => {
       const classAdmin = await insertProfile(ctx, { username: "tutor" });
       const one = await insertProfile(ctx, { username: "mine" });
       const two = await insertProfile(ctx, { username: "theirs" });
+
       const organizationId = await insertOrganization(ctx, {
         slug: "school",
         isOpen: false,
         adminProfileIds: [orgAdmin],
       });
+
       const mineClass = await ctx.db.insert("classes", {
         organizationId,
         name: "Mine",
@@ -352,6 +369,7 @@ describe("organizations join requests", () => {
         adminProfileIds: [classAdmin],
         memberProfileIds: [],
       });
+
       const otherClass = await ctx.db.insert("classes", {
         organizationId,
         name: "Other",
@@ -360,6 +378,7 @@ describe("organizations join requests", () => {
         adminProfileIds: [],
         memberProfileIds: [],
       });
+
       await ctx.db.insert("organizationRequests", {
         profileId: one,
         organizationId,
@@ -385,27 +404,32 @@ describe("organizations join requests", () => {
     const asOrgAdmin = await asUser(t, "orgadmin").query(api.organizations.reviewRequests, {
       slug: "school",
     });
+
     expect(asOrgAdmin.requests.map((row) => row.username)).toEqual(["mine", "theirs"]);
   });
 
   test("approving past the slot limit is refused", async () => {
     const t = setupTest();
+
     const requestId = await t.run(async (ctx) => {
       const admin = await insertProfile(ctx, { username: "admin" });
       const hopeful = await insertProfile(ctx, { username: "hopeful" });
       const seated = await insertProfile(ctx, { username: "seated" });
+
       const organizationId = await insertOrganization(ctx, {
         slug: "tiny",
         isOpen: false,
         slots: 1,
         adminProfileIds: [admin],
       });
+
       await ctx.db.insert("organizationMemberships", {
         organizationId,
         profileId: seated,
         order: 0,
       });
       await ctx.db.patch(organizationId, { memberCount: 1 });
+
       return await ctx.db.insert("organizationRequests", {
         profileId: hopeful,
         organizationId,
@@ -426,13 +450,16 @@ describe("organizations.members and list", () => {
     const t = setupTest();
     await t.run(async (ctx) => {
       const organizationId = await insertOrganization(ctx, { slug: "maps", name: "MAPS" });
+
       const rows: [string, number, boolean][] = [
         ["one", 300, false],
         ["two", 200, false],
         ["three", 200, false],
         ["ghost", 900, true],
       ];
+
       let order = 0;
+
       for (const [username, points, unlisted] of rows) {
         const profileId = await insertProfile(ctx, {
           username,
@@ -440,12 +467,14 @@ describe("organizations.members and list", () => {
           performancePoints: points,
           isUnlisted: unlisted,
         });
+
         await ctx.db.insert("organizationMemberships", {
           organizationId,
           profileId,
           order: order++,
         });
       }
+
       await ctx.db.patch(organizationId, { memberCount: 4 });
     });
 
@@ -521,10 +550,12 @@ describe("classes", () => {
       classSlug: "tut",
       accessCode: "OPEN42",
     });
+
     const detail = await asStudent.query(api.classes.get, {
       organizationSlug: "maps",
       classSlug: "tut",
     });
+
     expect(detail?.viewer.isMember).toBe(true);
     expect(detail?.memberCount).toBe(1);
   });
@@ -564,6 +595,7 @@ describe("classes", () => {
       organizationSlug: "maps",
       activeOnly: false,
     });
+
     expect(listed.map((row) => [row.name, row.isActive])).toEqual([["Week One", false]]);
   });
 });

@@ -23,11 +23,13 @@ function highlight(color: number): string {
   const r = Math.min(Math.trunc(((color >> 16) & 0xff) * 1.2), 255);
   const g = Math.min(Math.trunc(((color >> 8) & 0xff) * 1.2), 255);
   const b = Math.min(Math.trunc((color & 0xff) * 1.2), 255);
+
   return `#${[r, g, b].map((part) => part.toString(16).toUpperCase().padStart(2, "0")).join("")}`;
 }
 
 /** `judge.utils.stats.chart_colors`. */
 export const CHART_COLORS: string[] = BASE_COLORS.map(hex);
+
 /** `judge.utils.stats.highlight_colors`. */
 export const HIGHLIGHT_COLORS: string[] = BASE_COLORS.map(highlight);
 
@@ -104,6 +106,7 @@ export type StatsTallies = {
 async function computeTallies(ctx: AnyCtx, limit: number): Promise<StatsTallies> {
   const languages = await ctx.db.query("languages").collect();
   const byId = new Map<string, LanguageTally>();
+
   for (const language of languages) {
     byId.set(language._id, { languageId: language._id, name: language.name, total: 0, ac: 0 });
   }
@@ -113,16 +116,21 @@ async function computeTallies(ctx: AnyCtx, limit: number): Promise<StatsTallies>
     .withIndex("by_date")
     .order("desc")
     .take(limit + 1);
+
   const truncated = rows.length > limit;
   const scanned = truncated ? rows.slice(0, limit) : rows;
 
   const results: Record<string, number> = {};
+
   for (const row of scanned) {
     const tally = byId.get(row.languageId);
+
     if (tally) {
       tally.total += 1;
+
       if (row.result === "AC") tally.ac += 1;
     }
+
     if (row.result) results[row.result] = (results[row.result] ?? 0) + 1;
   }
 
@@ -139,7 +147,9 @@ async function tallies(ctx: AnyCtx): Promise<StatsTallies & { computedAt: number
     .query("statsSnapshots")
     .withIndex("by_key", (q) => q.eq("key", "language"))
     .unique();
+
   if (snapshot) return { ...(snapshot.data as StatsTallies), computedAt: snapshot.computedAt };
+
   return { ...(await computeTallies(ctx, 20_000)), computedAt: Date.now() };
 }
 
@@ -148,13 +158,17 @@ export const refresh = internalMutation({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, { limit }) => {
     const data = await computeTallies(ctx, limit ?? STATS_SCAN_LIMIT);
+
     const existing = await ctx.db
       .query("statsSnapshots")
       .withIndex("by_key", (q) => q.eq("key", "language"))
       .unique();
+
     const computedAt = Date.now();
+
     if (existing) await ctx.db.patch(existing._id, { data, computedAt });
     else await ctx.db.insert("statsSnapshots", { key: "language", data, computedAt });
+
     return { scanned: data.scanned, truncated: data.truncated, computedAt };
   },
 });
@@ -165,6 +179,7 @@ export const languageData = query({
   handler: async (ctx): Promise<PieChart> => {
     const data = await tallies(ctx);
     const threshold = (await siteSettings(ctx))?.statsLanguageThreshold ?? STATS_LANGUAGE_THRESHOLD;
+
     return languagePie(
       data.languages.filter((row) => row.total > 0).map((row) => [row.name, row.total] as const),
       threshold,
@@ -178,6 +193,7 @@ export const acLanguageData = query({
   handler: async (ctx): Promise<PieChart> => {
     const data = await tallies(ctx);
     const threshold = (await siteSettings(ctx))?.statsLanguageThreshold ?? STATS_LANGUAGE_THRESHOLD;
+
     return languagePie(
       data.languages.filter((row) => row.ac > 0).map((row) => [row.name, row.ac] as const),
       threshold,
@@ -190,6 +206,7 @@ function languagePie(entries: ReadonlyArray<readonly [string, number]>, threshol
   const count = Math.min(sorted.length, threshold);
   const head = sorted.slice(0, count);
   const other = sorted.slice(count).reduce((sum, [, value]) => sum + value, 0);
+
   return {
     labels: [...head.map(([name]) => name), "Other"],
     datasets: [
@@ -207,9 +224,11 @@ export const statusData = query({
   args: {},
   handler: async (ctx): Promise<PieChart> => {
     const data = await tallies(ctx);
+
     const entries = Object.entries(data.results)
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .map(([code, count]) => [USER_DISPLAY_CODES[code] ?? code, count] as [string, number]);
+
     return pieChart(entries);
   },
 });
@@ -219,10 +238,12 @@ export const acRate = query({
   args: {},
   handler: async (ctx): Promise<BarChart> => {
     const data = await tallies(ctx);
+
     const entries = data.languages
       .filter((row) => row.total > 0)
       .sort((a, b) => a.total - b.total || a.name.localeCompare(b.name))
       .map((row) => [row.name, (row.ac / row.total) * 100] as [string, number]);
+
     return barChart(entries);
   },
 });

@@ -38,6 +38,7 @@ export function ProblemEditor({ code }: { code: string }) {
 
   const problem = useQuery(api.pages.admin.problems.edit, { code });
   const options = useQuery(api.pages.admin.problems.options, {});
+
   const revisions = useQuery(
     api.pages.admin.revisions.byKey,
     active === "revisions" ? { entityType: "problem" as const, key: code } : "skip",
@@ -122,6 +123,7 @@ export function ProblemEditor({ code }: { code: string }) {
 /** Test data has its own editor on the public side; the console links to it. */
 function TestDataTab({ code }: { code: string }) {
   const t = useTranslations("admin.problems.editor");
+
   return (
     <EmptyState
       icon={<FileQuestion aria-hidden />}

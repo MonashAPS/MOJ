@@ -6,6 +6,7 @@ import { EnableTotpForm } from "./EnableTotpForm";
 
 export async function generateMetadata() {
   const t = await getTranslations("auth.twoFactor.enable");
+
   return { title: t("metaTitle") };
 }
 
@@ -18,7 +19,9 @@ export default async function EnableTwoFactorPage({
 }) {
   const { next } = await searchParams;
   const account = await requireAccount("/accounts/2fa/enable/");
+
   // DMOJ's `check_skip`: there is nothing to enrol if it is already on.
   if (account.totpEnabled) redirect("/accounts/2fa/");
+
   return <EnableTotpForm next={safeNext(next, "/accounts/2fa/")} />;
 }

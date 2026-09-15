@@ -17,15 +17,24 @@ import type { ContestRow, Id } from "./types";
 /* -------------------------------------------------------------------------- */
 
 export const BETA2 = 328.33 ** 2;
+
 /** A newcomer's rating when applying the rating floor/ceiling. */
 export const RATING_INIT = 1200;
+
 export const MEAN_INIT = 1500;
+
 export const VAR_INIT = 350 ** 2 * (BETA2 / 212 ** 2);
+
 export const SD_INIT = Math.sqrt(VAR_INIT);
+
 export const VALID_RANGE: readonly [number, number] = [MEAN_INIT - 20 * SD_INIT, MEAN_INIT + 20 * SD_INIT];
+
 export const VAR_PER_CONTEST = 1219.047619 * (BETA2 / 212 ** 2);
+
 export const VAR_LIM = (Math.sqrt(VAR_PER_CONTEST ** 2 + 4 * BETA2 * VAR_PER_CONTEST) - VAR_PER_CONTEST) / 2;
+
 export const SD_LIM = Math.sqrt(VAR_LIM);
+
 export const TANH_C = Math.sqrt(3) / Math.PI;
 
 /** `settings.DMOJ_CONTEST_PERF_CEILING_INCREMENT`. */
@@ -50,23 +59,29 @@ export function tieRanker<T>(items: readonly T[], key: (item: T) => unknown[]): 
 
   for (const item of items) {
     const current = key(item);
+
     if (last === null || !sameKey(current, last)) {
       for (let i = 0; i < buffered; i++) ranks.push(rank + (delta - 1) / 2);
       rank += delta;
       delta = 0;
       buffered = 0;
     }
+
     delta += 1;
     buffered += 1;
     last = current;
   }
+
   for (let i = 0; i < buffered; i++) ranks.push(rank + (delta - 1) / 2);
+
   return ranks;
 }
 
 function sameKey(a: readonly unknown[], b: readonly unknown[]): boolean {
   if (a.length !== b.length) return false;
+
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+
   return true;
 }
 
@@ -76,7 +91,9 @@ export type TanhTerm = readonly [mu: number, sd: number, weight: number];
 /** `eval_tanhs(tanh_terms, x)` (ratings.py:44). */
 export function evalTanhs(terms: readonly TanhTerm[], x: number): number {
   let total = 0;
+
   for (const [mu, sd, weight] of terms) total += (weight / sd) * Math.tanh((x - mu) / (2 * sd));
+
   return total;
 }
 
@@ -98,6 +115,7 @@ export function solve(
   while (right - left > 2) {
     const x = (left + right) / 2;
     const y = linFactor * x + evalTanhs(terms, x);
+
     if (y > yTarget) {
       right = x;
       rightY = y;
@@ -110,11 +128,15 @@ export function solve(
   }
 
   if (leftY === null) leftY = linFactor * left + evalTanhs(terms, left);
+
   if (yTarget <= leftY) return left;
+
   if (rightY === null) rightY = linFactor * right + evalTanhs(terms, right);
+
   if (yTarget >= rightY) return right;
 
   const ratio = (yTarget - leftY) / (rightY - leftY);
+
   return left * (1 - ratio) + right * ratio;
 }
 
@@ -126,6 +148,7 @@ export function getVar(timesRanked: number): number {
     const previous = VAR_CACHE[VAR_CACHE.length - 1] as number;
     VAR_CACHE.push(1 / (1 / (previous + VAR_PER_CONTEST) + 1 / BETA2));
   }
+
   return VAR_CACHE[timesRanked] as number;
 }
 
@@ -157,6 +180,7 @@ export function recalculateRatings(
   let newMean: number[] = new Array(n).fill(0);
 
   const updatedBounds: [number, number] = [VALID_RANGE[0], VALID_RANGE[1]];
+
   if (perfCeiling !== null && perfCeiling !== undefined) {
     updatedBounds[1] = Math.min(updatedBounds[1], perfCeiling);
   }
@@ -168,12 +192,15 @@ export function recalculateRatings(
   const solveIdx = (i: number, bounds: readonly [number, number]): void => {
     const r = ranking[i] as number;
     let yTarget = 0;
+
     for (let j = 0; j < n; j++) {
       const s = ranking[j] as number;
+
       if (s > r) yTarget += 1 / (delta[j] as number);
       else if (s < r) yTarget -= 1 / (delta[j] as number);
       // A tie counts as half a win, as per Elo-MMR: it contributes nothing.
     }
+
     newP[i] = solve(pTanhTerms, yTarget, 0, bounds);
   };
 
@@ -200,6 +227,7 @@ export function recalculateRatings(
       let wPrev = 1;
       let wSum = 0;
       const history = [newP[i] as number, ...(historicalP[i] ?? [])];
+
       for (let j = 0; j < history.length; j++) {
         const gamma2 = j > 0 ? VAR_PER_CONTEST : 0;
         const hVar = getVar((timesRanked[i] as number) + 1 - j);
@@ -209,6 +237,7 @@ export function recalculateRatings(
         wPrev = w;
         wSum += w / BETA2;
       }
+
       const w0 = 1 / getVar((timesRanked[i] as number) + 1) - wSum;
       const p0 = evalTanhs(terms.slice(1), oldMean[i] as number) / w0 + (oldMean[i] as number);
       newMean[i] = solve(terms, w0 * p0, w0, updatedBounds);
@@ -228,8 +257,11 @@ export function recalculateRatings(
 function pythonRound(value: number): number {
   const floor = Math.floor(value);
   const diff = value - floor;
+
   if (diff > 0.5) return floor + 1;
+
   if (diff < 0.5) return floor;
+
   return floor % 2 === 0 ? floor : floor + 1;
 }
 
@@ -283,10 +315,13 @@ export function performanceCeiling(
   contest: Pick<ContestRow, "performanceCeilingOverride" | "ratingCeiling"> | undefined,
 ): number | null {
   if (!contest) return null;
+
   if (contest.performanceCeilingOverride !== null && contest.performanceCeilingOverride !== undefined) {
     return contest.performanceCeilingOverride;
   }
+
   if (contest.ratingCeiling) return contest.ratingCeiling + CONTEST_PERF_CEILING_INCREMENT;
+
   return null;
 }
 
@@ -306,24 +341,33 @@ export function rateContest(
 
   const eligible = rows.filter((row) => {
     if ((row.virtual ?? 0) !== 0) return false;
+
     if (excluded.has(row.profileId)) return false;
+
     if (!contest?.rateAll && !(row.submissionCount ?? 0)) return false;
     const lastRating = row.lastRating ?? RATING_INIT;
+
     if (contest?.ratingFloor !== null && contest?.ratingFloor !== undefined) {
       if (lastRating < contest.ratingFloor) return false;
     }
+
     if (contest?.ratingCeiling !== null && contest?.ratingCeiling !== undefined) {
       if (lastRating > contest.ratingCeiling) return false;
     }
+
     return true;
   });
 
   // order_by('is_disqualified', '-score', 'cumtime', 'tiebreaker')
   const sorted = [...eligible].sort((a, b) => {
     const dq = Number(a.isDisqualified ?? false) - Number(b.isDisqualified ?? false);
+
     if (dq !== 0) return dq;
+
     if (a.score !== b.score) return b.score - a.score;
+
     if (a.cumtime !== b.cumtime) return a.cumtime - b.cumtime;
+
     return a.tiebreaker - b.tiebreaker;
   });
 
@@ -341,6 +385,7 @@ export function rateContest(
   );
 
   const lastRated = options.now ?? Date.now();
+
   return sorted.map((row, i) => ({
     participationId: row.participationId,
     profileId: row.profileId,
@@ -382,11 +427,14 @@ export const RATING_CLASS: readonly string[] = [
 function bisectRight(values: readonly number[], target: number): number {
   let low = 0;
   let high = values.length;
+
   while (low < high) {
     const mid = (low + high) >>> 1;
+
     if (target < (values[mid] as number)) high = mid;
     else low = mid + 1;
   }
+
   return low;
 }
 
@@ -408,9 +456,11 @@ export function ratingClass(rating: number): string {
 /** `rating_progress(rating)`: how far through the current band, in [0, 1]. */
 export function ratingProgress(rating: number): number {
   const level = ratingLevel(rating);
+
   if (level === RATING_VALUES.length) return 1;
   const previous = level === 0 ? 0 : (RATING_VALUES[level - 1] as number);
   const next = RATING_VALUES[level] as number;
+
   return (rating - previous) / (next - previous);
 }
 
@@ -422,5 +472,6 @@ export function getUserCssClass(
 ): string {
   if (!ratingColors) return String(displayRank);
   const cls = rating === null || rating === undefined ? "rate-none" : ratingClass(rating);
+
   return `rating ${cls} ${displayRank}`;
 }

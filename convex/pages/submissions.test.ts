@@ -24,6 +24,7 @@ async function fixture() {
   const languageId = await insertLanguage(t, { key: "PY3" });
   const author = await insertProfile(t, { username: "author" });
   const problemId = await insertProblem(t, { code: "aplusb", allowedLanguageIds: [languageId] });
+
   return { t, languageId, author, problemId };
 }
 
@@ -111,6 +112,7 @@ describe("listContext subjects", () => {
     const other = await asUser(t, "me").query(api.pages.submissions.listContext, {
       username: "author",
     });
+
     expect(other.user?.isSelf).toBe(false);
   });
 
@@ -145,6 +147,7 @@ describe("listContext contest arm", () => {
       contestKey: "week1",
       username: "member",
     });
+
     expect(missing.found).toBe(false);
 
     await insertParticipation(t, {
@@ -157,6 +160,7 @@ describe("listContext contest arm", () => {
       contestKey: "week1",
       username: "member",
     });
+
     expect(found.found).toBe(true);
     expect(found.contest?.isParticipant).toBe(true);
     // The contest has ended and its scoreboard is visible, so anyone may read it.
@@ -174,6 +178,7 @@ describe("statusExtras", () => {
     const { t, languageId, problemId } = await fixture();
     const owner = await insertProfile(t, { username: "owner" });
     const judgeId = await insertJudge(t, { name: "judge-a" });
+
     const submissionId = await insertSubmission(t, {
       profileId: owner,
       problemId,
@@ -182,20 +187,24 @@ describe("statusExtras", () => {
       result: "AC",
       legacyId: 7,
     });
+
     await t.run(async (ctx) => ctx.db.patch(submissionId, { judgedOnJudgeId: judgeId }));
 
     const asOwner = await asUser(t, "owner").query(api.pages.submissions.statusExtras, {
       submissionId: 7,
     });
+
     expect(asOwner?.judge).toBeNull();
 
     await insertProfile(t, {
       username: "editor",
       permissions: ["judge.edit_own_problem", "judge.edit_all_problem"],
     });
+
     const asEditor = await asUser(t, "editor").query(api.pages.submissions.statusExtras, {
       submissionId: 7,
     });
+
     expect(asEditor?.judge).toBe("judge-a");
     expect(asEditor?.problemEditable).toBe(true);
   });
@@ -206,6 +215,7 @@ describe("statusExtras", () => {
     await t.run(async (ctx) =>
       ctx.db.insert("languageLimits", { problemId, languageId, timeLimit: 5, memoryLimit: 65536 }),
     );
+
     const submissionId = await insertSubmission(t, {
       profileId: owner,
       problemId,
@@ -214,6 +224,7 @@ describe("statusExtras", () => {
       result: "AC",
       legacyId: 11,
     });
+
     await t.run(async (ctx) => {
       for (const [index, time] of [0.01, 0.42, 0.2].entries()) {
         await ctx.db.insert("submissionTestCases", {
@@ -234,6 +245,7 @@ describe("statusExtras", () => {
     const extras = await asUser(t, "owner").query(api.pages.submissions.statusExtras, {
       submissionId: 11,
     });
+
     expect(extras?.timeLimit).toBe(5);
     expect(extras?.maxExecutionTime).toBeCloseTo(0.42, 5);
   });
@@ -241,6 +253,7 @@ describe("statusExtras", () => {
   it("lets the author abort their own submission but not a rejudge", async () => {
     const { t, languageId, problemId } = await fixture();
     const owner = await insertProfile(t, { username: "owner" });
+
     const mine = await insertSubmission(t, {
       profileId: owner,
       problemId,
@@ -248,11 +261,13 @@ describe("statusExtras", () => {
       status: "G",
       legacyId: 21,
     });
+
     expect(mine).toBeTruthy();
 
     const own = await asUser(t, "owner").query(api.pages.submissions.statusExtras, {
       submissionId: 21,
     });
+
     expect(own?.canAbort).toBe(true);
     expect(own?.canRejudge).toBe(false);
 
@@ -264,15 +279,19 @@ describe("statusExtras", () => {
       legacyId: 22,
       rejudgedDate: Date.now(),
     });
+
     const rejudged = await asUser(t, "owner").query(api.pages.submissions.statusExtras, {
       submissionId: 22,
     });
+
     expect(rejudged?.canAbort).toBe(false);
 
     await insertProfile(t, { username: "stranger" });
+
     const asStranger = await asUser(t, "stranger").query(api.pages.submissions.statusExtras, {
       submissionId: 21,
     });
+
     expect(asStranger?.canAbort).toBe(false);
   });
 });
@@ -280,11 +299,13 @@ describe("statusExtras", () => {
 describe("sourceView", () => {
   it("withholds the source from someone who may not read it", async () => {
     const { t, languageId } = await fixture();
+
     const problemId = await insertProblem(t, {
       code: "private",
       allowedLanguageIds: [languageId],
       submissionSourceVisibility: "O",
     });
+
     const owner = await insertProfile(t, { username: "owner" });
     await insertSubmission(t, {
       profileId: owner,
@@ -299,15 +320,18 @@ describe("sourceView", () => {
     const asOwner = await asUser(t, "owner").query(api.pages.submissions.sourceView, {
       submissionId: 31,
     });
+
     expect(asOwner?.canSeeSource).toBe(true);
     // DMOJ strips the trailing newlines before highlighting.
     expect(asOwner?.source).toBe("print(1)");
     expect(asOwner?.language?.key).toBe("PY3");
 
     await insertProfile(t, { username: "stranger" });
+
     const asStranger = await asUser(t, "stranger").query(api.pages.submissions.sourceView, {
       submissionId: 31,
     });
+
     expect(asStranger?.canSeeSource).toBe(false);
     expect(asStranger?.source).toBe("");
   });

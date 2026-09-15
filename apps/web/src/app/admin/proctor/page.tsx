@@ -5,6 +5,7 @@ import { ProctorSessions } from "./ProctorSessions";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.proctor");
+
   return { title: t("title") };
 }
 

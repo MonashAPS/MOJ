@@ -111,8 +111,10 @@ const RANKS = [
 /** DMOJ groups its permission codes by the model they act on. */
 function groupPermissions(codes: string[]): Array<{ group: string; codes: string[] }> {
   const buckets = new Map<string, string[]>();
+
   for (const code of codes) {
     const tail = code.split(".")[1] ?? code;
+
     const group = tail.includes("problem")
       ? "groupProblems"
       : tail.includes("contest")
@@ -126,10 +128,13 @@ function groupPermissions(codes: string[]): Array<{ group: string; codes: string
               : tail.includes("profile") || tail.includes("totp")
                 ? "groupAccounts"
                 : "groupSite";
+
     const bucket = buckets.get(group);
+
     if (bucket) bucket.push(code);
     else buckets.set(group, [code]);
   }
+
   return [...buckets.entries()].map(([group, groupCodes]) => ({ group, codes: groupCodes }));
 }
 
@@ -155,6 +160,7 @@ export function UserEditor({
   viewerUsername: string;
 }) {
   const t = useTranslations("admin.users.editor");
+
   const panels = [
     {
       key: "profile",
@@ -312,6 +318,7 @@ function ProfileForm({
 
   async function save() {
     setBusy(true);
+
     try {
       await edit({
         username: user.username,
@@ -464,6 +471,7 @@ function PermissionsForm({
     }),
     [user],
   );
+
   const [form, setForm] = useState(initial);
   const [reason, setReason] = useState("");
   const [status, setStatus] = useState<{ error?: string; saved?: string }>({});
@@ -505,6 +513,7 @@ function PermissionsForm({
 
   async function save() {
     setBusy(true);
+
     try {
       await edit({
         username: user.username,
@@ -596,6 +605,7 @@ function AccountPanel({
 
   function report(result: { ok: true } | { ok: false; error: string }, ok: string) {
     setMessage(result.ok ? { tone: "ok", text: ok } : { tone: "bad", text: result.error });
+
     if (result.ok) router.refresh();
   }
 
@@ -654,6 +664,7 @@ function AccountPanel({
             onClick={() =>
               startTransition(async () => {
                 const result = await impersonateAction(user.userId);
+
                 if (result.ok) window.location.assign("/");
                 else setMessage({ tone: "bad", text: result.error });
               })
@@ -823,6 +834,7 @@ function KeysPanel({ rows, username }: { rows: KeyRow[] | null; username: string
       </Panel>
     );
   }
+
   if (rows.length === 0) {
     return (
       <Panel title={t("title")} bodyClassName="p-3">
@@ -830,6 +842,7 @@ function KeysPanel({ rows, username }: { rows: KeyRow[] | null; username: string
       </Panel>
     );
   }
+
   return (
     <Panel title={t("title")} bodyClassName="p-0">
       <Table dense scrollable={false}>

@@ -74,7 +74,9 @@ export function LanguagesTable() {
   const rows = useMemo(() => {
     if (!languages) return undefined;
     const needle = search.trim().toLowerCase();
+
     if (!needle) return languages;
+
     return languages.filter(
       (row) =>
         row.key.toLowerCase().includes(needle) ||
@@ -109,8 +111,10 @@ export function LanguagesTable() {
     if (!draft) return;
     setBusy(true);
     setError(null);
+
     try {
       const { id, ...fields } = draft;
+
       if (id) {
         await update({ ...fields, id, reason });
         setMessage({ tone: "ok", text: t("updated", { name: draft.name }) });
@@ -118,6 +122,7 @@ export function LanguagesTable() {
         await create({ ...fields, reason });
         setMessage({ tone: "ok", text: t("added", { name: draft.name }) });
       }
+
       setDraft(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("saveFailed"));
@@ -130,6 +135,7 @@ export function LanguagesTable() {
     if (!copy) return;
     setBusy(true);
     setError(null);
+
     try {
       const result = await copyLanguage({ sourceKey: copy.sourceKey, targetKey: copy.targetKey, reason });
       setMessage({

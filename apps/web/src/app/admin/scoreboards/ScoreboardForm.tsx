@@ -88,15 +88,21 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
 
   async function save() {
     setError(null);
+
     if (!/^[a-z0-9][a-z0-9_-]*$/.test(key)) {
       setError(t("keyInvalid"));
+
       return;
     }
+
     if (contestKeys.length === 0) {
       setError(t("contestsRequired"));
+
       return;
     }
+
     setBusy(true);
+
     try {
       const payload = {
         name: name.trim() || key,
@@ -109,6 +115,7 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
         isPublic,
         reason: reason.trim() || undefined,
       };
+
       if (eventKey) {
         await update({ key: eventKey, ...payload });
         setReason("");
@@ -120,6 +127,7 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("refused"));
     }
+
     setBusy(false);
   }
 
@@ -294,7 +302,9 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
             <AlertDialogAction
               onClick={async () => {
                 setConfirmDelete(false);
+
                 if (!eventKey) return;
+
                 try {
                   await remove({ key: eventKey, reason: reason.trim() || undefined });
                   router.push("/admin/scoreboards/");

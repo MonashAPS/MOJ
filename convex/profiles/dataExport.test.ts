@@ -75,6 +75,7 @@ async function seed() {
       legacyId: 201,
     });
   });
+
   return t;
 }
 
@@ -90,19 +91,26 @@ async function runExport(
   const jobId = (await asUser(t, "downloader").mutation(api.profiles.dataExport.prepare, {
     options,
   })) as Id<"jobs">;
+
   await t.finishAllScheduledFunctions(async () => {});
+
   return jobId;
 }
 
 async function readZip(t: T, jobId: Id<"jobs">) {
   const job = await t.run(async (ctx) => await ctx.db.get(jobId));
+
   if (!job) throw new Error("the job is gone");
   const storageId = (job.result as { storageId: Id<"_storage"> }).storageId;
+
   const buffer = await t.run(async (ctx) => {
     const blob = await ctx.storage.get(storageId);
+
     if (!blob) throw new Error("the export is not in storage");
+
     return await blob.arrayBuffer();
   });
+
   return unzipSync(new Uint8Array(buffer));
 }
 
@@ -164,22 +172,26 @@ describe("the zip layout", () => {
 
   test("the problem glob filters submissions", async () => {
     const t = await seed();
+
     const jobId = await runExport(t, {
       submissionDownload: true,
       commentDownload: false,
       submissionProblemGlob: "hel*",
     });
+
     const files = await readZip(t, jobId);
     expect(Object.keys(files).sort()).toEqual(["submissions/102.py", "submissions/info.json"]);
   });
 
   test("the result filter keeps only those verdicts", async () => {
     const t = await seed();
+
     const jobId = await runExport(t, {
       submissionDownload: true,
       commentDownload: false,
       submissionResults: ["AC"],
     });
+
     const files = await readZip(t, jobId);
     expect(Object.keys(files).sort()).toEqual(["submissions/101.py", "submissions/info.json"]);
   });

@@ -39,6 +39,7 @@ export function Combobox({
 }) {
   const [open, setOpen] = useState(false);
   const selected = options.find((option) => option.value === value);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -200,6 +201,7 @@ export function MultiSelect({
               <CommandGroup>
                 {options.map((option) => {
                   const selected = values.includes(option.value);
+
                   return (
                     <CommandItem
                       key={option.value}

@@ -56,6 +56,7 @@ describe("participation windows", () => {
       realStart: NOW,
       virtual: PARTICIPATION_SPECTATE,
     });
+
     expect(participationStart(spectator, contest)).toBe(contest.startTime);
     expect(participationStart(spectator, timed)).toBe(spectator.realStart);
     expect(participationEndTime(spectator, contest)).toBe(contest.endTime);
@@ -126,6 +127,7 @@ describe("contestJoinDecision", () => {
       realStart: NOW,
       virtual: PARTICIPATION_SPECTATE,
     });
+
     expect(contestJoinDecision(timed, user, { now: NOW, participations: [finished, spectating] })).toEqual({
       kind: "spectate",
       participationId: spectating.id,
@@ -150,6 +152,7 @@ describe("contestJoinDecision", () => {
       createParticipation("c", "u", { virtual: 0 }),
       createParticipation("c", "u", { virtual: 3 }),
     ];
+
     expect(contestJoinDecision(over, user, { now: NOW, participations: existing })).toEqual({
       kind: "virtual",
       virtualId: 4,

@@ -72,6 +72,7 @@ export function resultClassFromCode(
   caseTotal: number,
 ): ResultClass | null {
   if (result === "AC") return casePoints === caseTotal ? "AC" : "_AC";
+
   return result ?? null;
 }
 
@@ -83,6 +84,7 @@ export function resultClass(submission: {
   readonly caseTotal: number;
 }): ResultClass | null {
   if (submission.status === "IE" || submission.status === "CE") return submission.status;
+
   return resultClassFromCode(submission.result, submission.casePoints, submission.caseTotal);
 }
 
@@ -144,6 +146,7 @@ const TONES: Readonly<Record<string, VerdictTone>> = {
 /** The tone for a verdict or status code (including `_AC`). */
 export function verdictTone(code: string | null | undefined): VerdictTone {
   if (!code) return "pending";
+
   return TONES[code] ?? "neutral";
 }
 
@@ -155,6 +158,8 @@ export function verdictClassName(code: ResultClass | null | undefined): string {
 /** Human name for a verdict or status code. */
 export function verdictName(code: string | null | undefined): string {
   if (!code) return USER_DISPLAY_CODES.QU as string;
+
   if (code === "_AC") return USER_DISPLAY_CODES.AC as string;
+
   return USER_DISPLAY_CODES[code] ?? "";
 }

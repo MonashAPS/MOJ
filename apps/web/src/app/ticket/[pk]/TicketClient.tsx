@@ -35,6 +35,7 @@ import { mutationError } from "@/lib/convex-error";
 import { formatDateTime, formatRelative } from "@/lib/format";
 
 export type TicketDetail = NonNullable<FunctionReturnType<typeof api.tickets.get>>;
+
 type TicketMessage = TicketDetail["messages"][number];
 
 function messageKey(message: { _id: string; body: string }): string {
@@ -65,13 +66,16 @@ export function TicketClient({
     const missing = ticket.messages
       .map((message) => ({ key: messageKey(message), source: message.body, preset: message.bodyPreset }))
       .filter((item) => !requested.current.has(item.key));
+
     if (missing.length === 0) return;
+
     for (const item of missing) requested.current.add(item.key);
 
     let alive = true;
     void renderUserMarkdownBatch(missing).then((rendered) => {
       if (alive) setHtml((previous) => ({ ...previous, ...rendered }));
     });
+
     return () => {
       alive = false;
     };
@@ -79,6 +83,7 @@ export function TicketClient({
 
   async function toggleOpen() {
     setError(null);
+
     try {
       await setOpen({ ticketId, open: !ticket.isOpen });
     } catch (thrown) {
@@ -167,6 +172,7 @@ export function TicketClient({
 function Message({ message, html }: { message: TicketMessage; html: string }) {
   const t = useTranslations("blog.ticket");
   const author = message.author;
+
   return (
     <section
       id={`message-${message._id}`}
@@ -281,6 +287,7 @@ function AssigneesDialog({
   async function save() {
     setBusy(true);
     setError(null);
+
     try {
       await assign({ ticketId, profileIds: values as Id<"profiles">[] });
       onOpenChange(false);
@@ -337,6 +344,7 @@ function NotesPanel({ ticket, ticketId }: { ticket: TicketDetail; ticketId: Id<"
   async function save() {
     setBusy(true);
     setError(null);
+
     try {
       await setNotes({ ticketId, notes: draft });
       setEditing(false);

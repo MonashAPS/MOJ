@@ -33,7 +33,9 @@ import { setupTest, type T } from "./test.setup";
 function expectedPP(scores: number[], solved: number): number {
   const data = [...scores].filter((value) => value > 0).sort((a, b) => b - a);
   let pp = 0;
+
   for (let i = 0; i < Math.min(data.length, 100); i++) pp += 0.95 ** i * (data[i] as number);
+
   return pp + 300 * (1 - 0.997 ** solved);
 }
 
@@ -47,12 +49,14 @@ async function seedSolves(
     const groupId = await insertProblemGroup(ctx, { name: "Data structures" });
     const languageId = await insertLanguage(ctx);
     let day = 1;
+
     for (const score of scores) {
       const problemId = await insertProblem(ctx, {
         code: score.code,
         groupId,
         points: score.total ?? 100,
       });
+
       await insertSubmission(ctx, {
         profileId,
         problemId,
@@ -66,6 +70,7 @@ async function seedSolves(
         date: Date.UTC(2025, 0, day++),
       });
     }
+
     return profileId;
   });
 }
@@ -85,6 +90,7 @@ describe("profiles.recalculatePoints", () => {
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", "solver"))
         .unique();
+
       return profile?._id as Id<"profiles">;
     });
 
@@ -97,6 +103,7 @@ describe("profiles.recalculatePoints", () => {
 
   test("organisation-private and non-public problems do not count", async () => {
     const t = setupTest();
+
     const profileId = await t.run(async (ctx) => {
       const profileId = await insertProfile(ctx, { username: "quiet" });
       const groupId = await insertProblemGroup(ctx);
@@ -104,12 +111,14 @@ describe("profiles.recalculatePoints", () => {
       const organizationId = await insertOrganization(ctx, { slug: "maps", isOpen: false });
 
       const publicProblem = await insertProblem(ctx, { code: "pub", groupId, points: 100 });
+
       const privateProblem = await insertProblem(ctx, {
         code: "priv",
         groupId,
         points: 100,
         isPublic: false,
       });
+
       const orgProblem = await insertProblem(ctx, {
         code: "org",
         groupId,
@@ -132,6 +141,7 @@ describe("profiles.recalculatePoints", () => {
           date: Date.UTC(2024, 5, 1),
         });
       }
+
       return profileId;
     });
 
@@ -142,6 +152,7 @@ describe("profiles.recalculatePoints", () => {
 
   test("archived submissions are ignored", async () => {
     const t = setupTest();
+
     const profileId = await t.run(async (ctx) => {
       const profileId = await insertProfile(ctx, { username: "archivist" });
       const groupId = await insertProblemGroup(ctx);
@@ -160,6 +171,7 @@ describe("profiles.recalculatePoints", () => {
         date: Date.UTC(2024, 5, 1),
         isArchived: true,
       });
+
       return profileId;
     });
 
@@ -180,6 +192,7 @@ describe("profiles.userPage", () => {
 
     const page = await t.query(api.profiles.userPage, { username: "grinder" });
     expect(page).not.toBeNull();
+
     if (!page) return;
 
     // `get_pp_breakdown(user, start=0, end=10)`.
@@ -224,6 +237,7 @@ describe("profiles.userPage", () => {
       start: 10,
       end: 15,
     });
+
     expect(rest.entries).toHaveLength(5);
     expect(rest.entries[0]?.points).toBe(90);
     expect(rest.entries[0]?.weight).toBeCloseTo(0.95 ** 10 * 100, 9);
@@ -293,6 +307,7 @@ describe("profiles.userPage", () => {
       const groupId = await insertProblemGroup(ctx);
       const languageId = await insertLanguage(ctx);
       const problemId = await insertProblem(ctx, { code: "aplusb", groupId });
+
       for (const [date, points] of [
         [Date.UTC(2025, 2, 3, 9), 100],
         [Date.UTC(2025, 2, 3, 18), 100],
@@ -325,11 +340,13 @@ describe("profiles.userPage", () => {
       const profileId = await insertProfile(ctx, { username: "rated", rating: 1600 });
       const first = await insertContest(ctx, ratedContest("early", Date.UTC(2024, 0, 2)));
       const second = await insertContest(ctx, ratedContest("late", Date.UTC(2024, 6, 2)));
+
       const participation = await insertParticipation(ctx, {
         contestId: first,
         profileId,
         realStart: Date.UTC(2024, 0, 1),
       });
+
       await ctx.db.insert("ratings", {
         profileId,
         contestId: first,
@@ -412,6 +429,7 @@ describe("profiles.solved", () => {
       username: "target",
       compareWithViewer: true,
     });
+
     expect(compared?.comparedWith).toBe("viewer");
     expect(compared?.groups[0]?.problems.map((row) => row.code)).toEqual(["only"]);
   });
@@ -468,6 +486,7 @@ describe("profiles.updateProfile", () => {
     const t = setupTest();
     await t.run(async (ctx) => {
       await insertProfile(ctx, { username: "joiner" });
+
       for (const slug of ["a", "b", "c", "d"]) {
         await insertOrganization(ctx, { slug, isOpen: true });
       }

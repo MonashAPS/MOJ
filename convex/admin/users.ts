@@ -31,9 +31,11 @@ const CHANGE_PROFILE = "judge.change_profile";
 
 export async function requireProfileAdmin(ctx: QueryCtx | MutationCtx): Promise<Doc<"profiles">> {
   const staff = await requireStaff(ctx);
+
   if (!staff.isSuperuser && !staff.permissions.includes(CHANGE_PROFILE)) {
     throw forbidden(`Missing permission ${CHANGE_PROFILE}.`);
   }
+
   return staff;
 }
 
@@ -66,9 +68,12 @@ async function toRow(ctx: QueryCtx, profile: Doc<"profiles">): Promise<AdminUser
     .query("organizationMemberships")
     .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
     .collect();
+
   const organizationSlugs: string[] = [];
+
   for (const membership of memberships) {
     const organization = await ctx.db.get(membership.organizationId);
+
     if (organization) organizationSlugs.push(organization.slug);
   }
 
@@ -119,6 +124,7 @@ export const list = query({
 
     let candidates: Doc<"profiles">[];
     const search = args.search?.trim();
+
     if (search) {
       candidates = await ctx.db
         .query("profiles")
@@ -129,36 +135,47 @@ export const list = query({
     }
 
     let allowed: Set<Id<"profiles">> | null = null;
+
     if (args.organizationSlug) {
       const organization = await ctx.db
         .query("organizations")
         .withIndex("by_slug", (q) => q.eq("slug", args.organizationSlug as string))
         .unique();
+
       allowed = new Set();
+
       if (organization) {
         const memberships = await ctx.db
           .query("organizationMemberships")
           .withIndex("by_organization", (q) => q.eq("organizationId", organization._id))
           .collect();
+
         for (const membership of memberships) allowed.add(membership.profileId);
       }
     }
 
     const filtered = candidates.filter((profile) => {
       if (args.displayRank !== undefined && profile.displayRank !== args.displayRank) return false;
+
       if (args.isStaff !== undefined && (profile.isStaff || profile.isSuperuser) !== args.isStaff) {
         return false;
       }
+
       if (args.isUnlisted !== undefined && profile.isUnlisted !== args.isUnlisted) return false;
+
       if (args.isActive !== undefined && (profile.isActive ?? true) !== args.isActive) return false;
+
       if (args.muted !== undefined && profile.mute !== args.muted) return false;
+
       if (allowed && !allowed.has(profile._id)) return false;
+
       return true;
     });
 
     filtered.sort((a, b) => a.username.localeCompare(b.username));
     const slice = filtered.slice((page - 1) * perPage, (page - 1) * perPage + perPage);
     const users: AdminUserRow[] = [];
+
     for (const profile of slice) users.push(await toRow(ctx, profile));
 
     return { users, page, perPage, total: filtered.length };
@@ -169,10 +186,12 @@ export const get = query({
   args: { username: v.string() },
   handler: async (ctx, { username }): Promise<AdminUserRow | null> => {
     await requireProfileAdmin(ctx);
+
     const profile = await ctx.db
       .query("profiles")
       .withIndex("by_username", (q) => q.eq("username", username))
       .unique();
+
     return profile ? await toRow(ctx, profile) : null;
   },
 });
@@ -182,7 +201,9 @@ async function loadTarget(ctx: MutationCtx, username: string): Promise<Doc<"prof
     .query("profiles")
     .withIndex("by_username", (q) => q.eq("username", username))
     .unique();
+
   if (!profile) throw notFound("User");
+
   return profile;
 }
 
@@ -211,33 +232,48 @@ export const edit = mutation({
     // Django's ModelAdmin never let a non-superuser widen its own powers.
     const escalating =
       args.isStaff !== undefined || args.isSuperuser !== undefined || args.permissions !== undefined;
+
     if (escalating && !staff.isSuperuser) {
       throw forbidden("Only superusers may change staff flags or permissions.");
     }
+
     if (target.isSuperuser && !staff.isSuperuser) {
       throw forbidden("Only superusers may edit a superuser.");
     }
 
     const patch: Partial<Doc<"profiles">> = {};
+
     if (args.about !== undefined) patch.about = args.about;
+
     if (args.timezone !== undefined) patch.timezone = args.timezone;
+
     if (args.displayRank !== undefined) patch.displayRank = args.displayRank;
+
     if (args.usernameDisplayOverride !== undefined) {
       patch.usernameDisplayOverride = args.usernameDisplayOverride || undefined;
     }
+
     if (args.notes !== undefined) patch.notes = args.notes;
+
     if (args.isStaff !== undefined) patch.isStaff = args.isStaff;
+
     if (args.isSuperuser !== undefined) patch.isSuperuser = args.isSuperuser;
+
     if (args.permissions !== undefined) patch.permissions = args.permissions;
+
     if (args.mute !== undefined) patch.mute = args.mute;
+
     if (args.isUnlisted !== undefined) patch.isUnlisted = args.isUnlisted;
+
     if (args.isBannedFromProblemVoting !== undefined) {
       patch.isBannedFromProblemVoting = args.isBannedFromProblemVoting;
     }
+
     if (args.rating !== undefined) patch.rating = args.rating === null ? undefined : args.rating;
 
     const updated = await patchProfile(ctx, target._id, patch);
     await writeRevision(ctx, "profiles", updated._id, updated, staff._id, args.reason ?? "Edited from admin");
+
     return updated._id;
   },
 });
@@ -248,6 +284,7 @@ export const recalculatePoints = mutation({
   handler: async (ctx, { usernames }) => {
     await requireProfileAdmin(ctx);
     const results: { username: string; points: number; performancePoints: number }[] = [];
+
     for (const username of usernames) {
       const profile = await loadTarget(ctx, username);
       const result = await recalculateProfilePoints(ctx, profile._id);
@@ -257,6 +294,7 @@ export const recalculatePoints = mutation({
         performancePoints: result.performancePoints,
       });
     }
+
     return results;
   },
 });
@@ -270,17 +308,21 @@ export const deactivate = mutation({
   handler: async (ctx, args) => {
     const staff = await requireProfileAdmin(ctx);
     const target = await loadTarget(ctx, args.username);
+
     if (target.isSuperuser && !staff.isSuperuser) {
       throw forbidden("Only superusers may deactivate a superuser.");
     }
+
     if (target._id === staff._id) throw invalid("You cannot deactivate your own account.");
 
     const active = args.active ?? false;
+
     const updated = await patchProfile(ctx, target._id, {
       isActive: active,
       // DMOJ hides deactivated users from the leaderboard and the API.
       isUnlisted: active ? target.isUnlisted : true,
     });
+
     await writeRevision(
       ctx,
       "profiles",
@@ -289,6 +331,7 @@ export const deactivate = mutation({
       staff._id,
       args.reason ?? (active ? "Reactivated from admin" : "Deactivated from admin"),
     );
+
     return { userId: target.userId, username: target.username, isActive: active };
   },
 });
@@ -298,26 +341,32 @@ export const remove = mutation({
   args: { username: v.string() },
   handler: async (ctx, { username }) => {
     const staff = await requireStaff(ctx);
+
     if (!staff.isSuperuser) throw forbidden("Only superusers may delete a profile.");
     const target = await loadTarget(ctx, username);
+
     if (target._id === staff._id) throw invalid("You cannot delete your own account.");
 
     const memberships = await ctx.db
       .query("organizationMemberships")
       .withIndex("by_profile", (q) => q.eq("profileId", target._id))
       .collect();
+
     for (const membership of memberships) {
       const organization = await ctx.db.get(membership.organizationId);
+
       if (organization) {
         await ctx.db.patch(organization._id, {
           memberCount: Math.max(0, organization.memberCount - 1),
         });
       }
+
       await ctx.db.delete(membership._id);
     }
 
     await deleteProfileAggregates(ctx, target);
     await ctx.db.delete(target._id);
+
     return { userId: target.userId };
   },
 });
@@ -327,6 +376,7 @@ export const permissionCodes = query({
   args: {},
   handler: async (ctx) => {
     await requireProfileAdmin(ctx);
+
     return [
       "judge.change_profile",
       "judge.edit_all_problem",

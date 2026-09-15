@@ -12,6 +12,7 @@ import { formatPoints } from "@/lib/units";
 export function HotProblemsBox() {
   const t = useTranslations("problems.list");
   const problems = useQuery(api.problems.hotProblems, {});
+
   if (problems === undefined || problems.length === 0) return null;
 
   return (

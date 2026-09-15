@@ -17,6 +17,7 @@ export type PickableLanguage = {
 /** The tile: a mark where one exists, a monogram in its colour where none does. */
 function Mark({ commonName }: { commonName: string }) {
   const { path, hex } = markFor(commonName);
+
   if (!path) {
     return (
       <span
@@ -28,6 +29,7 @@ function Mark({ commonName }: { commonName: string }) {
       </span>
     );
   }
+
   return (
     <svg aria-hidden viewBox="0 0 24 24" className="size-7 shrink-0" fill={`#${hex}`} role="presentation">
       <path d={path} />
@@ -66,11 +68,14 @@ export function LanguagePicker({
   /** One entry per language, carrying its versions. */
   const families = useMemo(() => {
     const byName = new Map<string, PickableLanguage[]>();
+
     for (const language of languages) {
       const name = language.commonName || language.name;
       byName.set(name, [...(byName.get(name) ?? []), language]);
     }
+
     const needle = deferred.trim().toLowerCase();
+
     return [...byName.entries()]
       .map(([name, items]) => ({
         name,

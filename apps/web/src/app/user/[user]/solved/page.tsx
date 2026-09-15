@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ user: string }> }) {
   const { user } = await params;
   const t = await getTranslations("users.solved");
+
   return { title: t("metaTitle", { username: decodeURIComponent(user) }) };
 }
 
@@ -34,13 +35,16 @@ export default async function UserProblemsPage({
     queryAsViewer(api.profiles.solved, { username, compareWithViewer: compare }),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
   ]);
+
   if (!data || !solved) notFound();
 
   const [gravatar, organizations] = await Promise.all([
     gravatarUrlForUserId(data.profile.userId, 224),
     query(api.organizations.list, {}).catch(() => []),
   ]);
+
   const organizationLinks: Record<string, string> = {};
+
   for (const organization of organizations) {
     organizationLinks[organization.slug] = organizationHref(organization);
   }

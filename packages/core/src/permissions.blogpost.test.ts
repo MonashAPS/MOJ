@@ -28,16 +28,19 @@ import {
 import type { Viewer } from "./types";
 
 const users = commonUsers();
+
 users.staff_blogpost_edit_own = createUser("staff_blogpost_edit_own", {
   isStaff: true,
   permissions: ["change_blogpost"],
 });
+
 users.staff_blogpost_edit_all = createUser("staff_blogpost_edit_all", {
   isStaff: true,
   permissions: ["change_blogpost", "edit_all_post"],
 });
 
 const basicBlogPost = createBlogPost("basic", { authorProfileIds: ["staff_blogpost_edit_own"] });
+
 const visibleBlogPost = createBlogPost("visible", { visible: true });
 
 function check(
@@ -46,9 +49,11 @@ function check(
 ): void {
   for (const [username, methods] of Object.entries(expectations)) {
     const viewer = users[username] as Viewer;
+
     if (methods.can_see !== undefined) {
       expect(blogPostCanSee(post, viewer, NOW), `can_see/${username}`).toBe(methods.can_see);
     }
+
     if (methods.is_editable_by !== undefined) {
       expect(blogPostIsEditableBy(post, viewer), `is_editable_by/${username}`).toBe(methods.is_editable_by);
     }
@@ -149,11 +154,13 @@ describe("Organization permissions", () => {
     const orgAdmin = createUser("staff_organization_admin", {
       permissions: ["change_organization"],
     });
+
     expect(organizationIsEditableBy(OPEN_ORGANIZATION, orgAdmin)).toBe(true);
 
     const editAll = createUser("editor", {
       permissions: ["change_organization", "edit_all_organization"],
     });
+
     expect(organizationIsEditableBy(OPEN_ORGANIZATION, editAll)).toBe(true);
   });
 

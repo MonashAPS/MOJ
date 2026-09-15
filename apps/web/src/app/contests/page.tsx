@@ -10,6 +10,7 @@ import { contestListTabs } from "./tabs";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("contests.list");
+
   return { title: t("title"), description: t("description") };
 }
 
@@ -21,8 +22,10 @@ export default async function ContestsPage({
   const t = await getTranslations("contests.list");
   const tabs = await getTranslations("contests.tabs");
   const params = await searchParams;
+
   const single = (name: string): string | undefined => {
     const value = params[name];
+
     return Array.isArray(value) ? value[0] : value;
   };
 

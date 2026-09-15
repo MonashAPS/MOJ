@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ key: string; user: string }> }) {
   const { key, user } = await params;
   const t = await getTranslations("contests.participations");
+
   return { title: t("metaSubmissions", { user, key }) };
 }
 
@@ -21,10 +22,12 @@ export default async function ContestUserSubmissionsPage({
 }) {
   const { key, user } = await params;
   const viewer = await queryAsViewer(api.viewer.current, {});
+
   if (user === "me") {
     if (!viewer.profile) redirect(`/accounts/login/?next=/contest/${key}/`);
     redirect(`/contest/${key}/submissions/${viewer.profile.username}/`);
   }
+
   return (
     <SubmissionListPage
       filters={{ contestKey: key, username: user }}

@@ -7,10 +7,12 @@ import { setupTest } from "./test.setup";
 
 async function seed() {
   const t = setupTest();
+
   const ids = await t.run(async (ctx) => {
     await insertSiteSettings(ctx);
     const author = await insertProfile(ctx, { username: "author" });
     const reader = await insertProfile(ctx, { username: "reader" });
+
     const editor = await insertProfile(ctx, {
       username: "editor",
       permissions: ["judge.edit_all_post"],
@@ -21,24 +23,29 @@ async function seed() {
       publishOn: 1_000,
       authorProfileIds: [author],
     });
+
     const sticky = await insertBlogPost(ctx, {
       title: "Sticky post",
       publishOn: 500,
       sticky: true,
       authorProfileIds: [author],
     });
+
     const draft = await insertBlogPost(ctx, {
       title: "Draft post",
       visible: false,
       authorProfileIds: [author],
     });
+
     const future = await insertBlogPost(ctx, {
       title: "Future post",
       publishOn: Date.now() + 86_400_000,
       authorProfileIds: [author],
     });
+
     return { author, reader, editor, live, sticky, draft, future };
   });
+
   return { t, ids };
 }
 
@@ -95,6 +102,7 @@ describe("blog visibility", () => {
         score: 0,
         revisions: 1,
       };
+
       await ctx.db.insert("comments", { ...base, body: "one", hidden: false });
       await ctx.db.insert("comments", { ...base, body: "two", hidden: false });
       await ctx.db.insert("comments", { ...base, body: "gone", hidden: true });
@@ -105,9 +113,11 @@ describe("blog visibility", () => {
 
   test("pagination walks the visible posts in order", async () => {
     const { t } = await seed();
+
     const first = await t.query(api.blog.paginated, {
       paginationOpts: { numItems: 1, cursor: null },
     });
+
     expect(first.page.map((post) => post.title)).toEqual(["Sticky post"]);
     expect(first.isDone).toBe(false);
     expect(first.totalCount).toBe(2);
@@ -115,6 +125,7 @@ describe("blog visibility", () => {
     const second = await t.query(api.blog.paginated, {
       paginationOpts: { numItems: 1, cursor: first.continueCursor },
     });
+
     expect(second.page.map((post) => post.title)).toEqual(["Live post"]);
     expect(second.isDone).toBe(true);
   });
@@ -128,6 +139,7 @@ describe("blog admin", () => {
         .query("profiles")
         .withIndex("by_username", (q) => q.eq("username", "author"))
         .unique();
+
       if (writer) await ctx.db.patch(writer._id, { permissions: ["judge.change_blogpost"] });
     });
     const writer = asUser(t, "author");
@@ -144,6 +156,7 @@ describe("blog admin", () => {
       title: "New post",
       content: "Body",
     });
+
     expect(id).toBeTruthy();
 
     const history = await writer.query(api.admin.blog.history, { id });

@@ -7,6 +7,7 @@ import { ErrorScreen } from "@/components/shell/ErrorScreen";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.shell");
+
   return {
     title: { default: t("consoleName"), template: t("titleTemplate") },
     robots: { index: false, follow: false },

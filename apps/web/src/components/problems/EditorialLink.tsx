@@ -65,6 +65,7 @@ export function EditorialLink({
         onClick={(event) => {
           // A modified click still means "open it over there", untouched.
           if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+
           if (skipConfirm()) return;
           event.preventDefault();
           setOpen(true);
@@ -125,6 +126,7 @@ export function ProblemTabLink({
       </EditorialLink>
     );
   }
+
   return (
     <Link href={href} className={className}>
       {children}

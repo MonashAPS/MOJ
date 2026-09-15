@@ -31,6 +31,7 @@ export function ImpersonationBar({ username }: { username: string }) {
         className="shrink-0 rounded-xs px-2 py-0.5 text-base font-semibold underline underline-offset-2 hover:bg-black/10 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-royal/60"
         onClick={async () => {
           setBusy(true);
+
           try {
             await authClient.admin.stopImpersonating();
             router.push("/admin/users/");

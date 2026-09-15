@@ -21,6 +21,7 @@ const MONTHS = [
   "November",
   "December",
 ];
+
 /** The catalogue keys the picker reads its month and weekday names by. The
  *  short month is a message of its own rather than the first three letters of
  *  the long one, which is a cut only English survives. */
@@ -38,6 +39,7 @@ const MONTH_KEYS = [
   "november",
   "december",
 ];
+
 const WEEKDAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
 function pad(value: number): string {
@@ -48,6 +50,7 @@ function pad(value: number): string {
 export function formatMoment(ms: number | null): string {
   if (ms === null) return "—";
   const date = new Date(ms);
+
   return `${date.getDate()} ${MONTHS[date.getMonth()]?.slice(0, 3)} ${date.getFullYear()}, ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
@@ -60,6 +63,7 @@ function monthGrid(month: Date): Date[] {
   const first = startOfMonth(month);
   const offset = (first.getDay() + 6) % 7;
   const start = new Date(first.getFullYear(), first.getMonth(), 1 - offset);
+
   return Array.from(
     { length: 42 },
     (_unused, index) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + index),
@@ -119,6 +123,7 @@ export function DateTimeField({
 
   function setTime(text: string) {
     const match = /^(\d{1,2}):(\d{2})$/.exec(text.trim());
+
     if (!match) return;
     const hours = Math.min(23, Number(match[1]));
     const minutes = Math.min(59, Number(match[2]));
@@ -178,6 +183,7 @@ export function DateTimeField({
             {days.map((day) => {
               const outside = day.getMonth() !== month.getMonth();
               const isSelected = !!selected && sameDay(day, selected);
+
               return (
                 <button
                   key={day.toISOString()}

@@ -42,7 +42,9 @@ export type SolutionState = "failed-score" | "full-score" | "partial-score";
 /** `BaseContestFormat.best_solution_state(points, total)` (base.py:104). */
 export function bestSolutionState(points: number, total: number): SolutionState {
   if (!points) return "failed-score";
+
   if (points === total) return "full-score";
+
   return "partial-score";
 }
 
@@ -161,15 +163,20 @@ export function validateAgainstDefaults(
   styleName: string,
 ): void {
   if (config === null || config === undefined) return;
+
   if (typeof config !== "object" || Array.isArray(config)) {
     throw new FormatConfigError(`${styleName} expects no config or dict as config`);
   }
+
   for (const [key, value] of Object.entries(config as Record<string, unknown>)) {
     if (!(key in defaults)) throw new FormatConfigError(`unknown config key "${key}"`);
+
     if (!sameType(value, defaults[key])) {
       throw new FormatConfigError(`invalid type for config key "${key}"`);
     }
+
     const validator = validators[key];
+
     if (validator && !(validator as (value: unknown) => boolean)(value)) {
       throw new FormatConfigError(`invalid value "${String(value)}" for config key "${key}"`);
     }
@@ -184,7 +191,9 @@ export function validateAgainstDefaults(
  */
 function sameType(value: unknown, expected: unknown): boolean {
   if (typeof expected === "boolean") return typeof value === "boolean";
+
   if (typeof expected === "number") return typeof value === "number" || typeof value === "boolean";
+
   return typeof value === typeof expected;
 }
 
@@ -193,9 +202,11 @@ export function mergeConfig(
   config: unknown,
 ): Record<string, unknown> {
   const merged: Record<string, unknown> = { ...defaults };
+
   if (config && typeof config === "object" && !Array.isArray(config)) {
     Object.assign(merged, config as Record<string, unknown>);
   }
+
   return merged;
 }
 
@@ -220,6 +231,7 @@ export function groupByProblem(
   participationId?: Id,
 ): Map<Id, ContestSubmissionRow[]> {
   const groups = new Map<Id, ContestSubmissionRow[]>();
+
   for (const submission of submissions) {
     if (
       participationId !== undefined &&
@@ -228,10 +240,13 @@ export function groupByProblem(
     ) {
       continue;
     }
+
     const bucket = groups.get(submission.contestProblemId);
+
     if (bucket) bucket.push(submission);
     else groups.set(submission.contestProblemId, [submission]);
   }
+
   return groups;
 }
 
@@ -244,9 +259,11 @@ export function orderedProblemIds(
     .sort((a, b) => a.order - b.order)
     .map((problem) => problem.id)
     .filter((id) => groups.has(id));
+
   // Submissions pointing at a contest problem we were not given still count,
   // exactly as the SQL's join does.
   for (const id of groups.keys()) if (!ordered.includes(id)) ordered.push(id);
+
   return ordered;
 }
 
@@ -263,6 +280,7 @@ export function buildProblemCell(
 ): ProblemCellDisplay {
   const isPretest = contest.runPretestsOnly === true && contestProblem.isPretested === true;
   const solutionState = bestSolutionState(entry.points, contestProblem.points);
+
   const cell: {
     -readonly [K in keyof ProblemCellDisplay]: ProblemCellDisplay[K];
   } = {
@@ -273,14 +291,17 @@ export function buildProblemCell(
     pointsText: floatformat(entry.points),
     timeText: options.showTime === false ? "" : niceRepr(entry.time),
   };
+
   if (options.penalty) {
     cell.penalty = entry.penalty ?? 0;
     cell.penaltyText = entry.penalty ? floatformat(entry.penalty) : "";
   }
+
   if (options.bonus) {
     cell.bonus = entry.bonus ?? 0;
     cell.bonusText = entry.bonus ? floatformat(entry.bonus) : "";
   }
+
   return cell;
 }
 
@@ -291,6 +312,7 @@ export function buildParticipationResult(
 ): ParticipationResultDisplay {
   const score = participation.score ?? 0;
   const cumtime = participation.cumtime ?? 0;
+
   return {
     points: score,
     pointsText: floatformat(score, -pointsPrecision(contest)),
@@ -304,6 +326,7 @@ export function breakdown(
   contestProblems: readonly ContestProblemRow[],
 ): (FormatDataEntry | null)[] {
   const data = participation.formatData ?? {};
+
   return contestProblems.map((problem) => data[problem.id] ?? null);
 }
 
@@ -316,9 +339,11 @@ export function numberLabel(index: number): string {
 export function letterLabel(index: number): string {
   let value = index + 1;
   let label = "";
+
   while (value > 0) {
     label += String.fromCharCode(((value - 1) % 26) + 65);
     value = Math.floor((value - 1) / 26);
   }
+
   return [...label].reverse().join("");
 }

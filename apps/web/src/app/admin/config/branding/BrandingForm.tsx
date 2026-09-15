@@ -42,6 +42,7 @@ const THEME_OPTIONS = [
 ];
 
 const DEFAULT_ACCENT = "#2941a5";
+
 const DEFAULT_NAV = "#101a3d";
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
@@ -49,31 +50,39 @@ const HEX = /^#[0-9a-fA-F]{6}$/;
 function parseHex(value: string): [number, number, number] | null {
   if (!HEX.test(value.trim())) return null;
   const int = Number.parseInt(value.trim().slice(1), 16);
+
   return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
 }
 
 function luminance([r, g, b]: [number, number, number]): number {
   const channel = (value: number) => {
     const c = value / 255;
+
     return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
   };
+
   return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
 }
 
 /** Contrast against white, the colour every button and nav item's text takes. */
 function contrastWithWhite(value: string): number | null {
   const rgb = parseHex(value);
+
   if (!rgb) return null;
+
   return Math.round((1.05 / (luminance(rgb) + 0.05)) * 100) / 100;
 }
 
 function lighten(value: string, ratio: number): string {
   const rgb = parseHex(value);
+
   if (!rgb) return value;
+
   const part = (channel: number) =>
     Math.round(channel + (255 - channel) * ratio)
       .toString(16)
       .padStart(2, "0");
+
   return `#${part(rgb[0])}${part(rgb[1])}${part(rgb[2])}`;
 }
 
@@ -120,16 +129,20 @@ export function BrandingForm({ branding }: { branding: Branding }) {
   /** The file goes straight to Convex storage; only the id reaches the form. */
   async function upload(file: File, kind: "logo" | "favicon") {
     setUploadError(null);
+
     try {
       const url = await uploadUrl({});
+
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": file.type },
         body: file,
       });
+
       if (!response.ok) throw new Error(t("uploadRefused", { status: response.status }));
       const { storageId } = (await response.json()) as { storageId: string };
       const objectUrl = URL.createObjectURL(file);
+
       if (kind === "logo") setLogo({ url: objectUrl, storageId });
       else setFavicon({ url: objectUrl, storageId });
     } catch (error) {
@@ -140,9 +153,12 @@ export function BrandingForm({ branding }: { branding: Branding }) {
   async function save() {
     if (!accentValid || !navValid) {
       setStatus({ error: t("colourInvalid") });
+
       return;
     }
+
     setBusy(true);
+
     try {
       await update({
         siteName: form.siteName,
@@ -170,11 +186,13 @@ export function BrandingForm({ branding }: { branding: Branding }) {
 
   async function clearUpload(kind: "logo" | "favicon") {
     setBusy(true);
+
     try {
       await update({
         [kind === "logo" ? "logoStorageId" : "faviconStorageId"]: null,
         reason: reason || `Removed the ${kind}`,
       });
+
       if (kind === "logo") setLogo(null);
       else setFavicon(null);
       setStatus({ saved: kind === "logo" ? t("logoRemoved") : t("faviconRemoved") });
@@ -243,6 +261,7 @@ export function BrandingForm({ branding }: { branding: Branding }) {
                   className="sr-only"
                   onChange={(event) => {
                     const file = event.target.files?.[0];
+
                     if (file) void upload(file, "logo");
                   }}
                 />
@@ -275,6 +294,7 @@ export function BrandingForm({ branding }: { branding: Branding }) {
                   className="sr-only"
                   onChange={(event) => {
                     const file = event.target.files?.[0];
+
                     if (file) void upload(file, "favicon");
                   }}
                 />

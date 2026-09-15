@@ -5,5 +5,6 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const { meta, entries } = await loadFeed("comment", "atom");
+
   return xmlResponse(renderAtom(meta, entries), ATOM_CONTENT_TYPE);
 }

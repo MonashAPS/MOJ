@@ -49,14 +49,17 @@ import { patchProfile } from "./rankings";
 
 /** How far down the queue one claim looks before giving up. */
 export const CLAIM_SCAN_LIMIT = 256;
+
 /**
  * Convex reads at most 16384 documents in one transaction. The two recomputes
  * that follow a grading-end walk a user's and a problem's whole submission
  * history, so both are capped well under that
  */
 export const RECOMPUTE_SCAN_LIMIT = 6000;
+
 /** `SubmissionTestCase.feedback` is a CharField(max_length=50) in DMOJ. */
 export const MAX_FEEDBACK_LENGTH = 50;
+
 /** A claim that has produced nothing for this long is assumed dead. */
 export const STALE_CLAIM_MS = 15 * 60_000;
 
@@ -101,10 +104,14 @@ export async function resolveSubmission(
       .withIndex("by_legacyId", (q) => q.eq("legacyId", wireId))
       .unique();
   }
+
   const normalized = ctx.db.normalizeId("submissions", wireId);
+
   if (normalized) return await ctx.db.get(normalized);
   const asNumber = Number(wireId);
+
   if (!Number.isFinite(asNumber)) return null;
+
   return await ctx.db
     .query("submissions")
     .withIndex("by_legacyId", (q) => q.eq("legacyId", asNumber))
@@ -123,6 +130,7 @@ export function wireSubmissionId(submission: Doc<"submissions">): number | strin
  */
 export async function allocateSubmissionNumber(ctx: MutationCtx): Promise<number> {
   const highest = await ctx.db.query("submissions").withIndex("by_legacyId").order("desc").first();
+
   return (highest?.legacyId ?? 0) + 1;
 }
 
@@ -155,6 +163,7 @@ export interface ClaimedSubmissionPayload {
 
 function toJudgeRow(judge: Doc<"judges">, now: number): JudgeRow {
   const lastSeen = judge.lastSeen ?? judge.startTime ?? 0;
+
   return {
     id: judge._id,
     name: judge.name,
@@ -180,14 +189,20 @@ async function attemptNumber(ctx: QueryCtx, submission: Doc<"submissions">): Pro
       q.eq("profileId", submission.profileId).eq("problemId", submission.problemId),
     )
     .collect();
+
   let count = 0;
+
   for (const row of previous) {
     if (row._id === submission._id) continue;
+
     if (row.date >= submission.date) continue;
+
     if ((row.participationId ?? null) !== (submission.participationId ?? null)) continue;
+
     if (row.status === "CE" || row.status === "IE") continue;
     count += 1;
   }
+
   return count + 1;
 }
 
@@ -201,7 +216,9 @@ async function resolveLimits(
     .query("languageLimits")
     .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
     .collect();
+
   const override = limits.find((row) => row.languageId === languageId);
+
   return {
     timeLimit: override?.timeLimit ?? problem.timeLimit,
     memoryLimit: override?.memoryLimit ?? problem.memoryLimit,
@@ -221,7 +238,9 @@ export async function claimNext(
   judgeId: Id<"judges">,
 ): Promise<ClaimedSubmissionPayload | null> {
   const judge = await ctx.db.get(judgeId);
+
   if (!judge) return null;
+
   // One judge grades one submission at a time.
   if (judge.currentSubmissionId) return null;
 
@@ -229,6 +248,7 @@ export async function claimNext(
   const judgeDocs = await ctx.db.query("judges").collect();
   const judgeRows = judgeDocs.map((row) => toJudgeRow(row, now));
   const thisJudge = judgeRows.find((row) => row.id === judgeId);
+
   if (!thisJudge) return null;
 
   const queued = await ctx.db
@@ -236,6 +256,7 @@ export async function claimNext(
     .withIndex("by_status_priority", (q) => q.eq("status", "QU"))
     .order("asc")
     .take(CLAIM_SCAN_LIMIT);
+
   if (queued.length === 0) return null;
 
   const problems = new Map<Id<"problems">, Doc<"problems"> | null>();
@@ -249,19 +270,24 @@ export async function claimNext(
 
   const candidates: ClaimableSubmission[] = [];
   const byId = new Map<string, Doc<"submissions">>();
+
   for (const submission of queued) {
     if (!problems.has(submission.problemId)) {
       problems.set(submission.problemId, await ctx.db.get(submission.problemId));
     }
+
     if (!languages.has(submission.languageId)) {
       languages.set(submission.languageId, await ctx.db.get(submission.languageId));
     }
+
     if (!dataHashes.has(submission.problemId)) {
       const data = await testDataRow(ctx, submission.problemId);
       dataHashes.set(submission.problemId, data?.hash ?? null);
     }
+
     const problem = problems.get(submission.problemId);
     const language = languages.get(submission.languageId);
+
     if (!problem || !language) continue;
 
     byId.set(submission._id, submission);
@@ -278,22 +304,27 @@ export async function claimNext(
   }
 
   const chosen = selectClaim(thisJudge, candidates, judgeRows);
+
   if (!chosen) return null;
 
   const submission = byId.get(chosen.id as string);
+
   if (!submission) return null;
   const problem = problems.get(submission.problemId);
+
   if (!problem) return null;
 
   const source = await ctx.db
     .query("submissionSources")
     .withIndex("by_submission", (q) => q.eq("submissionId", submission._id))
     .unique();
+
   const profile = await ctx.db.get(submission.profileId);
   const limits = await resolveLimits(ctx, problem, submission.languageId);
   const attemptNo = await attemptNumber(ctx, submission);
 
   let inContest: number | null = null;
+
   if (submission.participationId) {
     const participation = await ctx.db.get(submission.participationId);
     inContest = participation?.virtual ?? null;
@@ -341,6 +372,7 @@ export async function claimNext(
  */
 export async function recomputeProfilePoints(ctx: MutationCtx, profileId: Id<"profiles">): Promise<void> {
   const profile = await ctx.db.get(profileId);
+
   if (!profile) return;
 
   const submissions = await ctx.db
@@ -351,11 +383,14 @@ export async function recomputeProfilePoints(ctx: MutationCtx, profileId: Id<"pr
 
   const problems = new Map<Id<"problems">, Doc<"problems"> | null>();
   const rows = [];
+
   for (const submission of submissions) {
     if (!problems.has(submission.problemId)) {
       problems.set(submission.problemId, await ctx.db.get(submission.problemId));
     }
+
     const problem = problems.get(submission.problemId);
+
     if (!problem) continue;
     rows.push({
       problemId: submission.problemId as string,
@@ -381,6 +416,7 @@ export async function recomputeProfilePoints(ctx: MutationCtx, profileId: Id<"pr
 /** `Problem.update_stats()`: solver count and AC rate, unlisted users excluded. */
 export async function recomputeProblemStats(ctx: MutationCtx, problemId: Id<"problems">): Promise<void> {
   const problem = await ctx.db.get(problemId);
+
   if (!problem) return;
 
   const submissions = await ctx.db
@@ -391,10 +427,12 @@ export async function recomputeProblemStats(ctx: MutationCtx, problemId: Id<"pro
 
   const profiles = new Map<Id<"profiles">, Doc<"profiles"> | null>();
   const rows = [];
+
   for (const submission of submissions) {
     if (!profiles.has(submission.profileId)) {
       profiles.set(submission.profileId, await ctx.db.get(submission.profileId));
     }
+
     rows.push({
       profileId: submission.profileId as string,
       result: (submission.result ?? null) as SubmissionResult | null,
@@ -418,14 +456,17 @@ export async function recomputeParticipation(
   participationId: Id<"contestParticipations">,
 ): Promise<void> {
   const participation = await ctx.db.get(participationId);
+
   if (!participation) return;
   const contest = await ctx.db.get(participation.contestId);
+
   if (!contest) return;
 
   const contestProblems = await ctx.db
     .query("contestProblems")
     .withIndex("by_contest_order", (q) => q.eq("contestId", contest._id))
     .collect();
+
   const contestProblemById = new Map(contestProblems.map((row) => [row._id, row]));
 
   const submissions = await ctx.db
@@ -434,13 +475,16 @@ export async function recomputeParticipation(
     .collect();
 
   const rows = [];
+
   for (const submission of submissions) {
     if (!submission.contestProblemId) continue;
     const contestProblem = contestProblemById.get(submission.contestProblemId);
+
     if (!contestProblem) continue;
 
     // `Submission.update_contest()` recomputes the stored contest points.
     const points = computeContestSubmissionPoints(submission, contestProblem);
+
     if (submission.contestPoints !== points) {
       await ctx.db.patch(submission._id, { contestPoints: points });
     }
@@ -543,6 +587,7 @@ async function deleteTestCases(ctx: MutationCtx, submissionId: Id<"submissions">
     .query("submissionTestCases")
     .withIndex("by_submission_case", (q) => q.eq("submissionId", submissionId))
     .collect();
+
   for (const row of rows) await ctx.db.delete(row._id);
 }
 
@@ -619,6 +664,7 @@ async function onTestCaseStatus(
   for (const wire of cases) {
     const position = wire.position ?? 0;
     maxPosition = Math.max(maxPosition, position);
+
     const row = {
       submissionId: submission._id,
       case: position,
@@ -637,6 +683,7 @@ async function onTestCaseStatus(
       .query("submissionTestCases")
       .withIndex("by_submission_case", (q) => q.eq("submissionId", submission._id).eq("case", position))
       .unique();
+
     if (existing) {
       await ctx.db.patch(existing._id, row);
     } else {
@@ -655,17 +702,21 @@ async function onTestCaseStatus(
  */
 export async function finishGrading(ctx: MutationCtx, submissionId: Id<"submissions">): Promise<void> {
   const submission = await ctx.db.get(submissionId);
+
   if (!submission) return;
+
   // A retried grading-end must not rescore an already-final submission.
   if (submission.status === "D") return;
 
   const problem = await ctx.db.get(submission.problemId);
+
   if (!problem) throw invalid("Submission has no problem.");
 
   const testCases = await ctx.db
     .query("submissionTestCases")
     .withIndex("by_submission_case", (q) => q.eq("submissionId", submissionId))
     .collect();
+
   testCases.sort((a, b) => a.case - b.case);
 
   const graded = computeGradingEnd(testCases.map(toCoreTestCase), {
@@ -689,7 +740,9 @@ export async function finishGrading(ctx: MutationCtx, submissionId: Id<"submissi
   if (problem.isPublic && !problem.isOrganizationPrivate) {
     await recomputeProfilePoints(ctx, submission.profileId);
   }
+
   await recomputeProblemStats(ctx, submission.problemId);
+
   if (submission.participationId) {
     await recomputeParticipation(ctx, submission.participationId);
   }
@@ -711,6 +764,7 @@ async function finishWithStatus(
     inBatch: false,
   });
   await releaseSubmission(ctx, submission);
+
   if (submission.participationId) {
     await recomputeParticipation(ctx, submission.participationId);
   }
@@ -733,46 +787,56 @@ export async function applyJudgeEvent(
   switch (event.type) {
     case "grading-begin":
       await onGradingBegin(ctx, submission, event.pretested === true);
+
       return { ok: true };
 
     case "batch-begin":
       await onBatchBegin(ctx, submission);
+
       return { ok: true };
 
     case "batch-end":
       await onBatchEnd(ctx, submission);
+
       return { ok: true };
 
     case "test-case-status":
       await onTestCaseStatus(ctx, submission, event.cases ?? []);
+
       return { ok: true };
 
     case "grading-end":
       await finishGrading(ctx, submission._id);
+
       return { ok: true };
 
     case "compile-error":
       if (submission.status === "CE") return { ok: true };
       await finishWithStatus(ctx, submission, "CE", event.log ?? "");
+
       return { ok: true };
 
     case "compile-message": {
       // Every compiled executor reports its output, empty or not. An empty log
       // is not a compiler warning and must never be shown as one.
       const log = (event.log ?? "").trim();
+
       if (log.length === 0) return { ok: true };
       await ctx.db.patch(submission._id, { error: event.log ?? "" });
+
       return { ok: true };
     }
 
     case "internal-error":
       if (submission.status === "IE") return { ok: true };
       await finishWithStatus(ctx, submission, "IE", event.message ?? "");
+
       return { ok: true };
 
     case "submission-terminated":
       if (submission.status === "AB") return { ok: true };
       await finishWithStatus(ctx, submission, "AB", undefined);
+
       return { ok: true };
 
     default:
@@ -801,13 +865,16 @@ export async function queueSubmission(
   options: QueueOptions = {},
 ): Promise<boolean> {
   const submission = await ctx.db.get(submissionId);
+
   if (!submission) return false;
+
   if (submission.status === "P" || submission.status === "G") return false;
 
   const rejudged = options.rejudge === true || options.batchRejudge === true;
 
   let isPretested = submission.isPretested;
   let priority = DEFAULT_PRIORITY;
+
   if (submission.participationId && submission.contestProblemId) {
     priority = CONTEST_SUBMISSION_PRIORITY;
     const participation = await ctx.db.get(submission.participationId);
@@ -815,6 +882,7 @@ export async function queueSubmission(
     const contestProblem = await ctx.db.get(submission.contestProblemId);
     isPretested = (contest?.runPretestsOnly ?? false) && (contestProblem?.isPretested ?? false);
   }
+
   if (options.batchRejudge) priority = BATCH_REJUDGE_PRIORITY;
   else if (options.rejudge) priority = REJUDGE_PRIORITY;
 
@@ -844,6 +912,7 @@ export async function queueSubmission(
     ...(options.judgePin === undefined ? {} : { judgePin: options.judgePin ?? undefined }),
   });
   await deleteTestCases(ctx, submissionId);
+
   return true;
 }
 
@@ -865,6 +934,7 @@ export const handshake = internalMutation({
       executors: args.executors as Record<string, Array<[string, ...unknown[]]>>,
       ip: args.ip,
     });
+
     return { ok: true as const, judgeId: judge._id as string };
   },
 });
@@ -885,6 +955,7 @@ export const heartbeat = internalMutation({
       executors: args.executors as Record<string, Array<[string, ...unknown[]]>> | undefined,
       ip: args.ip,
     });
+
     return { ok: true as const, serverTime: Date.now() };
   },
 });
@@ -895,7 +966,9 @@ export const claim = internalMutation({
     const judge = await authenticateJudge(ctx, args.judgeName, args.authKeyHash);
     // Claiming is also a sign of life; a judge that is claiming is not dead.
     await ctx.db.patch(judge._id, { online: true, lastSeen: Date.now() });
+
     if (judge.isDisabled) return { submission: null };
+
     return { submission: await claimNext(ctx, judge._id) };
   },
 });
@@ -909,11 +982,13 @@ export const event = internalMutation({
   handler: async (ctx, args) => {
     await authenticateJudge(ctx, args.judgeName, args.authKeyHash);
     const submission = await resolveSubmission(ctx, args.submissionId);
+
     if (!submission) {
       // DMOJ logs "Unknown submission" and carries on; a 200 stops the judge
       // retrying an event for something that no longer exists.
       return { ok: false, error: "unknown submission" };
     }
+
     return await applyJudgeEvent(ctx, submission, args.event as JudgeEventPayload);
   },
 });
@@ -923,6 +998,7 @@ export const abortFlag = internalQuery({
   handler: async (ctx, args) => {
     await authenticateJudge(ctx, args.judgeName, args.authKeyHash);
     const submission = await resolveSubmission(ctx, args.submissionId);
+
     return { abort: submission?.abortRequested === true };
   },
 });
@@ -933,6 +1009,7 @@ export const disconnect = internalMutation({
     const judge = await authenticateJudge(ctx, args.judgeName, args.authKeyHash);
     // A clean shutdown leaves whatever it was grading for the recovery cron.
     await ctx.db.patch(judge._id, { online: false, currentSubmissionId: undefined });
+
     return { ok: true as const };
   },
 });
@@ -958,6 +1035,7 @@ export const recoverStuckSubmissions = internalMutation({
 
     const judges = new Map<Id<"judges">, Doc<"judges"> | null>();
     const inFlight: Doc<"submissions">[] = [];
+
     for (const status of ["P", "G"] as const) {
       inFlight.push(
         ...(await ctx.db
@@ -970,8 +1048,10 @@ export const recoverStuckSubmissions = internalMutation({
     let requeued = 0;
     let failed = 0;
     let aborted = 0;
+
     for (const submission of inFlight) {
       const judgeId = submission.claimedByJudgeId;
+
       if (judgeId && !judges.has(judgeId)) judges.set(judgeId, await ctx.db.get(judgeId));
       const judge = judgeId ? judges.get(judgeId) : null;
 

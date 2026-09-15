@@ -19,6 +19,7 @@ function first(value: string | string[] | undefined): string | undefined {
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
   const t = await getTranslations("organizations.members");
+
   return { title: t("title", { organization: slugFromHandle(handle) }) };
 }
 
@@ -44,10 +45,12 @@ export default async function OrganizationUsersPage({
     }),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
   ]);
+
   if (!data.organization) notFound();
 
   const base = `/organization/${handle}/users/`;
   const params_ = new URLSearchParams();
+
   if (first(search.order)) params_.set("order", state.order);
 
   return (

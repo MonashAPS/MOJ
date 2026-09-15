@@ -19,27 +19,39 @@ export const RATING_BANDS: readonly { from: number; to: number; token: string }[
 ];
 
 export const CHART_HEIGHT = 260;
+
 /** What the server renders with, before the client has measured its container. */
 export const CHART_WIDTH = 760;
+
 export const CHART_MIN_WIDTH = 320;
+
 const PADDING = { top: 14, right: 16, bottom: 28, left: 48 };
 
 /** With no history there is nothing to scale to, so the axis covers the bands a
  *  rated user is most likely to land in and the panel keeps its shape. */
 const EMPTY_DOMAIN = { low: 800, high: 2400 };
+
 /** A single contest would otherwise scale to a 100 point window. */
 const MIN_SPAN = 200;
+
 const PAD_RATING = 50;
+
 const STEP_CANDIDATES = [50, 100, 200, 250, 500, 1000, 2000];
+
 const MAX_Y_TICKS = 6;
+
 const MAX_X_TICKS = 5;
+
 /** A date label is about 90px wide, so this is the room two of them need. */
 const X_TICK_SPACING = 130;
 
 export type ChartBand = { token: string; y: number; height: number };
+
 export type ChartYTick = { value: number; y: number };
+
 /** The end labels are anchored inwards so they cannot spill out of the panel. */
 export type ChartXTick = { value: number; x: number; anchor: "start" | "middle" | "end" };
+
 export type ChartDot = {
   key: string;
   x: number;
@@ -71,11 +83,13 @@ function ratingDomain(points: readonly RatingPoint[]) {
   const ratings = points.map((point) => point.rating);
   let low = Math.min(...ratings) - PAD_RATING;
   let high = Math.max(...ratings) + PAD_RATING;
+
   if (high - low < MIN_SPAN) {
     const middle = (high + low) / 2;
     low = middle - MIN_SPAN / 2;
     high = middle + MIN_SPAN / 2;
   }
+
   return {
     low: Math.max(0, Math.floor(low / PAD_RATING) * PAD_RATING),
     high: Math.ceil(high / PAD_RATING) * PAD_RATING,
@@ -86,6 +100,7 @@ function tickStep(span: number) {
   for (const step of STEP_CANDIDATES) {
     if (span / step <= MAX_Y_TICKS) return step;
   }
+
   return STEP_CANDIDATES[STEP_CANDIDATES.length - 1] as number;
 }
 
@@ -102,6 +117,7 @@ export function buildRatingChart(
     width: Math.max(1, width - PADDING.left - PADDING.right),
     height: Math.max(1, height - PADDING.top - PADDING.bottom),
   };
+
   const domain = ratingDomain(points);
   const span = domain.high - domain.low;
 
@@ -110,15 +126,19 @@ export function buildRatingChart(
   const first = points[0];
   const last = points[points.length - 1];
   const timeSpan = first && last ? last.timestamp - first.timestamp : 0;
+
   const xFor = (timestamp: number) => {
     if (!first || timeSpan <= 0) return round(plot.x + plot.width / 2);
+
     return round(plot.x + ((timestamp - first.timestamp) / timeSpan) * plot.width);
   };
 
   const bands: ChartBand[] = [];
+
   for (const band of RATING_BANDS) {
     const from = Math.max(band.from, domain.low);
     const to = Math.min(band.to, domain.high);
+
     if (to <= from) continue;
     const y = yFor(to);
     bands.push({ token: band.token, y, height: round(yFor(from) - y) });
@@ -126,25 +146,31 @@ export function buildRatingChart(
 
   const step = tickStep(span);
   const yTicks: ChartYTick[] = [];
+
   for (let value = Math.ceil(domain.low / step) * step; value <= domain.high; value += step) {
     yTicks.push({ value, y: yFor(value) });
   }
 
   const xTicks: ChartXTick[] = [];
+
   if (first && last) {
     const fit = Math.max(2, Math.min(MAX_X_TICKS, Math.floor(plot.width / X_TICK_SPACING)));
     const count = timeSpan <= 0 ? 1 : Math.min(fit, Math.max(2, points.length));
+
     for (let index = 0; index < count; index++) {
       const value =
         count === 1 ? first.timestamp : Math.round(first.timestamp + (timeSpan * index) / (count - 1));
+
       const anchor =
         count === 1 || (index > 0 && index < count - 1) ? "middle" : index === 0 ? "start" : "end";
+
       xTicks.push({ value, x: xFor(value), anchor });
     }
   }
 
   const dots: ChartDot[] = points.map((point, index) => {
     const previous = points[index - 1];
+
     return {
       key: `${point.contestKey}-${point.timestamp}`,
       x: xFor(point.timestamp),

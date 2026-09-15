@@ -13,6 +13,7 @@ export async function generateMetadata({
 }) {
   const { key, user, problem } = await params;
   const t = await getTranslations("contests.participations");
+
   return { title: t("metaProblemSubmissions", { user, problem, key }) };
 }
 
@@ -25,10 +26,12 @@ export default async function ContestUserProblemSubmissionsPage({
 }) {
   const { key, user, problem } = await params;
   const viewer = await queryAsViewer(api.viewer.current, {});
+
   if (user === "me") {
     if (!viewer.profile) redirect(`/accounts/login/?next=/contest/${key}/`);
     redirect(`/contest/${key}/submissions/${viewer.profile.username}/${problem}/`);
   }
+
   return (
     <SubmissionListPage
       filters={{ contestKey: key, username: user, problemCode: problem }}

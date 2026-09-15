@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
  *  English; this is where the catalogue reaches it. */
 export function UiText({ children }: { children: ReactNode }) {
   const t = useTranslations("common.ui");
+
   return (
     <UiTextProvider
       value={{

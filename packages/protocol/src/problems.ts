@@ -65,7 +65,9 @@ export const problemUpsertInput = z
   .strict();
 
 export type ProblemUpsertInput = z.infer<typeof problemUpsertInput>;
+
 export type EditorialInput = z.infer<typeof editorialInput>;
+
 export type LanguageLimitInput = z.infer<typeof languageLimitInput>;
 
 /** Keys the endpoint honours only when it is creating the problem. */

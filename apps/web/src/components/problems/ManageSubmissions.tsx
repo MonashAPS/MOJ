@@ -33,6 +33,7 @@ const RESULTS = ["AC", "WA", "TLE", "MLE", "OLE", "IR", "RTE", "CE", "IE", "SC",
 function JobProgress({ jobId, kind }: { jobId: Id<"jobs">; kind: "rejudge" | "rescore" }) {
   const t = useTranslations("problems.manage");
   const job = useQuery(api.jobs.status, { jobId });
+
   if (!job) return null;
   const done = job.status === "done" || job.status === "failed";
   const total = job.progress?.total ?? 0;
@@ -103,6 +104,7 @@ export function ManageSubmissions({
         }
       : "skip",
   );
+
   const totals = useQuery(api.submissions.resultsForProblem, { problemCode });
   const previewCount = preview?.count ?? null;
   const rescoreCount = totals?.total ?? 0;
@@ -110,6 +112,7 @@ export function ManageSubmissions({
   async function run(action: () => Promise<{ jobId: Id<"jobs"> }>, set: (id: Id<"jobs">) => void) {
     setBusy(true);
     setError(null);
+
     try {
       const { jobId } = await action();
       set(jobId);

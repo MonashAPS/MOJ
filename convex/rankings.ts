@@ -23,6 +23,7 @@ export const userSort = v.union(
   v.literal("problemCount"),
   v.literal("rating"),
 );
+
 export type UserSort = "performancePoints" | "points" | "problemCount" | "rating";
 
 const SORT_INDEX = {
@@ -86,6 +87,7 @@ async function organizationMemberProfiles(ctx: QueryCtx, slug: string): Promise<
     .query("organizations")
     .withIndex("by_slug", (q) => q.eq("slug", slug))
     .unique();
+
   if (!organization) return null;
 
   const memberships = await ctx.db
@@ -94,10 +96,13 @@ async function organizationMemberProfiles(ctx: QueryCtx, slug: string): Promise<
     .collect();
 
   const profiles: Doc<"profiles">[] = [];
+
   for (const membership of memberships) {
     const profile = await ctx.db.get(membership.profileId);
+
     if (profile && !profile.isUnlisted) profiles.push(profile);
   }
+
   return profiles;
 }
 
@@ -148,6 +153,7 @@ export const users = query({
     if (viewer?.currentParticipationId) {
       const participation = await ctx.db.get(viewer.currentParticipationId);
       const contest = participation ? await ctx.db.get(participation.contestId) : null;
+
       if (contest) {
         return { ...empty, contestScoreboard: { key: contest.key, name: contest.name } };
       }
@@ -160,10 +166,13 @@ export const users = query({
 
     if (organizationSlug) {
       const members = await organizationMemberProfiles(ctx, organizationSlug);
+
       if (members === null) return empty;
       members.sort((a, b) => {
         const delta = sortValue(a, sort) - sortValue(b, sort);
+
         if (delta !== 0) return descending ? -delta : delta;
+
         return a._id < b._id ? -1 : a._id > b._id ? 1 : 0;
       });
       totalUsers = members.length;
@@ -174,11 +183,14 @@ export const users = query({
         .withIndex(SORT_INDEX[sort], (q) => q.eq("isUnlisted", false))
         .order(descending ? "desc" : "asc")
         .take(offset + USERS_PER_PAGE);
+
       // `order_by(self.order, 'id')`: the index orders ties by document id in
       // the same direction as the sort column, so re-break them ascending.
       scanned.sort((a, b) => {
         const delta = sortValue(a, sort) - sortValue(b, sort);
+
         if (delta !== 0) return descending ? -delta : delta;
+
         return a._id < b._id ? -1 : a._id > b._id ? 1 : 0;
       });
       pageRows = scanned.slice(offset);
@@ -219,6 +231,7 @@ export const find = query({
       .query("profiles")
       .withIndex("by_username", (q) => q.eq("username", username))
       .unique();
+
     if (!profile) return null;
 
     if (profile.isUnlisted) {
@@ -233,6 +246,7 @@ export const find = query({
       namespace: false,
       bounds: { lower: { key: profile.performancePoints, inclusive: false } },
     });
+
     const tiedBefore = await profilesByPP.count(ctx, {
       namespace: false,
       bounds: {
@@ -240,6 +254,7 @@ export const find = query({
         upper: { key: profile.performancePoints, id: profile._id, inclusive: false },
       },
     });
+
     const offset = ahead + tiedBefore;
 
     return {
@@ -266,6 +281,7 @@ export const top = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, { limit }): Promise<TopUser[]> => {
     const take = Math.max(1, Math.min(limit ?? 10, 50));
+
     const rows = await ctx.db
       .query("profiles")
       .withIndex("by_listed_pp", (q) => q.eq("isUnlisted", false))
@@ -326,11 +342,14 @@ export async function patchProfile(
   patch: Partial<Doc<"profiles">>,
 ): Promise<Doc<"profiles">> {
   const before = await ctx.db.get(profileId);
+
   if (!before) throw new Error("profile disappeared");
   await ctx.db.patch(profileId, patch);
   const after = await ctx.db.get(profileId);
+
   if (!after) throw new Error("profile disappeared");
   await replaceProfileAggregates(ctx, before, after);
+
   return after;
 }
 
@@ -338,15 +357,19 @@ export const rebuildAggregates = internalMutation({
   args: { cursor: v.optional(v.string()), batch: v.optional(v.number()) },
   handler: async (ctx, { cursor, batch }) => {
     const size = Math.max(1, Math.min(batch ?? 200, 500));
+
     if (!cursor) {
       await profilesByPP.clearAll(ctx);
       await profilesByRating.clearAll(ctx);
       await profilesByProblemCount.clearAll(ctx);
     }
+
     const result = await ctx.db.query("profiles").paginate({ cursor: cursor ?? null, numItems: size });
+
     for (const profile of result.page) {
       await insertProfileAggregates(ctx, profile);
     }
+
     return { cursor: result.continueCursor, isDone: result.isDone, done: result.page.length };
   },
 });
@@ -360,9 +383,11 @@ export const repairAggregates = mutation({
     await profilesByRating.clearAll(ctx);
     await profilesByProblemCount.clearAll(ctx);
     const profiles = await ctx.db.query("profiles").collect();
+
     for (const profile of profiles) {
       await insertProfileAggregates(ctx, profile);
     }
+
     return profiles.length;
   },
 });

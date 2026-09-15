@@ -39,22 +39,29 @@ export async function mediaRoot(): Promise<string> {
   if (cachedRoot) return cachedRoot;
 
   const configured = process.env.MOJ_MEDIA_ROOT;
+
   if (configured) {
     cachedRoot = path.resolve(configured);
+
     return cachedRoot;
   }
 
   let dir = process.cwd();
+
   for (;;) {
     const candidate = path.join(dir, MEDIA_DIRNAME);
+
     try {
       await access(candidate, constants.R_OK);
       cachedRoot = candidate;
+
       return cachedRoot;
     } catch {
       // keep walking
     }
+
     const parent = path.dirname(dir);
+
     if (parent === dir) break;
     dir = parent;
   }
@@ -62,6 +69,7 @@ export async function mediaRoot(): Promise<string> {
   // Nothing on disk yet (the tree is gitignored and only exists after an
   // import). Resolve against the working directory so the route 404s cleanly.
   cachedRoot = path.join(process.cwd(), MEDIA_DIRNAME);
+
   return cachedRoot;
 }
 
@@ -71,13 +79,18 @@ export async function mediaRoot(): Promise<string> {
  */
 export function resolveMediaPath(root: string, segments: readonly string[]): string | null {
   if (segments.length === 0) return null;
+
   for (const segment of segments) {
     if (!segment || segment === "." || segment === "..") return null;
+
     if (segment.includes("\0") || segment.includes("/") || segment.includes("\\")) return null;
   }
+
   const resolved = path.resolve(root, ...segments);
   const prefix = root.endsWith(path.sep) ? root : root + path.sep;
+
   if (!resolved.startsWith(prefix)) return null;
+
   return resolved;
 }
 

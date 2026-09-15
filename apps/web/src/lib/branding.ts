@@ -48,12 +48,14 @@ export function brandingCss(branding: BrandingValues | null): string | null {
         `--contest-bar:${safeValue(contestBar)}`,
         `--brand-royal:${safeValue(accent)}`,
       ].join(";");
+
     const light = vars(
       branding.accentColor,
       branding.navColor,
       branding.titlebarColor,
       branding.contestBarColor,
     );
+
     // The dark chrome is its own set of values, derived from the operator's the
     // way tokens.css derives its dark chrome from its light chrome. `.theme-dark`
     // comes with the explicit selector so the hall scoreboard, which is dark
@@ -72,6 +74,7 @@ export function brandingCss(branding: BrandingValues | null): string | null {
       `--accent-fill-hover:${safeValue(branding.accentFillHoverDark)}`,
       `--accent-fill-active:${safeValue(branding.accentFillActiveDark)}`,
     ].join(";");
+
     blocks.push(
       `:root{${light};}`,
       `@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${dark};}}`,

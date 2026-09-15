@@ -26,18 +26,24 @@ export function RouteProgress() {
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) {
         return;
       }
+
       const anchor = (event.target as HTMLElement | null)?.closest?.("a");
+
       if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
       const href = anchor.getAttribute("href");
+
       if (!href || href.startsWith("#") || href.startsWith("mailto:")) return;
       const url = new URL(href, window.location.href);
+
       if (url.origin !== window.location.origin) return;
+
       if (url.pathname === window.location.pathname) return;
       start();
     };
 
     document.addEventListener("click", onClick, true);
     window.addEventListener("popstate", start);
+
     return () => {
       document.removeEventListener("click", onClick, true);
       window.removeEventListener("popstate", start);
@@ -52,6 +58,7 @@ export function RouteProgress() {
   }, [pathname]);
 
   if (!pending) return null;
+
   return (
     <div
       role="progressbar"

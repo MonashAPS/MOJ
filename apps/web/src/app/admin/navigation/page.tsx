@@ -5,6 +5,7 @@ import { NavigationEditor } from "./NavigationEditor";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.navigation");
+
   return { title: t("metaTitle") };
 }
 

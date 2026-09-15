@@ -68,12 +68,16 @@ export function PasskeyManager({
     setBusy(true);
     setError(null);
     setNotice(null);
+
     try {
       const result = await authClient.passkey.addPasskey({ name: name.trim() || "Passkey" });
+
       if (result?.error) {
         setError(t("passkeys.registerFailed"));
+
         return;
       }
+
       setName("");
       setNotice(t("passkeys.registered"));
       router.refresh();
@@ -88,13 +92,17 @@ export function PasskeyManager({
   async function remove(passkey: PasskeySummary) {
     setDeleting(true);
     setError(null);
+
     try {
       const response = await fetch(`/accounts/2fa/webauthn/delete/${passkey.id}/`, { method: "POST" });
+
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
         setError(body?.error?.message ?? t("passkeys.removeFailed"));
+
         return;
       }
+
       setPendingDelete(null);
       setNotice(t("passkeys.removed", { name: passkey.name }));
       router.refresh();
@@ -170,6 +178,7 @@ export function PasskeyManager({
             <TableBody>
               {passkeys.map((passkey) => {
                 const locked = lastFactorLocked && passkeys.length === 1;
+
                 return (
                   <TableRow key={passkey.id}>
                     <TableCell className="font-medium text-foreground">{passkey.name}</TableCell>
@@ -212,6 +221,7 @@ export function PasskeyManager({
               aria-busy={deleting || undefined}
               onClick={(event) => {
                 event.preventDefault();
+
                 if (pendingDelete) void remove(pendingDelete);
               }}
             >

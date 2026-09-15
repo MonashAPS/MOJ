@@ -6,9 +6,13 @@ const crons = cronJobs();
 // SPEC section 12. Every target is an internal mutation in the module that owns
 // the work, so a cron run is the same transaction a manual run would be.
 crons.interval("judge recovery", { minutes: 1 }, internal.judging.recoverStuckSubmissions, {});
+
 crons.interval("judge offline marking", { minutes: 1 }, internal.judgeApi.markOfflineJudges, {});
+
 crons.interval("stale contest-mode cleanup", { minutes: 5 }, internal.jobs.contests.sweepContestMode, {});
+
 crons.interval("stats refresh", { minutes: 15 }, internal.stats.refresh, {});
+
 // Recordings are the largest thing stored and the least often looked at.
 crons.interval("proctor retention", { hours: 6 }, internal.jobs.proctor.sweepRecordings, {});
 

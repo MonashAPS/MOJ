@@ -46,6 +46,7 @@ export function RegisterForm({
   useEffect(() => {
     try {
       const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
       if (detected && timezones.includes(detected)) setTimezone(detected);
     } catch {
       // keep the default
@@ -56,11 +57,15 @@ export function RegisterForm({
   // an availability endpoint, so the answer arrives while you are still typing.
   useEffect(() => {
     const candidate = username.trim();
+
     if (!candidate || !/^\w{1,30}$/.test(candidate)) {
       setAvailable("unknown");
+
       return;
     }
+
     setAvailable("checking");
+
     const timer = window.setTimeout(async () => {
       try {
         const result = await authClient.isUsernameAvailable({ username: candidate });
@@ -69,19 +74,25 @@ export function RegisterForm({
         setAvailable("unknown");
       }
     }, 350);
+
     return () => window.clearTimeout(timer);
   }, [username]);
 
   function validate(): FieldErrors {
     const next: FieldErrors = {};
+
     if (!/^\w+$/.test(username)) next.username = t("usernameChars");
     else if (username.length > 30) next.username = t("usernameTooLong");
     else if (available === "taken") next.username = t("usernameTaken");
+
     if (!email.includes("@")) next.email = tError("invalidEmail");
     else if (isDisposableEmail(email)) next.email = tError(DISPOSABLE_EMAIL_KEY);
+
     if (password1.length < 8) next.password1 = tPassword("tooShort");
     else if (/^\d+$/.test(password1)) next.password1 = tPassword("numeric");
+
     if (password1 !== password2) next.password2 = tPassword("mismatch");
+
     return next;
   }
 
@@ -89,9 +100,11 @@ export function RegisterForm({
     event.preventDefault();
     const found = validate();
     setErrors(found);
+
     if (Object.keys(found).length > 0) return;
 
     setBusy(true);
+
     try {
       const result = await authClient.signUp.email({
         email,
@@ -102,15 +115,19 @@ export function RegisterForm({
         preferredLanguage: language,
         organizationSlugs: selectedOrganizations.join(","),
       });
+
       if (result.error) {
         const message = result.error.message ?? t("failed");
+
         if (message === DISPOSABLE_EMAIL_KEY) setErrors({ email: tError(DISPOSABLE_EMAIL_KEY) });
         else if (/username/i.test(message)) setErrors({ username: message });
         else if (/breach|compromised|password/i.test(message)) setErrors({ password1: message });
         else if (/email/i.test(message)) setErrors({ email: message });
         else setErrors({ form: message });
+
         return;
       }
+
       router.push(`/accounts/register/complete/?email=${encodeURIComponent(email)}`);
     } catch {
       setErrors({ form: t("failedRetry") });

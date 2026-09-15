@@ -19,6 +19,7 @@ import { insertProfileAggregates } from "./rankings";
 import { judgeKey, type T } from "./test.setup";
 
 export const MINUTE = 60_000;
+
 export const HOUR = 3_600_000;
 
 type Row<Table extends TableNames> = WithoutSystemFields<Doc<Table>>;
@@ -34,17 +35,20 @@ async function write<Output>(target: Target, fn: (ctx: MutationCtx) => Promise<O
 }
 
 let profileCount = 0;
+
 let judgeCount = 0;
 
 /** The name an unnamed profile gets, unique within the test file. */
 function nextUsername(): string {
   profileCount += 1;
+
   return `user${profileCount}`;
 }
 
 /** The name an unnamed judge gets, unique within the test file. */
 function nextJudgeName(): string {
   judgeCount += 1;
+
   return `judge${judgeCount}`;
 }
 
@@ -68,6 +72,7 @@ export function asUser(t: T, username: string): ReturnType<T["withIdentity"]> {
 
 export function profileRow(overrides: Overrides<"profiles"> = {}): Row<"profiles"> {
   const username = overrides.username ?? nextUsername();
+
   return {
     userId: identityOf(username).subject,
     about: "",
@@ -96,6 +101,7 @@ export function profileRow(overrides: Overrides<"profiles"> = {}): Row<"profiles
 
 export function languageRow(overrides: Overrides<"languages"> = {}): Row<"languages"> {
   const key = overrides.key ?? "PY3";
+
   return {
     name: key,
     shortName: key.toLowerCase(),
@@ -113,11 +119,13 @@ export function languageRow(overrides: Overrides<"languages"> = {}): Row<"langua
 
 export function problemGroupRow(overrides: Overrides<"problemGroups"> = {}): Row<"problemGroups"> {
   const name = overrides.name ?? "uncategorized";
+
   return { fullName: capitalize(name), ...overrides, name };
 }
 
 export function problemTypeRow(overrides: Overrides<"problemTypes"> = {}): Row<"problemTypes"> {
   const name = overrides.name ?? "uncategorized";
+
   return { fullName: capitalize(name), ...overrides, name };
 }
 
@@ -125,6 +133,7 @@ export function problemRow(
   overrides: Overrides<"problems"> & { groupId: Id<"problemGroups"> },
 ): Row<"problems"> {
   const code = overrides.code ?? "aplusb";
+
   return {
     name: code.toUpperCase(),
     description: `Statement for ${code}.`,
@@ -177,6 +186,7 @@ export function submissionRow(
 
 export function organizationRow(overrides: Overrides<"organizations"> = {}): Row<"organizations"> {
   const slug = overrides.slug ?? "maps";
+
   return {
     name: slug,
     shortName: slug.slice(0, 20),
@@ -202,6 +212,7 @@ export function membershipRow(
 export function contestRow(overrides: Overrides<"contests"> = {}): Row<"contests"> {
   const key = overrides.key ?? "test";
   const startTime = overrides.startTime ?? Date.now() - HOUR;
+
   return {
     name: key.toUpperCase(),
     authorProfileIds: [],
@@ -276,6 +287,7 @@ export function participationRow(
 
 export function judgeRow(overrides: Overrides<"judges"> & { authKeyHash: string }): Row<"judges"> {
   const name = overrides.name ?? nextJudgeName();
+
   return {
     isBlocked: false,
     isDisabled: false,
@@ -293,6 +305,7 @@ export function judgeRow(overrides: Overrides<"judges"> & { authKeyHash: string 
 
 export function blogPostRow(overrides: Overrides<"blogPosts"> = {}): Row<"blogPosts"> {
   const title = overrides.title ?? "Announcement";
+
   return {
     authorProfileIds: [],
     slug: title.toLowerCase().replace(/\s+/g, "-"),
@@ -338,7 +351,9 @@ export async function insertProfile(
   return await write(target, async (ctx) => {
     const profileId = await ctx.db.insert("profiles", profileRow(overrides));
     const profile = await ctx.db.get(profileId);
+
     if (profile) await insertProfileAggregates(ctx, profile);
+
     return profileId;
   });
 }
@@ -374,6 +389,7 @@ export async function insertProblem(
       overrides.groupId ??
       (await ctx.db.query("problemGroups").first())?._id ??
       (await ctx.db.insert("problemGroups", problemGroupRow()));
+
     return await ctx.db.insert("problems", problemRow({ ...overrides, groupId }));
   });
 }
@@ -389,9 +405,11 @@ export async function insertSubmission(
   },
 ): Promise<Id<"submissions">> {
   const { source, ...fields } = overrides;
+
   return await write(target, async (ctx) => {
     const submissionId = await ctx.db.insert("submissions", submissionRow(fields));
     await ctx.db.insert("submissionSources", { submissionId, source: source ?? "print(1)" });
+
     return submissionId;
   });
 }
@@ -452,6 +470,7 @@ export async function insertJudge(
   const { key, ...fields } = overrides;
   const name = fields.name ?? nextJudgeName();
   const authKeyHash = await sha256Hex(key ?? judgeKey(name));
+
   return await write(target, async (ctx) =>
     ctx.db.insert("judges", judgeRow({ ...fields, name, authKeyHash })),
   );

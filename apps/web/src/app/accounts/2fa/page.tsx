@@ -8,6 +8,7 @@ import { safeNext } from "@/lib/next-path";
 
 export async function generateMetadata() {
   const t = await getTranslations("auth.twoFactor.overview");
+
   return { title: t("metaTitle") };
 }
 

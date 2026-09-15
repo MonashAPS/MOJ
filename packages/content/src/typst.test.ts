@@ -13,12 +13,16 @@ import { loadFixtures, placeholderAssets } from "./test.helpers.js";
 import { pdfText } from "./test.pdf.js";
 
 const fixtures = await loadFixtures();
+
 const byCode = new Map(fixtures.map((fixture) => [fixture.code, fixture]));
+
 const hasTypst = await typstAvailable();
 
 function fixture(code: string) {
   const found = byCode.get(code);
+
   if (!found) throw new Error(`missing fixture ${code}`);
+
   return found;
 }
 
@@ -128,6 +132,7 @@ describe("markdownToTypst", () => {
 describe("booklet", () => {
   const problems = ["coconutpairs", "kthsum", "warden"].map((code) => {
     const found = fixture(code);
+
     return { meta: found.meta, statement: found.source };
   });
 
@@ -153,6 +158,7 @@ describe("booklet", () => {
       meta: { ...problems[0]!.meta, code: `p${index}`, name: `Problem ${index}` },
       statement: "Body.",
     }));
+
     const source = booklet(many, { title: "Long" });
     expect(source).toContain('("Z", "Problem 25"),');
     expect(source).toContain('("AA", "Problem 26"),');
@@ -165,11 +171,13 @@ describe.skipIf(!hasTypst)("pdf compilation", () => {
     it(`compiles ${code} and prints its name`, async () => {
       const problem = fixture(code);
       const images: string[] = [];
+
       const source = markdownToTypst(problem.source, problem.meta, {
         onImage: (image) => {
           if (image.resolved) images.push(image.resolved);
         },
       });
+
       const pdf = await renderPdf(source, { assets: placeholderAssets(images) });
       expect(pdf.length).toBeGreaterThan(1000);
       expect(pdf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
@@ -183,18 +191,22 @@ describe.skipIf(!hasTypst)("pdf compilation", () => {
   it("compiles a booklet with a cover and one page per problem", async () => {
     const problems = ["coconutpairs", "kthsum", "warden"].map((code) => {
       const found = fixture(code);
+
       return { meta: found.meta, statement: found.source };
     });
+
     const source = booklet(problems, {
       title: "MAPS Beginner Competition",
       subtitle: "Division 2",
       date: "March 2026",
       note: "You may submit as many times as you like. Ties are broken by penalty time.",
     });
+
     const pdf = await renderPdf(source);
     const text = await pdfText(pdf);
     expect(text).toContain("MAPS Beginner Competition");
     expect(text).toContain("Division 2");
+
     for (const problem of problems) expect(text).toContain(problem.meta.name);
     expect(text).toContain("A. Coconut Pairs");
     expect(text).toContain("C. Warden");

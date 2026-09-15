@@ -2,6 +2,7 @@ import { groupM2M } from "../context.ts";
 import type { Step } from "./types.ts";
 
 const SOURCE_VISIBILITY = new Set(["A", "S", "O", "F"]);
+
 const TEST_CASE_TYPES = new Set(["C", "S", "E"]);
 
 export const problemsStep: Step = {
@@ -30,13 +31,17 @@ export const problemsStep: Step = {
       ctx.report.counts("problems").read++;
       const id = row.id();
       const groupId = ctx.ref("problemGroups", row.n("group_id"), "judge_problem", "group_id", id);
+
       if (!groupId) {
         ctx.report.skip("problems", "problem group missing", id);
         continue;
       }
+
       const date = row.tOpt("date");
+
       if (date === undefined) ctx.report.warn("problems", "null date, stored as 0", id);
       const visibility = row.s("submission_source_visibility_mode");
+
       if (!SOURCE_VISIBILITY.has(visibility)) {
         ctx.report.warn(
           "problems",
@@ -102,8 +107,10 @@ export const problemTranslationsStep: Step = {
   sources: ["judge_problemtranslation"],
   async run(ctx) {
     const emitter = ctx.emitter("problemTranslations");
+
     for await (const row of ctx.rows("judge_problemtranslation")) {
       ctx.report.counts("problemTranslations").read++;
+
       const problemId = ctx.ref(
         "problems",
         row.n("problem_id"),
@@ -111,10 +118,12 @@ export const problemTranslationsStep: Step = {
         "problem_id",
         row.id(),
       );
+
       if (!problemId) {
         ctx.report.skip("problemTranslations", "problem missing", row.id());
         continue;
       }
+
       await emitter.emit({
         problemId,
         language: row.s("language"),
@@ -131,8 +140,10 @@ export const problemClarificationsStep: Step = {
   sources: ["judge_problemclarification"],
   async run(ctx) {
     const emitter = ctx.emitter("problemClarifications");
+
     for await (const row of ctx.rows("judge_problemclarification")) {
       ctx.report.counts("problemClarifications").read++;
+
       const problemId = ctx.ref(
         "problems",
         row.n("problem_id"),
@@ -140,10 +151,12 @@ export const problemClarificationsStep: Step = {
         "problem_id",
         row.id(),
       );
+
       if (!problemId) {
         ctx.report.skip("problemClarifications", "problem missing", row.id());
         continue;
       }
+
       await emitter.emit({
         problemId,
         description: row.s("description"),
@@ -159,8 +172,10 @@ export const languageLimitsStep: Step = {
   sources: ["judge_languagelimit"],
   async run(ctx) {
     const emitter = ctx.emitter("languageLimits");
+
     for await (const row of ctx.rows("judge_languagelimit")) {
       ctx.report.counts("languageLimits").read++;
+
       const problemId = ctx.ref(
         "problems",
         row.n("problem_id"),
@@ -168,6 +183,7 @@ export const languageLimitsStep: Step = {
         "problem_id",
         row.id(),
       );
+
       const languageId = ctx.ref(
         "languages",
         row.n("language_id"),
@@ -175,10 +191,12 @@ export const languageLimitsStep: Step = {
         "language_id",
         row.id(),
       );
+
       if (!problemId || !languageId) {
         ctx.report.skip("languageLimits", "problem or language missing", row.id());
         continue;
       }
+
       await emitter.emit({
         problemId,
         languageId,
@@ -196,13 +214,16 @@ export const solutionsStep: Step = {
   async run(ctx) {
     const emitter = ctx.emitter("solutions");
     const authors = await groupM2M(ctx, "judge_solution_authors", "solution_id", "profile_id");
+
     for await (const row of ctx.rows("judge_solution")) {
       ctx.report.counts("solutions").read++;
       const problemId = ctx.ref("problems", row.n("problem_id"), "judge_solution", "problem_id", row.id());
+
       if (!problemId) {
         ctx.report.skip("solutions", "problem missing", row.id());
         continue;
       }
+
       await emitter.emit({
         problemId,
         isPublic: row.b("is_public"),
@@ -226,8 +247,10 @@ export const problemPointsVotesStep: Step = {
   sources: ["judge_problempointsvote"],
   async run(ctx) {
     const emitter = ctx.emitter("problemPointsVotes");
+
     for await (const row of ctx.rows("judge_problempointsvote")) {
       ctx.report.counts("problemPointsVotes").read++;
+
       const problemId = ctx.ref(
         "problems",
         row.n("problem_id"),
@@ -235,6 +258,7 @@ export const problemPointsVotesStep: Step = {
         "problem_id",
         row.id(),
       );
+
       const voterProfileId = ctx.ref(
         "profiles",
         row.n("voter_id"),
@@ -242,10 +266,12 @@ export const problemPointsVotesStep: Step = {
         "voter_id",
         row.id(),
       );
+
       if (!problemId || !voterProfileId) {
         ctx.report.skip("problemPointsVotes", "problem or voter missing", row.id());
         continue;
       }
+
       await emitter.emit({
         points: row.n("points"),
         voterProfileId,
@@ -263,13 +289,16 @@ export const problemDataStep: Step = {
   sources: ["judge_problemdata"],
   async run(ctx) {
     const emitter = ctx.emitter("problemData");
+
     for await (const row of ctx.rows("judge_problemdata")) {
       ctx.report.counts("problemData").read++;
       const problemId = ctx.ref("problems", row.n("problem_id"), "judge_problemdata", "problem_id", row.id());
+
       if (!problemId) {
         ctx.report.skip("problemData", "problem missing", row.id());
         continue;
       }
+
       await emitter.emit({
         problemId,
         zipfile: row.sOpt("zipfile"),
@@ -292,8 +321,10 @@ export const problemTestCasesStep: Step = {
   sources: ["judge_problemtestcase"],
   async run(ctx) {
     const emitter = ctx.emitter("problemTestCases");
+
     for await (const row of ctx.rows("judge_problemtestcase")) {
       ctx.report.counts("problemTestCases").read++;
+
       const problemId = ctx.ref(
         "problems",
         row.n("dataset_id"),
@@ -301,14 +332,18 @@ export const problemTestCasesStep: Step = {
         "dataset_id",
         row.id(),
       );
+
       if (!problemId) {
         ctx.report.skip("problemTestCases", "problem missing", row.id());
         continue;
       }
+
       const type = row.s("type");
+
       if (!TEST_CASE_TYPES.has(type)) {
         ctx.report.warn("problemTestCases", `unknown case type ${type}, stored as C`, row.id());
       }
+
       await emitter.emit({
         problemId,
         order: row.n("order"),

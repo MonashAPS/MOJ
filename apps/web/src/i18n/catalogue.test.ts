@@ -30,20 +30,24 @@ function read(locale: string, namespace: string): Messages | null {
 /** Every message in a catalogue, flattened to `a.b.c` keys. */
 function flatten(messages: Messages, prefix = ""): Map<string, string> {
   const flat = new Map<string, string>();
+
   for (const [key, value] of Object.entries(messages)) {
     const path = prefix ? `${prefix}.${key}` : key;
+
     if (value && typeof value === "object" && !Array.isArray(value)) {
       for (const [inner, text] of flatten(value as Messages, path)) flat.set(inner, text);
     } else if (typeof value === "string") {
       flat.set(path, value);
     }
   }
+
   return flat;
 }
 
 /** The `{name}` arguments a message substitutes, and the `<tag>`s it carries. */
 function placeholders(message: string): Set<string> {
   const found = new Set<string>();
+
   const walk = (nodes: ReturnType<typeof parse>): void => {
     for (const node of nodes) {
       if ("value" in node && typeof node.value === "string" && "type" in node && node.type === 8) {
@@ -51,22 +55,30 @@ function placeholders(message: string): Set<string> {
       } else if ("value" in node && typeof node.value === "string" && "type" in node && node.type === 1) {
         found.add(`{${node.value}}`);
       }
+
       if ("value" in node && typeof node.value === "string" && "type" in node && node.type >= 5) {
         found.add(`{${node.value}}`);
       }
+
       const children = (node as { children?: ReturnType<typeof parse> }).children;
+
       if (children) walk(children);
       const options = (node as { options?: Record<string, { value: ReturnType<typeof parse> }> }).options;
+
       if (options) for (const option of Object.values(options)) walk(option.value);
     }
   };
+
   walk(parse(message));
+
   return found;
 }
 
 const english = new Map<string, Map<string, string>>();
+
 for (const namespace of NAMESPACES) {
   const messages = read(DEFAULT_LANGUAGE, namespace);
+
   if (messages) english.set(namespace, flatten(messages));
 }
 
@@ -105,12 +117,15 @@ describe.each(translations)("the %s catalogue", (locale) => {
     // A missing key falls back to English, which is the thing this release
     // exists to stop, so a gap is a failure rather than a warning.
     const missing: string[] = [];
+
     for (const [namespace, messages] of english) {
       const translated = flatten(read(locale, namespace) ?? {});
+
       for (const key of messages.keys()) {
         if (!translated.has(key)) missing.push(`${namespace}.${key}`);
       }
     }
+
     expect(missing, `${missing.length} untranslated`).toEqual([]);
   });
 
@@ -126,24 +141,30 @@ describe.each(translations)("the %s catalogue", (locale) => {
     // Word order can move a placeholder and usually must; renaming or dropping
     // one leaves a hole in the sentence at run time.
     const wrong: string[] = [];
+
     for (const [namespace, messages] of english) {
       const translated = flatten(read(locale, namespace) ?? {});
+
       for (const [key, text] of messages) {
         const other = translated.get(key);
+
         if (other === undefined) continue;
         let mine: Set<string>;
         let theirs: Set<string>;
+
         try {
           mine = placeholders(text);
           theirs = placeholders(other);
         } catch {
           continue; // the parse test reports this one
         }
+
         for (const name of mine) {
           if (!theirs.has(name)) wrong.push(`${namespace}.${key} lost ${name}`);
         }
       }
     }
+
     expect(wrong, wrong.slice(0, 10).join("; ")).toEqual([]);
   });
 });

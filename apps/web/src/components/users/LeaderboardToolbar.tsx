@@ -37,6 +37,7 @@ export function LeaderboardToolbar({
 
   function go(handle: string) {
     const trimmed = handle.trim();
+
     if (!trimmed) return;
     setOpen(false);
     // A full navigation, as DMOJ's GET form is: the redirect lands on
@@ -53,6 +54,7 @@ export function LeaderboardToolbar({
   function onOrganization(value: string) {
     const next = new URLSearchParams(params);
     next.delete("page");
+
     if (value === "all") next.delete("organization");
     else next.set("organization", value);
     const query = next.toString();

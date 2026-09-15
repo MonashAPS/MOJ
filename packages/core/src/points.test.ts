@@ -46,6 +46,7 @@ describe("ProfileTestCase", () => {
       endTime: NOW - 10 * DAY,
       isVisible: true,
     });
+
     const inaccessible = createContest("inaccessible_contest", {
       startTime: NOW - 100 * DAY,
       endTime: NOW + 10 * DAY,
@@ -61,6 +62,7 @@ describe("ProfileTestCase", () => {
       endTime: NOW + DAY,
       isVisible: true,
     });
+
     const participation = createParticipation(ongoing.id, "normal");
     expect(shouldLeaveContest(participation, ongoing, users.normal, NOW)).toBe(false);
   });
@@ -95,6 +97,7 @@ describe("Profile.calculate_points", () => {
         isPublicProblem: false,
       },
     ]);
+
     // b still counts as a solve (points is null but the result is a full AC).
     expect(result).toEqual({ points: 0, problemCount: 1, performancePoints: ppBonus(1) });
   });
@@ -113,6 +116,7 @@ describe("Profile.calculate_points", () => {
       casePoints: 1,
       caseTotal: 1,
     }));
+
     const result = calculateProfilePoints(submissions);
     expect(result.points).toBe(PP_ENTRIES + 10);
     const expectedWeighted = PP_TABLE.reduce((sum, weight) => sum + weight, 0);
@@ -136,6 +140,7 @@ describe("Problem.update_stats", () => {
       { profileId: "b", result: "WA", casePoints: 0, caseTotal: 1 },
       { profileId: "c", result: "AC", casePoints: 0.5, caseTotal: 1 },
     ]);
+
     expect(stats.userCount).toBe(1);
     expect(stats.acRate).toBeCloseTo((100 * 2) / 4, 10);
   });
@@ -145,6 +150,7 @@ describe("Problem.update_stats", () => {
       { profileId: "a", result: "AC", casePoints: 1, caseTotal: 1, isUserUnlisted: true },
       { profileId: "b", result: "AC", casePoints: 1, caseTotal: 1, isArchived: true },
     ]);
+
     expect(stats).toEqual({ userCount: 0, acRate: 0 });
   });
 

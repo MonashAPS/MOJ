@@ -22,10 +22,12 @@ export const sweepRecordings = internalMutation({
   handler: async (ctx): Promise<{ deleted: number }> => {
     const settings = await siteSettings(ctx);
     const days = settings?.proctorRetentionDays ?? DEFAULT_RETENTION_DAYS;
+
     // Zero is "keep for ever", which an operator has to choose deliberately.
     if (days <= 0) return { deleted: 0 };
 
     const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+
     const stale = await ctx.db
       .query("proctorChunks")
       .filter((q) => q.lt(q.field("startedAt"), cutoff))
@@ -35,6 +37,7 @@ export const sweepRecordings = internalMutation({
       await ctx.storage.delete(chunk.storageId);
       await ctx.db.delete(chunk._id);
     }
+
     return { deleted: stale.length };
   },
 });

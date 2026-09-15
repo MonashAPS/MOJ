@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request): Promise<Response> {
   return withFilters(request, async (url) => {
     const args = { page: pageFilter(url) };
+
     return handleApiRequest(request, (options) => fetchQuery(api.apiV2.judges, args, options));
   });
 }

@@ -41,6 +41,7 @@ function secondsValue(seconds: number): string {
 
 function megabytesValue(kilobytes: number): string {
   const megabytes = kilobytes / 1024;
+
   return Number.isInteger(megabytes) ? String(megabytes) : megabytes.toFixed(1);
 }
 
@@ -64,6 +65,7 @@ function Entry({
 
 function LangLimits({ rows }: { rows: { name: string; value: string }[] }) {
   if (rows.length === 0) return null;
+
   return (
     <dl className="mb-1 ml-[22px] grid min-w-0 gap-0.5">
       {rows.map((row) => (
@@ -86,6 +88,7 @@ function Disclosure({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="border-t border-border pt-2">
       <CollapsibleTrigger className="flex w-full items-center gap-1.5 text-left text-sm text-subtle hover:text-foreground">
@@ -128,10 +131,12 @@ function useShowContests(): [boolean, (next: boolean) => void] {
       // A browser with storage denied simply keeps the safe default.
     }
   }, []);
+
   return [
     show,
     (next: boolean) => {
       setShow(next);
+
       try {
         window.localStorage.setItem(SHOW_CONTESTS_KEY, next ? "1" : "0");
       } catch {
@@ -149,6 +154,7 @@ function useShowContests(): [boolean, (next: boolean) => void] {
 function TicketLink({ problem }: { problem: ProblemDetail }) {
   const t = useTranslations("problems.detail");
   const tickets = useQuery(api.tickets.list, { problemCode: problem.code, onlyOwn: !problem.canEdit });
+
   if (!tickets || tickets.totalCount === 0) return null;
   const open = tickets.page.filter((ticket) => ticket.isOpen).length;
 

@@ -48,8 +48,10 @@ export async function judgesFor(ctx: AnyCtx, seeAll: boolean): Promise<Doc<"judg
   const visible = seeAll ? rows : rows.filter((row) => row.online);
   visible.sort((a, b) => {
     if (a.online !== b.online) return a.online ? -1 : 1;
+
     return a.name.localeCompare(b.name);
   });
+
   return visible;
 }
 
@@ -60,17 +62,22 @@ export async function decorateJudge(ctx: AnyCtx, judge: Doc<"judges">): Promise<
     .collect();
 
   const languages = new Map<string, Doc<"languages">>();
+
   for (const version of versions) {
     if (languages.has(version.languageId)) continue;
     const language = await ctx.db.get(version.languageId);
+
     if (language) languages.set(version.languageId, language);
   }
 
   const grouped = new Map<string, JudgeLanguageRuntimes>();
+
   for (const version of [...versions].sort((a, b) => a.priority - b.priority)) {
     const language = languages.get(version.languageId);
+
     if (!language) continue;
     let entry = grouped.get(version.languageId);
+
     if (!entry) {
       entry = {
         languageId: language._id,
@@ -80,6 +87,7 @@ export async function decorateJudge(ctx: AnyCtx, judge: Doc<"judges">): Promise<
       };
       grouped.set(version.languageId, entry);
     }
+
     entry.runtimes.push({ name: version.name, version: version.version, priority: version.priority });
   }
 
@@ -111,6 +119,7 @@ export async function decorateJudge(ctx: AnyCtx, judge: Doc<"judges">): Promise<
 export async function seesAllJudges(ctx: AnyCtx): Promise<boolean> {
   const profile = await optionalViewer(ctx);
   const viewer = await coreViewer(ctx, profile);
+
   return coreIsStaff(viewer);
 }
 
@@ -119,6 +128,7 @@ export const list = query({
   handler: async (ctx): Promise<{ judges: JudgeRow[]; seeAll: boolean }> => {
     const seeAll = await seesAllJudges(ctx);
     const rows = await judgesFor(ctx, seeAll);
+
     return { judges: await Promise.all(rows.map((row) => decorateJudge(ctx, row))), seeAll };
   },
 });
@@ -130,8 +140,11 @@ export const get = query({
       .query("judges")
       .withIndex("by_name", (q) => q.eq("name", name))
       .unique();
+
     if (!judge) return null;
+
     if (!judge.online && !(await seesAllJudges(ctx))) return null;
+
     return await decorateJudge(ctx, judge);
   },
 });
@@ -160,10 +173,13 @@ export async function runtimeVersions(ctx: AnyCtx): Promise<RuntimeVersionData> 
       .collect();
 
     const decorated: Array<{ language: Doc<"languages">; version: Doc<"runtimeVersions"> }> = [];
+
     for (const version of versions) {
       const language = await ctx.db.get(version.languageId);
+
       if (language) decorated.push({ language, version });
     }
+
     decorated.sort(
       (a, b) => a.language.name.localeCompare(b.language.name) || a.version.priority - b.version.priority,
     );
@@ -172,15 +188,20 @@ export async function runtimeVersions(ctx: AnyCtx): Promise<RuntimeVersionData> 
       string,
       { key: string; name: string; runtime: Array<{ name: string; version: string }> }
     >();
+
     for (const { language, version } of decorated) {
       let entry = byKey.get(language.key);
+
       if (!entry) {
         entry = { key: language.key, name: language.name, runtime: [] };
         byKey.set(language.key, entry);
       }
+
       entry.runtime.push({ name: version.name, version: version.version });
     }
+
     out[judge.name] = [...byKey.values()];
   }
+
   return out;
 }

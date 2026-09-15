@@ -9,8 +9,10 @@ import { auth } from "@/auth/server";
 export async function logOut() {
   await auth.api.signOut({ headers: await headers() }).catch(() => undefined);
   const jar = await cookies();
+
   for (const cookie of jar.getAll()) {
     if (cookie.name.startsWith("moj")) jar.delete(cookie.name);
   }
+
   redirect("/accounts/logout/?done=1");
 }

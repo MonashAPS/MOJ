@@ -16,6 +16,7 @@ type Props = { params: Promise<{ slug: string }> };
 /** DMOJ's `/post/<int:id>-<slug>`: the id is authoritative, the slug decorative. */
 function postId(slug: string): string {
   const dash = slug.indexOf("-");
+
   return dash === -1 ? slug : slug.slice(0, dash);
 }
 
@@ -25,11 +26,15 @@ async function load(slug: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = await load((await params).slug);
+
   if (!post) {
     const t = await getTranslations("common.states");
+
     return { title: t("notFound") };
   }
+
   const description = post.metaDescription.replace(/\s+/g, " ").trim().slice(0, 200);
+
   return {
     title: post.title,
     description,
@@ -44,6 +49,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function BlogPostPage({ params }: Props) {
   const [t, common] = await Promise.all([getTranslations("blog.post"), getTranslations("common.actions")]);
   const post = await load((await params).slug);
+
   if (!post) notFound();
 
   const html = await renderContent(post.content, post.contentPreset);

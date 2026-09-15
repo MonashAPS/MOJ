@@ -155,6 +155,7 @@ export interface ContestRow {
 
 /** `ContestParticipation.LIVE` */
 export const PARTICIPATION_LIVE = 0;
+
 /** `ContestParticipation.SPECTATE` */
 export const PARTICIPATION_SPECTATE = -1;
 

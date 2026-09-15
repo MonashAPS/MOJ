@@ -24,6 +24,7 @@ export function ProblemStatementTab({ problem }: { problem: ProblemEdit }) {
   async function save() {
     setError(null);
     setBusy(true);
+
     try {
       await update({ code: problem.code, description, reason: reason.trim() });
       setReason("");
@@ -31,6 +32,7 @@ export function ProblemStatementTab({ problem }: { problem: ProblemEdit }) {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : shared("changeRefused"));
     }
+
     setBusy(false);
   }
 

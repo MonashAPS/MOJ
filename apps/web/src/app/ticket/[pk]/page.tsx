@@ -11,16 +11,21 @@ type Props = { params: Promise<{ pk: string }> };
 
 export async function generateMetadata({ params }: Props) {
   const ticket = await queryAsViewer(api.tickets.get, { id: (await params).pk }).catch(() => null);
+
   if (!ticket) {
     const t = await getTranslations("common.states");
+
     return { title: t("notFound") };
   }
+
   const t = await getTranslations("blog.meta");
+
   return { title: t("ticket", { title: ticket.title }) };
 }
 
 export default async function TicketPage({ params }: Props) {
   const { pk } = await params;
+
   const [ticket, viewerState] = await Promise.all([
     queryAsViewer(api.tickets.get, { id: pk }).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
@@ -28,6 +33,7 @@ export default async function TicketPage({ params }: Props) {
 
   // `TicketMixin` is `LoginRequiredMixin` and 404s anyone else (ticket.py:110).
   if (!viewerState?.profile) redirect(`/accounts/login/?next=/ticket/${encodeURIComponent(pk)}/`);
+
   if (!ticket) notFound();
 
   const rendered = await Promise.all(

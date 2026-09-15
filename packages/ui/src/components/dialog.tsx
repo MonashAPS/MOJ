@@ -10,6 +10,7 @@ import { useUiText } from "../ui-text";
 export const DialogRoot = (props: ComponentProps<typeof DialogPrimitive.Root>) => (
   <DialogPrimitive.Root data-slot="dialog" {...props} />
 );
+
 export const Dialog = DialogRoot;
 
 export const DialogTrigger = (props: ComponentProps<typeof DialogPrimitive.Trigger>) => (
@@ -56,6 +57,7 @@ export function DialogContent({
   ...props
 }: DialogContentProps) {
   const ui = useUiText();
+
   return (
     <DialogPortal>
       <DialogOverlay />

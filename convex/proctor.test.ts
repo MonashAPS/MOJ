@@ -29,17 +29,20 @@ async function fixture(options: { proctorRequired?: boolean } = {}) {
   const t: T = setupTest();
   const languageId = await insertLanguage(t, { key: "PY3" });
   const publicId = await insertProblem(t, { code: "aplusb", allowedLanguageIds: [languageId] });
+
   const hiddenId = await insertProblem(t, {
     code: "hidden",
     isPublic: false,
     allowedLanguageIds: [languageId],
   });
+
   const memberId = await insertProfile(t, { username: MEMBER });
 
   const contestId = await insertContest(t, {
     key: "mcpc",
     proctorRequired: options.proctorRequired ?? true,
   });
+
   await insertContestProblem(t, { contestId, problemId: publicId, order: 1, points: 1 });
   await insertContestProblem(t, { contestId, problemId: hiddenId, order: 2, points: 1 });
 
@@ -186,8 +189,10 @@ describe("retention", () => {
     const { sessionId } = await share(f);
 
     const old = Date.now() - 40 * 24 * 60 * 60 * 1000;
+
     const storageIds = await f.t.run(async (ctx) => {
       const ids = [];
+
       for (const [index, startedAt] of [
         [0, old],
         [1, Date.now()],
@@ -205,6 +210,7 @@ describe("retention", () => {
           storageId,
         });
       }
+
       return ids;
     });
 
@@ -217,6 +223,7 @@ describe("retention", () => {
     expect(await f.t.run(async (ctx) => ctx.db.get(sessionId))).not.toBeNull();
     // And the blob is actually gone, not merely unreferenced.
     const removed = storageIds[0];
+
     if (!removed) throw new Error("no blob was stored");
     expect(await f.t.run(async (ctx) => ctx.storage.getUrl(removed))).toBeNull();
   });

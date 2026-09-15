@@ -84,18 +84,23 @@ type InitValue = string | number | boolean | InitValue[] | { [key: string]: Init
 
 function makeChecker(source: { checker: string | null; checkerArgs: string }): InitValue | undefined {
   if (!source.checker) return undefined;
+
   if (source.checkerArgs) {
     let args: unknown;
+
     try {
       args = JSON.parse(source.checkerArgs);
     } catch {
       throw new ProblemDataError("Checker arguments is invalid JSON.");
     }
+
     if (args === null || typeof args !== "object" || Array.isArray(args)) {
       throw new ProblemDataError("Checker arguments must be a JSON object.");
     }
+
     return { name: source.checker, args: args as Record<string, InitValue> };
   }
+
   return source.checker;
 }
 
@@ -118,9 +123,11 @@ export function makeInit(
 
   const endBatch = () => {
     const current = batch as Record<string, InitValue>;
+
     if ((current.batched as InitValue[]).length === 0) {
       throw new ProblemDataError("Empty batches not allowed.");
     }
+
     built.push(current);
   };
 
@@ -130,6 +137,7 @@ export function makeInit(
 
     if (testCase.type === "C") {
       const entry: Record<string, InitValue> = {};
+
       if (batch) {
         testCase.points = null;
         testCase.isPretest = batch.is_pretest as boolean;
@@ -137,6 +145,7 @@ export function makeInit(
         if (testCase.points === null) {
           throw new ProblemDataError(`Points must be defined for non-batch case #${i}.`);
         }
+
         entry.is_pretest = testCase.isPretest;
       }
 
@@ -144,23 +153,31 @@ export function makeInit(
         if (!fileSet.has(testCase.inputFile)) {
           throw new ProblemDataError(`Input file for case ${i} does not exist: ${testCase.inputFile}`);
         }
+
         if (!fileSet.has(testCase.outputFile)) {
           throw new ProblemDataError(`Output file for case ${i} does not exist: ${testCase.outputFile}`);
         }
       }
 
       if (testCase.inputFile) entry.in = testCase.inputFile;
+
       if (testCase.outputFile) entry.out = testCase.outputFile;
+
       if (testCase.points !== null) entry.points = testCase.points;
+
       if (testCase.generatorArgs) entry.generator_args = testCase.generatorArgs.split(/\r?\n/);
+
       if (testCase.outputLimit !== null) entry.output_limit_length = testCase.outputLimit;
+
       if (testCase.outputPrefix !== null) entry.output_prefix_length = testCase.outputPrefix;
       const checker = makeChecker(testCase);
+
       if (checker !== undefined) {
         entry.checker = checker;
       } else {
         testCase.checkerArgs = "";
       }
+
       fixups.push({
         order: original.order,
         checkerArgs: testCase.checkerArgs,
@@ -171,25 +188,32 @@ export function makeInit(
       else built.push(entry);
     } else if (testCase.type === "S") {
       batchCount += 1;
+
       if (batch) endBatch();
+
       if (testCase.points === null) {
         throw new ProblemDataError(`Batch start case #${i} requires points.`);
       }
+
       const dependencies: number[] = [];
+
       for (const dependency of testCase.batchDependencies) {
         if (!Number.isInteger(dependency)) {
           throw new ProblemDataError(
             `Dependencies must be a comma-separated list of integers for batch start case #${i}.`,
           );
         }
+
         if (dependency >= batchCount) {
           throw new ProblemDataError(
             `Dependencies must depend on previous batches for batch start case #${i}.`,
           );
         }
+
         if (dependency < 1) {
           throw new ProblemDataError(`Dependencies must be positive for batch start case #${i}.`);
         }
+
         dependencies.push(dependency);
       }
 
@@ -199,15 +223,20 @@ export function makeInit(
         is_pretest: testCase.isPretest,
         dependencies,
       };
+
       if (testCase.generatorArgs) batch.generator_args = testCase.generatorArgs.split(/\r?\n/);
+
       if (testCase.outputLimit !== null) batch.output_limit_length = testCase.outputLimit;
+
       if (testCase.outputPrefix !== null) batch.output_prefix_length = testCase.outputPrefix;
       const checker = makeChecker(testCase);
+
       if (checker !== undefined) {
         batch.checker = checker;
       } else {
         testCase.checkerArgs = "";
       }
+
       fixups.push({
         order: original.order,
         checkerArgs: testCase.checkerArgs,
@@ -218,6 +247,7 @@ export function makeInit(
       if (!batch) {
         throw new ProblemDataError(`Attempt to end batch outside of one in case #${i}.`);
       }
+
       fixups.push({
         order: original.order,
         isPretest: batch.is_pretest as boolean,
@@ -231,10 +261,13 @@ export function makeInit(
       batch = null;
     }
   }
+
   if (batch) endBatch();
 
   const init: Record<string, InitValue> = {};
+
   if (data.zipfile) init.archive = data.zipfile;
+
   if (data.generator) init.generator = data.generator;
 
   const pretestCases: Record<string, InitValue>[] = [];
@@ -248,13 +281,20 @@ export function makeInit(
   }
 
   if (pretestCases.length > 0) init.pretest_test_cases = pretestCases;
+
   if (testCases.length > 0) init.test_cases = testCases;
+
   if (data.outputLimit !== null) init.output_limit_length = data.outputLimit;
+
   if (data.outputPrefix !== null) init.output_prefix_length = data.outputPrefix;
+
   if (data.unicode) hints.push("unicode");
+
   if (data.nobigmath) hints.push("nobigmath");
   const checker = makeChecker(data);
+
   if (checker !== undefined) init.checker = checker;
+
   if (hints.length > 0) init.hints = hints;
 
   return { init, fixups };
@@ -265,6 +305,7 @@ export function makeInit(
 /* -------------------------------------------------------------------------- */
 
 const PLAIN_SCALAR = /^[A-Za-z0-9_./][A-Za-z0-9_./ +-]*$/;
+
 const YAML_RESERVED = new Set([
   "y",
   "Y",
@@ -297,10 +338,13 @@ const YAML_RESERVED = new Set([
 
 function yamlScalar(value: string | number | boolean): string {
   if (typeof value === "boolean") return value ? "true" : "false";
+
   if (typeof value === "number") return String(value);
+
   if (YAML_RESERVED.has(value) || !PLAIN_SCALAR.test(value) || /^\d+(\.\d+)?$/.test(value)) {
     return `'${value.replace(/'/g, "''")}'`;
   }
+
   return value;
 }
 
@@ -316,6 +360,7 @@ export function dumpYaml(value: unknown, indent = 0): string {
   if (Array.isArray(value)) {
     if (value.length === 0) return `${pad}[]\n`;
     let out = "";
+
     for (const item of value) {
       if (item !== null && typeof item === "object") {
         const body = dumpYaml(item, indent + 2);
@@ -324,18 +369,23 @@ export function dumpYaml(value: unknown, indent = 0): string {
         out += `${pad}- ${yamlScalar(item as string | number | boolean)}\n`;
       }
     }
+
     return out;
   }
 
   if (value !== null && typeof value === "object") {
     const record = value as Record<string, unknown>;
+
     const keys = Object.keys(record)
       .filter((key) => record[key] !== undefined)
       .sort();
+
     if (keys.length === 0) return `${pad}{}\n`;
     let out = "";
+
     for (const key of keys) {
       const child = record[key];
+
       if (Array.isArray(child)) {
         if (child.length === 0) {
           out += `${pad}${yamlScalar(key)}: []\n`;
@@ -351,6 +401,7 @@ export function dumpYaml(value: unknown, indent = 0): string {
         out += `${pad}${yamlScalar(key)}: ${yamlScalar(child as string | number | boolean)}\n`;
       }
     }
+
     return out;
   }
 
@@ -368,11 +419,13 @@ export function compileInit(
     // DMOJ deletes init.yml rather than writing an empty one, so judge-server
     // falls back to the manually managed directory (judge-server#670).
     const yaml = Object.keys(init).length > 0 ? dumpYaml(init) : null;
+
     return { yaml, feedback: "", fixups };
   } catch (error) {
     if (error instanceof ProblemDataError) {
       return { yaml: null, feedback: error.message, fixups: [] };
     }
+
     throw error;
   }
 }
@@ -384,8 +437,11 @@ export function compileInit(
 export type ZipEntry = { name: string; compressedSize: number; size: number; isDirectory: boolean };
 
 const EOCD_SIGNATURE = 0x0605_4b50;
+
 const EOCD64_LOCATOR_SIGNATURE = 0x0706_4b50;
+
 const EOCD64_SIGNATURE = 0x0606_4b50;
+
 const CENTRAL_SIGNATURE = 0x0201_4b50;
 
 /**
@@ -396,17 +452,20 @@ export function listZipNames(buffer: ArrayBuffer): ZipEntry[] {
   const view = new DataView(buffer);
   const bytes = new Uint8Array(buffer);
   const length = bytes.length;
+
   if (length < 22) throw new ProblemDataError("Your zip file is invalid!");
 
   // The end-of-central-directory record sits in the last 64 KiB + 22 bytes.
   let eocd = -1;
   const floor = Math.max(0, length - 0x1_0000 - 22);
+
   for (let i = length - 22; i >= floor; i--) {
     if (view.getUint32(i, true) === EOCD_SIGNATURE) {
       eocd = i;
       break;
     }
   }
+
   if (eocd < 0) throw new ProblemDataError("Your zip file is invalid!");
 
   let entryCount = view.getUint16(eocd + 10, true);
@@ -415,13 +474,17 @@ export function listZipNames(buffer: ArrayBuffer): ZipEntry[] {
   if (entryCount === 0xffff || directoryOffset === 0xffff_ffff) {
     // ZIP64: the locator sits immediately before the EOCD record.
     const locator = eocd - 20;
+
     if (locator < 0 || view.getUint32(locator, true) !== EOCD64_LOCATOR_SIGNATURE) {
       throw new ProblemDataError("Your zip file is invalid!");
     }
+
     const eocd64 = Number(view.getBigUint64(locator + 8, true));
+
     if (eocd64 < 0 || eocd64 + 56 > length || view.getUint32(eocd64, true) !== EOCD64_SIGNATURE) {
       throw new ProblemDataError("Your zip file is invalid!");
     }
+
     entryCount = Number(view.getBigUint64(eocd64 + 32, true));
     directoryOffset = Number(view.getBigUint64(eocd64 + 48, true));
   }
@@ -429,10 +492,12 @@ export function listZipNames(buffer: ArrayBuffer): ZipEntry[] {
   const decoder = new TextDecoder("utf-8");
   const entries: ZipEntry[] = [];
   let cursor = directoryOffset;
+
   for (let i = 0; i < entryCount; i++) {
     if (cursor + 46 > length || view.getUint32(cursor, true) !== CENTRAL_SIGNATURE) {
       throw new ProblemDataError("Your zip file is invalid!");
     }
+
     const compressedSize = view.getUint32(cursor + 20, true);
     const size = view.getUint32(cursor + 24, true);
     const nameLength = view.getUint16(cursor + 28, true);
@@ -442,6 +507,7 @@ export function listZipNames(buffer: ArrayBuffer): ZipEntry[] {
     entries.push({ name, compressedSize, size, isDirectory: name.endsWith("/") });
     cursor += 46 + nameLength + extraLength + commentLength;
   }
+
   return entries;
 }
 
@@ -453,6 +519,7 @@ export function listZipNames(buffer: ArrayBuffer): ZipEntry[] {
  */
 export function inspectArchive(buffer: ArrayBuffer): { files: string[]; error: string | null } {
   let entries: ZipEntry[];
+
   try {
     entries = listZipNames(buffer);
   } catch (error) {
@@ -461,10 +528,13 @@ export function inspectArchive(buffer: ArrayBuffer): { files: string[]; error: s
       error: error instanceof ProblemDataError ? error.message : "Your zip file is invalid!",
     };
   }
+
   const unsafe = unsafeArchiveMember(entries.map((entry) => entry.name));
+
   if (unsafe) {
     return { files: [], error: `The archive member "${unsafe}" escapes the extraction root.` };
   }
+
   return { files: entries.filter((entry) => !entry.isDirectory).map((entry) => entry.name), error: null };
 }
 
@@ -478,15 +548,21 @@ async function requireDataManager(
   code: string,
 ): Promise<{ problem: Doc<"problems">; profileId: Id<"profiles"> }> {
   const problem = await problemByCode(ctx, code);
+
   if (!problem) throw notFound("Problem");
+
   if (problem.isManuallyManaged) {
     throw forbidden("This problem's data is managed by hand on the judge.");
   }
+
   const viewer = await loadViewerContext(ctx);
+
   if (!viewer.profile) throw forbidden("You must be logged in to do that.");
+
   if (!viewer.profile.isSuperuser && !problemIsEditableBy(toCoreProblem(problem), viewer.core)) {
     throw forbidden("You may not edit this problem's test data.");
   }
+
   return { problem, profileId: viewer.profile._id };
 }
 
@@ -499,13 +575,16 @@ async function dataRow(ctx: QueryCtx, problemId: Id<"problems">) {
 
 async function ensureDataRow(ctx: MutationCtx, problemId: Id<"problems">) {
   const existing = await dataRow(ctx, problemId);
+
   if (existing) return existing;
+
   const id = await ctx.db.insert("problemData", {
     problemId,
     feedback: "",
     unicode: false,
     nobigmath: false,
   });
+
   return (await ctx.db.get(id)) as Doc<"problemData">;
 }
 
@@ -514,7 +593,9 @@ async function casesFor(ctx: QueryCtx, problemId: Id<"problems">) {
     .query("problemTestCases")
     .withIndex("by_problem_order", (q) => q.eq("problemId", problemId))
     .collect();
+
   rows.sort((a, b) => a.order - b.order);
+
   return rows;
 }
 
@@ -558,6 +639,7 @@ export const get = query({
     const { problem } = await requireDataManager(ctx, code);
     const row = await dataRow(ctx, problem._id);
     const cases = await casesFor(ctx, problem._id);
+
     // Whether any online judge reports holding this problem code. Data published
     // from a problem repository never reaches these tables, so an empty editor
     // beside a judge that has the problem is normal rather than a missing upload.
@@ -565,6 +647,7 @@ export const get = query({
       .query("judges")
       .withIndex("by_online_tier", (q) => q.eq("online", true))
       .collect();
+
     const judgesWithProblem = judges.filter((judge) => judge.problemCodes.includes(problem.code)).length;
 
     return {
@@ -614,6 +697,7 @@ export const initYaml = query({
     const { problem } = await requireDataManager(ctx, code);
     const row = await dataRow(ctx, problem._id);
     const cases = await casesFor(ctx, problem._id);
+
     const result = compileInit(
       toCompilerData(row),
       cases.map(toCompilerCase),
@@ -621,6 +705,7 @@ export const initYaml = query({
       // empty list plus a generator is the manually-managed shape.
       files ?? [],
     );
+
     return {
       problemCode: problem.code,
       yaml: result.yaml,
@@ -635,16 +720,20 @@ export const initYaml = query({
 
 function checkCheckerArgs(value: string | undefined): string {
   const raw = value ?? "";
+
   if (!raw || raw.trim().length === 0) return "";
   let parsed: unknown;
+
   try {
     parsed = JSON.parse(raw);
   } catch {
     throw invalid("Checker arguments is invalid JSON.");
   }
+
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw invalid("Checker arguments must be a JSON object.");
   }
+
   return raw;
 }
 
@@ -652,6 +741,7 @@ export const generateUploadUrl = mutation({
   args: { code: v.string() },
   handler: async (ctx, { code }) => {
     await requireDataManager(ctx, code);
+
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -678,27 +768,39 @@ export const updateData = mutation({
     if (args.zipfile !== undefined && args.zipfile && !args.zipfile.endsWith(".zip")) {
       throw invalid("Zip files must end in '.zip'");
     }
+
     if (args.generator !== undefined && args.generator === "init.yml") {
       throw invalid("Generators must not be named init.yml.");
     }
 
     const patch: Partial<Doc<"problemData">> = {};
+
     if (args.zipfile !== undefined) patch.zipfile = args.zipfile ?? undefined;
+
     if (args.zipfileStorageId !== undefined) {
       patch.zipfileStorageId = args.zipfileStorageId ?? undefined;
     }
+
     if (args.generator !== undefined) patch.generator = args.generator ?? undefined;
+
     if (args.generatorStorageId !== undefined) {
       patch.generatorStorageId = args.generatorStorageId ?? undefined;
     }
+
     if (args.outputPrefix !== undefined) patch.outputPrefix = args.outputPrefix ?? undefined;
+
     if (args.outputLimit !== undefined) patch.outputLimit = args.outputLimit ?? undefined;
+
     if (args.checker !== undefined) patch.checker = args.checker ?? undefined;
+
     if (args.checkerArgs !== undefined) patch.checkerArgs = checkCheckerArgs(args.checkerArgs);
+
     if (args.unicode !== undefined) patch.unicode = args.unicode;
+
     if (args.nobigmath !== undefined) patch.nobigmath = args.nobigmath;
 
     await ctx.db.patch(row._id, patch);
+
     return await recompile(ctx, problem, args.files ?? []);
   },
 });
@@ -728,6 +830,7 @@ export const saveCases = mutation({
     for (const existing of await casesFor(ctx, problem._id)) {
       await ctx.db.delete(existing._id);
     }
+
     for (const testCase of args.cases) {
       await ctx.db.insert("problemTestCases", {
         problemId: problem._id,
@@ -745,6 +848,7 @@ export const saveCases = mutation({
         batchDependencies: testCase.batchDependencies ?? [],
       });
     }
+
     return await recompile(ctx, problem, args.files ?? []);
   },
 });
@@ -760,6 +864,7 @@ export const upsertCase = mutation({
     const { problem } = await requireDataManager(ctx, args.code);
     await ensureDataRow(ctx, problem._id);
     const testCase = args.testCase;
+
     const fields = {
       problemId: problem._id,
       order: testCase.order,
@@ -775,13 +880,16 @@ export const upsertCase = mutation({
       checkerArgs: checkCheckerArgs(testCase.checkerArgs),
       batchDependencies: testCase.batchDependencies ?? [],
     };
+
     if (args.caseId) {
       const existing = await ctx.db.get(args.caseId);
+
       if (!existing || existing.problemId !== problem._id) throw notFound("Test case");
       await ctx.db.patch(args.caseId, fields);
     } else {
       await ctx.db.insert("problemTestCases", fields);
     }
+
     return await recompile(ctx, problem, args.files ?? []);
   },
 });
@@ -795,8 +903,10 @@ export const deleteCase = mutation({
   handler: async (ctx, args) => {
     const { problem } = await requireDataManager(ctx, args.code);
     const existing = await ctx.db.get(args.caseId);
+
     if (!existing || existing.problemId !== problem._id) throw notFound("Test case");
     await ctx.db.delete(args.caseId);
+
     return await recompile(ctx, problem, args.files ?? []);
   },
 });
@@ -808,20 +918,30 @@ async function recompile(ctx: MutationCtx, problem: Doc<"problems">, files: read
   const result = compileInit(toCompilerData(row), cases.map(toCompilerCase), files);
 
   const byOrder = new Map(cases.map((testCase) => [testCase.order, testCase]));
+
   for (const fixup of result.fixups) {
     const target = byOrder.get(fixup.order);
+
     if (!target) continue;
     const patch: Partial<Doc<"problemTestCases">> = {};
+
     if (fixup.checkerArgs !== undefined) patch.checkerArgs = fixup.checkerArgs;
+
     if (fixup.isPretest !== undefined) patch.isPretest = fixup.isPretest;
+
     if (fixup.inputFile !== undefined) patch.inputFile = fixup.inputFile;
+
     if (fixup.outputFile !== undefined) patch.outputFile = fixup.outputFile;
+
     if (fixup.generatorArgs !== undefined) patch.generatorArgs = fixup.generatorArgs;
+
     if (fixup.checker !== undefined) patch.checker = fixup.checker ?? undefined;
+
     if (Object.keys(patch).length > 0) await ctx.db.patch(target._id, patch);
   }
 
   await ctx.db.patch(row._id, { feedback: result.feedback });
+
   return { yaml: result.yaml, feedback: result.feedback };
 }
 
@@ -829,6 +949,7 @@ export const compile = mutation({
   args: { code: v.string(), files: v.optional(v.array(v.string())) },
   handler: async (ctx, { code, files }) => {
     const { problem } = await requireDataManager(ctx, code);
+
     return await recompile(ctx, problem, files ?? []);
   },
 });
@@ -839,7 +960,9 @@ export const clearFeedback = mutation({
     await requireViewer(ctx);
     const { problem } = await requireDataManager(ctx, code);
     const row = await dataRow(ctx, problem._id);
+
     if (row) await ctx.db.patch(row._id, { feedback: "" });
+
     return { ok: true };
   },
 });
@@ -858,13 +981,16 @@ export const zipContents = action({
     const data: { storageId: Id<"_storage"> | null } = await ctx.runQuery(api.problems.data.zipStorageId, {
       code,
     });
+
     if (!data.storageId) return { files: [], entries: [], error: null };
 
     const blob = await ctx.storage.get(data.storageId);
+
     if (!blob) return { files: [], entries: [], error: "The archive is missing from storage." };
 
     try {
       const entries = listZipNames(await blob.arrayBuffer());
+
       return {
         files: entries.filter((entry) => !entry.isDirectory).map((entry) => entry.name),
         entries,
@@ -888,6 +1014,7 @@ export const zipStorageId = query({
     // An archive published from a problem repository never touched the editor's
     // own fields, so fall back to the site-owned copy.
     const published = await testDataRow(ctx, problem._id);
+
     return { storageId: row?.zipfileStorageId ?? published?.storageId ?? null };
   },
 });
@@ -900,6 +1027,7 @@ export const editorContext = internalQuery({
   args: { code: v.string() },
   handler: async (ctx, { code }) => {
     const { problem, profileId } = await requireDataManager(ctx, code);
+
     return { problemId: problem._id, profileId };
   },
 });
@@ -937,10 +1065,12 @@ export const publishArchive = action({
     );
 
     const blob = await ctx.storage.get(args.storageId);
+
     if (!blob) throw invalid("That upload could not be found.");
     const bytes = await blob.arrayBuffer();
 
     const inspected = inspectArchive(bytes);
+
     if (inspected.error) {
       await ctx.storage.delete(args.storageId);
       throw invalid(inspected.error);
@@ -955,6 +1085,7 @@ export const publishArchive = action({
       actorProfileId: context.profileId,
       source: "editor" as const,
     });
+
     await ctx.runMutation(internal.problems.data.setEditorArchive, {
       code: args.code,
       zipfile: args.zipfile,
