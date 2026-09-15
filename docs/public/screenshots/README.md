@@ -1,7 +1,7 @@
 # Screenshots
 
 The screenshots the root `README.md` and this documentation site use. They live in `docs/public/`, so a file here
-is served at `/MOJ/screenshots/<name>` on the documentation site and is referenced from the root README by its
+is served at `/screenshots/<name>` on the documentation site and is referenced from the root README by its
 path in the repository.
 
 ## How to take them

@@ -3,13 +3,13 @@ import { defineConfig } from "vitepress";
 export default defineConfig({
   title: "MOJ",
   description: "the MAPS Online Judge",
-  base: "/MOJ/",
+  base: "/",
   lang: "en-AU",
   appearance: "dark",
   lastUpdated: true,
   srcExclude: ["**/public/**"],
   head: [
-    ["link", { rel: "icon", href: "/MOJ/logo.svg", type: "image/svg+xml" }],
+    ["link", { rel: "icon", href: "/logo.svg", type: "image/svg+xml" }],
     ["meta", { name: "theme-color", content: "#2980b9" }],
   ],
   themeConfig: {
