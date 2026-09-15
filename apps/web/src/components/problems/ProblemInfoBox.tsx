@@ -361,7 +361,7 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
                     key={`${contest.contestKey}-${contest.label}`}
                     className="flex min-w-0 items-center gap-2 text-sm"
                   >
-                    <Badge variant="neutral" shape="square" mono>
+                    <Badge variant="neutral" rounding="square" mono>
                       {contest.label}
                     </Badge>
                     {/* The contest itself, not its standings: somebody reading a

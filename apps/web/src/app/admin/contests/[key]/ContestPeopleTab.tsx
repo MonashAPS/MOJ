@@ -56,7 +56,11 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
   function idsFor(list: string[]): Id<"profiles">[] {
     const map = profiles?.ids ?? {};
 
-    return list.map((username) => map[username]).filter((id): id is Id<"profiles"> => !!id);
+    return list.flatMap((username) => {
+      const id = map[username];
+
+      return id ? [id] : [];
+    });
   }
 
   async function save() {

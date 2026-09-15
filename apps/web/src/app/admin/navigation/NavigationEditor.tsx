@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
+import type { Doc, Id } from "@convex/_generated/dataModel";
 import { Button, Field, FieldGroup, Input, Panel, Tooltip } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { ChevronDown, ChevronRight, ChevronUp, CornerDownRight, Plus } from "lucide-react";
@@ -11,15 +11,7 @@ import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { ConfirmAction, StatusLine } from "@/components/admin/console";
 import { RecordDialog } from "@/components/admin/RecordDialog";
 
-type NavRow = {
-  _id: Id<"navigationBar">;
-  key: string;
-  label: string;
-  path: string;
-  regex: string;
-  order: number;
-  parentId?: Id<"navigationBar">;
-};
+type NavRow = Doc<"navigationBar">;
 
 type FlatRow = NavRow & { depth: number; index: number; siblings: NavRow[] };
 
@@ -29,10 +21,10 @@ type Draft = {
   label: string;
   path: string;
   regex: string;
-  parentId: string;
+  parentId: Id<"navigationBar"> | null;
 };
 
-const EMPTY: Draft = { id: null, key: "", label: "", path: "/", regex: "", parentId: "" };
+const EMPTY: Draft = { id: null, key: "", label: "", path: "/", regex: "", parentId: null };
 
 /** DMOJ's nav is one table with a self reference; the console renders it as the
  *  tree the bar actually draws. */
@@ -67,7 +59,7 @@ function flatten(rows: NavRow[]): FlatRow[] {
 export function NavigationEditor() {
   const t = useTranslations("admin.navigation");
   const actions = useTranslations("common.actions");
-  const rows = useQuery(api.admin.site.navRows, {}) as NavRow[] | undefined;
+  const rows = useQuery(api.admin.site.navRows, {});
   const createItem = useMutation(api.admin.site.createNavItem);
   const updateItem = useMutation(api.admin.site.updateNavItem);
   const deleteItem = useMutation(api.admin.site.deleteNavItem);
@@ -90,7 +82,7 @@ export function NavigationEditor() {
             label: row.label,
             path: row.path,
             regex: row.regex,
-            parentId: row.parentId ?? "",
+            parentId: row.parentId ?? null,
           }
         : { ...EMPTY },
     );
@@ -111,19 +103,20 @@ export function NavigationEditor() {
           label: draft.label,
           path: draft.path,
           regex: draft.regex,
-          parentId: draft.parentId ? (draft.parentId as Id<"navigationBar">) : null,
+          parentId: draft.parentId,
           reason,
         });
       } else {
-        await createItem({
+        const fields = {
           key: draft.key,
           label: draft.label,
           path: draft.path,
           regex: draft.regex,
           order: (rows?.length ?? 0) + 1,
-          ...(draft.parentId ? { parentId: draft.parentId as Id<"navigationBar"> } : {}),
           reason,
-        });
+        };
+
+        await createItem(draft.parentId ? { ...fields, parentId: draft.parentId } : fields);
       }
 
       setMessage({ tone: "ok", text: t("saved", { label: draft.label }) });
@@ -135,7 +128,7 @@ export function NavigationEditor() {
     }
   }
 
-  async function run(action: () => Promise<unknown>, ok: string) {
+  async function run<T>(action: () => Promise<T>, ok: string) {
     try {
       await action();
       setMessage({ tone: "ok", text: ok });

@@ -15,11 +15,14 @@ import {
   Textarea,
 } from "@moj/ui";
 import { useMutation } from "convex/react";
+import type { FunctionArgs } from "convex/server";
 import { AlertTriangle, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useRef, useState } from "react";
 import { AdminForm } from "@/components/admin/AdminForm";
 import { StatusLine } from "@/components/admin/console";
+import { chosenValue } from "@/lib/choices";
+import { readStorageId } from "@/lib/convex-upload";
 
 type Branding = {
   siteName: string;
@@ -39,7 +42,11 @@ const THEME_OPTIONS = [
   { value: "system", labelKey: "system" },
   { value: "light", labelKey: "light" },
   { value: "dark", labelKey: "dark" },
-];
+] as const;
+
+type BrandingUpdate = FunctionArgs<typeof api.pages.admin.branding.update>;
+
+type StoredUpload = { url: string; storageId: Id<"_storage"> };
 
 const DEFAULT_ACCENT = "#2941a5";
 
@@ -104,8 +111,8 @@ export function BrandingForm({ branding }: { branding: Branding }) {
   );
 
   const [form, setForm] = useState(initial);
-  const [logo, setLogo] = useState<{ url: string; storageId: string } | null>(null);
-  const [favicon, setFavicon] = useState<{ url: string; storageId: string } | null>(null);
+  const [logo, setLogo] = useState<StoredUpload | null>(null);
+  const [favicon, setFavicon] = useState<StoredUpload | null>(null);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<{ error?: string; saved?: string }>({});
@@ -140,7 +147,9 @@ export function BrandingForm({ branding }: { branding: Branding }) {
       });
 
       if (!response.ok) throw new Error(t("uploadRefused", { status: response.status }));
-      const { storageId } = (await response.json()) as { storageId: string };
+      const storageId = await readStorageId(response);
+
+      if (!storageId) throw new Error(t("uploadFailed"));
       const objectUrl = URL.createObjectURL(file);
 
       if (kind === "logo") setLogo({ url: objectUrl, storageId });
@@ -160,17 +169,21 @@ export function BrandingForm({ branding }: { branding: Branding }) {
     setBusy(true);
 
     try {
-      await update({
+      const fields: BrandingUpdate = {
         siteName: form.siteName,
         siteLongName: form.siteLongName,
         accentColor: form.accentColor,
         navColor: form.navColor,
         customCss: form.customCss,
-        themeDefault: form.themeDefault as "system" | "light" | "dark",
-        ...(logo ? { logoStorageId: logo.storageId as Id<"_storage"> } : {}),
-        ...(favicon ? { faviconStorageId: favicon.storageId as Id<"_storage"> } : {}),
+        themeDefault: form.themeDefault,
         reason,
-      });
+      };
+
+      if (logo) fields.logoStorageId = logo.storageId;
+
+      if (favicon) fields.faviconStorageId = favicon.storageId;
+
+      await update(fields);
       // The uploads are part of the saved state now, so the form is clean again
       // and the unsaved-changes guard must stop firing.
       setLogo(null);
@@ -382,7 +395,7 @@ export function BrandingForm({ branding }: { branding: Branding }) {
                 label: t(`themeOptions.${option.labelKey}`),
               }))}
               value={form.themeDefault}
-              onValueChange={(value) => change("themeDefault", value as "system" | "light" | "dark")}
+              onValueChange={(value) => change("themeDefault", chosenValue(THEME_OPTIONS, value, "system"))}
               ariaLabel={t("defaultTheme")}
             />
           </Field>

@@ -18,6 +18,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import { applyTheme, type ThemeChoice } from "@/components/shell/ThemeToggle";
+import { chosenValue } from "@/lib/choices";
 
 const MAX_ORGANIZATIONS = 3;
 
@@ -86,7 +87,7 @@ export function EditProfileForm({
     { value: "auto", label: t("themeSystem") },
     { value: "light", label: nav("themeLight") },
     { value: "dark", label: nav("themeDark") },
-  ];
+  ] satisfies { value: ThemeChoice; label: string }[];
 
   const dirty =
     form.about !== baseline.about ||
@@ -205,7 +206,7 @@ export function EditProfileForm({
               id="profile-site-theme"
               ariaLabel={t("siteTheme")}
               value={form.siteTheme}
-              onValueChange={(value) => chooseTheme(value as ThemeChoice)}
+              onValueChange={(value) => chooseTheme(chosenValue(siteThemes, value, form.siteTheme))}
               options={siteThemes}
             />
           </Field>

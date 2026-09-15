@@ -26,7 +26,15 @@ const password = process.argv[3] ?? "moj-admin-local";
 
 const email = process.argv[4] ?? "admin@example.com";
 
-/** Five fixed scratch codes, in the plugin's `xxxxx-xxxxx` shape. */
+type AdminSummary = {
+  userId: string;
+  username: string;
+  email: string;
+  totpUri?: string;
+  scratchCodes?: string[];
+};
+
+/** Five fixed scratch codes, in the plugin's `xxxxx-xxxxx` form. */
 const DEV_SCRATCH_CODES = ["mojde-vcode1", "mojde-vcode2", "mojde-vcode3", "mojde-vcode4", "mojde-vcode5"];
 
 /** Writes the two-factor row Better Auth would have written after a successful
@@ -76,7 +84,7 @@ async function main() {
       },
     });
 
-    userId = (result as { user?: { id: string } }).user?.id;
+    userId = result.user.id;
 
     if (!userId) {
       const created = await db.select().from(schema.user).where(eq(schema.user.email, email)).limit(1);
@@ -107,14 +115,14 @@ async function main() {
   const devTotpSecret = process.env.MOJ_DEV_TOTP_SECRET?.trim();
   const totpUri = devTotpSecret ? await enrolTotp(userId, devTotpSecret) : undefined;
 
-  process.stdout.write(
-    `${JSON.stringify({
-      userId,
-      username,
-      email,
-      ...(totpUri ? { totpUri, scratchCodes: DEV_SCRATCH_CODES } : {}),
-    })}\n`,
-  );
+  const summary: AdminSummary = { userId, username, email };
+
+  if (totpUri) {
+    summary.totpUri = totpUri;
+    summary.scratchCodes = DEV_SCRATCH_CODES;
+  }
+
+  process.stdout.write(`${JSON.stringify(summary)}\n`);
 }
 
 main()

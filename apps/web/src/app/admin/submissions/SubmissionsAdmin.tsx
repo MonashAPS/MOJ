@@ -182,7 +182,7 @@ export function SubmissionsAdmin() {
     !!idFrom ||
     !!idTo;
 
-  async function guard(work: () => Promise<unknown>) {
+  async function guard<T>(work: () => Promise<T>) {
     setError(null);
 
     try {
@@ -206,7 +206,7 @@ export function SubmissionsAdmin() {
         row.result ? (
           <VerdictPill verdict={row.result} judging={row.status === "G" || row.status === "P"} />
         ) : (
-          <Badge variant="run" shape="square">
+          <Badge variant="run" rounding="square">
             {row.status === "QU"
               ? t("statuses.queued")
               : row.status === "G"

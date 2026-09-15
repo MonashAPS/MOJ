@@ -19,7 +19,7 @@ const TABS = ["general", "problems", "people", "proctoring", "actions", "revisio
 export function ContestEditor({ contestKey }: { contestKey: string }) {
   const t = useTranslations("admin.contests.editor");
   const params = useSearchParams();
-  const active = TABS.some((tab) => tab === params.get("tab")) ? (params.get("tab") as string) : "general";
+  const active = TABS.find((tab) => tab === params.get("tab")) ?? "general";
 
   const contest = useQuery(api.pages.admin.contests.edit, { key: contestKey });
   const options = useQuery(api.pages.admin.contests.options, {});
@@ -67,7 +67,7 @@ export function ContestEditor({ contestKey }: { contestKey: string }) {
       action={
         contest ? (
           <>
-            <Badge variant={contest.isVisible ? "good" : "neutral"} shape="square">
+            <Badge variant={contest.isVisible ? "good" : "neutral"} rounding="square">
               {contest.isVisible ? t("visible") : t("hidden")}
             </Badge>
             <Button asChild variant="secondary" size="sm">

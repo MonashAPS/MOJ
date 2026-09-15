@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { COMPROMISED_COOKIE } from "@/auth/password-compromised";
+import { readJsonBody } from "@/lib/json-body";
 
 /** Gates that must run before any page renders.
  *
@@ -36,9 +37,20 @@ const EXEMPT_PREFIXES = [
 
 type SessionResponse = {
   user?: { id: string; isStaff?: boolean; twoFactorEnabled?: boolean | null };
-} | null;
+};
 
-async function fetchSession(request: NextRequest): Promise<SessionResponse> {
+/** The gate reads three fields off `/api/auth/get-session`, so that is all it
+ *  decodes; anything else the endpoint answers with counts as signed out. */
+function isSessionResponse(value: unknown): value is SessionResponse {
+  if (typeof value !== "object" || value === null) return false;
+
+  if (!("user" in value)) return true;
+  const { user } = value;
+
+  return typeof user === "object" && user !== null && "id" in user && typeof user.id === "string";
+}
+
+async function fetchSession(request: NextRequest): Promise<SessionResponse | null> {
   try {
     const response = await fetch(new URL("/api/auth/get-session", request.nextUrl.origin), {
       headers: { cookie: request.headers.get("cookie") ?? "" },
@@ -47,7 +59,7 @@ async function fetchSession(request: NextRequest): Promise<SessionResponse> {
 
     if (!response.ok) return null;
 
-    return (await response.json()) as SessionResponse;
+    return await readJsonBody(response, isSessionResponse);
   } catch {
     return null;
   }

@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Button, Field, FieldGroup, Input, Select, Textarea } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { Copy, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
@@ -11,20 +12,7 @@ import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { ConfirmAction, DASH, SearchBox, StatusLine } from "@/components/admin/console";
 import { RecordDialog } from "@/components/admin/RecordDialog";
 
-type LanguageRow = {
-  _id: Id<"languages">;
-  key: string;
-  name: string;
-  shortName: string;
-  commonName: string;
-  editorMode: string;
-  shikiLang: string;
-  extension: string;
-  template: string;
-  info: string;
-  description: string;
-  problemCount: number;
-};
+type LanguageRow = FunctionReturnType<typeof api.admin.languages.list>[number];
 
 type Draft = {
   id: Id<"languages"> | null;
@@ -57,7 +45,7 @@ const EMPTY: Draft = {
 export function LanguagesTable() {
   const t = useTranslations("admin.languages");
   const actions = useTranslations("common.actions");
-  const languages = useQuery(api.admin.languages.list, {}) as LanguageRow[] | undefined;
+  const languages = useQuery(api.admin.languages.list, {});
   const create = useMutation(api.admin.languages.create);
   const update = useMutation(api.admin.languages.update);
   const remove = useMutation(api.admin.languages.remove);

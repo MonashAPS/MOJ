@@ -26,6 +26,8 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ pa
 
   if (!info.isFile()) return new Response("Not found", { status: 404 });
 
+  // SAFETY: `Readable.toWeb` hands back the same stream object `Response` reads,
+  // under `node:stream/web`'s declaration of it rather than the DOM's.
   const body = Readable.toWeb(createReadStream(filePath)) as ReadableStream<Uint8Array>;
 
   return new Response(body, {

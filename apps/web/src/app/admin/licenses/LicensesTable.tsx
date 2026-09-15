@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Button, Field, FieldGroup, Input, Textarea } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -11,16 +12,7 @@ import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { ConfirmAction, DASH, StatusLine } from "@/components/admin/console";
 import { RecordDialog } from "@/components/admin/RecordDialog";
 
-type LicenseRow = {
-  _id: Id<"licenses">;
-  key: string;
-  link: string;
-  name: string;
-  display: string;
-  icon: string;
-  text: string;
-  problemCount: number;
-};
+type LicenseRow = FunctionReturnType<typeof api.admin.licenses.list>[number];
 
 type Draft = {
   id: Id<"licenses"> | null;
@@ -37,7 +29,7 @@ const EMPTY: Draft = { id: null, key: "", link: "", name: "", display: "", icon:
 export function LicensesTable() {
   const t = useTranslations("admin.licenses");
   const actions = useTranslations("common.actions");
-  const licenses = useQuery(api.admin.licenses.list, {}) as LicenseRow[] | undefined;
+  const licenses = useQuery(api.admin.licenses.list, {});
   const create = useMutation(api.admin.licenses.create);
   const update = useMutation(api.admin.licenses.update);
   const remove = useMutation(api.admin.licenses.remove);

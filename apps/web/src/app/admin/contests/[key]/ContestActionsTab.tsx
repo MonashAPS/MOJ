@@ -55,7 +55,7 @@ export function ContestActionsTab({ contest }: { contest: ContestEdit }) {
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<Action | null>(null);
 
-  async function guard(work: () => Promise<unknown>) {
+  async function guard<T>(work: () => Promise<T>) {
     setError(null);
 
     try {
@@ -200,7 +200,7 @@ export function ContestActionsTab({ contest }: { contest: ContestEdit }) {
                   <TableCell numeric>{row.score}</TableCell>
                   <TableCell numeric>{row.cumtime}</TableCell>
                   <TableCell>
-                    <Badge variant={row.isDisqualified ? "bad" : "neutral"} shape="square">
+                    <Badge variant={row.isDisqualified ? "bad" : "neutral"} rounding="square">
                       {row.isDisqualified ? t("disqualified") : t("competing")}
                     </Badge>
                   </TableCell>
@@ -212,7 +212,7 @@ export function ContestActionsTab({ contest }: { contest: ContestEdit }) {
                         guard(async () => {
                           await disqualify({
                             key: contest.key,
-                            participationId: row.participationId as Id<"contestParticipations">,
+                            participationId: row.participationId,
                             disqualified: !row.isDisqualified,
                           });
                           toast.success(

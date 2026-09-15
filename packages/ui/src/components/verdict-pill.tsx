@@ -88,7 +88,7 @@ export function VerdictPill({
   return (
     <Badge
       variant={tone}
-      shape="square"
+      rounding="square"
       size={size}
       mono
       title={TITLE[code] ?? code}

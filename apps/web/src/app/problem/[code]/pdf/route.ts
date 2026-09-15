@@ -3,6 +3,7 @@ import { api } from "@convex/_generated/api";
 import type { NextRequest } from "next/server";
 import { getTranslations } from "next-intl/server";
 import { mutateAsViewer, queryAsViewer } from "@/lib/convex-server";
+import { readStorageId } from "@/lib/convex-upload";
 import { normaliseLanguage } from "@/lib/language";
 import { viewerLanguage } from "@/lib/language.server";
 
@@ -109,13 +110,14 @@ export async function GET(
       body: new Uint8Array(pdf),
     });
 
-    if (stored.ok) {
-      const { storageId } = (await stored.json()) as { storageId: string };
+    const storageId = stored.ok ? await readStorageId(stored) : null;
+
+    if (storageId) {
       await mutateAsViewer(api.problems.pdf.save, {
         code,
         language: source.language,
         sourceHash,
-        storageId: storageId as never,
+        storageId,
       });
     }
   } catch (error) {

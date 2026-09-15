@@ -80,11 +80,11 @@ export function ProctorPlayer({
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
         <span className="font-medium">{session.displayName}</span>
         {session.live ? (
-          <Badge variant="good" shape="square">
+          <Badge variant="good" rounding="square">
             {t("live")}
           </Badge>
         ) : (
-          <Badge variant="neutral" shape="square">
+          <Badge variant="neutral" rounding="square">
             {session.endedReason ?? t("lapsed")}
           </Badge>
         )}

@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Button, Checkbox, Field, FieldGroup, Input } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -13,13 +14,7 @@ import { ConfirmAction, Flags, StatusLine } from "@/components/admin/console";
 import { MarkdownField } from "@/components/admin/MarkdownField";
 import { RecordDialog } from "@/components/admin/RecordDialog";
 
-type FlatPageRow = {
-  _id: Id<"flatPages">;
-  url: string;
-  title: string;
-  content: string;
-  enableComments?: boolean;
-};
+type FlatPageRow = FunctionReturnType<typeof api.admin.site.flatPageRows>[number];
 
 type Draft = {
   id: Id<"flatPages"> | null;
@@ -34,7 +29,7 @@ const EMPTY: Draft = { id: null, url: "/", title: "", content: "", enableComment
 export function FlatPagesTable() {
   const t = useTranslations("admin.flatpages");
   const actions = useTranslations("common.actions");
-  const pages = useQuery(api.admin.site.flatPageRows, {}) as FlatPageRow[] | undefined;
+  const pages = useQuery(api.admin.site.flatPageRows, {});
   const create = useMutation(api.admin.site.createFlatPage);
   const update = useMutation(api.admin.site.updateFlatPage);
   const remove = useMutation(api.admin.site.deleteFlatPage);

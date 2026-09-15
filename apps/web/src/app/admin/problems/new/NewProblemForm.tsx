@@ -19,6 +19,16 @@ import {
   UserPicker,
 } from "@/components/admin";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
+import { chosenValue } from "@/lib/choices";
+
+const SOURCE_VISIBILITY_OPTIONS = [
+  { value: "F", labelKey: "field.sourceVisibilityFollow" },
+  { value: "A", labelKey: "field.sourceVisibilityAnyone" },
+  { value: "S", labelKey: "field.sourceVisibilitySolved" },
+  { value: "O", labelKey: "field.sourceVisibilityStaff" },
+] as const;
+
+type SourceVisibility = (typeof SOURCE_VISIBILITY_OPTIONS)[number]["value"];
 
 /** `ProblemAdmin`'s add form. The statement, test data and the rest of the tabs
  *  open once the problem exists, exactly as DMOJ's add-then-change flow does. */
@@ -67,7 +77,7 @@ export function NewProblemForm() {
   const [authors, setAuthors] = useState<string[]>([]);
   const [curators, setCurators] = useState<string[]>([]);
   const [testers, setTesters] = useState<string[]>([]);
-  const [sourceVisibility, setSourceVisibility] = useState("F");
+  const [sourceVisibility, setSourceVisibility] = useState<SourceVisibility>("F");
   const [date, setDate] = useState<number | null>(Date.now());
   const [reason, _setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -115,7 +125,7 @@ export function NewProblemForm() {
         authors: authors.length > 0 ? authors : undefined,
         curators: curators.length > 0 ? curators : undefined,
         testers: testers.length > 0 ? testers : undefined,
-        submissionSourceVisibility: sourceVisibility as "A" | "S" | "O" | "F",
+        submissionSourceVisibility: sourceVisibility,
         reason: reason.trim() || undefined,
       });
       router.push(`/admin/problems/${code}/`);
@@ -271,13 +281,13 @@ export function NewProblemForm() {
             <Select
               id={ids.visibility}
               value={sourceVisibility}
-              onValueChange={setSourceVisibility}
-              options={[
-                { value: "F", label: shared("field.sourceVisibilityFollow") },
-                { value: "A", label: shared("field.sourceVisibilityAnyone") },
-                { value: "S", label: shared("field.sourceVisibilitySolved") },
-                { value: "O", label: shared("field.sourceVisibilityStaff") },
-              ]}
+              onValueChange={(value) =>
+                setSourceVisibility(chosenValue(SOURCE_VISIBILITY_OPTIONS, value, sourceVisibility))
+              }
+              options={SOURCE_VISIBILITY_OPTIONS.map((option) => ({
+                value: option.value,
+                label: shared(option.labelKey),
+              }))}
             />
           </Field>
         </AdminSection>

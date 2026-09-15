@@ -27,6 +27,7 @@ import { useMemo, useState, useTransition } from "react";
 import { AdminForm } from "@/components/admin/AdminForm";
 import { ConfirmAction, DASH, Flags, StatusLine } from "@/components/admin/console";
 import { RevisionsPanel } from "@/components/admin/RevisionsPanel";
+import { chosenValue } from "@/lib/choices";
 import { formatDate, formatDateTime } from "@/lib/format";
 import {
   impersonateAction,
@@ -289,7 +290,7 @@ function ProfileForm({
 
   const initial = useMemo(
     () => ({
-      displayRank: user.displayRank,
+      displayRank: chosenValue(RANKS, user.displayRank, "user"),
       usernameDisplayOverride: extras?.usernameDisplayOverride ?? "",
       timezone: user.timezone,
       languageKey: extras?.languageKey ?? "",
@@ -322,7 +323,7 @@ function ProfileForm({
     try {
       await edit({
         username: user.username,
-        displayRank: form.displayRank as "user" | "setter" | "admin",
+        displayRank: form.displayRank,
         usernameDisplayOverride: form.usernameDisplayOverride,
         timezone: form.timezone,
         about: form.about,
@@ -364,7 +365,7 @@ function ProfileForm({
           <Select
             options={RANKS.map((rank) => ({ value: rank.value, label: t(rank.labelKey) }))}
             value={form.displayRank}
-            onValueChange={(value) => change("displayRank", value)}
+            onValueChange={(value) => change("displayRank", chosenValue(RANKS, value, form.displayRank))}
             ariaLabel={t("displayRank")}
           />
         </Field>

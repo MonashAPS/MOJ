@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 import type { ContestDetail } from "@convex/contests";
 import type { RankingPayload, RankingRow } from "@convex/contests/rankings";
 import type { FrozenCells } from "@convex/pages/contests";
@@ -21,12 +22,14 @@ import {
   toast,
 } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionArgs } from "convex/server";
 import { Ban, Snowflake, Trophy, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips, useHumanDuration } from "@/components/contests/pieces";
+import { chosenValue } from "@/lib/choices";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { formatDateTime, formatPoints } from "@/lib/format";
 import { contestTabs, joinKindFor } from "../tabs";
@@ -221,17 +224,17 @@ function Row({
             className="text-sm"
           />
           {row.virtual > 0 ? (
-            <Badge variant="neutral" shape="square" mono>
+            <Badge variant="neutral" rounding="square" mono>
               {t("virtualBadge")}
             </Badge>
           ) : null}
           {row.virtual === -1 ? (
-            <Badge variant="neutral" shape="square" mono>
+            <Badge variant="neutral" rounding="square" mono>
               {t("spectatorBadge")}
             </Badge>
           ) : null}
           {row.isDisqualified ? (
-            <Badge variant="bad" shape="square" mono>
+            <Badge variant="bad" rounding="square" mono>
               {t("disqualifiedBadge")}
             </Badge>
           ) : null}
@@ -248,7 +251,7 @@ function Row({
             {row.organizations.map((organization) => (
               <Tooltip key={organization._id} content={organization.name}>
                 <Link href={`/organization/${organization.slug}/`} className="relative z-1">
-                  <Badge variant="outline" shape="square" mono>
+                  <Badge variant="outline" rounding="square" mono>
                     {organization.shortName || organization.name}
                   </Badge>
                 </Link>
@@ -315,7 +318,7 @@ export function RankingClient({
   detail: ContestDetail;
   initial: RankingPayload;
   viewerUsername: string | null;
-  classOptions: { _id: string; name: string }[];
+  classOptions: { _id: Id<"classes">; name: string }[];
   initialFrozenCells: FrozenCells;
 }) {
   const t = useTranslations("contests.ranking");
@@ -325,17 +328,19 @@ export function RankingClient({
   const [includeSpectators, setIncludeSpectators] = useState(false);
   const [showOrganizations, setShowOrganizations] = useState(true);
   const [organizationSlug, setOrganizationSlug] = useState(ALL);
-  const [classId, setClassId] = useState(ALL);
+  const [classId, setClassId] = useState<Id<"classes"> | typeof ALL>(ALL);
   const [revealBusy, setRevealBusy] = useState(false);
   const unfreeze = useMutation(api.scoreboard.unfreezeContest);
 
-  const args = {
+  const args: FunctionArgs<typeof api.contests.rankings.ranking> = {
     key: contestKey,
     includeVirtual,
     includeSpectators,
-    ...(organizationSlug !== ALL ? { organizationSlug } : {}),
-    ...(classId !== ALL ? { classId: classId as never } : {}),
   };
+
+  if (organizationSlug !== ALL) args.organizationSlug = organizationSlug;
+
+  if (classId !== ALL) args.classId = classId;
 
   const live = useQuery(api.contests.rankings.ranking, args);
   const defaults = !includeVirtual && !includeSpectators && organizationSlug === ALL && classId === ALL;
@@ -355,6 +360,11 @@ export function RankingClient({
   const joinKind = joinKindFor(detail);
   const contest = detail.contest;
   const precision = contest?.pointsPrecision ?? 2;
+
+  const classIdOptions: { value: Id<"classes"> | typeof ALL; label: string }[] = [
+    { value: ALL, label: t("allClasses") },
+    ...classOptions.map((klass) => ({ value: klass._id, label: klass.name })),
+  ];
 
   const organizationOptions = [
     { value: ALL, label: t("allOrganizations") },
@@ -380,7 +390,7 @@ export function RankingClient({
     }
   };
 
-  const problemIds = (data?.problems ?? []).map((problem) => problem.contestProblemId as string);
+  const problemIds = (data?.problems ?? []).map((problem) => problem.contestProblemId);
   // An organisation column nobody is in is 300px of nothing; DMOJ hides it too.
   const anyOrganizations = (data?.rows ?? []).some((row) => row.organizations.length > 0);
   const organizationColumn = anyOrganizations && showOrganizations;
@@ -477,12 +487,12 @@ export function RankingClient({
                   <Select
                     ariaLabel={t("filterByClass")}
                     size="sm"
-                    options={[
-                      { value: ALL, label: t("allClasses") },
-                      ...classOptions.map((klass) => ({ value: klass._id, label: klass.name })),
-                    ]}
+                    options={classIdOptions.map((option) => ({
+                      value: option.value,
+                      label: option.label,
+                    }))}
                     value={classId}
-                    onValueChange={setClassId}
+                    onValueChange={(value) => setClassId(chosenValue(classIdOptions, value, ALL))}
                   />
                 </div>
               ) : null}

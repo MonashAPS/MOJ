@@ -1,9 +1,9 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
 import { Button, Select } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -11,6 +11,7 @@ import { useState } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { ConfirmAction, DASH, Flags, SearchBox, StatusLine } from "@/components/admin/console";
 import { RecordDialog } from "@/components/admin/RecordDialog";
+import { chosenValue } from "@/lib/choices";
 import {
   EMPTY_ORGANIZATION,
   type OrganizationDraft,
@@ -18,21 +19,9 @@ import {
   parseUsernames,
 } from "./OrganizationFields";
 
-type OrganizationRow = {
-  _id: Id<"organizations">;
-  name: string;
-  slug: string;
-  shortName: string;
-  isOpen: boolean;
-  classRequired: boolean;
-  slots: number | null;
-  accessCode: string | null;
-  memberCount: number;
-  adminUsernames: string[];
-  classCount: number;
-  pendingRequests: number;
-  canEdit: boolean;
-};
+type OrganizationRow = FunctionReturnType<typeof api.admin.organizations.list>[number];
+
+type OrganizationFilters = FunctionArgs<typeof api.admin.organizations.list>;
 
 const OPEN_OPTIONS = [
   { value: "any", labelKey: "opennessAny" },
@@ -44,12 +33,16 @@ export function OrganizationsTable() {
   const t = useTranslations("admin.organizations.list");
   const actions = useTranslations("common.actions");
   const [search, setSearch] = useState("");
-  const [openness, setOpenness] = useState("any");
+  const [openness, setOpenness] = useState<(typeof OPEN_OPTIONS)[number]["value"]>("any");
 
-  const rows = useQuery(api.admin.organizations.list, {
-    ...(search.trim() ? { search: search.trim() } : {}),
-    ...(openness === "any" ? {} : { isOpen: openness === "open" }),
-  }) as OrganizationRow[] | undefined;
+  const filters: OrganizationFilters = {};
+  const needle = search.trim();
+
+  if (needle) filters.search = needle;
+
+  if (openness !== "any") filters.isOpen = openness === "open";
+
+  const rows = useQuery(api.admin.organizations.list, filters);
 
   const create = useMutation(api.admin.organizations.create);
   const remove = useMutation(api.admin.organizations.remove);
@@ -196,7 +189,7 @@ export function OrganizationsTable() {
             <Select
               options={OPEN_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
               value={openness}
-              onValueChange={setOpenness}
+              onValueChange={(value) => setOpenness(chosenValue(OPEN_OPTIONS, value, "any"))}
               ariaLabel={t("opennessAria")}
               size="sm"
               className="w-[184px]"

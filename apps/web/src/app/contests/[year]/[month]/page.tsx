@@ -54,7 +54,7 @@ export default async function ContestCalendarPage({
     queryAsViewer(api.contests.calendar, { year, month, offsetMinutes: 600 }).catch(() => null),
     queryAsViewer(api.viewer.permissions, {
       codes: ["judge.edit_all_contest", "judge.edit_own_contest"],
-    }).catch(() => ({}) as Record<string, boolean>),
+    }).catch((): Record<string, boolean> => ({})),
   ]);
 
   if (!calendar) notFound();

@@ -3,6 +3,7 @@
 import { api } from "@convex/_generated/api";
 import { Button, Combobox, EmptyState, Field, SkeletonTable } from "@moj/ui";
 import { useQuery } from "convex/react";
+import type { FunctionArgs } from "convex/server";
 import { ChevronLeft, ChevronRight, MonitorOff, Trophy, User, ZoomIn, ZoomOut } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
@@ -37,12 +38,13 @@ export function ProctorSessions() {
   // Span and offset, never a timestamp computed here: an absolute bound would
   // be a new value on every render, and a query whose arguments never settle
   // never resolves. The server reads the clock.
-  const data = useQuery(api.proctor.timeline, {
-    spanMs: span,
-    endOffsetMs: endOffset,
-    ...(username ? { username } : {}),
-    ...(contestKey ? { contestKey } : {}),
-  });
+  const timeline: FunctionArgs<typeof api.proctor.timeline> = { spanMs: span, endOffsetMs: endOffset };
+
+  if (username) timeline.username = username;
+
+  if (contestKey) timeline.contestKey = contestKey;
+
+  const data = useQuery(api.proctor.timeline, timeline);
 
   const people = useMemo(() => {
     const seen = new Map<string, string>();

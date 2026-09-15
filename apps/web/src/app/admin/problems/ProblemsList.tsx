@@ -113,7 +113,7 @@ export function ProblemsList() {
         <div className="flex min-w-0 items-center gap-2">
           <span className="truncate text-foreground">{row.name}</span>
           {row.isManuallyManaged ? (
-            <Badge variant="neutral" shape="square">
+            <Badge variant="neutral" rounding="square">
               {t("manual")}
             </Badge>
           ) : null}
@@ -165,7 +165,7 @@ export function ProblemsList() {
       key: "visibility",
       header: t("column.visibility"),
       cell: (row) => (
-        <Badge variant={row.isPublic ? "good" : "neutral"} shape="square">
+        <Badge variant={row.isPublic ? "good" : "neutral"} rounding="square">
           {row.isPublic ? t("public") : row.isOrganizationPrivate ? t("organization") : t("private")}
         </Badge>
       ),

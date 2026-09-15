@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Button, Checkbox, Field, FieldGroup, Input, MultiSelect, Textarea } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -12,18 +13,12 @@ import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { ConfirmAction, DASH, Flags, SearchBox, StatusLine } from "@/components/admin/console";
 import { MarkdownField } from "@/components/admin/MarkdownField";
 import { RecordDialog } from "@/components/admin/RecordDialog";
+import { chosenIds } from "@/lib/choices";
 import { formatDateTime } from "@/lib/format";
 
-type PostRow = {
-  _id: Id<"blogPosts">;
-  legacyId?: number;
-  title: string;
-  slug: string;
-  visible: boolean;
-  sticky: boolean;
-  publishOn: number;
-  authors: Array<{ _id: string; username: string; displayName: string }>;
-};
+type PostRow = FunctionReturnType<typeof api.admin.blog.list>[number];
+
+type AuthorOption = { id: Id<"profiles">; label: string };
 
 type Draft = {
   id: Id<"blogPosts"> | null;
@@ -34,7 +29,7 @@ type Draft = {
   visible: boolean;
   sticky: boolean;
   publishOn: string;
-  authorProfileIds: string[];
+  authorProfileIds: Id<"profiles">[];
 };
 
 const EMPTY: Draft = {
@@ -67,14 +62,12 @@ function fromLocalInput(value: string): number | null {
   return new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute)).getTime();
 }
 
-export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string; label: string }> | null }) {
+export function BlogTable({ authorOptions }: { authorOptions: AuthorOption[] | null }) {
   const t = useTranslations("admin.blog");
   const actions = useTranslations("common.actions");
   const [search, setSearch] = useState("");
 
-  const posts = useQuery(api.admin.blog.list, search.trim() ? { search: search.trim() } : {}) as
-    | PostRow[]
-    | undefined;
+  const posts = useQuery(api.admin.blog.list, search.trim() ? { search: search.trim() } : {});
 
   const create = useMutation(api.admin.blog.create);
   const update = useMutation(api.admin.blog.update);
@@ -100,7 +93,7 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
       visible: full.visible,
       sticky: full.sticky,
       publishOn: toLocalInput(full.publishOn),
-      authorProfileIds: full.authorProfileIds as string[],
+      authorProfileIds: full.authorProfileIds,
     });
   }, [loadingPost, full]);
 
@@ -126,7 +119,7 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
         visible: draft.visible,
         sticky: draft.sticky,
         publishOn,
-        authorProfileIds: draft.authorProfileIds as Id<"profiles">[],
+        authorProfileIds: draft.authorProfileIds,
         reason,
       };
 
@@ -313,7 +306,17 @@ export function BlogTable({ authorOptions }: { authorOptions: Array<{ id: string
               options={(authorOptions ?? []).map((option) => ({ value: option.id, label: option.label }))}
               values={draft?.authorProfileIds ?? []}
               onChange={(values) =>
-                setDraft((current) => (current ? { ...current, authorProfileIds: values } : current))
+                setDraft((current) =>
+                  current
+                    ? {
+                        ...current,
+                        authorProfileIds: chosenIds(
+                          values,
+                          (authorOptions ?? []).map((option) => option.id),
+                        ),
+                      }
+                    : current,
+                )
               }
               disabled={!authorOptions}
               searchPlaceholder={t("authorsSearchPlaceholder")}

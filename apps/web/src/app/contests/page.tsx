@@ -41,16 +41,18 @@ export default async function ContestsPage({
     paginationOpts: { numItems: PAST_PER_PAGE, cursor: String((page - 1) * PAST_PER_PAGE) },
     sort,
     descending,
-    ...(search ? { search } : {}),
-    ...(tagName ? { tagName } : {}),
   };
+
+  if (search) args.search = search;
+
+  if (tagName) args.tagName = tagName;
 
   const [initial, viewerState, permissions] = await Promise.all([
     queryAsViewer(api.contests.list, args).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
     queryAsViewer(api.viewer.permissions, {
       codes: ["judge.edit_all_contest", "judge.edit_own_contest"],
-    }).catch(() => ({}) as Record<string, boolean>),
+    }).catch((): Record<string, boolean> => ({})),
   ]);
 
   const canEditContests =

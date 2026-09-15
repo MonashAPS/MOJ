@@ -12,7 +12,7 @@ import type { ConsoleKeyRow } from "./scopes";
 
 /** Better Auth models a scope as `{resource: [action]}`; the wire form is
  *  `resource:action`, which is what the problems API reads. */
-function toPermissions(scopes: string[]): Record<string, string[]> {
+function toPermissions(scopes: string[]) {
   const out: Record<string, string[]> = {};
 
   for (const scope of scopes) {
@@ -28,11 +28,12 @@ function toPermissions(scopes: string[]): Record<string, string[]> {
   return out;
 }
 
-function fromPermissions(permissions: unknown): string[] {
-  if (!permissions || typeof permissions !== "object") return [];
+/** The api-key plugin parses the stored permissions before it answers, so the
+ *  wire form is rebuilt from that object. */
+function fromPermissions(permissions: Record<string, string[]> | null | undefined): string[] {
   const out: string[] = [];
 
-  for (const [resource, actions] of Object.entries(permissions as Record<string, string[]>)) {
+  for (const [resource, actions] of Object.entries(permissions ?? {})) {
     for (const action of actions ?? []) out.push(`${resource}:${action}`);
   }
 
@@ -43,11 +44,11 @@ function sha256Hex(value: string): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
-function millis(value: unknown): number | null {
+function millis(value: Date | null | undefined): number | null {
   if (!value) return null;
-  const date = value instanceof Date ? value : new Date(value as string);
+  const time = value.getTime();
 
-  return Number.isNaN(date.getTime()) ? null : date.getTime();
+  return Number.isNaN(time) ? null : time;
 }
 
 export async function listKeysAction(): Promise<ActionResult<ConsoleKeyRow[]>> {
@@ -55,17 +56,16 @@ export async function listKeysAction(): Promise<ActionResult<ConsoleKeyRow[]>> {
     await requireConsoleViewer();
     const t = await getTranslations("admin.apiKeys");
     const listed = await auth.api.listApiKeys({ headers: await authHeaders() });
-    const keys = Array.isArray(listed) ? listed : ((listed as { apiKeys?: unknown[] }).apiKeys ?? []);
     const mirrored = await queryAsViewer(api.pages.admin.apiKeys.mine, {});
     const byPrefix = new Map(mirrored.map((row) => [row.prefix ?? "", row]));
 
-    const rows: ConsoleKeyRow[] = (keys as Record<string, unknown>[]).map((key) => {
-      const start = (key.start as string | null) ?? null;
+    const rows: ConsoleKeyRow[] = listed.apiKeys.map((key) => {
+      const start = key.start;
       const match = start ? byPrefix.get(start) : undefined;
 
       return {
-        id: String(key.id),
-        name: (key.name as string | null) ?? t("unnamedKey"),
+        id: key.id,
+        name: key.name ?? t("unnamedKey"),
         start,
         scopes: fromPermissions(key.permissions),
         enabled: key.enabled !== false,
@@ -73,7 +73,7 @@ export async function listKeysAction(): Promise<ActionResult<ConsoleKeyRow[]>> {
         expiresAt: millis(key.expiresAt),
         lastUsedAt: match?.lastUsedAt ?? millis(key.lastRequest),
         mirrored: Boolean(match),
-        convexId: match ? (match._id as string) : null,
+        convexId: match?._id ?? null,
       };
     });
 
@@ -109,16 +109,14 @@ export async function createKeyAction(input: {
 
     if (input.scopes.length === 0) return { ok: false, error: t("scopeRequired") };
 
-    const expiresIn = input.expiresInDays ? input.expiresInDays * 24 * 60 * 60 : undefined;
+    const body = {
+      name,
+      userId: viewer.userId,
+      permissions: toPermissions(input.scopes),
+    };
 
-    const created = await auth.api.createApiKey({
-      body: {
-        name,
-        userId: viewer.userId,
-        permissions: toPermissions(input.scopes),
-        ...(expiresIn ? { expiresIn } : {}),
-      },
-    });
+    const expiresIn = input.expiresInDays ? input.expiresInDays * 24 * 60 * 60 : null;
+    const created = await auth.api.createApiKey({ body: expiresIn ? { ...body, expiresIn } : body });
 
     const start = created.start ?? created.key.slice(0, 6);
     const expiresAt = millis(created.expiresAt);
@@ -167,16 +165,14 @@ export async function createKeyAction(input: {
 
 export async function revokeKeyAction(
   keyId: string,
-  convexId: string | null,
+  convexId: Id<"apiKeys"> | null,
 ): Promise<ActionResult<undefined>> {
   try {
     await requireConsoleViewer();
     await auth.api.deleteApiKey({ body: { keyId }, headers: await authHeaders() });
 
     if (convexId) {
-      await mutateAsViewer(api.pages.admin.apiKeys.revoke, {
-        id: convexId as Id<"apiKeys">,
-      }).catch(() => undefined);
+      await mutateAsViewer(api.pages.admin.apiKeys.revoke, { id: convexId }).catch(() => undefined);
     }
 
     return { ok: true, data: undefined };

@@ -4,27 +4,17 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Badge, Button, Field, MultiSelect, Select, Textarea } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { ConfirmAction, SearchBox, StatusLine } from "@/components/admin/console";
 import { RecordDialog } from "@/components/admin/RecordDialog";
+import { chosenIds } from "@/lib/choices";
 import { formatDateTime } from "@/lib/format";
 
-type TicketRow = {
-  _id: Id<"tickets">;
-  legacyId?: number;
-  title: string;
-  time: number;
-  isOpen: boolean;
-  notes: string;
-  authorName: string;
-  assigneeNames: string[];
-  linkedType?: string;
-  linkedKey?: string;
-  messageCount: number;
-};
+type TicketRow = FunctionReturnType<typeof api.admin.tickets.list>["page"][number];
 
 const STATE_OPTIONS = [
   { value: "open", labelKey: "stateOpen" },
@@ -40,12 +30,17 @@ export function TicketsTable() {
   const [search, setSearch] = useState("");
   const [cursor, setCursor] = useState("0");
 
-  const page = useQuery(api.admin.tickets.list, {
+  const filters: FunctionArgs<typeof api.admin.tickets.list> = {
     onlyOpen: state === "open",
-    ...(search.trim() ? { search: search.trim() } : {}),
     cursor,
     numItems: PER_PAGE,
-  });
+  };
+
+  const needle = search.trim();
+
+  if (needle) filters.search = needle;
+
+  const page = useQuery(api.admin.tickets.list, filters);
 
   const counts = useQuery(api.admin.tickets.counts, {});
 
@@ -55,7 +50,7 @@ export function TicketsTable() {
   const [assigning, setAssigning] = useState<TicketRow | null>(null);
   const [message, setMessage] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
 
-  async function run(action: () => Promise<unknown>, ok: string) {
+  async function run<T>(action: () => Promise<T>, ok: string) {
     try {
       await action();
       setMessage({ tone: "ok", text: ok });
@@ -101,7 +96,7 @@ export function TicketsTable() {
       key: "state",
       header: t("columnState"),
       cell: (row) => (
-        <Badge variant={row.isOpen ? "warn" : "good"} shape="square">
+        <Badge variant={row.isOpen ? "warn" : "good"} rounding="square">
           {row.isOpen ? t("badgeOpen") : t("badgeClosed")}
         </Badge>
       ),
@@ -155,7 +150,7 @@ export function TicketsTable() {
     },
   ];
 
-  const rows = page?.page as TicketRow[] | undefined;
+  const rows = page?.page;
 
   return (
     <div className="grid gap-3">
@@ -255,7 +250,7 @@ function AssignDialog({
   const setAssignees = useMutation(api.admin.tickets.setAssignees);
   const setNotes = useMutation(api.admin.tickets.setNotes);
 
-  const [values, setValues] = useState<string[] | null>(null);
+  const [values, setValues] = useState<Id<"profiles">[] | null>(null);
   const [notes, setNotesValue] = useState(ticket.notes);
   const [reason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -265,7 +260,7 @@ function AssignDialog({
     values ??
     (options ?? [])
       .filter((option) => ticket.assigneeNames.includes(option.displayName))
-      .map((option) => option._id as string);
+      .map((option) => option._id);
 
   async function save() {
     setBusy(true);
@@ -274,7 +269,7 @@ function AssignDialog({
     try {
       await setAssignees({
         ticketId: ticket._id,
-        profileIds: chosen as Id<"profiles">[],
+        profileIds: chosen,
         reason,
       });
 
@@ -304,11 +299,18 @@ function AssignDialog({
       <Field label={t("assignees")} hint={t("assigneesHint")}>
         <MultiSelect
           options={(options ?? []).map((option) => ({
-            value: option._id as string,
+            value: option._id,
             label: option.displayName,
           }))}
           values={chosen}
-          onChange={setValues}
+          onChange={(next) =>
+            setValues(
+              chosenIds(
+                next,
+                (options ?? []).map((option) => option._id),
+              ),
+            )
+          }
           searchPlaceholder={t("findMember")}
           emptyText={t("noMemberMatch")}
         />

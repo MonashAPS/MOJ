@@ -9,26 +9,48 @@ import { mutateAsViewer } from "@/lib/convex-server";
 
 export type JoinResult = { error: string } | never;
 
-function messageOf(error: unknown, fallback: string): string {
-  if (error instanceof ConvexError) {
-    const data = error.data as { message?: string; reason?: string } | string;
+/** `convex/lib/errors.ts` throws `ConvexError({code, message})` and the join
+ *  path adds a `reason`; a few throws carry the sentence on its own instead. */
+type Refusal = { message?: string; reason?: string };
 
-    if (typeof data === "string") return data;
-
-    return data.message ?? fallback;
-  }
-
-  return error instanceof Error ? error.message : fallback;
+function isRefusalText(value: unknown): value is string {
+  return typeof value === "string";
 }
 
-function reasonOf(error: unknown): string | null {
-  if (error instanceof ConvexError) {
-    const data = error.data as { reason?: string } | string;
+function isRefusal(value: unknown): value is Refusal {
+  if (typeof value !== "object" || value === null) return false;
 
-    if (typeof data === "object" && data.reason) return data.reason;
+  if ("message" in value && typeof value.message !== "string") return false;
+
+  return !("reason" in value) || typeof value.reason === "string";
+}
+
+function messageOf(cause: unknown, fallback: string): string {
+  if (cause instanceof ConvexError) {
+    if (isRefusalText(cause.data)) return cause.data;
+
+    if (isRefusal(cause.data)) return cause.data.message ?? fallback;
   }
 
-  return null;
+  return cause instanceof Error ? cause.message : fallback;
+}
+
+function reasonOf(cause: unknown): string | null {
+  if (!(cause instanceof ConvexError) || !isRefusal(cause.data)) return null;
+
+  return cause.data.reason || null;
+}
+
+/** `FormData.get` answers with a `File` for a file field and `null` for a field
+ *  the form did not post; these forms only ever post text. */
+function isText(value: FormDataEntryValue | null): value is string {
+  return typeof value === "string";
+}
+
+function textField(formData: FormData, name: string): string {
+  const value = formData.get(name);
+
+  return isText(value) ? value : "";
 }
 
 /**
@@ -39,19 +61,19 @@ function reasonOf(error: unknown): string | null {
  */
 export async function joinContest(_state: JoinResult | null, formData: FormData): Promise<JoinResult> {
   const t = await getTranslations("contests.actions");
-  const key = String(formData.get("key") ?? "");
-  const accessCode = formData.get("accessCode");
+  const key = textField(formData, "key");
+  const accessCode = textField(formData, "accessCode");
 
   if (!key) return { error: t("noSuchContest") };
 
   try {
     await mutateAsViewer(api.contests.participation.join, {
       key,
-      accessCode: typeof accessCode === "string" && accessCode ? accessCode : undefined,
+      accessCode: accessCode || undefined,
     });
   } catch (error) {
     if (reasonOf(error) === "accessCodeRequired") {
-      if (typeof accessCode === "string" && accessCode) return { error: t("invalidAccessCode") };
+      if (accessCode) return { error: t("invalidAccessCode") };
       redirect(`/contest/${key}/join/`);
     }
 
@@ -66,7 +88,7 @@ export async function joinContest(_state: JoinResult | null, formData: FormData)
 /** `ContestLeave.post` (contests.py:468): back to the contest page. */
 export async function leaveContest(_state: JoinResult | null, formData: FormData): Promise<JoinResult> {
   const t = await getTranslations("contests.actions");
-  const key = String(formData.get("key") ?? "");
+  const key = textField(formData, "key");
 
   if (!key) return { error: t("noSuchContest") };
 
@@ -92,8 +114,8 @@ export type CloneResult = { error: string } | never;
 /** `ContestClone.form_valid` (contests.py:317): the clone opens in the admin. */
 export async function cloneContest(_state: CloneResult | null, formData: FormData): Promise<CloneResult> {
   const t = await getTranslations("contests.actions");
-  const key = String(formData.get("key") ?? "");
-  const newKey = String(formData.get("newKey") ?? "").trim();
+  const key = textField(formData, "key");
+  const newKey = textField(formData, "newKey").trim();
 
   if (!newKey) return { error: t("newKeyRequired") };
 

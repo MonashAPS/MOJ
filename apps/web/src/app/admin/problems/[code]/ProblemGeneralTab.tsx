@@ -15,7 +15,15 @@ import {
   DateTimeField,
   UserPicker,
 } from "@/components/admin";
+import { chosenValue } from "@/lib/choices";
 import type { ProblemEdit, ProblemOptions } from "./types";
+
+const SOURCE_VISIBILITY_OPTIONS = [
+  { value: "F", labelKey: "field.sourceVisibilityFollow" },
+  { value: "A", labelKey: "field.sourceVisibilityAnyone" },
+  { value: "S", labelKey: "field.sourceVisibilitySolved" },
+  { value: "O", labelKey: "field.sourceVisibilityStaff" },
+] as const;
 
 function same(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((value, index) => value === b[index]);
@@ -288,13 +296,13 @@ export function ProblemGeneralTab({
           <Select
             id={ids.visibility}
             value={sourceVisibility}
-            onValueChange={(value) => setSourceVisibility(value as ProblemEdit["submissionSourceVisibility"])}
-            options={[
-              { value: "F", label: shared("field.sourceVisibilityFollow") },
-              { value: "A", label: shared("field.sourceVisibilityAnyone") },
-              { value: "S", label: shared("field.sourceVisibilitySolved") },
-              { value: "O", label: shared("field.sourceVisibilityStaff") },
-            ]}
+            onValueChange={(value) =>
+              setSourceVisibility(chosenValue(SOURCE_VISIBILITY_OPTIONS, value, sourceVisibility))
+            }
+            options={SOURCE_VISIBILITY_OPTIONS.map((option) => ({
+              value: option.value,
+              label: shared(option.labelKey),
+            }))}
           />
         </Field>
       </AdminSection>

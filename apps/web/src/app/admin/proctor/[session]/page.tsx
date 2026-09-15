@@ -15,7 +15,11 @@ export default async function AdminProctorSessionPage({ params }: { params: Prom
 
   return (
     <Suspense fallback={null}>
-      <ProctorReplay sessionId={session as Id<"proctorSessions">} />
+      <ProctorReplay
+        // SAFETY: the segment is the `_id` the console's session list links to, and
+        // Convex refuses any string that is not an id of `proctorSessions`.
+        sessionId={session as Id<"proctorSessions">}
+      />
     </Suspense>
   );
 }

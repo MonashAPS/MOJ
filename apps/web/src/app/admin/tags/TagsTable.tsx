@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Badge, Button, Field, FieldGroup, Input, Textarea } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -11,13 +12,7 @@ import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { ConfirmAction, DASH, StatusLine } from "@/components/admin/console";
 import { RecordDialog } from "@/components/admin/RecordDialog";
 
-type TagRow = {
-  _id: Id<"contestTags">;
-  name: string;
-  color: string;
-  description: string;
-  contestCount: number;
-};
+type TagRow = FunctionReturnType<typeof api.admin.tags.list>[number];
 
 type Draft = { id: Id<"contestTags"> | null; name: string; color: string; description: string };
 
@@ -26,7 +21,7 @@ const EMPTY: Draft = { id: null, name: "", color: "#2941a5", description: "" };
 export function TagsTable() {
   const t = useTranslations("admin.tags");
   const actions = useTranslations("common.actions");
-  const tags = useQuery(api.admin.tags.list, {}) as TagRow[] | undefined;
+  const tags = useQuery(api.admin.tags.list, {});
   const create = useMutation(api.admin.tags.create);
   const update = useMutation(api.admin.tags.update);
   const remove = useMutation(api.admin.tags.remove);

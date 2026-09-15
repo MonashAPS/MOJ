@@ -23,9 +23,7 @@ export default async function AdminBlogPage() {
     <>
       <TitleRow title={t("title")} />
       <BlogTable
-        authorOptions={
-          staff?.users.map((user) => ({ id: user._id as string, label: user.displayName })) ?? null
-        }
+        authorOptions={staff?.users.map((user) => ({ id: user._id, label: user.displayName })) ?? null}
       />
     </>
   );

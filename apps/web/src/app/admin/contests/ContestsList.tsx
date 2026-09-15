@@ -85,16 +85,16 @@ export function ContestsList() {
       header: t("columnState"),
       cell: (row) => (
         <div className="flex flex-wrap gap-1">
-          <Badge variant={row.isVisible ? "good" : "neutral"} shape="square">
+          <Badge variant={row.isVisible ? "good" : "neutral"} rounding="square">
             {row.isVisible ? t("visible") : t("hidden")}
           </Badge>
           {row.isRated ? (
-            <Badge variant="accent" shape="square">
+            <Badge variant="accent" rounding="square">
               {t("rated")}
             </Badge>
           ) : null}
           {row.isPrivate || row.isOrganizationPrivate ? (
-            <Badge variant="warn" shape="square">
+            <Badge variant="warn" rounding="square">
               {t("private")}
             </Badge>
           ) : null}

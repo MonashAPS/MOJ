@@ -1,3 +1,4 @@
+import type { Id } from "@convex/_generated/dataModel";
 import { PROBLEMS_WRITE_SCOPE, READ_SCOPE } from "@moj/protocol";
 
 /** The two scopes a key can hold, the same pair `/accounts/api/token/generate/`
@@ -18,5 +19,5 @@ export type ConsoleKeyRow = {
   expiresAt: number | null;
   lastUsedAt: number | null;
   mirrored: boolean;
-  convexId: string | null;
+  convexId: Id<"apiKeys"> | null;
 };

@@ -1,4 +1,5 @@
 import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -32,8 +33,8 @@ export default async function ContestRankingPage({ params }: { params: Promise<{
   const classGroups = await Promise.all(
     detail.contest.organizations.map((organization) =>
       queryAsViewer(api.classes.listForOrganization, { organizationSlug: organization.slug })
-        .then((rows) => rows.map((row) => ({ _id: row._id as string, name: row.name })))
-        .catch(() => [] as { _id: string; name: string }[]),
+        .then((rows) => rows.map((row) => ({ _id: row._id, name: row.name })))
+        .catch((): { _id: Id<"classes">; name: string }[] => []),
     ),
   );
 

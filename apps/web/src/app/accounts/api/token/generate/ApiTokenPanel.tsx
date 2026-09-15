@@ -1,5 +1,6 @@
 "use client";
 
+import { PROBLEMS_WRITE_SCOPE, READ_SCOPE } from "@moj/protocol";
 import {
   Alert,
   AlertDescription,
@@ -34,6 +35,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { formatDateTime } from "@/lib/format";
+import { readErrorMessage } from "@/lib/json-body";
 import { type ApiKeySummary, generateApiToken, type TokenScope } from "./actions";
 
 export function ApiTokenPanel({
@@ -96,8 +98,7 @@ export function ApiTokenPanel({
       });
 
       if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
-        setError(body?.error?.message ?? t("revokeFailed"));
+        setError((await readErrorMessage(response)) ?? t("revokeFailed"));
 
         return;
       }
@@ -121,9 +122,9 @@ export function ApiTokenPanel({
   }
 
   const scopeOptions = [
-    { value: "read" as TokenScope, label: "read", hint: t("scopeRead") },
-    { value: "problems:write" as TokenScope, label: "problems:write", hint: t("scopeProblemsWrite") },
-  ];
+    { value: READ_SCOPE, label: READ_SCOPE, hint: t("scopeRead") },
+    { value: PROBLEMS_WRITE_SCOPE, label: PROBLEMS_WRITE_SCOPE, hint: t("scopeProblemsWrite") },
+  ] satisfies { value: TokenScope; label: string; hint: string }[];
 
   return (
     <div className="grid gap-4">

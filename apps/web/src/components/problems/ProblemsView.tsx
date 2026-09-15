@@ -190,7 +190,7 @@ function Row({
           {item.types && item.types.length > 0 ? (
             <span className="flex flex-wrap gap-1">
               {item.types.map((type) => (
-                <Badge key={type.id} variant="neutral" shape="square">
+                <Badge key={type.id} variant="neutral" rounding="square">
                   {type.fullName}
                 </Badge>
               ))}

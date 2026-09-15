@@ -1,23 +1,16 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
 import { Button, Select } from "@moj/ui";
 import { useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { Flags } from "@/components/admin/console";
 
-type ClassRow = {
-  _id: Id<"classes">;
-  name: string;
-  slug: string;
-  isActive: boolean;
-  memberCount: number;
-  requiresAccessCode: boolean;
-};
+type ClassRow = FunctionReturnType<typeof api.classes.listForOrganization>[number];
 
 /** Classes belong to an organisation, so this page picks one and shows its
  *  classes; editing happens on the organisation's own Classes tab. */
@@ -32,7 +25,7 @@ export function ClassesBrowser({
   const rows = useQuery(
     api.classes.listForOrganization,
     slug ? { organizationSlug: slug, activeOnly: false } : "skip",
-  ) as ClassRow[] | undefined;
+  );
 
   const organization = organizations.find((entry) => entry.slug === slug);
 

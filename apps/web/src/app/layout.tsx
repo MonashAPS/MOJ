@@ -73,9 +73,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         // The admin plugin stamps the acting superuser onto the session; the
         // impersonation bar and the dropdown's "Stop impersonating" row hang
         // off this.
-        isImpersonating: Boolean(
-          (session?.session as { impersonatedBy?: string | null } | undefined)?.impersonatedBy,
-        ),
+        isImpersonating: Boolean(session?.session.impersonatedBy),
       }
     : null;
 

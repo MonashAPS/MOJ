@@ -34,6 +34,7 @@ import { useEffect, useState } from "react";
 import type { PasskeySummary } from "@/auth/account-state";
 import { authClient } from "@/auth/client";
 import { formatDateTime } from "@/lib/format";
+import { readErrorMessage } from "@/lib/json-body";
 
 /** DMOJ's `WebAuthnAttestationView` plus the credential list from its edit
  *  profile page. Registration and deletion both run through Better Auth's
@@ -97,8 +98,7 @@ export function PasskeyManager({
       const response = await fetch(`/accounts/2fa/webauthn/delete/${passkey.id}/`, { method: "POST" });
 
       if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
-        setError(body?.error?.message ?? t("passkeys.removeFailed"));
+        setError((await readErrorMessage(response)) ?? t("passkeys.removeFailed"));
 
         return;
       }

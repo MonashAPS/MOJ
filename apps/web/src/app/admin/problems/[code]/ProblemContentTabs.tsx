@@ -449,7 +449,7 @@ export function ProblemClarificationsTab({ problem }: { problem: ProblemEdit }) 
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState<string | null>(null);
+  const [pending, setPending] = useState<Id<"problemClarifications"> | null>(null);
 
   async function add() {
     setError(null);
@@ -540,7 +540,7 @@ export function ProblemClarificationsTab({ problem }: { problem: ProblemEdit }) 
                 if (!pending) return;
                 await deleteClarification({
                   code: problem.code,
-                  clarificationId: pending as Id<"problemClarifications">,
+                  clarificationId: pending,
                 });
                 setPending(null);
                 toast.success(t("removed"));

@@ -34,7 +34,7 @@ export function ProblemEditor({ code }: { code: string }) {
   const t = useTranslations("admin.problems.editor");
   const shared = useTranslations("admin.problems.shared");
   const params = useSearchParams();
-  const active = TABS.some((tab) => tab === params.get("tab")) ? (params.get("tab") as string) : "general";
+  const active = TABS.find((tab) => tab === params.get("tab")) ?? "general";
 
   const problem = useQuery(api.pages.admin.problems.edit, { code });
   const options = useQuery(api.pages.admin.problems.options, {});
@@ -82,7 +82,7 @@ export function ProblemEditor({ code }: { code: string }) {
       action={
         problem ? (
           <>
-            <Badge variant={problem.isPublic ? "good" : "neutral"} shape="square">
+            <Badge variant={problem.isPublic ? "good" : "neutral"} rounding="square">
               {problem.isPublic ? t("public") : t("private")}
             </Badge>
             <Button asChild variant="secondary" size="sm">

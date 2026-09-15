@@ -125,7 +125,7 @@ export function Flag({
   if (!on) return null;
 
   return (
-    <Badge variant={tone} shape="square">
+    <Badge variant={tone} rounding="square">
       {label}
     </Badge>
   );
@@ -144,7 +144,7 @@ export function Flags({
   return (
     <span className="flex flex-wrap gap-1">
       {on.map((flag) => (
-        <Badge key={flag.label} variant={flag.tone ?? "accent"} shape="square">
+        <Badge key={flag.label} variant={flag.tone ?? "accent"} rounding="square">
           {flag.label}
         </Badge>
       ))}

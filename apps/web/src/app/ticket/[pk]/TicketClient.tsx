@@ -31,6 +31,7 @@ import { useEffect, useRef, useState } from "react";
 import { CommentForm } from "@/components/comments/CommentForm";
 import { renderUserMarkdownBatch } from "@/components/markdown/actions";
 import { identiconUrl, initials } from "@/lib/avatar";
+import { chosenIds } from "@/lib/choices";
 import { mutationError } from "@/lib/convex-error";
 import { formatDateTime, formatRelative } from "@/lib/format";
 
@@ -271,7 +272,7 @@ function AssigneesDialog({
   const common = useTranslations("common.actions");
   const staff = useQuery(api.profiles.listStaff, open ? {} : "skip");
   const assign = useMutation(api.tickets.assign);
-  const [values, setValues] = useState<string[]>(() => ticket.assignees.map((one) => one._id));
+  const [values, setValues] = useState<Id<"profiles">[]>(() => ticket.assignees.map((one) => one._id));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -289,7 +290,7 @@ function AssigneesDialog({
     setError(null);
 
     try {
-      await assign({ ticketId, profileIds: values as Id<"profiles">[] });
+      await assign({ ticketId, profileIds: values });
       onOpenChange(false);
     } catch (thrown) {
       setError(mutationError(thrown, t("assigneesNotChanged")));
@@ -308,7 +309,14 @@ function AssigneesDialog({
         ) : null}
         <MultiSelect
           values={values}
-          onChange={setValues}
+          onChange={(next) =>
+            setValues(
+              chosenIds(
+                next,
+                options.map((option) => option.value),
+              ),
+            )
+          }
           options={options}
           placeholder={staff === undefined ? t("loadingStaff") : t("chooseStaff")}
           searchPlaceholder={t("filterStaff")}

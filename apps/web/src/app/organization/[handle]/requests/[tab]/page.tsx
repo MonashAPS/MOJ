@@ -13,8 +13,6 @@ export const dynamic = "force-dynamic";
 
 const TABS = ["pending", "log", "approved", "rejected"] as const;
 
-type Tab = (typeof TABS)[number];
-
 /** The tab is part of the title's sentence, so each tab gets its own message
  *  rather than a translated word dropped into an English frame. */
 const META = {
@@ -34,9 +32,9 @@ const TAB_LABELS = {
 export async function generateMetadata({ params }: { params: Promise<{ handle: string; tab: string }> }) {
   const { handle, tab } = await params;
   const t = await getTranslations("organizations.requests");
-  const message = META[tab as Tab] ?? META.pending;
+  const active = TABS.find((candidate) => candidate === tab) ?? "pending";
 
-  return { title: t(message, { organization: slugFromHandle(handle) }) };
+  return { title: t(META[active], { organization: slugFromHandle(handle) }) };
 }
 
 export default async function OrganizationRequestsPage({
@@ -44,9 +42,10 @@ export default async function OrganizationRequestsPage({
 }: {
   params: Promise<{ handle: string; tab: string }>;
 }) {
-  const { handle, tab } = await params;
+  const { handle, tab: requested } = await params;
+  const tab = TABS.find((candidate) => candidate === requested);
 
-  if (!TABS.includes(tab as Tab)) notFound();
+  if (!tab) notFound();
   const slug = slugFromHandle(handle);
 
   const [t, shared] = await Promise.all([
@@ -58,9 +57,7 @@ export default async function OrganizationRequestsPage({
 
   if (!session) redirect(`/accounts/login/?next=/organization/${handle}/requests/${tab}/`);
 
-  const data = await queryAsViewer(api.organizations.reviewRequests, { slug, tab: tab as Tab }).catch(
-    () => null,
-  );
+  const data = await queryAsViewer(api.organizations.reviewRequests, { slug, tab }).catch(() => null);
 
   // The query throws for someone with no review rights and returns a null
   // organisation when there is no such organisation.

@@ -24,7 +24,7 @@ export const badgeVariants = cva(
         run: "bg-run-bg text-run",
         ie: "bg-bad-bg text-ie border-dashed border-ie",
       },
-      shape: {
+      rounding: {
         /** Values: a verdict, a tag, a contest problem letter. */
         pill: "rounded-full px-2",
         /** Dense rows: the verdict code inside a submission list. */
@@ -39,7 +39,7 @@ export const badgeVariants = cva(
         false: "font-sans",
       },
     },
-    defaultVariants: { variant: "neutral", shape: "pill", size: "default", mono: false },
+    defaultVariants: { variant: "neutral", rounding: "pill", size: "default", mono: false },
   },
 );
 
@@ -50,14 +50,14 @@ export type BadgeProps = ComponentProps<"span"> &
     accent?: boolean;
   };
 
-export function Badge({ className, variant, shape, size, mono, asChild, accent, ...props }: BadgeProps) {
+export function Badge({ className, variant, rounding, size, mono, asChild, accent, ...props }: BadgeProps) {
   const Component = asChild ? Slot : "span";
 
   return (
     <Component
       data-slot="badge"
       className={cn(
-        badgeVariants({ variant: accent ? "accent" : variant, shape, size, mono }),
+        badgeVariants({ variant: accent ? "accent" : variant, rounding, size, mono }),
         "[a&]:transition-colors [a&]:hover:brightness-95",
         className,
       )}

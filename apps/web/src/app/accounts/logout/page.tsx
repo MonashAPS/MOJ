@@ -39,7 +39,7 @@ export default async function LogoutPage({ searchParams }: { searchParams: Promi
     );
   }
 
-  const username = (session.user as { username?: string | null }).username || session.user.name;
+  const username = session.user.username || session.user.name;
 
   return (
     <AuthCard

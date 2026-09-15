@@ -156,7 +156,7 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
     row.scrollIntoView({ block: "center", behavior: still ? "auto" : "smooth" });
   }, [revealing, target, index]);
 
-  const run = useCallback(async (action: () => Promise<unknown>) => {
+  const run = useCallback(async <T,>(action: () => Promise<T>) => {
     setBusy(true);
 
     try {

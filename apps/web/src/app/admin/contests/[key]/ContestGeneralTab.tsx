@@ -17,13 +17,29 @@ import {
   UserPicker,
 } from "@/components/admin";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
+import { chosenValue } from "@/lib/choices";
 import type { ContestEdit, ContestOptions } from "./types";
 
-function toJson(value: unknown): string {
+/** A format's config is whatever the format decided to store, so the editor
+ *  shows it as the JSON it is. */
+function toJson(value: ContestEdit["formatConfig"]): string {
   if (value === null || value === undefined) return "";
 
   return JSON.stringify(value, null, 2);
 }
+
+const SCOREBOARD_OPTIONS = [
+  { value: "V", labelKey: "scoreboardEveryone" },
+  { value: "C", labelKey: "scoreboardUntilEnd" },
+  { value: "P", labelKey: "scoreboardParticipants" },
+  { value: "H", labelKey: "scoreboardNobody" },
+] as const;
+
+const LABEL_SCHEME_OPTIONS = [
+  { value: "letters", labelKey: "labelSchemeLetters" },
+  { value: "numbers", labelKey: "labelSchemeNumbers" },
+  { value: "custom", labelKey: "labelSchemeCustom" },
+] as const;
 
 /** `ContestAdmin.fieldsets`, every field, on one page with the reason at the end. */
 export function ContestGeneralTab({
@@ -124,7 +140,9 @@ export function ContestGeneralTab({
     if (!text) return { ok: true as const, value: null };
 
     try {
-      return { ok: true as const, value: JSON.parse(text) as unknown };
+      const value: unknown = JSON.parse(text);
+
+      return { ok: true as const, value };
     } catch {
       return { ok: false as const, value: null };
     }
@@ -156,7 +174,11 @@ export function ContestGeneralTab({
   function idsFor(list: string[]): Id<"profiles">[] {
     const map = profiles?.ids ?? {};
 
-    return list.map((username) => map[username]).filter((id): id is Id<"profiles"> => !!id);
+    return list.flatMap((username) => {
+      const id = map[username];
+
+      return id ? [id] : [];
+    });
   }
 
   async function save() {
@@ -337,13 +359,13 @@ export function ContestGeneralTab({
           <Select
             id={ids.scoreboard}
             value={scoreboardVisibility}
-            onValueChange={(value) => setScoreboardVisibility(value as ContestEdit["scoreboardVisibility"])}
-            options={[
-              { value: "V", label: t("scoreboardEveryone") },
-              { value: "C", label: t("scoreboardUntilEnd") },
-              { value: "P", label: t("scoreboardParticipants") },
-              { value: "H", label: t("scoreboardNobody") },
-            ]}
+            onValueChange={(value) =>
+              setScoreboardVisibility(chosenValue(SCOREBOARD_OPTIONS, value, scoreboardVisibility))
+            }
+            options={SCOREBOARD_OPTIONS.map((option) => ({
+              value: option.value,
+              label: t(option.labelKey),
+            }))}
           />
         </Field>
         <Field label={t("pointsPrecision")} htmlFor={ids.precision} hint={t("pointsPrecisionHint")}>
@@ -393,12 +415,11 @@ export function ContestGeneralTab({
           <Select
             id={ids.labelScheme}
             value={labelScheme}
-            onValueChange={(value) => setLabelScheme(value as ContestEdit["labelScheme"])}
-            options={[
-              { value: "letters", label: t("labelSchemeLetters") },
-              { value: "numbers", label: t("labelSchemeNumbers") },
-              { value: "custom", label: t("labelSchemeCustom") },
-            ]}
+            onValueChange={(value) => setLabelScheme(chosenValue(LABEL_SCHEME_OPTIONS, value, labelScheme))}
+            options={LABEL_SCHEME_OPTIONS.map((option) => ({
+              value: option.value,
+              label: t(option.labelKey),
+            }))}
           />
         </Field>
         <Field

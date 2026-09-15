@@ -28,7 +28,7 @@ export function JobStatusBadge({ status }: { status: string }) {
           : t("queued");
 
   return (
-    <Badge variant={variant} shape="square">
+    <Badge variant={variant} rounding="square">
       {label}
     </Badge>
   );

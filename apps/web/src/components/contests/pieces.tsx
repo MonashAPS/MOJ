@@ -66,26 +66,26 @@ export function ContestChips({
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5 align-middle">
       {!isVisible ? (
-        <Badge variant="neutral" shape="pill" mono>
+        <Badge variant="neutral" rounding="pill" mono>
           <EyeOff size={11} aria-hidden />
           {t("hidden")}
         </Badge>
       ) : null}
       {isOrganizationPrivate ? (
         organizations.map((organization) => (
-          <Badge key={organization._id} variant="outline" shape="pill" mono>
+          <Badge key={organization._id} variant="outline" rounding="pill" mono>
             <Lock size={11} aria-hidden />
             {organization.shortName || organization.name}
           </Badge>
         ))
       ) : isPrivate ? (
-        <Badge variant="neutral" shape="pill" mono>
+        <Badge variant="neutral" rounding="pill" mono>
           <Lock size={11} aria-hidden />
           {t("private")}
         </Badge>
       ) : null}
       {isRated ? (
-        <Badge variant="warn" shape="pill" mono>
+        <Badge variant="warn" rounding="pill" mono>
           <BarChart3 size={11} aria-hidden />
           {t("rated")}
         </Badge>

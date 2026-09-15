@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Badge, Button, Checkbox, Field, FieldGroup, Input, Panel, Select, Tabs, Textarea } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
@@ -13,6 +14,7 @@ import { ConfirmAction, DASH, Flags, StatusLine } from "@/components/admin/conso
 import { QueryBoundary } from "@/components/admin/QueryBoundary";
 import { RecordDialog } from "@/components/admin/RecordDialog";
 import { type RevisionRow, RevisionsPanel } from "@/components/admin/RevisionsPanel";
+import { chosenValue } from "@/lib/choices";
 import { formatDateTime } from "@/lib/format";
 import { type OrganizationDraft, OrganizationFields, parseUsernames } from "../OrganizationFields";
 
@@ -158,14 +160,7 @@ function DetailsForm({ organization }: { organization: OrganizationRow }) {
   );
 }
 
-type ClassRow = {
-  _id: Id<"classes">;
-  name: string;
-  slug: string;
-  isActive: boolean;
-  memberCount: number;
-  requiresAccessCode: boolean;
-};
+type ClassRow = FunctionReturnType<typeof api.classes.listForOrganization>[number];
 
 type ClassDraft = {
   originalSlug: string | null;
@@ -196,7 +191,7 @@ function Classes({ organization }: { organization: OrganizationRow }) {
   const rows = useQuery(api.classes.listForOrganization, {
     organizationSlug: organization.slug,
     activeOnly: false,
-  }) as ClassRow[] | undefined;
+  });
 
   const create = useMutation(api.classes.create);
   const update = useMutation(api.classes.update);
@@ -450,15 +445,7 @@ function Classes({ organization }: { organization: OrganizationRow }) {
   );
 }
 
-type RequestRow = {
-  _id: Id<"organizationRequests">;
-  username: string;
-  displayName: string;
-  time: number;
-  state: "P" | "A" | "R";
-  reason: string;
-  className: string | null;
-};
+type RequestRow = FunctionReturnType<typeof api.organizations.reviewRequests>["requests"][number];
 
 const REQUEST_TABS = [
   { value: "pending", labelKey: "tabPending" },
@@ -469,13 +456,13 @@ const REQUEST_TABS = [
 
 function Requests({ organization }: { organization: OrganizationRow }) {
   const t = useTranslations("admin.organizations.requests");
-  const [tab, setTab] = useState<"pending" | "approved" | "rejected" | "log">("pending");
+  const [tab, setTab] = useState<(typeof REQUEST_TABS)[number]["value"]>("pending");
   const data = useQuery(api.organizations.reviewRequests, { slug: organization.slug, tab });
   const approve = useMutation(api.organizations.approve);
   const reject = useMutation(api.organizations.reject);
   const [message, setMessage] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
 
-  async function run(action: () => Promise<unknown>, ok: string) {
+  async function run<T>(action: () => Promise<T>, ok: string) {
     try {
       await action();
       setMessage({ tone: "ok", text: ok });
@@ -493,7 +480,7 @@ function Requests({ organization }: { organization: OrganizationRow }) {
       key: "state",
       header: t("columnState"),
       cell: (row) => (
-        <Badge variant={row.state === "P" ? "warn" : row.state === "A" ? "good" : "bad"} shape="square">
+        <Badge variant={row.state === "P" ? "warn" : row.state === "A" ? "good" : "bad"} rounding="square">
           {row.state === "P"
             ? t("statePending")
             : row.state === "A"
@@ -542,14 +529,14 @@ function Requests({ organization }: { organization: OrganizationRow }) {
       {message ? <StatusLine tone={message.tone}>{message.text}</StatusLine> : null}
       <AdminTable
         columns={columns}
-        rows={data?.requests as RequestRow[] | undefined}
+        rows={data?.requests}
         rowKey={(row) => row._id}
         toolbar={
           <>
             <Select
               options={REQUEST_TABS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
               value={tab}
-              onValueChange={(value) => setTab(value as typeof tab)}
+              onValueChange={(value) => setTab(chosenValue(REQUEST_TABS, value, "pending"))}
               ariaLabel={t("stateAria")}
               size="sm"
               className="w-[200px]"

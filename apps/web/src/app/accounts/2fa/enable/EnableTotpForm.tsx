@@ -45,16 +45,16 @@ export function EnableTotpForm({ next }: { next: string }) {
 
     try {
       const result = await authClient.twoFactor.enable({ password, issuer: "MOJ" });
-      const enrolment = result.data as { totpURI?: string; backupCodes?: string[] } | null;
+      const enrolment = result.data;
 
-      if (result.error || !enrolment?.totpURI) {
+      if (result.error || enrolment?.method !== "totp") {
         setError(result.error?.status === 400 ? tPassword("wrong") : t("setupFailed"));
 
         return;
       }
 
       setTotpUri(enrolment.totpURI);
-      setScratchCodes(enrolment.backupCodes ?? []);
+      setScratchCodes(enrolment.backupCodes);
       setStage("scan");
     } catch {
       setError(tError("generic"));

@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@moj/ui";
 import { useQuery } from "convex/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { Mail } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -22,6 +23,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { type AdminColumn, AdminTable } from "@/components/admin/AdminTable";
 import { DASH, Flags, SearchBox, StatusLine } from "@/components/admin/console";
+import { chosenValue } from "@/lib/choices";
 import { formatDate } from "@/lib/format";
 import { type AccountRow, searchAccountsAction } from "./actions";
 
@@ -53,23 +55,9 @@ const SEARCH_OPTIONS = [
   { value: "email", labelKey: "searchByEmail" },
 ] as const;
 
-type Row = {
-  _id: string;
-  username: string;
-  displayName: string;
-  displayRank: string;
-  points: number;
-  performancePoints: number;
-  problemCount: number;
-  rating?: number;
-  isStaff: boolean;
-  isSuperuser: boolean;
-  isActive: boolean;
-  isUnlisted: boolean;
-  mute: boolean;
-  organizationSlugs: string[];
-  lastAccess?: number;
-};
+type Row = FunctionReturnType<typeof api.admin.users.list>["users"][number];
+
+type UserFilters = FunctionArgs<typeof api.admin.users.list>;
 
 export function UsersTable() {
   const t = useTranslations("admin.users.list");
@@ -80,9 +68,9 @@ export function UsersTable() {
 
   const search = params.get("q") ?? "";
   const searchBy = params.get("by") === "email" ? "email" : "username";
-  const role = params.get("role") ?? "any";
-  const rank = params.get("rank") ?? "any";
-  const state = params.get("state") ?? "any";
+  const role = chosenValue(ROLE_OPTIONS, params.get("role"), "any");
+  const rank = chosenValue(RANK_OPTIONS, params.get("rank"), "any");
+  const state = chosenValue(STATE_OPTIONS, params.get("state"), "any");
   const page = Math.max(1, Number(params.get("page") ?? "1") || 1);
 
   const setParam = useCallback(
@@ -104,17 +92,26 @@ export function UsersTable() {
   const usernameSearch = searchBy === "username" ? search.trim() : "";
   const superuserOnly = role === "superuser";
 
-  const result = useQuery(api.admin.users.list, {
-    ...(usernameSearch ? { search: usernameSearch } : {}),
-    ...(role === "staff" || superuserOnly ? { isStaff: true } : {}),
-    ...(role === "member" ? { isStaff: false } : {}),
-    ...(rank !== "any" ? { displayRank: rank as "user" | "setter" | "admin" } : {}),
-    ...(state === "unlisted" ? { isUnlisted: true } : {}),
-    ...(state === "muted" ? { muted: true } : {}),
-    ...(state === "deactivated" ? { isActive: false } : {}),
+  const filters: UserFilters = {
     page: superuserOnly ? 1 : page,
     perPage: superuserOnly ? 200 : PER_PAGE,
-  });
+  };
+
+  if (usernameSearch) filters.search = usernameSearch;
+
+  if (role === "staff" || superuserOnly) filters.isStaff = true;
+
+  if (role === "member") filters.isStaff = false;
+
+  if (rank !== "any") filters.displayRank = rank;
+
+  if (state === "unlisted") filters.isUnlisted = true;
+
+  if (state === "muted") filters.muted = true;
+
+  if (state === "deactivated") filters.isActive = false;
+
+  const result = useQuery(api.admin.users.list, filters);
 
   const rows: Row[] | undefined = result
     ? superuserOnly
@@ -143,11 +140,11 @@ export function UsersTable() {
       header: t("columnRole"),
       cell: (row) =>
         row.isSuperuser ? (
-          <Badge variant="primary" shape="square">
+          <Badge variant="primary" rounding="square">
             {t("badgeSuperuser")}
           </Badge>
         ) : row.isStaff ? (
-          <Badge variant="accent" shape="square">
+          <Badge variant="accent" rounding="square">
             {t("badgeStaff")}
           </Badge>
         ) : (

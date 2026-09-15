@@ -3,22 +3,13 @@
 import { api } from "@convex/_generated/api";
 import { Badge, Button } from "@moj/ui";
 import { useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { ExternalLink, Plus } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { type AdminColumn, AdminShell, AdminTable } from "@/components/admin";
 
-type Row = {
-  _id: string;
-  key: string;
-  name: string;
-  contestKeys: string[];
-  theme: string;
-  freezeMinutes: number;
-  isPublic: boolean;
-  badgeOrganizationSlugs: string[];
-  inPersonOrganizationSlug?: string;
-};
+type Row = FunctionReturnType<typeof api.admin.scoreboards.list>[number];
 
 export function ScoreboardsList() {
   const t = useTranslations("admin.scoreboards.list");
@@ -60,7 +51,7 @@ export function ScoreboardsList() {
       key: "public",
       header: t("columns.access"),
       cell: (row) => (
-        <Badge variant={row.isPublic ? "good" : "neutral"} shape="square">
+        <Badge variant={row.isPublic ? "good" : "neutral"} rounding="square">
           {row.isPublic ? t("public") : t("staffOnly")}
         </Badge>
       ),
@@ -91,7 +82,7 @@ export function ScoreboardsList() {
     >
       <AdminTable
         columns={columns}
-        rows={(events ?? []) as Row[]}
+        rows={events ?? []}
         rowKey={(row) => row.key}
         href={(row) => `/admin/scoreboards/${row.key}/`}
         loading={events === undefined}

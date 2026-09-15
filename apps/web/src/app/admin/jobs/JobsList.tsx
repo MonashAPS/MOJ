@@ -3,23 +3,29 @@
 import { api } from "@convex/_generated/api";
 import { Progress, Select } from "@moj/ui";
 import { useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { type AdminColumn, AdminShell, AdminTable, AdminToolbar, JobStatusBadge } from "@/components/admin";
 import { formatDateTime, formatRelative } from "@/lib/format";
 
-type Row = {
-  id: string;
-  type: string;
-  status: string;
-  progress: { done: number; total: number; stage: string };
-  args: unknown;
-  result: unknown;
-  error: string | null;
-  createdBy: string | null;
-  createdAt: number;
-  finishedAt: number | null;
-};
+type Row = FunctionReturnType<typeof api.pages.admin.jobs.list>[number];
+
+type JobScalar = boolean | number | string;
+
+/** The queue writes `args` and `result` as `v.any()`, so the console reads a
+ *  payload through these guards rather than trusting a declared field type. */
+function isJobPayload(value: unknown): value is object {
+  return typeof value === "object" && value !== null;
+}
+
+function isJobScalar(value: unknown): value is JobScalar {
+  return typeof value === "boolean" || typeof value === "number" || typeof value === "string";
+}
+
+function isJobText(value: unknown): value is string {
+  return typeof value === "string";
+}
 
 const TYPES = [
   "any",
@@ -34,14 +40,17 @@ const TYPES = [
 
 const STATUSES = ["any", "queued", "running", "done", "failed"] as const;
 
-function describeArgs(args: unknown): string {
-  if (!args || typeof args !== "object") return "—";
-  const record = args as Record<string, unknown>;
+/** The field a job names its target with, in the order the console prefers. */
+const TARGET_FIELDS = ["problemCode", "key", "code"];
 
-  for (const field of ["problemCode", "key", "code"]) {
-    const value = record[field];
+function describeArgs(row: Row): string {
+  if (!isJobPayload(row.args)) return "—";
+  const fields = new Map(Object.entries(row.args));
 
-    if (typeof value === "string") return value;
+  for (const field of TARGET_FIELDS) {
+    const value = fields.get(field);
+
+    if (isJobText(value)) return value;
   }
 
   return "—";
@@ -50,14 +59,12 @@ function describeArgs(args: unknown): string {
 function outcome(row: Row): string {
   if (row.error) return row.error;
 
-  if (row.result && typeof row.result === "object") {
-    const record = row.result as Record<string, unknown>;
+  if (isJobPayload(row.result)) {
+    const parts: string[] = [];
 
-    const parts = Object.entries(record)
-      .filter(
-        ([, value]) => typeof value === "number" || typeof value === "string" || typeof value === "boolean",
-      )
-      .map(([field, value]) => `${field}: ${value}`);
+    for (const [field, value] of Object.entries(row.result)) {
+      if (isJobScalar(value)) parts.push(`${field}: ${value}`);
+    }
 
     if (parts.length > 0) return parts.join(", ");
   }
@@ -106,9 +113,7 @@ export function JobsList() {
     {
       key: "target",
       header: t("columns.target"),
-      cell: (row) => (
-        <span className="font-mono text-mono text-muted-foreground">{describeArgs(row.args)}</span>
-      ),
+      cell: (row) => <span className="font-mono text-mono text-muted-foreground">{describeArgs(row)}</span>,
     },
     { key: "status", header: t("columns.status"), cell: (row) => <JobStatusBadge status={row.status} /> },
     {
@@ -172,7 +177,7 @@ export function JobsList() {
     >
       <AdminTable
         columns={columns}
-        rows={(jobs ?? []) as Row[]}
+        rows={jobs ?? []}
         rowKey={(row) => row.id}
         loading={jobs === undefined}
         skeletonRows={6}

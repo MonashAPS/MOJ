@@ -190,16 +190,16 @@ export function ParticipationsClient({
                           className="text-sm"
                         />
                         {row.virtual > 0 ? (
-                          <Badge variant="neutral" shape="square" mono>
+                          <Badge variant="neutral" rounding="square" mono>
                             {t("virtualBadge", { number: String(row.virtual) })}
                           </Badge>
                         ) : (
-                          <Badge variant="accent" shape="square" mono>
+                          <Badge variant="accent" rounding="square" mono>
                             {t("liveBadge")}
                           </Badge>
                         )}
                         {row.isDisqualified ? (
-                          <Badge variant="bad" shape="square" mono>
+                          <Badge variant="bad" rounding="square" mono>
                             {t("disqualifiedBadge")}
                           </Badge>
                         ) : null}

@@ -46,7 +46,7 @@ const SOURCE_VISIBILITY = [
   { value: "all", labelKey: "all" },
   { value: "all-solved", labelKey: "allSolved" },
   { value: "only-own", labelKey: "onlyOwn" },
-];
+] as const;
 
 export function ConfigTabs({
   settings,
@@ -166,7 +166,7 @@ function SettingsForm({
         ticketsPerPage: optionalNumber(form.ticketsPerPage),
         submissionLimitPerMinute: optionalNumber(form.submissionLimitPerMinute),
         maxSubmissionsPerProblem: optionalNumber(form.maxSubmissionsPerProblem),
-        submissionSourceVisibility: form.submissionSourceVisibility as "all" | "all-solved" | "only-own",
+        submissionSourceVisibility: form.submissionSourceVisibility,
         ppStep: optionalNumber(form.ppStep),
         ppEntries: optionalNumber(form.ppEntries),
         blogNewProblemCount: optionalNumber(form.blogNewProblemCount),
@@ -291,9 +291,11 @@ function SettingsForm({
                 label: t(`sourceVisibilityOptions.${option.labelKey}`),
               }))}
               value={form.submissionSourceVisibility}
-              onValueChange={(value) =>
-                change("submissionSourceVisibility", value as "all" | "all-solved" | "only-own")
-              }
+              onValueChange={(value) => {
+                const chosen = SOURCE_VISIBILITY.find((option) => option.value === value);
+
+                if (chosen) change("submissionSourceVisibility", chosen.value);
+              }}
               ariaLabel={t("sourceVisibility")}
             />
           </Field>
@@ -457,15 +459,11 @@ function SettingsForm({
   );
 }
 
-type ConfigRow = { _id: string; key: string; value: string };
-
 function MiscConfig() {
   const t = useTranslations("admin.config.misc");
   const actions = useTranslations("common.actions");
 
-  const data = useQuery(api.admin.site.configRows, {}) as
-    | { rows: ConfigRow[]; knownKeys: string[] }
-    | undefined;
+  const data = useQuery(api.admin.site.configRows, {});
 
   const setConfig = useMutation(api.admin.site.setConfig);
   const deleteConfig = useMutation(api.admin.site.deleteConfig);

@@ -18,6 +18,7 @@ import {
   VerdictPill,
 } from "@moj/ui";
 import { useQuery } from "convex/react";
+import type { FunctionArgs } from "convex/server";
 import { Trophy } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -48,11 +49,11 @@ export function RankByProblemClient({
   const tabLabels = useTranslations("contests.tabs");
   const [languageKeys, setLanguageKeys] = useState<string[]>([]);
 
-  const live = useQuery(api.contests.rankings.rankByProblem, {
-    key: contestKey,
-    problemCode,
-    ...(languageKeys.length > 0 ? { languageKeys } : {}),
-  });
+  const args: FunctionArgs<typeof api.contests.rankings.rankByProblem> = { key: contestKey, problemCode };
+
+  if (languageKeys.length > 0) args.languageKeys = languageKeys;
+
+  const live = useQuery(api.contests.rankings.rankByProblem, args);
 
   const data = live ?? (languageKeys.length === 0 ? initial : null);
   const joinKind = joinKindFor(detail);
@@ -61,8 +62,7 @@ export function RankByProblemClient({
   const languageOptions = [
     ...new Map((initial?.rows ?? []).map((row) => [row.languageKey, row.languageName] as const)).entries(),
   ]
-    .filter(([key]) => key)
-    .map(([value, label]) => ({ value, label }))
+    .flatMap(([value, label]) => (value ? [{ value, label }] : []))
     .sort((a, b) => a.label.localeCompare(b.label));
 
   return (

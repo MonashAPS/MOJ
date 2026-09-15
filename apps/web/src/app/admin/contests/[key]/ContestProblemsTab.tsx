@@ -68,7 +68,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
     (row) => !contest.problems.some((problem) => problem.code === row.code),
   );
 
-  async function guard(work: () => Promise<unknown>) {
+  async function guard<T>(work: () => Promise<T>) {
     setError(null);
 
     try {
@@ -90,7 +90,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
     await guard(() =>
       reorderProblems({
         key: contest.key,
-        order: next.map((row) => row.id as Id<"contestProblems">),
+        order: next.map((row) => row.id),
         reason: "Reordered the contest problems",
       }),
     );
@@ -111,7 +111,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
     await guard(() =>
       reorderProblems({
         key: contest.key,
-        order: next.map((row) => row.id as Id<"contestProblems">),
+        order: next.map((row) => row.id),
         reason: "Reordered the contest problems",
       }),
     );
@@ -234,7 +234,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
                         guard(() =>
                           updateProblem({
                             key: contest.key,
-                            contestProblemId: problem.id as Id<"contestProblems">,
+                            contestProblemId: problem.id,
                             points: Number(event.target.value) || 0,
                             reason: `Changed the points for ${problem.code}`,
                           }),
@@ -252,7 +252,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
                         guard(() =>
                           updateProblem({
                             key: contest.key,
-                            contestProblemId: problem.id as Id<"contestProblems">,
+                            contestProblemId: problem.id,
                             partial: checked,
                             reason: `Changed partial scoring for ${problem.code}`,
                           }),
@@ -269,7 +269,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
                         guard(() =>
                           updateProblem({
                             key: contest.key,
-                            contestProblemId: problem.id as Id<"contestProblems">,
+                            contestProblemId: problem.id,
                             isPretested: checked,
                             reason: `Changed pretesting for ${problem.code}`,
                           }),
@@ -288,7 +288,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
                         guard(() =>
                           updateProblem({
                             key: contest.key,
-                            contestProblemId: problem.id as Id<"contestProblems">,
+                            contestProblemId: problem.id,
                             maxSubmissions: event.target.value.trim() ? Number(event.target.value) : null,
                             reason: `Changed the submission limit for ${problem.code}`,
                           }),
@@ -342,7 +342,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
       <p className="text-sm text-muted-foreground">
         {t("inlineSaveNote")}{" "}
         {contest.problems.some((problem) => problem.isPretested) ? (
-          <Badge variant="warn" shape="square">
+          <Badge variant="warn" rounding="square">
             {t("pretestsInUse")}
           </Badge>
         ) : null}
@@ -367,7 +367,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
                 await guard(() =>
                   removeProblem({
                     key: contest.key,
-                    contestProblemId: target.id as Id<"contestProblems">,
+                    contestProblemId: target.id,
                     reason: `Removed problem ${target.code}`,
                   }),
                 );
@@ -397,7 +397,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
                 await guard(async () => {
                   const result = await rejudgeProblem({
                     key: contest.key,
-                    contestProblemId: target.id as Id<"contestProblems">,
+                    contestProblemId: target.id,
                     reason: `Rejudged ${target.code}`,
                   });
 

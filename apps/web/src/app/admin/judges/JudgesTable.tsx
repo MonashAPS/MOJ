@@ -28,6 +28,7 @@ import {
   Tooltip,
 } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { MoreHorizontal, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -36,22 +37,7 @@ import { CopyButton, DASH, Flags, StatusLine } from "@/components/admin/console"
 import { RecordDialog } from "@/components/admin/RecordDialog";
 import { formatRelative } from "@/lib/format";
 
-type JudgeRow = {
-  _id: Id<"judges">;
-  name: string;
-  online: boolean;
-  tier: number;
-  isBlocked: boolean;
-  isDisabled: boolean;
-  description: string;
-  lastIp: string | null;
-  lastSeen: number | null;
-  ping: number | null;
-  load: number | null;
-  problemCount: number;
-  runtimeCount: number;
-  disconnectRequestedAt: number | null;
-};
+type JudgeRow = FunctionReturnType<typeof api.admin.judges.list>[number];
 
 type Draft = { id: Id<"judges"> | null; name: string; tier: string; description: string };
 
@@ -60,7 +46,7 @@ const EMPTY: Draft = { id: null, name: "", tier: "1", description: "" };
 export function JudgesTable({ siteUrl }: { siteUrl: string }) {
   const t = useTranslations("admin.judges");
   const actions = useTranslations("common.actions");
-  const judges = useQuery(api.admin.judges.list, {}) as JudgeRow[] | undefined;
+  const judges = useQuery(api.admin.judges.list, {});
   const create = useMutation(api.admin.judges.create);
   const update = useMutation(api.admin.judges.update);
   const toggleDisabled = useMutation(api.admin.judges.toggleDisabled);
@@ -121,7 +107,7 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
     }
   }
 
-  async function run(action: () => Promise<unknown>, ok: string) {
+  async function run<T>(action: () => Promise<T>, ok: string) {
     try {
       await action();
       setMessage({ tone: "ok", text: ok });
