@@ -46,6 +46,7 @@ import {
   toViewerRowInContest,
 } from "./contests/formats";
 import { optionalViewer } from "./lib/auth";
+import { canAccessProblem, loadViewerContext } from "./problems";
 
 /** One person's submission history, capped so a prolific account cannot
  *  turn the contest list into a full scan. */
@@ -1283,6 +1284,12 @@ export const get = query({
      */
     const problemsReleased = problemsReleasedFor(contest, profile, inThisContest, now);
 
+    // `Problem.is_accessible_by`, not a local guess at it: a problem that is not
+    // public is still the viewer's to open while they are inside this contest,
+    // and the shared rule is the one that knows that (and that proctoring can
+    // take it away again).
+    const problemViewer = await loadViewerContext(ctx);
+
     const problems: ContestProblemEntry[] = [];
     let hasPartials = false;
     let hasPretests = false;
@@ -1324,7 +1331,7 @@ export const get = query({
         publicSolveCount: problem.userCount,
         acRate: problem.acRate,
         hasPublicEditorial,
-        isAccessible: problem.isPublic && !problem.isOrganizationPrivate,
+        isAccessible: await canAccessProblem(ctx, problem, problemViewer),
         state: state.state,
         bestScore: state.bestScore,
         contestBestScore: state.contestBestScore,
