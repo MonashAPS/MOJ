@@ -39,7 +39,7 @@ export function SearchBox({
 }) {
   return (
     <InputGroup
-      className={cn("h-(--control-h-sm) w-[240px]", className)}
+      className={cn("h-(--control-h-sm) w-full", className)}
       leading={<Search className="size-3.5" aria-hidden />}
     >
       <InputGroupInput

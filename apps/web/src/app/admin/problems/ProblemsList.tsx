@@ -23,7 +23,14 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { type AdminColumn, AdminPager, AdminShell, AdminTable, AdminToolbar } from "@/components/admin";
+import {
+  type AdminColumn,
+  AdminFilter,
+  AdminPager,
+  AdminShell,
+  AdminTable,
+  AdminToolbar,
+} from "@/components/admin";
 import { formatDate } from "@/lib/format";
 
 type Row = {
@@ -46,6 +53,7 @@ const PAGE_SIZE = 50;
 
 export function ProblemsList() {
   const t = useTranslations("admin.problems.list");
+  const filterLabels = useTranslations("admin.components.filters");
   const shared = useTranslations("admin.problems.shared");
   const actions = useTranslations("common.actions");
   const router = useRouter();
@@ -225,66 +233,73 @@ export function ProblemsList() {
         }}
         toolbar={
           <AdminToolbar>
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                go({ q: draft });
-              }}
-            >
-              <Input
-                icon={<Search aria-hidden />}
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                placeholder={t("searchPlaceholder")}
-                aria-label={t("searchLabel")}
-                className="h-(--control-h-sm) w-[220px]"
+            <AdminFilter grow label={filterLabels("search")}>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  go({ q: draft });
+                }}
+              >
+                <Input
+                  icon={<Search aria-hidden />}
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  placeholder={t("searchPlaceholder")}
+                  aria-label={t("searchLabel")}
+                  className="h-(--control-h-sm) w-full"
+                />
+              </form>
+            </AdminFilter>
+            <AdminFilter label={t("visibilityFilter")}>
+              <Select
+                size="sm"
+                ariaLabel={t("visibilityFilter")}
+                value={visibility}
+                onValueChange={(value) => go({ public: value === "any" ? null : value })}
+                options={[
+                  { value: "any", label: t("anyVisibility") },
+                  { value: "public", label: t("public") },
+                  { value: "private", label: t("private") },
+                ]}
               />
-            </form>
-            <Select
-              size="sm"
-              ariaLabel={t("visibilityFilter")}
-              value={visibility}
-              onValueChange={(value) => go({ public: value === "any" ? null : value })}
-              options={[
-                { value: "any", label: t("anyVisibility") },
-                { value: "public", label: t("public") },
-                { value: "private", label: t("private") },
-              ]}
-              className="w-[150px]"
-            />
-            <Select
-              size="sm"
-              ariaLabel={t("groupFilter")}
-              placeholder={t("anyGroup")}
-              value={group || "all"}
-              onValueChange={(value) => go({ group: value === "all" ? null : value })}
-              options={[
-                { value: "all", label: t("anyGroup") },
-                ...(options?.groups ?? []).map((row) => ({ value: row.name, label: row.fullName })),
-              ]}
-              className="w-[170px]"
-            />
-            <Select
-              size="sm"
-              ariaLabel={t("typeFilter")}
-              value={type || "all"}
-              onValueChange={(value) => go({ type: value === "all" ? null : value })}
-              options={[
-                { value: "all", label: t("anyType") },
-                ...(options?.types ?? []).map((row) => ({ value: row.name, label: row.fullName })),
-              ]}
-              className="w-[170px]"
-            />
-            <Combobox
-              value={author}
-              onValueChange={(value) => go({ author: value === author ? null : value })}
-              options={(options?.authors ?? []).map((name) => ({ value: name, label: name }))}
-              placeholder={t("anyAuthor")}
-              searchPlaceholder={t("authorSearchPlaceholder")}
-              emptyText={t("noAuthorMatch")}
-              ariaLabel={t("authorFilter")}
-              className="h-(--control-h-sm) w-[180px] text-sm"
-            />
+            </AdminFilter>
+            <AdminFilter label={t("groupFilter")} className="min-w-44">
+              <Select
+                size="sm"
+                ariaLabel={t("groupFilter")}
+                placeholder={t("anyGroup")}
+                value={group || "all"}
+                onValueChange={(value) => go({ group: value === "all" ? null : value })}
+                options={[
+                  { value: "all", label: t("anyGroup") },
+                  ...(options?.groups ?? []).map((row) => ({ value: row.name, label: row.fullName })),
+                ]}
+              />
+            </AdminFilter>
+            <AdminFilter label={t("typeFilter")} className="min-w-44">
+              <Select
+                size="sm"
+                ariaLabel={t("typeFilter")}
+                value={type || "all"}
+                onValueChange={(value) => go({ type: value === "all" ? null : value })}
+                options={[
+                  { value: "all", label: t("anyType") },
+                  ...(options?.types ?? []).map((row) => ({ value: row.name, label: row.fullName })),
+                ]}
+              />
+            </AdminFilter>
+            <AdminFilter label={t("authorFilter")} className="min-w-44">
+              <Combobox
+                value={author}
+                onValueChange={(value) => go({ author: value === author ? null : value })}
+                options={(options?.authors ?? []).map((name) => ({ value: name, label: name }))}
+                placeholder={t("anyAuthor")}
+                searchPlaceholder={t("authorSearchPlaceholder")}
+                emptyText={t("noAuthorMatch")}
+                ariaLabel={t("authorFilter")}
+                className="h-(--control-h-sm) text-sm"
+              />
+            </AdminFilter>
           </AdminToolbar>
         }
         footer={

@@ -6,7 +6,14 @@ import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { type AdminColumn, AdminShell, AdminTable, AdminToolbar, JobStatusBadge } from "@/components/admin";
+import {
+  type AdminColumn,
+  AdminFilter,
+  AdminShell,
+  AdminTable,
+  AdminToolbar,
+  JobStatusBadge,
+} from "@/components/admin";
 import { formatDateTime, formatRelative } from "@/lib/format";
 
 type Row = FunctionReturnType<typeof api.pages.admin.jobs.list>[number];
@@ -189,22 +196,24 @@ export function JobsList() {
         }}
         toolbar={
           <AdminToolbar>
-            <Select
-              size="sm"
-              ariaLabel={t("typeFilter")}
-              value={type}
-              onValueChange={(value) => go({ type: value === "any" ? null : value })}
-              options={TYPES.map((value) => ({ value, label: t(`types.${value}`) }))}
-              className="w-[200px]"
-            />
-            <Select
-              size="sm"
-              ariaLabel={t("statusFilter")}
-              value={status}
-              onValueChange={(value) => go({ status: value === "any" ? null : value })}
-              options={STATUSES.map((value) => ({ value, label: t(`statuses.${value}`) }))}
-              className="w-[160px]"
-            />
+            <AdminFilter label={t("typeFilter")} className="min-w-52">
+              <Select
+                size="sm"
+                ariaLabel={t("typeFilter")}
+                value={type}
+                onValueChange={(value) => go({ type: value === "any" ? null : value })}
+                options={TYPES.map((value) => ({ value, label: t(`types.${value}`) }))}
+              />
+            </AdminFilter>
+            <AdminFilter label={t("statusFilter")}>
+              <Select
+                size="sm"
+                ariaLabel={t("statusFilter")}
+                value={status}
+                onValueChange={(value) => go({ status: value === "any" ? null : value })}
+                options={STATUSES.map((value) => ({ value, label: t(`statuses.${value}`) }))}
+              />
+            </AdminFilter>
           </AdminToolbar>
         }
       />

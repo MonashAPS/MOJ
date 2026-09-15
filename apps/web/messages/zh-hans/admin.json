@@ -721,8 +721,10 @@
       "seconds": "{value} 秒"
     },
     "filters": {
+      "user": "用户",
       "userPlaceholder": "用户名",
       "userLabel": "按用户筛选",
+      "problem": "题目",
       "problemPlaceholder": "题目编号",
       "problemLabel": "按题目筛选",
       "status": "状态",
@@ -732,6 +734,7 @@
       "anyResult": "任意结果",
       "languages": "语言",
       "anyLanguage": "任意语言",
+      "idRange": "提交 ID",
       "fromPlaceholder": "起始 ID",
       "fromLabel": "起始提交 ID",
       "toPlaceholder": "结束 ID",
@@ -1934,6 +1937,9 @@
       "selectRow": "选中 {key}",
       "selected": "已选中 {count} 项",
       "clearSelection": "清除"
+    },
+    "filters": {
+      "search": "搜索"
     },
     "dateTime": {
       "pickDate": "选择日期",

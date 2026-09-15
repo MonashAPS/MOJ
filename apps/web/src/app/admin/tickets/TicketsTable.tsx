@@ -10,7 +10,9 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import {
   type AdminColumn,
+  AdminFilter,
   AdminTable,
+  AdminToolbar,
   ConfirmAction,
   RecordDialog,
   SearchBox,
@@ -30,6 +32,7 @@ const PER_PAGE = 50;
 
 export function TicketsTable() {
   const t = useTranslations("admin.tickets");
+  const filterLabels = useTranslations("admin.components.filters");
   const actions = useTranslations("common.actions");
   const [state, setState] = useState("open");
   const [search, setSearch] = useState("");
@@ -166,34 +169,36 @@ export function TicketsTable() {
         rows={rows}
         rowKey={(row) => row._id}
         toolbar={
-          <>
-            <SearchBox
-              value={search}
-              onChange={(value) => {
-                setSearch(value);
-                setCursor("0");
-              }}
-              placeholder={t("searchPlaceholder")}
-              ariaLabel={t("searchLabel")}
-            />
-            <Select
-              options={STATE_OPTIONS.map((option) => ({
-                value: option.value,
-                label: t(option.labelKey),
-              }))}
-              value={state}
-              onValueChange={(value) => {
-                setState(value);
-                setCursor("0");
-              }}
-              ariaLabel={t("stateLabel")}
-              size="sm"
-              className="w-[168px]"
-            />
-            <span className="ml-auto font-mono text-mono tabular-nums text-muted-foreground">
-              {counts ? t("counts", { open: counts.open, mine: counts.mine, total: counts.total }) : ""}
-            </span>
-          </>
+          <AdminToolbar
+            note={counts ? t("counts", { open: counts.open, mine: counts.mine, total: counts.total }) : null}
+          >
+            <AdminFilter grow label={filterLabels("search")}>
+              <SearchBox
+                value={search}
+                onChange={(value) => {
+                  setSearch(value);
+                  setCursor("0");
+                }}
+                placeholder={t("searchPlaceholder")}
+                ariaLabel={t("searchLabel")}
+              />
+            </AdminFilter>
+            <AdminFilter label={t("stateLabel")} className="min-w-44">
+              <Select
+                options={STATE_OPTIONS.map((option) => ({
+                  value: option.value,
+                  label: t(option.labelKey),
+                }))}
+                value={state}
+                onValueChange={(value) => {
+                  setState(value);
+                  setCursor("0");
+                }}
+                ariaLabel={t("stateLabel")}
+                size="sm"
+              />
+            </AdminFilter>
+          </AdminToolbar>
         }
         emptyTitle={state === "open" ? t("emptyOpenTitle") : t("emptyTitle")}
         emptyDescription={state === "open" ? t("emptyOpenDescription") : t("emptyDescription")}

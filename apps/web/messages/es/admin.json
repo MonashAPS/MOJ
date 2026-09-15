@@ -721,8 +721,10 @@
       "seconds": "{value} s"
     },
     "filters": {
+      "user": "Usuario",
       "userPlaceholder": "Nombre de usuario",
       "userLabel": "Filtrar por usuario",
+      "problem": "Problema",
       "problemPlaceholder": "Código del problema",
       "problemLabel": "Filtrar por problema",
       "status": "Estado",
@@ -732,6 +734,7 @@
       "anyResult": "Cualquier resultado",
       "languages": "Lenguajes",
       "anyLanguage": "Cualquier lenguaje",
+      "idRange": "Id de envío",
       "fromPlaceholder": "Desde el id",
       "fromLabel": "Desde el id de envío",
       "toPlaceholder": "Hasta el id",
@@ -1934,6 +1937,9 @@
       "selectRow": "Seleccionar {key}",
       "selected": "{count} seleccionados",
       "clearSelection": "Borrar"
+    },
+    "filters": {
+      "search": "Buscar"
     },
     "dateTime": {
       "pickDate": "Elegir una fecha",

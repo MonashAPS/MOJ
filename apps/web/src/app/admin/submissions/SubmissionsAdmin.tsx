@@ -32,6 +32,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import {
   type AdminColumn,
+  AdminFilter,
   AdminFormError,
   AdminPager,
   AdminShell,
@@ -315,63 +316,69 @@ export function SubmissionsAdmin() {
             ) : undefined,
           }}
           toolbar={
-            <div className="grid gap-2">
+            <div className="grid gap-3">
               <AdminToolbar>
-                <form
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    go({ user: userDraft });
-                  }}
-                >
-                  <Input
-                    icon={<Search aria-hidden />}
-                    value={userDraft}
-                    onChange={(event) => setUserDraft(event.target.value)}
-                    placeholder={t("filters.userPlaceholder")}
-                    aria-label={t("filters.userLabel")}
-                    className="h-(--control-h-sm) w-[170px]"
+                <AdminFilter label={t("filters.user")}>
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      go({ user: userDraft });
+                    }}
+                  >
+                    <Input
+                      icon={<Search aria-hidden />}
+                      value={userDraft}
+                      onChange={(event) => setUserDraft(event.target.value)}
+                      placeholder={t("filters.userPlaceholder")}
+                      aria-label={t("filters.userLabel")}
+                      className="h-(--control-h-sm) w-full"
+                    />
+                  </form>
+                </AdminFilter>
+                <AdminFilter label={t("filters.problem")}>
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      go({ problem: problemDraft });
+                    }}
+                  >
+                    <Input
+                      icon={<Search aria-hidden />}
+                      value={problemDraft}
+                      onChange={(event) => setProblemDraft(event.target.value)}
+                      placeholder={t("filters.problemPlaceholder")}
+                      aria-label={t("filters.problemLabel")}
+                      className="h-(--control-h-sm) w-full"
+                    />
+                  </form>
+                </AdminFilter>
+                <AdminFilter label={t("filters.status")}>
+                  <Select
+                    size="sm"
+                    ariaLabel={t("filters.status")}
+                    value={status}
+                    onValueChange={(value) => go({ status: value === "any" ? null : value })}
+                    options={STATUSES.map((option) => ({
+                      value: option.value,
+                      label: t(`statuses.${option.labelKey}`),
+                    }))}
                   />
-                </form>
-                <form
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    go({ problem: problemDraft });
-                  }}
-                >
-                  <Input
-                    icon={<Search aria-hidden />}
-                    value={problemDraft}
-                    onChange={(event) => setProblemDraft(event.target.value)}
-                    placeholder={t("filters.problemPlaceholder")}
-                    aria-label={t("filters.problemLabel")}
-                    className="h-(--control-h-sm) w-[170px]"
+                </AdminFilter>
+                <AdminFilter label={t("filters.judge")}>
+                  <Select
+                    size="sm"
+                    ariaLabel={t("filters.judge")}
+                    value={judgeName || "any"}
+                    onValueChange={(value) => go({ judge: value === "any" ? null : value })}
+                    options={[
+                      { value: "any", label: t("filters.anyJudge") },
+                      ...judgeNames.map((judge) => ({ value: judge, label: judge })),
+                    ]}
                   />
-                </form>
-                <Select
-                  size="sm"
-                  ariaLabel={t("filters.status")}
-                  value={status}
-                  onValueChange={(value) => go({ status: value === "any" ? null : value })}
-                  options={STATUSES.map((option) => ({
-                    value: option.value,
-                    label: t(`statuses.${option.labelKey}`),
-                  }))}
-                  className="w-[150px]"
-                />
-                <Select
-                  size="sm"
-                  ariaLabel={t("filters.judge")}
-                  value={judgeName || "any"}
-                  onValueChange={(value) => go({ judge: value === "any" ? null : value })}
-                  options={[
-                    { value: "any", label: t("filters.anyJudge") },
-                    ...judgeNames.map((judge) => ({ value: judge, label: judge })),
-                  ]}
-                  className="w-[150px]"
-                />
+                </AdminFilter>
               </AdminToolbar>
               <AdminToolbar>
-                <div className="w-[220px]">
+                <AdminFilter label={t("filters.results")} className="min-w-56">
                   <MultiSelect
                     values={results}
                     onChange={(next) => go({ results: next.join(",") })}
@@ -379,8 +386,8 @@ export function SubmissionsAdmin() {
                     placeholder={t("filters.anyResult")}
                     ariaLabel={t("filters.results")}
                   />
-                </div>
-                <div className="w-[220px]">
+                </AdminFilter>
+                <AdminFilter label={t("filters.languages")} className="min-w-56">
                   <MultiSelect
                     values={languageKeys}
                     onChange={(next) => go({ languages: next.join(",") })}
@@ -388,39 +395,41 @@ export function SubmissionsAdmin() {
                     placeholder={t("filters.anyLanguage")}
                     ariaLabel={t("filters.languages")}
                   />
-                </div>
-                <form
-                  className="flex items-center gap-2"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    go({ from: fromDraft, to: toDraft });
-                  }}
-                >
-                  <Input
-                    mono
-                    inputMode="numeric"
-                    value={fromDraft}
-                    onChange={(event) => setFromDraft(event.target.value)}
-                    placeholder={t("filters.fromPlaceholder")}
-                    aria-label={t("filters.fromLabel")}
-                    className="h-(--control-h-sm) w-[100px]"
-                  />
-                  <span aria-hidden className="text-muted-foreground">
-                    –
-                  </span>
-                  <Input
-                    mono
-                    inputMode="numeric"
-                    value={toDraft}
-                    onChange={(event) => setToDraft(event.target.value)}
-                    placeholder={t("filters.toPlaceholder")}
-                    aria-label={t("filters.toLabel")}
-                    className="h-(--control-h-sm) w-[100px]"
-                  />
-                  <Button type="submit" size="sm" variant="secondary">
-                    {t("filters.apply")}
-                  </Button>
-                </form>
+                </AdminFilter>
+                <AdminFilter label={t("filters.idRange")}>
+                  <form
+                    className="flex items-center gap-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      go({ from: fromDraft, to: toDraft });
+                    }}
+                  >
+                    <Input
+                      mono
+                      inputMode="numeric"
+                      value={fromDraft}
+                      onChange={(event) => setFromDraft(event.target.value)}
+                      placeholder={t("filters.fromPlaceholder")}
+                      aria-label={t("filters.fromLabel")}
+                      className="h-(--control-h-sm) w-[100px]"
+                    />
+                    <span aria-hidden className="text-muted-foreground">
+                      –
+                    </span>
+                    <Input
+                      mono
+                      inputMode="numeric"
+                      value={toDraft}
+                      onChange={(event) => setToDraft(event.target.value)}
+                      placeholder={t("filters.toPlaceholder")}
+                      aria-label={t("filters.toLabel")}
+                      className="h-(--control-h-sm) w-[100px]"
+                    />
+                    <Button type="submit" size="sm" variant="secondary">
+                      {t("filters.apply")}
+                    </Button>
+                  </form>
+                </AdminFilter>
               </AdminToolbar>
             </div>
           }

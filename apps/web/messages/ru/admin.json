@@ -721,8 +721,10 @@
       "seconds": "{value} с"
     },
     "filters": {
+      "user": "Пользователь",
       "userPlaceholder": "Имя пользователя",
       "userLabel": "Фильтр по пользователю",
+      "problem": "Задача",
       "problemPlaceholder": "Код задачи",
       "problemLabel": "Фильтр по задаче",
       "status": "Статус",
@@ -732,6 +734,7 @@
       "anyResult": "Любой результат",
       "languages": "Языки",
       "anyLanguage": "Любой язык",
+      "idRange": "ID посылки",
       "fromPlaceholder": "От ID",
       "fromLabel": "От ID посылки",
       "toPlaceholder": "До ID",
@@ -1934,6 +1937,9 @@
       "selectRow": "Выбрать {key}",
       "selected": "Выбрано: {count}",
       "clearSelection": "Сбросить"
+    },
+    "filters": {
+      "search": "Поиск"
     },
     "dateTime": {
       "pickDate": "Выберите дату",

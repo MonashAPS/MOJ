@@ -10,7 +10,9 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import {
   type AdminColumn,
+  AdminFilter,
   AdminTable,
+  AdminToolbar,
   ConfirmAction,
   DASH,
   Flags,
@@ -38,6 +40,7 @@ const OPEN_OPTIONS = [
 
 export function OrganizationsTable() {
   const t = useTranslations("admin.organizations.list");
+  const filterLabels = useTranslations("admin.components.filters");
   const actions = useTranslations("common.actions");
   const [search, setSearch] = useState("");
   const [openness, setOpenness] = useState<(typeof OPEN_OPTIONS)[number]["value"]>("any");
@@ -186,53 +189,60 @@ export function OrganizationsTable() {
         rows={rows}
         rowKey={(row) => row._id}
         toolbar={
-          <>
-            <SearchBox
-              value={search}
-              onChange={setSearch}
-              placeholder={t("searchPlaceholder")}
-              ariaLabel={t("searchAria")}
-            />
-            <Select
-              options={OPEN_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
-              value={openness}
-              onValueChange={(value) => setOpenness(chosenValue(OPEN_OPTIONS, value, "any"))}
-              ariaLabel={t("opennessAria")}
-              size="sm"
-              className="w-[184px]"
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="ml-auto"
-              onClick={async () => {
-                try {
-                  const fixed = await recount({});
-                  setMessage({
-                    tone: "ok",
-                    text: fixed === 0 ? t("recountClean") : t("recountFixed", { count: fixed }),
-                  });
-                } catch (caught) {
-                  setMessage({
-                    tone: "bad",
-                    text: caught instanceof Error ? caught.message : t("recountFailed"),
-                  });
-                }
-              }}
-            >
-              {t("recount")}
-            </Button>
-            <Button
-              size="sm"
-              icon={<Plus aria-hidden />}
-              onClick={() => {
-                setDraft({ ...EMPTY_ORGANIZATION });
-                setError(null);
-              }}
-            >
-              {t("create")}
-            </Button>
-          </>
+          <AdminToolbar
+            action={
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      const fixed = await recount({});
+                      setMessage({
+                        tone: "ok",
+                        text: fixed === 0 ? t("recountClean") : t("recountFixed", { count: fixed }),
+                      });
+                    } catch (caught) {
+                      setMessage({
+                        tone: "bad",
+                        text: caught instanceof Error ? caught.message : t("recountFailed"),
+                      });
+                    }
+                  }}
+                >
+                  {t("recount")}
+                </Button>
+                <Button
+                  size="sm"
+                  icon={<Plus aria-hidden />}
+                  onClick={() => {
+                    setDraft({ ...EMPTY_ORGANIZATION });
+                    setError(null);
+                  }}
+                >
+                  {t("create")}
+                </Button>
+              </>
+            }
+          >
+            <AdminFilter grow label={filterLabels("search")}>
+              <SearchBox
+                value={search}
+                onChange={setSearch}
+                placeholder={t("searchPlaceholder")}
+                ariaLabel={t("searchAria")}
+              />
+            </AdminFilter>
+            <AdminFilter label={t("opennessAria")} className="min-w-48">
+              <Select
+                options={OPEN_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
+                value={openness}
+                onValueChange={(value) => setOpenness(chosenValue(OPEN_OPTIONS, value, "any"))}
+                ariaLabel={t("opennessAria")}
+                size="sm"
+              />
+            </AdminFilter>
+          </AdminToolbar>
         }
         emptyTitle={t("emptyTitle")}
         emptyDescription={t("emptyDescription")}
