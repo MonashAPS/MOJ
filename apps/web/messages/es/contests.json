@@ -336,7 +336,15 @@
     "disqualify": "Descalificar participación",
     "reinstate": "Restablecer participación",
     "disqualified": "Participación descalificada",
-    "reinstated": "Participación restablecida"
+    "reinstated": "Participación restablecida",
+    "cell": {
+      "open": "Envíos de {user} para {problem}",
+      "title": "{user} en {problem}",
+      "loading": "Cargando envíos…",
+      "none": "Aquí no hay envíos que puedas ver.",
+      "viewAll": "Todos los envíos de {user}",
+      "attempt": "Abrir el envío {id}"
+    }
   },
   "rankByProblem": {
     "metaTitle": "Mejores soluciones para {name}",

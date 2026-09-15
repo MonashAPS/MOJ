@@ -3,7 +3,7 @@
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import type { ContestDetail } from "@convex/contests";
-import type { RankingPayload, RankingRow } from "@convex/contests/rankings";
+import type { RankingPayload, RankingProblem, RankingRow } from "@convex/contests/rankings";
 import type { FrozenCells } from "@convex/pages/contests";
 import {
   Alert,
@@ -26,9 +26,10 @@ import type { FunctionArgs } from "convex/server";
 import { Ban, Snowflake, Trophy, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips, useHumanDuration } from "@/components/contests/pieces";
+import { RankingCellSubmissions } from "@/components/contests/RankingCellSubmissions";
 import { chosenValue } from "@/lib/choices";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { formatDateTime, formatPoints } from "@/lib/format";
@@ -98,21 +99,43 @@ function ProblemCell({
   cell,
   pending,
   precision,
+  contestKey,
+  user,
+  problem,
 }: {
   cell: CellData | null;
   pending: number;
   precision: number;
+  contestKey: string;
+  user: RankingRow["user"];
+  problem: RankingProblem;
 }) {
   const t = useTranslations("contests.ranking");
 
+  // Every cell that stands for an attempt opens the attempts behind it, the
+  // frozen one included: a '?' is the cell a reader most wants unfolded.
+  const attempts = (children: ReactNode, tooltip?: ReactNode) => (
+    <RankingCellSubmissions
+      contestKey={contestKey}
+      username={user.username}
+      displayName={user.displayName || user.username}
+      problem={problem}
+      precision={precision}
+      tooltip={tooltip}
+    >
+      {children}
+    </RankingCellSubmissions>
+  );
+
   if (pending > 0) {
     return (
-      <td className="h-(--row-h-dense) w-11 min-w-11 border-b border-border bg-(--cell-frozen-bg) px-1 text-center align-middle text-(--cell-frozen-ink)">
-        <Tooltip content={t("pendingAfterFreeze", { count: pending })}>
+      <td className="h-(--row-h-dense) w-11 min-w-11 border-b border-border bg-(--cell-frozen-bg) p-0 text-center align-middle text-(--cell-frozen-ink)">
+        {attempts(
           <span className="block font-mono text-sm font-medium tabular-nums">
             ?<span className="block text-xs opacity-80">{`-${pending}`}</span>
-          </span>
-        </Tooltip>
+          </span>,
+          t("pendingAfterFreeze", { count: pending }),
+        )}
       </td>
     );
   }
@@ -140,19 +163,23 @@ function ProblemCell({
   return (
     <td
       className={cn(
-        "h-(--row-h-dense) w-11 min-w-11 border-b border-border px-1 text-center align-middle",
+        "h-(--row-h-dense) w-11 min-w-11 border-b border-border p-0 text-center align-middle",
         cellSkin(cell.state),
         isPretest && "outline-1 -outline-offset-1 outline-dashed outline-(--line-strong)",
       )}
       title={label}
     >
-      <span className="block font-mono text-sm font-medium tabular-nums leading-tight">
-        {cell.pointsText || formatPoints(cell.points, precision)}
-        {cell.penaltyText ? <span className="opacity-75">{` (${cell.penaltyText})`}</span> : null}
-      </span>
-      {cell.timeText ? (
-        <span className="block font-mono text-xs tabular-nums opacity-75">{cell.timeText}</span>
-      ) : null}
+      {attempts(
+        <>
+          <span className="block font-mono text-sm font-medium tabular-nums leading-tight">
+            {cell.pointsText || formatPoints(cell.points, precision)}
+            {cell.penaltyText ? <span className="opacity-75">{` (${cell.penaltyText})`}</span> : null}
+          </span>
+          {cell.timeText ? (
+            <span className="block font-mono text-xs tabular-nums opacity-75">{cell.timeText}</span>
+          ) : null}
+        </>,
+      )}
     </td>
   );
 }
@@ -160,7 +187,7 @@ function ProblemCell({
 function Row({
   row,
   contestKey,
-  problemIds,
+  problems,
   hasRating,
   showOrganizations,
   canDisqualify,
@@ -169,7 +196,7 @@ function Row({
 }: {
   row: RankingRow;
   contestKey: string;
-  problemIds: string[];
+  problems: RankingProblem[];
   hasRating: boolean;
   showOrganizations: boolean;
   canDisqualify: boolean;
@@ -260,13 +287,17 @@ function Row({
           </span>
         </td>
       ) : null}
-      {row.problems.map((cell, index) => (
+      {/* A row's cells are the contest's problems in order, so the column is what
+          identifies a cell — a null one has no id of its own. */}
+      {problems.map((problem, index) => (
         <ProblemCell
-          // biome-ignore lint/suspicious/noArrayIndexKey: cells are positional, and a null cell has no id
-          key={`${row.participationId}-${index}`}
-          cell={cell}
-          pending={pendingOf(row.participationId, problemIds[index] ?? "")}
+          key={problem.contestProblemId}
+          cell={row.problems[index] ?? null}
+          pending={pendingOf(row.participationId, problem.contestProblemId)}
           precision={precision}
+          contestKey={contestKey}
+          user={row.user}
+          problem={problem}
         />
       ))}
       <td className="h-(--row-h-dense) border-b border-border px-3 text-right align-middle">
@@ -390,7 +421,6 @@ export function RankingClient({
     }
   };
 
-  const problemIds = (data?.problems ?? []).map((problem) => problem.contestProblemId);
   // An organisation column nobody is in is 300px of nothing; DMOJ hides it too.
   const anyOrganizations = (data?.rows ?? []).some((row) => row.organizations.length > 0);
   const organizationColumn = anyOrganizations && showOrganizations;
@@ -571,7 +601,7 @@ export function RankingClient({
                       key={row.participationId}
                       row={row}
                       contestKey={contestKey}
-                      problemIds={problemIds}
+                      problems={data.problems}
                       hasRating={data.hasRating}
                       showOrganizations={organizationColumn}
                       canDisqualify={data.canDisqualify}

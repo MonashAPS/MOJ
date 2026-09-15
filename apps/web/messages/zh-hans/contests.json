@@ -336,7 +336,15 @@
     "disqualify": "取消参赛资格",
     "reinstate": "恢复参赛资格",
     "disqualified": "参赛资格已取消",
-    "reinstated": "参赛资格已恢复"
+    "reinstated": "参赛资格已恢复",
+    "cell": {
+      "open": "{user} 在 {problem} 的提交",
+      "title": "{user} · {problem}",
+      "loading": "正在加载提交…",
+      "none": "这里没有你可以查看的提交。",
+      "viewAll": "{user} 的全部提交",
+      "attempt": "打开提交 {id}"
+    }
   },
   "rankByProblem": {
     "metaTitle": "{name} 的最佳解答",
