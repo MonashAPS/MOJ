@@ -21,7 +21,7 @@ The examples below use `judge.example.org`.
 | `postgres` | Both databases. Not published to the host. |
 | `convex-backend` | The Convex deployment, on its two origins. |
 | `convex-dashboard` | The Convex dashboard, behind its own hostname. |
-| `web` | The Next.js app, built from `apps/web/Dockerfile`. |
+| `web` | The Next.js app, from `ghcr.io/monashaps/moj-web` or built from `apps/web/Dockerfile`. |
 | `judge` | A judge on the same box, behind the `judge` compose profile so it is opt-in. |
 
 `apps/web/Dockerfile` builds the workspace in stages and runs Next's standalone output on Node 24 as a non-root
@@ -29,11 +29,8 @@ user. It carries a pinned Typst release for the architecture you build on, the s
 Typst falls back to, so `/problem/<code>/pdf` works in the container. `/api/health` is what the image's own
 healthcheck asks.
 
-::: warning
-The `NEXT_PUBLIC_*` values are compiled into the client bundle, so they are build arguments as well as
-environment. `compose.prod.yml` passes them from `MOJ_DOMAIN`; rebuild the image, not just restart it, after
-changing the domain.
-:::
+The image takes the site's public origins from its environment on each request. Changing `MOJ_DOMAIN` is a
+restart, not a rebuild.
 
 Everything is driven by one variable, `MOJ_DOMAIN`. Caddy serves four names derived from it, and the compose file
 builds every origin the app and the judge need from the same value:
@@ -69,6 +66,8 @@ Restrict the dashboard hostname, or drop the service. It is full read and write 
 | `INSTANCE_NAME` | `moj-prod` | The Convex deployment's identity. |
 | `INSTANCE_SECRET` | 64 hex characters | The Convex instance secret. Changing it on an existing deployment makes the stored data unreadable. |
 | `CONVEX_IMAGE_TAG` | `latest` | The Convex backend and dashboard image tag. Pin it. |
+| `MOJ_IMAGE_TAG` | `1.2.0` | Which published release the `web` and `judge` services run. Defaults to `latest`, and names the tag a local `build` is written to. |
+| `JUDGE_TIER` | `tier1` | The runtimes tier the bundled judge is built on, and the suffix on its published tag. |
 | `AUTH_SECRET` | 32 random bytes | Signs sessions and cookies, and encrypts stored two-factor secrets. Rotating it signs everyone out and invalidates stored TOTP secrets. |
 | `LEGACY_SECRET_KEY` | | The imported site's Django `SECRET_KEY`, so API tokens minted there keep verifying. Leave blank if you did not import. |
 | `MAIL_MODE` | `ses` | Which transport sends the site's mail: `console`, `ses` or `smtp`. See [mail](#mail). |
@@ -85,7 +84,7 @@ Restrict the dashboard hostname, or drop the service. It is full read and write 
 
 The compose file sets `NEXT_PUBLIC_CONVEX_URL`, `NEXT_PUBLIC_CONVEX_SITE_URL`, `NEXT_PUBLIC_APP_URL`,
 `AUTH_ISSUER`, `AUTH_JWKS_URL`, `AUTH_RP_ID` and `DATABASE_URL` from `MOJ_DOMAIN` and the Postgres credentials, so
-they are not yours to set. Set `NEXT_PUBLIC_SITE_URL` only if the feeds and the sitemap should use a different
+they are not yours to set. The first three are read by the running container, not compiled into it. Set `NEXT_PUBLIC_SITE_URL` only if the feeds and the sitemap should use a different
 absolute origin from the one the app is served on.
 
 ### Mail
@@ -304,19 +303,31 @@ The judge's tier is part of its tag, because one release builds more than one an
 the languages they need. Only tier 1 is published automatically; tier 2 can be built from the Actions tab, and
 tier 3 is too large for a hosted runner to build, so build that one on the judge box.
 
-Building from a checkout keeps working and is what a change under review wants. The published images only save
-an operator the build.
+`MOJ_IMAGE_TAG` picks the release the `web` and `judge` services run, and `JUDGE_TIER` picks the judge's tier;
+both default to `latest` and `tier1`. One web image serves every deployment: it reads `NEXT_PUBLIC_CONVEX_URL`,
+`NEXT_PUBLIC_CONVEX_SITE_URL` and `NEXT_PUBLIC_APP_URL` from the container's environment on each request.
+
+Building from a checkout keeps working and is what a change under review wants:
+
+```bash
+docker compose -f infra/compose.prod.yml --project-directory . --env-file .env.prod build web
+```
+
+The build is written to `ghcr.io/monashaps/moj-web:$MOJ_IMAGE_TAG`; the same `up -d` then runs it.
 
 ## Updating
 
 ```bash
 cd /srv/moj
-git pull
+git pull                          # the functions and the migrations are in the checkout
 docker compose -f infra/compose.prod.yml --project-directory . --env-file .env.prod pull
 npx convex deploy                 # push function and schema changes first
 npm run db:migrate -w apps/web    # apply any Better Auth migrations
 docker compose -f infra/compose.prod.yml --project-directory . --env-file .env.prod up -d
 ```
+
+`pull` fetches the release named by `MOJ_IMAGE_TAG`. The checkout is still needed: `npx convex deploy` and
+`npm run db:migrate -w apps/web` read it. To run a build of the checkout instead, put `build` where `pull` is.
 
 The order matters. Convex functions are deployed before the new web image starts, because the new pages expect the
 new functions; a schema change that removes a field should be split across two releases so that the running site
