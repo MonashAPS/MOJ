@@ -13,7 +13,6 @@ import {
   type ContestParticipationRow,
   type Viewer as CoreViewer,
   canSeeSubmissionDetail,
-  contestCanSeeFullScoreboard,
   hasPerm as coreHasPerm,
   isSuperuser as coreIsSuperuser,
   isLocked,
@@ -401,7 +400,6 @@ export const list = query({
   handler: async (ctx, args) => {
     const now = Date.now();
     const viewerCtx = await viewerContext(ctx);
-    const viewer = viewerCtx.viewer;
 
     const username = args.username;
     const problemCode = args.problemCode;
@@ -436,16 +434,11 @@ export const list = query({
       return { page: [], isDone: true, continueCursor: "" };
     }
 
-    // Contest mode pins the list to the contest, and to the viewer's own rows
-    // unless they can see the full scoreboard.
-    const contestFilter = viewerCtx.inContest ? viewerCtx.contest : requestedContest;
-    let profileFilter = author;
-
-    if (viewerCtx.inContest && viewerCtx.contest && viewerCtx.profile) {
-      const full = contestCanSeeFullScoreboard(toContestRow(viewerCtx.contest), viewer, { now });
-
-      if (!full) profileFilter = viewerCtx.profile;
-    }
+    // Being in a contest no longer narrows this list to it. The contest's own
+    // submissions page is where that view lives, and it is reachable from the
+    // contest; this one stays the site's.
+    const contestFilter = requestedContest;
+    const profileFilter = author;
 
     const languageIds = new Set<Id<"languages">>();
 
@@ -538,22 +531,21 @@ async function isListable(
   now: number,
 ): Promise<boolean> {
   const viewer = viewerCtx.viewer;
-
-  if (viewerCtx.inContest) {
-    // In contest mode the queryset is already the contest's; DMOJ does not
-    // re-check problem visibility there.
-    return submission.contestId === viewerCtx.contest?._id;
-  }
-
   const problem = await cachedGet(ctx, caches.problems, submission.problemId);
 
   if (!problem) return false;
 
-  if (!problemIsVisibleTo(toCoreProblem(problem), viewer)) return false;
+  // A viewer's own row is theirs to see wherever it is listed, including on a
+  // contest problem that is not public: competing in the contest is what put it
+  // there. This used to be reached only after the visibility check, which the
+  // contest arm above it hid.
+  const own = !!viewer && submission.profileId === viewer.id;
+
+  if (!own && !problemIsVisibleTo(toCoreProblem(problem), viewer)) return false;
 
   if (!submission.contestId) return true;
 
-  if (viewer && submission.profileId === viewer.id) return true;
+  if (own) return true;
 
   if (coreHasPerm(viewer, "judge.see_private_contest")) return true;
   const contest = await cachedGet(ctx, caches.contests, submission.contestId);

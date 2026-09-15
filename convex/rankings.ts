@@ -12,7 +12,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation, type QueryCtx, query } from "./_generated/server";
 import { profilesByPP, profilesByProblemCount, profilesByRating } from "./lib/aggregates";
-import { optionalViewer, requireStaff } from "./lib/auth";
+import { requireStaff } from "./lib/auth";
 
 /** `UserList.paginate_by`. */
 export const USERS_PER_PAGE = 100;
@@ -47,7 +47,6 @@ export type LeaderboardRow = {
 
 export type UsersPage = {
   /** Set when the viewer is in contest mode: `/users/` shows that scoreboard. */
-  contestScoreboard: { key: string; name: string } | null;
   users: LeaderboardRow[];
   page: number;
   perPage: number;
@@ -131,14 +130,12 @@ export const users = query({
     organizationSlug: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<UsersPage> => {
-    const viewer = await optionalViewer(ctx);
     const sort: UserSort = args.sort ?? "performancePoints";
     const descending = args.descending ?? true;
     const page = Math.max(1, Math.floor(args.page ?? 1));
     const organizationSlug = args.organizationSlug ?? null;
 
     const empty: UsersPage = {
-      contestScoreboard: null,
       users: [],
       page,
       perPage: USERS_PER_PAGE,
@@ -149,15 +146,6 @@ export const users = query({
       descending,
       organizationSlug,
     };
-
-    if (viewer?.currentParticipationId) {
-      const participation = await ctx.db.get(viewer.currentParticipationId);
-      const contest = participation ? await ctx.db.get(participation.contestId) : null;
-
-      if (contest) {
-        return { ...empty, contestScoreboard: { key: contest.key, name: contest.name } };
-      }
-    }
 
     const offset = (page - 1) * USERS_PER_PAGE;
 
