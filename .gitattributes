@@ -1,0 +1,19 @@
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.pdf binary
+*.wasm binary
+*.zip binary
+*.gz binary
+
+# The judge-server subtree keeps upstream's bytes; two of its test inputs are CRLF on purpose.
+apps/judge/judge-server/** -text
