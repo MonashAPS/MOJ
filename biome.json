@@ -12,6 +12,7 @@
       "!**/.next",
       "!**/dist",
       "!convex/_generated",
+      "!tools/anti-slop",
       "!apps/web/drizzle",
       "!apps/web/public",
       "!docs/public",

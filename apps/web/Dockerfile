@@ -51,6 +51,7 @@ COPY packages/core/package.json packages/core/package.json
 COPY packages/protocol/package.json packages/protocol/package.json
 COPY packages/ui/package.json packages/ui/package.json
 COPY tools/import/package.json tools/import/package.json
+COPY tools/anti-slop/package.json tools/anti-slop/package.json
 COPY tools/upload-problem/package.json tools/upload-problem/package.json
 COPY docs/package.json docs/package.json
 # `--ignore-scripts` because the root `prepare` script builds packages/content,
