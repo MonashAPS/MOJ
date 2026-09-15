@@ -17,7 +17,7 @@ export default async function ContestRankingPage({ params }: { params: Promise<{
 
   const [detail, ranking, viewerState] = await Promise.all([
     queryAsViewer(api.contests.get, { key }).catch(() => null),
-    queryAsViewer(api.contestRankings.ranking, { key }).catch(() => null),
+    queryAsViewer(api.contests.rankings.ranking, { key }).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
   ]);
 

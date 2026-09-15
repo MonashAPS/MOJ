@@ -1,8 +1,8 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import type { RankByProblemPayload } from "@convex/contestRankings";
 import type { ContestDetail } from "@convex/contests";
+import type { RankByProblemPayload } from "@convex/contests/rankings";
 import {
   EmptyState,
   MicroLabel,
@@ -47,7 +47,7 @@ export function RankByProblemClient({
   const columns = useTranslations("contests.columns");
   const tabLabels = useTranslations("contests.tabs");
   const [languageKeys, setLanguageKeys] = useState<string[]>([]);
-  const live = useQuery(api.contestRankings.rankByProblem, {
+  const live = useQuery(api.contests.rankings.rankByProblem, {
     key: contestKey,
     problemCode,
     ...(languageKeys.length > 0 ? { languageKeys } : {}),

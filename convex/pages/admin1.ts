@@ -13,7 +13,7 @@ import { contestIsEditableBy, hasPerm, problemIsEditableBy, problemIsInEditableS
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { mutation, type QueryCtx, query } from "../_generated/server";
-import { contestByKey, labelsForContest, toContestRow, toViewerRowInContest } from "../contestFormats";
+import { contestByKey, labelsForContest, toContestRow, toViewerRowInContest } from "../contests/formats";
 import { requireViewer } from "../lib/auth";
 import { forbidden, invalid, mojError } from "../lib/errors";
 import { labelFor, loadViewerContext, problemByCode, solutionFor, toCoreProblem } from "../problems";

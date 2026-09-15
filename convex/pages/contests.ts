@@ -1,6 +1,6 @@
 /**
  * Page-level reads the contest pages need on top of `convex/contests.ts` and
- * `convex/contestRankings.ts`.
+ * `convex/contests/rankings.ts`.
  *
  * Everything here is presentation plumbing: the tag page's own header, the
  * per-cell pending marks SPEC section 7 asks for while a scoreboard is frozen,
@@ -25,8 +25,8 @@ import {
   toContestRow,
   toParticipationRow,
   toViewerRowInContest,
-} from "../contestFormats";
-import { contestIsRevealed } from "../contestRankings";
+} from "../contests/formats";
+import { contestIsRevealed } from "../contests/rankings";
 import { optionalViewer, requireViewer } from "../lib/auth";
 import { forbidden, notFound } from "../lib/errors";
 
@@ -109,7 +109,7 @@ export type FrozenCells = {
  * SPEC section 7: a submission made after the freeze point renders as pending
  * (`?`) rather than as nothing at all.
  *
- * `contestRankings.ranking` scores a frozen board from pre-freeze submissions,
+ * `contests/rankings.ranking` scores a frozen board from pre-freeze submissions,
  * which is what the ranking needs but leaves a post-freeze solve looking
  * identical to an untouched problem. This says which cells are withholding an
  * answer — the count of attempts, never their verdicts — and returns null

@@ -48,7 +48,7 @@ import {
   toContestRow,
   toParticipationRow,
   toViewerRowInContest,
-} from "./contestFormats";
+} from "./contests/formats";
 import { optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, invalid, mojError, notFound } from "./lib/errors";
 
@@ -1755,7 +1755,7 @@ export const disqualify = mutation({
     if (!participation || participation.contestId !== contest._id) throw notFound("Participation");
 
     await ctx.db.patch(participationId, { isDisqualified: disqualified });
-    await ctx.runMutation(internal.contestRankings.recomputeParticipation, { participationId });
+    await ctx.runMutation(internal.contests.rankings.recomputeParticipation, { participationId });
 
     const banned = new Set<Id<"profiles">>(contest.bannedProfileIds);
     if (disqualified) {

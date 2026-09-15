@@ -41,9 +41,9 @@ import {
   type MutationCtx,
 } from "../_generated/server";
 import { groupIdByName, typeIdsByName, writeRevision } from "../admin/problems";
-import { inspectArchive } from "../problemData";
 import { problemByCode, toCoreProblem } from "../problems";
-import { MAX_VALIDATED_ARCHIVE_BYTES } from "../problemTestData";
+import { inspectArchive } from "../problems/data";
+import { MAX_VALIDATED_ARCHIVE_BYTES } from "../problems/testData";
 
 /* -------------------------------------------------------------------------- */
 /* Responses                                                                  */
@@ -659,7 +659,7 @@ async function publisherFor(ctx: ActionCtx, request: Request, code: string): Pro
       response: errorResponse("forbidden", `This API key lacks the ${PROBLEMS_WRITE_SCOPE} scope.`),
     };
   }
-  const context = await ctx.runQuery(internal.problemTestData.publisherContext, {
+  const context = await ctx.runQuery(internal.problems.testData.publisherContext, {
     code,
     actorProfileId: identity.profileId,
   });
@@ -746,7 +746,7 @@ async function dataPublish(ctx: ActionCtx, request: Request): Promise<Response> 
     if (inspected.error) return errorResponse("invalid", inspected.error);
   }
 
-  const result = await ctx.runMutation(internal.problemTestData.record, {
+  const result = await ctx.runMutation(internal.problems.testData.record, {
     problemId: publisher.problemId,
     storageId: parsed.data.storageId as Id<"_storage">,
     hash: parsed.data.hash,

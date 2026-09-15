@@ -207,7 +207,7 @@ export function registerJudgeRoutes(http: HttpRouter): void {
 
       let archive: { storageId: Id<"_storage">; hash: string; size: number } | null;
       try {
-        archive = await ctx.runQuery(internal.problemTestData.judgeArchive, {
+        archive = await ctx.runQuery(internal.problems.testData.judgeArchive, {
           judgeName: parsed.data.judgeName,
           authKeyHash: await sha256Hex(parsed.data.judgeKey),
           code: parsed.data.code,

@@ -2,7 +2,7 @@ import { shouldLeaveContest } from "@moj/core";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { query } from "./_generated/server";
-import { toContestRow, toParticipationRow, toViewerRowInContest } from "./contestFormats";
+import { toContestRow, toParticipationRow, toViewerRowInContest } from "./contests/formats";
 import { optionalViewer } from "./lib/auth";
 
 export type ViewerState = {

@@ -122,7 +122,7 @@ describe("ranking with a freeze", () => {
 
     const publicView = await t
       .withIdentity(identityOf("watcher"))
-      .query(api.contestRankings.ranking, { key: "icpc" });
+      .query(api.contests.rankings.ranking, { key: "icpc" });
     expect(publicView?.isFrozen).toBe(true);
     expect(publicView?.canSeeFullScoreboard).toBe(true);
     const publicRows = Object.fromEntries((publicView?.rows ?? []).map((row) => [row.user.username, row]));
@@ -136,7 +136,7 @@ describe("ranking with a freeze", () => {
 
     const editorView = await t
       .withIdentity(identityOf("editor"))
-      .query(api.contestRankings.ranking, { key: "icpc" });
+      .query(api.contests.rankings.ranking, { key: "icpc" });
     expect(editorView?.isFrozen).toBe(false);
     const editorRows = Object.fromEntries((editorView?.rows ?? []).map((row) => [row.user.username, row]));
     expect(editorRows.bob?.points).toBe(1);
@@ -151,7 +151,7 @@ describe("ranking with a freeze", () => {
     const t = harness();
     await frozenContest(t, { blindDuringFreeze: true });
 
-    const own = await t.withIdentity(identityOf("bob")).query(api.contestRankings.ranking, { key: "icpc" });
+    const own = await t.withIdentity(identityOf("bob")).query(api.contests.rankings.ranking, { key: "icpc" });
     const bob = (own?.rows ?? []).find((row) => row.user.username === "bob");
     expect(bob?.points).toBe(0);
     expect(bob?.frozen).toBe(true);
@@ -195,7 +195,7 @@ describe("ranking with a freeze", () => {
 
     const publicView = await t
       .withIdentity(identityOf("watcher"))
-      .query(api.contestRankings.ranking, { key: "icpc" });
+      .query(api.contests.rankings.ranking, { key: "icpc" });
     expect(publicView?.isFrozen).toBe(false);
     expect(publicView?.isRevealed).toBe(true);
     const rows = Object.fromEntries((publicView?.rows ?? []).map((row) => [row.user.username, row]));
@@ -215,7 +215,7 @@ describe("ranking with a freeze", () => {
       await ctx.db.patch(fixture.adaId, { currentParticipationId: fixture.adaParticipation });
     });
 
-    const own = await t.withIdentity(identityOf("ada")).query(api.contestRankings.ranking, { key: "icpc" });
+    const own = await t.withIdentity(identityOf("ada")).query(api.contests.rankings.ranking, { key: "icpc" });
     expect(own?.canSeeFullScoreboard).toBe(false);
     expect(own?.rows.length).toBe(1);
     expect(own?.rows[0]?.user.username).toBe("ada");
@@ -223,7 +223,7 @@ describe("ranking with a freeze", () => {
 
     const outsider = await t
       .withIdentity(identityOf("watcher"))
-      .query(api.contestRankings.ranking, { key: "icpc" });
+      .query(api.contests.rankings.ranking, { key: "icpc" });
     expect(outsider).toBeNull();
   });
 
@@ -232,7 +232,7 @@ describe("ranking with a freeze", () => {
     await frozenContest(t);
     const payload = await t
       .withIdentity(identityOf("editor"))
-      .query(api.contestRankings.rankByProblem, { key: "icpc", problemCode: "aplus" });
+      .query(api.contests.rankings.rankByProblem, { key: "icpc", problemCode: "aplus" });
     expect(payload?.label).toBe("A");
     expect(payload?.rows.map((row) => row.user.username)).toEqual(["ada", "bob"]);
   });
@@ -247,7 +247,7 @@ describe("recomputing", () => {
       await ctx.db.patch(fixture.adaParticipation, { score: 999, cumtime: 1, tiebreaker: 1 });
     });
 
-    await t.mutation(internal.contestRankings.recomputeParticipation, {
+    await t.mutation(internal.contests.rankings.recomputeParticipation, {
       participationId: fixture.adaParticipation,
     });
 
@@ -268,7 +268,7 @@ describe("recomputing", () => {
 
     const job = await t
       .withIdentity(identityOf("editor"))
-      .mutation(api.contestRankings.rescoreContest, { key: "icpc" });
+      .mutation(api.contests.rankings.rescoreContest, { key: "icpc" });
     expect(job.total).toBe(2);
     await t.finishAllScheduledFunctions(() => {});
 
@@ -301,7 +301,7 @@ describe("recomputing", () => {
 
     const view = await t
       .withIdentity(identityOf("editor"))
-      .query(api.contestRankings.ranking, { key: "icpc" });
+      .query(api.contests.rankings.ranking, { key: "icpc" });
     expect(view?.rows.at(-1)?.user.username).toBe("ada");
   });
 });
@@ -780,7 +780,7 @@ describe("the calendar and the feed", () => {
 describe("contest formats", () => {
   test("the registry and the short form come from @moj/core", async () => {
     const t = harness();
-    const formats = await t.query(api.contestFormats.list, {});
+    const formats = await t.query(api.contests.formats.list, {});
     expect(formats.map((format) => format.name).sort()).toEqual([
       "atcoder",
       "default",
@@ -790,7 +790,7 @@ describe("contest formats", () => {
       "ioi16",
     ]);
 
-    const described = await t.query(api.contestFormats.describe, {
+    const described = await t.query(api.contests.formats.describe, {
       name: "icpc",
       config: { penalty: 20 },
     });
@@ -801,7 +801,7 @@ describe("contest formats", () => {
     expect(described.lines[0]).toEqual({ key: "maxScoreSubmission" });
     expect(described.lines).toContainEqual({ key: "penalty", values: { minutes: 20 } });
 
-    const invalidConfig = await t.query(api.contestFormats.validate, {
+    const invalidConfig = await t.query(api.contests.formats.validate, {
       name: "icpc",
       config: { penalty: -5 },
     });

@@ -116,7 +116,7 @@ describe("jobs.run dispatch", () => {
     expect((await t.run(async (ctx) => ctx.db.get(authorId)))?.points).toBe(10);
   });
 
-  test("the contest job types reach the runners in jobsContests", async () => {
+  test("the contest job types reach the runners in jobs/contests", async () => {
     const t = setupConvexTest();
     const contestId = await t.run(async (ctx) => await makeContest(ctx, "open"));
 
@@ -134,7 +134,7 @@ describe("jobs.run dispatch", () => {
     expect(moss?.error).toBe("MOSS is not configured.");
   });
 
-  test("a userExport job reaches the action in jobsUsers", async () => {
+  test("a userExport job reaches the action in jobs/users", async () => {
     const t = setupConvexTest();
     const { authorId } = await seedProblem(t);
     const jobId = await insertJob(t, "userExport", {
@@ -209,7 +209,7 @@ describe("the cron targets", () => {
       await ctx.db.delete(contestId);
     });
 
-    expect(await t.mutation(internal.jobsContests.sweepContestMode, {})).toEqual({ cleared: 1 });
+    expect(await t.mutation(internal.jobs.contests.sweepContestMode, {})).toEqual({ cleared: 1 });
     const profile = await t.run(async (ctx) =>
       ctx.db
         .query("profiles")

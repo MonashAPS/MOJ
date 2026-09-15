@@ -12,7 +12,7 @@ import { strFromU8, unzipSync } from "fflate";
 import { describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { globToRegExp, sortedJson } from "../jobsUsers";
+import { globToRegExp, sortedJson } from "../jobs/users";
 import { setupConvexTest } from "./convexTest.setup";
 import { makeGroup, makeLanguage, makeProblem, makeProfile, makeSubmission } from "./fixtures.setup";
 

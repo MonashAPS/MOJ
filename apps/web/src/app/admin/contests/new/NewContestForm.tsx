@@ -27,7 +27,7 @@ export function NewContestForm() {
   const actions = useTranslations("common.actions");
   const router = useRouter();
   const create = useMutation(api.admin.contests.create);
-  const formats = useQuery(api.contestFormats.list, {});
+  const formats = useQuery(api.contests.formats.list, {});
 
   const ids = { key: useId(), name: useId(), format: useId(), start: useId(), end: useId(), freeze: useId() };
   const [key, setKey] = useState("");

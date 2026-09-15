@@ -13,7 +13,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation, query } from "./_generated/server";
-import { contestByKey, toViewerRowInContest } from "./contestFormats";
+import { contestByKey, toViewerRowInContest } from "./contests/formats";
 import { hasPerm, optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, notFound } from "./lib/errors";
 

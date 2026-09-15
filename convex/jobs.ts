@@ -514,7 +514,7 @@ export const run = internalMutation({
     switch (type) {
       case "rejudge": {
         if (contestId && typeof args.contestProblemId === "string") {
-          await ctx.scheduler.runAfter(0, internal.jobsContests.rejudgeContestProblemChunk, {
+          await ctx.scheduler.runAfter(0, internal.jobs.contests.rejudgeContestProblemChunk, {
             jobId,
             contestId,
             contestProblemId: args.contestProblemId as Id<"contestProblems">,
@@ -590,7 +590,7 @@ export const run = internalMutation({
           await failJob(ctx, jobId, "The contest no longer exists.");
           return null;
         }
-        await ctx.scheduler.runAfter(0, internal.jobsContests.rateContestJob, { jobId, contestId });
+        await ctx.scheduler.runAfter(0, internal.jobs.contests.rateContestJob, { jobId, contestId });
         return null;
       }
 
@@ -599,7 +599,7 @@ export const run = internalMutation({
           await failJob(ctx, jobId, "The contest problem no longer exists.");
           return null;
         }
-        await ctx.scheduler.runAfter(0, internal.jobsContests.rejudgeContestProblemChunk, {
+        await ctx.scheduler.runAfter(0, internal.jobs.contests.rejudgeContestProblemChunk, {
           jobId,
           contestId,
           contestProblemId: args.contestProblemId as Id<"contestProblems">,
@@ -613,12 +613,12 @@ export const run = internalMutation({
           await failJob(ctx, jobId, "The contest no longer exists.");
           return null;
         }
-        await ctx.scheduler.runAfter(0, internal.jobsContests.mossJob, { jobId, contestId });
+        await ctx.scheduler.runAfter(0, internal.jobs.contests.mossJob, { jobId, contestId });
         return null;
       }
 
       case "userExport": {
-        await ctx.scheduler.runAfter(0, internal.jobsUsers.run, { jobId });
+        await ctx.scheduler.runAfter(0, internal.jobs.users.run, { jobId });
         return null;
       }
 
@@ -658,6 +658,6 @@ async function runContestRescore(
     status: "running",
     progress: { done: 0, total: participations.length, stage: "Recalculating contest scores" },
   });
-  await ctx.scheduler.runAfter(0, internal.jobsContests.rescoreChunk, { jobId, contestId, cursor: 0 });
+  await ctx.scheduler.runAfter(0, internal.jobs.contests.rescoreChunk, { jobId, contestId, cursor: 0 });
   return null;
 }

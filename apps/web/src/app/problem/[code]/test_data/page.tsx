@@ -27,7 +27,7 @@ export default async function TestDataPage({ params }: { params: Promise<{ code:
   if (!problem) notFound();
   if (!problem.canEdit) forbidden();
 
-  const data = await queryAsViewer(api.problemData.get, { code }).catch(() => null);
+  const data = await queryAsViewer(api.problems.data.get, { code }).catch(() => null);
   if (!data) forbidden();
 
   return (

@@ -16,7 +16,7 @@ import { type Attempt, classifyEvent, freezeOffsetFor } from "@moj/core";
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
-import { labelForProblem, loadContestProblems } from "../contestFormats";
+import { labelForProblem, loadContestProblems } from "../contests/formats";
 import { isStaff, optionalViewer } from "../lib/auth";
 
 const LIVE = 0;

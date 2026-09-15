@@ -462,7 +462,7 @@ describe("the test data editor", () => {
     const asSetter = t.withIdentity({ subject: setter.userId });
     const storageId = await store(t, FIRST);
 
-    const published = await asSetter.action(api.problemData.publishArchive, {
+    const published = await asSetter.action(api.problems.data.publishArchive, {
       code: "aplusb",
       zipfile: "aplusb.zip",
       storageId,
@@ -471,7 +471,7 @@ describe("the test data editor", () => {
     expect(published.hash).toBe(await sha256OfBytes(FIRST));
     expect(published.files.sort()).toEqual(["init.yml", "tests/1.in"]);
 
-    const page = await asSetter.query(api.problemData.get, { code: "aplusb" });
+    const page = await asSetter.query(api.problems.data.get, { code: "aplusb" });
     expect(page.published).toEqual({
       hash: await sha256OfBytes(FIRST),
       size: FIRST.byteLength,
@@ -485,7 +485,7 @@ describe("the test data editor", () => {
     ]);
 
     // A second upload of the same bytes is a no-op, as it is over the API.
-    const again = await asSetter.action(api.problemData.publishArchive, {
+    const again = await asSetter.action(api.problems.data.publishArchive, {
       code: "aplusb",
       zipfile: "aplusb.zip",
       storageId: await store(t, FIRST),
@@ -500,12 +500,12 @@ describe("the test data editor", () => {
 
     const page = await t
       .withIdentity({ subject: setter.userId })
-      .query(api.problemData.get, { code: "aplusb" });
+      .query(api.problems.data.get, { code: "aplusb" });
     expect(page.published?.hash).toBe(await sha256OfBytes(FIRST));
 
     const traversal = await store(t, archive({ "init.yml": "x\n", "../escape.txt": "no\n" }));
     await expect(
-      t.withIdentity({ subject: setter.userId }).action(api.problemData.publishArchive, {
+      t.withIdentity({ subject: setter.userId }).action(api.problems.data.publishArchive, {
         code: "aplusb",
         zipfile: "evil.zip",
         storageId: traversal,
@@ -519,7 +519,7 @@ describe("the test data editor", () => {
     const { t } = await fixture();
     const storageId = await store(t, FIRST);
     await expect(
-      t.action(api.problemData.publishArchive, {
+      t.action(api.problems.data.publishArchive, {
         code: "aplusb",
         zipfile: "aplusb.zip",
         storageId,

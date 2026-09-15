@@ -35,7 +35,7 @@ export function ContestGeneralTab({
   const t = useTranslations("admin.contests.general");
   const scoring = useTranslations("contests.scoring");
   const update = useMutation(api.admin.contests.update);
-  const formats = useQuery(api.contestFormats.list, {});
+  const formats = useQuery(api.contests.formats.list, {});
 
   const ids = {
     name: useId(),
@@ -124,11 +124,11 @@ export function ContestGeneralTab({
   }, [formatConfig]);
 
   const validation = useQuery(
-    api.contestFormats.validate,
+    api.contests.formats.validate,
     parsedConfig.ok ? { name: formatName, config: parsedConfig.value } : "skip",
   );
   const described = useQuery(
-    api.contestFormats.describe,
+    api.contests.formats.describe,
     parsedConfig.ok ? { name: formatName, config: parsedConfig.value } : "skip",
   );
 

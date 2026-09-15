@@ -49,7 +49,7 @@ const CASE_TYPES = [
   { value: "E", key: "batchEnd" },
 ] as const;
 
-type Payload = NonNullable<(typeof api.problemData.get)["_returnType"]>;
+type Payload = NonNullable<(typeof api.problems.data.get)["_returnType"]>;
 type CaseRow = Payload["cases"][number] & { key: string };
 
 const OPTIONAL_COLUMNS = [
@@ -72,13 +72,13 @@ function numberOrNull(value: string): number | null {
 export function TestDataEditor({ code, initial }: { code: string; initial: Payload }) {
   const t = useTranslations("problems.testData");
   const actions = useTranslations("common.actions");
-  const live = useQuery(api.problemData.get, { code });
+  const live = useQuery(api.problems.data.get, { code });
   const data = live ?? initial;
 
-  const generateUploadUrl = useMutation(api.problemData.generateUploadUrl);
-  const updateData = useMutation(api.problemData.updateData);
-  const saveCases = useMutation(api.problemData.saveCases);
-  const publishArchive = useAction(api.problemData.publishArchive);
+  const generateUploadUrl = useMutation(api.problems.data.generateUploadUrl);
+  const updateData = useMutation(api.problems.data.updateData);
+  const saveCases = useMutation(api.problems.data.saveCases);
+  const publishArchive = useAction(api.problems.data.publishArchive);
 
   const published = data.published;
   // Nothing of this problem's data lives here: a judge reports it and the site
@@ -110,7 +110,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
   const [busy, setBusy] = useState(false);
   const filePicker = useRef<HTMLInputElement>(null);
 
-  const preview = useQuery(api.problemData.initYaml, { code, files: files.length > 0 ? files : undefined });
+  const preview = useQuery(api.problems.data.initYaml, { code, files: files.length > 0 ? files : undefined });
 
   function patch(key: string, change: Partial<CaseRow>) {
     setRows((current) => current.map((row) => (row.key === key ? { ...row, ...change } : row)));

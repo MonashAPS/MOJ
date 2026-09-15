@@ -14,12 +14,12 @@
 
 import { problemIsEditableBy } from "@moj/core";
 import { v } from "convex/values";
-import type { Doc, Id } from "./_generated/dataModel";
-import { internalMutation, internalQuery } from "./_generated/server";
-import { writeRevision } from "./admin/problems";
-import { authenticateJudge } from "./judgeApi";
-import { publishedTestData, testDataRow } from "./lib/testData";
-import { problemByCode, toCoreProblem } from "./problems";
+import type { Doc, Id } from "../_generated/dataModel";
+import { internalMutation, internalQuery } from "../_generated/server";
+import { writeRevision } from "../admin/problems";
+import { authenticateJudge } from "../judgeApi";
+import { publishedTestData, testDataRow } from "../lib/testData";
+import { problemByCode, toCoreProblem } from "../problems";
 
 /**
  * Archives up to this size are parsed when they are published, which is what

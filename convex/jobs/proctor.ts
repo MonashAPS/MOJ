@@ -8,8 +8,8 @@
  * footage does not.
  */
 
-import { internalMutation } from "./_generated/server";
-import { siteSettings } from "./lib/community";
+import { internalMutation } from "../_generated/server";
+import { siteSettings } from "../lib/community";
 
 /** Default when nobody has chosen. Long enough to settle a dispute. */
 const DEFAULT_RETENTION_DAYS = 30;

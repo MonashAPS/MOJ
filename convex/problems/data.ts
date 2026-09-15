@@ -20,8 +20,8 @@
 
 import { problemIsEditableBy } from "@moj/core";
 import { v } from "convex/values";
-import { api, internal } from "./_generated/api";
-import type { Doc, Id } from "./_generated/dataModel";
+import { api, internal } from "../_generated/api";
+import type { Doc, Id } from "../_generated/dataModel";
 import {
   action,
   internalMutation,
@@ -30,11 +30,11 @@ import {
   mutation,
   type QueryCtx,
   query,
-} from "./_generated/server";
-import { requireViewer } from "./lib/auth";
-import { forbidden, invalid, notFound } from "./lib/errors";
-import { publishedTestData, sha256OfBytes, testDataRow, unsafeArchiveMember } from "./lib/testData";
-import { loadViewerContext, problemByCode, toCoreProblem } from "./problems";
+} from "../_generated/server";
+import { requireViewer } from "../lib/auth";
+import { forbidden, invalid, notFound } from "../lib/errors";
+import { publishedTestData, sha256OfBytes, testDataRow, unsafeArchiveMember } from "../lib/testData";
+import { loadViewerContext, problemByCode, toCoreProblem } from "../problems";
 
 /* -------------------------------------------------------------------------- */
 /* init.yml compiler                                                          */
@@ -854,7 +854,7 @@ export const clearFeedback = mutation({
 export const zipContents = action({
   args: { code: v.string() },
   handler: async (ctx, { code }): Promise<{ files: string[]; entries: ZipEntry[]; error: string | null }> => {
-    const data: { storageId: Id<"_storage"> | null } = await ctx.runQuery(api.problemData.zipStorageId, {
+    const data: { storageId: Id<"_storage"> | null } = await ctx.runQuery(api.problems.data.zipStorageId, {
       code,
     });
     if (!data.storageId) return { files: [], entries: [], error: null };
@@ -931,7 +931,7 @@ export const publishArchive = action({
     size: number;
   }> => {
     const context: { problemId: Id<"problems">; profileId: Id<"profiles"> } = await ctx.runQuery(
-      internal.problemData.editorContext,
+      internal.problems.data.editorContext,
       { code: args.code },
     );
 
@@ -945,7 +945,7 @@ export const publishArchive = action({
       throw invalid(inspected.error);
     }
 
-    const recorded = await ctx.runMutation(internal.problemTestData.record, {
+    const recorded = await ctx.runMutation(internal.problems.testData.record, {
       problemId: context.problemId,
       storageId: args.storageId,
       hash: await sha256OfBytes(bytes),
@@ -954,7 +954,7 @@ export const publishArchive = action({
       actorProfileId: context.profileId,
       source: "editor" as const,
     });
-    await ctx.runMutation(internal.problemData.setEditorArchive, {
+    await ctx.runMutation(internal.problems.data.setEditorArchive, {
       code: args.code,
       zipfile: args.zipfile,
       storageId: recorded.storageId,

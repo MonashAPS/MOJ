@@ -22,9 +22,9 @@ import {
   UnknownContestFormatError,
 } from "@moj/core";
 import { v } from "convex/values";
-import type { Doc, Id } from "./_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { query } from "./_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { query } from "../_generated/server";
 
 export type AnyCtx = QueryCtx | MutationCtx;
 

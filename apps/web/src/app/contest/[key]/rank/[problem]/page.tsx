@@ -12,7 +12,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { key, problem } = await params;
   const t = await getTranslations("contests.rankByProblem");
-  const payload = await queryAsViewer(api.contestRankings.rankByProblem, {
+  const payload = await queryAsViewer(api.contests.rankings.rankByProblem, {
     key,
     problemCode: problem,
   }).catch(() => null);
@@ -27,7 +27,7 @@ export default async function ContestRankByProblemPage({
   const { key, problem } = await params;
   const [detail, payload, viewerState] = await Promise.all([
     queryAsViewer(api.contests.get, { key }).catch(() => null),
-    queryAsViewer(api.contestRankings.rankByProblem, { key, problemCode: problem }).catch(() => null),
+    queryAsViewer(api.contests.rankings.rankByProblem, { key, problemCode: problem }).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
   ]);
 

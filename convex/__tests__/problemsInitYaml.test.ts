@@ -8,7 +8,7 @@ import {
   dumpYaml,
   listZipNames,
   makeInit,
-} from "../problemData";
+} from "../problems/data";
 import schema from "../schema";
 import { seedProblem, seedProfile, seedTaxonomy } from "./problems.fixtures";
 
@@ -342,7 +342,7 @@ describe("problemData.initYaml", () => {
     });
 
     const asStaff = t.withIdentity({ subject: "user_staff" });
-    const result = await asStaff.query(api.problemData.initYaml, {
+    const result = await asStaff.query(api.problems.data.initYaml, {
       code: "aplusb",
       files: ["00.in", "00.out"],
     });
@@ -377,11 +377,11 @@ describe("problemData.initYaml", () => {
     });
 
     await expect(
-      t.withIdentity({ subject: "user_nobody" }).query(api.problemData.initYaml, { code: "aplusb" }),
+      t.withIdentity({ subject: "user_nobody" }).query(api.problems.data.initYaml, { code: "aplusb" }),
     ).rejects.toThrow();
 
     await expect(
-      t.withIdentity({ subject: "user_staff" }).query(api.problemData.initYaml, { code: "managed" }),
+      t.withIdentity({ subject: "user_staff" }).query(api.problems.data.initYaml, { code: "managed" }),
     ).rejects.toThrow(/managed by hand/);
   });
 });

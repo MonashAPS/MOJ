@@ -199,7 +199,7 @@ describe("retention", () => {
       return ids;
     });
 
-    await f.t.mutation(internal.jobsProctor.sweepRecordings, {});
+    await f.t.mutation(internal.jobs.proctor.sweepRecordings, {});
 
     const left = await f.t.run(async (ctx) => ctx.db.query("proctorChunks").collect());
     expect(left).toHaveLength(1);
@@ -229,7 +229,7 @@ describe("retention", () => {
       });
     });
 
-    await f.t.mutation(internal.jobsProctor.sweepRecordings, {});
+    await f.t.mutation(internal.jobs.proctor.sweepRecordings, {});
     expect(await f.t.run(async (ctx) => ctx.db.query("proctorChunks").collect())).toHaveLength(1);
   });
 });

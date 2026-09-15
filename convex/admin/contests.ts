@@ -17,7 +17,7 @@ import {
   loadContestProblems,
   toContestRow,
   toViewerRowInContest,
-} from "../contestFormats";
+} from "../contests/formats";
 import { hasPerm, optionalViewer, requireViewer } from "../lib/auth";
 import { forbidden, invalid, mojError, notFound } from "../lib/errors";
 import { labelScheme, scoreboardVisibility } from "../schema";
@@ -664,7 +664,7 @@ export const rescore = mutation({
       createdByProfileId: profile._id,
       createdAt: Date.now(),
     });
-    await ctx.scheduler.runAfter(0, internal.jobsContests.rescoreChunk, {
+    await ctx.scheduler.runAfter(0, internal.jobs.contests.rescoreChunk, {
       jobId,
       contestId: contest._id,
       cursor: 0,
@@ -692,7 +692,7 @@ export const rate = mutation({
       createdByProfileId: profile._id,
       createdAt: Date.now(),
     });
-    await ctx.scheduler.runAfter(0, internal.jobsContests.rateContestJob, {
+    await ctx.scheduler.runAfter(0, internal.jobs.contests.rateContestJob, {
       jobId,
       contestId: contest._id,
     });
@@ -727,7 +727,7 @@ export const rejudgeProblem = mutation({
       createdByProfileId: profile._id,
       createdAt: Date.now(),
     });
-    await ctx.scheduler.runAfter(0, internal.jobsContests.rejudgeContestProblemChunk, {
+    await ctx.scheduler.runAfter(0, internal.jobs.contests.rejudgeContestProblemChunk, {
       jobId,
       contestId: contest._id,
       contestProblemId,

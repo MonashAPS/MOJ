@@ -1,8 +1,8 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import type { RankingPayload, RankingRow } from "@convex/contestRankings";
 import type { ContestDetail } from "@convex/contests";
+import type { RankingPayload, RankingRow } from "@convex/contests/rankings";
 import type { FrozenCells } from "@convex/pages/contests";
 import {
   Alert,
@@ -37,7 +37,7 @@ const ALL = "__all__";
 /**
  * C1: a window contest's clock is the *participation's*, and the ranking has to
  * say so. `contests.get` carries `timeLimit` and the participation's computed
- * end; `contestRankings.ranking` does not, which is why the page reads both.
+ * end; `contests/rankings.ranking` does not, which is why the page reads both.
  */
 function WindowNote({ detail }: { detail: ContestDetail }) {
   const t = useTranslations("contests.ranking");
@@ -326,7 +326,7 @@ export function RankingClient({
     ...(organizationSlug !== ALL ? { organizationSlug } : {}),
     ...(classId !== ALL ? { classId: classId as never } : {}),
   };
-  const live = useQuery(api.contestRankings.ranking, args);
+  const live = useQuery(api.contests.rankings.ranking, args);
   const defaults = !includeVirtual && !includeSpectators && organizationSlug === ALL && classId === ALL;
   const data = live ?? (defaults ? initial : null);
 

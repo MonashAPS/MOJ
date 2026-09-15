@@ -25,9 +25,11 @@ import {
   ranker,
 } from "@moj/core";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
-import type { Doc, Id } from "./_generated/dataModel";
-import { internalMutation, type MutationCtx, mutation, type QueryCtx, query } from "./_generated/server";
+import { internal } from "../_generated/api";
+import type { Doc, Id } from "../_generated/dataModel";
+import { internalMutation, type MutationCtx, mutation, type QueryCtx, query } from "../_generated/server";
+import type { OrganizationRef, ParticipationCell, UserRef } from "../contests";
+import { safeDisplay } from "../contests";
 import {
   contestByKey,
   contestSubmissionRows,
@@ -38,11 +40,9 @@ import {
   toContestRow,
   toParticipationRow,
   toViewerRowInContest,
-} from "./contestFormats";
-import type { OrganizationRef, ParticipationCell, UserRef } from "./contests";
-import { safeDisplay } from "./contests";
-import { optionalViewer, requireViewer } from "./lib/auth";
-import { forbidden, notFound } from "./lib/errors";
+} from "../contests/formats";
+import { optionalViewer, requireViewer } from "../lib/auth";
+import { forbidden, notFound } from "../lib/errors";
 
 /* -------------------------------------------------------------------------- */
 /* Shapes                                                                     */
@@ -599,7 +599,7 @@ export const RESCORE_CHUNK = 25;
 
 /**
  * `rescore_contest` (judge/tasks/contest.py:14) as a chunked job: the runner
- * lives in `convex/jobsContests.ts` and walks the participations in batches.
+ * lives in `convex/jobs/contests.ts` and walks the participations in batches.
  */
 export const rescoreContest = mutation({
   args: { key: v.string() },
@@ -624,7 +624,7 @@ export const rescoreContest = mutation({
       createdAt: Date.now(),
     });
 
-    await ctx.scheduler.runAfter(0, internal.jobsContests.rescoreChunk, {
+    await ctx.scheduler.runAfter(0, internal.jobs.contests.rescoreChunk, {
       jobId,
       contestId: contest._id,
       cursor: 0,

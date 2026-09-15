@@ -36,7 +36,7 @@ import {
   loadContestProblems,
   toContestRow,
   toViewerRowInContest,
-} from "./contestFormats";
+} from "./contests/formats";
 import { isStaff, optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, invalid, notFound } from "./lib/errors";
 
