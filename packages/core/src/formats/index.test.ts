@@ -6,6 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { createContest, createContestProblem, createParticipation, NOW } from "../test.fixtures";
 import type { ContestSubmissionRow, SubmissionTestCaseRow } from "../types";
+import type { FormatConfigInput } from "./index";
 import {
   bestSolutionState,
   FORMATS,
@@ -65,7 +66,7 @@ function submission(
   };
 }
 
-function run(formatName: string, submissions: ContestSubmissionRow[], config?: unknown) {
+function run(formatName: string, submissions: ContestSubmissionRow[], config?: FormatConfigInput) {
   return updateParticipation({
     participation,
     submissions,

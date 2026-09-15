@@ -43,8 +43,18 @@ export const RESULT_NAMES: Readonly<Record<SubmissionResult, string>> = {
   AB: "Aborted",
 };
 
+/**
+ * Display names by code.
+ *
+ * Callers hand these tables whatever code a row carries, including codes from an
+ * older judge, so the lookup is by string and the caller decides on a fallback.
+ */
+interface VerdictNames {
+  readonly [code: string]: string;
+}
+
 /** `Submission.USER_DISPLAY_CODES`: results plus the in-progress statuses. */
-export const USER_DISPLAY_CODES: Readonly<Record<string, string>> = {
+export const USER_DISPLAY_CODES: VerdictNames = {
   AC: "Accepted",
   WA: "Wrong Answer",
   SC: "Short Circuited",
@@ -92,7 +102,7 @@ export function resultClass(submission: {
 export function shortStatus(submission: {
   readonly status: SubmissionStatus;
   readonly result?: SubmissionResult | null;
-}): string {
+}): SubmissionResult | SubmissionStatus {
   return submission.result ?? submission.status;
 }
 
@@ -124,7 +134,7 @@ export function isLocked(
  */
 export type VerdictTone = "accepted" | "partial" | "wrong" | "neutral" | "warning" | "error" | "pending";
 
-const TONES: Readonly<Record<string, VerdictTone>> = {
+const TONES: Readonly<Record<ResultClass, VerdictTone>> = {
   AC: "accepted",
   _AC: "partial",
   WA: "wrong",
@@ -143,11 +153,16 @@ const TONES: Readonly<Record<string, VerdictTone>> = {
   D: "neutral",
 };
 
+/** Whether a stored code is one of the verdict and status codes MOJ renders. */
+export function isResultClass(code: string): code is ResultClass {
+  return code in TONES;
+}
+
 /** The tone for a verdict or status code (including `_AC`). */
 export function verdictTone(code: string | null | undefined): VerdictTone {
   if (!code) return "pending";
 
-  return TONES[code] ?? "neutral";
+  return isResultClass(code) ? TONES[code] : "neutral";
 }
 
 /** DMOJ's CSS class name for a verdict, e.g. `AC`, `_AC`, `TLE`. */
@@ -157,9 +172,9 @@ export function verdictClassName(code: ResultClass | null | undefined): string {
 
 /** Human name for a verdict or status code. */
 export function verdictName(code: string | null | undefined): string {
-  if (!code) return USER_DISPLAY_CODES.QU as string;
+  if (!code) return USER_DISPLAY_CODES.QU ?? "";
 
-  if (code === "_AC") return USER_DISPLAY_CODES.AC as string;
+  if (code === "_AC") return USER_DISPLAY_CODES.AC ?? "";
 
   return USER_DISPLAY_CODES[code] ?? "";
 }

@@ -33,17 +33,17 @@ interface Row {
   reason: string;
 }
 
-function firstError(error: unknown): string {
-  if (error instanceof TypstCompileError) {
-    const lines = error.stderr
+function firstError(cause: unknown): string {
+  if (cause instanceof TypstCompileError) {
+    const lines = cause.stderr
       .split("\n")
       .filter((line) => line.trimStart().startsWith("error:"))
       .map((line) => line.trim());
 
-    return lines[0] ?? error.message;
+    return lines[0] ?? cause.message;
   }
 
-  return error instanceof Error ? error.message : String(error);
+  return cause instanceof Error ? cause.message : String(cause);
 }
 
 describe.skipIf(!(await typstAvailable()))("typst corpus", () => {

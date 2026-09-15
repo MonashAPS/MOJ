@@ -86,8 +86,13 @@ export const USER_SAFE_TAGS: readonly string[] = [
   "center",
 ];
 
+/** An attribute allowlist: a tag name (or `*` for every element) to the attributes it keeps. */
+interface AttributeAllowlist {
+  readonly [tagName: string]: readonly string[];
+}
+
 /** dmoj/settings.py BLEACH_USER_SAFE_ATTRS. */
-export const USER_SAFE_ATTRS: Readonly<Record<string, readonly string[]>> = {
+export const USER_SAFE_ATTRS = {
   "*": ["id", "class", "style"],
   img: ["src", "alt", "title", "width", "height", "data-src", "align"],
   a: ["href", "alt", "title"],
@@ -112,7 +117,7 @@ export const USER_SAFE_ATTRS: Readonly<Record<string, readonly string[]>> = {
   ],
   source: ["src", "srcset", "type"],
   li: ["value"],
-};
+} satisfies AttributeAllowlist;
 
 /**
  * Attributes MOJ needs that DMOJ's list predates.
@@ -125,28 +130,28 @@ export const USER_SAFE_ATTRS: Readonly<Record<string, readonly string[]>> = {
  *     hydrates with rating colours.
  *   - `aria-hidden` everywhere and `tabindex` on `pre`: emitted by KaTeX and Shiki.
  */
-export const MOJ_EXTRA_ATTRS: Readonly<Record<string, readonly string[]>> = {
+export const MOJ_EXTRA_ATTRS = {
   "*": ["aria-hidden"],
   a: ["rel", "data-username", "data-rating"],
   img: ["loading", "decoding"],
   pre: ["tabindex"],
   span: ["data-line"],
-};
+} satisfies AttributeAllowlist;
 
-const PROPERTY_NAMES: Readonly<Record<string, string>> = {
-  class: "className",
-  for: "htmlFor",
-  colspan: "colSpan",
-  rowspan: "rowSpan",
-  crossorigin: "crossOrigin",
-  datetime: "dateTime",
-  srcset: "srcSet",
-  autoplay: "autoPlay",
-  tabindex: "tabIndex",
-  accesskey: "accessKey",
-  maxlength: "maxLength",
-  "aria-hidden": "ariaHidden",
-};
+const PROPERTY_NAMES = new Map<string, string>([
+  ["class", "className"],
+  ["for", "htmlFor"],
+  ["colspan", "colSpan"],
+  ["rowspan", "rowSpan"],
+  ["crossorigin", "crossOrigin"],
+  ["datetime", "dateTime"],
+  ["srcset", "srcSet"],
+  ["autoplay", "autoPlay"],
+  ["tabindex", "tabIndex"],
+  ["accesskey", "accessKey"],
+  ["maxlength", "maxLength"],
+  ["aria-hidden", "ariaHidden"],
+]);
 
 function camelise(name: string): string {
   return name.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
@@ -155,7 +160,7 @@ function camelise(name: string): string {
 /** Every spelling `hast-util-sanitize` might see for one attribute. */
 export function propertyNames(attribute: string): string[] {
   const names = new Set<string>([attribute]);
-  const known = PROPERTY_NAMES[attribute];
+  const known = PROPERTY_NAMES.get(attribute);
 
   if (known) names.add(known);
 
@@ -164,25 +169,23 @@ export function propertyNames(attribute: string): string[] {
   return [...names];
 }
 
-function mergeAttributeMaps(
-  ...maps: readonly Readonly<Record<string, readonly string[]>>[]
-): Record<string, string[]> {
-  const out: Record<string, Set<string>> = {};
+function mergeAttributeMaps(...maps: readonly AttributeAllowlist[]): Record<string, string[]> {
+  const out = new Map<string, Set<string>>();
 
   for (const map of maps) {
     for (const [tag, attrs] of Object.entries(map)) {
-      let set = out[tag];
+      let set = out.get(tag);
 
       if (!set) {
         set = new Set();
-        out[tag] = set;
+        out.set(tag, set);
       }
 
       for (const attr of attrs) for (const name of propertyNames(attr)) set.add(name);
     }
   }
 
-  return Object.fromEntries(Object.entries(out).map(([tag, set]) => [tag, [...set]]));
+  return Object.fromEntries([...out].map(([tag, set]) => [tag, [...set]]));
 }
 
 /**

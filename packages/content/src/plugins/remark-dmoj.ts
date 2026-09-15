@@ -18,6 +18,21 @@ export interface DemoteHeadingsOptions {
  * `AwesomeRenderer.header` renders every markdown heading two levels down, so a statement's
  * `##` lands under the page's own `h2` title.
  */
+/** mdast numbers headings `1` to `6`; DMOJ's demotion can push a level past either end. */
+export function clampHeadingDepth(depth: number): Heading["depth"] {
+  if (depth <= 1) return 1;
+
+  if (depth === 2) return 2;
+
+  if (depth === 3) return 3;
+
+  if (depth === 4) return 4;
+
+  if (depth === 5) return 5;
+
+  return 6;
+}
+
 const remarkDemoteHeadings: Plugin<[DemoteHeadingsOptions], Root> = function remarkDemoteHeadings(options) {
   const by = options.by;
 
@@ -25,7 +40,7 @@ const remarkDemoteHeadings: Plugin<[DemoteHeadingsOptions], Root> = function rem
 
   return (tree: Root) => {
     visit(tree, "heading", (node: Heading) => {
-      node.depth = Math.min(6, Math.max(1, node.depth + by)) as Heading["depth"];
+      node.depth = clampHeadingDepth(node.depth + by);
     });
   };
 };
@@ -98,13 +113,12 @@ const remarkCollect: Plugin<[CollectOptions], Root> = function remarkCollect(opt
     visit(tree, (node) => {
       switch (node.type) {
         case "heading": {
-          const heading = node as Heading;
-          const text = mdastToString(heading);
+          const text = mdastToString(node);
           const base = slugify(text);
           const count = seen.get(base) ?? 0;
           seen.set(base, count + 1);
           into.headings.push({
-            depth: Math.min(6, Math.max(1, heading.depth + demoteBy)),
+            depth: clampHeadingDepth(node.depth + demoteBy),
             text,
             id: count === 0 ? base : `${base}-${count}`,
           });
@@ -112,16 +126,12 @@ const remarkCollect: Plugin<[CollectOptions], Root> = function remarkCollect(opt
         }
 
         case "image": {
-          const url = (node as { url?: string }).url;
-
-          if (url) into.images.push(url);
+          if (node.url) into.images.push(node.url);
           break;
         }
 
         case "link": {
-          const url = (node as { url?: string }).url;
-
-          if (url) into.links.push(url);
+          if (node.url) into.links.push(node.url);
           break;
         }
 
@@ -134,8 +144,7 @@ const remarkCollect: Plugin<[CollectOptions], Root> = function remarkCollect(opt
         case "math": {
           const display = node.type === "math";
           into.math[display ? "display" : "inline"] += 1;
-          const data = (node as { data?: { mojDelimiter?: MathDelimiter } }).data;
-          const delimiter: MathDelimiter = data?.mojDelimiter ?? "dollar";
+          const delimiter: MathDelimiter = node.data?.mojDelimiter ?? "dollar";
           into.math[delimiter] += 1;
           break;
         }

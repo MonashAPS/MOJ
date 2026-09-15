@@ -15,7 +15,8 @@ export function Slider({
   max = 100,
   ...props
 }: ComponentProps<typeof SliderPrimitive.Root>) {
-  const thumbs = Array.isArray(value ?? defaultValue) ? ((value ?? defaultValue) as number[]).length : 1;
+  const thumbValues = value ?? defaultValue;
+  const thumbs = Array.isArray(thumbValues) ? thumbValues.length : 1;
 
   return (
     <SliderPrimitive.Root

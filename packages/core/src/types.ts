@@ -14,6 +14,19 @@ export type Id = string;
 /** Milliseconds since the Unix epoch. */
 export type Timestamp = number;
 
+/**
+ * A decoded JSON value, the way an untyped stored column arrives.
+ *
+ * `Contest.format_config` is free-form JSON that only the contest format
+ * owning it can interpret, so it reaches this package undecoded; the format's
+ * `validate`/`resolveConfig` pair turns it into that format's config type.
+ */
+export type JsonValue = boolean | number | string | null | readonly JsonValue[] | JsonObject;
+
+export interface JsonObject {
+  readonly [key: string]: JsonValue;
+}
+
 export type SubmissionResult = "AC" | "WA" | "TLE" | "MLE" | "OLE" | "IR" | "RTE" | "CE" | "IE" | "SC" | "AB";
 
 export type SubmissionStatus = "QU" | "P" | "G" | "D" | "IE" | "CE" | "AB";
@@ -135,7 +148,7 @@ export interface ContestRow {
   readonly accessCode?: string | null;
   readonly scoreboardVisibility: ScoreboardVisibility;
   readonly formatName?: string;
-  readonly formatConfig?: unknown;
+  readonly formatConfig?: JsonValue;
   readonly labelScheme?: LabelScheme;
   readonly customLabels?: readonly string[];
   readonly pointsPrecision?: number;

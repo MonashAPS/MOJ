@@ -8,7 +8,7 @@
  * for the bleached styles. This runs before `rehype-sanitize` and reproduces that.
  */
 
-import type { Element, ElementContent, Parent, Root, RootContent } from "hast";
+import type { Element, ElementContent, Parent, Root } from "hast";
 import type { Plugin } from "unified";
 import { visit } from "unist-util-visit";
 
@@ -192,7 +192,7 @@ const rehypeEscapeDisallowed: Plugin<[EscapeDisallowedOptions], Root> = function
         replacement.push({ type: "text", value: `</${node.tagName}>` });
       }
 
-      parent.children.splice(index, 1, ...(replacement as RootContent[]));
+      parent.children.splice(index, 1, ...replacement);
 
       return index;
     });

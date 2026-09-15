@@ -11,7 +11,7 @@
  * format: one point per solve, penalty minutes for wrong attempts.
  */
 
-import type { ParticipationUpdate } from "./formats/base";
+import type { ParticipationUpdate, ResolvedFormatConfig } from "./formats/base";
 import { getContestFormat, updateParticipation } from "./formats/index";
 import { contestIsEditableBy, hasPerm, isAuthenticated, isSuperuser } from "./permissions";
 import type {
@@ -147,12 +147,15 @@ export interface ScoreboardCell {
   reveal?: RevealedCell;
 }
 
-interface Resolution {
-  solved: boolean;
-  solveTime: number | null;
-  wrong: number;
-  pending: number;
+interface ResolutionCounts {
+  readonly wrong: number;
+  readonly pending: number;
 }
+
+/** A solved resolution carries its solve time; an unsolved one has none. */
+type Resolution =
+  | (ResolutionCounts & { readonly solved: true; readonly solveTime: number })
+  | (ResolutionCounts & { readonly solved: false; readonly solveTime: null });
 
 /** `_resolve(attempts, upto)`: walk in time order and find the first accept. */
 function resolve(attempts: readonly Attempt[], upto?: number): Resolution {
@@ -193,7 +196,7 @@ export function buildCell(
   const before = resolve(ordered, freezeOffset);
 
   if (before.solved) {
-    const solveTime = before.solveTime as number;
+    const solveTime = before.solveTime;
 
     return {
       state: SOLVED,
@@ -229,7 +232,7 @@ export function buildCell(
       state: truth.solved ? SOLVED : FAILED,
       wrong: truth.wrong,
       time: truth.solveTime,
-      penalty: truth.solved ? cellPenalty(truth.solveTime as number, truth.wrong, penaltyMinutes) : 0,
+      penalty: truth.solved ? cellPenalty(truth.solveTime, truth.wrong, penaltyMinutes) : 0,
     };
   }
 
@@ -415,7 +418,7 @@ export function freezeTime(
 /** `_penalty_minutes(contest)`: the contest's own ICPC penalty when it has one. */
 export function penaltyMinutesFor(contest: Pick<ContestRow, "formatName" | "formatConfig">): number {
   const format = getContestFormat(contest);
-  let config: Record<string, unknown>;
+  let config: ResolvedFormatConfig;
 
   try {
     config = format.resolveConfig(contest.formatConfig);
@@ -460,11 +463,16 @@ export interface RevealState {
   readonly history: readonly ScoreboardRow[][];
 }
 
+function cloneCell(cell: ScoreboardCell): ScoreboardCell {
+  const copy: ScoreboardCell = { ...cell };
+
+  if (cell.reveal) copy.reveal = { ...cell.reveal };
+
+  return copy;
+}
+
 function cloneRows(rows: readonly ScoreboardRow[]): ScoreboardRow[] {
-  return rows.map((row) => ({
-    ...row,
-    cells: row.cells.map((cell) => ({ ...cell, ...(cell.reveal ? { reveal: { ...cell.reveal } } : {}) })),
-  }));
+  return rows.map((row) => ({ ...row, cells: row.cells.map(cloneCell) }));
 }
 
 /** Start a reveal over a board's rows. */
@@ -477,22 +485,23 @@ export function startReveal(rows: readonly ScoreboardRow[]): RevealState {
  * frozen cell: the bottom-up ICPC ceremony order.
  */
 export function nextRevealTarget(rows: readonly ScoreboardRow[]): RevealTarget | null {
-  for (let r = rows.length - 1; r >= 0; r--) {
-    const row = rows[r] as ScoreboardRow;
+  let target: RevealTarget | null = null;
 
-    for (let c = 0; c < row.cells.length; c++) {
-      if ((row.cells[c] as ScoreboardCell).state === FROZEN) {
-        return { rowIndex: r, cellIndex: c, rank: row.rank };
-      }
-    }
+  for (const [rowIndex, row] of rows.entries()) {
+    const cellIndex = row.cells.findIndex((cell) => cell.state === FROZEN);
+
+    // The last row that still has a frozen cell is the lowest-ranked one.
+    if (cellIndex !== -1) target = { rowIndex, cellIndex, rank: row.rank };
   }
 
-  return null;
+  return target;
 }
 
 function applyReveal(rows: ScoreboardRow[], target: RevealTarget): void {
-  const row = rows[target.rowIndex] as ScoreboardRow;
-  const cell = row.cells[target.cellIndex] as ScoreboardCell;
+  const row = rows[target.rowIndex];
+  const cell = row?.cells[target.cellIndex];
+
+  if (row === undefined || cell === undefined) return;
   const truth = cell.reveal;
 
   if (truth) {
@@ -529,11 +538,11 @@ export function revealStep(state: RevealState): RevealState {
 
 /** Undo the last reveal step. */
 export function revealUndo(state: RevealState): RevealState {
-  if (state.history.length === 0) return state;
-  const history = [...state.history];
-  const rows = history.pop() as ScoreboardRow[];
+  const previous = state.history.at(-1);
 
-  return { rows, history };
+  if (previous === undefined) return state;
+
+  return { rows: previous, history: state.history.slice(0, -1) };
 }
 
 /** Reveal everything remaining, as one undoable step. */
@@ -632,10 +641,10 @@ export function applyFreeze(
 
   return rows.map((row) => {
     const isVirtual = row.participation.virtual > 0;
-    const freeze = frozenForViewer && !isVirtual && cutoff !== null;
+    const freeze = cutoff !== null && frozenForViewer && !isVirtual;
 
     const submissions = freeze
-      ? row.submissions.filter((submission) => submission.date < (cutoff as number))
+      ? row.submissions.filter((submission) => submission.date < cutoff)
       : row.submissions;
 
     return {

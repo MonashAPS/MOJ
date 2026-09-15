@@ -9,14 +9,21 @@
 import { participationStart } from "../contestTiming";
 import type { FormatData } from "../types";
 import { pyRound } from "../util/number";
-import type { ContestFormat, ParticipationUpdate, ScoringLine, UpdateParticipationInput } from "./base";
+import type {
+  ContestFormat,
+  FormatConfigInput,
+  FormatConfigValidators,
+  ParticipationUpdate,
+  ScoringLine,
+  UpdateParticipationInput,
+} from "./base";
 import {
   breakdown,
   buildParticipationResult,
   buildProblemCell,
   cumtimeSeconds,
   groupByProblem,
-  mergeConfig,
+  numberConfig,
   numberLabel,
   pointsPrecision,
   secondsSince,
@@ -26,17 +33,21 @@ import { computeMaxPointsRows } from "./penalty";
 
 export const ATCODER_DEFAULTS = { penalty: 5 } as const;
 
-const VALIDATORS = { penalty: (value: number) => value >= 0 };
+const VALIDATORS: FormatConfigValidators = { penalty: (value) => Number(value) >= 0 };
 
-export function validateAtcoderConfig(config: unknown): void {
+export type AtcoderConfig = {
+  /** Minutes added per rejected submission that preceded a solve. */
+  readonly penalty: number;
+};
+
+export function validateAtcoderConfig(config: FormatConfigInput): void {
   validateAgainstDefaults(config, ATCODER_DEFAULTS, VALIDATORS, "AtCoder-styled contest");
 }
 
-export function resolveAtcoderConfig(config: unknown): { penalty: number } {
+export function resolveAtcoderConfig(config: FormatConfigInput): AtcoderConfig {
   validateAtcoderConfig(config);
-  const merged = mergeConfig(ATCODER_DEFAULTS, config);
 
-  return { penalty: Number(merged.penalty) };
+  return { penalty: numberConfig(config, "penalty", ATCODER_DEFAULTS.penalty) };
 }
 
 export function updateParticipationAtcoder(input: UpdateParticipationInput): ParticipationUpdate {

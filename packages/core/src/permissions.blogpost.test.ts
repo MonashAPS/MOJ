@@ -25,7 +25,6 @@ import {
   NOW,
   OPEN_ORGANIZATION,
 } from "./test.fixtures";
-import type { Viewer } from "./types";
 
 const users = commonUsers();
 
@@ -48,7 +47,7 @@ function check(
   expectations: Record<string, { can_see?: boolean; is_editable_by?: boolean }>,
 ): void {
   for (const [username, methods] of Object.entries(expectations)) {
-    const viewer = users[username] as Viewer;
+    const viewer = users[username];
 
     if (methods.can_see !== undefined) {
       expect(blogPostCanSee(post, viewer, NOW), `can_see/${username}`).toBe(methods.can_see);

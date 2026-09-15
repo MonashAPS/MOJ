@@ -41,7 +41,7 @@ export function participationIsVirtual(participation: ContestParticipationRow): 
   return participation.virtual > 0;
 }
 
-function hasTimeLimit(contest: ContestRow): boolean {
+function hasTimeLimit(contest: ContestRow): contest is ContestRow & { readonly timeLimit: number } {
   // Python treats a zero timedelta as falsy, and so does DMOJ here.
   return contest.timeLimit != null && contest.timeLimit !== 0;
 }
@@ -73,7 +73,7 @@ export function participationEndTime(participation: ContestParticipationRow, con
   if (participationIsSpectating(participation)) return contest.endTime;
 
   if (participation.virtual !== PARTICIPATION_LIVE) {
-    if (hasTimeLimit(contest)) return participation.realStart + (contest.timeLimit as number) * 1000;
+    if (hasTimeLimit(contest)) return participation.realStart + contest.timeLimit * 1000;
 
     return participation.realStart + (contest.endTime - contest.startTime);
   }

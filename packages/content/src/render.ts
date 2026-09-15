@@ -23,7 +23,7 @@
 
 import type { Root as HastRoot } from "hast";
 import type { Root as MdastRoot } from "mdast";
-import rehypeKatex from "rehype-katex";
+import rehypeKatex, { type Options as KatexOptions } from "rehype-katex";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeStringify from "rehype-stringify";
@@ -31,7 +31,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
-import { bundledLanguages, createHighlighter, type Highlighter } from "shiki";
+import { type BundledLanguage, bundledLanguages, createHighlighter, type Highlighter } from "shiki";
 import { type PluggableList, unified } from "unified";
 
 import { plainTextFromMdast, type SummaryOptions, truncateSummary } from "./plain.js";
@@ -46,6 +46,7 @@ import {
   rehypeTidyTables,
   rehypeUserReferences,
   type UserReference,
+  type UserReferenceOptions,
 } from "./plugins/rehype-dmoj.js";
 import { rehypeEscapeDisallowed } from "./plugins/rehype-escape-disallowed.js";
 import { rehypeStyleAllowlist } from "./plugins/rehype-style-allowlist.js";
@@ -133,7 +134,7 @@ async function getHighlighter(themes: ShikiThemes): Promise<Highlighter> {
   return existing;
 }
 
-function isBundled(language: string): boolean {
+function isBundled(language: string): language is BundledLanguage {
   return Object.hasOwn(bundledLanguages, language);
 }
 
@@ -149,13 +150,14 @@ export async function disposeHighlighters(): Promise<void> {
  * Runs a list of transformers over a tree.
  *
  * The pipeline is assembled from optional pieces and crosses the mdast/hast boundary in the
- * middle, which unified's generic `Processor` type cannot follow, so the trees are typed at
- * the call site instead.
+ * middle, which unified's generic `Processor` type cannot follow, so the trees are typed here
+ * instead.
  */
-async function runPlugins<T>(plugins: PluggableList, tree: unknown): Promise<T> {
-  return (await unified()
-    .use(plugins)
-    .run(tree as never)) as unknown as T;
+async function runPlugins(plugins: PluggableList, tree: HastRoot | MdastRoot): Promise<HastRoot> {
+  const result = await unified().use(plugins).run(tree);
+
+  // SAFETY: both pipelines below end in rehype plugins, so what comes back is a hast root.
+  return result as HastRoot;
 }
 
 function parseMdast(source: string, singleDollar: boolean): MdastRoot {
@@ -201,7 +203,7 @@ export async function renderMarkdown(
 
   if (config.rawHtml) toHast.push(rehypeRaw);
 
-  const tree = await runPlugins<HastRoot>(toHast, mdast);
+  const tree = await runPlugins(toHast, mdast);
 
   let highlighter: Highlighter | undefined;
 
@@ -211,19 +213,13 @@ export async function renderMarkdown(
     const loaded = new Set(highlighter.getLoadedLanguages());
     const missing = wanted.filter((language) => !loaded.has(language));
 
-    if (missing.length > 0) await highlighter.loadLanguage(...(missing as never[]));
+    if (missing.length > 0) await highlighter.loadLanguage(...missing);
   }
 
-  const toHtml: PluggableList = [
-    [
-      rehypeKatex,
-      {
-        output: "htmlAndMathml",
-        strict: "ignore",
-        ...(options.katexMacros ? { macros: options.katexMacros } : {}),
-      },
-    ],
-  ];
+  const katexOptions: KatexOptions = { output: "htmlAndMathml", strict: "ignore" };
+
+  if (options.katexMacros) katexOptions.macros = options.katexMacros;
+  const toHtml: PluggableList = [[rehypeKatex, katexOptions]];
 
   if (highlighter) {
     const active = highlighter;
@@ -250,13 +246,13 @@ export async function renderMarkdown(
   if (lazy) toHtml.push(rehypeLazyImages);
 
   if (config.camo && options.camo) toHtml.push([rehypeCamo, options.camo]);
-  toHtml.push([
-    rehypeUserReferences,
-    {
-      ...(options.userHref ? { href: options.userHref } : {}),
-      onReference: (reference: UserReference) => userReferences.push(reference),
-    },
-  ]);
+  const onReference = (reference: UserReference) => userReferences.push(reference);
+
+  const userReferenceOptions: UserReferenceOptions = options.userHref
+    ? { href: options.userHref, onReference }
+    : { onReference };
+
+  toHtml.push([rehypeUserReferences, userReferenceOptions]);
 
   if (options.baseUrl) toHtml.push([rehypeAbsolutify, { base: options.baseUrl }]);
 
@@ -266,7 +262,7 @@ export async function renderMarkdown(
     toHtml.push([rehypeSanitize, userSafeSchema()]);
   }
 
-  const finalTree = await runPlugins<HastRoot>(toHtml, tree);
+  const finalTree = await runPlugins(toHtml, tree);
   const output = unified().use(rehypeStringify).stringify(finalTree);
 
   const plain = plainTextFromMdast(mdast);

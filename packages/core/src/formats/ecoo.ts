@@ -10,17 +10,25 @@
 import { participationEndTime, participationStart } from "../contestTiming";
 import type { ContestSubmissionRow, FormatData } from "../types";
 import { pyRound } from "../util/number";
-import type { ContestFormat, ParticipationUpdate, ScoringLine, UpdateParticipationInput } from "./base";
+import type {
+  ContestFormat,
+  FormatConfigInput,
+  FormatConfigValidators,
+  ParticipationUpdate,
+  ScoringLine,
+  UpdateParticipationInput,
+} from "./base";
 import {
+  booleanConfig,
   breakdown,
   buildParticipationResult,
   buildProblemCell,
   contestProblemPoints,
   cumtimeSeconds,
   groupByProblem,
-  mergeConfig,
+  numberConfig,
   numberLabel,
-  orderedProblemIds,
+  orderedProblemGroups,
   pointsPrecision,
   secondsSince,
   validateAgainstDefaults,
@@ -28,10 +36,10 @@ import {
 
 export const ECOO_DEFAULTS = { cumtime: false, first_ac_bonus: 10, time_bonus: 5 } as const;
 
-const VALIDATORS = {
+const VALIDATORS: FormatConfigValidators = {
   cumtime: () => true,
-  first_ac_bonus: (value: number) => value >= 0,
-  time_bonus: (value: number) => value >= 0,
+  first_ac_bonus: (value) => Number(value) >= 0,
+  time_bonus: (value) => Number(value) >= 0,
 };
 
 export type EcooConfig = {
@@ -40,18 +48,17 @@ export type EcooConfig = {
   readonly timeBonus: number;
 };
 
-export function validateEcooConfig(config: unknown): void {
+export function validateEcooConfig(config: FormatConfigInput): void {
   validateAgainstDefaults(config, ECOO_DEFAULTS, VALIDATORS, "ECOO-styled contest");
 }
 
-export function resolveEcooConfig(config: unknown): EcooConfig {
+export function resolveEcooConfig(config: FormatConfigInput): EcooConfig {
   validateEcooConfig(config);
-  const merged = mergeConfig(ECOO_DEFAULTS, config);
 
   return {
-    cumtime: Boolean(merged.cumtime),
-    firstAcBonus: Number(merged.first_ac_bonus),
-    timeBonus: Number(merged.time_bonus),
+    cumtime: booleanConfig(config, "cumtime", ECOO_DEFAULTS.cumtime),
+    firstAcBonus: numberConfig(config, "first_ac_bonus", ECOO_DEFAULTS.first_ac_bonus),
+    timeBonus: numberConfig(config, "time_bonus", ECOO_DEFAULTS.time_bonus),
   };
 }
 
@@ -69,8 +76,7 @@ export function updateParticipationEcoo(input: UpdateParticipationInput): Partic
   const formatData: FormatData = {};
   const groups = groupByProblem(submissions.filter(counts), participation.id);
 
-  for (const problemId of orderedProblemIds(groups, contestProblems)) {
-    const rows = groups.get(problemId) as ContestSubmissionRow[];
+  for (const [problemId, rows] of orderedProblemGroups(groups, contestProblems)) {
     const submissionCount = rows.length;
 
     // The latest submission date, then MAX(points) among submissions at it.

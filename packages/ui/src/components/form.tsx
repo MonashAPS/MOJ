@@ -23,9 +23,9 @@ type FormFieldContextValue<
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
 > = { name: TName };
 
-const FormFieldContext = createContext<FormFieldContextValue>({} as FormFieldContextValue);
+const FormFieldContext = createContext<FormFieldContextValue | null>(null);
 
-const FormItemContext = createContext<{ id: string }>({} as { id: string });
+const FormItemContext = createContext<{ id: string } | null>(null);
 
 export function FormField<
   TFieldValues extends FieldValues = FieldValues,
@@ -44,10 +44,13 @@ export function useFormField() {
   const fieldContext = useContext(FormFieldContext);
   const itemContext = useContext(FormItemContext);
   const { getFieldState } = useFormContext();
-  const formState = useFormState({ name: fieldContext.name });
-  const fieldState = getFieldState(fieldContext.name, formState);
+  const formState = useFormState({ name: fieldContext?.name });
 
-  if (!fieldContext) throw new Error("useFormField should be used within <FormField>");
+  if (fieldContext === null || itemContext === null) {
+    throw new Error("useFormField should be used within <FormField> and <FormItem>");
+  }
+
+  const fieldState = getFieldState(fieldContext.name, formState);
 
   return {
     id: itemContext.id,

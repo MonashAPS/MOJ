@@ -356,11 +356,24 @@ export type ApiJudgeObject = z.infer<typeof apiJudgeObject>;
 /* Filters                                                                    */
 /* -------------------------------------------------------------------------- */
 
+/** The API v2 list endpoints that accept filters. */
+export type ApiFilterResource =
+  | "contests"
+  | "languages"
+  | "organizations"
+  | "participations"
+  | "problems"
+  | "submissions"
+  | "users";
+
+/** The filter names one resource accepts, empty when it accepts none. */
+export type ApiFilters = Readonly<Partial<Record<ApiFilterResource, readonly string[]>>>;
+
 /**
  * DMOJ's `basic_filters` take a single value from the query string and
  * `list_filters` take every repetition of the key (`?id=1&id=2`).
  */
-export const API_BASIC_FILTERS: Readonly<Record<string, readonly string[]>> = {
+export const API_BASIC_FILTERS: ApiFilters = {
   contests: ["is_rated"],
   problems: ["partial"],
   submissions: ["user", "problem", "contest"],
@@ -369,7 +382,7 @@ export const API_BASIC_FILTERS: Readonly<Record<string, readonly string[]>> = {
   languages: ["common_name"],
 };
 
-export const API_LIST_FILTERS: Readonly<Record<string, readonly string[]>> = {
+export const API_LIST_FILTERS: ApiFilters = {
   contests: ["key", "tag", "organization"],
   problems: ["code", "group", "type", "organization"],
   users: ["id", "username", "organization"],

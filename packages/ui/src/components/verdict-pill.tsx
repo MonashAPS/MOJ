@@ -47,7 +47,7 @@ export function verdictTone(code: string): VerdictTone {
   }
 }
 
-const TITLE: Record<string, string> = {
+const TITLE: Readonly<Record<Verdict | "_AC", string>> = {
   AC: "Accepted",
   _AC: "Partially accepted",
   SC: "Short circuited",
@@ -65,6 +65,11 @@ const TITLE: Record<string, string> = {
   G: "Grading",
   D: "Done",
 };
+
+/** Whether an uppercased code is one this kit has a title for. */
+function isTitledVerdict(code: string): code is Verdict | "_AC" {
+  return code in TITLE;
+}
 
 /** Colour is never the only signal: the code is always rendered. */
 export function VerdictPill({
@@ -91,7 +96,7 @@ export function VerdictPill({
       rounding="square"
       size={size}
       mono
-      title={TITLE[code] ?? code}
+      title={isTitledVerdict(code) ? TITLE[code] : code}
       className={cn(judging && "animate-pulse-judging", className)}
     >
       {text}

@@ -10,7 +10,14 @@
 import { participationStart } from "../contestTiming";
 import type { FormatData } from "../types";
 import { pyRound } from "../util/number";
-import type { ContestFormat, ParticipationUpdate, ScoringLine, UpdateParticipationInput } from "./base";
+import type {
+  ContestFormat,
+  FormatConfigInput,
+  FormatConfigValidators,
+  ParticipationUpdate,
+  ScoringLine,
+  UpdateParticipationInput,
+} from "./base";
 import {
   breakdown,
   buildParticipationResult,
@@ -18,7 +25,7 @@ import {
   cumtimeSeconds,
   groupByProblem,
   letterLabel,
-  mergeConfig,
+  numberConfig,
   pointsPrecision,
   secondsSince,
   validateAgainstDefaults,
@@ -27,17 +34,21 @@ import { computeMaxPointsRows } from "./penalty";
 
 export const ICPC_DEFAULTS = { penalty: 20 } as const;
 
-const VALIDATORS = { penalty: (value: number) => value >= 0 };
+const VALIDATORS: FormatConfigValidators = { penalty: (value) => Number(value) >= 0 };
 
-export function validateIcpcConfig(config: unknown): void {
+export type IcpcConfig = {
+  /** Minutes added per rejected submission that preceded a solve. */
+  readonly penalty: number;
+};
+
+export function validateIcpcConfig(config: FormatConfigInput): void {
   validateAgainstDefaults(config, ICPC_DEFAULTS, VALIDATORS, "ICPC-styled contest");
 }
 
-export function resolveIcpcConfig(config: unknown): { penalty: number } {
+export function resolveIcpcConfig(config: FormatConfigInput): IcpcConfig {
   validateIcpcConfig(config);
-  const merged = mergeConfig(ICPC_DEFAULTS, config);
 
-  return { penalty: Number(merged.penalty) };
+  return { penalty: numberConfig(config, "penalty", ICPC_DEFAULTS.penalty) };
 }
 
 export function updateParticipationIcpc(input: UpdateParticipationInput): ParticipationUpdate {

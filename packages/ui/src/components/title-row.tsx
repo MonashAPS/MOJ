@@ -69,13 +69,30 @@ export function TitleRow({
   );
 }
 
+/** The default `linkAs`: a plain anchor, for a page that does not route on the client. */
+function AnchorTabLink({
+  href,
+  className,
+  children,
+}: {
+  href: string;
+  className?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <a href={href} className={className}>
+      {children}
+    </a>
+  );
+}
+
 /** DMOJ's `make_tab`, kept: the active tab has a 3px accent rule on its top edge,
  *  a surface fill and no bottom border, so it merges into the rule under the row. */
 export function PageTabs({
   tabs,
   active,
   className,
-  linkAs: Link = "a" as unknown as TabLink,
+  linkAs: Link = AnchorTabLink,
   // A landmark label, so it is a prop rather than read from context: this
   // component renders on the server, where context is not available.
   sectionsLabel = "Sections",

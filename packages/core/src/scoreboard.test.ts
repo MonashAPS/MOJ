@@ -48,6 +48,7 @@ import {
   createContestProblem,
   createParticipation,
   createUser,
+  defined,
   HOUR,
   MINUTE,
   NOW,
@@ -251,8 +252,8 @@ describe("buildScoreboard", () => {
   it("highlights the first solve of each problem", () => {
     const solves = firstSolves(board.rows);
     expect(solves.get(0)).toBe(1200);
-    expect(isFirstBlood(board.rows, board.rows[0] as ScoreboardRow, 0)).toBe(true);
-    expect(isFirstBlood(board.rows, board.rows[1] as ScoreboardRow, 0)).toBe(false);
+    expect(isFirstBlood(board.rows, defined(board.rows[0], "the first row"), 0)).toBe(true);
+    expect(isFirstBlood(board.rows, defined(board.rows[1], "the second row"), 0)).toBe(false);
   });
 });
 
@@ -301,7 +302,11 @@ describe("reveal", () => {
     let state = startReveal(board.rows);
     state = revealStep(state);
 
-    const bob = state.rows.find((row) => row.username === "bob") as ScoreboardRow;
+    const bob = defined(
+      state.rows.find((row) => row.username === "bob"),
+      "the row for bob",
+    );
+
     expect(bob.cells[0]).toMatchObject({ state: SOLVED, time: 16000, pending: 0 });
     expect(bob.cells[0]?.reveal).toBeUndefined();
     expect(bob.solved).toBe(1);
@@ -310,7 +315,12 @@ describe("reveal", () => {
     expect(state.rows[0]?.username).toBe("alice");
 
     state = revealStep(state);
-    const alice = state.rows.find((row) => row.username === "alice") as ScoreboardRow;
+
+    const alice = defined(
+      state.rows.find((row) => row.username === "alice"),
+      "the row for alice",
+    );
+
     expect(alice.solved).toBe(2);
     expect(state.rows[0]?.username).toBe("alice");
     expect(nextRevealTarget(state.rows)).toBeNull();

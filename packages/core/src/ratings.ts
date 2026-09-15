@@ -142,14 +142,29 @@ export function solve(
 
 const VAR_CACHE: number[] = [VAR_INIT];
 
+/**
+ * An element of one of the parallel arrays the rating maths runs over.
+ *
+ * `recalculateRatings` keeps `ranking`, `oldMean`, `timesRanked`, `delta` and
+ * the arrays it fills the same length, and the variance cache is grown before
+ * it is read; the check turns that unwritten invariant into a real one.
+ */
+function elementAt(values: readonly number[], index: number): number {
+  const value = values[index];
+
+  if (value === undefined) throw new RangeError(`rating index ${index} is out of range`);
+
+  return value;
+}
+
 /** `get_var(times_ranked)` (ratings.py:73), memoised exactly as DMOJ does. */
 export function getVar(timesRanked: number): number {
   while (timesRanked >= VAR_CACHE.length) {
-    const previous = VAR_CACHE[VAR_CACHE.length - 1] as number;
+    const previous = elementAt(VAR_CACHE, VAR_CACHE.length - 1);
     VAR_CACHE.push(1 / (1 / (previous + VAR_PER_CONTEST) + 1 / BETA2));
   }
 
-  return VAR_CACHE[timesRanked] as number;
+  return elementAt(VAR_CACHE, timesRanked);
 }
 
 export interface RecalculatedRatings {
@@ -187,17 +202,17 @@ export function recalculateRatings(
 
   // Pre-multiply delta by TANH_C, as DMOJ does, to save work in the inner loop.
   const delta = timesRanked.map((t) => TANH_C * Math.sqrt(getVar(t) + VAR_PER_CONTEST + BETA2));
-  const pTanhTerms: TanhTerm[] = oldMean.map((mean, i) => [mean, delta[i] as number, 1]);
+  const pTanhTerms: TanhTerm[] = oldMean.map((mean, i) => [mean, elementAt(delta, i), 1]);
 
   const solveIdx = (i: number, bounds: readonly [number, number]): void => {
-    const r = ranking[i] as number;
+    const r = elementAt(ranking, i);
     let yTarget = 0;
 
     for (let j = 0; j < n; j++) {
-      const s = ranking[j] as number;
+      const s = elementAt(ranking, j);
 
-      if (s > r) yTarget += 1 / (delta[j] as number);
-      else if (s < r) yTarget -= 1 / (delta[j] as number);
+      if (s > r) yTarget += 1 / elementAt(delta, j);
+      else if (s < r) yTarget -= 1 / elementAt(delta, j);
       // A tie counts as half a win, as per Elo-MMR: it contributes nothing.
     }
 
@@ -208,7 +223,7 @@ export function recalculateRatings(
   const divconq = (i: number, j: number): void => {
     if (j - i > 1) {
       const k = Math.floor((i + j) / 2);
-      solveIdx(k, [newP[j] as number, newP[i] as number]);
+      solveIdx(k, [elementAt(newP, j), elementAt(newP, i)]);
       divconq(i, k);
       divconq(k, j);
     }
@@ -226,20 +241,20 @@ export function recalculateRatings(
       const terms: TanhTerm[] = [];
       let wPrev = 1;
       let wSum = 0;
-      const history = [newP[i] as number, ...(historicalP[i] ?? [])];
+      const history = [elementAt(newP, i), ...(historicalP[i] ?? [])];
 
       for (let j = 0; j < history.length; j++) {
         const gamma2 = j > 0 ? VAR_PER_CONTEST : 0;
-        const hVar = getVar((timesRanked[i] as number) + 1 - j);
+        const hVar = getVar(elementAt(timesRanked, i) + 1 - j);
         const k = hVar / (hVar + gamma2);
         const w = wPrev * k ** 2;
-        terms.push([history[j] as number, Math.sqrt(BETA2) * TANH_C, w]);
+        terms.push([elementAt(history, j), Math.sqrt(BETA2) * TANH_C, w]);
         wPrev = w;
         wSum += w / BETA2;
       }
 
-      const w0 = 1 / getVar((timesRanked[i] as number) + 1) - wSum;
-      const p0 = evalTanhs(terms.slice(1), oldMean[i] as number) / w0 + (oldMean[i] as number);
+      const w0 = 1 / getVar(elementAt(timesRanked, i) + 1) - wSum;
+      const p0 = evalTanhs(terms.slice(1), elementAt(oldMean, i)) / w0 + elementAt(oldMean, i);
       newMean[i] = solve(terms, w0 * p0, w0, updatedBounds);
     }
   }
@@ -247,7 +262,7 @@ export function recalculateRatings(
   // The displayed rating lags the mean to reward participation; the gap closes
   // as times_ranked grows.
   const rating = newMean.map((m, i) =>
-    Math.max(1, pythonRound(m - (Math.sqrt(getVar((timesRanked[i] as number) + 1)) - SD_LIM))),
+    Math.max(1, pythonRound(m - (Math.sqrt(getVar(elementAt(timesRanked, i) + 1)) - SD_LIM))),
   );
 
   return { rating, mean: newMean, performance: newP };
@@ -389,10 +404,10 @@ export function rateContest(
   return sorted.map((row, i) => ({
     participationId: row.participationId,
     profileId: row.profileId,
-    rank: ranking[i] as number,
-    rating: rating[i] as number,
-    mean: mean[i] as number,
-    performance: performance[i] as number,
+    rank: elementAt(ranking, i),
+    rating: elementAt(rating, i),
+    mean: elementAt(mean, i),
+    performance: elementAt(performance, i),
     lastRated,
   }));
 }
@@ -401,67 +416,77 @@ export function rateContest(
 /* Rating levels                                                              */
 /* -------------------------------------------------------------------------- */
 
-export const RATING_LEVELS: readonly string[] = [
-  "Newbie",
-  "Amateur",
-  "Expert",
-  "Candidate Master",
-  "Master",
-  "Grandmaster",
-  "Target",
-];
-
-export const RATING_VALUES: readonly number[] = [1000, 1300, 1600, 1900, 2400, 3000];
-
-export const RATING_CLASS: readonly string[] = [
-  "rate-newbie",
-  "rate-amateur",
-  "rate-expert",
-  "rate-candidate-master",
-  "rate-master",
-  "rate-grandmaster",
-  "rate-target",
-];
-
-/** Python's `bisect.bisect` (bisect_right). */
-function bisectRight(values: readonly number[], target: number): number {
-  let low = 0;
-  let high = values.length;
-
-  while (low < high) {
-    const mid = (low + high) >>> 1;
-
-    if (target < (values[mid] as number)) high = mid;
-    else low = mid + 1;
-  }
-
-  return low;
+/** One rating band: DMOJ's `RATING_LEVELS`, `RATING_CLASS` and `RATING_VALUES` row. */
+export interface RatingBand {
+  readonly name: string;
+  readonly cssClass: string;
+  /** Lowest rating in the band; the bottom band has none. */
+  readonly floor: number | null;
 }
 
-/** `rating_level(rating)` (ratings.py:212). */
+const RATING_BANDS = [
+  { name: "Newbie", cssClass: "rate-newbie", floor: null },
+  { name: "Amateur", cssClass: "rate-amateur", floor: 1000 },
+  { name: "Expert", cssClass: "rate-expert", floor: 1300 },
+  { name: "Candidate Master", cssClass: "rate-candidate-master", floor: 1600 },
+  { name: "Master", cssClass: "rate-master", floor: 1900 },
+  { name: "Grandmaster", cssClass: "rate-grandmaster", floor: 2400 },
+  { name: "Target", cssClass: "rate-target", floor: 3000 },
+] as const satisfies readonly RatingBand[];
+
+export const RATING_LEVELS: readonly string[] = RATING_BANDS.map((band) => band.name);
+
+export const RATING_VALUES: readonly number[] = RATING_BANDS.flatMap((band) =>
+  band.floor === null ? [] : [band.floor],
+);
+
+export const RATING_CLASS: readonly string[] = RATING_BANDS.map((band) => band.cssClass);
+
+/** The band a rating falls in: the last one whose floor it reaches. */
+function ratingBand(rating: number): RatingBand {
+  let band: RatingBand = RATING_BANDS[0];
+
+  for (const candidate of RATING_BANDS) {
+    if (candidate.floor !== null && rating >= candidate.floor) band = candidate;
+  }
+
+  return band;
+}
+
+/** `rating_level(rating)` (ratings.py:212): `bisect_right(RATING_VALUES, rating)`. */
 export function ratingLevel(rating: number): number {
-  return bisectRight(RATING_VALUES, rating);
+  let level = 0;
+
+  for (const band of RATING_BANDS) {
+    if (band.floor !== null && rating >= band.floor) level += 1;
+  }
+
+  return level;
 }
 
 /** `rating_name(rating)`. */
 export function ratingName(rating: number): string {
-  return RATING_LEVELS[ratingLevel(rating)] as string;
+  return ratingBand(rating).name;
 }
 
 /** `rating_class(rating)`. */
 export function ratingClass(rating: number): string {
-  return RATING_CLASS[ratingLevel(rating)] as string;
+  return ratingBand(rating).cssClass;
 }
 
 /** `rating_progress(rating)`: how far through the current band, in [0, 1]. */
 export function ratingProgress(rating: number): number {
-  const level = ratingLevel(rating);
+  let floor = 0;
 
-  if (level === RATING_VALUES.length) return 1;
-  const previous = level === 0 ? 0 : (RATING_VALUES[level - 1] as number);
-  const next = RATING_VALUES[level] as number;
+  for (const band of RATING_BANDS) {
+    if (band.floor === null) continue;
 
-  return (rating - previous) / (next - previous);
+    if (rating < band.floor) return (rating - floor) / (band.floor - floor);
+
+    floor = band.floor;
+  }
+
+  return 1;
 }
 
 /** `Profile.get_user_css_class(display_rank, rating, rating_colors)` (profile.py:320). */

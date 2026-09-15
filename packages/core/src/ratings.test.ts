@@ -26,14 +26,15 @@ import {
   VAR_INIT,
   VAR_PER_CONTEST,
 } from "./ratings";
+import { defined } from "./test.fixtures";
 
 const PRECISION = 9;
 
 function closeTo(actual: readonly number[], expected: readonly number[]): void {
   expect(actual).toHaveLength(expected.length);
 
-  for (const [i, value] of actual.entries()) {
-    expect(value).toBeCloseTo(expected[i] as number, PRECISION);
+  for (const [i, target] of expected.entries()) {
+    expect(actual[i]).toBeCloseTo(target, PRECISION);
   }
 }
 
@@ -370,11 +371,16 @@ describe("monotonicity", () => {
 
       const { rating, performance } = recalculateRatings(ranking, oldMean, timesRanked, historical, null);
 
-      for (let i = 1; i < n; i++) {
-        expect(
-          performance[i] as number,
-          `trial ${trial}: performance must not increase with rank`,
-        ).toBeLessThanOrEqual((performance[i - 1] as number) + 1e-6);
+      let previous: number | null = null;
+
+      for (const value of performance) {
+        if (previous !== null) {
+          expect(value, `trial ${trial}: performance must not increase with rank`).toBeLessThanOrEqual(
+            previous + 1e-6,
+          );
+        }
+
+        previous = value;
       }
 
       // Two competitors with the same history: the better rank must not rate lower.
@@ -386,8 +392,12 @@ describe("monotonicity", () => {
         null,
       );
 
-      for (let i = 1; i < n; i++) {
-        expect(uniform.rating[i] as number).toBeLessThanOrEqual(uniform.rating[i - 1] as number);
+      let previousRating: number | null = null;
+
+      for (const value of uniform.rating) {
+        if (previousRating !== null) expect(value).toBeLessThanOrEqual(previousRating);
+
+        previousRating = value;
       }
 
       expect(rating.every((value) => value >= 1)).toBe(true);
@@ -415,8 +425,16 @@ describe("monotonicity", () => {
       { participationId: "p3", profileId: "c", score: 1, cumtime: 0, tiebreaker: 0, submissionCount: 1 },
     ];
 
-    const won = rateContest(field("a")).find((row) => row.profileId === "a") as { rating: number };
-    const lost = rateContest(field("b")).find((row) => row.profileId === "a") as { rating: number };
+    const won = defined(
+      rateContest(field("a")).find((row) => row.profileId === "a"),
+      "a's row",
+    );
+
+    const lost = defined(
+      rateContest(field("b")).find((row) => row.profileId === "a"),
+      "a's row",
+    );
+
     expect(won.rating).toBeGreaterThan(lost.rating);
   });
 });

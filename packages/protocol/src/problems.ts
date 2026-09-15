@@ -166,7 +166,7 @@ export const API_SCOPES = [READ_SCOPE, PROBLEMS_WRITE_SCOPE] as const;
 export type ApiScope = (typeof API_SCOPES)[number];
 
 export function isApiScope(value: string): value is ApiScope {
-  return (API_SCOPES as readonly string[]).includes(value);
+  return API_SCOPES.some((scope) => scope === value);
 }
 
 /** Largest statement image the endpoint accepts, matching DMOJ's martor limit. */

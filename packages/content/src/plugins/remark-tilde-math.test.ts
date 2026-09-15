@@ -33,15 +33,14 @@ interface MathNode {
 }
 
 function mathNodes(source: string): MathNode[] {
-  const tree = processor.parse(source) as Root;
+  const tree: Root = processor.parse(source);
   const found: MathNode[] = [];
   visit(tree, (node) => {
     if (node.type !== "inlineMath" && node.type !== "math") return;
-    const data = (node as { data?: { mojDelimiter?: string } }).data;
     found.push({
       type: node.type,
-      value: (node as { value: string }).value,
-      delimiter: data?.mojDelimiter ?? "dollar",
+      value: node.value,
+      delimiter: node.data?.mojDelimiter ?? "dollar",
     });
   });
 

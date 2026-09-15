@@ -22,32 +22,32 @@ export interface CodehiliteOptions {
   readonly onLanguage?: (language: string, highlighted: boolean) => void;
 }
 
-const LANGUAGE_ALIASES: Readonly<Record<string, string>> = {
-  "c++": "cpp",
-  "c#": "csharp",
-  cc: "cpp",
-  cxx: "cpp",
-  py: "python",
-  py3: "python",
-  python3: "python",
-  pypy: "python",
-  pypy3: "python",
-  js: "javascript",
-  ts: "typescript",
-  sh: "bash",
-  shell: "bash",
-  console: "bash",
-  plain: "text",
-  plaintext: "text",
-  output: "text",
-  input: "text",
-  none: "text",
-};
+const LANGUAGE_ALIASES = new Map<string, string>([
+  ["c++", "cpp"],
+  ["c#", "csharp"],
+  ["cc", "cpp"],
+  ["cxx", "cpp"],
+  ["py", "python"],
+  ["py3", "python"],
+  ["python3", "python"],
+  ["pypy", "python"],
+  ["pypy3", "python"],
+  ["js", "javascript"],
+  ["ts", "typescript"],
+  ["sh", "bash"],
+  ["shell", "bash"],
+  ["console", "bash"],
+  ["plain", "text"],
+  ["plaintext", "text"],
+  ["output", "text"],
+  ["input", "text"],
+  ["none", "text"],
+]);
 
 export function normaliseLanguage(language: string): string {
   const lower = language.trim().toLowerCase();
 
-  return LANGUAGE_ALIASES[lower] ?? lower;
+  return LANGUAGE_ALIASES.get(lower) ?? lower;
 }
 
 function languageOf(code: Element): string | undefined {

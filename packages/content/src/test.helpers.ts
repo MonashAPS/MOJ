@@ -18,6 +18,8 @@ let cache: Fixture[] | undefined;
 export async function loadFixtures(): Promise<Fixture[]> {
   if (cache) return cache;
 
+  // SAFETY: problems.json is the checked-in index of the statements beside it,
+  // written by the same fixture update script and keyed by problem code.
   const metas = JSON.parse(await readFile(new URL("problems.json", FIXTURE_DIR), "utf8")) as Record<
     string,
     ProblemMeta

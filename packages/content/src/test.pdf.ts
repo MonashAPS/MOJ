@@ -8,25 +8,28 @@
 
 type PdfText = { text: string; numpages: number };
 
-type PdfParseInstance = {
-  getText(): Promise<{ text: string; pages?: unknown[]; total?: number }>;
-  destroy(): Promise<void>;
-};
-
-type PdfParseCtor = new (options: { data: Buffer }) => PdfParseInstance;
-
 type Extract = (data: Buffer) => Promise<PdfText>;
 
 let extract: Extract | undefined;
+
+/** Whether a module export is version 1's parse function. */
+function isExtract(value: unknown): value is Extract {
+  return typeof value === "function";
+}
+
+/** Whether a dynamic import produced a module namespace with a default export. */
+function hasDefaultExport(value: unknown): value is { readonly default: unknown } {
+  return typeof value === "object" && value !== null && "default" in value;
+}
 
 async function legacy(): Promise<Extract | undefined> {
   try {
     // Built at run time so no bundler resolves it statically: the path only exists in version 1.
     const specifier = ["pdf-parse", "lib", "pdf-parse.js"].join("/");
-    const module = (await import(/* @vite-ignore */ specifier)) as Record<string, unknown>;
-    const parse = (module.default ?? module) as unknown as Extract;
+    const loaded: unknown = await import(/* @vite-ignore */ specifier);
+    const parse = hasDefaultExport(loaded) ? loaded.default : loaded;
 
-    return typeof parse === "function" ? parse : undefined;
+    return isExtract(parse) ? parse : undefined;
   } catch {
     return undefined;
   }
@@ -35,8 +38,8 @@ async function legacy(): Promise<Extract | undefined> {
 async function load(): Promise<Extract> {
   if (extract) return extract;
 
-  const module = (await import("pdf-parse")) as unknown as Record<string, unknown>;
-  const PDFParse = module.PDFParse as PdfParseCtor | undefined;
+  const module = await import("pdf-parse");
+  const PDFParse = module.PDFParse;
 
   if (PDFParse) {
     extract = async (data: Buffer) => {
@@ -55,8 +58,8 @@ async function load(): Promise<Extract> {
     return extract;
   }
 
-  const one = (module.default ?? module) as unknown;
-  extract = typeof one === "function" ? (one as Extract) : await legacy();
+  const one = module.default;
+  extract = isExtract(one) ? one : await legacy();
 
   if (!extract) throw new Error("pdf-parse exposes neither PDFParse nor a parse function");
 

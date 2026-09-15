@@ -58,6 +58,11 @@ export function decodeCaseStatus(status: number): SubmissionResult {
  */
 export const STATUS_CODES: readonly SubmissionResult[] = ["SC", "AC", "WA", "MLE", "TLE", "IR", "RTE", "OLE"];
 
+/** How bad a verdict is: its place in `STATUS_CODES`, and -1 for one not listed. */
+function severity(result: SubmissionResult): number {
+  return STATUS_CODES.indexOf(result);
+}
+
 export interface GradingEndProblem {
   readonly points: number;
   readonly partial: boolean;
@@ -92,7 +97,7 @@ export function computeGradingEnd(
   let memory = 0;
   let points = 0;
   let total = 0;
-  let statusIndex = 0;
+  let result: SubmissionResult = "SC";
   const batches = new Map<number, { points: number; total: number }>();
 
   for (const testCase of testCases) {
@@ -115,9 +120,7 @@ export function computeGradingEnd(
 
     memory = Math.max(memory, testCase.memory ?? 0);
 
-    const index = STATUS_CODES.indexOf(testCase.status);
-
-    if (index > statusIndex) statusIndex = index;
+    if (severity(testCase.status) > severity(result)) result = testCase.status;
   }
 
   for (const batch of batches.values()) {
@@ -134,7 +137,7 @@ export function computeGradingEnd(
 
   return {
     status: "D",
-    result: STATUS_CODES[statusIndex] as SubmissionResult,
+    result,
     time,
     memory,
     casePoints: points,

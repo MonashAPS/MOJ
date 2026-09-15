@@ -24,7 +24,7 @@
  * feature, and the spec asks for the single-line behaviour.
  */
 
-import type { Root } from "mdast";
+import type { Data, Nodes, Root } from "mdast";
 import type { CompileContext, Extension as FromMarkdownExtension, Token } from "mdast-util-from-markdown";
 import type {
   Code,
@@ -36,6 +36,13 @@ import type {
 import type { Plugin } from "unified";
 
 export type MathDelimiter = "tilde" | "paren" | "bracket" | "dollar";
+
+declare module "mdast" {
+  interface Data {
+    /** The delimiter pair a maths node was written with, for `RenderMeta.math`. */
+    mojDelimiter?: MathDelimiter;
+  }
+}
 
 declare module "micromark-util-types" {
   interface TokenTypeMap {
@@ -214,7 +221,7 @@ const backslashMath: Construct = {
         open = false;
       }
 
-      return next ?? (inside as State);
+      return next ?? inside;
     }
   } satisfies Tokenizer,
 };
@@ -301,7 +308,7 @@ const dollarDisplayMath: Construct = {
         open = false;
       }
 
-      return next ?? (inside as State);
+      return next ?? inside;
     }
   } satisfies Tokenizer,
 };
@@ -316,14 +323,20 @@ export function mojMathSyntax(): MicromarkExtension {
   };
 }
 
-interface MathNodeShape {
-  type: string;
+/**
+ * The maths node `enterMath` pushes.
+ *
+ * `\(` and `\[` share a construct, so which of mdast's two maths nodes this is
+ * only becomes clear when the closing delimiter is read.
+ */
+interface PendingMathNode {
+  type: "math" | "inlineMath";
   value: string;
   meta?: string | null;
-  data?: Record<string, unknown>;
+  data?: Data;
 }
 
-function inlineMathData(value: string): Record<string, unknown> {
+function inlineMathData(value: string): Data {
   return {
     hName: "code",
     hProperties: { className: ["language-math", "math-inline"] },
@@ -331,7 +344,7 @@ function inlineMathData(value: string): Record<string, unknown> {
   };
 }
 
-function displayMathData(value: string): Record<string, unknown> {
+function displayMathData(value: string): Data {
   // A `span` rather than `mdast-util-math`'s `pre`: `\[...\]` and `$$...$$` can appear inside
   // a paragraph, and `rehype-raw` re-parses the tree with parse5, which would hoist a `pre`
   // out of its paragraph and split it. `rehype-katex` only looks at the class names.
@@ -344,31 +357,42 @@ function displayMathData(value: string): Record<string, unknown> {
 
 function enterMath(display: boolean) {
   return function enter(this: CompileContext, token: Token): void {
-    const node = display ? { type: "math", value: "", meta: null } : { type: "inlineMath", value: "" };
-    this.enter(node as never, token);
+    const node: Nodes = display ? { type: "math", value: "", meta: null } : { type: "inlineMath", value: "" };
+
+    this.enter(node, token);
   };
 }
 
-function exitMath(fixed: { delimiter: MathDelimiter; display: boolean; open: number } | undefined) {
+/** How a construct was delimited; the backslash construct only knows at its exit. */
+interface MathDelimiterForm {
+  readonly delimiter: MathDelimiter;
+  readonly display: boolean;
+  /** Characters in the opening marker, which the closing marker matches. */
+  readonly open: number;
+}
+
+function exitMath(fixed: MathDelimiterForm | undefined) {
   return function exit(this: CompileContext, token: Token): void {
     const raw = this.sliceSerialize(token);
 
-    const shape = fixed ?? {
-      delimiter: (raw.charCodeAt(1) === CODE_BRACKET_OPEN ? "bracket" : "paren") as "bracket" | "paren",
+    const form: MathDelimiterForm = fixed ?? {
+      delimiter: raw.charCodeAt(1) === CODE_BRACKET_OPEN ? "bracket" : "paren",
       display: raw.charCodeAt(1) === CODE_BRACKET_OPEN,
       open: 2,
     };
 
-    const value = raw.slice(shape.open, raw.length - shape.open);
-    const node = this.stack[this.stack.length - 1] as unknown as MathNodeShape;
+    const value = raw.slice(form.open, raw.length - form.open);
+    // SAFETY: `enterMath` pushed this token's maths node, and nothing else can be
+    // entered before the matching `this.exit(token)` below pops it.
+    const node = this.stack[this.stack.length - 1] as PendingMathNode;
     // `\(` and `\[` share a construct, so the node type is settled here.
-    node.type = shape.display ? "math" : "inlineMath";
+    node.type = form.display ? "math" : "inlineMath";
 
-    if (shape.display && node.meta === undefined) node.meta = null;
+    if (form.display && node.meta === undefined) node.meta = null;
     node.value = value;
     node.data = {
-      ...(shape.display ? displayMathData(value) : inlineMathData(value)),
-      mojDelimiter: shape.delimiter,
+      ...(form.display ? displayMathData(value) : inlineMathData(value)),
+      mojDelimiter: form.delimiter,
     };
     this.exit(token);
   };

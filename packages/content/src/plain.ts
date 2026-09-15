@@ -53,7 +53,7 @@ export function plainTextFromMdast(root: Root, options: PlainTextOptions = {}): 
         return;
       case "inlineMath":
       case "math":
-        if (includeMath) chunks.push((node as { value: string }).value);
+        if (includeMath) chunks.push(node.value);
 
         return;
       case "image":
@@ -73,9 +73,8 @@ export function plainTextFromMdast(root: Root, options: PlainTextOptions = {}): 
     const block = BLOCK_TYPES.has(node.type);
 
     if (block) chunks.push("\n\n");
-    const children = (node as { children?: MdastNodes[] }).children;
 
-    if (children) for (const child of children) walk(child);
+    if ("children" in node) for (const child of node.children) walk(child);
 
     if (block) chunks.push("\n\n");
   };

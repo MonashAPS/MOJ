@@ -38,10 +38,10 @@ export interface BookletOptions extends NormaliseOptions {
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 export function defaultLabel(index: number): string {
-  if (index < LETTERS.length) return LETTERS[index] as string;
+  if (index < LETTERS.length) return LETTERS.charAt(index);
   const first = Math.floor(index / LETTERS.length) - 1;
 
-  return `${LETTERS[first] as string}${LETTERS[index % LETTERS.length] as string}`;
+  return `${LETTERS.charAt(first)}${LETTERS.charAt(index % LETTERS.length)}`;
 }
 
 export function booklet(

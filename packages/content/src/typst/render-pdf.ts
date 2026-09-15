@@ -95,8 +95,8 @@ async function writeAssets(
     const target = assertInside(workdir, name.replace(/^[/\\]+/, ""));
     await mkdir(dirname(target), { recursive: true });
 
-    if (typeof value === "string") await copyFile(value, target);
-    else await writeFile(target, value);
+    if (value instanceof Uint8Array) await writeFile(target, value);
+    else await copyFile(value, target);
   }
 }
 
@@ -112,7 +112,7 @@ function run(
   options: { cwd: string; env: NodeJS.ProcessEnv; timeoutMs: number },
 ): Promise<SpawnResult> {
   return new Promise((resolvePromise, rejectPromise) => {
-    const child = spawn(bin, args as string[], {
+    const child = spawn(bin, args, {
       cwd: options.cwd,
       env: options.env,
       stdio: ["ignore", "pipe", "pipe"],
@@ -174,9 +174,8 @@ export async function renderPdf(typstSource: string, options: RenderPdfOptions =
 
   const temporary = options.workdir === undefined;
 
-  const workdir = temporary
-    ? await mkdtemp(join(tmpdir(), "moj-typst-"))
-    : resolve(options.workdir as string);
+  const workdir =
+    options.workdir === undefined ? await mkdtemp(join(tmpdir(), "moj-typst-")) : resolve(options.workdir);
 
   if (!temporary) await mkdir(workdir, { recursive: true });
 

@@ -12,19 +12,20 @@
  */
 
 import { createHmac } from "node:crypto";
-import type { Element, Parent, Root, RootContent, Text } from "hast";
+import type { Element, Parents, Properties, Root, RootContent, Text } from "hast";
 import type { Plugin } from "unified";
 import { visit } from "unist-util-visit";
+import { isStringProperty, propertyValue } from "../hast.js";
 
 /* -------------------------------------------------------------------------- tables ----- */
 
 const rehypeScrollableTables: Plugin<[], Root> = function rehypeScrollableTables() {
   return (tree: Root) => {
-    visit(tree, "element", (node: Element, index, parent: Parent | undefined) => {
+    visit(tree, "element", (node: Element, index, parent: Parents | undefined) => {
       if (node.tagName !== "table" || !parent || index === undefined) return;
 
-      if (parent.type === "element" && (parent as Element).tagName === "div") {
-        const classes = (parent as Element).properties?.className;
+      if (parent.type === "element" && parent.tagName === "div") {
+        const classes = parent.properties?.className;
 
         if (Array.isArray(classes) && classes.includes("h-scrollable-table")) return;
       }
@@ -90,15 +91,16 @@ const rehypeNofollow: Plugin<[NofollowOptions], Root> = function rehypeNofollow(
       if (node.tagName !== "a") return;
       const href = node.properties?.href;
 
-      if (typeof href !== "string" || !href) return;
+      if (!isStringProperty(href) || !href) return;
       const host = hostOf(href);
 
       if (!host || excluded.has(host.toLowerCase())) return;
-      const rel: unknown = node.properties.rel;
+      // A `rel` written as raw HTML arrives as a list, but a plugin may have left a string.
+      const rel = propertyValue(node.properties, "rel");
 
       const list = Array.isArray(rel)
         ? rel.map(String)
-        : typeof rel === "string"
+        : isStringProperty(rel)
           ? rel.split(/\s+/).filter(Boolean)
           : [];
 
@@ -117,7 +119,7 @@ const rehypeLazyImages: Plugin<[], Root> = function rehypeLazyImages() {
       const src = node.properties?.src;
 
       // DMOJ's lazy_load skips data URIs and rendered maths images.
-      if (typeof src === "string" && src.startsWith("data")) return;
+      if (isStringProperty(src) && src.startsWith("data")) return;
       const classes = node.properties?.className;
       const list = Array.isArray(classes) ? classes.map(String) : [];
 
@@ -168,14 +170,14 @@ const rehypeCamo: Plugin<[CamoOptions], Root> = function rehypeCamo(options) {
         for (const attribute of ["src", "dataSrc"]) {
           const value = node.properties?.[attribute];
 
-          if (typeof value === "string" && value) {
+          if (isStringProperty(value) && value) {
             node.properties[attribute] = camoRewrite(options, value);
           }
         }
       } else if (node.tagName === "object") {
         const value = node.properties?.data;
 
-        if (typeof value === "string" && value) {
+        if (isStringProperty(value) && value) {
           node.properties.data = camoRewrite(options, value);
         }
       }
@@ -205,10 +207,10 @@ const rehypeUserReferences: Plugin<[UserReferenceOptions], Root> = function rehy
   const href = options.href ?? ((username: string) => `/user/${encodeURIComponent(username)}`);
 
   return (tree: Root) => {
-    visit(tree, "text", (node: Text, index, parent: Parent | undefined) => {
+    visit(tree, "text", (node: Text, index, parent: Parents | undefined) => {
       if (!parent || index === undefined) return;
 
-      if (parent.type === "element" && SKIP_INSIDE.has((parent as Element).tagName)) return;
+      if (parent.type === "element" && SKIP_INSIDE.has(parent.tagName)) return;
 
       if (!node.value.includes("[")) return;
 
@@ -218,22 +220,28 @@ const rehypeUserReferences: Plugin<[UserReferenceOptions], Root> = function rehy
       let match: RegExpExecArray | null = REFERENCE.exec(node.value);
 
       while (match) {
-        const [whole, kind, username] = match as unknown as [string, "user" | "ruser", string];
+        const whole = match[0];
+        // `\w+` always participates, so the username group is always there.
+        const username = match[2] ?? "";
+        const kind: UserReference["type"] = match[1] === "ruser" ? "ruser" : "user";
 
         if (match.index > last) {
           pieces.push({ type: "text", value: node.value.slice(last, match.index) });
         }
 
         options.onReference?.({ type: kind, username });
+
+        const properties: Properties = {
+          className: kind === "ruser" ? ["user-link", "rate-group"] : ["user-link"],
+          href: href(username),
+          "data-username": username,
+        };
+
+        if (kind === "ruser") properties["data-rating"] = "true";
         pieces.push({
           type: "element",
           tagName: "a",
-          properties: {
-            className: kind === "ruser" ? ["user-link", "rate-group"] : ["user-link"],
-            href: href(username),
-            "data-username": username,
-            ...(kind === "ruser" ? { "data-rating": "true" } : {}),
-          },
+          properties,
           children: [{ type: "text", value: username }],
         });
         last = match.index + whole.length;
@@ -268,7 +276,7 @@ const rehypeAbsolutify: Plugin<[AbsolutifyOptions], Root> = function rehypeAbsol
       if (!attribute) return;
       const value = node.properties?.[attribute];
 
-      if (typeof value !== "string" || !value) return;
+      if (!isStringProperty(value) || !value) return;
 
       try {
         node.properties[attribute] = new URL(value, options.base).href;

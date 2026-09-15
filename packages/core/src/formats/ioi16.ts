@@ -26,7 +26,7 @@ import {
   cumtimeSeconds,
   groupByProblem,
   numberLabel,
-  orderedProblemIds,
+  orderedProblemGroups,
   pointsPrecision,
   secondsSince,
 } from "./base";
@@ -70,9 +70,7 @@ export function updateParticipationIoi16(input: UpdateParticipationInput): Parti
 
   const groups = groupByProblem(submissions, participation.id);
 
-  for (const problemId of orderedProblemIds(groups, contestProblems)) {
-    const rows = groups.get(problemId) as ContestSubmissionRow[];
-
+  for (const [problemId, rows] of orderedProblemGroups(groups, contestProblems)) {
     const best = new Map<string, BestBatch>();
 
     for (const submission of rows) {

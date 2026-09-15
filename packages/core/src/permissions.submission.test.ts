@@ -14,7 +14,7 @@ import {
   DAY,
   NOW,
 } from "./test.fixtures";
-import type { ProblemRow, Viewer } from "./types";
+import type { ProblemRow } from "./types";
 import { isGraded, isLocked, longStatus, resultClass, shortStatus } from "./verdicts";
 
 const users = commonUsers();
@@ -100,7 +100,7 @@ function check(
 ): void {
   for (const [username, expected] of Object.entries(expectations)) {
     expect(
-      canSeeSubmissionDetail(submission, users[username] as Viewer, { problem }),
+      canSeeSubmissionDetail(submission, users[username], { problem }),
       `can_see_detail/${username}`,
     ).toBe(expected);
   }

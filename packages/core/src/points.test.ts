@@ -162,7 +162,7 @@ describe("Problem.update_stats", () => {
 describe("ranker", () => {
   it("shares ranks and skips ahead after a tie", () => {
     const rows = [{ points: 10 }, { points: 10 }, { points: 5 }, { points: 5 }, { points: 1 }];
-    expect(ranker(rows).map((entry) => entry.rank)).toEqual([1, 1, 3, 3, 5]);
+    expect(ranker(rows, (row) => row.points).map((entry) => entry.rank)).toEqual([1, 1, 3, 3, 5]);
   });
 
   it("honours a custom key and a starting rank", () => {
@@ -171,7 +171,7 @@ describe("ranker", () => {
   });
 
   it("handles an empty sequence", () => {
-    expect(ranker([])).toEqual([]);
+    expect(ranker<{ points: number }>([], (row) => row.points)).toEqual([]);
   });
 });
 

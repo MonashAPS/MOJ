@@ -13,7 +13,7 @@
  */
 
 import type { ContestProblemRow, ContestSubmissionRow, Id } from "../types";
-import { orderedProblemIds } from "./base";
+import { orderedProblemGroups } from "./base";
 
 /** Results that never count towards an ICPC/AtCoder penalty. */
 export const PENALTY_IGNORED_RESULTS: readonly string[] = ["IE", "CE"];
@@ -43,8 +43,7 @@ export function computeMaxPointsRows(
 ): MaxPointsRow[] {
   const rows: MaxPointsRow[] = [];
 
-  for (const problemId of orderedProblemIds(groups, contestProblems)) {
-    const submissions = groups.get(problemId) as ContestSubmissionRow[];
+  for (const [problemId, submissions] of orderedProblemGroups(groups, contestProblems)) {
     const points = Math.max(...submissions.map((submission) => submission.contestPoints));
 
     const time = Math.min(

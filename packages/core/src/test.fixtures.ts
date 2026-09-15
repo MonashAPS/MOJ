@@ -187,8 +187,29 @@ export function createBlogPost(title: string, spec: Partial<BlogPostRow> = {}): 
   };
 }
 
+/**
+ * The users `CommonDataMixin.setUpTestData` creates.
+ *
+ * The permission matrices name the user they expect a row for, so the fixture
+ * is also indexable by username; `anonymous` is Django's `AnonymousUser`.
+ */
+export interface CommonUsers {
+  superuser: ProfileRow;
+  staff_problem_edit_own: ProfileRow;
+  staff_problem_see_all: ProfileRow;
+  staff_problem_edit_all: ProfileRow;
+  staff_problem_edit_public: ProfileRow;
+  staff_problem_see_organization: ProfileRow;
+  staff_problem_edit_all_with_rejudge: ProfileRow;
+  staff_problem_edit_own_no_staff: ProfileRow;
+  staff_organization_admin: ProfileRow;
+  normal: ProfileRow;
+  anonymous: null;
+  [username: string]: Viewer;
+}
+
 /** `CommonDataMixin.setUpTestData`. */
-export function commonUsers(): Record<string, Viewer> {
+export function commonUsers(): CommonUsers {
   return {
     superuser: createUser("superuser", { isSuperuser: true, isStaff: true }),
     staff_problem_edit_own: createUser("staff_problem_edit_own", {
@@ -224,6 +245,13 @@ export function commonUsers(): Record<string, Viewer> {
     normal: createUser("normal"),
     anonymous: null,
   };
+}
+
+/** A fixture value the test expects to exist, named for the failure message. */
+export function defined<T>(value: T | null | undefined, what: string): T {
+  if (value === null || value === undefined) throw new Error(`missing fixture: ${what}`);
+
+  return value;
 }
 
 export const OPEN_ORGANIZATION = createOrganization("open", {

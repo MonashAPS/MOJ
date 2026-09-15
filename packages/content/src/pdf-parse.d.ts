@@ -3,6 +3,18 @@
  * the helper narrows whatever it gets at runtime.
  */
 declare module "pdf-parse" {
-  const module: Record<string, unknown>;
-  export = module;
+  /** Version 2's parser class. Version 1 has none, which is what the helper checks for. */
+  export const PDFParse:
+    | (new (options: {
+        data: Buffer;
+      }) => {
+        getText(): Promise<{ text: string; pages?: readonly unknown[]; total?: number }>;
+        destroy(): Promise<void>;
+      })
+    | undefined;
+
+  /** Version 1's export: the parse function itself, which the helper checks for. */
+  const parse: unknown;
+
+  export default parse;
 }

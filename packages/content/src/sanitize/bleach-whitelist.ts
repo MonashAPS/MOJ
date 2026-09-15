@@ -792,7 +792,12 @@ export const MATHML_TAGS: readonly string[] = [
   "xor",
 ];
 
-export const MATHML_ATTRS: Readonly<Record<string, readonly string[]>> = {
+/** MathML attribute allowlist: an element name to the attributes bleach keeps on it. */
+interface MathmlAttributeAllowlist {
+  readonly [tagName: string]: readonly string[];
+}
+
+export const MATHML_ATTRS: MathmlAttributeAllowlist = {
   abs: ["href", "id", "mathbackground", "mathcolor"],
   and: ["href", "id", "mathbackground", "mathcolor"],
   annotation: ["encoding", "href", "id", "mathbackground", "mathcolor"],

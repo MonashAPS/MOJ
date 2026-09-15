@@ -11,35 +11,48 @@ export type RatingClass =
   | "rate-grandmaster"
   | "rate-target";
 
+/** One rating band: its name, its colour class and the rating it starts at. */
+interface RatingBand {
+  readonly name: string;
+  readonly cssClass: RatingClass;
+  /** Lowest rating in the band; the bottom band has none. */
+  readonly floor: number | null;
+}
+
+const RATING_BANDS = [
+  { name: "Newbie", cssClass: "rate-newbie", floor: null },
+  { name: "Amateur", cssClass: "rate-amateur", floor: 1000 },
+  { name: "Expert", cssClass: "rate-expert", floor: 1300 },
+  { name: "Candidate Master", cssClass: "rate-candidate-master", floor: 1600 },
+  { name: "Master", cssClass: "rate-master", floor: 1900 },
+  { name: "Grandmaster", cssClass: "rate-grandmaster", floor: 2400 },
+  { name: "Target", cssClass: "rate-target", floor: 3000 },
+] as const satisfies readonly RatingBand[];
+
 /** `judge/ratings.py`'s `RATING_VALUES`, which `@moj/core` also carries. The
  *  band a rating falls into is `bisect_right(RATING_VALUES, rating)`. */
-export const RATING_VALUES: readonly number[] = [1000, 1300, 1600, 1900, 2400, 3000];
+export const RATING_VALUES: readonly number[] = RATING_BANDS.flatMap((band) =>
+  band.floor === null ? [] : [band.floor],
+);
 
-const RATING_CLASSES: readonly RatingClass[] = [
-  "rate-newbie",
-  "rate-amateur",
-  "rate-expert",
-  "rate-candidate-master",
-  "rate-master",
-  "rate-grandmaster",
-  "rate-target",
-];
+/** The band a rating falls in: the last one whose floor it reaches. */
+function ratingBand(rating: number): RatingBand {
+  let band: RatingBand = RATING_BANDS[0];
 
-const RATING_LEVELS: readonly string[] = [
-  "Newbie",
-  "Amateur",
-  "Expert",
-  "Candidate Master",
-  "Master",
-  "Grandmaster",
-  "Target",
-];
+  for (const candidate of RATING_BANDS) {
+    if (candidate.floor !== null && rating >= candidate.floor) band = candidate;
+  }
+
+  return band;
+}
 
 /** `rating_level(rating)`. */
 export function ratingLevel(rating: number): number {
   let level = 0;
 
-  while (level < RATING_VALUES.length && rating >= (RATING_VALUES[level] as number)) level++;
+  for (const band of RATING_BANDS) {
+    if (band.floor !== null && rating >= band.floor) level++;
+  }
 
   return level;
 }
@@ -47,24 +60,28 @@ export function ratingLevel(rating: number): number {
 export function ratingClass(rating: number | null | undefined): RatingClass {
   if (rating === null || rating === undefined) return "rate-none";
 
-  return RATING_CLASSES[ratingLevel(rating)] as RatingClass;
+  return ratingBand(rating).cssClass;
 }
 
 export function ratingTitle(rating: number | null | undefined): string {
   if (rating === null || rating === undefined) return "Unrated";
 
-  return RATING_LEVELS[ratingLevel(rating)] as string;
+  return ratingBand(rating).name;
 }
 
 /** `rating_progress(rating)`: how far through the current band, in [0, 1]. */
 export function ratingProgress(rating: number): number {
-  const level = ratingLevel(rating);
+  let floor = 0;
 
-  if (level === RATING_VALUES.length) return 1;
-  const previous = level === 0 ? 0 : (RATING_VALUES[level - 1] as number);
-  const next = RATING_VALUES[level] as number;
+  for (const band of RATING_BANDS) {
+    if (band.floor === null) continue;
 
-  return (rating - previous) / (next - previous);
+    if (rating < band.floor) return (rating - floor) / (band.floor - floor);
+
+    floor = band.floor;
+  }
+
+  return 1;
 }
 
 /** Rating colour applies to the username glyphs only, at weight 500, in the mono. */

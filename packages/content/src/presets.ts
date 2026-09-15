@@ -97,10 +97,13 @@ export const PRESETS: Readonly<Record<Preset, PresetConfig>> = {
   flatpage: ADMIN_EDITABLE,
 };
 
-export function presetConfig(preset: Preset | string): PresetConfig {
-  const found = (PRESETS as Record<string, PresetConfig | undefined>)[preset];
+/** Whether a stored style name is one of the presets MOJ defines. */
+function isPreset(name: Preset | string): name is Preset {
+  return name in PRESETS;
+}
 
-  return found ?? PRESETS.default;
+export function presetConfig(preset: Preset | string): PresetConfig {
+  return isPreset(preset) ? PRESETS[preset] : PRESETS.default;
 }
 
 /** Presets whose source may contain raw HTML that reaches the output tree. */

@@ -18,6 +18,7 @@ import {
   voteCanVote,
   votePermissionForUser,
 } from "./permissions";
+import type { CommonUsers } from "./test.fixtures";
 import {
   commonUsers,
   createProblem,
@@ -28,14 +29,14 @@ import {
   withOrganizationAdmin,
   withOrganizations,
 } from "./test.fixtures";
-import type { ProblemRow, ProfileRow, Viewer } from "./types";
+import type { ProblemRow } from "./types";
 
 type Matrix = Record<
   string,
   Partial<Record<"is_accessible_by" | "is_editable_by" | "is_subs_manageable_by", boolean>>
 >;
 
-function buildUsers(): Record<string, Viewer> {
+function buildUsers(): CommonUsers {
   const users = commonUsers();
   users.staff_problem_edit_only_all = createUser("staff_problem_edit_only_all", {
     isStaff: true,
@@ -43,17 +44,17 @@ function buildUsers(): Record<string, Viewer> {
   });
 
   // create_organization('problem organization', admins=('normal', 'staff_problem_edit_public'))
-  users.normal = withOrganizationAdmin(users.normal as ProfileRow, ["problem organization"]);
-  users.staff_problem_edit_public = withOrganizationAdmin(users.staff_problem_edit_public as ProfileRow, [
+  users.normal = withOrganizationAdmin(users.normal, ["problem organization"]);
+  users.staff_problem_edit_public = withOrganizationAdmin(users.staff_problem_edit_public, [
     "problem organization",
   ]);
 
   return users;
 }
 
-function checkMatrix(problem: ProblemRow, users: Record<string, Viewer>, matrix: Matrix): void {
+function checkMatrix(problem: ProblemRow, users: CommonUsers, matrix: Matrix): void {
   for (const [username, methods] of Object.entries(matrix)) {
-    const viewer = users[username] as Viewer;
+    const viewer = users[username];
 
     if (methods.is_accessible_by !== undefined) {
       expect(problemIsAccessibleBy(problem, viewer), `is_accessible_by/${username}`).toBe(
@@ -117,7 +118,7 @@ describe("ProblemTestCase", () => {
     // The Python walks through three states before the matrix.
     expect(problemIsAccessibleBy(organizationPrivateProblem, users.normal)).toBe(false);
 
-    const normalInOpen = withOrganizations(users.normal as ProfileRow, ["open"]);
+    const normalInOpen = withOrganizations(users.normal, ["open"]);
     expect(problemIsAccessibleBy(organizationPrivateProblem, normalInOpen)).toBe(false);
 
     const problem = { ...organizationPrivateProblem, organizationIds: ["open"] };
@@ -185,10 +186,11 @@ describe("ProblemTestCase", () => {
       organizationAdminProblem,
     ];
 
-    for (const [username, viewer] of Object.entries(users)) {
+    for (const username of Object.keys(users)) {
+      const viewer = users[username];
+
       const accessible = problems
-        .filter((problem) => problemIsAccessibleBy(problem, viewer))
-        .map((problem) => problem.code)
+        .flatMap((problem) => (problemIsAccessibleBy(problem, viewer) ? [problem.code] : []))
         .sort();
 
       const visible = getVisibleProblems(problems, viewer)
@@ -288,7 +290,7 @@ describe("SolutionTestCase", () => {
   ): void {
     for (const [username, expected] of Object.entries(expectations)) {
       expect(
-        solutionIsAccessibleBy(solution, problem, users[username] as Viewer, NOW),
+        solutionIsAccessibleBy(solution, problem, users[username], NOW),
         `is_accessible_by/${username}`,
       ).toBe(expected);
     }

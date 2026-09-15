@@ -14,13 +14,14 @@
  *   - images resolved through a caller-supplied hook, dropping the ones Typst cannot read.
  */
 
-import type { Heading, Image, Nodes as MdastNodes, Paragraph, Root, RootContent } from "mdast";
+import type { Heading, Image, Nodes as MdastNodes, Paragraph, PhrasingContent, Root } from "mdast";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import remarkParse from "remark-parse";
 import remarkStringify from "remark-stringify";
 import { unified } from "unified";
 import { visit } from "unist-util-visit";
+import { clampHeadingDepth } from "../plugins/remark-dmoj.js";
 import remarkTildeMath from "../plugins/remark-tilde-math.js";
 
 export interface NormaliseOptions {
@@ -83,24 +84,25 @@ const ATTRIBUTE = /([a-zA-Z_:][-\w:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)
 
 const COMMENT = /^\s*<!--[\s\S]*?-->\s*$/;
 
-function attributesOf(raw: string): Record<string, string> {
-  const out: Record<string, string> = {};
+function attributesOf(raw: string): Map<string, string> {
+  const out = new Map<string, string>();
   ATTRIBUTE.lastIndex = 0;
   let match = ATTRIBUTE.exec(raw);
 
   while (match) {
     const [, name, doubleQuoted, singleQuoted, bare] = match;
-    out[(name as string).toLowerCase()] = doubleQuoted ?? singleQuoted ?? bare ?? "";
+
+    if (name) out.set(name.toLowerCase(), doubleQuoted ?? singleQuoted ?? bare ?? "");
     match = ATTRIBUTE.exec(raw);
   }
 
   return out;
 }
 
-function htmlToNodes(value: string): RootContent[] {
+function htmlToNodes(value: string): PhrasingContent[] {
   if (COMMENT.test(value)) return [];
 
-  const nodes: RootContent[] = [];
+  const nodes: PhrasingContent[] = [];
   let last = 0;
   IMG_TAG.lastIndex = 0;
   let match = IMG_TAG.exec(value);
@@ -110,13 +112,14 @@ function htmlToNodes(value: string): RootContent[] {
       nodes.push({ type: "text", value: value.slice(last, match.index) });
     }
 
-    const attributes = attributesOf(match[1] as string);
-    const src = attributes.src;
+    const attributes = attributesOf(match[1] ?? "");
+    const src = attributes.get("src");
 
     if (src) {
-      const image: Image = { type: "image", url: src, alt: attributes.alt ?? "" };
+      const image: Image = { type: "image", url: src, alt: attributes.get("alt") ?? "" };
+      const title = attributes.get("title");
 
-      if (attributes.title) image.title = attributes.title;
+      if (title) image.title = title;
       nodes.push(image);
     }
 
@@ -129,7 +132,7 @@ function htmlToNodes(value: string): RootContent[] {
   return nodes;
 }
 
-function isBlockish(nodes: readonly RootContent[]): boolean {
+function isBlockish(nodes: readonly PhrasingContent[]): boolean {
   return nodes.some((node) => node.type === "image");
 }
 
@@ -147,7 +150,7 @@ export function normaliseForCmarker(source: string, options: NormaliseOptions = 
     .use(remarkMath, { singleDollarTextMath: options.singleDollarMath ?? true })
     .use(remarkTildeMath);
 
-  const tree = parser.parse(source) as Root;
+  const tree: Root = parser.parse(source);
 
   // 1. The leading `# Title`, which duplicates `config.json`'s `title`.
   const first = tree.children[0];
@@ -167,7 +170,7 @@ export function normaliseForCmarker(source: string, options: NormaliseOptions = 
   if (minDepth < topLevel && minDepth <= 6) {
     const shift = topLevel - minDepth;
     visit(tree, "heading", (node: Heading) => {
-      node.depth = Math.min(6, node.depth + shift) as Heading["depth"];
+      node.depth = clampHeadingDepth(node.depth + shift);
     });
   }
 
@@ -185,14 +188,11 @@ export function normaliseForCmarker(source: string, options: NormaliseOptions = 
     escapedHtml.push(node.value);
 
     if (parent.type === "root" && isBlockish(replacement)) {
-      const wrapped: Paragraph = {
-        type: "paragraph",
-        children: replacement as Paragraph["children"],
-      };
+      const wrapped: Paragraph = { type: "paragraph", children: replacement };
 
       parent.children.splice(index, 1, wrapped);
     } else {
-      parent.children.splice(index, 1, ...(replacement as never[]));
+      parent.children.splice(index, 1, ...replacement);
     }
 
     return index;
@@ -239,10 +239,9 @@ function plainHeading(node: Heading): string {
   let out = "";
 
   const walk = (current: MdastNodes): void => {
-    if ("value" in current && typeof current.value === "string") out += current.value;
-    const children = (current as { children?: MdastNodes[] }).children;
+    if ("value" in current) out += current.value;
 
-    if (children) for (const child of children) walk(child);
+    if ("children" in current) for (const child of current.children) walk(child);
   };
 
   walk(node);

@@ -10,7 +10,7 @@
 import { participationStart } from "../contestTiming";
 import type { FormatData } from "../types";
 import { pyRound } from "../util/number";
-import type { ContestFormat, ParticipationUpdate, UpdateParticipationInput } from "./base";
+import type { ContestFormat, FormatConfigInput, ParticipationUpdate, UpdateParticipationInput } from "./base";
 import {
   breakdown,
   buildParticipationResult,
@@ -18,19 +18,17 @@ import {
   cumtimeSeconds,
   FormatConfigError,
   groupByProblem,
+  isJsonObject,
   numberLabel,
-  orderedProblemIds,
+  orderedProblemGroups,
   pointsPrecision,
   secondsSince,
 } from "./base";
 
-export function validateDefaultConfig(config: unknown): void {
+export function validateDefaultConfig(config: FormatConfigInput): void {
   if (config === null || config === undefined) return;
 
-  const isEmptyDict =
-    typeof config === "object" && !Array.isArray(config) && Object.keys(config).length === 0;
-
-  if (!isEmptyDict) {
+  if (!isJsonObject(config) || Object.keys(config).length > 0) {
     throw new FormatConfigError("default contest expects no config or empty dict as config");
   }
 }
@@ -45,8 +43,7 @@ export function updateParticipationDefault(input: UpdateParticipationInput): Par
 
   const groups = groupByProblem(submissions, participation.id);
 
-  for (const problemId of orderedProblemIds(groups, contestProblems)) {
-    const rows = groups.get(problemId) as { date: number; contestPoints: number }[];
+  for (const [problemId, rows] of orderedProblemGroups(groups, contestProblems)) {
     // MAX(submission.date), MAX(contest submission points), grouped by problem.
     const time = Math.max(...rows.map((row) => row.date));
     const best = Math.max(...rows.map((row) => row.contestPoints));

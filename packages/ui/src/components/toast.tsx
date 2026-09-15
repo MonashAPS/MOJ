@@ -3,6 +3,10 @@
 import { AlertCircle, CheckCircle2, Info, Loader2, TriangleAlert } from "lucide-react";
 import { Toaster as Sonner, type ToasterProps, toast } from "sonner";
 
+// SAFETY: csstype narrows `zIndex` to a number, but the DOM takes any CSS value
+// here and the layering token is resolved by the browser.
+const TOASTER_STYLE = { zIndex: "var(--z-toast)" } as React.CSSProperties;
+
 /** Toasts are for things that happened elsewhere or asynchronously. A copy button
  *  shows an inline check; a form error belongs on the field. */
 export function Toaster(props: ToasterProps) {
@@ -34,7 +38,7 @@ export function Toaster(props: ToasterProps) {
           info: "!border-l-[3px] !border-l-run",
         },
       }}
-      style={{ zIndex: "var(--z-toast)" } as React.CSSProperties}
+      style={TOASTER_STYLE}
       {...props}
     />
   );

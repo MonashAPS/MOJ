@@ -30,12 +30,14 @@ import {
   contestShowScoreboard,
   contestStarted,
 } from "./permissions";
+import type { CommonUsers } from "./test.fixtures";
 import {
   commonUsers,
   createContest,
   createParticipation,
   createUser,
   DAY,
+  defined,
   HOUR,
   NOW,
   withOrganizations,
@@ -63,7 +65,7 @@ type Method = (typeof METHODS)[number];
 
 type Matrix = Record<string, Partial<Record<Method, boolean>>>;
 
-function buildUsers(): Record<string, Viewer> {
+function buildUsers(): CommonUsers {
   const users = commonUsers();
   Object.assign(users, {
     staff_contest_edit_own: createUser("staff_contest_edit_own", {
@@ -274,22 +276,26 @@ function context(contest: ContestRow, viewer: Viewer) {
 
 function checkMatrix(contest: ContestRow, matrix: Matrix): void {
   for (const [username, methods] of Object.entries(matrix)) {
-    const viewer = users[username] as Viewer;
+    const viewer = users[username];
     const ctx = context(contest, viewer);
 
-    for (const [method, expected] of Object.entries(methods) as [Method, boolean][]) {
-      const actual = {
-        can_see_own_scoreboard: () => contestCanSeeOwnScoreboard(contest, viewer, ctx),
-        can_see_full_scoreboard: () => contestCanSeeFullScoreboard(contest, viewer, ctx),
-        is_live_joinable_by: () => contestIsLiveJoinableBy(contest, viewer, ctx),
-        is_spectatable_by: () => contestIsSpectatableBy(contest, viewer),
-        is_accessible_by: () => contestIsAccessibleBy(contest, viewer),
-        is_editable_by: () => contestIsEditableBy(contest, viewer),
-        is_in_contest: () => contestIsInContest(contest, viewer),
-        has_completed_contest: () => contestHasCompletedContest(contest, viewer, ctx),
-      }[method]();
+    const run: Record<Method, () => boolean> = {
+      can_see_own_scoreboard: () => contestCanSeeOwnScoreboard(contest, viewer, ctx),
+      can_see_full_scoreboard: () => contestCanSeeFullScoreboard(contest, viewer, ctx),
+      is_live_joinable_by: () => contestIsLiveJoinableBy(contest, viewer, ctx),
+      is_spectatable_by: () => contestIsSpectatableBy(contest, viewer),
+      is_accessible_by: () => contestIsAccessibleBy(contest, viewer),
+      is_editable_by: () => contestIsEditableBy(contest, viewer),
+      is_in_contest: () => contestIsInContest(contest, viewer),
+      has_completed_contest: () => contestHasCompletedContest(contest, viewer, ctx),
+    };
 
-      expect(actual, `${method}/${username}/${contest.key}`).toBe(expected);
+    for (const method of METHODS) {
+      const expected = methods[method];
+
+      if (expected === undefined) continue;
+
+      expect(run[method](), `${method}/${username}/${contest.key}`).toBe(expected);
     }
   }
 }
@@ -607,7 +613,7 @@ describe("ContestTestCase", () => {
 
   it("test_private_contest_methods", () => {
     // A user must be both in an allowed organization and in the private list.
-    const normalOpenOrg = users.normal_open_org as Viewer;
+    const normalOpenOrg = users.normal_open_org;
     expect(contestAccessCheck(contests.private, normalOpenOrg)).toEqual({
       kind: "privateContest",
       organizationIds: [],
@@ -871,7 +877,9 @@ describe("ContestTestCase", () => {
   it("test_contests_list: is_accessible_by and get_visible_contests agree", () => {
     const all = Object.values(contests);
 
-    for (const [username, viewer] of Object.entries(users)) {
+    for (const username of Object.keys(users)) {
+      const viewer = users[username];
+
       const accessible = all
         .filter((contest) => contestIsAccessibleBy(contest, viewer))
         .map((contest) => contest.key)
@@ -887,7 +895,7 @@ describe("ContestTestCase", () => {
   });
 
   it("test_live_participation", () => {
-    const participation = liveParticipation("hidden_scoreboard", "normal") as ContestParticipationRow;
+    const participation = defined(liveParticipation("hidden_scoreboard", "normal"), "live participation");
     const contest = contests.hidden_scoreboard;
     expect(participationIsLive(participation)).toBe(true);
     expect(participationIsSpectating(participation)).toBe(false);
