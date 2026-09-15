@@ -1,31 +1,29 @@
 // @vitest-environment edge-runtime
 
-import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { sha256Hex } from "./lib/hash";
 import {
+  asUser,
   judgeRow,
   languageRow,
   problemRow,
   profileRow,
   siteSettingsRow,
-  solvedSubmissionRow,
-} from "./lib/testing";
-import schema from "./schema";
-
-const modules = import.meta.glob("./**/*.ts");
+  submissionRow,
+} from "./test.fixtures";
+import { setupTest } from "./test.setup";
 
 async function seed() {
-  const t = convexTest(schema, modules);
+  const t = setupTest();
   const ids = await t.run(async (ctx) => {
     await ctx.db.insert("siteSettings", siteSettingsRow());
-    await ctx.db.insert("profiles", profileRow("plain"));
-    await ctx.db.insert("profiles", profileRow("staffy", { isStaff: true }));
+    await ctx.db.insert("profiles", profileRow({ username: "plain" }));
+    await ctx.db.insert("profiles", profileRow({ username: "staffy", isStaff: true }));
     const admin = await ctx.db.insert(
       "profiles",
-      profileRow("judgeadmin", { permissions: ["judge.change_judge"], isStaff: true }),
+      profileRow({ username: "judgeadmin", permissions: ["judge.change_judge"], isStaff: true }),
     );
     return { admin };
   });
@@ -35,9 +33,10 @@ async function seed() {
 describe("judge keys", () => {
   test("creation returns the key once and stores only its hash", async () => {
     const { t } = await seed();
-    const created = await t
-      .withIdentity({ subject: "user-judgeadmin" })
-      .mutation(api.admin.judges.create, { name: "judge.example.com", description: "Main judge" });
+    const created = await asUser(t, "judgeadmin").mutation(api.admin.judges.create, {
+      name: "judge.example.com",
+      description: "Main judge",
+    });
 
     expect(created.authKey).toHaveLength(64);
     expect(created.authKey).toMatch(/^[A-Za-z0-9]+$/);
@@ -50,7 +49,7 @@ describe("judge keys", () => {
 
   test("two judges never get the same key", async () => {
     const { t } = await seed();
-    const admin = t.withIdentity({ subject: "user-judgeadmin" });
+    const admin = asUser(t, "judgeadmin");
     const first = await admin.mutation(api.admin.judges.create, { name: "a" });
     const second = await admin.mutation(api.admin.judges.create, { name: "b" });
     expect(first.authKey).not.toBe(second.authKey);
@@ -58,7 +57,7 @@ describe("judge keys", () => {
 
   test("regenerating replaces the stored hash", async () => {
     const { t } = await seed();
-    const admin = t.withIdentity({ subject: "user-judgeadmin" });
+    const admin = asUser(t, "judgeadmin");
     const created = await admin.mutation(api.admin.judges.create, { name: "a" });
     const before = await t.run(async (ctx) => (await ctx.db.get(created.id))?.authKeyHash);
 
@@ -71,17 +70,15 @@ describe("judge keys", () => {
 
   test("duplicate names are refused and the permission is enforced", async () => {
     const { t } = await seed();
-    const admin = t.withIdentity({ subject: "user-judgeadmin" });
+    const admin = asUser(t, "judgeadmin");
     await admin.mutation(api.admin.judges.create, { name: "a" });
     await expect(admin.mutation(api.admin.judges.create, { name: "a" })).rejects.toThrow(/already exists/);
-    await expect(
-      t.withIdentity({ subject: "user-staffy" }).mutation(api.admin.judges.create, { name: "c" }),
-    ).rejects.toThrow();
+    await expect(asUser(t, "staffy").mutation(api.admin.judges.create, { name: "c" })).rejects.toThrow();
   });
 
   test("disconnect records a flag the judge picks up on its heartbeat", async () => {
     const { t } = await seed();
-    const admin = t.withIdentity({ subject: "user-judgeadmin" });
+    const admin = asUser(t, "judgeadmin");
     const created = await admin.mutation(api.admin.judges.create, { name: "a" });
 
     await admin.mutation(api.admin.judges.disconnect, { id: created.id, force: true });
@@ -101,9 +98,18 @@ describe("status page", () => {
     await t.run(async (ctx) => {
       await ctx.db.insert(
         "judges",
-        judgeRow("online.example.com", "hash-a", { online: true, ping: 0.021, load: 0.5 }),
+        judgeRow({
+          name: "online.example.com",
+          authKeyHash: "hash-a",
+          online: true,
+          ping: 0.021,
+          load: 0.5,
+        }),
       );
-      await ctx.db.insert("judges", judgeRow("offline.example.com", "hash-b"));
+      await ctx.db.insert(
+        "judges",
+        judgeRow({ name: "offline.example.com", authKeyHash: "hash-b", online: false }),
+      );
     });
 
     const anonymous = await t.query(api.status.page, {});
@@ -111,7 +117,7 @@ describe("status page", () => {
     expect(anonymous.seeAllJudges).toBe(false);
     expect(anonymous.judges[0]?.pingMs).toBeCloseTo(21);
 
-    const staff = await t.withIdentity({ subject: "user-staffy" }).query(api.status.page, {});
+    const staff = await asUser(t, "staffy").query(api.status.page, {});
     expect(staff.judges.map((judge) => judge.name)).toEqual(["online.example.com", "offline.example.com"]);
     expect(staff.seeAllJudges).toBe(true);
   });
@@ -119,9 +125,12 @@ describe("status page", () => {
   test("runtime versions group by judge and language", async () => {
     const { t } = await seed();
     await t.run(async (ctx) => {
-      const judgeId = await ctx.db.insert("judges", judgeRow("j.example.com", "hash", { online: true }));
-      const python = await ctx.db.insert("languages", languageRow("PY3", "Python 3"));
-      const cpp = await ctx.db.insert("languages", languageRow("CPP17", "C++17"));
+      const judgeId = await ctx.db.insert(
+        "judges",
+        judgeRow({ name: "j.example.com", authKeyHash: "hash", online: true }),
+      );
+      const python = await ctx.db.insert("languages", languageRow({ key: "PY3", name: "Python 3" }));
+      const cpp = await ctx.db.insert("languages", languageRow({ key: "CPP17", name: "C++17" }));
       await ctx.db.insert("runtimeVersions", {
         languageId: python,
         judgeId,
@@ -164,9 +173,9 @@ describe("languages", () => {
       if (admin) await ctx.db.patch(admin._id, { permissions: ["judge.change_language"] });
 
       const groupId = await ctx.db.insert("problemGroups", { name: "misc", fullName: "Misc" });
-      const source = await ctx.db.insert("languages", languageRow("PY3", "Python 3"));
-      const target = await ctx.db.insert("languages", languageRow("PYPY3", "PyPy 3"));
-      const problemId = await ctx.db.insert("problems", problemRow("alpha", groupId));
+      const source = await ctx.db.insert("languages", languageRow({ key: "PY3", name: "Python 3" }));
+      const target = await ctx.db.insert("languages", languageRow({ key: "PYPY3", name: "PyPy 3" }));
+      const problemId = await ctx.db.insert("problems", problemRow({ code: "alpha", groupId }));
       await ctx.db.patch(problemId, { allowedLanguageIds: [source] });
       await ctx.db.insert("languageLimits", {
         problemId,
@@ -177,9 +186,10 @@ describe("languages", () => {
       return { source, target, problemId };
     });
 
-    const result = await t
-      .withIdentity({ subject: "user-judgeadmin" })
-      .mutation(api.admin.languages.copyLanguage, { sourceKey: "PY3", targetKey: "PYPY3" });
+    const result = await asUser(t, "judgeadmin").mutation(api.admin.languages.copyLanguage, {
+      sourceKey: "PY3",
+      targetKey: "PYPY3",
+    });
     expect(result).toEqual({ problems: 1, limits: 1 });
 
     const problem = await t.run(async (ctx) => await ctx.db.get(ids.problemId));
@@ -199,10 +209,10 @@ describe("languages", () => {
         .withIndex("by_username", (q) => q.eq("username", "judgeadmin"))
         .unique();
       if (admin) await ctx.db.patch(admin._id, { permissions: ["judge.change_language"] });
-      await ctx.db.insert("languages", languageRow("PY3", "Python 3"));
+      await ctx.db.insert("languages", languageRow({ key: "PY3", name: "Python 3" }));
     });
     await expect(
-      t.withIdentity({ subject: "user-judgeadmin" }).mutation(api.admin.languages.copyLanguage, {
+      asUser(t, "judgeadmin").mutation(api.admin.languages.copyLanguage, {
         sourceKey: "PY3",
         targetKey: "NOPE",
       }),
@@ -215,19 +225,37 @@ describe("language statistics", () => {
     const { t } = await seed();
     await t.run(async (ctx) => {
       const groupId = await ctx.db.insert("problemGroups", { name: "misc", fullName: "Misc" });
-      const problemId = await ctx.db.insert("problems", problemRow("alpha", groupId));
-      const python = await ctx.db.insert("languages", languageRow("PY3", "Python 3"));
-      const cpp = await ctx.db.insert("languages", languageRow("CPP17", "C++17"));
-      const profileId = await ctx.db.insert("profiles", profileRow("submitter"));
+      const problemId = await ctx.db.insert("problems", problemRow({ code: "alpha", groupId }));
+      const python = await ctx.db.insert("languages", languageRow({ key: "PY3", name: "Python 3" }));
+      const cpp = await ctx.db.insert("languages", languageRow({ key: "CPP17", name: "C++17" }));
+      const profileId = await ctx.db.insert("profiles", profileRow({ username: "submitter" }));
 
-      await ctx.db.insert("submissions", solvedSubmissionRow(profileId, problemId, python));
-      await ctx.db.insert("submissions", solvedSubmissionRow(profileId, problemId, python));
-      await ctx.db.insert("submissions", {
-        ...solvedSubmissionRow(profileId, problemId, cpp),
-        result: "WA" as const,
-        casePoints: 0,
-        points: 0,
-      });
+      const accepted = () =>
+        submissionRow({
+          profileId,
+          problemId,
+          languageId: python,
+          result: "AC",
+          points: 100,
+          casePoints: 100,
+          caseTotal: 100,
+          priority: 0,
+        });
+      await ctx.db.insert("submissions", accepted());
+      await ctx.db.insert("submissions", accepted());
+      await ctx.db.insert(
+        "submissions",
+        submissionRow({
+          profileId,
+          problemId,
+          languageId: cpp,
+          result: "WA",
+          points: 0,
+          casePoints: 0,
+          caseTotal: 100,
+          priority: 0,
+        }),
+      );
     });
 
     await t.mutation(internal.stats.refresh, {});

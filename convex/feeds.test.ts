@@ -1,40 +1,50 @@
 // @vitest-environment edge-runtime
 
-import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
-import { blogPostRow, contestRow, problemRow, profileRow, siteSettingsRow } from "./lib/testing";
-import schema from "./schema";
-
-const modules = import.meta.glob("./**/*.ts");
+import {
+  asUser,
+  insertBlogPost,
+  insertContest,
+  insertProblem,
+  insertProblemGroup,
+  insertProfile,
+  insertSiteSettings,
+} from "./test.fixtures";
+import { setupTest } from "./test.setup";
 
 async function seed() {
-  const t = convexTest(schema, modules);
+  const t = setupTest();
   const ids = await t.run(async (ctx) => {
-    await ctx.db.insert("siteSettings", siteSettingsRow());
-    const author = await ctx.db.insert("profiles", profileRow("author"));
-    await ctx.db.insert("profiles", profileRow("ghost", { isUnlisted: true }));
+    await insertSiteSettings(ctx);
+    const author = await insertProfile(ctx, { username: "author" });
+    await insertProfile(ctx, { username: "ghost", isUnlisted: true });
 
-    const groupId = await ctx.db.insert("problemGroups", { name: "misc", fullName: "Misc" });
-    const publicProblem = await ctx.db.insert(
-      "problems",
-      problemRow("alpha", groupId, { date: 2_000, description: "Public statement." }),
-    );
-    await ctx.db.insert("problems", problemRow("beta", groupId, { date: 3_000, isPublic: false }));
-    await ctx.db.insert(
-      "problems",
-      problemRow("gamma", groupId, { date: 4_000, isOrganizationPrivate: true }),
-    );
+    const groupId = await insertProblemGroup(ctx, { name: "misc" });
+    const publicProblem = await insertProblem(ctx, {
+      code: "alpha",
+      groupId,
+      date: 2_000,
+      description: "Public statement.",
+    });
+    await insertProblem(ctx, { code: "beta", groupId, date: 3_000, isPublic: false });
+    await insertProblem(ctx, {
+      code: "gamma",
+      groupId,
+      date: 4_000,
+      isOrganizationPrivate: true,
+    });
 
-    const post = await ctx.db.insert(
-      "blogPosts",
-      blogPostRow("Hello & welcome", { publishOn: 1_000, summary: "A <summary>." }),
-    );
-    await ctx.db.insert("blogPosts", blogPostRow("Draft", { visible: false }));
+    const post = await insertBlogPost(ctx, {
+      title: "Hello & welcome",
+      publishOn: 1_000,
+      summary: "A <summary>.",
+    });
+    await insertBlogPost(ctx, { title: "Draft", visible: false });
 
-    await ctx.db.insert("contests", contestRow("open", { startTime: 10_000, endTime: 20_000 }));
-    await ctx.db.insert("contests", contestRow("hidden", { isVisible: false }));
-    await ctx.db.insert("contests", contestRow("secret", { isPrivate: true }));
+    await insertContest(ctx, { key: "open", startTime: 10_000, endTime: 20_000 });
+    await insertContest(ctx, { key: "hidden", isVisible: false });
+    await insertContest(ctx, { key: "secret", isPrivate: true });
 
     await ctx.db.insert("comments", {
       targetType: "problem",
@@ -90,10 +100,8 @@ describe("feed queries", () => {
 
   test("a signed-in staff member gets no more than an anonymous reader", async () => {
     const { t } = await seed();
-    await t.run(async (ctx) => {
-      await ctx.db.insert("profiles", profileRow("boss", { isSuperuser: true, isStaff: true }));
-    });
-    const asStaff = await t.withIdentity({ subject: "user-boss" }).query(api.feeds.comments, {});
+    await insertProfile(t, { username: "boss", isSuperuser: true, isStaff: true });
+    const asStaff = await asUser(t, "boss").query(api.feeds.comments, {});
     expect(asStaff.map((item) => item.body)).toEqual(["Nice problem <3"]);
   });
 
@@ -150,7 +158,7 @@ describe("feed queries", () => {
   });
 
   test("the site block falls back when there are no settings", async () => {
-    const t = convexTest(schema, modules);
+    const t = setupTest();
     const site = await t.query(api.feeds.site, {});
     expect(site.siteName).toBe("MOJ");
   });

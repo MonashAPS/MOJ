@@ -73,9 +73,9 @@ workspaces, so they need `-w`.
 
 ## Tests
 
-Unit tests are Vitest and live beside the code as `*.test.ts`. Test-only helpers sit beside them as `test.*.ts`
-or `*.fixtures.ts`, fixture data goes in `__fixtures__/`, and file snapshots go in `__snapshots__/` next to the
-test that owns them. The parts of the system worth testing hardest are in `packages/core`, because they are pure:
+Unit tests are Vitest and live beside the code as `<module>.test.ts`, and a module with more than one test file
+splits them as `<module>.<topic>.test.ts`. Test-only helpers sit beside them as `test.*.ts` or `*.fixtures.ts`,
+fixture data goes in `__fixtures__/`, and file snapshots go in `__snapshots__/` next to the test that owns them. The parts of the system worth testing hardest are in `packages/core`, because they are pure:
 the contest formats, the rating calculation, the permission rules, the verdict ordering and the freeze logic all
 take data and return data.
 
@@ -89,8 +89,13 @@ Convex functions are tested with `convex-test`, which runs the real function cod
 Those files carry `// @vitest-environment edge-runtime` at the top, because the convex project runs `node`.
 
 Two naming rules matter under `convex/`. Convex's bundler skips any file whose basename has more than one dot, so
-test files (`*.test.ts`) and their helpers (`*.fixtures.ts`, `*.setup.ts`) never reach a deployment. A
-single-dot helper there would be pushed.
+test files (`*.test.ts`) and their helpers never reach a deployment. A single-dot helper there would be pushed.
+
+Those helpers are two files. `convex/test.setup.ts` holds the harness: `setupTest()` returns a deployment with
+every component in `convex/convex.config.ts` registered, and `judgeClient()` speaks the judge wire protocol over
+HTTP. `convex/test.fixtures.ts` holds the rows: `<table>Row(overrides)` builds one with every schema field filled
+in, `insert<Table>(target, overrides)` writes one and returns its id, and a target is either a `MutationCtx` or
+the harness itself.
 
 The judge has its own end-to-end test in `apps/judge/tests/`, driven by `e2e.py`. It stands up a mock of the judge
 API, runs the real container against it, and asserts the exact event sequence for a submission that is accepted,

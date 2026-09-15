@@ -1,13 +1,17 @@
 // @vitest-environment edge-runtime
 
-import rateLimiter from "@convex-dev/rate-limiter/test";
-import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
-import { languageRow, problemRow, profileRow, siteSettingsRow } from "./lib/testing";
-import schema from "./schema";
-
-const modules = import.meta.glob("./**/*.ts");
+import {
+  asUser,
+  insertLanguage,
+  insertProblem,
+  insertProblemGroup,
+  insertProfile,
+  insertSiteSettings,
+  insertSubmission,
+} from "./test.fixtures";
+import { setupTest, type T } from "./test.setup";
 
 /**
  * Every imported problem sits on `submission_source_visibility = 'F'`,
@@ -15,69 +19,50 @@ const modules = import.meta.glob("./**/*.ts");
  * submission's source. These check that the site setting reaches
  * `Submission.can_see_detail`.
  */
-async function seed(t: ReturnType<typeof convexTest>, visibility?: "all" | "all-solved" | "only-own") {
+async function seed(t: T, visibility?: "all" | "all-solved" | "only-own") {
   return await t.run(async (ctx) => {
-    await ctx.db.insert(
-      "siteSettings",
-      siteSettingsRow(visibility === undefined ? {} : { submissionSourceVisibility: visibility }),
-    );
-    const languageId = await ctx.db.insert("languages", languageRow());
-    const groupId = await ctx.db.insert("problemGroups", { name: "misc", fullName: "Misc" });
-    const problemId = await ctx.db.insert("problems", problemRow("alpha", groupId));
+    await insertSiteSettings(ctx, visibility === undefined ? {} : { submissionSourceVisibility: visibility });
+    const languageId = await insertLanguage(ctx);
+    const groupId = await insertProblemGroup(ctx, { name: "misc" });
+    const problemId = await insertProblem(ctx, { code: "alpha", groupId });
 
-    const author = await ctx.db.insert("profiles", profileRow("author"));
-    await ctx.db.insert("profiles", profileRow("onlooker"));
+    const author = await insertProfile(ctx, { username: "author" });
+    await insertProfile(ctx, { username: "onlooker" });
 
-    const submissionId = await ctx.db.insert("submissions", {
+    const submissionId = await insertSubmission(ctx, {
       profileId: author,
       problemId,
-      date: Date.now(),
       languageId,
-      status: "D" as const,
-      result: "AC" as const,
-      currentTestcase: 0,
-      batch: false,
+      result: "AC",
+      points: 100,
       casePoints: 100,
       caseTotal: 100,
-      isPretested: false,
-      isArchived: false,
       priority: 0,
-      retryCount: 0,
-      points: 100,
     });
-    await ctx.db.insert("submissionSources", { submissionId, source: "print(1)" });
-    // `profileRow` derives userId as `user-<username>`.
-    return { submissionId, onlookerId: "user-onlooker" };
+    return { submissionId };
   });
-}
-
-function identity(userId: string) {
-  return { subject: userId, tokenIdentifier: userId, issuer: "test" };
 }
 
 describe("global submission source visibility", () => {
   test("all-solved hides the source from someone who has not solved it", async () => {
-    const t = convexTest(schema, modules);
-    rateLimiter.register(t);
-    const { submissionId, onlookerId } = await seed(t, "all-solved");
-    const result = await t.withIdentity(identity(onlookerId)).query(api.submissions.source, { submissionId });
+    const t = setupTest();
+    const { submissionId } = await seed(t, "all-solved");
+    const result = await asUser(t, "onlooker").query(api.submissions.source, { submissionId });
     expect(result?.canSeeSource).toBe(false);
   });
 
   test("all shows the source to anyone signed in", async () => {
-    const t = convexTest(schema, modules);
-    rateLimiter.register(t);
-    const { submissionId, onlookerId } = await seed(t, "all");
-    const result = await t.withIdentity(identity(onlookerId)).query(api.submissions.source, { submissionId });
+    const t = setupTest();
+    const { submissionId } = await seed(t, "all");
+    const result = await asUser(t, "onlooker").query(api.submissions.source, { submissionId });
     expect(result?.canSeeSource).toBe(true);
     expect(result?.source).toBe("print(1)");
   });
 
   test("an unset setting falls back to DMOJ's all-solved default", async () => {
-    const t = convexTest(schema, modules);
-    rateLimiter.register(t);
-    const { submissionId, onlookerId } = await seed(t, undefined);
-    const result = await t.withIdentity(identity(onlookerId)).query(api.submissions.source, { submissionId });
+    const t = setupTest();
+    const { submissionId } = await seed(t, undefined);
+    const result = await asUser(t, "onlooker").query(api.submissions.source, { submissionId });
     expect(result?.canSeeSource).toBe(false);
   });
 });
