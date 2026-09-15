@@ -102,13 +102,11 @@ function ListTable({
   rows,
   renderWhen,
   action,
-  inContest,
 }: {
   caption: string;
   rows: ContestListRow[];
   renderWhen?: (contest: ContestListRow) => React.ReactNode;
   action?: (contest: ContestListRow) => React.ReactNode;
-  inContest: boolean;
 }) {
   const columns = useTranslations("contests.columns");
 
@@ -120,7 +118,7 @@ function ListTable({
           <TableRow>
             <TableHead className="w-full">{columns("contest")}</TableHead>
             <TableHead numeric>{columns("users")}</TableHead>
-            {action && !inContest ? <TableHead className="w-[1%]" /> : null}
+            {action ? <TableHead className="w-[1%]" /> : null}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -130,9 +128,7 @@ function ListTable({
               <TableCell numeric className="align-middle">
                 <UserCount count={contest.userCount} href={`/contest/${contest.key}/ranking/`} />
               </TableCell>
-              {action && !inContest ? (
-                <TableCell className="relative z-1 align-middle">{action(contest)}</TableCell>
-              ) : null}
+              {action ? <TableCell className="relative z-1 align-middle">{action(contest)}</TableCell> : null}
             </TableRow>
           ))}
         </TableBody>
@@ -186,7 +182,6 @@ export function ContestListClient({
   tagName,
   sort,
   descending,
-  inContest,
 }: {
   args: ContestListArgs;
   initial: ContestListPayload | null;
@@ -195,7 +190,6 @@ export function ContestListClient({
   tagName: string;
   sort: string;
   descending: boolean;
-  inContest: boolean;
 }) {
   const t = useTranslations("contests.list");
   const columns = useTranslations("contests.columns");
@@ -289,7 +283,6 @@ export function ContestListClient({
         <ListTable
           caption={t("ongoing")}
           rows={data.current}
-          inContest={inContest}
           renderWhen={(contest) => <Countdown sentence="endsIn" endsAt={contest.endTime} />}
           action={(contest) => (
             <JoinControl
@@ -387,7 +380,7 @@ export function ContestListClient({
                 <TableRow>
                   <TableHead className="w-full">{sortLink("name", columns("contest"))}</TableHead>
                   <TableHead numeric>{sortLink("userCount", columns("users"))}</TableHead>
-                  {!inContest ? <TableHead className="w-[1%]" /> : null}
+                  <TableHead className="w-[1%]" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -397,15 +390,13 @@ export function ContestListClient({
                     <TableCell numeric className="align-middle">
                       <UserCount count={contest.userCount} href={`/contest/${contest.key}/ranking/`} />
                     </TableCell>
-                    {!inContest ? (
-                      <TableCell className="relative z-1 align-middle">
-                        <Tooltip content={t("virtualHint")}>
-                          <span className="inline-block">
-                            <JoinControl contestKey={contest.key} kind="virtual" full size="default" />
-                          </span>
-                        </Tooltip>
-                      </TableCell>
-                    ) : null}
+                    <TableCell className="relative z-1 align-middle">
+                      <Tooltip content={t("virtualHint")}>
+                        <span className="inline-block">
+                          <JoinControl contestKey={contest.key} kind="virtual" full size="default" />
+                        </span>
+                      </Tooltip>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

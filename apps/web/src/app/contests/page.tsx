@@ -85,7 +85,6 @@ export default async function ContestsPage({
         tagName={tagName}
         sort={sort}
         descending={descending}
-        inContest={viewerState?.inContest ?? false}
       />
     </>
   );

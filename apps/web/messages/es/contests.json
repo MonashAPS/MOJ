@@ -290,7 +290,12 @@
       }
     },
     "banned": "Has sido declarado persona non grata para este concurso. Tienes prohibido unirte a él de forma permanente.",
-    "blocked": "No puedes unirte a este concurso."
+    "blocked": "No puedes unirte a este concurso.",
+    "switch": {
+      "title": "¿Salir de tu concurso actual?",
+      "body": "Estás en «{contest}». Unirte a este concurso te sacará de él.",
+      "action": "Salir y unirse"
+    }
   },
   "actions": {
     "noSuchContest": "El concurso no existe.",
