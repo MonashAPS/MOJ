@@ -44,6 +44,7 @@ RUN set -eux; \
 FROM node:${NODE_VERSION}-bookworm-slim AS deps
 WORKDIR /repo
 COPY package.json package-lock.json ./
+COPY convex/package.json convex/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY packages/content/package.json packages/content/package.json
 COPY packages/core/package.json packages/core/package.json
