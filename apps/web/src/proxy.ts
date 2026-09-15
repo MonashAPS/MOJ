@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { COMPROMISED_COOKIE } from "@/auth/password-compromised";
+import { PATHNAME_HEADER } from "@/lib/contest-lockdown";
 import { readJsonBody } from "@/lib/json-body";
 import { convexSiteUrl } from "@/lib/public-config.server";
 
@@ -89,6 +90,18 @@ async function fetchSession(request: NextRequest): Promise<SessionResponse | nul
   }
 }
 
+/**
+ * Pass the request through, telling the server components which path they are
+ * rendering. A layout cannot ask, and the contest lockdown has to be decided
+ * before a page renders rather than after it reaches the browser.
+ */
+function pass(request: NextRequest): NextResponse {
+  const headers = new Headers(request.headers);
+  headers.set(PATHNAME_HEADER, request.nextUrl.pathname);
+
+  return NextResponse.next({ request: { headers } });
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -117,12 +130,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
-  if (EXEMPT_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return NextResponse.next();
+  if (EXEMPT_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return pass(request);
 
   // Cheap negative check: no session cookie, nothing to gate.
   const cookieHeader = request.headers.get("cookie") ?? "";
 
-  if (!cookieHeader.includes("moj.session_token")) return NextResponse.next();
+  if (!cookieHeader.includes("moj.session_token")) return pass(request);
 
   if (request.cookies.get(COMPROMISED_COOKIE)?.value === "1") {
     const url = request.nextUrl.clone();
@@ -143,7 +156,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  return NextResponse.next();
+  return pass(request);
 }
 
 export const config = {

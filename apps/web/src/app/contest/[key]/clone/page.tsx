@@ -18,16 +18,11 @@ export async function generateMetadata({ params }: { params: Promise<{ key: stri
 export default async function ContestClonePage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
 
-  const [detail, viewerState] = await Promise.all([
-    queryAsViewer(api.contests.get, { key }).catch(() => null),
-    queryAsViewer(api.viewer.current, {}).catch(() => null),
-  ]);
+  const [detail] = await Promise.all([queryAsViewer(api.contests.get, { key }).catch(() => null)]);
 
   if (!detail || detail.access.kind === "notFound" || detail.access.kind === "inaccessible") notFound();
 
   if (!detail.contest || !detail.viewer.canClone) notFound();
 
-  return (
-    <CloneForm contestKey={key} detail={detail} viewerUsername={viewerState?.profile?.username ?? null} />
-  );
+  return <CloneForm contestKey={key} detail={detail} />;
 }

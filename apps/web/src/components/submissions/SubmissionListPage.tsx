@@ -31,6 +31,7 @@ function listOf(value: string | string[] | undefined): string[] {
  */
 export async function SubmissionListPage({
   filters,
+  header,
   showProblem = true,
   dynamic = true,
   searchParams,
@@ -44,6 +45,9 @@ export async function SubmissionListPage({
   searchParams: SearchParams;
   /** Which tab the current view is; DMOJ's `tab`. */
   tab: "all" | "mine" | "user";
+  /** Chrome to draw instead of this page's own title and tabs. A contest's
+   *  submissions belong to the contest and wear its heading, not the site's. */
+  header?: ReactNode;
   /** `/problem/<code>/rank/`, only on a problem's own lists. */
   bestSubmissionsHref?: string;
   breadcrumb?: ReactNode;
@@ -124,12 +128,14 @@ export async function SubmissionListPage({
 
   return (
     <>
-      <TitleRow
-        title={await contentTitle(context, filters, isOwn)}
-        breadcrumb={breadcrumb}
-        tabs={tabs}
-        active={tab === "user" ? "user" : tab === "mine" ? "mine" : "all"}
-      />
+      {header ?? (
+        <TitleRow
+          title={await contentTitle(context, filters, isOwn)}
+          breadcrumb={breadcrumb}
+          tabs={tabs}
+          active={tab === "user" ? "user" : tab === "mine" ? "mine" : "all"}
+        />
+      )}
       <div id="content-body">
         <SubmissionList
           filters={filters}

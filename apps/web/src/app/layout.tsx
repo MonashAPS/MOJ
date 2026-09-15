@@ -1,7 +1,8 @@
 import { api } from "@convex/_generated/api";
 import { ratingClass } from "@moj/ui";
 import type { Metadata, Viewport } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { ConvexClientProvider } from "@/auth/convex-client";
 import { getServerSession } from "@/auth/session";
@@ -9,6 +10,7 @@ import { BrandingStyle } from "@/components/shell/BrandingStyle";
 import { SiteShell } from "@/components/shell/SiteShell";
 import { ThemeScript } from "@/components/shell/ThemeScript";
 import { UiText } from "@/components/shell/UiText";
+import { isInsideContest, PATHNAME_HEADER } from "@/lib/contest-lockdown";
 import { query, queryAsViewer } from "@/lib/convex-server";
 import { gravatarUrl } from "@/lib/gravatar";
 import { viewerLanguage } from "@/lib/language.server";
@@ -51,14 +53,28 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // hostnames, and the layout is rendered on every request.
   const config = publicConfig();
 
-  const [shell, viewerState, session, language, branding, jar] = await Promise.all([
+  const [shell, viewerState, session, language, branding, jar, joined, requestHeaders] = await Promise.all([
     query(api.site.shell, {}).catch(() => null),
     queryAsViewer(api.viewer.current, {}).catch(() => null),
     getServerSession().catch(() => null),
     viewerLanguage(),
     query(api.site.branding, {}).catch(() => null),
     cookies(),
+    queryAsViewer(api.contests.navBar, {}).catch(() => null),
+    headers(),
   ]);
+
+  // A locked-down contest is the whole site for as long as someone is competing
+  // in it, so a typed URL or a second tab is turned back here, before the page
+  // it asked for is rendered at all.
+  if (joined?.contest.isLockedDown) {
+    const pathname = requestHeaders.get(PATHNAME_HEADER);
+    const codes = joined.problems.map((problem) => problem.code);
+
+    if (pathname && !isInsideContest(pathname, joined.contest.key, codes)) {
+      redirect(`/contest/${joined.contest.key}/`);
+    }
+  }
 
   // Rendering the attribute here rather than leaving it to the inline script
   // means the theme is in the markup a hard refresh receives, and it matches

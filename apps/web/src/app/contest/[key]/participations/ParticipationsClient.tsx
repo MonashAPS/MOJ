@@ -46,14 +46,12 @@ export function ParticipationsClient({
   contestKey,
   detail,
   initial,
-  viewerUsername,
   subject,
   isOwn,
 }: {
   contestKey: string;
   detail: ContestDetail;
   initial: ParticipationRow[] | null;
-  viewerUsername: string | null;
   subject: string | null;
   isOwn: boolean;
 }) {
@@ -94,7 +92,7 @@ export function ParticipationsClient({
             ) : null}
           </span>
         }
-        tabs={contestTabs(detail, contestKey, viewerUsername, tabLabels)}
+        tabs={contestTabs(detail, contestKey, tabLabels)}
         active="participation"
         action={
           joinKind ? <JoinControl contestKey={contestKey} kind={joinKind} long size="default" /> : undefined

@@ -43,7 +43,6 @@ export default async function ContestUserParticipationsPage({
       contestKey={key}
       detail={detail}
       initial={rows}
-      viewerUsername={viewerUsername}
       subject={user}
       isOwn={viewerUsername === user}
     />

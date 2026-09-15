@@ -28,14 +28,5 @@ export default async function ContestParticipationsPage({ params }: { params: Pr
 
   const username = viewerState?.profile?.username ?? null;
 
-  return (
-    <ParticipationsClient
-      contestKey={key}
-      detail={detail}
-      initial={rows}
-      viewerUsername={username}
-      subject={username}
-      isOwn
-    />
-  );
+  return <ParticipationsClient contestKey={key} detail={detail} initial={rows} subject={username} isOwn />;
 }

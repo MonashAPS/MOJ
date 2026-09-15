@@ -60,8 +60,7 @@
     "submissions": "Submissions",
     "moss": "MOSS",
     "edit": "Edit",
-    "clone": "Clone",
-    "allSubmissions": "All submissions"
+    "clone": "Clone"
   },
   "list": {
     "title": "Contests",
@@ -382,8 +381,7 @@
     "disqualifiedBadge": "DQ",
     "stillRunning": "{time} · still running",
     "disqualifiedNote": "Disqualified: this run does not score.",
-    "points": "{points} points",
-    "metaAllSubmissions": "All submissions for {key}"
+    "points": "{points} points"
   },
   "stats": {
     "metaTitle": "{name} statistics",
@@ -535,5 +533,10 @@
   "progress": {
     "solvedCount": "{solved}/{total} solved",
     "solvedOne": "solved"
+  },
+  "submissions": {
+    "metaTitle": "Submissions for {key}",
+    "scopeAll": "Everyone",
+    "scopeMine": "Mine"
   }
 }

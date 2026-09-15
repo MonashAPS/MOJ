@@ -40,12 +40,10 @@ export function MossClient({
   contestKey,
   detail,
   moss,
-  viewerUsername,
 }: {
   contestKey: string;
   detail: ContestDetail;
   moss: MossPayload | null;
-  viewerUsername: string | null;
 }) {
   const t = useTranslations("contests.moss");
   const columns = useTranslations("contests.columns");
@@ -101,7 +99,7 @@ export function MossClient({
             ) : null}
           </span>
         }
-        tabs={contestTabs(detail, contestKey, viewerUsername, tabLabels)}
+        tabs={contestTabs(detail, contestKey, tabLabels)}
         active="moss"
         action={
           joinKind ? <JoinControl contestKey={contestKey} kind={joinKind} long size="default" /> : undefined

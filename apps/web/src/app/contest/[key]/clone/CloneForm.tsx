@@ -10,15 +10,7 @@ import { contestTabs } from "../tabs";
 
 /** `contest/clone.html`: one field, one button, and the clone opens hidden with
  *  the cloner as its only author. */
-export function CloneForm({
-  contestKey,
-  detail,
-  viewerUsername,
-}: {
-  contestKey: string;
-  detail: ContestDetail;
-  viewerUsername: string | null;
-}) {
+export function CloneForm({ contestKey, detail }: { contestKey: string; detail: ContestDetail }) {
   const [state, formAction, pending] = useActionState(cloneContest, null);
   const t = useTranslations("contests.clone");
   const tabLabels = useTranslations("contests.tabs");
@@ -42,7 +34,7 @@ export function CloneForm({
             ) : null}
           </span>
         }
-        tabs={contestTabs(detail, contestKey, viewerUsername, tabLabels)}
+        tabs={contestTabs(detail, contestKey, tabLabels)}
         active="clone"
       />
 

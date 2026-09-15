@@ -16,22 +16,14 @@ export async function generateMetadata({ params }: { params: Promise<{ key: stri
 export default async function ContestMossPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
 
-  const [detail, moss, viewerState] = await Promise.all([
+  const [detail, moss] = await Promise.all([
     queryAsViewer(api.contests.get, { key }).catch(() => null),
     queryAsViewer(api.contests.tools.moss, { key }).catch(() => null),
-    queryAsViewer(api.viewer.current, {}).catch(() => null),
   ]);
 
   if (!detail || detail.access.kind === "notFound" || detail.access.kind === "inaccessible") notFound();
 
   if (!detail.contest || !detail.viewer.canEdit) notFound();
 
-  return (
-    <MossClient
-      contestKey={key}
-      detail={detail}
-      moss={moss}
-      viewerUsername={viewerState?.profile?.username ?? null}
-    />
-  );
+  return <MossClient contestKey={key} detail={detail} moss={moss} />;
 }
