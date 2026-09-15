@@ -1,0 +1,37 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": [
+        "infra/scripts/*.mjs",
+        "lefthook.yml"
+      ],
+      "project": [
+        "infra/scripts/**/*.mjs"
+      ]
+    },
+    "convex": {
+      "entry": [
+        "**/*.ts",
+        "!**/*.test.ts",
+        "!_generated/**"
+      ],
+      "project": [
+        "**/*.ts",
+        "!_generated/**"
+      ]
+    },
+    "apps/web": {
+      "entry": [
+        "scripts/*.ts"
+      ],
+      "project": [
+        "src/**/*.{ts,tsx}",
+        "scripts/*.ts"
+      ]
+    },
+    "packages/*": {},
+    "tools/*": {},
+    "docs": {}
+  }
+}

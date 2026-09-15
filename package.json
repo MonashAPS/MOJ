@@ -30,13 +30,16 @@
     "convex:codegen": "convex codegen",
     "convex:deploy": "convex deploy",
     "seed": "convex run seed:run '{}'",
-    "prepare": "npm run build --workspace packages/content"
+    "prepare": "npm run build --workspace packages/content && lefthook install",
+    "knip": "knip"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.13",
     "@types/node": "^26.5.1",
     "concurrently": "^10.0.5",
     "convex": "^1.45.0",
+    "knip": "^6.35.1",
+    "lefthook": "^2.1.14",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2",
     "vitest": "^5.0.0"

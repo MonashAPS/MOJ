@@ -1,0 +1,17 @@
+# Set BIOME or OXLINT to run the binaries another way (for example through
+# steam-run on NixOS). LEFTHOOK=0 skips every hook.
+pre-commit:
+  parallel: true
+  jobs:
+    - name: biome
+      glob: "*.{ts,tsx,mts,mjs,js,css,md}"
+      run: ${BIOME:-npx biome} check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+    - name: oxlint
+      glob: "*.{ts,tsx,mts,mjs,js}"
+      run: ${OXLINT:-npx oxlint} {staged_files}
+
+commit-msg:
+  jobs:
+    - name: conventional commit
+      run: node infra/scripts/check-commit-message.mjs {1}
