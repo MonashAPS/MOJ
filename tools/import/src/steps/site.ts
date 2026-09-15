@@ -1,3 +1,4 @@
+import { JUDGE_LANGUAGES } from "./judgeLanguages.ts";
 import type { Step } from "./types.ts";
 
 const SHIKI_ALIASES = new Map<string, string>([
@@ -37,12 +38,15 @@ const languagesStep: Step = {
   sources: ["judge_language"],
   async run(ctx) {
     const emitter = ctx.emitter("languages");
+    const imported = new Set<string>();
 
     for await (const row of ctx.rows("judge_language")) {
       ctx.report.counts("languages").read++;
       const pygments = row.s("pygments");
+      const key = row.s("key");
+      imported.add(key);
       await emitter.emit({
-        key: row.s("key"),
+        key,
         name: row.s("name"),
         shortName: row.s("short_name"),
         commonName: row.s("common_name"),
@@ -53,6 +57,26 @@ const languagesStep: Step = {
         description: row.s("description"),
         extension: row.s("extension"),
         legacyId: row.id(),
+      });
+    }
+
+    // The source only knows the languages that site was configured with, which
+    // is why the judge has been able to run Node.js and C++20 for as long as
+    // nobody could pick them. Anything it did not name gets a row here.
+    for (const language of JUDGE_LANGUAGES) {
+      if (imported.has(language.key)) continue;
+      ctx.report.counts("languages").read++;
+      await emitter.emit({
+        key: language.key,
+        name: language.name,
+        shortName: language.shortName,
+        commonName: language.commonName,
+        editorMode: language.editorMode,
+        shikiLang: language.shikiLang,
+        template: "",
+        info: "",
+        description: language.description ?? "",
+        extension: language.extension,
       });
     }
   },
