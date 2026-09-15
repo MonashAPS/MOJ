@@ -8,6 +8,7 @@ import {
   type GlobalSubmissionSourceVisibility,
   type ProfileRow,
 } from "@moj/core";
+import type { Value } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { contestByKey } from "../contests/formats";
@@ -117,16 +118,12 @@ export async function coreViewer(
     isStaff: profile.isStaff,
     isSuperuser: profile.isSuperuser,
     permissions: profile.permissions,
-    organizationIds: memberships.map((row) => row.organizationId as string),
-    classIds: classes
-      .filter((row) => row.memberProfileIds.includes(profile._id))
-      .map((row) => row._id as string),
+    organizationIds: memberships.map((row) => row.organizationId),
+    classIds: classes.filter((row) => row.memberProfileIds.includes(profile._id)).map((row) => row._id),
     adminOfOrganizationIds: organizations
       .filter((row) => row.adminProfileIds.includes(profile._id))
-      .map((row) => row._id as string),
-    adminOfClassIds: classes
-      .filter((row) => row.adminProfileIds.includes(profile._id))
-      .map((row) => row._id as string),
+      .map((row) => row._id),
+    adminOfClassIds: classes.filter((row) => row.adminProfileIds.includes(profile._id)).map((row) => row._id),
     isUnlisted: profile.isUnlisted,
     isBannedFromProblemVoting: profile.isBannedFromProblemVoting,
     mute: profile.mute,
@@ -305,7 +302,7 @@ export async function writeRevision(
   ctx: MutationCtx,
   entityType: string,
   entityId: string,
-  snapshot: unknown,
+  snapshot: Value,
   authorProfileId: Id<"profiles"> | undefined,
   reason: string,
 ): Promise<Id<"revisions">> {

@@ -118,11 +118,12 @@ export function toParticipationRow(participation: Doc<"contestParticipations">):
  */
 export function toContestSubmissionRow(
   submission: Doc<"submissions">,
+  contestProblemId: Id<"contestProblems">,
   testCases?: readonly SubmissionTestCaseRow[],
 ): ContestSubmissionRow {
   return {
     id: submission._id,
-    contestProblemId: submission.contestProblemId as string,
+    contestProblemId,
     participationId: submission.participationId ?? undefined,
     contestPoints: submission.contestPoints ?? 0,
     casePoints: submission.casePoints,
@@ -147,7 +148,7 @@ export async function toViewerRow(ctx: AnyCtx, profile: Doc<"profiles"> | null):
     .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
     .collect();
 
-  const organizationIds = memberships.map((row) => row.organizationId as string);
+  const organizationIds = memberships.map((row) => row.organizationId);
 
   const classIds: string[] = [];
   const adminOfOrganizationIds: string[] = [];
@@ -249,7 +250,9 @@ export async function contestSubmissionRows(
   const rows: ContestSubmissionRow[] = [];
 
   for (const submission of submissions) {
-    if (!submission.contestProblemId) continue;
+    const contestProblemId = submission.contestProblemId;
+
+    if (!contestProblemId) continue;
     // Only ioi16 reads per-case rows, so nothing else pays for the query.
     let testCases: SubmissionTestCaseRow[] | undefined;
 
@@ -261,6 +264,8 @@ export async function contestSubmissionRows(
 
       testCases = cases.map((row) => ({
         case: row.case,
+        // SAFETY: `submissionTestCases.status` is only ever written by `decodeCaseStatus`,
+        // whose return type is `SubmissionResult`; the column itself is a plain string.
         status: row.status as SubmissionTestCaseRow["status"],
         time: row.time,
         memory: row.memory,
@@ -270,7 +275,7 @@ export async function contestSubmissionRows(
       }));
     }
 
-    rows.push(toContestSubmissionRow(submission, testCases));
+    rows.push(toContestSubmissionRow(submission, contestProblemId, testCases));
   }
 
   return rows;
@@ -296,7 +301,7 @@ export function labelsForContest(contest: Doc<"contests">, count: number): strin
 export type FormatChoice = {
   name: string;
   displayName: string;
-  configDefaults: Record<string, unknown>;
+  configDefaults: ContestFormat["configDefaults"];
   defaultLabelScheme: string;
 };
 
@@ -345,9 +350,9 @@ export const validate = query({
   },
 });
 
-export function describeFormatError(error: unknown): string {
-  if (error instanceof FormatConfigError || error instanceof UnknownContestFormatError) {
-    return error.message;
+export function describeFormatError(cause: unknown): string {
+  if (cause instanceof FormatConfigError || cause instanceof UnknownContestFormatError) {
+    return cause.message;
   }
 
   return "Invalid contest format configuration.";

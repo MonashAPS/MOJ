@@ -12,7 +12,9 @@ import { v } from "convex/values";
 import { strToU8, zipSync } from "fflate";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { internalAction, internalMutation, internalQuery } from "../_generated/server";
+import { internalAction, internalMutation, internalQuery, type QueryCtx } from "../_generated/server";
+import { plainBytes } from "../lib/bytes";
+import { isJsonArray, isJsonObject, isJsonString, type JsonObject } from "../lib/json";
 
 /** How many submissions are read (and zipped) per scheduler slice. */
 const CHUNK = 200;
@@ -24,6 +26,25 @@ export type ExportArgs = {
   submissionProblemGlob: string;
   submissionResults: string[];
 };
+
+/** `jobs.args` is plain JSON, so the options `dataExport.prepare` wrote are read back here. */
+function exportArgs(ctx: QueryCtx, job: Doc<"jobs">): ExportArgs | null {
+  const args = isJsonObject(job.args) ? job.args : {};
+  const stored = args.profileId;
+  const profileId = isJsonString(stored) ? ctx.db.normalizeId("profiles", stored) : null;
+
+  if (profileId === null) return null;
+  const glob = args.submissionProblemGlob;
+  const results = args.submissionResults;
+
+  return {
+    profileId,
+    submissionDownload: args.submissionDownload === true,
+    commentDownload: args.commentDownload === true,
+    submissionProblemGlob: isJsonString(glob) ? glob : "*",
+    submissionResults: isJsonArray(results) ? results.filter(isJsonString) : [],
+  };
+}
 
 /** `judge/tasks/user.py` compresses runs of `*` before translating the glob. */
 export function globToRegExp(glob: string): RegExp {
@@ -39,12 +60,12 @@ export function globToRegExp(glob: string): RegExp {
   return new RegExp(`^${source}$`);
 }
 
-const RELATED_OBJECT: Record<string, string> = {
-  blog: "blog post",
-  contest: "contest",
-  problem: "problem",
-  solution: "problem editorial",
-};
+const RELATED_OBJECT = new Map<string, string>([
+  ["blog", "blog post"],
+  ["contest", "contest"],
+  ["problem", "problem"],
+  ["solution", "problem editorial"],
+]);
 
 export type ExportSubmission = {
   id: Id<"submissions">;
@@ -84,7 +105,9 @@ export const loadExport = internalQuery({
     const job = await ctx.db.get(jobId);
 
     if (!job) return null;
-    const args = job.args as ExportArgs;
+    const args = exportArgs(ctx, job);
+
+    if (!args) return null;
     const profile = await ctx.db.get(args.profileId);
 
     if (!profile) return null;
@@ -149,7 +172,7 @@ export const loadExport = internalQuery({
           id: row._id,
           legacyId: row.legacyId,
           date: row.time,
-          relatedObject: RELATED_OBJECT[row.targetType] ?? row.targetType,
+          relatedObject: RELATED_OBJECT.get(row.targetType) ?? row.targetType,
           page: row.targetKey,
           score: row.score,
           body: row.body,
@@ -232,7 +255,7 @@ export const run = internalAction({
 
       if (data.submissions.length > 0) {
         const total = data.submissions.length;
-        const submissionInfo: Record<string, unknown> = {};
+        const submissionInfo: JsonObject = {};
         let prepared = 0;
 
         for (const submission of data.submissions) {
@@ -268,7 +291,7 @@ export const run = internalAction({
 
       if (data.comments.length > 0) {
         const total = data.comments.length;
-        const commentInfo: Record<string, unknown> = {};
+        const commentInfo: JsonObject = {};
         let prepared = 0;
 
         for (const comment of data.comments) {
@@ -298,7 +321,7 @@ export const run = internalAction({
       }
 
       const zipped = zipSync(files, { level: 6 });
-      const blob = new Blob([zipped as BlobPart], { type: "application/zip" });
+      const blob = new Blob([plainBytes(zipped)], { type: "application/zip" });
       const storageId = await ctx.storage.store(blob);
       const name = `${data.username}-data.zip`;
 
@@ -345,15 +368,19 @@ export const exportProfileId = internalQuery({
   handler: async (ctx, { jobId }): Promise<Id<"profiles"> | null> => {
     const job = await ctx.db.get(jobId);
 
-    return job ? ((job.args as ExportArgs).profileId ?? null) : null;
+    return job ? (exportArgs(ctx, job)?.profileId ?? null) : null;
   },
 });
 
 /** `json.dumps(..., sort_keys=True, indent=4)`. */
-export function sortedJson(value: Record<string, unknown>): string {
-  const sorted: Record<string, unknown> = {};
+export function sortedJson(value: JsonObject): string {
+  const sorted: JsonObject = {};
 
-  for (const key of Object.keys(value).sort()) sorted[key] = value[key];
+  for (const key of Object.keys(value).sort()) {
+    const entry = value[key];
+
+    if (entry !== undefined) sorted[key] = entry;
+  }
 
   return JSON.stringify(sorted, null, 4);
 }

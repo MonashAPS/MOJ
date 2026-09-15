@@ -625,11 +625,13 @@ export const request = mutation({
 
     let classId: Id<"classes"> | undefined;
 
-    if (args.classSlug) {
+    const classSlug = args.classSlug;
+
+    if (classSlug) {
       const klass = await ctx.db
         .query("classes")
         .withIndex("by_organization_slug", (q) =>
-          q.eq("organizationId", organization._id).eq("slug", args.classSlug as string),
+          q.eq("organizationId", organization._id).eq("slug", classSlug),
         )
         .unique();
 

@@ -26,11 +26,13 @@ import {
   type ApiErrorCode,
   MAX_IMAGE_BYTES,
   PROBLEMS_WRITE_SCOPE,
+  type ProblemUpsertResponse,
   problemTestDataInput,
   problemUpsertInput,
 } from "@moj/protocol";
 import type { HttpRouter } from "convex/server";
-import { v } from "convex/values";
+import { type Value, v } from "convex/values";
+import { z } from "zod";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import {
@@ -42,6 +44,7 @@ import {
 } from "../_generated/server";
 import { groupIdByName, typeIdsByName, writeProblemRevision } from "../admin/problems";
 import { sha256Hex } from "../lib/hash";
+import type { JsonValue } from "../lib/json";
 import { PROBLEM_CODE_PATTERN, problemByCode, toCoreProblem } from "../problems";
 import { inspectArchive } from "../problems/data";
 import { MAX_VALIDATED_ARCHIVE_BYTES } from "../problems/testData";
@@ -52,7 +55,7 @@ import { MAX_VALIDATED_ARCHIVE_BYTES } from "../problems/testData";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8" } as const;
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: Value, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
 }
 
@@ -79,6 +82,18 @@ function bearerToken(request: Request): string | null {
 
   return match?.[1]?.trim() || null;
 }
+
+/** What `POST /api/auth/api-key/verify` answers, of the fields this reads. */
+const verifyResponseSchema = z.object({
+  valid: z.boolean().optional(),
+  key: z
+    .object({
+      userId: z.string().optional(),
+      permissions: z.record(z.string(), z.array(z.string())).nullish(),
+      enabled: z.boolean().optional(),
+    })
+    .optional(),
+});
 
 /**
  * Better Auth's api-key plugin exposes `POST /api/auth/api-key/verify`, which
@@ -108,16 +123,18 @@ async function verifyWithBetterAuth(
 
   if (!response.ok) return null;
 
-  let body: {
-    valid?: boolean;
-    key?: { userId?: string; permissions?: Record<string, string[]> | null; enabled?: boolean };
-  };
+  let payload: JsonValue | null;
 
   try {
-    body = (await response.json()) as typeof body;
+    payload = await response.json();
   } catch {
     return null;
   }
+
+  const verified = verifyResponseSchema.safeParse(payload);
+
+  if (!verified.success) return null;
+  const body = verified.data;
 
   if (!body.valid || !body.key?.userId) return null;
 
@@ -267,6 +284,7 @@ export const upsertProblem = internalMutation({
     const existing = await problemByCode(ctx, code);
     const created = existing === null;
     const warnings: string[] = [];
+    const name = body.name?.trim() ?? "";
 
     if (created) {
       if (!PROBLEM_CODE_PATTERN.test(code) || code.length > 20) {
@@ -276,7 +294,7 @@ export const upsertProblem = internalMutation({
         };
       }
 
-      if (!body.name?.trim()) {
+      if (!name) {
         return { status: "invalid" as const, message: "A new problem requires a name." };
       }
 
@@ -331,7 +349,7 @@ export const upsertProblem = internalMutation({
 
       problemId = await ctx.db.insert("problems", {
         code,
-        name: (body.name as string).trim(),
+        name,
         description: body.statement ?? "",
         authorProfileIds: wantsPeople(body.authors) ? await resolveProfiles(body.authors ?? []) : [],
         curatorProfileIds: wantsPeople(body.curators) ? await resolveProfiles(body.curators ?? []) : [],
@@ -361,7 +379,7 @@ export const upsertProblem = internalMutation({
       const patch: Partial<Doc<"problems">> = {};
 
       // Absent means unchanged, exactly as the uploader's `*Provided` flags did.
-      if (body.name?.trim()) patch.name = body.name.trim();
+      if (name) patch.name = name;
 
       if (body.statement !== undefined) patch.description = body.statement;
 
@@ -459,6 +477,7 @@ export const upsertProblem = internalMutation({
       created ? "Created through the problems API." : "Updated through the problems API.",
     );
 
+    // SAFETY: `problemId` was inserted or patched in this transaction, so the read hits.
     const problem = (await ctx.db.get(problemId)) as Doc<"problems">;
     const group = await ctx.db.get(problem.groupId);
     const typeNames: string[] = [];
@@ -602,10 +621,9 @@ const DATA_PATH = /^\/api\/problems\/([a-z.0-9]+)\/data\/?$/;
 const DATA_UPLOAD_URL_PATH = /^\/api\/problems\/([a-z.0-9]+)\/data\/upload-url\/?$/;
 
 const upsertHandler = httpAction(async (ctx, request) => {
-  const match = UPSERT_PATH.exec(new URL(request.url).pathname);
+  const [, code] = UPSERT_PATH.exec(new URL(request.url).pathname) ?? [];
 
-  if (!match) return errorResponse("not_found", "No such endpoint.");
-  const code = match[1] as string;
+  if (code === undefined) return errorResponse("not_found", "No such endpoint.");
 
   const identity = await authenticate(ctx, request);
 
@@ -645,19 +663,21 @@ const upsertHandler = httpAction(async (ctx, request) => {
 
   if (result.status === "invalid") return errorResponse("invalid", result.message);
 
-  return jsonResponse({
+  const response: ProblemUpsertResponse = {
     ok: true,
     created: result.created,
     problem: result.problem,
-    ...(result.warnings.length > 0 ? { warnings: result.warnings } : {}),
-  });
+  };
+
+  if (result.warnings.length > 0) response.warnings = result.warnings;
+
+  return jsonResponse(response);
 });
 
 async function uploadImage(ctx: ActionCtx, request: Request): Promise<Response> {
-  const match = IMAGES_PATH.exec(new URL(request.url).pathname);
+  const [, code] = IMAGES_PATH.exec(new URL(request.url).pathname) ?? [];
 
-  if (!match) return errorResponse("not_found", "No such endpoint.");
-  const code = match[1] as string;
+  if (code === undefined) return errorResponse("not_found", "No such endpoint.");
 
   const identity = await authenticate(ctx, request);
 
@@ -767,11 +787,11 @@ async function publisherFor(ctx: ActionCtx, request: Request, code: string): Pro
 }
 
 async function dataStatus(ctx: ActionCtx, request: Request): Promise<Response> {
-  const match = DATA_PATH.exec(new URL(request.url).pathname);
+  const [, code] = DATA_PATH.exec(new URL(request.url).pathname) ?? [];
 
-  if (!match) return errorResponse("not_found", "No such endpoint.");
+  if (code === undefined) return errorResponse("not_found", "No such endpoint.");
 
-  const publisher = await publisherFor(ctx, request, match[1] as string);
+  const publisher = await publisherFor(ctx, request, code);
 
   if (!publisher.ok) return publisher.response;
 
@@ -794,11 +814,11 @@ async function dataStatus(ctx: ActionCtx, request: Request): Promise<Response> {
  * storage id it got back.
  */
 async function dataUploadUrl(ctx: ActionCtx, request: Request): Promise<Response> {
-  const match = DATA_UPLOAD_URL_PATH.exec(new URL(request.url).pathname);
+  const [, code] = DATA_UPLOAD_URL_PATH.exec(new URL(request.url).pathname) ?? [];
 
-  if (!match) return errorResponse("not_found", "No such endpoint.");
+  if (code === undefined) return errorResponse("not_found", "No such endpoint.");
 
-  const publisher = await publisherFor(ctx, request, match[1] as string);
+  const publisher = await publisherFor(ctx, request, code);
 
   if (!publisher.ok) return publisher.response;
 
@@ -806,11 +826,11 @@ async function dataUploadUrl(ctx: ActionCtx, request: Request): Promise<Response
 }
 
 async function dataPublish(ctx: ActionCtx, request: Request): Promise<Response> {
-  const match = DATA_PATH.exec(new URL(request.url).pathname);
+  const [, code] = DATA_PATH.exec(new URL(request.url).pathname) ?? [];
 
-  if (!match) return errorResponse("not_found", "No such endpoint.");
+  if (code === undefined) return errorResponse("not_found", "No such endpoint.");
 
-  const publisher = await publisherFor(ctx, request, match[1] as string);
+  const publisher = await publisherFor(ctx, request, code);
 
   if (!publisher.ok) return publisher.response;
 
@@ -837,6 +857,8 @@ async function dataPublish(ctx: ActionCtx, request: Request): Promise<Response> 
   let blob: Blob | null = null;
 
   try {
+    // SAFETY: the publisher echoes back the id `generateUploadUrl` handed it; an id
+    // that resolves to nothing throws here and is caught as "upload not found".
     blob = await ctx.storage.get(parsed.data.storageId as Id<"_storage">);
   } catch {
     blob = null;
@@ -852,6 +874,7 @@ async function dataPublish(ctx: ActionCtx, request: Request): Promise<Response> 
     if (inspected.error) return errorResponse("invalid", inspected.error);
   }
 
+  // SAFETY: the blob above was fetched with this same id, so it names a stored file.
   const result = await ctx.runMutation(internal.problems.testData.record, {
     problemId: publisher.problemId,
     storageId: parsed.data.storageId as Id<"_storage">,
@@ -883,10 +906,12 @@ const postHandler = httpAction(async (ctx, request) => {
 const dataStatusHandler = httpAction(dataStatus);
 
 const imageFetchHandler = httpAction(async (ctx, request) => {
-  const match = IMAGE_FETCH_PATH.exec(new URL(request.url).pathname);
+  const [, storageId] = IMAGE_FETCH_PATH.exec(new URL(request.url).pathname) ?? [];
 
-  if (!match) return new Response("Not found", { status: 404 });
-  const blob = await ctx.storage.get(match[1] as Id<"_storage">);
+  if (storageId === undefined) return new Response("Not found", { status: 404 });
+  // SAFETY: the path segment is the opaque storage id `uploadImage` put in the link
+  // it returned; `storage.get` answers null for one that no longer resolves.
+  const blob = await ctx.storage.get(storageId as Id<"_storage">);
 
   if (!blob) return new Response("Not found", { status: 404 });
 
@@ -919,12 +944,12 @@ export function registerProblemsApiRoutes(http: HttpRouter): void {
  * (`PY3`, `PYPY3`). Match the key as written first, then the documented
  * aliases, then case-insensitively, so a repo can write either.
  */
-const LANGUAGE_KEY_ALIASES: Record<string, string> = {
-  python2: "PY2",
-  python3: "PY3",
-  pypy2: "PYPY",
-  pypy3: "PYPY3",
-};
+const LANGUAGE_KEY_ALIASES = new Map<string, string>([
+  ["python2", "PY2"],
+  ["python3", "PY3"],
+  ["pypy2", "PYPY"],
+  ["pypy3", "PYPY3"],
+]);
 
 async function languageForKey(ctx: MutationCtx, key: string): Promise<Doc<"languages"> | null> {
   const exact = await ctx.db
@@ -934,7 +959,7 @@ async function languageForKey(ctx: MutationCtx, key: string): Promise<Doc<"langu
 
   if (exact) return exact;
 
-  const alias = LANGUAGE_KEY_ALIASES[key.toLowerCase()];
+  const alias = LANGUAGE_KEY_ALIASES.get(key.toLowerCase());
 
   if (alias) {
     const aliased = await ctx.db

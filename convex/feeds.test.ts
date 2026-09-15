@@ -72,7 +72,7 @@ async function seed() {
     });
     await ctx.db.insert("comments", {
       targetType: "blog",
-      targetKey: post as string,
+      targetKey: post,
       authorProfileId: author,
       time: 7_000,
       score: 0,

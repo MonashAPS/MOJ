@@ -335,7 +335,13 @@ type SurvivorMap = Map<Id<"languages">, Id<"languages">>;
  * Picks a survivor per duplicated key. Deterministic, so every pass of a
  * chained repair agrees on which row is being kept.
  */
-function planDuplicates(rows: Doc<"languages">[]): { keys: string[]; survivorOf: SurvivorMap } {
+/** The duplicate keys found and where each loser's references move to. */
+type DuplicatePlan = {
+  keys: string[];
+  survivorOf: SurvivorMap;
+};
+
+function planDuplicates(rows: Doc<"languages">[]): DuplicatePlan {
   const byKey = new Map<string, Doc<"languages">[]>();
 
   for (const row of rows) {
@@ -364,9 +370,11 @@ function planDuplicates(rows: Doc<"languages">[]): { keys: string[]; survivorOf:
       return a._id < b._id ? -1 : a._id > b._id ? 1 : 0;
     });
 
-    const survivor = ranked[0] as Doc<"languages">;
+    const [survivor, ...losers] = ranked;
 
-    for (const loser of ranked.slice(1)) survivorOf.set(loser._id, survivor._id);
+    if (survivor === undefined) continue;
+
+    for (const loser of losers) survivorOf.set(loser._id, survivor._id);
   }
 
   keys.sort();
@@ -526,9 +534,9 @@ async function rewriteReferences(
   const start = Math.max(DEDUPE_TABLES.indexOf(from.table), 0);
   let rewritten = 0;
 
-  for (let i = start; i < DEDUPE_TABLES.length; i++) {
-    const table = DEDUPE_TABLES[i] as DedupeTable;
-    let cursor = i === start ? from.cursor : null;
+  for (const [index, table] of DEDUPE_TABLES.entries()) {
+    if (index < start) continue;
+    let cursor = index === start ? from.cursor : null;
 
     for (;;) {
       if (budget.reads <= 0 || budget.writes <= 0) return { rewritten, next: { table, cursor } };

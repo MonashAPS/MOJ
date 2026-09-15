@@ -25,13 +25,15 @@ import {
   judgeDataQuerySchema,
 } from "@moj/protocol/judge";
 import type { HttpRouter } from "convex/server";
-import { ConvexError } from "convex/values";
+import { ConvexError, type Value } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { httpAction } from "../_generated/server";
+import { errorPayload } from "../lib/errors";
 import { sha256Hex } from "../lib/hash";
+import { isJsonObject, type JsonValue } from "../lib/json";
 
-function json(body: unknown, status = 200): Response {
+function json(body: Value, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "content-type": "application/json" },
@@ -46,7 +48,7 @@ function clientIp(request: Request): string | undefined {
   return request.headers.get("cf-connecting-ip") ?? undefined;
 }
 
-async function readJson(request: Request): Promise<unknown> {
+async function readJson(request: Request): Promise<JsonValue | null> {
   try {
     return await request.json();
   } catch {
@@ -60,23 +62,23 @@ async function readJson(request: Request): Promise<unknown> {
  * retries. Never a 500: the judge treats every failure the same way, but an
  * operator reading the log deserves the reason.
  */
-function errorResponse(error: unknown): Response {
-  if (error instanceof ConvexError) {
-    const data = error.data as { code?: string; message?: string } | undefined;
+function errorResponse(cause: unknown): Response {
+  if (cause instanceof ConvexError) {
+    const data = errorPayload(cause);
     const status = data?.code === "FORBIDDEN" ? 403 : 400;
 
     return json({ error: data?.message ?? "request failed" }, status);
   }
 
-  const message = error instanceof Error ? error.message : String(error);
+  const message = cause instanceof Error ? cause.message : String(cause);
 
   return json({ error: message }, 400);
 }
 
 /** `GET /judge/data` answers `{ok: false, error}` rather than a bare `{error}`. */
-function dataErrorResponse(error: unknown): Response {
-  if (error instanceof ConvexError) {
-    const data = error.data as { code?: string; message?: string } | undefined;
+function dataErrorResponse(cause: unknown): Response {
+  if (cause instanceof ConvexError) {
+    const data = errorPayload(cause);
 
     return json(
       { ok: false, error: data?.message ?? "request failed" },
@@ -84,7 +86,7 @@ function dataErrorResponse(error: unknown): Response {
     );
   }
 
-  return json({ ok: false, error: error instanceof Error ? error.message : String(error) }, 400);
+  return json({ ok: false, error: cause instanceof Error ? cause.message : String(cause) }, 400);
 }
 
 export function registerJudgeRoutes(http: HttpRouter): void {
@@ -100,8 +102,8 @@ export function registerJudgeRoutes(http: HttpRouter): void {
         const result = await ctx.runMutation(internal.judging.handshake, {
           judgeName: parsed.data.judgeName,
           authKeyHash: await sha256Hex(parsed.data.judgeKey),
-          problems: parsed.data.problems as unknown[][],
-          executors: parsed.data.executors as Record<string, unknown[][]>,
+          problems: parsed.data.problems,
+          executors: parsed.data.executors,
           ip: clientIp(request),
         });
 
@@ -125,8 +127,8 @@ export function registerJudgeRoutes(http: HttpRouter): void {
           judgeName: parsed.data.judgeName,
           authKeyHash: await sha256Hex(parsed.data.judgeKey),
           load: parsed.data.load ?? undefined,
-          problems: parsed.data.problems as unknown[][] | undefined,
-          executors: parsed.data.executors as Record<string, unknown[][]> | undefined,
+          problems: parsed.data.problems,
+          executors: parsed.data.executors,
           ip: clientIp(request),
         });
 
@@ -167,7 +169,8 @@ export function registerJudgeRoutes(http: HttpRouter): void {
 
       if (!parsed.success) {
         // Say which event type was rejected: the judge logs the body back.
-        const type = (body as { event?: { type?: unknown } } | null)?.event?.type;
+        const event = isJsonObject(body) ? body.event : undefined;
+        const type = isJsonObject(event) ? event.type : undefined;
 
         return json({ ok: false, error: `malformed ${JSON.stringify(type ?? null)} event` }, 400);
       }

@@ -2,7 +2,6 @@
 
 import { describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
 import {
   asUser,
   HOUR,
@@ -126,8 +125,8 @@ describe("frozenCells", () => {
     expect(frozen).not.toBeNull();
     expect(frozen?.cells).toEqual([
       {
-        participationId: participationId as Id<"contestParticipations">,
-        contestProblemId: contestProblemId as Id<"contestProblems">,
+        participationId,
+        contestProblemId,
         pending: 2,
       },
     ]);

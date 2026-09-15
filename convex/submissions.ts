@@ -24,7 +24,7 @@ import {
   problemIsVisibleTo,
   type SubmissionResult,
 } from "@moj/core";
-import { paginationOptsValidator } from "convex/server";
+import { paginationOptsValidator, type WithoutSystemFields } from "convex/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, type QueryCtx, query } from "./_generated/server";
@@ -94,7 +94,7 @@ export async function coreProfile(
     .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
     .collect();
 
-  const organizationIds = memberships.map((row) => row.organizationId as string);
+  const organizationIds = memberships.map((row) => row.organizationId);
 
   const adminOfOrganizationIds: string[] = [];
 
@@ -166,6 +166,11 @@ export async function viewerContext(ctx: QueryCtx): Promise<ViewerContext> {
   return { profile, viewer, participation, contest, inContest: live && contest !== null };
 }
 
+/** DMOJ's `viewer.id in contest.<role>`, over a viewer whose id is an opaque string. */
+function lists(profileIds: readonly string[], profileId: string): boolean {
+  return profileIds.includes(profileId);
+}
+
 /**
  * `SubmissionsListBase._get_queryset`'s contest arm: outside contest mode a
  * submission made in a contest is only listed when the viewer is its author, or
@@ -183,13 +188,13 @@ function contestSubmissionsVisible(contest: Doc<"contests">, viewer: CoreViewer,
 
   if (!viewer) return false;
 
-  if (contest.authorProfileIds.includes(viewer.id as Id<"profiles">)) return true;
+  if (lists(contest.authorProfileIds, viewer.id)) return true;
 
-  if (contest.curatorProfileIds.includes(viewer.id as Id<"profiles">)) return true;
+  if (lists(contest.curatorProfileIds, viewer.id)) return true;
 
-  if (contest.viewContestSubmissionsProfileIds.includes(viewer.id as Id<"profiles">)) return true;
+  if (lists(contest.viewContestSubmissionsProfileIds, viewer.id)) return true;
 
-  if (contest.testerSeeSubmissions && contest.testerProfileIds.includes(viewer.id as Id<"profiles">)) {
+  if (contest.testerSeeSubmissions && lists(contest.testerProfileIds, viewer.id)) {
     return true;
   }
 
@@ -285,13 +290,14 @@ async function buildRow(
   const contest = submission.contestId ? await cachedGet(ctx, caches.contests, submission.contestId) : null;
 
   const viewer = viewerCtx.viewer;
+  const viewerProfile = viewerCtx.profile;
   let canSee = false;
 
-  if (problem && viewer) {
+  if (problem && viewer && viewerProfile) {
     const solved =
-      viewer.id === submission.profileId
+      viewerProfile._id === submission.profileId
         ? false
-        : await hasSolved(ctx, caches, viewer.id as Id<"profiles">, submission.problemId);
+        : await hasSolved(ctx, caches, viewerProfile._id, submission.problemId);
 
     canSee = canSeeSubmissionDetail({ profileId: submission.profileId }, viewer, {
       problem: toCoreProblem(problem),
@@ -307,7 +313,7 @@ async function buildRow(
 
   let view = {
     status: submission.status,
-    result: (submission.result ?? null) as SubmissionResult | null,
+    result: submission.result ?? null,
     points: submission.points ?? null,
     casePoints: submission.casePoints,
     caseTotal: submission.caseTotal,
@@ -315,13 +321,13 @@ async function buildRow(
 
   if (contest) {
     const blinded = blindDuringFreeze(
-      { profileId: submission.profileId as string, date: submission.date, ...view },
+      { profileId: submission.profileId, date: submission.date, ...view },
       toContestRow(contest),
       viewer,
       { now },
     );
 
-    if ((blinded as { masked?: boolean }).masked) {
+    if ("masked" in blinded) {
       masked = true;
       view = {
         status: "QU",
@@ -397,24 +403,28 @@ export const list = query({
     const viewerCtx = await viewerContext(ctx);
     const viewer = viewerCtx.viewer;
 
-    const author = args.username
+    const username = args.username;
+    const problemCode = args.problemCode;
+    const contestKey = args.contestKey;
+
+    const author = username
       ? await ctx.db
           .query("profiles")
-          .withIndex("by_username", (q) => q.eq("username", args.username as string))
+          .withIndex("by_username", (q) => q.eq("username", username))
           .unique()
       : null;
 
-    const problem = args.problemCode
+    const problem = problemCode
       ? await ctx.db
           .query("problems")
-          .withIndex("by_code", (q) => q.eq("code", args.problemCode as string))
+          .withIndex("by_code", (q) => q.eq("code", problemCode))
           .unique()
       : null;
 
-    const requestedContest = args.contestKey
+    const requestedContest = contestKey
       ? await ctx.db
           .query("contests")
-          .withIndex("by_key", (q) => q.eq("key", args.contestKey as string))
+          .withIndex("by_key", (q) => q.eq("key", contestKey))
           .unique()
       : null;
 
@@ -673,10 +683,12 @@ export const resultsForProblem = query({
 
     let rows: Doc<"submissions">[];
 
-    if (args.problemCode) {
+    const problemCode = args.problemCode;
+
+    if (problemCode) {
       const problem = await ctx.db
         .query("problems")
-        .withIndex("by_code", (q) => q.eq("code", args.problemCode as string))
+        .withIndex("by_code", (q) => q.eq("code", problemCode))
         .unique();
 
       if (!problem) return { categories: [], total: 0 };
@@ -848,7 +860,9 @@ export const submit = mutation({
 
     let judgePin: Id<"judges"> | undefined;
 
-    if (args.judgePin) {
+    const judgeName = args.judgePin;
+
+    if (judgeName) {
       // DMOJ only offers the judge picker to a problem's editors.
       if (!problemIsEditableBy(toCoreProblem(problem), viewer)) {
         throw forbidden("You may not pin a submission to a judge.");
@@ -856,7 +870,7 @@ export const submit = mutation({
 
       const judge = await ctx.db
         .query("judges")
-        .withIndex("by_name", (q) => q.eq("name", args.judgePin as string))
+        .withIndex("by_name", (q) => q.eq("name", judgeName))
         .unique();
 
       if (!judge) throw notFound("Judge");
@@ -871,7 +885,7 @@ export const submit = mutation({
       (viewerCtx.contest?.runPretestsOnly ?? false) &&
       (contestProblem.isPretested ?? false);
 
-    const submissionId = await ctx.db.insert("submissions", {
+    const fields: WithoutSystemFields<Doc<"submissions">> = {
       profileId: profile._id,
       problemId: problem._id,
       date: now,
@@ -887,20 +901,22 @@ export const submit = mutation({
       priority: contestProblem ? 0 : 1,
       retryCount: 0,
       legacyId: await allocateSubmissionNumber(ctx),
-      ...(contestProblem && viewerCtx.contest && viewerCtx.participation
-        ? {
-            contestId: viewerCtx.contest._id,
-            contestProblemId: contestProblem._id,
-            participationId: viewerCtx.participation._id,
-            contestPoints: 0,
-            isContestPretest: isPretested,
-            ...(live && viewerCtx.contest.lockedAfter !== undefined
-              ? { lockedAfter: viewerCtx.contest.lockedAfter }
-              : {}),
-          }
-        : {}),
-      ...(judgePin ? { judgePin } : {}),
-    });
+    };
+
+    if (contestProblem && viewerCtx.contest && viewerCtx.participation) {
+      fields.contestId = viewerCtx.contest._id;
+      fields.contestProblemId = contestProblem._id;
+      fields.participationId = viewerCtx.participation._id;
+      fields.contestPoints = 0;
+      fields.isContestPretest = isPretested;
+
+      if (live && viewerCtx.contest.lockedAfter !== undefined) {
+        fields.lockedAfter = viewerCtx.contest.lockedAfter;
+      }
+    }
+
+    if (judgePin) fields.judgePin = judgePin;
+    const submissionId = await ctx.db.insert("submissions", fields);
 
     await ctx.db.insert("submissionSources", { submissionId, source: args.source });
 

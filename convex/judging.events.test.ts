@@ -10,6 +10,7 @@
 
 import { describe, expect, it } from "vitest";
 import type { Id } from "./_generated/dataModel";
+import type { JsonObject } from "./lib/json";
 import {
   asUser,
   insertJudge,
@@ -19,7 +20,15 @@ import {
   insertSubmission,
   type Overrides,
 } from "./test.fixtures";
-import { type JudgeClient, judgeCase, judgeClient, setupTest, type T } from "./test.setup";
+import {
+  claimResponse,
+  eventResponse,
+  type JudgeClient,
+  judgeCase,
+  judgeClient,
+  setupTest,
+  type T,
+} from "./test.setup";
 
 async function fixture(problemOptions: Overrides<"problems"> = {}) {
   const t = setupTest();
@@ -41,16 +50,14 @@ async function fixture(problemOptions: Overrides<"problems"> = {}) {
 }
 
 async function claim(client: JudgeClient): Promise<number> {
-  const body = (await (await client.claim()).json()) as {
-    submission: { submissionId: number } | null;
-  };
+  const body = await claimResponse(await client.claim());
 
   if (!body.submission) throw new Error("nothing to claim");
 
-  return body.submission.submissionId;
+  return Number(body.submission.submissionId);
 }
 
-async function send(client: JudgeClient, id: number | string, event: Record<string, unknown>) {
+async function send(client: JudgeClient, id: number | string, event: JsonObject) {
   const response = await client.event(id, event);
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({ ok: true });
@@ -397,6 +404,6 @@ describe("repeated events", () => {
     const id = await claim(client);
     const response = await client.event(id, { type: "nonsense" });
     expect(response.status).toBe(400);
-    expect(((await response.json()) as { ok: boolean }).ok).toBe(false);
+    expect((await eventResponse(response)).ok).toBe(false);
   });
 });

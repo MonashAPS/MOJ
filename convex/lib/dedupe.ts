@@ -59,7 +59,12 @@ export const emptyDedupeReport: DedupeReport = {
 };
 
 /** Where the next page of a scan starts, and whether there is one. */
-export function nextPage(rows: { _creationTime: number }[]): { cursor: number | null; isDone: boolean } {
+export type NextPage = {
+  cursor: number | null;
+  isDone: boolean;
+};
+
+export function nextPage(rows: { _creationTime: number }[]): NextPage {
   const last = rows[rows.length - 1];
 
   if (rows.length < DEDUPE_PAGE || last === undefined) return { cursor: null, isDone: true };

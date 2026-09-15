@@ -96,7 +96,7 @@ describe("blog visibility", () => {
     await t.run(async (ctx) => {
       const base = {
         targetType: "blog" as const,
-        targetKey: ids.live as string,
+        targetKey: ids.live,
         authorProfileId: ids.author,
         time: Date.now(),
         score: 0,
@@ -186,7 +186,7 @@ describe("blog admin", () => {
     await t.run(async (ctx) => {
       await ctx.db.insert("comments", {
         targetType: "blog",
-        targetKey: ids.live as string,
+        targetKey: ids.live,
         authorProfileId: ids.author,
         time: Date.now(),
         score: 0,

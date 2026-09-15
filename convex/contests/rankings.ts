@@ -187,7 +187,6 @@ export const ranking = query({
 
     const contestProblems = await loadContestProblems(ctx, contest._id);
     const problemRows: ContestProblemRow[] = contestProblems.map((row) => toContestProblemRow(row));
-    const labels = contestProblems.map((_row, index) => labelForProblem(contest, index));
 
     const problems: RankingProblem[] = [];
 
@@ -196,7 +195,7 @@ export const ranking = query({
       problems.push({
         contestProblemId: contestProblem._id,
         problemId: contestProblem.problemId,
-        label: labels[index] as string,
+        label: labelForProblem(contest, index),
         code: problem?.code ?? "",
         name: problem?.name ?? "",
         points: contestProblem.points,
@@ -247,9 +246,11 @@ export const ranking = query({
       contestProblems: problemRows,
     });
 
-    frozenRows.forEach((row, index) => {
-      withSubmissions.push({ participation: selected[index] as Doc<"contestParticipations">, rows: row });
-    });
+    for (const [index, row] of frozenRows.entries()) {
+      const participation = selected[index];
+
+      if (participation) withSubmissions.push({ participation, rows: row });
+    }
 
     const ratingRows = await ctx.db
       .query("ratings")
@@ -342,14 +343,15 @@ export const ranking = query({
           tiebreaker,
           rating: ratingByParticipation.get(participation._id) ?? null,
           result: format.displayParticipationResult(scored, contestRow),
-          problems: problemRows.map((problem, index) => {
-            const cell = safeDisplay(format, scored, problem, contestRow);
+          problems: contestProblems.map((contestProblem, index) => {
+            const problem = problemRows[index];
+            const cell = problem ? safeDisplay(format, scored, problem, contestRow) : null;
 
             if (!cell) return null;
 
             return {
-              contestProblemId: problem.id as Id<"contestProblems">,
-              label: labels[index] as string,
+              contestProblemId: contestProblem._id,
+              label: labelForProblem(contest, index),
               state: cell.state,
               points: cell.points,
               pointsText: cell.pointsText,
@@ -365,8 +367,8 @@ export const ranking = query({
     }
 
     built.sort((a, b) => {
-      for (let i = 0; i < a.sortKey.length; i++) {
-        const delta = (a.sortKey[i] as number) - (b.sortKey[i] as number);
+      for (const [index, value] of a.sortKey.entries()) {
+        const delta = value - (b.sortKey[index] ?? 0);
 
         if (delta !== 0) return delta;
       }

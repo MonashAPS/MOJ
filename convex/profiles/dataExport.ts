@@ -8,6 +8,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, type QueryCtx, query } from "../_generated/server";
+import { jobResultStorageId } from "../jobs";
 import { requireViewer } from "../lib/auth";
 import { forbidden, invalid, mojError } from "../lib/errors";
 
@@ -59,12 +60,16 @@ export const status = query({
 
     let download: DataExportStatus["download"] = null;
 
-    if (job?.status === "done" && job.result?.storageId) {
-      download = {
-        storageId: job.result.storageId as Id<"_storage">,
-        name: `${profile.username}-data.zip`,
-        createdAt: job.finishedAt ?? job.createdAt,
-      };
+    if (job && job.status === "done") {
+      const storageId = jobResultStorageId(ctx, job);
+
+      if (storageId) {
+        download = {
+          storageId,
+          name: `${profile.username}-data.zip`,
+          createdAt: job.finishedAt ?? job.createdAt,
+        };
+      }
     }
 
     return {

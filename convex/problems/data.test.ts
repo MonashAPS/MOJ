@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
+import type { JsonValue } from "../lib/json";
 import { asUser, insertProblem, insertProfile, insertTaxonomy } from "../test.fixtures";
 import { setupTest } from "../test.setup";
 import { type CompilerCase, type CompilerData, compileInit, dumpYaml, listZipNames, makeInit } from "./data";
@@ -40,7 +41,7 @@ describe("dumpYaml", () => {
    * indent, block sequences flush with their parent key.
    */
   test("matches PyYAML's safe_dump", () => {
-    const init = {
+    const init: JsonValue = {
       archive: "aplusb.zip",
       checker: "standard",
       hints: ["unicode", "nobigmath"],

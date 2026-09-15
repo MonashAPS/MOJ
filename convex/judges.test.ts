@@ -2,7 +2,6 @@
 
 import { describe, expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
 import { sha256Hex } from "./lib/hash";
 import {
   asUser,
@@ -203,7 +202,7 @@ describe("languages", () => {
     expect(result).toEqual({ problems: 1, limits: 1 });
 
     const problem = await t.run(async (ctx) => await ctx.db.get(ids.problemId));
-    expect(problem?.allowedLanguageIds).toContain(ids.target as Id<"languages">);
+    expect(problem?.allowedLanguageIds).toContain(ids.target);
 
     const limits = await t.run(async (ctx) => await ctx.db.query("languageLimits").collect());
     const copied = limits.find((row) => row.languageId === ids.target);

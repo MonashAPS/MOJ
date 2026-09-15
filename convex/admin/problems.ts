@@ -13,6 +13,7 @@ import { makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation, type QueryCtx, query } from "../_generated/server";
+import type { JobArgs } from "../jobs";
 import { writeRevision } from "../lib/community";
 import { forbidden, invalid, notFound } from "../lib/errors";
 import {
@@ -296,18 +297,21 @@ export async function typeIdsByName(
   return ids;
 }
 
+async function languageIdByKey(ctx: QueryCtx, key: string): Promise<Id<"languages">> {
+  const row = await ctx.db
+    .query("languages")
+    .withIndex("by_key", (q) => q.eq("key", key))
+    .first();
+
+  if (!row) throw invalid(`No such language: ${key}`);
+
+  return row._id;
+}
+
 async function languageIdsByKey(ctx: QueryCtx, keys: readonly string[]): Promise<Id<"languages">[]> {
   const ids: Id<"languages">[] = [];
 
-  for (const key of keys) {
-    const row = await ctx.db
-      .query("languages")
-      .withIndex("by_key", (q) => q.eq("key", key))
-      .first();
-
-    if (!row) throw invalid(`No such language: ${key}`);
-    ids.push(row._id);
-  }
+  for (const key of keys) ids.push(await languageIdByKey(ctx, key));
 
   return ids;
 }
@@ -376,10 +380,12 @@ export const create = mutation({
     const groupId = await groupIdByName(ctx, args.group ?? "uncategorized", true);
     const typeIds = await typeIdsByName(ctx, args.types ?? ["uncategorized"], true);
 
-    const license = args.licenseKey
+    const licenseKey = args.licenseKey;
+
+    const license = licenseKey
       ? await ctx.db
           .query("licenses")
-          .withIndex("by_key", (q) => q.eq("key", args.licenseKey as string))
+          .withIndex("by_key", (q) => q.eq("key", licenseKey))
           .first()
       : null;
 
@@ -671,10 +677,9 @@ export const setLanguageLimits = mutation({
     }
 
     for (const limit of args.limits) {
-      const [languageId] = await languageIdsByKey(ctx, [limit.languageKey]);
       await ctx.db.insert("languageLimits", {
         problemId: problem._id,
-        languageId: languageId as Id<"languages">,
+        languageId: await languageIdByKey(ctx, limit.languageKey),
         timeLimit: limit.timeLimit,
         memoryLimit: limit.memoryLimit,
       });
@@ -852,7 +857,7 @@ const jobsRun = makeFunctionReference<"mutation">("jobs:run");
 async function scheduleJob(
   ctx: MutationCtx,
   type: string,
-  args: Record<string, unknown>,
+  args: JobArgs,
   createdByProfileId: Id<"profiles">,
 ): Promise<Id<"jobs">> {
   const jobId = await ctx.db.insert("jobs", {
@@ -1000,7 +1005,7 @@ export const revisions = query({
 
     const rows = await ctx.db
       .query("revisions")
-      .withIndex("by_entity", (q) => q.eq("entityType", "problem").eq("entityId", problem._id as string))
+      .withIndex("by_entity", (q) => q.eq("entityType", "problem").eq("entityId", problem._id))
       .order("desc")
       .take(limit);
 

@@ -25,7 +25,7 @@ import {
   USER_DISPLAY_CODES,
 } from "@moj/core";
 import { v } from "convex/values";
-import type { Doc, Id } from "../_generated/dataModel";
+import type { Doc } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 import { toContestRow } from "../contests/formats";
 import { resolveSubmission } from "../judging";
@@ -134,10 +134,12 @@ export const listContext = query({
       inContestMode: viewerCtx.inContest,
     };
 
-    if (args.username) {
+    const username = args.username;
+
+    if (username) {
       const author = await ctx.db
         .query("profiles")
-        .withIndex("by_username", (q) => q.eq("username", args.username as string))
+        .withIndex("by_username", (q) => q.eq("username", username))
         .unique();
 
       if (!author) return { ...base, found: false };
@@ -151,10 +153,12 @@ export const listContext = query({
 
     let problem: Doc<"problems"> | null = null;
 
-    if (args.problemCode) {
+    const problemCode = args.problemCode;
+
+    if (problemCode) {
       problem = await ctx.db
         .query("problems")
-        .withIndex("by_code", (q) => q.eq("code", args.problemCode as string))
+        .withIndex("by_code", (q) => q.eq("code", problemCode))
         .unique();
 
       if (!problem) return { ...base, found: false };
@@ -171,10 +175,12 @@ export const listContext = query({
       };
     }
 
-    if (args.contestKey) {
+    const contestKey = args.contestKey;
+
+    if (contestKey) {
       const contest = await ctx.db
         .query("contests")
-        .withIndex("by_key", (q) => q.eq("key", args.contestKey as string))
+        .withIndex("by_key", (q) => q.eq("key", contestKey))
         .unique();
 
       if (!contest) return { ...base, found: false };
@@ -202,10 +208,12 @@ export const listContext = query({
 
       let isParticipant = false;
 
-      if (base.user) {
+      const listedUser = base.user;
+
+      if (listedUser) {
         const author = await ctx.db
           .query("profiles")
-          .withIndex("by_username", (q) => q.eq("username", base.user?.username as string))
+          .withIndex("by_username", (q) => q.eq("username", listedUser.username))
           .unique();
 
         if (author) {
@@ -295,7 +303,7 @@ export const statusExtras = query({
     if (!problem || !author) return null;
 
     const contest = submission.contestId ? await ctx.db.get(submission.contestId) : null;
-    const solved = await hasSolvedProblem(ctx, viewer?.id as Id<"profiles"> | undefined, problem._id);
+    const solved = await hasSolvedProblem(ctx, viewerCtx.profile?._id, problem._id);
 
     const canSeeDetail = viewer
       ? canSeeSubmissionDetail({ profileId: submission.profileId }, viewer, {
@@ -439,7 +447,7 @@ export const sourceView = query({
     if (!problemIsVisibleTo(toCoreProblem(problem), viewer)) return null;
 
     const contest = submission.contestId ? await ctx.db.get(submission.contestId) : null;
-    const solved = await hasSolvedProblem(ctx, viewer?.id as Id<"profiles"> | undefined, problem._id);
+    const solved = await hasSolvedProblem(ctx, viewerCtx.profile?._id, problem._id);
 
     const canSee = viewer
       ? canSeeSubmissionDetail({ profileId: submission.profileId }, viewer, {

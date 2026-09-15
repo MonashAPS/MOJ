@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
 import {
   insertContest,
   insertContestProblem,
@@ -127,19 +126,19 @@ describe("importer.backfillFormatDataKeys", () => {
     expect(totals.droppedKeys).toBe(2);
 
     await t.run(async (ctx) => {
-      const legacy = await ctx.db.get(ids.legacy as Id<"contestParticipations">);
+      const legacy = await ctx.db.get(ids.legacy);
       expect(legacy?.formatData).toEqual({
         [ids.cpA]: { time: 30, points: 100 },
         [ids.cpB]: { time: 60, points: 50 },
       });
 
-      const mapped = await ctx.db.get(ids.alreadyMapped as Id<"contestParticipations">);
+      const mapped = await ctx.db.get(ids.alreadyMapped);
       expect(mapped?.formatData).toEqual({ [ids.cpA]: { time: 30, points: 100 } });
 
-      const empty = await ctx.db.get(ids.empty as Id<"contestParticipations">);
+      const empty = await ctx.db.get(ids.empty);
       expect(empty?.formatData).toBeNull();
 
-      const foreign = await ctx.db.get(ids.foreign as Id<"contestParticipations">);
+      const foreign = await ctx.db.get(ids.foreign);
       expect(foreign?.formatData).toEqual({});
     });
   });

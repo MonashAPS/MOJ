@@ -34,6 +34,7 @@ import {
 import { requireViewer } from "../lib/auth";
 import { forbidden, invalid, notFound } from "../lib/errors";
 import { sha256OfBytes } from "../lib/hash";
+import { isJsonObject, isJsonString, type JsonValue } from "../lib/json";
 import { publishedTestData, testDataRow, unsafeArchiveMember } from "../lib/testData";
 import { loadViewerContext, problemByCode, toCoreProblem } from "../problems";
 
@@ -80,13 +81,16 @@ export type CaseFixup = {
 
 export class ProblemDataError extends Error {}
 
-type InitValue = string | number | boolean | InitValue[] | { [key: string]: InitValue };
+type InitValue = JsonValue;
+
+/** An init.yml mapping: the top level, a case entry and a batch are all one. */
+type InitMapping = Record<string, InitValue>;
 
 function makeChecker(source: { checker: string | null; checkerArgs: string }): InitValue | undefined {
   if (!source.checker) return undefined;
 
   if (source.checkerArgs) {
-    let args: unknown;
+    let args: JsonValue;
 
     try {
       args = JSON.parse(source.checkerArgs);
@@ -94,11 +98,11 @@ function makeChecker(source: { checker: string | null; checkerArgs: string }): I
       throw new ProblemDataError("Checker arguments is invalid JSON.");
     }
 
-    if (args === null || typeof args !== "object" || Array.isArray(args)) {
+    if (!isJsonObject(args)) {
       throw new ProblemDataError("Checker arguments must be a JSON object.");
     }
 
-    return { name: source.checker, args: args as Record<string, InitValue> };
+    return { name: source.checker, args };
   }
 
   return source.checker;
@@ -110,25 +114,39 @@ function makeChecker(source: { checker: string | null; checkerArgs: string }): I
  * Returns the init mapping plus the write-backs DMOJ performs on the case rows
  * while it walks them, so a mutation can apply them and a query can ignore them.
  */
+/** The init mapping plus the write-backs `make_init` performs on the case rows. */
+type InitResult = {
+  init: InitMapping;
+  fixups: CaseFixup[];
+};
+
+/**
+ * The batch currently open: its init entry, the array of cases inside it (the
+ * same array the entry's `batched` key holds) and DMOJ's `is_pretest`.
+ */
+type OpenBatch = {
+  entry: InitMapping;
+  batched: InitMapping[];
+  isPretest: boolean;
+};
+
 export function makeInit(
   data: CompilerData,
   cases: readonly CompilerCase[],
   files: readonly string[],
-): { init: Record<string, InitValue>; fixups: CaseFixup[] } {
+): InitResult {
   const fileSet = new Set(files);
-  const built: Record<string, InitValue>[] = [];
+  const built: InitMapping[] = [];
   const fixups: CaseFixup[] = [];
-  let batch: Record<string, InitValue> | null = null;
+  let batch: OpenBatch | null = null;
   let batchCount = 0;
 
-  const endBatch = () => {
-    const current = batch as Record<string, InitValue>;
-
-    if ((current.batched as InitValue[]).length === 0) {
+  const endBatch = (current: OpenBatch) => {
+    if (current.batched.length === 0) {
       throw new ProblemDataError("Empty batches not allowed.");
     }
 
-    built.push(current);
+    built.push(current.entry);
   };
 
   for (const [index, original] of cases.entries()) {
@@ -136,11 +154,11 @@ export function makeInit(
     const testCase = { ...original };
 
     if (testCase.type === "C") {
-      const entry: Record<string, InitValue> = {};
+      const entry: InitMapping = {};
 
       if (batch) {
         testCase.points = null;
-        testCase.isPretest = batch.is_pretest as boolean;
+        testCase.isPretest = batch.isPretest;
       } else {
         if (testCase.points === null) {
           throw new ProblemDataError(`Points must be defined for non-batch case #${i}.`);
@@ -184,12 +202,12 @@ export function makeInit(
         isPretest: testCase.isPretest,
       });
 
-      if (batch) (batch.batched as InitValue[]).push(entry);
+      if (batch) batch.batched.push(entry);
       else built.push(entry);
     } else if (testCase.type === "S") {
       batchCount += 1;
 
-      if (batch) endBatch();
+      if (batch) endBatch(batch);
 
       if (testCase.points === null) {
         throw new ProblemDataError(`Batch start case #${i} requires points.`);
@@ -217,22 +235,23 @@ export function makeInit(
         dependencies.push(dependency);
       }
 
-      batch = {
-        points: testCase.points,
-        batched: [],
-        is_pretest: testCase.isPretest,
-        dependencies,
-      };
+      const batched: InitMapping[] = [];
+      const entry: InitMapping = {};
+      entry.points = testCase.points;
+      entry.batched = batched;
+      entry.is_pretest = testCase.isPretest;
+      entry.dependencies = dependencies;
+      batch = { entry, batched, isPretest: testCase.isPretest };
 
-      if (testCase.generatorArgs) batch.generator_args = testCase.generatorArgs.split(/\r?\n/);
+      if (testCase.generatorArgs) entry.generator_args = testCase.generatorArgs.split(/\r?\n/);
 
-      if (testCase.outputLimit !== null) batch.output_limit_length = testCase.outputLimit;
+      if (testCase.outputLimit !== null) entry.output_limit_length = testCase.outputLimit;
 
-      if (testCase.outputPrefix !== null) batch.output_prefix_length = testCase.outputPrefix;
+      if (testCase.outputPrefix !== null) entry.output_prefix_length = testCase.outputPrefix;
       const checker = makeChecker(testCase);
 
       if (checker !== undefined) {
-        batch.checker = checker;
+        entry.checker = checker;
       } else {
         testCase.checkerArgs = "";
       }
@@ -250,28 +269,28 @@ export function makeInit(
 
       fixups.push({
         order: original.order,
-        isPretest: batch.is_pretest as boolean,
+        isPretest: batch.isPretest,
         inputFile: "",
         outputFile: "",
         generatorArgs: "",
         checker: null,
         checkerArgs: "",
       });
-      endBatch();
+      endBatch(batch);
       batch = null;
     }
   }
 
-  if (batch) endBatch();
+  if (batch) endBatch(batch);
 
-  const init: Record<string, InitValue> = {};
+  const init: InitMapping = {};
 
   if (data.zipfile) init.archive = data.zipfile;
 
   if (data.generator) init.generator = data.generator;
 
-  const pretestCases: Record<string, InitValue>[] = [];
-  const testCases: Record<string, InitValue>[] = [];
+  const pretestCases: InitMapping[] = [];
+  const testCases: InitMapping[] = [];
   const hints: string[] = [];
 
   for (const entry of built) {
@@ -337,9 +356,11 @@ const YAML_RESERVED = new Set([
 ]);
 
 function yamlScalar(value: string | number | boolean): string {
-  if (typeof value === "boolean") return value ? "true" : "false";
+  if (value === true) return "true";
 
-  if (typeof value === "number") return String(value);
+  if (value === false) return "false";
+
+  if (!isJsonString(value)) return String(value);
 
   if (YAML_RESERVED.has(value) || !PLAIN_SCALAR.test(value) || /^\d+(\.\d+)?$/.test(value)) {
     return `'${value.replace(/'/g, "''")}'`;
@@ -352,7 +373,7 @@ function yamlScalar(value: string | number | boolean): string {
  * `yaml.safe_dump` with PyYAML's defaults: block style, keys sorted, two-space
  * indent, block sequences flush with their parent key.
  */
-export function dumpYaml(value: unknown, indent = 0): string {
+export function dumpYaml(value: InitValue | undefined, indent = 0): string {
   const pad = " ".repeat(indent);
 
   if (value === null || value === undefined) return `${pad}null\n`;
@@ -362,29 +383,29 @@ export function dumpYaml(value: unknown, indent = 0): string {
     let out = "";
 
     for (const item of value) {
-      if (item !== null && typeof item === "object") {
+      if (Array.isArray(item) || isJsonObject(item)) {
         const body = dumpYaml(item, indent + 2);
         out += `${pad}-${body.slice(indent + 1)}`;
+      } else if (item === null) {
+        out += `${pad}- null\n`;
       } else {
-        out += `${pad}- ${yamlScalar(item as string | number | boolean)}\n`;
+        out += `${pad}- ${yamlScalar(item)}\n`;
       }
     }
 
     return out;
   }
 
-  if (value !== null && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-
-    const keys = Object.keys(record)
-      .filter((key) => record[key] !== undefined)
+  if (isJsonObject(value)) {
+    const keys = Object.keys(value)
+      .filter((key) => value[key] !== undefined)
       .sort();
 
     if (keys.length === 0) return `${pad}{}\n`;
     let out = "";
 
     for (const key of keys) {
-      const child = record[key];
+      const child = value[key];
 
       if (Array.isArray(child)) {
         if (child.length === 0) {
@@ -392,28 +413,37 @@ export function dumpYaml(value: unknown, indent = 0): string {
         } else {
           out += `${pad}${yamlScalar(key)}:\n${dumpYaml(child, indent)}`;
         }
-      } else if (child !== null && typeof child === "object") {
+      } else if (isJsonObject(child)) {
         out +=
           Object.keys(child).length === 0
             ? `${pad}${yamlScalar(key)}: {}\n`
             : `${pad}${yamlScalar(key)}:\n${dumpYaml(child, indent + 2)}`;
+      } else if (child !== null && child !== undefined) {
+        out += `${pad}${yamlScalar(key)}: ${yamlScalar(child)}\n`;
       } else {
-        out += `${pad}${yamlScalar(key)}: ${yamlScalar(child as string | number | boolean)}\n`;
+        out += `${pad}${yamlScalar(key)}: null\n`;
       }
     }
 
     return out;
   }
 
-  return `${pad}${yamlScalar(value as string | number | boolean)}\n`;
+  return `${pad}${yamlScalar(value)}\n`;
 }
 
 /** `ProblemDataCompiler.compile`: the yaml text, or the feedback it would set. */
+/** The yaml text `ProblemDataCompiler.compile` writes, or the feedback it sets instead. */
+export type CompiledInit = {
+  yaml: string | null;
+  feedback: string;
+  fixups: CaseFixup[];
+};
+
 export function compileInit(
   data: CompilerData,
   cases: readonly CompilerCase[],
   files: readonly string[],
-): { yaml: string | null; feedback: string; fixups: CaseFixup[] } {
+): CompiledInit {
   try {
     const { init, fixups } = makeInit(data, cases, files);
     // DMOJ deletes init.yml rather than writing an empty one, so judge-server
@@ -517,7 +547,12 @@ export function listZipNames(buffer: ArrayBuffer): ZipEntry[] {
  * both as well, so this is a loud failure at publish time rather than a broken
  * grade later.
  */
-export function inspectArchive(buffer: ArrayBuffer): { files: string[]; error: string | null } {
+export type ArchiveInspection = {
+  files: string[];
+  error: string | null;
+};
+
+export function inspectArchive(buffer: ArrayBuffer): ArchiveInspection {
   let entries: ZipEntry[];
 
   try {
@@ -585,6 +620,7 @@ async function ensureDataRow(ctx: MutationCtx, problemId: Id<"problems">) {
     nobigmath: false,
   });
 
+  // SAFETY: the row was inserted in this transaction, so the read cannot miss it.
   return (await ctx.db.get(id)) as Doc<"problemData">;
 }
 
@@ -722,7 +758,7 @@ function checkCheckerArgs(value: string | undefined): string {
   const raw = value ?? "";
 
   if (!raw || raw.trim().length === 0) return "";
-  let parsed: unknown;
+  let parsed: JsonValue;
 
   try {
     parsed = JSON.parse(raw);
@@ -730,7 +766,7 @@ function checkCheckerArgs(value: string | undefined): string {
     throw invalid("Checker arguments is invalid JSON.");
   }
 
-  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+  if (!isJsonObject(parsed)) {
     throw invalid("Checker arguments must be a JSON object.");
   }
 

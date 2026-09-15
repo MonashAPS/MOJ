@@ -76,9 +76,13 @@ export const settings = query({
 
 /** The defaults live in `packages/ui/src/tokens.css`; these mirror the two an
  *  operator may override, so the query can always answer with a usable pair. */
-const DEFAULT_ACCENT = "#2941a5";
+const DEFAULT_ACCENT_RGB: Rgb = [0x29, 0x41, 0xa5];
 
-const DEFAULT_NAV = "#101a3d";
+const DEFAULT_NAV_RGB: Rgb = [0x10, 0x1a, 0x3d];
+
+const DEFAULT_ACCENT = toHex(DEFAULT_ACCENT_RGB);
+
+const DEFAULT_NAV = toHex(DEFAULT_NAV_RGB);
 
 export type Branding = {
   siteName: string;
@@ -103,11 +107,11 @@ export type Branding = {
   isCustomised: boolean;
 };
 
-function parseHex(value: string): [number, number, number] | null {
-  const match = /^#?([0-9a-f]{6})$/i.exec(value.trim());
+function parseHex(value: string): Rgb | null {
+  const [, digits] = /^#?([0-9a-f]{6})$/i.exec(value.trim()) ?? [];
 
-  if (!match) return null;
-  const int = Number.parseInt(match[1] as string, 16);
+  if (digits === undefined) return null;
+  const int = Number.parseInt(digits, 16);
 
   return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
 }
@@ -267,8 +271,8 @@ export type BrandingPalette = {
  * `tokens.css`'s dark ones.
  */
 export function brandingPalette(accentColor: string, navColor: string): BrandingPalette {
-  const accent = parseHex(accentColor) ?? (parseHex(DEFAULT_ACCENT) as Rgb);
-  const nav = parseHex(navColor) ?? (parseHex(DEFAULT_NAV) as Rgb);
+  const accent = parseHex(accentColor) ?? DEFAULT_ACCENT_RGB;
+  const nav = parseHex(navColor) ?? DEFAULT_NAV_RGB;
   const navDark = lift(nav, NAV_DARK_LIFT, CHROME_CHROMA);
   const titlebarDark = lift(navDark, TITLEBAR_DARK_LIFT, CHROME_CHROMA);
   const fillDark = lift(accent, ACCENT_FILL_LIFT, 1);

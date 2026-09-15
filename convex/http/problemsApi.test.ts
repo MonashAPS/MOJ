@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import { sha256Hex } from "../lib/hash";
+import type { JsonValue } from "../lib/json";
 import { insertProblem, insertProfile, insertTaxonomy } from "../test.fixtures";
 import { setupTest } from "../test.setup";
 
@@ -52,17 +53,14 @@ async function setup() {
 function put(
   t: Awaited<ReturnType<typeof setup>>["t"],
   code: string,
-  body: unknown,
+  body: JsonValue,
   key: string | null = KEY,
 ) {
-  return t.fetch(`/api/problems/${code}`, {
-    method: "PUT",
-    headers: {
-      "content-type": "application/json",
-      ...(key ? { authorization: `Bearer ${key}` } : {}),
-    },
-    body: JSON.stringify(body),
-  });
+  const headers = new Headers({ "content-type": "application/json" });
+
+  if (key) headers.set("authorization", `Bearer ${key}`);
+
+  return t.fetch(`/api/problems/${code}`, { method: "PUT", headers, body: JSON.stringify(body) });
 }
 
 describe("PUT /api/problems/:code authentication", () => {

@@ -26,6 +26,7 @@ import {
   apiUserListObject,
   listData,
 } from "@moj/protocol";
+import type { Value } from "convex/values";
 import { beforeEach, describe, expect, test } from "vitest";
 import type { z } from "zod";
 import { api } from "./_generated/api";
@@ -244,7 +245,7 @@ async function seed(): Promise<Fixture> {
 }
 
 /** DMOJ's list block, with the extra-key check zod does not do by default. */
-function expectListShape<T extends z.ZodTypeAny>(object: T, data: unknown) {
+function expectListBlock<T extends z.ZodTypeAny>(object: T, data: Value) {
   const parsed = listData(object).parse(data);
   expect(parsed.objects_per_page).toBe(API_PAGE_SIZE);
   expect(parsed.page_index).toBe(1);
@@ -262,7 +263,7 @@ beforeEach(async () => {
 describe("contests", () => {
   test("the list object is DMOJ's", async () => {
     const data = await fixture.t.query(api.apiV2.contests, {});
-    const parsed = expectListShape(apiContestListObject, data);
+    const parsed = expectListBlock(apiContestListObject, data);
     expect(parsed.objects).toEqual([
       {
         key: "spring",
@@ -339,7 +340,7 @@ describe("contests", () => {
 describe("participations", () => {
   test("the object is DMOJ's", async () => {
     const data = await fixture.t.query(api.apiV2.participations, {});
-    const parsed = expectListShape(apiParticipationObject, data);
+    const parsed = expectListBlock(apiParticipationObject, data);
     expect(parsed.objects).toEqual([
       {
         user: "alice",
@@ -367,7 +368,7 @@ describe("participations", () => {
 describe("problems", () => {
   test("the list object is DMOJ's", async () => {
     const data = await fixture.t.query(api.apiV2.problems, {});
-    const parsed = expectListShape(apiProblemListObject, data);
+    const parsed = expectListBlock(apiProblemListObject, data);
     expect(parsed.objects).toEqual([
       {
         code: "aplusb",
@@ -416,7 +417,7 @@ describe("problems", () => {
 describe("users", () => {
   test("the list object is DMOJ's and skips unlisted and inactive users", async () => {
     const data = await fixture.t.query(api.apiV2.users, {});
-    const parsed = expectListShape(apiUserListObject, data);
+    const parsed = expectListBlock(apiUserListObject, data);
     expect(parsed.objects).toEqual([
       {
         id: 1,
@@ -472,7 +473,7 @@ describe("submissions", () => {
     const data = await fixture.t.query(api.apiV2.submissions, {});
     const { used_basic_filters: usedBasic, ...rest } = data;
     expect(usedBasic).toBe(false);
-    const parsed = expectListShape(apiSubmissionListObject, rest);
+    const parsed = expectListBlock(apiSubmissionListObject, rest);
     expect(parsed.objects).toEqual([
       {
         id: 41,
@@ -610,7 +611,7 @@ describe("submissions", () => {
 describe("organizations, languages and judges", () => {
   test("the organisation object is DMOJ's", async () => {
     const data = await fixture.t.query(api.apiV2.organizations, {});
-    const parsed = expectListShape(apiOrganizationObject, data);
+    const parsed = expectListBlock(apiOrganizationObject, data);
     expect(parsed.objects).toEqual([
       { id: 11, slug: "maps", short_name: "MAPS", is_open: true, member_count: 1 },
     ]);
@@ -619,7 +620,7 @@ describe("organizations, languages and judges", () => {
 
   test("the language object is DMOJ's", async () => {
     const data = await fixture.t.query(api.apiV2.languages, {});
-    const parsed = expectListShape(apiLanguageObject, data);
+    const parsed = expectListBlock(apiLanguageObject, data);
     expect(parsed.objects).toEqual([
       {
         id: 21,
@@ -637,7 +638,7 @@ describe("organizations, languages and judges", () => {
 
   test("the judge object is DMOJ's and only online judges appear", async () => {
     const data = await fixture.t.query(api.apiV2.judges, {});
-    const parsed = expectListShape(apiJudgeObject, data);
+    const parsed = expectListBlock(apiJudgeObject, data);
     expect(parsed.objects).toEqual([
       {
         name: "judge-1",

@@ -40,6 +40,7 @@ import {
 } from "./contests/formats";
 import { isStaff, optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, invalid, notFound } from "./lib/errors";
+import { isJsonArray, isJsonObject, isJsonString, type MaybeJson } from "./lib/json";
 
 /* -------------------------------------------------------------------------- */
 /* Shapes                                                                     */
@@ -214,14 +215,19 @@ function flagUrl(pattern: string | null | undefined, username: string): string |
 /** The reveals staff have already performed, as stored on the contest. */
 export type PersistedReveal = { participationId: string; cellIndex: number };
 
+function isPersistedReveal(entry: MaybeJson): entry is PersistedReveal {
+  return isJsonObject(entry) && isJsonString(entry.participationId) && Number.isInteger(entry.cellIndex);
+}
+
 function persistedReveals(contest: Doc<"contests">): PersistedReveal[] {
-  const state = contest.revealState as { revealed?: PersistedReveal[] } | undefined | null;
+  const state = contest.revealState;
 
-  if (!state || !Array.isArray(state.revealed)) return [];
+  if (!isJsonObject(state)) return [];
+  const revealed = state.revealed;
 
-  return state.revealed.filter(
-    (entry) => typeof entry?.participationId === "string" && Number.isInteger(entry?.cellIndex),
-  );
+  if (!isJsonArray(revealed)) return [];
+
+  return revealed.flatMap((entry) => (isPersistedReveal(entry) ? [entry] : []));
 }
 
 /** Apply one recorded reveal in place; mirrors `applyReveal` in `@moj/core`. */
@@ -257,6 +263,8 @@ type BuiltDivision = {
   rows: ScoreboardRow[];
   problems: ScoreboardProblem[];
   contestProblems: Doc<"contestProblems">[];
+  /** The rows the board was built from: `ScoreboardRow.id` is an opaque string. */
+  participations: Doc<"contestParticipations">[];
   freezeOffset: number;
   penaltyMinutes: number;
 };
@@ -331,7 +339,7 @@ async function buildDivision(
     });
   }
 
-  const participationIds = new Set(participations.map((row) => row._id as string));
+  const liveParticipationIds = new Set(participations.map((row) => row._id));
 
   const submissions = await ctx.db
     .query("submissions")
@@ -341,7 +349,7 @@ async function buildDivision(
   const attempts: Attempt[] = [];
 
   for (const submission of submissions) {
-    if (!submission.participationId || !participationIds.has(submission.participationId)) continue;
+    if (!submission.participationId || !liveParticipationIds.has(submission.participationId)) continue;
 
     if (!submission.contestProblemId) continue;
 
@@ -378,6 +386,7 @@ async function buildDivision(
     rows: board.rows,
     problems,
     contestProblems,
+    participations,
     freezeOffset,
     penaltyMinutes,
   };
@@ -392,47 +401,67 @@ function serialiseDivision(built: BuiltDivision, includeReveal: boolean, now: nu
     0,
   );
 
-  const rows: BoardRow[] = built.rows.map((row) => ({
-    participationId: row.id as Id<"contestParticipations">,
-    username: row.username,
-    displayName: row.displayName ?? row.username,
-    flag: row.flag ?? null,
-    badges: [...(row.badges ?? [])],
-    inPerson: row.inPerson === true,
-    cells: row.cells.map((cell: ScoreboardCell, index: number) => ({
-      state: cell.state,
-      wrong: cell.wrong,
-      pending: cell.pending,
-      time: cell.time,
-      penalty: cell.penalty,
-      firstBlood: cell.state === SOLVED && cell.time !== null && firsts.get(index) === cell.time,
-      reveal:
-        includeReveal && cell.reveal
-          ? {
-              state: cell.reveal.state,
-              wrong: cell.reveal.wrong,
-              time: cell.reveal.time,
-              penalty: cell.reveal.penalty,
-            }
-          : undefined,
-    })),
-    solved: row.solved,
-    penalty: row.penalty,
-    rank: row.rank,
-  }));
+  const participationIds = new Map<string, Id<"contestParticipations">>(
+    built.participations.map((row) => [row._id, row._id]),
+  );
+
+  const contestProblemIds = new Map<string, Id<"contestProblems">>(
+    built.contestProblems.map((row) => [row._id, row._id]),
+  );
+
+  const rows: BoardRow[] = built.rows.flatMap((row) => {
+    const participationId = participationIds.get(row.id);
+
+    if (participationId === undefined) return [];
+
+    return {
+      participationId,
+      username: row.username,
+      displayName: row.displayName ?? row.username,
+      flag: row.flag ?? null,
+      badges: [...(row.badges ?? [])],
+      inPerson: row.inPerson === true,
+      cells: row.cells.map((cell: ScoreboardCell, index: number) => ({
+        state: cell.state,
+        wrong: cell.wrong,
+        pending: cell.pending,
+        time: cell.time,
+        penalty: cell.penalty,
+        firstBlood: cell.state === SOLVED && cell.time !== null && firsts.get(index) === cell.time,
+        reveal:
+          includeReveal && cell.reveal
+            ? {
+                state: cell.reveal.state,
+                wrong: cell.reveal.wrong,
+                time: cell.reveal.time,
+                penalty: cell.reveal.penalty,
+              }
+            : undefined,
+      })),
+      solved: row.solved,
+      penalty: row.penalty,
+      rank: row.rank,
+    };
+  });
 
   return {
     contestId: contest._id,
     key: contest.key,
     name: contest.name,
     label: contest.name,
-    problems: built.problems.map((problem, index) => ({
-      contestProblemId: problem.id as Id<"contestProblems">,
-      label: problem.label ?? String(index + 1),
-      code: problem.code ?? "",
-      name: problem.name ?? "",
-      points: problem.points ?? 0,
-    })),
+    problems: built.problems.flatMap((problem, index) => {
+      const contestProblemId = contestProblemIds.get(problem.id);
+
+      if (contestProblemId === undefined) return [];
+
+      return {
+        contestProblemId,
+        label: problem.label ?? String(index + 1),
+        code: problem.code ?? "",
+        name: problem.name ?? "",
+        points: problem.points ?? 0,
+      };
+    }),
     rows,
     freezeOffset: built.freezeOffset,
     duration: (contest.endTime - contest.startTime) / 1000,
@@ -598,11 +627,13 @@ export const revealStep = mutation({
       const target = nextRevealTarget(built.rows);
 
       if (!target) continue;
-      const targetRow = built.rows[target.rowIndex] as ScoreboardRow;
+      const targetRow = built.rows[target.rowIndex];
+
+      if (!targetRow) continue;
 
       const revealed = [
         ...persistedReveals(contest),
-        { participationId: targetRow.id as string, cellIndex: target.cellIndex },
+        { participationId: targetRow.id, cellIndex: target.cellIndex },
       ];
 
       await writeReveals(ctx, contest, revealed);
@@ -610,7 +641,7 @@ export const revealStep = mutation({
 
       // Anything left after this step?
       applyRevealed(built.rows, {
-        participationId: targetRow.id as string,
+        participationId: targetRow.id,
         cellIndex: target.cellIndex,
       });
 
@@ -656,10 +687,12 @@ export const revealAll = mutation({
       const entries = persistedReveals(contest);
 
       for (let target = nextRevealTarget(built.rows); target; target = nextRevealTarget(built.rows)) {
-        const targetRow = built.rows[target.rowIndex] as ScoreboardRow;
-        entries.push({ participationId: targetRow.id as string, cellIndex: target.cellIndex });
+        const targetRow = built.rows[target.rowIndex];
+
+        if (!targetRow) break;
+        entries.push({ participationId: targetRow.id, cellIndex: target.cellIndex });
         applyRevealed(built.rows, {
-          participationId: targetRow.id as string,
+          participationId: targetRow.id,
           cellIndex: target.cellIndex,
         });
         rankRows(built.rows);

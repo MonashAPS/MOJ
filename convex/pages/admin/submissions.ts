@@ -60,20 +60,24 @@ export const list = query({
     const page = Math.max(1, Math.floor(args.page ?? 1));
     const pageSize = Math.max(1, Math.min(Math.floor(args.pageSize ?? 50), 200));
 
-    const profile = args.username
+    const username = args.username;
+
+    const profile = username
       ? await ctx.db
           .query("profiles")
-          .withIndex("by_username", (q) => q.eq("username", args.username as string))
+          .withIndex("by_username", (q) => q.eq("username", username))
           .unique()
       : null;
 
     const problem = args.problemCode ? await problemByCode(ctx, args.problemCode) : null;
     const contest = args.contestKey ? await contestByKey(ctx, args.contestKey) : null;
 
-    const judge = args.judgeName
+    const judgeName = args.judgeName;
+
+    const judge = judgeName
       ? await ctx.db
           .query("judges")
-          .withIndex("by_name", (q) => q.eq("name", args.judgeName as string))
+          .withIndex("by_name", (q) => q.eq("name", judgeName))
           .unique()
       : null;
 
@@ -86,7 +90,7 @@ export const list = query({
       return { items: [], total: 0, page, pageSize };
     }
 
-    const languageIds = new Set<string>();
+    const languageIds = new Set<Id<"languages">>();
 
     for (const key of args.languageKeys ?? []) {
       const row = await ctx.db
@@ -94,7 +98,7 @@ export const list = query({
         .withIndex("by_key", (q) => q.eq("key", key))
         .first();
 
-      if (row) languageIds.add(row._id as string);
+      if (row) languageIds.add(row._id);
     }
 
     if ((args.languageKeys?.length ?? 0) > 0 && languageIds.size === 0) {
@@ -122,7 +126,7 @@ export const list = query({
 
       if (judge && submission.judgedOnJudgeId !== judge._id) return false;
 
-      if (languageIds.size > 0 && !languageIds.has(submission.languageId as string)) return false;
+      if (languageIds.size > 0 && !languageIds.has(submission.languageId)) return false;
 
       if (results.size > 0 && !(submission.result && results.has(submission.result))) return false;
 

@@ -63,24 +63,28 @@ export const list = query({
     const pageSize = Math.max(1, Math.min(Math.floor(args.pageSize ?? 50), 200));
     const needle = (args.search ?? "").trim().toLowerCase();
 
-    const groupRow = args.group
+    const group = args.group;
+    const type = args.type;
+    const author = args.author;
+
+    const groupRow = group
       ? await ctx.db
           .query("problemGroups")
-          .withIndex("by_name", (q) => q.eq("name", args.group as string))
+          .withIndex("by_name", (q) => q.eq("name", group))
           .first()
       : null;
 
-    const typeRow = args.type
+    const typeRow = type
       ? await ctx.db
           .query("problemTypes")
-          .withIndex("by_name", (q) => q.eq("name", args.type as string))
+          .withIndex("by_name", (q) => q.eq("name", type))
           .first()
       : null;
 
-    const authorRow = args.author
+    const authorRow = author
       ? await ctx.db
           .query("profiles")
-          .withIndex("by_username", (q) => q.eq("username", args.author as string))
+          .withIndex("by_username", (q) => q.eq("username", author))
           .unique()
       : null;
 
@@ -158,16 +162,16 @@ export const options = query({
     ]);
 
     // `ProblemCreatorListFilter`: only profiles that authored something.
-    const authorIds = new Set<string>();
+    const authorIds = new Set<Id<"profiles">>();
 
     for (const problem of await ctx.db.query("problems").collect()) {
-      for (const id of problem.authorProfileIds) authorIds.add(id as string);
+      for (const id of problem.authorProfileIds) authorIds.add(id);
     }
 
     const authors: string[] = [];
 
     for (const id of authorIds) {
-      const row = await ctx.db.get(id as Id<"profiles">);
+      const row = await ctx.db.get(id);
 
       if (row) authors.push(row.username);
     }

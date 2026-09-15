@@ -9,7 +9,6 @@
 
 import { describe, expect, it } from "vitest";
 import { api, internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
 import { PROCTOR_LIVE_WINDOW_MS } from "./lib/proctor";
 import {
   asUser,
@@ -174,7 +173,7 @@ describe("the staff view", () => {
     expect(rows[0]).toMatchObject({ username: MEMBER, live: true, contestKey: "mcpc" });
 
     await f.t.run(async (ctx) =>
-      ctx.db.patch(sessionId as Id<"proctorSessions">, {
+      ctx.db.patch(sessionId, {
         lastSeenAt: Date.now() - PROCTOR_LIVE_WINDOW_MS - 1,
       }),
     );

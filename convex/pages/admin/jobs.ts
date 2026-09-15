@@ -13,11 +13,12 @@ export const list = query({
 
     if (!viewer) return [];
     const take = Math.max(1, Math.min(args.limit ?? 50, 200));
+    const type = args.type;
 
-    const rows = args.type
+    const rows = type
       ? await ctx.db
           .query("jobs")
-          .withIndex("by_type_createdAt", (q) => q.eq("type", args.type as string))
+          .withIndex("by_type_createdAt", (q) => q.eq("type", type))
           .order("desc")
           .take(take)
       : await ctx.db.query("jobs").withIndex("by_type_createdAt").order("desc").take(take);

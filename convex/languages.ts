@@ -78,7 +78,7 @@ export const usableForProblem = query({
       .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
       .collect();
 
-    const limitByLanguage = new Map(limits.map((row) => [row.languageId as string, row]));
+    const limitByLanguage = new Map(limits.map((row) => [row.languageId, row]));
 
     const out = [];
 

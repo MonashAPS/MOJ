@@ -2,7 +2,6 @@
 
 import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
 import {
   asUser,
   insertProfile,
@@ -224,13 +223,13 @@ describe("ticket workflow", () => {
     await expect(
       asUser(t, "setter").mutation(api.tickets.assign, {
         ticketId,
-        profileIds: [ids.bystander as Id<"profiles">],
+        profileIds: [ids.bystander],
       }),
     ).rejects.toThrow();
 
     await asUser(t, "ticketadmin").mutation(api.tickets.assign, {
       ticketId,
-      profileIds: [ids.bystander as Id<"profiles">],
+      profileIds: [ids.bystander],
     });
     const ticket = await asUser(t, "bystander").query(api.tickets.get, { id: ticketId });
     expect(ticket?.assignees.map((entry) => entry.username)).toEqual(["bystander"]);

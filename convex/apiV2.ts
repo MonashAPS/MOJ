@@ -125,19 +125,19 @@ async function apiViewer(ctx: QueryCtx): Promise<{ profile: Doc<"profiles"> | nu
     .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
     .collect();
 
-  const organizationIds = memberships.map((row) => row.organizationId as string);
+  const organizationIds = memberships.map((row) => row.organizationId);
 
   const organizations = await ctx.db.query("organizations").collect();
 
   const adminOfOrganizationIds = organizations
     .filter((organization) => organization.adminProfileIds.includes(profile._id))
-    .map((organization) => organization._id as string);
+    .map((organization) => organization._id);
 
   let currentContestId: string | null = null;
 
   if (profile.currentParticipationId) {
     const participation = await ctx.db.get(profile.currentParticipationId);
-    currentContestId = participation ? (participation.contestId as string) : null;
+    currentContestId = participation ? participation.contestId : null;
   }
 
   return {
@@ -200,10 +200,7 @@ export const contests = query({
 
       if (args.key && !args.key.includes(contest.key)) continue;
 
-      if (
-        wantedOrganizations &&
-        !contest.organizationIds.some((id) => wantedOrganizations.has(id as string))
-      ) {
+      if (wantedOrganizations && !contest.organizationIds.some((id) => wantedOrganizations.has(id))) {
         continue;
       }
 
@@ -227,12 +224,15 @@ export const contests = query({
   },
 });
 
-async function resolveOrganizationIds(ctx: QueryCtx, values: readonly string[]): Promise<string[]> {
+async function resolveOrganizationIds(
+  ctx: QueryCtx,
+  values: readonly string[],
+): Promise<Id<"organizations">[]> {
   const organizations = await ctx.db.query("organizations").collect();
 
   return organizations
     .filter((organization) => matchesApiId(organization, values))
-    .map((organization) => organization._id as string);
+    .map((organization) => organization._id);
 }
 
 export const contest = query({
@@ -311,9 +311,9 @@ export const contest = query({
       const format = getContestFormat(core);
 
       const formatProblems = contestProblems.map((contestProblem) => ({
-        id: contestProblem._id as string,
-        contestId: contestProblem.contestId as string,
-        problemId: contestProblem.problemId as string,
+        id: contestProblem._id,
+        contestId: contestProblem.contestId,
+        problemId: contestProblem.problemId,
         points: contestProblem.points,
         partial: contestProblem.partial,
         isPretested: contestProblem.isPretested,
@@ -357,9 +357,9 @@ export const contest = query({
         }
 
         const timing = {
-          id: participation._id as string,
-          contestId: participation.contestId as string,
-          profileId: participation.profileId as string,
+          id: participation._id,
+          contestId: participation.contestId,
+          profileId: participation.profileId,
           realStart: participation.realStart,
           score: participation.score,
           cumtime: participation.cumtime,
@@ -513,9 +513,9 @@ export const participations = query({
       const core = toContestRow(contestDoc);
 
       const timing = {
-        id: participation._id as string,
-        contestId: participation.contestId as string,
-        profileId: participation.profileId as string,
+        id: participation._id,
+        contestId: participation.contestId,
+        profileId: participation.profileId,
         realStart: participation.realStart,
         virtual: participation.virtual,
       };
@@ -582,10 +582,7 @@ export const problems = query({
 
       if (args.code && !args.code.includes(problem.code)) continue;
 
-      if (
-        wantedOrganizations &&
-        !problem.organizationIds.some((id) => wantedOrganizations.has(id as string))
-      ) {
+      if (wantedOrganizations && !problem.organizationIds.some((id) => wantedOrganizations.has(id))) {
         continue;
       }
 
@@ -728,7 +725,7 @@ export const users = query({
       for (const organizationId of organizationIds) {
         const memberships = await ctx.db
           .query("organizationMemberships")
-          .withIndex("by_organization", (q) => q.eq("organizationId", organizationId as Id<"organizations">))
+          .withIndex("by_organization", (q) => q.eq("organizationId", organizationId))
           .collect();
 
         for (const membership of memberships) allowed.add(membership.profileId);
@@ -887,9 +884,11 @@ export const submissions = query({
     let profileFilter: Id<"profiles"> | null | undefined;
 
     if (args.user !== undefined) {
+      const username = args.user;
+
       const target = await ctx.db
         .query("profiles")
-        .withIndex("by_username", (q) => q.eq("username", args.user as string))
+        .withIndex("by_username", (q) => q.eq("username", username))
         .unique();
 
       profileFilter = target ? target._id : null;
@@ -898,9 +897,11 @@ export const submissions = query({
     let problemFilter: Id<"problems"> | null | undefined;
 
     if (args.problem !== undefined) {
+      const code = args.problem;
+
       const target = await ctx.db
         .query("problems")
-        .withIndex("by_code", (q) => q.eq("code", args.problem as string))
+        .withIndex("by_code", (q) => q.eq("code", code))
         .unique();
 
       problemFilter = target ? target._id : null;
@@ -909,9 +910,11 @@ export const submissions = query({
     let contestFilter: Id<"contests"> | null | undefined;
 
     if (args.contest !== undefined) {
+      const key = args.contest;
+
       const target = await ctx.db
         .query("contests")
-        .withIndex("by_key", (q) => q.eq("key", args.contest as string))
+        .withIndex("by_key", (q) => q.eq("key", key))
         .unique();
 
       contestFilter = target ? target._id : null;
@@ -928,19 +931,25 @@ export const submissions = query({
     let scanned: Doc<"submissions">[];
 
     if (profileFilter) {
+      const profileId = profileFilter;
+
       scanned = await ctx.db
         .query("submissions")
-        .withIndex("by_profile_date", (q) => q.eq("profileId", profileFilter as Id<"profiles">))
+        .withIndex("by_profile_date", (q) => q.eq("profileId", profileId))
         .take(SCAN_CAP + 1);
     } else if (problemFilter) {
+      const problemId = problemFilter;
+
       scanned = await ctx.db
         .query("submissions")
-        .withIndex("by_problem_date", (q) => q.eq("problemId", problemFilter as Id<"problems">))
+        .withIndex("by_problem_date", (q) => q.eq("problemId", problemId))
         .take(SCAN_CAP + 1);
     } else if (contestFilter) {
+      const contestId = contestFilter;
+
       scanned = await ctx.db
         .query("submissions")
-        .withIndex("by_contest_date", (q) => q.eq("contestId", contestFilter as Id<"contests">))
+        .withIndex("by_contest_date", (q) => q.eq("contestId", contestId))
         .take(SCAN_CAP + 1);
     } else {
       scanned = await ctx.db.query("submissions").take(SCAN_CAP + 1);
@@ -949,11 +958,13 @@ export const submissions = query({
     const truncated = scanned.length > SCAN_CAP;
     const rows = truncated ? scanned.slice(0, SCAN_CAP) : scanned;
 
-    const wantedLanguages = args.language
+    const wantedLanguageKeys = args.language;
+
+    const wantedLanguages = wantedLanguageKeys
       ? new Set(
-          (await ctx.db.query("languages").collect())
-            .filter((language) => (args.language as string[]).includes(language.key))
-            .map((language) => language._id as string),
+          (await ctx.db.query("languages").collect()).flatMap((language) =>
+            wantedLanguageKeys.includes(language.key) ? [language._id] : [],
+          ),
         )
       : null;
 
@@ -967,7 +978,7 @@ export const submissions = query({
 
       if (args.id && !matchesApiId(submission, args.id)) continue;
 
-      if (wantedLanguages && !wantedLanguages.has(submission.languageId as string)) continue;
+      if (wantedLanguages && !wantedLanguages.has(submission.languageId)) continue;
 
       if (args.result && !(submission.result && args.result.includes(submission.result))) continue;
 
@@ -1038,7 +1049,7 @@ function groupTestCases(cases: readonly Doc<"submissionTestCases">[]): ApiSubmis
   const flush = () => {
     if (buffer.length === 0) return;
 
-    const shaped = buffer.map((row) => ({
+    const caseEntries = buffer.map((row) => ({
       type: "case" as const,
       case_id: row.case,
       status: row.status,
@@ -1049,12 +1060,12 @@ function groupTestCases(cases: readonly Doc<"submissionTestCases">[]): ApiSubmis
     }));
 
     if (last === undefined || last === 0) {
-      entries.push(...shaped);
+      entries.push(...caseEntries);
     } else {
       entries.push({
         type: "batch",
         batch_id: last,
-        cases: shaped,
+        cases: caseEntries,
         points: Math.min(...buffer.map((row) => row.points)),
         total: Math.max(...buffer.map((row) => row.total)),
       });
@@ -1105,7 +1116,7 @@ export const submission = query({
 
     const viewerSolved = await hasSolvedProblem(ctx, profile._id, problemDoc._id);
 
-    const allowed = canSeeSubmissionDetail({ profileId: submissionDoc.profileId as string }, viewer, {
+    const allowed = canSeeSubmissionDetail({ profileId: submissionDoc.profileId }, viewer, {
       problem: toCoreProblem(problemDoc),
       contest: contestDoc ? toContestRow(contestDoc) : null,
       hasSolvedProblem: viewerSolved,

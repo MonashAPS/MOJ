@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 import { insertJudge, insertLanguage, insertProblem, insertProfile, insertSubmission } from "./test.fixtures";
-import { judgeClient, setupTest } from "./test.setup";
+import { claimResponse, heartbeatResponse, judgeClient, setupTest } from "./test.setup";
 
 async function fixture() {
   const t = setupTest();
@@ -80,7 +80,7 @@ describe("judge authentication", () => {
 
     const response = await client.heartbeat({ load: 0.42, problems: [["other", 12345]] });
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { ok: boolean; serverTime: number };
+    const body = await heartbeatResponse(response);
     expect(body.ok).toBe(true);
     expect(body.serverTime).toBeGreaterThan(0);
 
@@ -151,12 +151,10 @@ describe("claimNext", () => {
 
     const client = judgeClient(t, "local");
 
-    const order: number[] = [];
+    const order: (number | string)[] = [];
 
     for (let i = 0; i < 4; i++) {
-      const body = (await (await client.claim()).json()) as {
-        submission: { submissionId: number } | null;
-      };
+      const body = await claimResponse(await client.claim());
 
       if (!body.submission) break;
       order.push(body.submission.submissionId);
@@ -196,9 +194,7 @@ describe("claimNext", () => {
 
     await insertJudge(t, { name: "local", problemCodes: ["aplusb"], runtimeKeys: ["PY3"] });
 
-    const body = (await (await judgeClient(t, "local").claim()).json()) as {
-      submission: { submissionId: number; problemCode: string; languageKey: string } | null;
-    };
+    const body = await claimResponse(await judgeClient(t, "local").claim());
 
     expect(body.submission?.submissionId).toBe(3);
     expect(body.submission?.problemCode).toBe("aplusb");
@@ -218,15 +214,11 @@ describe("claimNext", () => {
       judgePin: pinned,
     });
 
-    const otherBody = (await (await judgeClient(t, "other").claim()).json()) as {
-      submission: unknown;
-    };
+    const otherBody = await claimResponse(await judgeClient(t, "other").claim());
 
     expect(otherBody.submission).toBeNull();
 
-    const pinnedBody = (await (await judgeClient(t, "pinned").claim()).json()) as {
-      submission: { submissionId: number } | null;
-    };
+    const pinnedBody = await claimResponse(await judgeClient(t, "pinned").claim());
 
     expect(pinnedBody.submission?.submissionId).toBe(7);
   });
@@ -243,7 +235,7 @@ describe("claimNext", () => {
       legacyId: 4,
     });
 
-    const body = (await (await judgeClient(t, "slow").claim()).json()) as { submission: unknown };
+    const body = await claimResponse(await judgeClient(t, "slow").claim());
     expect(body.submission).toBeNull();
   });
 
@@ -261,9 +253,7 @@ describe("claimNext", () => {
 
     await t.run(async (ctx) => ctx.db.patch(fast, { online: false }));
 
-    const body = (await (await judgeClient(t, "slow").claim()).json()) as {
-      submission: { submissionId: number } | null;
-    };
+    const body = await claimResponse(await judgeClient(t, "slow").claim());
 
     expect(body.submission?.submissionId).toBe(5);
   });
@@ -294,9 +284,7 @@ describe("claimNext", () => {
       date: 1,
     });
 
-    const reserved = (await (await judgeClient(t, "free").claim()).json()) as {
-      submission: unknown;
-    };
+    const reserved = await claimResponse(await judgeClient(t, "free").claim());
 
     expect(reserved.submission).toBeNull();
 
@@ -311,9 +299,7 @@ describe("claimNext", () => {
       date: 2,
     });
 
-    const dispatched = (await (await judgeClient(t, "free").claim()).json()) as {
-      submission: { submissionId: number } | null;
-    };
+    const dispatched = await claimResponse(await judgeClient(t, "free").claim());
 
     expect(dispatched.submission?.submissionId).toBe(22);
   });
@@ -330,9 +316,7 @@ describe("claimNext", () => {
       legacyId: 30,
     });
 
-    const body = (await (await judgeClient(t, "only").claim()).json()) as {
-      submission: { submissionId: number } | null;
-    };
+    const body = await claimResponse(await judgeClient(t, "only").claim());
 
     expect(body.submission?.submissionId).toBe(30);
   });
@@ -350,16 +334,7 @@ describe("claimNext", () => {
       source: "print(42)",
     });
 
-    const body = (await (await judgeClient(t, "local").claim()).json()) as {
-      submission: {
-        submissionId: number;
-        source: string;
-        timeLimit: number;
-        memoryLimit: number;
-        shortCircuit: boolean;
-        meta: { pretestsOnly: boolean; inContest: number | null; attemptNo: number };
-      } | null;
-    };
+    const body = await claimResponse(await judgeClient(t, "local").claim());
 
     expect(body.submission?.source).toBe("print(42)");
     expect(body.submission?.timeLimit).toBe(1);
@@ -377,7 +352,7 @@ describe("claimNext", () => {
     expect(judge?.currentSubmissionId).toBe(submissionId);
 
     // A busy judge claims nothing more.
-    const again = (await (await judgeClient(t, "local").claim()).json()) as { submission: unknown };
+    const again = await claimResponse(await judgeClient(t, "local").claim());
     expect(again.submission).toBeNull();
   });
 
@@ -400,9 +375,7 @@ describe("claimNext", () => {
       legacyId: 50,
     });
 
-    const body = (await (await judgeClient(t, "local").claim()).json()) as {
-      submission: { timeLimit: number; memoryLimit: number } | null;
-    };
+    const body = await claimResponse(await judgeClient(t, "local").claim());
 
     expect(body.submission?.timeLimit).toBe(5);
     expect(body.submission?.memoryLimit).toBe(65536);
@@ -438,9 +411,7 @@ describe("claimNext", () => {
 
     await insertJudge(t, { name: "local" });
 
-    const body = (await (await judgeClient(t, "local").claim()).json()) as {
-      submission: { submissionId: number; meta: { attemptNo: number } } | null;
-    };
+    const body = await claimResponse(await judgeClient(t, "local").claim());
 
     expect(body.submission?.submissionId).toBe(62);
     expect(body.submission?.meta.attemptNo).toBe(2);

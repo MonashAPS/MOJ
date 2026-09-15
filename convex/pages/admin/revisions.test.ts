@@ -8,7 +8,6 @@
 
 import { describe, expect, test } from "vitest";
 import { api } from "../../_generated/api";
-import type { Id } from "../../_generated/dataModel";
 import {
   asUser,
   insertContest,
@@ -138,7 +137,7 @@ describe("pages/admin revisions", () => {
     await t.run(async (ctx) => {
       await ctx.db.insert("revisions", {
         entityType: "problem",
-        entityId: ids.alpha as Id<"problems">,
+        entityId: ids.alpha,
         snapshot: { points: 50 },
         authorProfileId: ids.root,
         reason: "First",
@@ -146,7 +145,7 @@ describe("pages/admin revisions", () => {
       });
       await ctx.db.insert("revisions", {
         entityType: "problem",
-        entityId: ids.alpha as Id<"problems">,
+        entityId: ids.alpha,
         snapshot: { points: 75 },
         authorProfileId: ids.root,
         reason: "Second",

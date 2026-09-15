@@ -14,6 +14,7 @@ import { makeFunctionReference } from "convex/server";
 import { describe, expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import type { JobArgs } from "./jobs";
 import {
   asUser,
   insertContest,
@@ -66,7 +67,7 @@ async function job(t: T, jobId: Id<"jobs">) {
   return await t.run(async (ctx) => ctx.db.get(jobId));
 }
 
-async function insertJob(t: T, type: string, args: Record<string, unknown>): Promise<Id<"jobs">> {
+async function insertJob(t: T, type: string, args: JobArgs): Promise<Id<"jobs">> {
   return await t.run(async (ctx) =>
     ctx.db.insert("jobs", {
       type,

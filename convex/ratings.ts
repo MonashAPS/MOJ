@@ -114,11 +114,18 @@ export async function rateOne(ctx: MutationCtx, contest: Doc<"contests">): Promi
     now: Date.now(),
   });
 
+  const participationById = new Map<string, Doc<"contestParticipations">>(
+    participations.map((row) => [row._id, row]),
+  );
+
   for (const row of output) {
+    const participation = participationById.get(row.participationId);
+
+    if (!participation) continue;
     await ctx.db.insert("ratings", {
-      profileId: row.profileId as Id<"profiles">,
+      profileId: participation.profileId,
       contestId: contest._id,
-      participationId: row.participationId as Id<"contestParticipations">,
+      participationId: participation._id,
       rank: row.rank,
       rating: row.rating,
       mean: row.mean,

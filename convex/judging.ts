@@ -29,6 +29,7 @@ import {
   selectClaim,
   updateParticipation,
 } from "@moj/core";
+import type { WithoutSystemFields } from "convex/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "./_generated/server";
@@ -40,6 +41,7 @@ import {
   JUDGE_HEARTBEAT_TIMEOUT_MS,
 } from "./judgeApi";
 import { invalid } from "./lib/errors";
+import { isJsonNumber } from "./lib/json";
 import { testDataRow } from "./lib/testData";
 import { patchProfile } from "./rankings";
 
@@ -98,7 +100,7 @@ export async function resolveSubmission(
   ctx: QueryCtx,
   wireId: number | string,
 ): Promise<Doc<"submissions"> | null> {
-  if (typeof wireId === "number") {
+  if (isJsonNumber(wireId)) {
     return await ctx.db
       .query("submissions")
       .withIndex("by_legacyId", (q) => q.eq("legacyId", wireId))
@@ -138,7 +140,7 @@ export async function allocateSubmissionNumber(ctx: MutationCtx): Promise<number
 /* Claiming                                                                   */
 /* -------------------------------------------------------------------------- */
 
-export interface ClaimedSubmissionPayload {
+export type ClaimedSubmissionPayload = {
   submissionId: number | string;
   problemCode: string;
   languageKey: string;
@@ -159,7 +161,7 @@ export interface ClaimedSubmissionPayload {
     user: number | string;
     userNotes: string;
   };
-}
+};
 
 function toJudgeRow(judge: Doc<"judges">, now: number): JudgeRow {
   const lastSeen = judge.lastSeen ?? judge.startTime ?? 0;
@@ -307,7 +309,7 @@ export async function claimNext(
 
   if (!chosen) return null;
 
-  const submission = byId.get(chosen.id as string);
+  const submission = byId.get(chosen.id);
 
   if (!submission) return null;
   const problem = problems.get(submission.problemId);
@@ -393,9 +395,9 @@ export async function recomputeProfilePoints(ctx: MutationCtx, profileId: Id<"pr
 
     if (!problem) continue;
     rows.push({
-      problemId: submission.problemId as string,
+      problemId: submission.problemId,
       points: submission.points ?? null,
-      result: (submission.result ?? null) as SubmissionResult | null,
+      result: submission.result ?? null,
       casePoints: submission.casePoints,
       caseTotal: submission.caseTotal,
       isArchived: submission.isArchived,
@@ -434,8 +436,8 @@ export async function recomputeProblemStats(ctx: MutationCtx, problemId: Id<"pro
     }
 
     rows.push({
-      profileId: submission.profileId as string,
-      result: (submission.result ?? null) as SubmissionResult | null,
+      profileId: submission.profileId,
+      result: submission.result ?? null,
       casePoints: submission.casePoints,
       caseTotal: submission.caseTotal,
       isArchived: submission.isArchived,
@@ -500,13 +502,13 @@ export async function recomputeParticipation(
         : undefined;
 
     rows.push({
-      id: submission._id as string,
-      contestProblemId: submission.contestProblemId as string,
-      participationId: participationId as string,
+      id: submission._id,
+      contestProblemId: submission.contestProblemId,
+      participationId,
       contestPoints: points,
       casePoints: submission.casePoints,
       caseTotal: submission.caseTotal,
-      result: (submission.result ?? null) as SubmissionResult | null,
+      result: submission.result ?? null,
       status: submission.status,
       date: submission.date,
       isPretest: submission.isContestPretest ?? false,
@@ -569,6 +571,8 @@ export async function recomputeParticipation(
 function toCoreTestCase(row: Doc<"submissionTestCases">): SubmissionTestCaseRow {
   return {
     case: row.case,
+    // SAFETY: `submissionTestCases.status` is only ever written by `decodeCaseStatus`,
+    // whose return type is `SubmissionResult`; the column itself is a plain string.
     status: row.status as SubmissionResult,
     time: row.time,
     memory: row.memory,
@@ -665,19 +669,20 @@ async function onTestCaseStatus(
     const position = wire.position ?? 0;
     maxPosition = Math.max(maxPosition, position);
 
-    const row = {
+    const row: WithoutSystemFields<Doc<"submissionTestCases">> = {
       submissionId: submission._id,
       case: position,
-      status: decodeCaseStatus(wire.status ?? 0) as string,
+      status: decodeCaseStatus(wire.status ?? 0),
       time: wire.time ?? 0,
       memory: wire.memory ?? 0,
       points: wire.points ?? 0,
       total: wire.totalPoints ?? 0,
-      ...(batch === null ? {} : { batch }),
       feedback: (wire.feedback ?? "").slice(0, MAX_FEEDBACK_LENGTH),
       extendedFeedback: wire.extendedFeedback ?? "",
       output: wire.output ?? "",
     };
+
+    if (batch !== null) row.batch = batch;
 
     const existing = await ctx.db
       .query("submissionTestCases")
@@ -755,14 +760,17 @@ async function finishWithStatus(
   status: "CE" | "IE" | "AB",
   error: string | undefined,
 ): Promise<void> {
-  await ctx.db.patch(submission._id, {
+  const patch: Partial<WithoutSystemFields<Doc<"submissions">>> = {
     status,
     result: status,
-    ...(error === undefined ? {} : { error }),
-    ...(status === "AB" ? { points: 0 } : {}),
     currentBatch: undefined,
     inBatch: false,
-  });
+  };
+
+  if (error !== undefined) patch.error = error;
+
+  if (status === "AB") patch.points = 0;
+  await ctx.db.patch(submission._id, patch);
   await releaseSubmission(ctx, submission);
 
   if (submission.participationId) {
@@ -887,7 +895,8 @@ export async function queueSubmission(
   else if (options.rejudge) priority = REJUDGE_PRIORITY;
 
   await freeJudge(ctx, submission.claimedByJudgeId, submission._id);
-  await ctx.db.patch(submissionId, {
+
+  const patch: Partial<WithoutSystemFields<Doc<"submissions">>> = {
     status: "QU",
     result: undefined,
     time: undefined,
@@ -909,8 +918,10 @@ export async function queueSubmission(
     abortRequested: undefined,
     currentBatch: undefined,
     inBatch: false,
-    ...(options.judgePin === undefined ? {} : { judgePin: options.judgePin ?? undefined }),
-  });
+  };
+
+  if (options.judgePin !== undefined) patch.judgePin = options.judgePin ?? undefined;
+  await ctx.db.patch(submissionId, patch);
   await deleteTestCases(ctx, submissionId);
 
   return true;
@@ -930,12 +941,12 @@ export const handshake = internalMutation({
   handler: async (ctx, args) => {
     const judge = await authenticateJudge(ctx, args.judgeName, args.authKeyHash);
     await applyHandshake(ctx, judge, {
-      problems: args.problems as Array<[string, ...unknown[]]>,
-      executors: args.executors as Record<string, Array<[string, ...unknown[]]>>,
+      problems: args.problems,
+      executors: args.executors,
       ip: args.ip,
     });
 
-    return { ok: true as const, judgeId: judge._id as string };
+    return { ok: true as const, judgeId: judge._id };
   },
 });
 
@@ -951,8 +962,8 @@ export const heartbeat = internalMutation({
     const judge = await authenticateJudge(ctx, args.judgeName, args.authKeyHash);
     await applyHeartbeat(ctx, judge, {
       load: args.load,
-      problems: args.problems as Array<[string, ...unknown[]]> | undefined,
-      executors: args.executors as Record<string, Array<[string, ...unknown[]]>> | undefined,
+      problems: args.problems,
+      executors: args.executors,
       ip: args.ip,
     });
 
@@ -989,7 +1000,7 @@ export const event = internalMutation({
       return { ok: false, error: "unknown submission" };
     }
 
-    return await applyJudgeEvent(ctx, submission, args.event as JudgeEventPayload);
+    return await applyJudgeEvent(ctx, submission, args.event);
   },
 });
 

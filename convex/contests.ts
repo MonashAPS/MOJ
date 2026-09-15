@@ -367,13 +367,13 @@ export const homeSidebar = query({
       .sort((a, b) => a.startTime - b.startTime);
 
     return [
-      ...ongoing.map((row) => shape(row, "ongoing")),
-      ...upcoming.map((row) => shape(row, "upcoming")),
+      ...ongoing.map((row) => sidebarContest(row, "ongoing")),
+      ...upcoming.map((row) => sidebarContest(row, "upcoming")),
     ].slice(0, take);
   },
 });
 
-function shape(row: Doc<"contests">, state: "ongoing" | "upcoming"): HomeSidebarContest {
+function sidebarContest(row: Doc<"contests">, state: "ongoing" | "upcoming"): HomeSidebarContest {
   return {
     _id: row._id,
     key: row.key,
@@ -487,7 +487,13 @@ export const navBar = query({
 
 const SORTS = ["name", "userCount", "startTime"] as const;
 
+const SORT_KEYS = new Set<string>(SORTS);
+
 type Sort = (typeof SORTS)[number];
+
+function isSort(value: string | undefined): value is Sort {
+  return value !== undefined && SORT_KEYS.has(value);
+}
 
 function compareContests(a: Doc<"contests">, b: Doc<"contests">, sort: Sort, descending: boolean): number {
   let result: number;
@@ -566,7 +572,7 @@ async function progressFor(
       code: problem.code,
       name: problem.name,
       label: labelForProblem(contest, index),
-      solved: solved.has(problem._id as string),
+      solved: solved.has(problem._id),
     });
   }
 
@@ -657,8 +663,10 @@ export const list = query({
       tagId = tag._id;
     }
 
-    const filtered = tagId
-      ? visible.filter((contest) => contest.tagIds.includes(tagId as Id<"contestTags">))
+    const wantedTagId = tagId;
+
+    const filtered = wantedTagId
+      ? visible.filter((contest) => contest.tagIds.includes(wantedTagId))
       : visible;
 
     const editorOrTester = (contest: Doc<"contests">): boolean =>
@@ -679,20 +687,18 @@ export const list = query({
         .withIndex("by_profile_date", (q) => q.eq("profileId", profile._id))
         .take(MAX_SUBMISSION_SCAN);
 
-      solvedIds = new Set(
-        submissions.filter((row) => row.result === "AC").map((row) => row.problemId as string),
-      );
+      solvedIds = new Set(submissions.filter((row) => row.result === "AC").map((row) => row.problemId));
 
       for (const row of await ctx.db
         .query("contestParticipations")
         .withIndex("by_profile_contest", (q) => q.eq("profileId", profile._id))
         .collect()) {
-        joinedContests.add(row.contestId as string);
+        joinedContests.add(row.contestId);
       }
     }
 
     const released = (contest: Doc<"contests">): boolean =>
-      problemsReleasedFor(contest, profile, joinedContests.has(contest._id as string), now);
+      problemsReleasedFor(contest, profile, joinedContests.has(contest._id), now);
 
     const running: Doc<"contests">[] = [];
     const future: Doc<"contests">[] = [];
@@ -746,7 +752,7 @@ export const list = query({
       );
     }
 
-    const sort: Sort = SORTS.includes(args.sort as Sort) ? (args.sort as Sort) : "startTime";
+    const sort: Sort = isSort(args.sort) ? args.sort : "startTime";
     const descending = args.descending ?? sort !== "name";
     past.sort((a, b) => compareContests(a, b, sort, descending));
 
@@ -857,7 +863,12 @@ function comparePair(a: [number, number], b: [number, number]): number {
   return a[0] - b[0] || a[1] - b[1];
 }
 
-function stepMonth(year: number, month: number, delta: number): { year: number; month: number } {
+type YearMonth = {
+  year: number;
+  month: number;
+};
+
+function stepMonth(year: number, month: number, delta: number): YearMonth {
   const index = year * 12 + (month - 1) + delta;
 
   return { year: Math.floor(index / 12), month: (index % 12) + 1 };
@@ -917,7 +928,7 @@ export const calendar = query({
     for (let i = 0; i < days.length; i += 7) {
       weeks.push(
         days.slice(i, i + 7).map((date) => {
-          const bucket = buckets.get(date) as Bucket;
+          const bucket = buckets.get(date) ?? { starts: [], ends: [], oneday: [] };
 
           return {
             date,
@@ -1533,11 +1544,13 @@ export const stats = query({
 
       if (index !== undefined) {
         const row = statusCounts.get(code) ?? new Array<number>(problems.length).fill(0);
-        row[index] = (row[index] as number) + 1;
+        row[index] = (row[index] ?? 0) + 1;
         statusCounts.set(code, row);
-        (problems[index] as { total: number }).total += 1;
+        const problemRow = problems[index];
 
-        if (submission.result === "AC") accepted[index] = (accepted[index] as number) + 1;
+        if (problemRow) problemRow.total += 1;
+
+        if (submission.result === "AC") accepted[index] = (accepted[index] ?? 0) + 1;
       }
 
       const language = await ctx.db.get(submission.languageId);
@@ -1550,7 +1563,7 @@ export const stats = query({
     }
 
     problems.forEach((problem, index) => {
-      problem.acRate = problem.total ? (100 * (accepted[index] as number)) / problem.total : 0;
+      problem.acRate = problem.total ? (100 * (accepted[index] ?? 0)) / problem.total : 0;
     });
 
     return {
@@ -1561,12 +1574,11 @@ export const stats = query({
       languageCount: [...languageTotals.entries()]
         .map(([name, bucket]) => ({ name, count: bucket.count }))
         .sort((a, b) => b.count - a.count),
-      languageAcRate: [...languageTotals.entries()]
-        .map(([name, bucket]) => ({
-          name,
-          acRate: bucket.count ? (100 * bucket.accepted) / bucket.count : 0,
-        }))
-        .filter((row) => row.acRate > 0),
+      languageAcRate: [...languageTotals.entries()].flatMap(([name, bucket]) => {
+        const acRate = bucket.count ? (100 * bucket.accepted) / bucket.count : 0;
+
+        return acRate > 0 ? [{ name, acRate }] : [];
+      }),
       totalSubmissions: submissions.length,
     };
   },

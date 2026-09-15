@@ -136,10 +136,12 @@ export const list = query({
 
     let allowed: Set<Id<"profiles">> | null = null;
 
-    if (args.organizationSlug) {
+    const organizationSlug = args.organizationSlug;
+
+    if (organizationSlug) {
       const organization = await ctx.db
         .query("organizations")
-        .withIndex("by_slug", (q) => q.eq("slug", args.organizationSlug as string))
+        .withIndex("by_slug", (q) => q.eq("slug", organizationSlug))
         .unique();
 
       allowed = new Set();

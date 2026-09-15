@@ -4,7 +4,9 @@
  * system's own value back, so `tokens.css` stays the source of the defaults.
  */
 
+import type { WithoutSystemFields } from "convex/server";
 import { v } from "convex/values";
+import type { Doc } from "../../_generated/dataModel";
 import { mutation } from "../../_generated/server";
 import { requireSuperuser } from "../../lib/auth";
 import { invalid, notFound } from "../../lib/errors";
@@ -49,7 +51,7 @@ export const update = mutation({
 
     if (!existing) throw notFound("Site settings");
 
-    const patch: Record<string, unknown> = {};
+    const patch: Partial<WithoutSystemFields<Doc<"siteSettings">>> = {};
 
     if (args.siteName !== undefined) {
       const name = args.siteName.trim();

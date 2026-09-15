@@ -34,7 +34,7 @@ function expectedPP(scores: number[], solved: number): number {
   const data = [...scores].filter((value) => value > 0).sort((a, b) => b - a);
   let pp = 0;
 
-  for (let i = 0; i < Math.min(data.length, 100); i++) pp += 0.95 ** i * (data[i] as number);
+  for (const [index, value] of data.slice(0, 100).entries()) pp += 0.95 ** index * value;
 
   return pp + 300 * (1 - 0.997 ** solved);
 }
@@ -91,9 +91,12 @@ describe("profiles.recalculatePoints", () => {
         .withIndex("by_username", (q) => q.eq("username", "solver"))
         .unique();
 
-      return profile?._id as Id<"profiles">;
+      return profile?._id;
     });
 
+    expect(profileId).toBeDefined();
+
+    if (profileId === undefined) return;
     const result = await t.mutation(internal.profiles.recalculatePointsForProfile, { profileId });
 
     expect(result).toMatchObject({ problemCount: 5 });
@@ -202,9 +205,10 @@ describe("profiles.userPage", () => {
     const sorted = [...scores].sort((a, b) => b - a);
     page.ppBreakdown.forEach((entry, index) => {
       const weight = 0.95 ** index;
-      expect(entry.points).toBeCloseTo(sorted[index] as number, 9);
+      const expected = sorted[index] ?? 0;
+      expect(entry.points).toBeCloseTo(expected, 9);
       expect(entry.weight).toBeCloseTo(weight * 100, 9);
-      expect(entry.scaledPoints).toBeCloseTo((sorted[index] as number) * weight, 9);
+      expect(entry.scaledPoints).toBeCloseTo(expected * weight, 9);
     });
 
     expect(page.ppBreakdown[0]?.language).toBe("py3");

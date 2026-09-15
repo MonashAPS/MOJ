@@ -186,7 +186,7 @@ export const sitemap = query({
       });
     }
 
-    const publicProblemIds = new Set(problemRows.map((row) => row._id as string));
+    const publicProblemIds = new Set(problemRows.map((row) => row._id));
     const solutions = await ctx.db.query("solutions").collect();
 
     for (const solution of solutions) {

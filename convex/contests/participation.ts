@@ -317,7 +317,6 @@ async function participationRows(
   const format = formatFor(contest);
   const contestRow = toContestRow(contest);
   const problemRows: ContestProblemRow[] = contestProblems.map((row) => toContestProblemRow(row));
-  const labels = contestProblems.map((_row, index) => labelForProblem(contest, index));
 
   const out: ParticipationRow[] = [];
 
@@ -338,14 +337,15 @@ async function participationRows(
       ended: participationHasEnded(participationRow, contestRow, now),
       user: userRef(profile),
       result: format.displayParticipationResult(participationRow, contestRow),
-      problems: problemRows.map((problem, index) => {
-        const cell = safeDisplay(format, participationRow, problem, contestRow);
+      problems: contestProblems.map((contestProblem, index) => {
+        const problem = problemRows[index];
+        const cell = problem ? safeDisplay(format, participationRow, problem, contestRow) : null;
 
         if (!cell) return null;
 
         return {
-          contestProblemId: problem.id as Id<"contestProblems">,
-          label: labels[index] as string,
+          contestProblemId: contestProblem._id,
+          label: labelForProblem(contest, index),
           state: cell.state,
           points: cell.points,
           pointsText: cell.pointsText,

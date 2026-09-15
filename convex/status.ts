@@ -68,7 +68,7 @@ export const runtimes = query({
   handler: async (ctx): Promise<RuntimeListEntry[]> => {
     const seeAll = await seesAllJudges(ctx);
     const judges = await ctx.db.query("judges").collect();
-    const onlineJudgeIds = new Set(judges.filter((row) => row.online).map((row) => row._id as string));
+    const onlineJudgeIds = new Set(judges.filter((row) => row.online).map((row) => row._id));
 
     const languages = await ctx.db.query("languages").collect();
     languages.sort((a, b) => a.key.localeCompare(b.key));
@@ -181,7 +181,7 @@ export const matrix = query({
   args: {},
   handler: async (ctx): Promise<VersionMatrix> => {
     const judges = (await ctx.db.query("judges").collect()).filter((row) => row.online);
-    const languageIds = new Set<string>();
+    const languageIds = new Set<Id<"languages">>();
     const perJudge = new Map<string, Map<string, Array<{ name: string; version: string }>>>();
 
     for (const judge of judges) {
@@ -268,7 +268,7 @@ export const matrix = query({
     const keyById = new Map<string, string>();
 
     for (const id of languageIds) {
-      const language = await ctx.db.get(id as Id<"languages">);
+      const language = await ctx.db.get(id);
 
       if (!language) continue;
       languages.push({ _id: language._id, key: language.key, name: language.name });

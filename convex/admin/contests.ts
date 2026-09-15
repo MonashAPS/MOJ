@@ -89,34 +89,41 @@ const {
 
 type WritablePatch = Partial<Doc<"contests">>;
 
-function nullToUndefined<T>(value: T | null | undefined): T | undefined {
-  return value === null ? undefined : value;
+type WritableField = keyof typeof writable & keyof Doc<"contests">;
+
+/**
+ * Every writable field as the mutations receive it: absent when it was not
+ * sent, and null on the ones whose validator spells "unset" that way.
+ */
+type ContestWriteArgs = { [K in WritableField]?: Doc<"contests">[K] | null };
+
+/**
+ * `Object.keys` widens to `string[]` so that a value with extra properties
+ * still typechecks; the objects here are literals declared in this module.
+ */
+function keysOf<T extends object>(value: T): (keyof T & string)[] {
+  // SAFETY: `value` is an object literal declared above with no index signature,
+  // so its own enumerable keys are exactly `keyof T`.
+  return Object.keys(value) as (keyof T & string)[];
+}
+
+const WRITABLE_FIELDS = keysOf(writable);
+
+function copyField<K extends WritableField>(patch: WritablePatch, args: ContestWriteArgs, key: K): void {
+  const value = args[key];
+
+  if (value === undefined) return;
+  // A null is how the validators spell "clear this field"; Convex unsets it.
+  patch[key] = value === null ? undefined : value;
 }
 
 /** Turn the argument object into a patch, dropping keys that were not sent. */
-function buildPatch(args: Record<string, unknown>): WritablePatch {
-  const patch: Record<string, unknown> = {};
+function buildPatch(args: ContestWriteArgs): WritablePatch {
+  const patch: WritablePatch = {};
 
-  const nullable = new Set([
-    "summary",
-    "timeLimit",
-    "ratingFloor",
-    "ratingCeiling",
-    "performanceCeilingOverride",
-    "ogImage",
-    "logoOverrideImage",
-    "accessCode",
-    "lockedAfter",
-  ]);
+  for (const key of WRITABLE_FIELDS) copyField(patch, args, key);
 
-  for (const [key, value] of Object.entries(args)) {
-    if (value === undefined) continue;
-
-    if (!(key in writable)) continue;
-    patch[key] = nullable.has(key) ? nullToUndefined(value) : value;
-  }
-
-  return patch as WritablePatch;
+  return patch;
 }
 
 async function requireEditable(ctx: MutationCtx, key: string) {
@@ -358,7 +365,7 @@ export const create = mutation({
 
     if (await contestByKey(ctx, key)) throw mojError("CONFLICT", "That contest id is already taken.");
 
-    const patch = buildPatch(args as Record<string, unknown>);
+    const patch = buildPatch(args);
     checkGatedFields(patch, null, viewer);
     validateTiming({ ...patch, startTime: args.startTime, endTime: args.endTime }, null);
     validateFormat(patch, null);
@@ -432,7 +439,7 @@ export const update = mutation({
   args: { key: v.string(), reason: v.optional(v.string()), ...writable },
   handler: async (ctx, args): Promise<null> => {
     const { profile, contest, viewer } = await requireEditable(ctx, args.key);
-    const patch = buildPatch(args as Record<string, unknown>);
+    const patch = buildPatch(args);
 
     if (Object.keys(patch).length === 0) return null;
 
@@ -445,7 +452,7 @@ export const update = mutation({
       ctx,
       "contest",
       contest._id,
-      { before: pick(contest, Object.keys(patch)), after: patch },
+      { before: pick(contest, keysOf(patch)), after: patch },
       profile._id,
       args.reason ?? "Edited contest",
     );
@@ -454,10 +461,19 @@ export const update = mutation({
   },
 });
 
-function pick(row: Doc<"contests">, keys: string[]): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
+function copyRowField<K extends keyof Doc<"contests">>(
+  out: WritablePatch,
+  row: Doc<"contests">,
+  key: K,
+): void {
+  out[key] = row[key];
+}
 
-  for (const key of keys) out[key] = (row as unknown as Record<string, unknown>)[key];
+/** The fields a revision records as they stood before the edit. */
+function pick(row: Doc<"contests">, keys: readonly (keyof Doc<"contests">)[]): WritablePatch {
+  const out: WritablePatch = {};
+
+  for (const key of keys) copyRowField(out, row, key);
 
   return out;
 }
@@ -668,7 +684,7 @@ export const reorderProblems = mutation({
   handler: async (ctx, { key, order, reason }): Promise<null> => {
     const { profile, contest } = await requireEditable(ctx, key);
     const rows = await loadContestProblems(ctx, contest._id);
-    const known = new Set(rows.map((row) => row._id as string));
+    const known = new Set(rows.map((row) => row._id));
 
     if (order.length !== rows.length || order.some((id) => !known.has(id))) {
       throw invalid("The new order must list every problem in the contest exactly once.");

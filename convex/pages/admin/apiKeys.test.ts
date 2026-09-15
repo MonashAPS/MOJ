@@ -7,7 +7,6 @@
 
 import { describe, expect, test } from "vitest";
 import { api } from "../../_generated/api";
-import type { Id } from "../../_generated/dataModel";
 import { asUser, insertLanguage, insertOrganization, insertProfile } from "../../test.fixtures";
 import { setupTest } from "../../test.setup";
 
@@ -52,7 +51,7 @@ describe("pages/admin api keys", () => {
       expiresAt: null,
     });
 
-    const row = await t.run(async (ctx) => await ctx.db.get(id as Id<"apiKeys">));
+    const row = await t.run(async (ctx) => await ctx.db.get(id));
     expect(row?.profileId).toBe(ids.root);
     expect(row?.scopes).toEqual(["problems:write"]);
     expect(row?.enabled).toBe(true);

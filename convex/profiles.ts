@@ -26,6 +26,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation, type QueryCtx, query } from "./_generated/server";
 import { optionalViewer, requireStaff, requireViewer } from "./lib/auth";
 import { forbidden, invalid, notFound } from "./lib/errors";
+import { isNonEmptyString } from "./lib/json";
 import { insertProfileAggregates, patchProfile } from "./rankings";
 import { siteTheme } from "./schema";
 
@@ -56,8 +57,8 @@ const profileDefaults = {
   isStaff: false,
   isSuperuser: false,
   isActive: true,
-  permissions: [] as string[],
-  groups: [] as string[],
+  permissions: [],
+  groups: [],
 };
 
 async function languageIdForKey(
@@ -130,8 +131,8 @@ export const ensureProfile = mutation({
     // The username comes off the token, never off the argument: the caller is a
     // client whose cached session can lag a sign-out by a render, and taking its
     // word would let one account write another's name onto its profile.
-    const claimed = (identity as { username?: unknown }).username;
-    const username = typeof claimed === "string" && claimed.length > 0 ? claimed : args.username;
+    const claimed = identity.username;
+    const username = isNonEmptyString(claimed) ? claimed : args.username;
 
     return await upsertProfile(ctx, { ...args, username, userId: identity.subject });
   },
@@ -481,10 +482,13 @@ async function buildPPBreakdown(
   return { entries, hasMore };
 }
 
-function buildSubmissionActivity(rows: readonly ScannedSubmission[]): {
+/** The heat map on a user page: submissions per day, and the first year with any. */
+type SubmissionActivity = {
   counts: Record<string, number>;
   minYear: number | null;
-} {
+};
+
+function buildSubmissionActivity(rows: readonly ScannedSubmission[]): SubmissionActivity {
   const counts: Record<string, number> = {};
   let minYear: number | null = null;
 
@@ -526,12 +530,12 @@ export const userPage = query({
 
     let ratingRank: number | null = null;
 
-    if (profile.rating !== undefined && ratingRows.length > 0) {
+    const rating = profile.rating;
+
+    if (rating !== undefined && ratingRows.length > 0) {
       const ratedAhead = await ctx.db
         .query("profiles")
-        .withIndex("by_listed_rating", (q) =>
-          q.eq("isUnlisted", false).gt("rating", profile.rating as number),
-        )
+        .withIndex("by_listed_rating", (q) => q.eq("isUnlisted", false).gt("rating", rating))
         .collect();
 
       ratingRank = ratedAhead.length + 1;
@@ -957,7 +961,7 @@ export async function recalculateProfilePoints(
 
   const result = calculateProfilePoints(
     rows.map((row) => ({
-      problemId: row.problemId as string,
+      problemId: row.problemId,
       points: row.points ?? null,
       result: row.result ?? null,
       casePoints: row.casePoints,

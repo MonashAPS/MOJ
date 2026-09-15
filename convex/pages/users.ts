@@ -12,6 +12,7 @@
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
+import { jobResultStorageId } from "../jobs";
 import { requireViewer } from "../lib/auth";
 
 /** One organisation as a username's suffix chip. */
@@ -85,7 +86,7 @@ export const dataExportDownload = query({
 
     if (job?.status !== "done") return null;
 
-    const storageId = job.result?.storageId as Id<"_storage"> | undefined;
+    const storageId = jobResultStorageId(ctx, job);
 
     if (!storageId) return null;
     const url = await ctx.storage.getUrl(storageId);

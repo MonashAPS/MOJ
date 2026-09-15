@@ -7,6 +7,7 @@ import { mutation, query } from "../_generated/server";
 import { requirePerm, requireSuperuser } from "../lib/auth";
 import { writeRevision } from "../lib/community";
 import { invalid, notFound } from "../lib/errors";
+import { isJsonNumber } from "../lib/json";
 
 const NAV_PERM = "judge.change_navigationbar";
 
@@ -187,7 +188,7 @@ export const reorderNav = mutation({
 /* -------------------------------------------------------------------------- */
 
 /** The keys DMOJ ships templates for; the console offers these first. */
-export const KNOWN_CONFIG_KEYS = [
+export const KNOWN_CONFIG_KEYS: readonly string[] = [
   "announcement",
   "footer",
   "home_page_top",
@@ -198,7 +199,7 @@ export const KNOWN_CONFIG_KEYS = [
   "problem_list_header",
   "contest_list_header",
   "user_list_header",
-] as const;
+];
 
 export const configRows = query({
   args: {},
@@ -207,7 +208,7 @@ export const configRows = query({
     const rows = await ctx.db.query("miscConfig").collect();
     rows.sort((a, b) => a.key.localeCompare(b.key));
 
-    return { rows, knownKeys: KNOWN_CONFIG_KEYS as readonly string[] };
+    return { rows, knownKeys: KNOWN_CONFIG_KEYS };
   },
 });
 
@@ -437,7 +438,7 @@ export const updateSettings = mutation({
     const { reason, ...patch } = args;
 
     for (const [key, value] of Object.entries(patch)) {
-      if (typeof value === "number" && !Number.isFinite(value)) {
+      if (isJsonNumber(value) && !Number.isFinite(value)) {
         throw invalid(`${key} must be a number.`);
       }
     }

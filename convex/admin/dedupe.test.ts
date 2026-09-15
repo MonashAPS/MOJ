@@ -13,8 +13,9 @@
 
 import { describe, expect, test } from "vitest";
 import { api, internal } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
+import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
+import { isJsonObject } from "../lib/json";
 import { asUser, insertProblem, insertProfile } from "../test.fixtures";
 import { setupTest, type T } from "../test.setup";
 
@@ -426,10 +427,11 @@ describe("admin/dedupe.dedupeNaturalKeys picks the survivor", () => {
         .collect();
 
       expect(revisions).toHaveLength(1);
-      const revision = revisions[0] as Doc<"revisions">;
-      const merged = (revision.snapshot as { mergedFrom: Doc<"problemGroups"> }).mergedFrom;
-      expect(merged._id).toBe(ids.seeded);
-      expect(revision.reason).toBe("Merged duplicate rows by natural key");
+      const revision = revisions[0];
+      const snapshot = revision?.snapshot;
+      const merged = isJsonObject(snapshot) ? snapshot.mergedFrom : undefined;
+      expect(isJsonObject(merged) ? merged._id : null).toBe(ids.seeded);
+      expect(revision?.reason).toBe("Merged duplicate rows by natural key");
     });
   });
 });

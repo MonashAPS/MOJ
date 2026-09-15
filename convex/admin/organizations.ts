@@ -239,16 +239,18 @@ export const update = mutation({
 
     if (args.name !== undefined) patch.name = args.name;
 
-    if (args.newSlug !== undefined && args.newSlug !== organization.slug) {
-      validateSlug(args.newSlug);
+    const newSlug = args.newSlug;
+
+    if (newSlug !== undefined && newSlug !== organization.slug) {
+      validateSlug(newSlug);
 
       const clash = await ctx.db
         .query("organizations")
-        .withIndex("by_slug", (q) => q.eq("slug", args.newSlug as string))
+        .withIndex("by_slug", (q) => q.eq("slug", newSlug))
         .unique();
 
       if (clash) throw invalid("An organization with that slug already exists.");
-      patch.slug = args.newSlug;
+      patch.slug = newSlug;
     }
 
     if (args.shortName !== undefined) {

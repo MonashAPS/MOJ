@@ -57,7 +57,12 @@ function capitalize(value: string): string {
 }
 
 /** The identity `t.withIdentity` wants for the profile of this username. */
-export function identityOf(username: string): { subject: string; issuer: string } {
+type TestIdentity = {
+  subject: string;
+  issuer: string;
+};
+
+export function identityOf(username: string): TestIdentity {
   return { subject: `user_${username}`, issuer: "https://test" };
 }
 

@@ -106,7 +106,12 @@ describe("importer.insertBatch upserts the reference tables", () => {
       docs: [importedLanguage("PY3", 4)],
     });
 
-    const languageId = mapping[0]?.id as Id<"languages">;
+    const languageKey = mapping[0]?.id;
+    expect(languageKey).toBeDefined();
+    const languageId = await t.run(async (ctx) => ctx.db.normalizeId("languages", languageKey ?? ""));
+    expect(languageId).not.toBeNull();
+
+    if (languageId === null) return;
 
     const problemId = await t.run(async (ctx) => {
       const groupId = await insertProblemGroup(ctx, { name: "imported" });
@@ -342,7 +347,12 @@ describe("admin/languages.dedupeByKey", () => {
     });
     await t.run(async (ctx) => {
       expect(await ctx.db.query("languages").collect()).toHaveLength(2);
-      expect((await ctx.db.get(ids.submissionIds[0] as Id<"submissions">))?.languageId).toBe(ids.survivor);
+      const [submissionId] = ids.submissionIds;
+      expect(submissionId).toBeDefined();
+
+      if (submissionId !== undefined) {
+        expect((await ctx.db.get(submissionId))?.languageId).toBe(ids.survivor);
+      }
     });
   });
 
@@ -402,7 +412,12 @@ describe("admin/languages.dedupeByKey", () => {
 
     await t.run(async (ctx) => {
       expect(await ctx.db.get(ids.loser)).toBeNull();
-      expect((await ctx.db.get(ids.submissionIds[0] as Id<"submissions">))?.languageId).toBe(ids.survivor);
+      const [submissionId] = ids.submissionIds;
+      expect(submissionId).toBeDefined();
+
+      if (submissionId !== undefined) {
+        expect((await ctx.db.get(submissionId))?.languageId).toBe(ids.survivor);
+      }
     });
   });
 

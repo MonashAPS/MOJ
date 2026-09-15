@@ -11,7 +11,7 @@ import { problemIsVisibleTo } from "@moj/core";
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
-import { matchesFilter, type RejudgeFilter } from "../jobs";
+import { matchesFilter, type RejudgeFilter, toIdRange } from "../jobs";
 import { optionalViewer } from "../lib/auth";
 import { forbidden } from "../lib/errors";
 import { loadViewerContext, toCoreProblem } from "../problems";
@@ -67,7 +67,7 @@ export const filterOptions = query({
     // Only contests that actually carry a problem the viewer can see; a contest
     // filter that returns nothing is worse than no option at all.
     const limit = Math.max(1, Math.min(Math.floor(args.contestLimit ?? 200), 500));
-    const visibleIds = new Set(visible.map((row) => row._id as string));
+    const visibleIds = new Set(visible.map((row) => row._id));
     const contests: { key: string; name: string; startTime: number; problemCount: number }[] = [];
     const rows = (await ctx.db.query("contests").collect()).filter((row: Doc<"contests">) => row.isVisible);
     rows.sort((a, b) => b.startTime - a.startTime);
@@ -80,7 +80,7 @@ export const filterOptions = query({
         .withIndex("by_contest_order", (q) => q.eq("contestId", contest._id))
         .collect();
 
-      const count = links.filter((link) => visibleIds.has(link.problemId as string)).length;
+      const count = links.filter((link) => visibleIds.has(link.problemId)).length;
 
       if (count === 0) continue;
       contests.push({
@@ -149,10 +149,7 @@ export const rejudgePreview = query({
 
     const filter: RejudgeFilter = {
       problemId: problem._id,
-      idRange:
-        args.idRange && args.idRange.length === 2
-          ? [args.idRange[0] as number, args.idRange[1] as number]
-          : undefined,
+      idRange: toIdRange(args.idRange),
       languageIds: languageIds.length > 0 ? languageIds : undefined,
       results: args.results && args.results.length > 0 ? args.results : undefined,
       archiveLocked: args.archiveLocked ?? true,

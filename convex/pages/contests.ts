@@ -30,6 +30,13 @@ import { contestIsRevealed } from "../contests/rankings";
 import { optionalViewer, requireViewer } from "../lib/auth";
 import { forbidden, notFound } from "../lib/errors";
 
+/** One scoreboard cell with submissions still pending behind the freeze. */
+type PendingCell = {
+  participationId: Id<"contestParticipations">;
+  contestProblemId: Id<"contestProblems">;
+  pending: number;
+};
+
 /* -------------------------------------------------------------------------- */
 /* Tags                                                                       */
 /* -------------------------------------------------------------------------- */
@@ -165,7 +172,7 @@ export const frozenCells = query({
     const contestProblems = await loadContestProblems(ctx, contest._id);
     const known = new Set<string>(contestProblems.map((row) => row._id));
 
-    const counts = new Map<string, number>();
+    const counts = new Map<string, PendingCell>();
 
     for (const participation of live) {
       const submissions = await ctx.db
@@ -179,22 +186,19 @@ export const frozenCells = query({
 
         if (!contestProblemId || !known.has(contestProblemId)) continue;
         const cellKey = `${participation._id}|${contestProblemId}`;
-        counts.set(cellKey, (counts.get(cellKey) ?? 0) + 1);
+
+        const cell = counts.get(cellKey) ?? {
+          participationId: participation._id,
+          contestProblemId,
+          pending: 0,
+        };
+
+        cell.pending += 1;
+        counts.set(cellKey, cell);
       }
     }
 
-    return {
-      frozenAt: cutoff,
-      cells: [...counts.entries()].map(([cellKey, pending]) => {
-        const [participationId, contestProblemId] = cellKey.split("|");
-
-        return {
-          participationId: participationId as Id<"contestParticipations">,
-          contestProblemId: contestProblemId as Id<"contestProblems">,
-          pending,
-        };
-      }),
-    };
+    return { frozenAt: cutoff, cells: [...counts.values()] };
   },
 });
 

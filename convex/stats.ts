@@ -148,7 +148,13 @@ async function tallies(ctx: AnyCtx): Promise<StatsTallies & { computedAt: number
     .withIndex("by_key", (q) => q.eq("key", "language"))
     .unique();
 
-  if (snapshot) return { ...(snapshot.data as StatsTallies), computedAt: snapshot.computedAt };
+  if (snapshot) {
+    // SAFETY: `statsSnapshots.data` is only ever written by `refresh` below, with the
+    // value `computeTallies` returned.
+    const data = snapshot.data as StatsTallies;
+
+    return { ...data, computedAt: snapshot.computedAt };
+  }
 
   return { ...(await computeTallies(ctx, 20_000)), computedAt: Date.now() };
 }
@@ -227,7 +233,7 @@ export const statusData = query({
 
     const entries = Object.entries(data.results)
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-      .map(([code, count]) => [USER_DISPLAY_CODES[code] ?? code, count] as [string, number]);
+      .map(([code, count]): [string, number] => [USER_DISPLAY_CODES[code] ?? code, count]);
 
     return pieChart(entries);
   },
@@ -242,7 +248,7 @@ export const acRate = query({
     const entries = data.languages
       .filter((row) => row.total > 0)
       .sort((a, b) => a.total - b.total || a.name.localeCompare(b.name))
-      .map((row) => [row.name, (row.ac / row.total) * 100] as [string, number]);
+      .map((row): [string, number] => [row.name, (row.ac / row.total) * 100]);
 
     return barChart(entries);
   },
@@ -277,13 +283,13 @@ export const language = query({
       statusData: pieChart(
         Object.entries(data.results)
           .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-          .map(([code, count]) => [USER_DISPLAY_CODES[code] ?? code, count] as [string, number]),
+          .map(([code, count]): [string, number] => [USER_DISPLAY_CODES[code] ?? code, count]),
       ),
       acRate: barChart(
         data.languages
           .filter((row) => row.total > 0)
           .sort((a, b) => a.total - b.total || a.name.localeCompare(b.name))
-          .map((row) => [row.name, (row.ac / row.total) * 100] as [string, number]),
+          .map((row): [string, number] => [row.name, (row.ac / row.total) * 100]),
       ),
       computedAt: data.computedAt,
       scanned: data.scanned,

@@ -76,23 +76,21 @@ export async function loadViewerContext(ctx: QueryCtx): Promise<ViewerContext> {
     .withIndex("by_profile", (q) => q.eq("profileId", profile._id))
     .collect();
 
-  const organizationIds = memberships.map((row) => row.organizationId as string);
+  const organizationIds = memberships.map((row) => row.organizationId);
 
   const organizations = await ctx.db.query("organizations").collect();
 
   const adminOfOrganizationIds = organizations
     .filter((row) => row.adminProfileIds.includes(profile._id))
-    .map((row) => row._id as string);
+    .map((row) => row._id);
 
   const classes = await ctx.db.query("classes").collect();
 
-  const classIds = classes
-    .filter((row) => row.memberProfileIds.includes(profile._id))
-    .map((row) => row._id as string);
+  const classIds = classes.filter((row) => row.memberProfileIds.includes(profile._id)).map((row) => row._id);
 
   const adminOfClassIds = classes
     .filter((row) => row.adminProfileIds.includes(profile._id))
-    .map((row) => row._id as string);
+    .map((row) => row._id);
 
   let participation: Doc<"contestParticipations"> | null = null;
   let contest: Doc<"contests"> | null = null;
@@ -136,11 +134,11 @@ export function toCoreProblem(problem: Doc<"problems">): ProblemRow {
     name: problem.name,
     isPublic: problem.isPublic,
     isOrganizationPrivate: problem.isOrganizationPrivate,
-    organizationIds: problem.organizationIds as unknown as string[],
-    authorProfileIds: problem.authorProfileIds as unknown as string[],
-    curatorProfileIds: problem.curatorProfileIds as unknown as string[],
-    testerProfileIds: problem.testerProfileIds as unknown as string[],
-    bannedProfileIds: problem.bannedProfileIds as unknown as string[],
+    organizationIds: problem.organizationIds,
+    authorProfileIds: problem.authorProfileIds,
+    curatorProfileIds: problem.curatorProfileIds,
+    testerProfileIds: problem.testerProfileIds,
+    bannedProfileIds: problem.bannedProfileIds,
     points: problem.points,
     partial: problem.partial,
     submissionSourceVisibility: problem.submissionSourceVisibility,
@@ -253,7 +251,7 @@ export async function solveSetsFor(ctx: QueryCtx, viewer: ViewerContext): Promis
     const best = new Map<string, number>();
 
     for (const submission of submissions) {
-      const key = submission.problemId as string;
+      const key = submission.problemId;
       attempted.add(key);
       const points = submission.contestPoints ?? 0;
 
@@ -282,7 +280,7 @@ export async function solveSetsFor(ctx: QueryCtx, viewer: ViewerContext): Promis
   const best = new Map<string, number>();
 
   for (const submission of submissions) {
-    const key = submission.problemId as string;
+    const key = submission.problemId;
     attempted.add(key);
 
     if (submission.points !== undefined && submission.points !== null) {
@@ -318,18 +316,20 @@ async function solvedIdsForProfile(ctx: QueryCtx, profileId: Id<"profiles">): Pr
       submission.result === "AC" &&
       submission.casePoints >= submission.caseTotal
     ) {
-      solved.add(submission.problemId as string);
+      solved.add(submission.problemId);
     }
   }
 
   return solved;
 }
 
-function stateFor(
-  problemId: string,
-  points: number,
-  sets: SolveSets,
-): { state: ProblemState; bestPoints: number | null } {
+/** The viewer's standing on one problem, as the list and the problem page show it. */
+type SolveState = {
+  state: ProblemState;
+  bestPoints: number | null;
+};
+
+function stateFor(problemId: string, points: number, sets: SolveSets): SolveState {
   const best = sets.best.get(problemId) ?? null;
 
   if (sets.solved.has(problemId)) return { state: "solved", bestPoints: best };
@@ -464,6 +464,13 @@ type ListItem = {
   contestLabel: string | null;
 };
 
+/** The point-filter facet the list returns alongside its items. */
+type PointValues = {
+  min: number;
+  max: number;
+  values: number[];
+};
+
 export const list = query({
   args: {
     search: v.optional(v.string()),
@@ -519,11 +526,13 @@ export const list = query({
           .withIndex("by_problem_date", (q) => q.eq("problemId", problem._id))
           .take(MAX_SCAN);
 
-        const distinct = new Set(
-          problemSubmissions
-            .filter((row) => row.contestId === contest._id && row.participationId)
-            .map((row) => row.participationId as string),
-        );
+        const distinct = new Set<Id<"contestParticipations">>();
+
+        for (const row of problemSubmissions) {
+          if (row.contestId === contest._id && row.participationId) {
+            distinct.add(row.participationId);
+          }
+        }
 
         const { state, bestPoints } = stateFor(problem._id, link.points, sets);
         items.push({
@@ -545,6 +554,9 @@ export const list = query({
         });
       }
 
+      // Contest mode hides the point filter, so its facet is empty.
+      const contestPointValues: PointValues = { min: 0, max: 0, values: [] };
+
       return {
         inContest: true,
         contest: {
@@ -561,7 +573,7 @@ export const list = query({
         pageSize: items.length,
         totalPages: 1,
         hasMore: false,
-        pointValues: { min: 0, max: 0, values: [] as number[] },
+        pointValues: contestPointValues,
       };
     }
 
@@ -706,7 +718,6 @@ export const list = query({
     }
 
     // Contest filter: keep only problems used by the named contests.
-    const contestsById = new Map<string, Doc<"contests">>();
     const labelsByProblem = new Map<string, { contest: Doc<"contests">; label: string }[]>();
 
     if (args.contestKeys && args.contestKeys.length > 0) {
@@ -719,7 +730,6 @@ export const list = query({
           .unique();
 
         if (!contest) continue;
-        contestsById.set(contest._id, contest);
 
         const links = await ctx.db
           .query("contestProblems")
@@ -833,28 +843,23 @@ export const list = query({
       null;
 
     if ((args.groupByContest ?? false) || (args.contestKeys?.length ?? 0) > 0) {
-      const buckets = new Map<string, ListItem[]>();
+      const buckets = new Map<string, { contest: Doc<"contests">; items: ListItem[] }>();
 
       for (const item of items) {
         for (const { contest, label } of labelsByProblem.get(item.id) ?? []) {
-          contestsById.set(contest._id, contest);
-          const bucket = buckets.get(contest._id) ?? [];
-          bucket.push({ ...item, contestLabel: label });
+          const bucket = buckets.get(contest._id) ?? { contest, items: [] };
+          bucket.items.push({ ...item, contestLabel: label });
           buckets.set(contest._id, bucket);
         }
       }
 
-      grouped = [...buckets.entries()]
-        .map(([contestId, rows]) => {
-          const contest = contestsById.get(contestId) as Doc<"contests">;
-
-          return {
-            contestKey: contest.key,
-            contestName: contest.name,
-            startTime: contest.startTime,
-            items: rows,
-          };
-        })
+      grouped = [...buckets.values()]
+        .map((bucket) => ({
+          contestKey: bucket.contest.key,
+          contestName: bucket.contest.name,
+          startTime: bucket.contest.startTime,
+          items: bucket.items,
+        }))
         .sort((a, b) => b.startTime - a.startTime);
     }
 
@@ -903,7 +908,7 @@ export const get = query({
     const translation = await translationFor(ctx, problem._id, language ?? "");
 
     const statement = {
-      language: translation ? (language as string) : "en",
+      language: translation ? translation.language : "en",
       translated: translation !== null,
       name: translation?.name ?? problem.name,
       source: translation?.description ?? problem.description,
@@ -1274,8 +1279,9 @@ export const random = query({
     // The seed keeps the query deterministic, which a reactive query has to be.
     const seed = args.seed ?? Math.floor(Date.now() / 1000);
     const index = Math.abs(Math.floor(seed)) % candidates.length;
+    const picked = candidates[index];
 
-    return { code: (candidates[index] as Doc<"problems">).code };
+    return picked ? { code: picked.code } : null;
   },
 });
 
@@ -1398,7 +1404,7 @@ export const ranks = query({
 
       if (!author || author.isUnlisted) continue;
 
-      const key = submission.profileId as string;
+      const key = submission.profileId;
       const current = best.get(key);
       const currentScore = current ? scoreOf(current) : Number.NEGATIVE_INFINITY;
       const score = scoreOf(submission);

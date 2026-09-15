@@ -57,12 +57,12 @@ export const byKey = query({
     }
 
     if (!entityId) return [];
-
+    const key = entityId;
     const limit = Math.max(1, Math.min(Math.floor(args.limit ?? 50), 200));
 
     const rows = await ctx.db
       .query("revisions")
-      .withIndex("by_entity", (q) => q.eq("entityType", args.entityType).eq("entityId", entityId as string))
+      .withIndex("by_entity", (q) => q.eq("entityType", args.entityType).eq("entityId", key))
       .order("desc")
       .take(limit);
 

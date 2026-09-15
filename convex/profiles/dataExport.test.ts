@@ -8,10 +8,11 @@
  * same keys inside the two manifests. The rate limit is one prepare a day.
  */
 
-import { strFromU8, unzipSync } from "fflate";
+import { strFromU8, type Unzipped, unzipSync } from "fflate";
 import { describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
+import { jobResultStorageId } from "../jobs";
 import { globToRegExp, sortedJson } from "../jobs/users";
 import {
   asUser,
@@ -88,20 +89,31 @@ async function runExport(
     submissionResults?: string[];
   },
 ) {
-  const jobId = (await asUser(t, "downloader").mutation(api.profiles.dataExport.prepare, {
+  const jobId = await asUser(t, "downloader").mutation(api.profiles.dataExport.prepare, {
     options,
-  })) as Id<"jobs">;
+  });
 
   await t.finishAllScheduledFunctions(async () => {});
 
   return jobId;
 }
 
+/** One member of an unzipped export, as text. */
+function fileText(files: Unzipped, path: string): string {
+  const bytes = files[path];
+
+  if (!bytes) throw new Error(`${path} is not in the export`);
+
+  return strFromU8(bytes);
+}
+
 async function readZip(t: T, jobId: Id<"jobs">) {
   const job = await t.run(async (ctx) => await ctx.db.get(jobId));
 
   if (!job) throw new Error("the job is gone");
-  const storageId = (job.result as { storageId: Id<"_storage"> }).storageId;
+  const storageId = await t.run(async (ctx) => jobResultStorageId(ctx, job));
+
+  if (!storageId) throw new Error("the job recorded no storage id");
 
   const buffer = await t.run(async (ctx) => {
     const blob = await ctx.storage.get(storageId);
@@ -136,12 +148,10 @@ describe("the zip layout", () => {
       "submissions/info.json",
     ]);
 
-    expect(strFromU8(files["submissions/101.py"] as Uint8Array)).toBe(
-      "print(sum(map(int, input().split())))",
-    );
-    expect(strFromU8(files["comments/201.txt"] as Uint8Array)).toBe("Nice problem.");
+    expect(fileText(files, "submissions/101.py")).toBe("print(sum(map(int, input().split())))");
+    expect(fileText(files, "comments/201.txt")).toBe("Nice problem.");
 
-    const info = JSON.parse(strFromU8(files["submissions/info.json"] as Uint8Array));
+    const info = JSON.parse(fileText(files, "submissions/info.json"));
     expect(info["101"]).toEqual({
       problem: "aplusb",
       date: "2025-01-01T00:00:00.000Z",
@@ -154,7 +164,7 @@ describe("the zip layout", () => {
       case_total: 1,
     });
 
-    const comments = JSON.parse(strFromU8(files["comments/info.json"] as Uint8Array));
+    const comments = JSON.parse(fileText(files, "comments/info.json"));
     expect(comments["201"]).toEqual({
       date: "2025-01-03T00:00:00.000Z",
       related_object: "problem",

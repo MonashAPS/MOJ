@@ -130,10 +130,8 @@ export const voteStats = query({
     if (votes.length > 0) {
       meanValue = votes.reduce((sum, value) => sum + value, 0) / votes.length;
       const mid = Math.floor(votes.length / 2);
-      medianValue =
-        votes.length % 2 === 1
-          ? (votes[mid] as number)
-          : ((votes[mid - 1] as number) + (votes[mid] as number)) / 2;
+      const upper = votes[mid] ?? 0;
+      medianValue = votes.length % 2 === 1 ? upper : ((votes[mid - 1] ?? upper) + upper) / 2;
     }
 
     return {

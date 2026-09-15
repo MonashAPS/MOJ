@@ -9,6 +9,7 @@
  * does, rather than on anything the page claims once at the start.
  */
 
+import type { WithoutSystemFields } from "convex/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, type QueryCtx, query } from "./_generated/server";
@@ -113,14 +114,16 @@ export const start = mutation({
 
     const viewer = await viewerContext(ctx);
 
-    const sessionId = await ctx.db.insert("proctorSessions", {
+    const session: WithoutSystemFields<Doc<"proctorSessions">> = {
       profileId: profile._id,
       startedAt: now,
       lastSeenAt: now,
       displaySurface: args.displaySurface,
       userAgent: args.userAgent.slice(0, 512),
-      ...(viewer.contest ? { contestId: viewer.contest._id } : {}),
-    });
+    };
+
+    if (viewer.contest) session.contestId = viewer.contest._id;
+    const sessionId = await ctx.db.insert("proctorSessions", session);
 
     return { sessionId };
   },
@@ -206,7 +209,7 @@ export const addChunk = mutation({
       ? await ctx.db.get(profile.currentParticipationId)
       : null;
 
-    await ctx.db.insert("proctorChunks", {
+    const chunk: WithoutSystemFields<Doc<"proctorChunks">> = {
       sessionId: session._id,
       profileId: profile._id,
       index: args.index,
@@ -215,8 +218,10 @@ export const addChunk = mutation({
       bytes: args.bytes,
       mimeType: args.mimeType,
       storageId: args.storageId,
-      ...(participation ? { contestId: participation.contestId } : {}),
-    });
+    };
+
+    if (participation) chunk.contestId = participation.contestId;
+    await ctx.db.insert("proctorChunks", chunk);
 
     // A slice arriving is as good a sign of life as a heartbeat.
     if (session.endedAt === undefined) await ctx.db.patch(session._id, { lastSeenAt: Date.now() });
@@ -338,10 +343,12 @@ export const timeline = query({
 
     if (!(await staffOnly(ctx))) return { from, to, rows: [], contests: [] };
 
-    const wanted = args.contestKey
+    const contestKey = args.contestKey;
+
+    const wanted = contestKey
       ? await ctx.db
           .query("contests")
-          .withIndex("by_key", (q) => q.eq("key", args.contestKey as string))
+          .withIndex("by_key", (q) => q.eq("key", contestKey))
           .unique()
       : null;
 
@@ -351,8 +358,8 @@ export const timeline = query({
       .take(20_000);
 
     const contestNames = new Map<string, { key: string; name: string }>();
-    const bySession = new Map<string, TimelineSlice[]>();
-    const bytes = new Map<string, number>();
+    const bySession = new Map<Id<"proctorSessions">, TimelineSlice[]>();
+    const bytes = new Map<Id<"proctorSessions">, number>();
 
     for (const chunk of chunks) {
       let contestKey: string | null = null;
@@ -374,7 +381,7 @@ export const timeline = query({
 
       if (wanted && chunk.contestId !== wanted._id) continue;
 
-      const key = chunk.sessionId as string;
+      const key = chunk.sessionId;
       const slices = bySession.get(key) ?? [];
       slices.push({
         index: chunk.index,
@@ -389,7 +396,7 @@ export const timeline = query({
     const rows: TimelineRow[] = [];
 
     for (const [sessionId, slices] of bySession) {
-      const session = await ctx.db.get(sessionId as Id<"proctorSessions">);
+      const session = await ctx.db.get(sessionId);
 
       if (!session) continue;
       const person = await ctx.db.get(session.profileId);

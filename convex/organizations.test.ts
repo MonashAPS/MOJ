@@ -10,7 +10,6 @@
 
 import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
 import { asUser, insertOrganization, insertProfile } from "./test.fixtures";
 import { setupTest } from "./test.setup";
 
@@ -289,11 +288,11 @@ describe("organizations join requests", () => {
   test("approving adds the member and the class", async () => {
     const t = await seed();
 
-    const requestId = (await asUser(t, "hopeful").mutation(api.organizations.request, {
+    const requestId = await asUser(t, "hopeful").mutation(api.organizations.request, {
       slug: "private",
       reason: "please",
       classSlug: "tut1",
-    })) as Id<"organizationRequests">;
+    });
 
     await asUser(t, "admin").mutation(api.organizations.approve, { requestId });
 
@@ -318,10 +317,10 @@ describe("organizations join requests", () => {
   test("rejecting leaves the organisation untouched", async () => {
     const t = await seed();
 
-    const requestId = (await asUser(t, "hopeful").mutation(api.organizations.request, {
+    const requestId = await asUser(t, "hopeful").mutation(api.organizations.request, {
       slug: "private",
       reason: "please",
-    })) as Id<"organizationRequests">;
+    });
 
     await asUser(t, "admin").mutation(api.organizations.reject, { requestId });
 

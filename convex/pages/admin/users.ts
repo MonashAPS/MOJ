@@ -114,16 +114,18 @@ export const setMemberships = mutation({
       throw forbidden("Only superusers may edit a superuser.");
     }
 
-    if (args.languageKey !== undefined) {
-      if (args.languageKey === null) {
+    const languageKey = args.languageKey;
+
+    if (languageKey !== undefined) {
+      if (languageKey === null) {
         await ctx.db.patch(profile._id, { languageId: undefined });
       } else {
         const language = await ctx.db
           .query("languages")
-          .withIndex("by_key", (q) => q.eq("key", args.languageKey as string))
+          .withIndex("by_key", (q) => q.eq("key", languageKey))
           .first();
 
-        if (!language) throw invalid(`There is no language with the identifier ${args.languageKey}.`);
+        if (!language) throw invalid(`There is no language with the identifier ${languageKey}.`);
         await ctx.db.patch(profile._id, { languageId: language._id });
       }
     }

@@ -10,7 +10,9 @@
 
 import aggregateTest from "@convex-dev/aggregate/test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
+import { claimResponseSchema, eventResponseSchema, heartbeatResponseSchema } from "@moj/protocol/judge";
 import { convexTest, type TestConvex } from "convex-test";
+import type { JsonObject } from "./lib/json";
 import schema from "./schema";
 
 /** The function modules, plus the `_generated` path convex-test takes its module root from. */
@@ -53,7 +55,7 @@ export class JudgeClient {
     readonly judgeKey: string,
   ) {}
 
-  private post(path: string, body: Record<string, unknown>): Promise<Response> {
+  private post(path: string, body: JsonObject): Promise<Response> {
     return this.t.fetch(path, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -68,7 +70,7 @@ export class JudgeClient {
     return this.post("/judge/handshake", { problems, executors });
   }
 
-  heartbeat(body: Record<string, unknown> = { load: 0.42 }) {
+  heartbeat(body: JsonObject = { load: 0.42 }) {
     return this.post("/judge/heartbeat", body);
   }
 
@@ -76,7 +78,7 @@ export class JudgeClient {
     return this.post("/judge/claim", {});
   }
 
-  event(submissionId: number | string, event: Record<string, unknown>) {
+  event(submissionId: number | string, event: JsonObject) {
     return this.post("/judge/event", { submissionId, event });
   }
 
@@ -99,13 +101,26 @@ export function judgeClient(t: T, name: string, key: string = judgeKey(name)): J
   return new JudgeClient(t, name, key);
 }
 
+/** Read a judge API response through the schema both sides of the protocol share. */
+export async function claimResponse(response: Response) {
+  return claimResponseSchema.parse(await response.json());
+}
+
+export async function heartbeatResponse(response: Response) {
+  return heartbeatResponseSchema.parse(await response.json());
+}
+
+export async function eventResponse(response: Response) {
+  return eventResponseSchema.parse(await response.json());
+}
+
 /** One graded case, with the extra fields the judge sends over SPEC section 6. */
 export function judgeCase(
   position: number,
   status: number,
   points: number,
   totalPoints: number,
-  extra: Record<string, unknown> = {},
+  extra: JsonObject = {},
 ) {
   return {
     position,

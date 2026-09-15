@@ -27,6 +27,7 @@ import {
   writeRevision,
 } from "./lib/community";
 import { forbidden, invalid, notFound } from "./lib/errors";
+import { isJsonObject, isJsonString } from "./lib/json";
 import { rateLimiter } from "./lib/rateLimiter";
 
 const targetType = v.union(
@@ -202,7 +203,7 @@ export const list = query({
 function orderTree(rows: Doc<"comments">[]): Array<{ row: Doc<"comments">; depth: number }> {
   const children = new Map<string, Doc<"comments">[]>();
   const roots: Doc<"comments">[] = [];
-  const byId = new Set(rows.map((row) => row._id as string));
+  const byId = new Set(rows.map((row) => row._id));
 
   for (const row of rows) {
     const parent = row.parentId;
@@ -267,9 +268,11 @@ export const history = query({
 
     for (const [index, row] of rows.entries()) {
       const author = row.authorProfileId ? await ctx.db.get(row.authorProfileId) : null;
+      const snapshot = row.snapshot;
+      const body = isJsonObject(snapshot) ? snapshot.body : undefined;
       out.push({
         index,
-        body: typeof row.snapshot?.body === "string" ? row.snapshot.body : "",
+        body: isJsonString(body) ? body : "",
         bodyPreset: COMMENT_PRESET,
         author: author ? authorSummary(author) : null,
         createdAt: row.createdAt,

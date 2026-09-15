@@ -19,6 +19,7 @@ import { internalMutation, type MutationCtx, type QueryCtx, query } from "./_gen
 import { queueSubmission, recomputeParticipation, recomputeProfilePoints } from "./judging";
 import { optionalViewer } from "./lib/auth";
 import { forbidden } from "./lib/errors";
+import { isJsonArray, isJsonNumber, isJsonObject, isJsonString, type JsonValue } from "./lib/json";
 
 /** How many submissions one scheduled step touches, per SPEC section 6. */
 export const JOB_CHUNK_SIZE = 100;
@@ -41,6 +42,14 @@ export type JobType =
   | "pdf"
   | "sitemap";
 
+/** A two-element inclusive range, as the filter validator and the job args carry it. */
+export function toIdRange(values: readonly number[] | undefined): [number, number] | undefined {
+  if (values === undefined || values.length !== 2) return undefined;
+  const [start, end] = values;
+
+  return start === undefined || end === undefined ? undefined : [start, end];
+}
+
 export interface RejudgeFilter {
   problemId?: Id<"problems">;
   /** Inclusive range over the integer submission id (`legacyId`). */
@@ -55,10 +64,21 @@ export interface RejudgeFilter {
 /* Job records                                                                */
 /* -------------------------------------------------------------------------- */
 
+/** The storage id a finished job recorded in its result, if it recorded one. */
+export function jobResultStorageId(ctx: QueryCtx, job: Doc<"jobs">): Id<"_storage"> | null {
+  const result = job.result;
+  const stored = isJsonObject(result) ? result.storageId : undefined;
+
+  return isJsonString(stored) ? ctx.db.system.normalizeId("_storage", stored) : null;
+}
+
+/** A `jobs.args` payload: the plain JSON the mutation that queued the job wrote. */
+export type JobArgs = { [key: string]: JsonValue | undefined };
+
 export async function createJob(
   ctx: MutationCtx,
   type: JobType,
-  args: unknown,
+  args: JobArgs,
   options: { total: number; stage: string; createdByProfileId?: Id<"profiles"> },
 ): Promise<Id<"jobs">> {
   return await ctx.db.insert("jobs", {
@@ -104,7 +124,7 @@ export async function advance(
 }
 
 /** A finished job reads as complete: the bar is filled to its own total. */
-export async function finishJob(ctx: MutationCtx, jobId: Id<"jobs">, result: unknown): Promise<void> {
+export async function finishJob(ctx: MutationCtx, jobId: Id<"jobs">, result: JsonValue): Promise<void> {
   const job = await ctx.db.get(jobId);
 
   if (!job) return;
@@ -153,11 +173,12 @@ export const recent = query({
 
     if (!profile || !(profile.isStaff || profile.isSuperuser)) throw forbidden("Staff only.");
     const take = Math.max(1, Math.min(args.limit ?? 25, 100));
+    const type = args.type;
 
-    const rows = args.type
+    const rows = type
       ? await ctx.db
           .query("jobs")
-          .withIndex("by_type_createdAt", (q) => q.eq("type", args.type as string))
+          .withIndex("by_type_createdAt", (q) => q.eq("type", type))
           .order("desc")
           .take(take)
       : await ctx.db.query("jobs").withIndex("by_type_createdAt").order("desc").take(take);
@@ -276,13 +297,7 @@ export const rejudgeChunk = internalMutation({
 
     const now = Date.now();
 
-    const filter: RejudgeFilter = {
-      ...args.filter,
-      idRange:
-        args.filter.idRange && args.filter.idRange.length === 2
-          ? [args.filter.idRange[0] as number, args.filter.idRange[1] as number]
-          : undefined,
-    };
+    const filter: RejudgeFilter = { ...args.filter, idRange: toIdRange(args.filter.idRange) };
 
     const page = await ctx.db
       .query("submissions")
@@ -466,8 +481,8 @@ export const rescoreProfilesChunk = internalMutation({
     const batch = 10;
     const end = Math.min(args.index + batch, args.profileIds.length);
 
-    for (let i = args.index; i < end; i++) {
-      await recomputeProfilePoints(ctx, args.profileIds[i] as Id<"profiles">);
+    for (const profileId of args.profileIds.slice(args.index, end)) {
+      await recomputeProfilePoints(ctx, profileId);
     }
 
     if (end >= args.profileIds.length) {
@@ -496,19 +511,20 @@ export const rescoreProfilesChunk = internalMutation({
 /* Dispatch                                                                   */
 /* -------------------------------------------------------------------------- */
 
-type JobArgs = Record<string, unknown>;
-
 function jobArgs(job: Doc<"jobs">): JobArgs {
-  return (job.args ?? {}) as JobArgs;
+  return isJsonObject(job.args) ? job.args : {};
 }
 
 async function resolveProblemId(ctx: MutationCtx, args: JobArgs): Promise<Id<"problems"> | null> {
-  if (typeof args.problemId === "string") return args.problemId as Id<"problems">;
+  const stored = args.problemId;
 
-  if (typeof args.problemCode === "string") {
+  if (isJsonString(stored)) return ctx.db.normalizeId("problems", stored);
+  const code = args.problemCode;
+
+  if (isJsonString(code)) {
     const problem = await ctx.db
       .query("problems")
-      .withIndex("by_code", (q) => q.eq("code", args.problemCode as string))
+      .withIndex("by_code", (q) => q.eq("code", code))
       .unique();
 
     return problem?._id ?? null;
@@ -518,11 +534,26 @@ async function resolveProblemId(ctx: MutationCtx, args: JobArgs): Promise<Id<"pr
 }
 
 async function resolveLanguageIds(ctx: MutationCtx, args: JobArgs): Promise<Id<"languages">[]> {
-  if (Array.isArray(args.languageIds)) return args.languageIds as Id<"languages">[];
-  const keys = Array.isArray(args.languages) ? (args.languages as string[]) : [];
   const ids: Id<"languages">[] = [];
+  const stored = args.languageIds;
+
+  if (isJsonArray(stored)) {
+    for (const value of stored) {
+      const id = isJsonString(value) ? ctx.db.normalizeId("languages", value) : null;
+
+      if (id) ids.push(id);
+    }
+
+    return ids;
+  }
+
+  const keys = args.languages;
+
+  if (!isJsonArray(keys)) return ids;
 
   for (const key of keys) {
+    if (!isJsonString(key)) continue;
+
     const row = await ctx.db
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", key))
@@ -539,10 +570,12 @@ function resolveIdRange(args: JobArgs): [number, number] | undefined {
 
   if (!raw) return undefined;
 
-  if (Array.isArray(raw) && raw.length === 2) return [Number(raw[0]), Number(raw[1])];
-  const range = raw as { start?: number; end?: number };
+  if (isJsonArray(raw) && raw.length === 2) return [Number(raw[0]), Number(raw[1])];
 
-  if (typeof range.start === "number" && typeof range.end === "number") return [range.start, range.end];
+  if (!isJsonObject(raw)) return undefined;
+  const { start, end } = raw;
+
+  if (isJsonNumber(start) && isJsonNumber(end)) return [start, end];
 
   return undefined;
 }
@@ -568,16 +601,29 @@ export const run = internalMutation({
 
     const jobId = job._id;
     const type = params.type ?? job.type;
-    const args: JobArgs = { ...jobArgs(job), ...((params.args ?? {}) as JobArgs) };
-    const contestId = typeof args.contestId === "string" ? (args.contestId as Id<"contests">) : null;
+    const args = { ...jobArgs(job) };
+    const overrides = params.args;
+
+    if (isJsonObject(overrides)) {
+      for (const [key, value] of Object.entries(overrides)) args[key] = value;
+    }
+
+    const storedContestId = args.contestId;
+    const contestId = isJsonString(storedContestId) ? ctx.db.normalizeId("contests", storedContestId) : null;
+
+    const storedContestProblemId = args.contestProblemId;
+
+    const contestProblemId = isJsonString(storedContestProblemId)
+      ? ctx.db.normalizeId("contestProblems", storedContestProblemId)
+      : null;
 
     switch (type) {
       case "rejudge": {
-        if (contestId && typeof args.contestProblemId === "string") {
+        if (contestId && contestProblemId) {
           await ctx.scheduler.runAfter(0, internal.jobs.contests.rejudgeContestProblemChunk, {
             jobId,
             contestId,
-            contestProblemId: args.contestProblemId as Id<"contestProblems">,
+            contestProblemId,
             cursor: 0,
           });
 
@@ -596,7 +642,7 @@ export const run = internalMutation({
           problemId,
           idRange: resolveIdRange(args),
           languageIds: await resolveLanguageIds(ctx, args),
-          results: Array.isArray(args.results) ? (args.results as string[]) : [],
+          results: isJsonArray(args.results) ? args.results.filter(isJsonString) : [],
           archiveLocked: args.archiveLocked === true,
         };
 
@@ -670,7 +716,7 @@ export const run = internalMutation({
       }
 
       case "rejudgeContestProblem": {
-        if (!contestId || typeof args.contestProblemId !== "string") {
+        if (!contestId || !contestProblemId) {
           await failJob(ctx, jobId, "The contest problem no longer exists.");
 
           return null;
@@ -679,7 +725,7 @@ export const run = internalMutation({
         await ctx.scheduler.runAfter(0, internal.jobs.contests.rejudgeContestProblemChunk, {
           jobId,
           contestId,
-          contestProblemId: args.contestProblemId as Id<"contestProblems">,
+          contestProblemId,
           cursor: 0,
         });
 

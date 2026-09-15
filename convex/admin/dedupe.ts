@@ -69,11 +69,11 @@ const dedupeTableValidator = v.union(v.literal("problems"), v.literal("navigatio
  * index instead, which also survives a patch: repointing a row does not move it.
  */
 /** The fields the ranking reads; every keyed table carries all three. */
-interface KeyedRow {
+type KeyedRow = {
   _id: Id<KeyedTable>;
   _creationTime: number;
   legacyId?: number;
-}
+};
 
 /** A losing row and the row its references move to. */
 interface Merge {
@@ -135,10 +135,11 @@ function planTable<Row extends KeyedRow>(
     if (group.length < 2) continue;
     // Six tables share one report, so the key says which table it came from.
     keys.push(`${table}/${key}`);
-    const ranked = [...group].sort(bySurvivorRank);
-    const survivor = ranked[0] as Row;
+    const [survivor, ...losers] = [...group].sort(bySurvivorRank);
 
-    for (const loser of ranked.slice(1)) {
+    if (survivor === undefined) continue;
+
+    for (const loser of losers) {
       survivorOf.set(loser._id, survivor._id);
       merges.push({ entityType, loser, survivor: survivor._id });
     }
@@ -286,9 +287,9 @@ async function rewriteReferences(
   const start = Math.max(DEDUPE_TABLES.indexOf(from.table), 0);
   let rewritten = 0;
 
-  for (let i = start; i < DEDUPE_TABLES.length; i++) {
-    const table = DEDUPE_TABLES[i] as DedupeTable;
-    let cursor = i === start ? from.cursor : null;
+  for (const [index, table] of DEDUPE_TABLES.entries()) {
+    if (index < start) continue;
+    let cursor = index === start ? from.cursor : null;
 
     for (;;) {
       if (budget.reads <= 0 || budget.writes <= 0) return { rewritten, next: { table, cursor } };

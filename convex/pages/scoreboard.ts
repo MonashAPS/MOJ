@@ -14,7 +14,7 @@
 
 import { type Attempt, classifyEvent, freezeOffsetFor, PARTICIPATION_LIVE } from "@moj/core";
 import { v } from "convex/values";
-import type { Doc, Id } from "../_generated/dataModel";
+import type { Doc } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
 import { labelForProblem, loadContestProblems } from "../contests/formats";
 import { isStaff, optionalViewer } from "../lib/auth";
@@ -90,7 +90,10 @@ async function divisionFeed(
   for (const submission of submissions) {
     if (items.length >= limit) break;
 
-    if (!submission.participationId || !live.has(submission.participationId)) continue;
+    if (!submission.participationId) continue;
+    const participation = live.get(submission.participationId);
+
+    if (!participation) continue;
 
     if (!submission.contestProblemId) continue;
     const problem = labels.get(submission.contestProblemId);
@@ -98,8 +101,6 @@ async function divisionFeed(
     if (!problem) continue;
 
     if (submission.date < contest.startTime || submission.date > contest.endTime) continue;
-
-    const participation = live.get(submission.participationId) as Doc<"contestParticipations">;
     let who = names.get(participation.profileId);
 
     if (!who) {
@@ -164,7 +165,7 @@ export const feed = query({
 
     const items: FeedItem[] = [];
 
-    for (const id of row.contestIds as Id<"contests">[]) {
+    for (const id of row.contestIds) {
       const contest = await ctx.db.get(id);
 
       if (!contest) continue;

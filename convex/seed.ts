@@ -3,13 +3,13 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation } from "./_generated/server";
 import { SEED_LANGUAGES, SEED_NAVIGATION } from "./lib/seedData";
 
-const MISC_CONFIG_DEFAULTS: Record<string, string> = {
-  announcement: "",
-  footer: "",
-  meta_keywords: "competitive programming, online judge, algorithms, contests",
-  home_page_top: "",
-  analytics: "",
-};
+const MISC_CONFIG_DEFAULTS = new Map<string, string>([
+  ["announcement", ""],
+  ["footer", ""],
+  ["meta_keywords", "competitive programming, online judge, algorithms, contests"],
+  ["home_page_top", ""],
+  ["analytics", ""],
+]);
 
 const ABOUT_PAGE = `# About this judge
 
@@ -177,7 +177,7 @@ export const run = internalMutation({
     // Misc config ----------------------------------------------------------
     let miscWritten = 0;
 
-    for (const [key, value] of Object.entries(MISC_CONFIG_DEFAULTS)) {
+    for (const [key, value] of MISC_CONFIG_DEFAULTS) {
       const existing = await ctx.db
         .query("miscConfig")
         .withIndex("by_key", (q) => q.eq("key", key))

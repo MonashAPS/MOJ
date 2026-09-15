@@ -202,7 +202,7 @@ describe("ranking with a freeze", () => {
       { now: (contest?.endTime ?? 0) - MINUTE, viewerProfileId: "p1" },
     );
 
-    expect((masked as { masked?: boolean }).masked).toBe(true);
+    expect("masked" in masked).toBe(true);
   });
 
   test("unfreezing shows the withheld cell to everyone", async () => {

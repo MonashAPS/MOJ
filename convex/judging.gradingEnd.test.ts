@@ -18,16 +18,14 @@ import {
   insertProfile,
   insertSubmission,
 } from "./test.fixtures";
-import { type JudgeClient, judgeCase, judgeClient, setupTest, type T } from "./test.setup";
+import { claimResponse, type JudgeClient, judgeCase, judgeClient, setupTest, type T } from "./test.setup";
 
 async function claim(client: JudgeClient): Promise<number> {
-  const body = (await (await client.claim()).json()) as {
-    submission: { submissionId: number } | null;
-  };
+  const body = await claimResponse(await client.claim());
 
   if (!body.submission) throw new Error("nothing to claim");
 
-  return body.submission.submissionId;
+  return Number(body.submission.submissionId);
 }
 
 async function gradeFully(client: JudgeClient, id: number, cases: Array<ReturnType<typeof judgeCase>>) {

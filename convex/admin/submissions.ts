@@ -10,7 +10,7 @@ import { hasPerm as coreHasPerm, isLocked, problemIsEditableBy } from "@moj/core
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { mutation } from "../_generated/server";
-import { type RejudgeFilter, startRejudgeJob, startRescoreJob } from "../jobs";
+import { type RejudgeFilter, startRejudgeJob, startRescoreJob, toIdRange } from "../jobs";
 import { queueSubmission, resolveSubmission } from "../judging";
 import { requireViewer } from "../lib/auth";
 import { forbidden, invalid, notFound } from "../lib/errors";
@@ -89,7 +89,9 @@ export const batchRejudge = mutation({
       throw invalid("An id range is a pair of submission ids.");
     }
 
-    if (args.idRange && (args.idRange[0] as number) > (args.idRange[1] as number)) {
+    const idRange = toIdRange(args.idRange);
+
+    if (idRange && idRange[0] > idRange[1]) {
       throw invalid("The id range starts after it ends.");
     }
 
@@ -106,7 +108,7 @@ export const batchRejudge = mutation({
 
     const filter: RejudgeFilter = {
       problemId: problem._id,
-      idRange: args.idRange ? [args.idRange[0] as number, args.idRange[1] as number] : undefined,
+      idRange,
       languageIds: languageIds.length ? languageIds : undefined,
       results: args.results?.length ? args.results : undefined,
       archiveLocked: args.archiveLocked === true,

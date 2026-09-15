@@ -11,9 +11,12 @@
 
 import { strToU8, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
+import { plainBytes } from "../lib/bytes";
 import { sha256Hex } from "../lib/hash";
+import type { JsonValue } from "../lib/json";
 import {
   asUser,
   insertJudge,
@@ -22,13 +25,15 @@ import {
   insertProfile,
   insertSubmission,
 } from "../test.fixtures";
-import { judgeClient, setupTest, type T } from "../test.setup";
+import { claimResponse, judgeClient, setupTest, type T } from "../test.setup";
 
 const KEY = "moj_test_key_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 const READ_ONLY_KEY = "moj_test_key_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
 const OUTSIDER_KEY = "moj_test_key_cccccccccccccccccccccccccccccccc";
+
+const uploadUrlResponse = z.object({ ok: z.boolean(), uploadUrl: z.string() });
 
 function archive(files: Record<string, string>): Uint8Array {
   const entries: Record<string, Uint8Array> = {};
@@ -39,14 +44,14 @@ function archive(files: Record<string, string>): Uint8Array {
 }
 
 async function sha256OfBytes(bytes: Uint8Array): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", bytes as unknown as ArrayBuffer);
+  const digest = await crypto.subtle.digest("SHA-256", plainBytes(bytes));
 
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 async function store(t: T, bytes: Uint8Array): Promise<Id<"_storage">> {
   return await t.run(
-    async (ctx) => await ctx.storage.store(new Blob([bytes as BlobPart], { type: "application/zip" })),
+    async (ctx) => await ctx.storage.store(new Blob([plainBytes(bytes)], { type: "application/zip" })),
   );
 }
 
@@ -104,15 +109,12 @@ function getData(t: T, code: string, key: string | null = KEY) {
   });
 }
 
-function postData(t: T, code: string, body: unknown, key: string | null = KEY) {
-  return t.fetch(`/api/problems/${code}/data`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      ...(key ? { authorization: `Bearer ${key}` } : {}),
-    },
-    body: JSON.stringify(body),
-  });
+function postData(t: T, code: string, body: JsonValue, key: string | null = KEY) {
+  const headers = new Headers({ "content-type": "application/json" });
+
+  if (key) headers.set("authorization", `Bearer ${key}`);
+
+  return t.fetch(`/api/problems/${code}/data`, { method: "POST", headers, body: JSON.stringify(body) });
 }
 
 /** Store an archive and record it, the way a repository publishes one. */
@@ -312,7 +314,7 @@ describe("POST /api/problems/:code/data/upload-url", () => {
     });
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { ok: boolean; uploadUrl: string };
+    const body = uploadUrlResponse.parse(await response.json());
     expect(body.ok).toBe(true);
     expect(body.uploadUrl).toMatch(/^https?:\/\//);
 
@@ -445,7 +447,7 @@ describe("claiming with site-owned data", () => {
     await publish(t, "aplusb", FIRST);
 
     const after = await judgeClient(t, "local").claim();
-    const body = (await after.json()) as { submission: { problemDataHash: string | null } | null };
+    const body = await claimResponse(after);
     expect(body.submission?.problemDataHash).toBe(await sha256OfBytes(FIRST));
 
     const submission = await t.run(async (ctx) => ctx.db.get(submissionId));
@@ -459,9 +461,7 @@ describe("claiming with site-owned data", () => {
 
     const response = await judgeClient(t, "local").claim();
 
-    const body = (await response.json()) as {
-      submission: { problemCode: string; problemDataHash: string | null } | null;
-    };
+    const body = await claimResponse(response);
 
     expect(body.submission?.problemCode).toBe("aplusb");
     expect(body.submission?.problemDataHash).toBeNull();
@@ -474,7 +474,7 @@ describe("claiming with site-owned data", () => {
     await publish(t, "aplusb", FIRST);
 
     const response = await judgeClient(t, "local").claim();
-    const body = (await response.json()) as { submission: { problemDataHash: string | null } | null };
+    const body = await claimResponse(response);
     expect(body.submission?.problemDataHash).toBe(await sha256OfBytes(FIRST));
   });
 

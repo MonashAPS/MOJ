@@ -166,8 +166,8 @@ describe("rankings.find", () => {
     const board = await t.query(api.rankings.users, {});
     const order = board.users.map((row) => row.username);
 
-    for (let index = 0; index < order.length; index++) {
-      const found = await t.query(api.rankings.find, { username: order[index] as string });
+    for (const [index, username] of order.entries()) {
+      const found = await t.query(api.rankings.find, { username });
       expect(found?.offset).toBe(index);
     }
   });
