@@ -125,6 +125,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   language={language}
                   logoUrl={branding?.logoUrl ?? null}
                   siteName={branding?.siteLongName ?? "MAPS Online Judge"}
+                  initialContest={joined}
                 >
                   {children}
                 </SiteShell>

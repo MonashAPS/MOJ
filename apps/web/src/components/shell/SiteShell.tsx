@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
+import type { ContestBarData } from "@convex/contests";
 import { cn, Toaster, TooltipProvider } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { usePathname, useRouter } from "next/navigation";
@@ -44,6 +45,7 @@ export function SiteShell({
   language,
   logoUrl = null,
   siteName = "MAPS Online Judge",
+  initialContest = null,
   children,
 }: {
   nav: NavNode[];
@@ -53,6 +55,8 @@ export function SiteShell({
   /** SPEC section 24: the operator's wordmark, when one is uploaded. */
   logoUrl?: string | null;
   siteName?: string;
+  /** The contest the viewer is in, as the server knew it when it rendered. */
+  initialContest?: ContestBarData;
   /** The viewer's `LANGUAGE_CODE`, read from the cookie by the layout. */
   language: string;
   children: ReactNode;
@@ -76,7 +80,11 @@ export function SiteShell({
    * whichever contest the viewer happens to be inside — that is `routed`.
    */
   const routeKey = /^\/contest\/([a-z0-9._-]+)/i.exec(pathname)?.[1];
-  const joined = useQuery(api.contests.navBar, {});
+  const liveJoined = useQuery(api.contests.navBar, {});
+  // The server already knew the answer when it rendered this page. Waiting for
+  // the socket instead meant the markup went out with a nav on it, and a
+  // locked-down contestant watched it be taken away again after hydration.
+  const joined = liveJoined === undefined ? initialContest : liveJoined;
   const routed = useQuery(api.contests.navBar, routeKey ? { key: routeKey } : "skip");
   const contest = routeKey ? routed : joined;
   const problemCode = /^\/problem\/([a-z0-9._-]+)/.exec(pathname)?.[1];
