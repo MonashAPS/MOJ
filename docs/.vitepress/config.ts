@@ -19,7 +19,7 @@ export default defineConfig({
       provider: "local",
     },
     nav: [
-      { text: "Quick start", link: "/guide/quick-start" },
+      { text: "Installation", link: "/guide/installation" },
       { text: "DMOJ", link: "/guide/compatibility" },
       { text: "Problems", link: "/problems/format" },
       { text: "Contests", link: "/using/contests" },
@@ -30,18 +30,18 @@ export default defineConfig({
       {
         text: "Getting started",
         items: [
-          { text: "Quick start", link: "/guide/quick-start" },
-          { text: "Architecture", link: "/guide/architecture" },
+          { text: "Installation", link: "/guide/installation" },
+          { text: "Production", link: "/guide/production" },
           { text: "Compatibility with DMOJ", link: "/guide/compatibility" },
         ],
       },
       {
         text: "Using the judge",
         items: [
-          { text: "Finding problems", link: "/using/finding-problems" },
+          { text: "Problems", link: "/using/problems" },
           { text: "Contests", link: "/using/contests" },
           { text: "Accounts and 2FA", link: "/using/accounts" },
-          { text: "Feeds and integrations", link: "/using/feeds" },
+          { text: "Feeds", link: "/using/feeds" },
         ],
       },
       {
@@ -56,7 +56,6 @@ export default defineConfig({
         items: [
           { text: "Staff console", link: "/admin/staff-console" },
           { text: "Importing from DMOJ", link: "/admin/import" },
-          { text: "Deployment", link: "/admin/deployment" },
           { text: "Proctoring", link: "/admin/proctoring" },
           { text: "Troubleshooting", link: "/admin/troubleshooting" },
         ],
@@ -65,6 +64,7 @@ export default defineConfig({
         text: "Reference",
         items: [
           { text: "API", link: "/reference/api" },
+          { text: "Architecture", link: "/reference/architecture" },
           { text: "Development", link: "/reference/development" },
         ],
       },

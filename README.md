@@ -19,26 +19,13 @@ MOJ is an online judge and contest platform written in TypeScript, compatible wi
 * **Two-factor authentication** with TOTP and passkeys
 * An **API** with tokens, and problem repositories deployed by a GitHub Action
 * **DMOJ compatibility**: all DMOJ URLs work, the problem and statement format is unchanged, and existing accounts,
-  problems, submissions and contests import. See [compatibility](https://monashaps.github.io/MOJ/guide/compatibility).
+  problems, submissions and contests import. See [compatibility](https://binder.monashaps.com/MOJ/guide/compatibility).
 * **Light and dark themes**, with the site name, wordmark, colours and CSS as settings
 
 ## Installation
 
-```bash
-npm ci
-npm run setup
-npm run dev
-```
-
-MOJ needs Docker and Node 24. `npm run setup` brings up Postgres and the Convex backend, runs the migrations and
-seeds the site; `npm run dev` then serves it on `http://localhost:3000`. The judge starts separately:
-
-```bash
-docker compose -f infra/compose.dev.yml --project-directory . --profile judge up -d judge
-```
-
-The [quick start](https://monashaps.github.io/MOJ/guide/quick-start) begins from a machine with nothing
-installed, and the rest of the documentation is at [monashaps.github.io/MOJ](https://monashaps.github.io/MOJ/).
+Install, configure and run MOJ by following the documentation at
+[binder.monashaps.com/MOJ](https://binder.monashaps.com/MOJ/).
 
 ## Screenshots
 
