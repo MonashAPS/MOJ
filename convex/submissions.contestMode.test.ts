@@ -1,7 +1,11 @@
 // @vitest-environment edge-runtime
 /**
- * Contest mode: the list narrows to the contest, and `blindDuringFreeze` turns
- * a contestant's own verdicts into "pending" between the freeze and the end.
+ * Being in a contest and reading the site's submissions list.
+ *
+ * The list used to narrow itself to the contest, which is why nobody could find
+ * their own earlier work while competing. It is the site's list now: the
+ * contest's own is on the contest. `blindDuringFreeze` still turns a
+ * contestant's own verdicts into "pending" between the freeze and the end.
  */
 
 import { describe, expect, it } from "vitest";
@@ -32,7 +36,7 @@ async function join(t: T, contestId: Id<"contests">, profileId: Id<"profiles">) 
 }
 
 describe("contest mode", () => {
-  it("narrows the list to the contest and to the viewer's own rows", async () => {
+  it("stays the site's list, keeping the viewer's rows from outside the contest", async () => {
     const t = setupTest();
     const languageId = await insertLanguage(t);
     const problemId = await insertProblem(t, { allowedLanguageIds: [languageId] });
@@ -77,15 +81,62 @@ describe("contest mode", () => {
       status: "D",
       result: "AC",
     });
-    // A submission outside the contest never shows in contest mode.
+    // A submission of the viewer's from outside the contest, which being in one
+    // used to hide from them.
     await insertSubmission(t, { profileId: meId, problemId, languageId, status: "D", result: "WA" });
 
     const page = await asUser(t, "me").query(api.submissions.list, {
       paginationOpts: { numItems: 20, cursor: null },
     });
 
-    expect(page.page).toHaveLength(1);
-    expect(page.page[0]?.user?.username).toBe("me");
+    // Both of the viewer's own rows, in and out of the contest. The rival's stays
+    // hidden: this contest's scoreboard is "H", which its own rules still govern.
+    expect(page.page.map((row) => row.user?.username)).toEqual(["me", "me"]);
+    expect(page.page.map((row) => row.result).sort()).toEqual(["AC", "WA"]);
+  });
+
+  it("offers the contest's own rows when asked for that contest", async () => {
+    const t = setupTest();
+    const languageId = await insertLanguage(t);
+    const problemId = await insertProblem(t, { allowedLanguageIds: [languageId] });
+    const meId = await insertProfile(t, { username: "me" });
+    const now = Date.now();
+
+    const contestId = await insertContest(t, {
+      key: "scoped",
+      startTime: now - 3600_000,
+      endTime: now + 3600_000,
+      scoreboardVisibility: "V",
+    });
+
+    const contestProblemId = await insertContestProblem(t, {
+      contestId,
+      problemId,
+      points: 100,
+      partial: true,
+      isPretested: false,
+      order: 1,
+    });
+
+    const mine = await join(t, contestId, meId);
+    await insertSubmission(t, {
+      profileId: meId,
+      problemId,
+      languageId,
+      contestId,
+      contestProblemId,
+      participationId: mine,
+      status: "D",
+      result: "AC",
+    });
+    await insertSubmission(t, { profileId: meId, problemId, languageId, status: "D", result: "WA" });
+
+    const page = await asUser(t, "me").query(api.submissions.list, {
+      paginationOpts: { numItems: 20, cursor: null },
+      contestKey: "scoped",
+    });
+
+    expect(page.page.map((row) => row.result)).toEqual(["AC"]);
   });
 
   it("masks a contestant's own verdicts after the freeze", async () => {

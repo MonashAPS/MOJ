@@ -570,9 +570,10 @@ export default defineSchema({
     privateContestantProfileIds: v.array(v.id("profiles")),
     hideProblemTags: v.boolean(),
     hideProblemAuthors: v.boolean(),
-    /** Blurs the rest of the catalogue away while a contestant is inside this
-     *  contest, so the problems list stops being a side door out of it. */
-    hideNonContestProblems: v.optional(v.boolean()),
+    /** Opts out of the lockdown a contest gets by default, where the site turns
+     *  into the contest for anyone competing: the nav is replaced by the contest
+     *  bar and the problems list is blurred away. Off means locked down. */
+    disableLockdown: v.optional(v.boolean()),
     runPretestsOnly: v.boolean(),
     showShortDisplay: v.boolean(),
     isOrganizationPrivate: v.boolean(),

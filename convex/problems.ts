@@ -782,10 +782,11 @@ export const list = query({
     const pointValues = [...new Set(prepoint.map((row) => row.points))].sort((a, b) => a - b);
 
     return {
-      /** Set while the viewer is inside a contest that hides the rest of the
-       *  catalogue: the page draws the list blurred behind a way back in. */
+      /** Set while the viewer is inside a locked-down contest: the page draws
+       *  the list blurred behind a way back in. Contests lock down unless they
+       *  opted out. */
       contestLock:
-        viewer.inContest && viewer.contest?.hideNonContestProblems === true
+        viewer.inContest && viewer.contest && viewer.contest.disableLockdown !== true
           ? { key: viewer.contest.key, name: viewer.contest.name }
           : null,
       items,

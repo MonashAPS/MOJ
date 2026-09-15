@@ -1,6 +1,5 @@
 import { api } from "@convex/_generated/api";
 import { Alert, AlertTitle, TitleRow } from "@moj/ui";
-import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import type { OrganizationChip } from "@/components/users/LeaderboardTable";
 import { LeaderboardToolbar } from "@/components/users/LeaderboardToolbar";
@@ -45,9 +44,6 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
     queryAsViewer(api.viewer.current, {}).catch(() => null),
     userListTabs(),
   ]);
-
-  // `users(request)`: in contest mode the leaderboard *is* the contest ranking.
-  if (data.contestScoreboard) redirect(`/contest/${data.contestScoreboard.key}/ranking/`);
 
   const chipRows = await queryAsViewer(api.pages.users.organizationsFor, {
     profileIds: data.users.map((user) => user._id),

@@ -73,6 +73,15 @@ export function SiteShell({
     (pathname.startsWith(`/contest/${contest.contest.key}`) ||
       (!!problemCode && contest.problems.some((problem) => problem.code === problemCode)));
 
+  /**
+   * A locked-down contest takes the nav's place for as long as the viewer is
+   * competing. Every nav destination is the site's own — the problems list, the
+   * submissions list, the user list are never the contest's — so while the
+   * contest is the point, the contest is the chrome, and its own pages are one
+   * click away in the bar rather than two through a nav that led elsewhere.
+   */
+  const lockedDown = !!contest && contest.contest.isLockedDown;
+
   /** The chrome publishes its own height so a sticky table header never has to
    *  guess. One ResizeObserver, writing a custom property, no React state. */
   useLayoutEffect(() => {
@@ -129,17 +138,21 @@ export function SiteShell({
       </a>
 
       <header ref={headerRef} className="fixed inset-x-0 top-0 z-(--z-nav)">
-        <NavBar
-          nav={nav}
-          viewer={viewer}
-          registrationOpen={registrationOpen}
-          onOpenSearch={() => setPaletteOpen(true)}
-          logoUrl={logoUrl}
-          siteName={siteName}
-        />
+        {lockedDown ? null : (
+          <NavBar
+            nav={nav}
+            viewer={viewer}
+            registrationOpen={registrationOpen}
+            onOpenSearch={() => setPaletteOpen(true)}
+            logoUrl={logoUrl}
+            siteName={siteName}
+          />
+        )}
         {/* The royal, carried across the top of every page. */}
         <div aria-hidden className="h-[3px] bg-royal" />
-        {onContestPage && contest ? (
+        {lockedDown && contest ? (
+          <ContestBar data={contest} currentCode={problemCode} viewerUsername={viewer?.username ?? null} />
+        ) : onContestPage && contest ? (
           <ContestBar data={contest} currentCode={problemCode} viewerUsername={viewer?.username ?? null} />
         ) : routeKey && contest === undefined ? (
           // The bar arrives a moment after the page and used to push everything
@@ -195,7 +208,7 @@ export function SiteShell({
         <Footer footerHtml={misc.footer} language={language} />
       </div>
 
-      {contest && !onContestPage ? (
+      {contest && !onContestPage && !lockedDown ? (
         <ContestFloater
           contestKey={contest.contest.key}
           contestName={contest.contest.name}

@@ -60,7 +60,8 @@
     "submissions": "Submissions",
     "moss": "MOSS",
     "edit": "Edit",
-    "clone": "Clone"
+    "clone": "Clone",
+    "allSubmissions": "All submissions"
   },
   "list": {
     "title": "Contests",
@@ -381,7 +382,8 @@
     "disqualifiedBadge": "DQ",
     "stillRunning": "{time} · still running",
     "disqualifiedNote": "Disqualified: this run does not score.",
-    "points": "{points} points"
+    "points": "{points} points",
+    "metaAllSubmissions": "All submissions for {key}"
   },
   "stats": {
     "metaTitle": "{name} statistics",
