@@ -21,7 +21,16 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { type AdminColumn, AdminTable, DASH, Flags, SearchBox, StatusLine } from "@/components/admin";
+import {
+  type AdminColumn,
+  AdminFilter,
+  AdminTable,
+  AdminToolbar,
+  DASH,
+  Flags,
+  SearchBox,
+  StatusLine,
+} from "@/components/admin";
 import { chosenValue } from "@/lib/choices";
 import { formatDate } from "@/lib/format";
 import { type AccountRow, searchAccountsAction } from "./actions";
@@ -60,6 +69,7 @@ type UserFilters = FunctionArgs<typeof api.admin.users.list>;
 
 export function UsersTable() {
   const t = useTranslations("admin.users.list");
+  const filterLabels = useTranslations("admin.components.filters");
   const actions = useTranslations("common.actions");
   const router = useRouter();
   const pathname = usePathname() ?? "/admin/users/";
@@ -206,54 +216,57 @@ export function UsersTable() {
         loading={searchBy === "email" ? false : rows === undefined}
         rowKey={(row) => row._id}
         toolbar={
-          <>
-            <Select
-              options={SEARCH_OPTIONS.map((option) => ({
-                value: option.value,
-                label: t(option.labelKey),
-              }))}
-              value={searchBy}
-              onValueChange={(value) => setParam({ by: value === "username" ? null : value })}
-              ariaLabel={t("searchByAria")}
-              size="sm"
-              className="w-[124px]"
-            />
-            <SearchBox
-              value={search}
-              onChange={(value) => setParam({ q: value })}
-              placeholder={
-                searchBy === "email" ? t("searchEmailPlaceholder") : t("searchUsernamePlaceholder")
-              }
-              ariaLabel={searchBy === "email" ? t("searchEmailAria") : t("searchUsernameAria")}
-            />
-            <Select
-              options={ROLE_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
-              value={role}
-              onValueChange={(value) => setParam({ role: value })}
-              ariaLabel={t("roleAria")}
-              size="sm"
-              className="w-[150px]"
-            />
-            <Select
-              options={RANK_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
-              value={rank}
-              onValueChange={(value) => setParam({ rank: value })}
-              ariaLabel={t("rankAria")}
-              size="sm"
-              className="w-[176px]"
-            />
-            <Select
-              options={STATE_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
-              value={state}
-              onValueChange={(value) => setParam({ state: value })}
-              ariaLabel={t("stateAria")}
-              size="sm"
-              className="w-[150px]"
-            />
-            <span className="ml-auto font-mono text-mono tabular-nums text-muted-foreground">
-              {result ? t("count", { count: total }) : ""}
-            </span>
-          </>
+          <AdminToolbar note={result ? t("count", { count: total }) : null}>
+            <AdminFilter label={t("searchByAria")}>
+              <Select
+                options={SEARCH_OPTIONS.map((option) => ({
+                  value: option.value,
+                  label: t(option.labelKey),
+                }))}
+                value={searchBy}
+                onValueChange={(value) => setParam({ by: value === "username" ? null : value })}
+                ariaLabel={t("searchByAria")}
+                size="sm"
+              />
+            </AdminFilter>
+            <AdminFilter grow label={filterLabels("search")}>
+              <SearchBox
+                value={search}
+                onChange={(value) => setParam({ q: value })}
+                placeholder={
+                  searchBy === "email" ? t("searchEmailPlaceholder") : t("searchUsernamePlaceholder")
+                }
+                ariaLabel={searchBy === "email" ? t("searchEmailAria") : t("searchUsernameAria")}
+              />
+            </AdminFilter>
+            <AdminFilter label={t("roleAria")}>
+              <Select
+                options={ROLE_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
+                value={role}
+                onValueChange={(value) => setParam({ role: value })}
+                ariaLabel={t("roleAria")}
+                size="sm"
+              />
+            </AdminFilter>
+            <AdminFilter label={t("rankAria")} className="min-w-44">
+              <Select
+                options={RANK_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
+                value={rank}
+                onValueChange={(value) => setParam({ rank: value })}
+                ariaLabel={t("rankAria")}
+                size="sm"
+              />
+            </AdminFilter>
+            <AdminFilter label={t("stateAria")}>
+              <Select
+                options={STATE_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
+                value={state}
+                onValueChange={(value) => setParam({ state: value })}
+                ariaLabel={t("stateAria")}
+                size="sm"
+              />
+            </AdminFilter>
+          </AdminToolbar>
         }
         emptyTitle={t("emptyTitle")}
         emptyDescription={t("emptyDescription")}

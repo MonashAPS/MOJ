@@ -8,7 +8,14 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { type AdminColumn, AdminPager, AdminShell, AdminTable, AdminToolbar } from "@/components/admin";
+import {
+  type AdminColumn,
+  AdminFilter,
+  AdminPager,
+  AdminShell,
+  AdminTable,
+  AdminToolbar,
+} from "@/components/admin";
 import { formatDateTime } from "@/lib/format";
 
 type Row = {
@@ -29,6 +36,7 @@ const PAGE_SIZE = 50;
 
 export function ContestsList() {
   const t = useTranslations("admin.contests.list");
+  const filterLabels = useTranslations("admin.components.filters");
   const router = useRouter();
   const pathname = usePathname() ?? "/admin/contests/";
   const params = useSearchParams();
@@ -131,21 +139,23 @@ export function ContestsList() {
         }}
         toolbar={
           <AdminToolbar>
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                router.replace(withParams({ q: draft }), { scroll: false });
-              }}
-            >
-              <Input
-                icon={<Search aria-hidden />}
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                placeholder={t("searchPlaceholder")}
-                aria-label={t("searchLabel")}
-                className="h-(--control-h-sm) w-[260px]"
-              />
-            </form>
+            <AdminFilter grow label={filterLabels("search")}>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  router.replace(withParams({ q: draft }), { scroll: false });
+                }}
+              >
+                <Input
+                  icon={<Search aria-hidden />}
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  placeholder={t("searchPlaceholder")}
+                  aria-label={t("searchLabel")}
+                  className="h-(--control-h-sm) w-full"
+                />
+              </form>
+            </AdminFilter>
           </AdminToolbar>
         }
         footer={

@@ -11,7 +11,9 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import {
   type AdminColumn,
+  AdminFilter,
   AdminTable,
+  AdminToolbar,
   ConfirmAction,
   DASH,
   Flags,
@@ -71,6 +73,7 @@ function fromLocalInput(value: string): number | null {
 
 export function BlogTable({ authorOptions }: { authorOptions: AuthorOption[] | null }) {
   const t = useTranslations("admin.blog");
+  const filterLabels = useTranslations("admin.components.filters");
   const actions = useTranslations("common.actions");
   const [search, setSearch] = useState("");
 
@@ -240,27 +243,31 @@ export function BlogTable({ authorOptions }: { authorOptions: AuthorOption[] | n
         rows={posts}
         rowKey={(row) => row._id}
         toolbar={
-          <>
-            <SearchBox
-              value={search}
-              onChange={setSearch}
-              placeholder={t("searchPlaceholder")}
-              ariaLabel={t("searchLabel")}
-            />
-            <Button
-              className="ml-auto"
-              size="sm"
-              icon={<Plus aria-hidden />}
-              onClick={() => {
-                setLoadingPost(null);
-                setDraft({ ...EMPTY, publishOn: toLocalInput(Date.now()) });
-                setReason("");
-                setError(null);
-              }}
-            >
-              {t("newPost")}
-            </Button>
-          </>
+          <AdminToolbar
+            action={
+              <Button
+                size="sm"
+                icon={<Plus aria-hidden />}
+                onClick={() => {
+                  setLoadingPost(null);
+                  setDraft({ ...EMPTY, publishOn: toLocalInput(Date.now()) });
+                  setReason("");
+                  setError(null);
+                }}
+              >
+                {t("newPost")}
+              </Button>
+            }
+          >
+            <AdminFilter grow label={filterLabels("search")}>
+              <SearchBox
+                value={search}
+                onChange={setSearch}
+                placeholder={t("searchPlaceholder")}
+                ariaLabel={t("searchLabel")}
+              />
+            </AdminFilter>
+          </AdminToolbar>
         }
         emptyTitle={t("emptyTitle")}
         emptyDescription={t("emptyDescription")}

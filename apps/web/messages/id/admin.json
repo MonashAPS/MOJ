@@ -721,8 +721,10 @@
       "seconds": "{value}s"
     },
     "filters": {
+      "user": "Pengguna",
       "userPlaceholder": "Nama pengguna",
       "userLabel": "Filter berdasarkan pengguna",
+      "problem": "Soal",
       "problemPlaceholder": "Kode soal",
       "problemLabel": "Filter berdasarkan soal",
       "status": "Status",
@@ -732,6 +734,7 @@
       "anyResult": "Hasil apa pun",
       "languages": "Bahasa",
       "anyLanguage": "Bahasa apa pun",
+      "idRange": "ID pengiriman",
       "fromPlaceholder": "Dari ID",
       "fromLabel": "Dari ID pengiriman",
       "toPlaceholder": "Sampai ID",
@@ -1935,6 +1938,9 @@
       "selected": "{count} dipilih",
       "clearSelection": "Bersihkan"
     },
+    "filters": {
+      "search": "Cari"
+    },
     "dateTime": {
       "pickDate": "Pilih tanggal",
       "pickDateFirst": "Pilih tanggal terlebih dahulu.",
@@ -2087,5 +2093,8 @@
     "now": "Sekarang",
     "followingNow": "Mengikuti",
     "close": "Tutup"
+  },
+  "statementPreview": {
+    "tooLong": "Deskripsi ini terlalu panjang untuk dipratinjau; maksimal boleh berisi {count, number} karakter."
   }
 }

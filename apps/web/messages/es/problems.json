@@ -101,6 +101,7 @@
     "tabVote": "Votar",
     "tabTestData": "Datos de prueba",
     "tabManage": "Administrar envíos",
+    "tabEdit": "Editar",
     "tabClone": "Clonar",
     "contestMode": "Modo concurso — problema <mono>{label}</mono>",
     "contestModePretested": "Modo concurso — problema <mono>{label}</mono> · con pretests",

@@ -5,6 +5,7 @@ import {
   Checkbox,
   cn,
   EmptyState,
+  Field,
   Pagination,
   Skeleton,
   Table,
@@ -226,21 +227,65 @@ export function AdminTable<Row>({
   );
 }
 
-/** The toolbar row every list carries: search, filters, then the primary action. */
+/**
+ * The toolbar row every list carries: the filters, then the count and the
+ * primary action pinned to the right.
+ *
+ * The filters are `AdminFilter` cells rather than bare controls, so a row of
+ * them reads as "username", "role", "display rank" instead of "anyone", "any
+ * rank" jammed together with nothing saying which is which.
+ */
 export function AdminToolbar({
   children,
+  note,
   action,
   className,
 }: {
   children?: ReactNode;
+  /** The count sentence a list ends its toolbar with, styled as data. */
+  note?: ReactNode;
   action?: ReactNode;
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-wrap items-center gap-2", className)}>
+    <div className={cn("flex flex-wrap items-end gap-3", className)}>
       {children}
-      {action ? <div className="ml-auto flex items-center gap-2">{action}</div> : null}
+      {note || action ? (
+        <div className="ml-auto flex flex-wrap items-center gap-3">
+          {note ? (
+            <span className="font-mono text-mono tabular-nums text-muted-foreground">{note}</span>
+          ) : null}
+          {action}
+        </div>
+      ) : null}
     </div>
+  );
+}
+
+/**
+ * One filter in an `AdminToolbar`: a control under its own label, laid out the
+ * way `AdminForm` lays out a field.
+ *
+ * A select holds a floor width so a row of them lines up and none of them
+ * clips its longest option; `grow` is for the search box, which takes whatever
+ * the selects leave up to a readable maximum. The control itself is stretched
+ * to the cell, so a call site sizes the filter here rather than on the control.
+ */
+export function AdminFilter({
+  label,
+  grow = false,
+  children,
+  className,
+}: {
+  label: ReactNode;
+  grow?: boolean;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <Field label={label} className={cn("min-w-40 *:w-full", grow && "min-w-56 max-w-sm flex-1", className)}>
+      {children}
+    </Field>
   );
 }
 

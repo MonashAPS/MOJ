@@ -336,7 +336,15 @@
     "disqualify": "Diskualifikasi partisipasi",
     "reinstate": "Pulihkan partisipasi",
     "disqualified": "Partisipasi didiskualifikasi",
-    "reinstated": "Partisipasi dipulihkan"
+    "reinstated": "Partisipasi dipulihkan",
+    "cell": {
+      "open": "Pengiriman {user} untuk {problem}",
+      "title": "{user} di {problem}",
+      "loading": "Memuat pengiriman…",
+      "none": "Tidak ada pengiriman yang dapat Anda lihat di sini.",
+      "viewAll": "Semua pengiriman oleh {user}",
+      "attempt": "Buka pengiriman {id}"
+    }
   },
   "rankByProblem": {
     "metaTitle": "Solusi terbaik untuk {name}",

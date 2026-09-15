@@ -336,7 +336,15 @@
     "disqualify": "Disqualify participation",
     "reinstate": "Reinstate participation",
     "disqualified": "Participation disqualified",
-    "reinstated": "Participation reinstated"
+    "reinstated": "Participation reinstated",
+    "cell": {
+      "open": "Submissions by {user} on {problem}",
+      "title": "{user} on {problem}",
+      "loading": "Loading submissions…",
+      "none": "No submissions you can see here.",
+      "viewAll": "All submissions by {user}",
+      "attempt": "Open submission {id}"
+    }
   },
   "rankByProblem": {
     "metaTitle": "Best solutions for {name}",

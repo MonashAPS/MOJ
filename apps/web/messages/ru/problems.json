@@ -101,6 +101,7 @@
     "tabVote": "Голосование",
     "tabTestData": "Тесты",
     "tabManage": "Управление посылками",
+    "tabEdit": "Изменить",
     "tabClone": "Клонировать",
     "contestMode": "Режим соревнования — задача <mono>{label}</mono>",
     "contestModePretested": "Режим соревнования — задача <mono>{label}</mono> · с претестами",

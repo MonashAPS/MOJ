@@ -10,7 +10,9 @@ import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import {
   type AdminColumn,
+  AdminFilter,
   AdminTable,
+  AdminToolbar,
   ConfirmAction,
   DASH,
   RecordDialog,
@@ -50,6 +52,7 @@ const EMPTY: Draft = {
 
 export function LanguagesTable() {
   const t = useTranslations("admin.languages");
+  const filterLabels = useTranslations("admin.components.filters");
   const actions = useTranslations("common.actions");
   const languages = useQuery(api.admin.languages.list, {});
   const create = useMutation(api.admin.languages.create);
@@ -241,20 +244,23 @@ export function LanguagesTable() {
         rows={rows}
         rowKey={(row) => row._id}
         toolbar={
-          <>
-            <SearchBox
-              value={search}
-              onChange={setSearch}
-              placeholder={t("searchPlaceholder")}
-              ariaLabel={t("searchLabel")}
-            />
-            <span className="text-sm text-muted-foreground">
-              {rows ? t("filterCount", { shown: rows.length, total: languages?.length ?? 0 }) : ""}
-            </span>
-            <Button className="ml-auto" size="sm" icon={<Plus aria-hidden />} onClick={() => open()}>
-              {t("newLanguage")}
-            </Button>
-          </>
+          <AdminToolbar
+            note={rows ? t("filterCount", { shown: rows.length, total: languages?.length ?? 0 }) : null}
+            action={
+              <Button size="sm" icon={<Plus aria-hidden />} onClick={() => open()}>
+                {t("newLanguage")}
+              </Button>
+            }
+          >
+            <AdminFilter grow label={filterLabels("search")}>
+              <SearchBox
+                value={search}
+                onChange={setSearch}
+                placeholder={t("searchPlaceholder")}
+                ariaLabel={t("searchLabel")}
+              />
+            </AdminFilter>
+          </AdminToolbar>
         }
         emptyTitle={t("emptyTitle")}
         emptyDescription={t("emptyDescription")}

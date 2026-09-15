@@ -721,8 +721,10 @@
       "seconds": "{value}s"
     },
     "filters": {
+      "user": "User",
       "userPlaceholder": "Username",
       "userLabel": "Filter by user",
+      "problem": "Problem",
       "problemPlaceholder": "Problem code",
       "problemLabel": "Filter by problem",
       "status": "Status",
@@ -732,6 +734,7 @@
       "anyResult": "Any result",
       "languages": "Languages",
       "anyLanguage": "Any language",
+      "idRange": "Submission id",
       "fromPlaceholder": "From id",
       "fromLabel": "From submission id",
       "toPlaceholder": "To id",
@@ -1935,6 +1938,9 @@
       "selected": "{count} selected",
       "clearSelection": "Clear"
     },
+    "filters": {
+      "search": "Search"
+    },
     "dateTime": {
       "pickDate": "Pick a date",
       "pickDateFirst": "Pick a date first.",
@@ -2087,5 +2093,8 @@
     "now": "Now",
     "followingNow": "Following",
     "close": "Close"
+  },
+  "statementPreview": {
+    "tooLong": "This statement is too long to preview; it must contain at most {count, number} characters."
   }
 }

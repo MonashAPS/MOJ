@@ -7,7 +7,7 @@ import type { FunctionReturnType } from "convex/server";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { type AdminColumn, AdminTable, Flags } from "@/components/admin";
+import { type AdminColumn, AdminFilter, AdminTable, AdminToolbar, Flags } from "@/components/admin";
 
 type ClassRow = FunctionReturnType<typeof api.classes.listForOrganization>[number];
 
@@ -68,24 +68,28 @@ export function ClassesBrowser({
       rows={rows}
       rowKey={(row) => row._id}
       toolbar={
-        <>
-          <Select
-            options={organizations.map((entry) => ({
-              value: entry.slug,
-              label: `${entry.name} (${entry.classCount})`,
-            }))}
-            value={slug}
-            onValueChange={setSlug}
-            ariaLabel={t("organizationAria")}
-            size="sm"
-            className="w-[280px]"
-          />
-          <Button asChild variant="secondary" size="sm" className="ml-auto">
-            <Link href={`/admin/organizations/${slug}/`}>
-              {organization ? t("manage", { name: organization.name }) : t("manageFallback")}
-            </Link>
-          </Button>
-        </>
+        <AdminToolbar
+          action={
+            <Button asChild variant="secondary" size="sm">
+              <Link href={`/admin/organizations/${slug}/`}>
+                {organization ? t("manage", { name: organization.name }) : t("manageFallback")}
+              </Link>
+            </Button>
+          }
+        >
+          <AdminFilter label={t("organizationAria")} className="min-w-72">
+            <Select
+              options={organizations.map((entry) => ({
+                value: entry.slug,
+                label: `${entry.name} (${entry.classCount})`,
+              }))}
+              value={slug}
+              onValueChange={setSlug}
+              ariaLabel={t("organizationAria")}
+              size="sm"
+            />
+          </AdminFilter>
+        </AdminToolbar>
       }
       emptyTitle={t("emptyTitle")}
       emptyDescription={

@@ -13,6 +13,7 @@ export { AdminShell } from "./AdminShell";
 
 export {
   type AdminColumn,
+  AdminFilter,
   AdminPager,
   AdminTable,
   AdminToolbar,
