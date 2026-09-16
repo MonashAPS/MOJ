@@ -421,12 +421,10 @@ export function ContestDetailClient({
       <Banner detail={detail} />
 
       <TwoColumn side={<Sidebar detail={detail} />}>
-        <ContentDescription html={descriptionHtml} />
-
         {!showProblems ? (
           <ProblemsNotReleased />
         ) : (
-          <section className="mt-8 grid gap-2">
+          <section className="grid gap-2">
             <h2 className="flex items-center gap-2 font-display text-h2 font-semibold">
               <CircleHelp size={18} className="text-muted-foreground" aria-hidden />
               {t("problems")}
@@ -470,6 +468,9 @@ export function ContestDetailClient({
             ) : null}
           </section>
         )}
+
+        {/* Under the problems now: a long description used to bury them. */}
+        <ContentDescription html={descriptionHtml} className="mt-8" />
 
         {contest.useClarifications ? (
           <Clarifications
