@@ -110,12 +110,21 @@ function keysOf<T extends object>(value: T): (keyof T & string)[] {
 
 const WRITABLE_FIELDS = keysOf(writable);
 
+/**
+ * Fields the schema requires to be present, where a null is the value itself.
+ *
+ * `formatConfig` is `v.any()` and not optional, and `create` stores null for a
+ * format that takes no configuration. Clearing it instead removed the field, so
+ * saving any contest on the default format wrote a document the schema refused.
+ */
+const NULL_IS_A_VALUE = new Set<string>(["formatConfig"]);
+
 function copyField<K extends WritableField>(patch: WritablePatch, args: ContestWriteArgs, key: K): void {
   const value = args[key];
 
   if (value === undefined) return;
   // A null is how the validators spell "clear this field"; Convex unsets it.
-  patch[key] = value === null ? undefined : value;
+  patch[key] = value === null && !NULL_IS_A_VALUE.has(key) ? undefined : value;
 }
 
 /** Turn the argument object into a patch, dropping keys that were not sent. */
