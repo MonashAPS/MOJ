@@ -236,14 +236,18 @@ function Row({
         row.isDisqualified && "text-muted-foreground line-through decoration-1",
       )}
     >
-      {/* `min-w-12` is what actually holds this column at 48px. Auto table
+      {/* `z-2` keeps the frozen pair over the organisation tags, which raise
+          themselves to `z-1` for their own hit area and, coming later in the
+          row, drew straight over the names at equal depth.
+
+          `min-w-12` is what actually holds this column at 48px. Auto table
           layout treats a width as a suggestion and shrinks the column to its
           digits, which would leave the frozen name column, pinned at `left-12`,
           floating a few pixels clear of it with the page showing through. */}
-      <td className="sticky left-0 z-1 h-(--row-h-dense) w-12 min-w-12 border-b border-border bg-inherit px-3 text-right align-middle font-mono text-sm tabular-nums text-muted-foreground">
+      <td className="sticky left-0 z-2 h-(--row-h-dense) w-12 min-w-12 border-b border-border bg-inherit px-3 text-right align-middle font-mono text-sm tabular-nums text-muted-foreground">
         {row.rankLabel}
       </td>
-      <td className="sticky left-12 z-1 h-(--row-h-dense) min-w-[180px] whitespace-nowrap border-b border-border bg-inherit px-3 align-middle shadow-[inset_-1px_0_0_0_var(--line-strong)]">
+      <td className="sticky left-12 z-2 h-(--row-h-dense) min-w-[180px] whitespace-nowrap border-b border-border bg-inherit px-3 align-middle shadow-[inset_-1px_0_0_0_var(--line-strong)]">
         <span className="flex items-center gap-2">
           <RatingName
             username={row.user.username}
@@ -553,10 +557,10 @@ export function RankingClient({
                   {/* The band carries the navy itself so the seam between the two
                       frozen cells stays navy rather than flashing the card. */}
                   <tr className="bg-titlebar">
-                    <th className="sticky left-0 z-2 h-8 w-12 min-w-12 whitespace-nowrap bg-titlebar px-3 text-right align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">
+                    <th className="sticky left-0 z-3 h-8 w-12 min-w-12 whitespace-nowrap bg-titlebar px-3 text-right align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">
                       #
                     </th>
-                    <th className="sticky left-12 z-2 h-8 min-w-[180px] whitespace-nowrap bg-titlebar px-3 text-left align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink shadow-[inset_-1px_0_0_0_var(--line-strong)]">
+                    <th className="sticky left-12 z-3 h-8 min-w-[180px] whitespace-nowrap bg-titlebar px-3 text-left align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink shadow-[inset_-1px_0_0_0_var(--line-strong)]">
                       {columns("user")}
                     </th>
                     {data.hasRating ? (
