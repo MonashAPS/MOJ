@@ -228,7 +228,10 @@ function Row({
     <tr
       data-selected={row.isViewer || undefined}
       className={cn(
-        "transition-colors duration-(--dur-fast) hover:bg-row-hover",
+        // The frozen cells take their colour from the row with `bg-inherit`, so
+        // the row has to have one. Without this only the striped rows were
+        // opaque and the scrolling columns slid under the odd-numbered names.
+        "bg-card transition-colors duration-(--dur-fast) hover:bg-row-hover",
         "data-[selected]:bg-row-selected data-[selected]:shadow-[inset_3px_0_0_var(--brand-royal)]",
         row.isDisqualified && "text-muted-foreground line-through decoration-1",
       )}
@@ -240,7 +243,7 @@ function Row({
       <td className="sticky left-0 z-1 h-(--row-h-dense) w-12 min-w-12 border-b border-border bg-inherit px-3 text-right align-middle font-mono text-sm tabular-nums text-muted-foreground">
         {row.rankLabel}
       </td>
-      <td className="sticky left-12 z-1 h-(--row-h-dense) min-w-[180px] whitespace-nowrap border-b border-r border-r-(--line-strong) border-border bg-inherit px-3 align-middle">
+      <td className="sticky left-12 z-1 h-(--row-h-dense) min-w-[180px] whitespace-nowrap border-b border-border bg-inherit px-3 align-middle shadow-[inset_-1px_0_0_0_var(--line-strong)]">
         <span className="flex items-center gap-2">
           <RatingName
             username={row.user.username}
@@ -553,7 +556,7 @@ export function RankingClient({
                     <th className="sticky left-0 z-2 h-8 w-12 min-w-12 whitespace-nowrap bg-titlebar px-3 text-right align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">
                       #
                     </th>
-                    <th className="sticky left-12 z-2 h-8 min-w-[180px] whitespace-nowrap border-r border-r-(--line-strong) bg-titlebar px-3 text-left align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">
+                    <th className="sticky left-12 z-2 h-8 min-w-[180px] whitespace-nowrap bg-titlebar px-3 text-left align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink shadow-[inset_-1px_0_0_0_var(--line-strong)]">
                       {columns("user")}
                     </th>
                     {data.hasRating ? (
