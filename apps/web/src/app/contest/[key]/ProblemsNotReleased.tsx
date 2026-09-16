@@ -18,7 +18,7 @@ export function ProblemsNotReleased() {
   const t = useTranslations("contests.detail");
 
   return (
-    <section className="mt-8 grid gap-2">
+    <section className="grid gap-2">
       <h2 className="flex items-center gap-2 font-display text-h2 font-semibold">
         <CircleHelp size={18} className="text-muted-foreground" aria-hidden />
         {t("problems")}
