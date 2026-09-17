@@ -170,7 +170,11 @@
     "submit": "Submit!",
     "searchLanguages": "Search languages",
     "noLanguages": "No language matches that.",
-    "noJudgeFor": "{name} — no judge online for this one"
+    "noJudgeFor": "{name} — no judge online for this one",
+    "chooseFile": "Choose file",
+    "dropHere": "Drop a source file to load it",
+    "notText": "That file is not source code.",
+    "openFullPage": "Open the full submit page"
   },
   "rank": {
     "titleFor": "Best solutions for {name}",

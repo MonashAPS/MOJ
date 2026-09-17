@@ -170,7 +170,11 @@
     "submit": "提交！",
     "searchLanguages": "搜索语言",
     "noLanguages": "没有匹配的语言。",
-    "noJudgeFor": "{name} — 没有在线评测机支持"
+    "noJudgeFor": "{name} — 没有在线评测机支持",
+    "chooseFile": "选择文件",
+    "dropHere": "拖入源代码文件即可载入",
+    "notText": "该文件不是源代码。",
+    "openFullPage": "打开完整提交页面"
   },
   "rank": {
     "titleFor": "{name} 的最佳解答",

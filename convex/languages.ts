@@ -8,6 +8,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 import { seesAllJudges } from "./judges";
+import { optionalViewer } from "./lib/auth";
 import { canAccessProblem, loadViewerContext, problemByCode } from "./problems";
 
 export const list = query({
@@ -27,6 +28,24 @@ export const byKey = query({
       .query("languages")
       .withIndex("by_key", (q) => q.eq("key", key))
       .first();
+  },
+});
+
+/**
+ * The language a submit form opens on: the member's own default, when they set
+ * one and it still exists. Every submit surface asks for this and nothing else
+ * about the viewer, which is why it is not the whole languages table.
+ */
+export const viewerDefault = query({
+  args: {},
+  handler: async (ctx): Promise<{ key: string } | null> => {
+    const profile = await optionalViewer(ctx);
+
+    if (!profile?.languageId) return null;
+
+    const language = await ctx.db.get(profile.languageId);
+
+    return language ? { key: language.key } : null;
   },
 });
 

@@ -170,7 +170,11 @@
     "submit": "¡Enviar!",
     "searchLanguages": "Buscar lenguajes",
     "noLanguages": "Ningún lenguaje coincide.",
-    "noJudgeFor": "{name} — no hay ningún juez en línea para este"
+    "noJudgeFor": "{name} — no hay ningún juez en línea para este",
+    "chooseFile": "Elegir archivo",
+    "dropHere": "Suelta aquí un archivo de código para cargarlo",
+    "notText": "Ese archivo no es código fuente.",
+    "openFullPage": "Abrir la página de envío completa"
   },
   "rank": {
     "titleFor": "Mejores soluciones para {name}",

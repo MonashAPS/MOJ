@@ -170,7 +170,11 @@
     "submit": "Kirim!",
     "searchLanguages": "Cari bahasa",
     "noLanguages": "Tidak ada bahasa yang cocok.",
-    "noJudgeFor": "{name} — tidak ada juri daring untuk yang ini"
+    "noJudgeFor": "{name} — tidak ada juri daring untuk yang ini",
+    "chooseFile": "Pilih berkas",
+    "dropHere": "Lepaskan berkas kode sumber di sini untuk memuatnya",
+    "notText": "Berkas itu bukan kode sumber.",
+    "openFullPage": "Buka halaman pengiriman lengkap"
   },
   "rank": {
     "titleFor": "Solusi terbaik untuk {name}",

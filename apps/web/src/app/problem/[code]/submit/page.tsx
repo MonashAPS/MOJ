@@ -4,7 +4,7 @@ import { forbidden, notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ProblemPage } from "@/components/problems/ProblemHeader";
 import { SubmitForm } from "@/components/problems/SubmitForm";
-import { query, queryAsViewer } from "@/lib/convex-server";
+import { queryAsViewer } from "@/lib/convex-server";
 import { viewerLanguage } from "@/lib/language.server";
 
 export const dynamic = "force-dynamic";
@@ -26,26 +26,22 @@ export default async function SubmitPage({ params }: { params: Promise<{ code: s
   const t = await getTranslations("problems.submit");
   const { code } = await params;
 
-  const [problem, viewerState, languages] = await Promise.all([
+  const [problem, defaultLanguage] = await Promise.all([
     queryAsViewer(api.problems.get, { code, language: await viewerLanguage() }),
-    queryAsViewer(api.viewer.current, {}).catch(() => null),
-    query(api.languages.list, {}).catch(() => []),
+    // DMOJ opens the form on the member's own default language.
+    queryAsViewer(api.languages.viewerDefault, {}).catch(() => null),
   ]);
 
   if (!problem) notFound();
 
   if (!problem.canSubmit) forbidden();
 
-  // DMOJ opens the form on the member's own default language.
-  const preferredId = viewerState?.profile?.languageId;
-  const preferred = preferredId ? languages.find((row) => row._id === preferredId) : undefined;
-
   return (
     <ProblemPage problem={problem} active="submit" title={t("titleFor", { name: problem.statement.name })}>
       <SubmitForm
         problemCode={problem.code}
         problemName={problem.name}
-        defaultLanguageKey={preferred?.key ?? null}
+        defaultLanguageKey={defaultLanguage?.key ?? null}
         canPinJudge={problem.canEdit}
         submissionsLeft={problem.contestProblem?.submissionsLeft ?? null}
       />
