@@ -23,11 +23,12 @@ import { type BoardCell, boardStandings, isSolved, minutesOf, triesOf } from "@/
  * screen, in `@/lib/domjudge-board`.
  */
 
-const CELL = "w-[74px] min-w-[74px] border border-border p-0 text-center align-middle";
+/** Narrow on purpose: a board is judged by how many problems fit across it. */
+const CELL = "w-14 min-w-14 border border-border p-0 text-center align-middle";
 
 const HEAD =
   "whitespace-nowrap border border-border bg-(--board-head) px-2 py-1 text-center align-middle " +
-  "font-sans text-sm font-bold text-foreground";
+  "font-sans text-xs font-bold uppercase text-foreground";
 
 const MEDALS = ["var(--medal-gold)", "var(--medal-silver)", "var(--medal-bronze)"];
 
@@ -37,7 +38,7 @@ function BalloonHead({ problem }: { problem: RankingProblem }) {
   return (
     <span
       title={problem.name}
-      className="mx-auto flex size-7 items-center justify-center rounded-(--radius-sm) border font-mono text-sm font-bold text-[color:hsl(0_0%_12%)]"
+      className="mx-auto flex size-6 items-center justify-center rounded-(--radius-sm) border font-mono text-sm font-bold text-[color:hsl(0_0%_12%)]"
       style={{ backgroundColor: balloon.fill, borderColor: balloon.line }}
     >
       {problem.label}
@@ -81,9 +82,11 @@ function BoardCellView({
     return (
       <td className={cn(CELL, "bg-(--cell-judging-bg) text-(--cell-judging-ink)")}>
         {wrap(
-          <span className="block py-0.5 font-mono text-base font-bold leading-tight tabular-nums">
+          <span className="block py-0.5 font-mono text-sm font-bold leading-tight tabular-nums">
             ?
-            <span className="block font-sans text-xs font-normal">{t("boardTries", { count: pending })}</span>
+            <span className="block font-sans text-[11px] font-normal leading-tight">
+              {t("boardTries", { count: pending })}
+            </span>
           </span>,
           t("pendingAfterFreeze", { count: pending }),
         )}
@@ -109,9 +112,9 @@ function BoardCellView({
       )}
     >
       {wrap(
-        <span className="block py-0.5 font-mono text-base font-bold leading-tight tabular-nums">
+        <span className="block py-0.5 font-mono text-sm font-bold leading-tight tabular-nums">
           {minutes !== null ? minutes : cell.pointsText}
-          <span className="block font-sans text-xs font-normal">
+          <span className="block font-sans text-[11px] font-normal leading-tight">
             {tries === null ? cell.timeText : t("boardTries", { count: tries })}
           </span>
         </span>,
@@ -160,12 +163,12 @@ export function DomjudgeBoard({
           <thead>
             <tr>
               <th className={HEAD}>{t("boardRank")}</th>
-              <th className={cn(HEAD, "min-w-[280px]")}>{t("boardTeam")}</th>
+              <th className={cn(HEAD, "min-w-[180px]")}>{t("boardTeam")}</th>
               <th className={HEAD} colSpan={2}>
                 {t("boardScore")}
               </th>
               {data.problems.map((problem) => (
-                <th key={problem.contestProblemId} className={cn(HEAD, "w-[74px] min-w-[74px] px-1")}>
+                <th key={problem.contestProblemId} className={cn(HEAD, "w-14 min-w-14 px-1")}>
                   <BalloonHead problem={problem} />
                 </th>
               ))}
@@ -187,26 +190,26 @@ export function DomjudgeBoard({
                     row.isDisqualified && "text-muted-foreground line-through decoration-1",
                   )}
                 >
-                  <td className="w-16 min-w-16 border border-border px-2 text-center align-middle font-mono text-base font-bold tabular-nums">
+                  <td className="w-12 min-w-12 border border-border px-1 text-center align-middle font-mono text-sm font-bold tabular-nums">
                     <span className="flex items-center justify-center gap-1">
                       {medal ? <Medal size={16} aria-hidden style={{ color: medal }} /> : null}
                       {tied ? "" : row.rankLabel}
                     </span>
                   </td>
                   <td className="border border-border px-2 py-1 text-right align-middle">
-                    <span className="block font-semibold leading-tight">
+                    <span className="block text-sm font-semibold leading-tight">
                       {row.user.displayName || row.user.username}
                     </span>
                     {row.organizations.length > 0 ? (
-                      <span className="block text-xs leading-tight text-muted-foreground">
+                      <span className="block text-[11px] leading-tight text-muted-foreground">
                         {row.organizations.map((organization) => organization.name).join(", ")}
                       </span>
                     ) : null}
                   </td>
-                  <td className="w-12 min-w-12 border border-border px-2 text-center align-middle font-mono text-base font-bold tabular-nums">
+                  <td className="w-10 min-w-10 border border-border px-1 text-center align-middle font-mono text-sm font-bold tabular-nums">
                     {row.result.pointsText}
                   </td>
-                  <td className="w-16 min-w-16 border border-border px-2 text-center align-middle font-mono text-base tabular-nums">
+                  <td className="w-16 min-w-16 border border-border px-1 text-center align-middle font-mono text-sm tabular-nums">
                     {row.result.cumtimeText}
                   </td>
                   {data.problems.map((problem, column) => (
@@ -230,7 +233,7 @@ export function DomjudgeBoard({
           <tfoot>
             <tr>
               <td className="border border-border" />
-              <td className="border border-border px-2 py-1 text-right align-middle font-semibold">
+              <td className="border border-border px-2 py-1 text-right align-middle text-sm font-semibold">
                 {t("boardSummary")}
               </td>
               <td className="border border-border" colSpan={2} />
@@ -240,10 +243,10 @@ export function DomjudgeBoard({
                   className="border border-border px-1 py-1 text-center align-middle"
                   title={t("boardSummaryCell", { solved: standing.solved, tried: standing.tried })}
                 >
-                  <span className="block font-mono text-base font-bold leading-tight tabular-nums text-good">
+                  <span className="block font-mono text-sm font-bold leading-tight tabular-nums text-good">
                     {standing.solved}
                   </span>
-                  <span className="block font-mono text-xs leading-tight tabular-nums text-muted-foreground">
+                  <span className="block font-mono text-[11px] leading-tight tabular-nums text-muted-foreground">
                     {standing.tried}
                   </span>
                 </td>

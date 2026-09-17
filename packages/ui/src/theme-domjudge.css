@@ -395,7 +395,9 @@
   --nav-height: 56px;
   --nav-height-compact: 56px;
   --contest-bar-height: 40px;
-  --content-max: 1320px;
+  /* `container-fluid`: DOMjudge gives a page the window, which is what a
+     scoreboard with a dozen problem columns needs. */
+  --content-max: 100%;
   --gutter: 12px;
   --gutter-lg: 24px;
 }
