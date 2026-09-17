@@ -1,6 +1,6 @@
 "use client";
 
-import type { ContestBarData } from "@convex/contests";
+import type { ContestChrome } from "@convex/contests";
 import { Button, cn } from "@moj/ui";
 import { BookOpen, Clock, ListOrdered, LogIn, MessagesSquare, Search } from "lucide-react";
 import Link from "next/link";
@@ -34,9 +34,15 @@ const ACTIVE = "text-nav-ink font-semibold";
 
 type Item = { key: string; href: string; label: string; icon?: React.ReactNode; anchor?: boolean };
 
+type Contest = NonNullable<ContestChrome> & {
+  /** When the viewer's own window closes, if they are in it. */
+  endsAt: number | null;
+  ownSubmissions: boolean;
+};
+
 /** The contest clock DOMjudge writes at the end of its bar. */
-function ContestClock({ bar }: { bar: NonNullable<ContestBarData> }) {
-  const remaining = useCountdown(bar.isSpectating ? bar.contest.endTime : bar.endsAt);
+function ContestClock({ contest }: { contest: Contest }) {
+  const remaining = useCountdown(contest.endsAt ?? contest.endTime);
 
   if (remaining === null || remaining > COUNTDOWN_HORIZON) return null;
 
@@ -49,9 +55,9 @@ function ContestClock({ bar }: { bar: NonNullable<ContestBarData> }) {
 }
 
 /** How far through the contest we are, full width under the bar. */
-function ContestProgress({ bar }: { bar: NonNullable<ContestBarData> }) {
-  const remaining = useCountdown(bar.contest.endTime);
-  const total = bar.contest.endTime - bar.contest.startTime;
+function ContestProgress({ contest }: { contest: Contest }) {
+  const remaining = useCountdown(contest.endTime);
+  const total = contest.endTime - contest.startTime;
 
   if (total <= 0 || total > COUNTDOWN_HORIZON) return null;
   const elapsed = Math.min(Math.max(total - (remaining ?? 0), 0), total);
@@ -69,15 +75,15 @@ function ContestProgress({ bar }: { bar: NonNullable<ContestBarData> }) {
 export function DomjudgeNav({
   nav,
   viewer,
-  bar,
+  contest,
   registrationOpen = true,
   onOpenSearch,
   siteName = "MAPS Online Judge",
 }: {
   nav: NavNode[];
   viewer: ViewerSummary | null;
-  /** The contest the viewer is in, or whose page they are on. */
-  bar: NonNullable<ContestBarData> | null;
+  /** The contest the viewer is in, or whose pages they are reading. */
+  contest: Contest | null;
   registrationOpen?: boolean;
   onOpenSearch?: () => void;
   siteName?: string;
@@ -87,35 +93,35 @@ export function DomjudgeNav({
   const pathname = usePathname() ?? "/";
   const active = activeNavKeys(nav, pathname);
 
-  const items: Item[] = bar
+  const items: Item[] = contest
     ? [
         {
           key: "scoreboard",
-          href: `/contest/${bar.contest.key}/ranking/`,
+          href: `/contest/${contest.key}/ranking/`,
           label: t("domjudgeScoreboard"),
           icon: <ListOrdered size={15} aria-hidden />,
         },
         {
           key: "problemset",
-          href: `/contest/${bar.contest.key}/`,
+          href: `/contest/${contest.key}/`,
           label: t("domjudgeProblemset"),
           icon: <BookOpen size={15} aria-hidden />,
         },
-        ...(bar.links.submissions && viewer
+        ...(contest.ownSubmissions
           ? [
               {
                 key: "submissions",
-                href: `/contest/${bar.contest.key}/submissions/?mine=1`,
+                href: `/contest/${contest.key}/submissions/?mine=1`,
                 label: t("domjudgeSubmissions"),
                 icon: <Search size={15} aria-hidden />,
               },
             ]
           : []),
-        ...(bar.contest.useClarifications
+        ...(contest.useClarifications
           ? [
               {
                 key: "clarifications",
-                href: `/contest/${bar.contest.key}/#clarifications`,
+                href: `/contest/${contest.key}/#clarifications`,
                 label: t("domjudgeClarifications"),
                 icon: <MessagesSquare size={15} aria-hidden />,
                 anchor: true,
@@ -141,7 +147,7 @@ export function DomjudgeNav({
           {items.map((item) => {
             const target = item.href.split("?")[0] ?? item.href;
 
-            const here = item.anchor ? false : bar ? pathname === target : active.has(item.key);
+            const here = item.anchor ? false : contest ? pathname === target : active.has(item.key);
 
             return (
               <Link
@@ -179,11 +185,11 @@ export function DomjudgeNav({
               </Link>
             </Button>
           )}
-          {bar ? <ContestClock bar={bar} /> : null}
+          {contest ? <ContestClock contest={contest} /> : null}
         </div>
       </nav>
 
-      {bar ? <ContestProgress bar={bar} /> : null}
+      {contest ? <ContestProgress contest={contest} /> : null}
     </div>
   );
 }

@@ -394,6 +394,52 @@ function sidebarContest(row: Doc<"contests">, state: "ongoing" | "upcoming"): Ho
 /* The contest bar (SPEC section 20)                                          */
 /* -------------------------------------------------------------------------- */
 
+export type ContestChrome = {
+  key: string;
+  name: string;
+  startTime: number;
+  endTime: number;
+  useClarifications: boolean;
+} | null;
+
+/**
+ * The little a bar needs to name a contest it is standing over: who it is and
+ * when it runs.
+ *
+ * `navBar` answers a different question — whether the viewer is *in* this
+ * contest — and answers null for a visitor reading a public contest's pages.
+ * DOMjudge's bar carries the contest for those readers too, so this asks only
+ * whether they may see it at all.
+ */
+export const chrome = query({
+  args: { key: v.string() },
+  handler: async (ctx, { key }): Promise<ContestChrome> => {
+    const contest = await contestByKey(ctx, key);
+
+    if (!contest) return null;
+
+    const profile = await optionalViewer(ctx);
+
+    const inThisContest = profile?.currentParticipationId
+      ? (await ctx.db.get(profile.currentParticipationId))?.contestId === contest._id
+      : false;
+
+    if (!inThisContest) {
+      const viewer = await toViewerRowInContest(ctx, profile);
+
+      if (contestAccessCheck(toContestRow(contest), viewer).kind !== "ok") return null;
+    }
+
+    return {
+      key: contest.key,
+      name: contest.name,
+      startTime: contest.startTime,
+      endTime: contest.endTime,
+      useClarifications: contest.useClarifications,
+    };
+  },
+});
+
 export const navBar = query({
   args: { key: v.optional(v.string()) },
   handler: async (ctx, { key }): Promise<ContestBarData> => {

@@ -4,7 +4,6 @@ import { api } from "@convex/_generated/api";
 import type { ContestDetail, ContestProblemEntry } from "@convex/contests";
 import {
   Badge,
-  Button,
   ContentDescription,
   cn,
   EmptyRow,
@@ -22,12 +21,11 @@ import {
   TwoColumn,
 } from "@moj/ui";
 import { useQuery } from "convex/react";
-import { BookOpen, CircleHelp, Clock, FileArchive, FileDown, Send } from "lucide-react";
+import { BookOpen, CircleHelp, Clock } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips, OPEN_ENDED, ProblemStateIcon, useHumanDuration } from "@/components/contests/pieces";
-import { QuickSubmit } from "@/components/problems/QuickSubmit";
 import { useSkin } from "@/components/shell/SkinProvider";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { formatDateTime, formatPoints } from "@/lib/format";
@@ -38,13 +36,6 @@ import { ProblemsNotReleased } from "./ProblemsNotReleased";
 import { contestTabs, joinKindFor } from "./tabs";
 
 const DASH = "—";
-
-/** A download on a problem's row: quieter and shorter than a button, so two of
- *  them stack inside one row without growing it. */
-const ROW_DOWNLOAD =
-  "flex h-6 items-center gap-1.5 rounded-sm px-1.5 text-sm text-subtle transition-colors " +
-  "hover:bg-secondary hover:text-foreground " +
-  "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-royal/60";
 
 /** DMOJ's `#banner`: one sentence saying where the viewer stands in the clock. */
 function Banner({ detail }: { detail: ContestDetail }) {
@@ -116,8 +107,6 @@ function ProblemRow({
   contestKey,
   showEditorials,
   showState,
-  canSubmit,
-  defaultLanguageKey,
   ended,
   precision,
 }: {
@@ -125,8 +114,6 @@ function ProblemRow({
   contestKey: string;
   showEditorials: boolean;
   showState: boolean;
-  canSubmit: boolean;
-  defaultLanguageKey: string | null;
   ended: boolean;
   precision: number;
 }) {
@@ -244,53 +231,6 @@ function ProblemRow({
           )}
         </TableCell>
       ) : null}
-      {/* Above the row's own link, like the other cells that carry one of their
-          own — otherwise the overlay swallows the buttons. */}
-      <TableCell className="relative z-1 w-px">
-        <span className="flex items-center justify-end gap-2 whitespace-nowrap">
-          {/* The two downloads stack rather than sitting side by side: abreast
-              they made the widest column in the table out of two things you
-              press once, and the row is two lines tall anyway. */}
-          {problem.isAccessible ? (
-            <span className="grid gap-0.5">
-              <Tooltip content={t("statementHint")}>
-                <a
-                  href={`/problem/${problem.code}/pdf`}
-                  download={`${problem.code}.pdf`}
-                  className={ROW_DOWNLOAD}
-                >
-                  <FileDown size={13} aria-hidden className="shrink-0 opacity-70" />
-                  {t("statement")}
-                </a>
-              </Tooltip>
-              {problem.hasSamples ? (
-                <Tooltip content={t("samplesHint")}>
-                  <a
-                    href={`/problem/${problem.code}/samples`}
-                    download={`${problem.code}-samples.zip`}
-                    className={ROW_DOWNLOAD}
-                  >
-                    <FileArchive size={13} aria-hidden className="shrink-0 opacity-70" />
-                    {t("samples")}
-                  </a>
-                </Tooltip>
-              ) : null}
-            </span>
-          ) : null}
-          {problem.isAccessible && canSubmit ? (
-            <QuickSubmit
-              problemCode={problem.code}
-              problemName={problem.name}
-              defaultLanguageKey={defaultLanguageKey}
-              submissionsLeft={problem.submissionsLeft}
-            >
-              <Button variant="secondary" size="sm" icon={<Send size={14} />}>
-                {t("submit")}
-              </Button>
-            </QuickSubmit>
-          ) : null}
-        </span>
-      </TableCell>
     </TableRow>
   );
 }
@@ -567,14 +507,11 @@ export function ContestDetailClient({
                   {detail.metadata.hasPublicEditorials ? (
                     <TableHead className="w-20">{columns("editorial")}</TableHead>
                   ) : null}
-                  <TableHead numeric className="w-px">
-                    {columns("actions")}
-                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {detail.problems.length === 0 ? (
-                  <EmptyRow colSpan={8}>{t("noProblems")}</EmptyRow>
+                  <EmptyRow colSpan={7}>{t("noProblems")}</EmptyRow>
                 ) : (
                   detail.problems.map((problem) => (
                     <ProblemRow
@@ -583,8 +520,6 @@ export function ContestDetailClient({
                       contestKey={contestKey}
                       showEditorials={detail.metadata.hasPublicEditorials}
                       showState={showState}
-                      canSubmit={detail.viewer.isAuthenticated}
-                      defaultLanguageKey={defaultLanguageKey}
                       ended={detail.timing.ended}
                       precision={precision}
                     />
