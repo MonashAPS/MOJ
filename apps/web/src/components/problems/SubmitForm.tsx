@@ -260,7 +260,9 @@ export function SubmitForm({
               <span className="truncate font-mono">{fileName}</span>
             </span>
           ) : null}
-          <span className="ml-auto shrink-0 font-mono text-sm tabular-nums text-muted-foreground">
+          {/* First thing to go when the row runs out of room: the picker and
+              the file button are what a narrow screen needs from this row. */}
+          <span className="ml-auto shrink-0 font-mono text-sm tabular-nums text-muted-foreground max-sm:hidden">
             {lines.toLocaleString("en-AU")} × {source.length.toLocaleString("en-AU")}
           </span>
         </div>
