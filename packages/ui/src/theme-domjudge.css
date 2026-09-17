@@ -319,6 +319,43 @@
   --state-untouched-bg: #343a40;
 }
 
+/* The structure depth: DOMjudge's metrics as well as its colours.
+ *
+ * Bootstrap's 16px base on a 1.5 line, its heading scale, the half-rem table
+ * cell and the 38px control — which together are why a DOMjudge page reads
+ * roomier than ours at the same width, and why swapping only the palette never
+ * felt like the same site. The colour depth above leaves all of this alone.
+ */
+[data-skin="domjudge-structure"] {
+  --fs-xs: 12px;
+  --fs-sm: 14px;
+  --fs-base: 16px;
+  --fs-md: 16px;
+  --fs-h3: 28px;
+  --fs-h2: 32px;
+  --fs-h1: 40px;
+  --lh: 1.5;
+  --lh-prose: 1.5;
+  --tracking-tight: 0;
+  --tracking-label: 0;
+  --tracking-rail: 0;
+
+  /* `.5rem` of cell padding on a 1.5 line, which is what a Bootstrap table row
+     comes to; the dense one is what `.table-sm` comes to. */
+  --row-h: 41px;
+  --row-h-2: 62px;
+  --row-h-dense: 33px;
+  --control-h: 38px;
+  --control-h-sm: 31px;
+
+  --nav-height: 56px;
+  --nav-height-compact: 56px;
+  --contest-bar-height: 40px;
+  --content-max: 1320px;
+  --gutter: 12px;
+  --gutter-lg: 24px;
+}
+
 /* The one decoration a token cannot switch off, the constellation field being a
    picture rather than a colour. Bootstrap puts nothing behind a page. */
 :root[data-skin|="domjudge"] .page-constellations {

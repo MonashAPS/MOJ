@@ -29,7 +29,11 @@
     "skinDomjudge": "DOMjudge",
     "skinDepth": "Seberapa jauh",
     "skinColour": "Warna",
-    "skinColourStructure": "Warna + struktur"
+    "skinColourStructure": "Warna + struktur",
+    "domjudgeHome": "Beranda",
+    "domjudgeScoreboard": "Papan skor",
+    "domjudgeSubmissions": "Pengiriman",
+    "domjudgeClarifications": "Klarifikasi"
   },
   "actions": {
     "save": "Simpan",

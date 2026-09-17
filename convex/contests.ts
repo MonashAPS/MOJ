@@ -1064,6 +1064,9 @@ export type ContestProblemEntry = {
   submissionsLeft: number | null;
   /** Whether the statement has samples to download. */
   hasSamples: boolean;
+  /** Seconds and megabytes, for the problem sheet that names them per problem. */
+  timeLimit: number;
+  memoryLimit: number;
   /** SPEC section 20: how many people have solved it outside the contest too. */
   publicSolveCount: number;
   acRate: number;
@@ -1394,6 +1397,8 @@ export const get = query({
         // whether the button is worth offering, and a translated statement
         // carries the same samples as the one it was translated from.
         hasSamples: statementHasSamples(problem.description),
+        timeLimit: problem.timeLimit,
+        memoryLimit: problem.memoryLimit,
         hasPublicEditorial,
         isAccessible: await canAccessProblem(ctx, problem, problemViewer),
         state: state.state,

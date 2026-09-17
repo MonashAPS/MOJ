@@ -29,7 +29,11 @@
     "skinDomjudge": "DOMjudge",
     "skinDepth": "How much of it",
     "skinColour": "Colour",
-    "skinColourStructure": "Colour + structure"
+    "skinColourStructure": "Colour + structure",
+    "domjudgeHome": "Home",
+    "domjudgeScoreboard": "Scoreboard",
+    "domjudgeSubmissions": "Submissions",
+    "domjudgeClarifications": "Clarifications"
   },
   "actions": {
     "save": "Save",
