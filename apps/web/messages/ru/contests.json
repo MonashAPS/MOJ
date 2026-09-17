@@ -188,7 +188,8 @@
     "statement": "Условие",
     "statementHint": "Скачать условие в PDF",
     "samples": "Примеры",
-    "samplesHint": "Скачать примеры архивом"
+    "samplesHint": "Скачать примеры архивом",
+    "submit": "Отправить"
   },
   "clarifications": {
     "title": "Вопросы",

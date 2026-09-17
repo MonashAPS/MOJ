@@ -188,7 +188,8 @@
     "statement": "Enunciado",
     "statementHint": "Descargar el enunciado en PDF",
     "samples": "Ejemplos",
-    "samplesHint": "Descargar los datos de ejemplo en un zip"
+    "samplesHint": "Descargar los datos de ejemplo en un zip",
+    "submit": "Enviar"
   },
   "clarifications": {
     "title": "Aclaraciones",

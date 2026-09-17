@@ -188,7 +188,8 @@
     "statement": "Statement",
     "statementHint": "Download the statement as a PDF",
     "samples": "Samples",
-    "samplesHint": "Download the sample data as a zip"
+    "samplesHint": "Download the sample data as a zip",
+    "submit": "Submit"
   },
   "clarifications": {
     "title": "Clarifications",
