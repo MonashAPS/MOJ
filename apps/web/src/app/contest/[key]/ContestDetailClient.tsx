@@ -138,31 +138,43 @@ function ProblemRow({
           : states("untouched");
 
   return (
-    <TableRow className="group">
+    // The two-line row height the submission list uses: a row carrying a letter,
+    // a name, a code and three buttons has no business being 34px tall.
+    <TableRow className="group [&>td]:h-(--row-h-2)">
       {showState ? (
         <TableCell className="relative w-7 pr-0">
           <ProblemStateIcon state={problem.state} title={solvedNote} />
         </TableCell>
       ) : null}
       <TableCell className="relative">
-        <span className="flex flex-wrap items-baseline gap-x-2">
-          <span className="font-mono text-sm font-medium text-muted-foreground">{problem.label}</span>
-          {problem.isAccessible ? (
-            <Link
-              href={`/problem/${problem.code}/`}
-              className="font-medium text-foreground before:absolute before:inset-0 hover:text-link"
-            >
-              {problem.name}
-            </Link>
-          ) : (
-            <span className="font-medium text-foreground">{problem.name}</span>
-          )}
-          <span className="font-mono text-sm text-muted-foreground">{problem.code}</span>
-          {problem.isPretested ? (
-            <Badge variant="neutral" rounding="square" mono>
-              {t("pretested")}
-            </Badge>
-          ) : null}
+        <span className="flex min-w-0 items-center gap-2.5">
+          {/* The letter as the chip the contest bar wears, so the same problem
+              is picked out the same way in both places. */}
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-xs border border-border bg-secondary font-mono text-sm font-medium text-muted-foreground">
+            {problem.label}
+          </span>
+          <span className="grid min-w-0 gap-0.5">
+            <span className="flex flex-wrap items-center gap-x-2">
+              {problem.isAccessible ? (
+                <Link
+                  href={`/problem/${problem.code}/`}
+                  className="font-medium text-foreground before:absolute before:inset-0 hover:text-link"
+                >
+                  {problem.name}
+                </Link>
+              ) : (
+                <span className="font-medium text-foreground">{problem.name}</span>
+              )}
+              {problem.isPretested ? (
+                <Badge variant="neutral" rounding="square" mono>
+                  {t("pretested")}
+                </Badge>
+              ) : null}
+            </span>
+            {/* Under the name rather than beside it: the code is what you type
+                into a search box, not part of the title. */}
+            <span className="font-mono text-sm leading-none text-muted-foreground">{problem.code}</span>
+          </span>
         </span>
       </TableCell>
       <TableCell numeric>
@@ -217,7 +229,7 @@ function ProblemRow({
       {/* Above the row's own link, like the other cells that carry one of their
           own — otherwise the overlay swallows the buttons. */}
       <TableCell className="relative z-1 w-px">
-        <span className="flex items-center justify-end gap-1 whitespace-nowrap">
+        <span className="flex items-center justify-end gap-1.5 whitespace-nowrap">
           {problem.isAccessible ? (
             <Tooltip content={t("statementHint")}>
               <Button asChild variant="ghost" size="sm" icon={<FileDown size={14} />}>
