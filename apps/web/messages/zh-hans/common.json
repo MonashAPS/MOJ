@@ -25,7 +25,8 @@
     "myProfile": "我的主页",
     "editProfile": "编辑资料",
     "themeFollowSystem": "跟随系统",
-    "themeSwitch": "主题：{current, select, light {浅色} dark {深色} other {跟随系统}}。切换为{next, select, light {浅色} dark {深色} other {跟随系统}}。"
+    "skinMaps": "MAPS",
+    "skinDomjudge": "DOMjudge"
   },
   "actions": {
     "save": "保存",
@@ -160,7 +161,8 @@
     "noMatches": "没有找到与 <term>{query}</term> 匹配的结果。",
     "searchAllProblems": "搜索所有题目",
     "randomProblem": "随机一题",
-    "toggleDarkMode": "切换深色模式"
+    "toggleDarkMode": "切换深色模式",
+    "switchSkin": "切换站点主题"
   },
   "shortcuts": {
     "title": "键盘快捷键",

@@ -18,7 +18,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { authClient } from "@/auth/client";
-import { type ThemeChoice, ThemeSegmented, ThemeToggle } from "./ThemeToggle";
+import { ThemeDropdown, ThemeMenu } from "./ThemeMenu";
+import type { ThemeChoice } from "./ThemeToggle";
 
 export type ViewerSummary = {
   username: string;
@@ -43,8 +44,10 @@ export function UserBlock({
   if (!viewer) {
     return (
       <div className="flex shrink-0 items-center gap-2 pl-2 pr-3">
-        {/* Signed out there is no dropdown to hold it, so the switch sits here. */}
-        <ThemeToggle tone="nav" />
+        {/* Signed out there is no account dropdown to hold it, so the theme menu
+            gets one of its own: choosing a skin is not a thing you should have
+            to hold an account to do. */}
+        <ThemeDropdown />
         <Button
           asChild
           variant="ghost"
@@ -124,9 +127,7 @@ export function UserBlock({
 
           <DropdownMenuSeparator />
           <DropdownMenuLabel>{t("theme")}</DropdownMenuLabel>
-          <div className="px-1 pb-1">
-            <ThemeSegmented initial={viewer.siteTheme} />
-          </div>
+          <ThemeMenu theme={viewer.siteTheme} className="px-1 pb-1" />
 
           <DropdownMenuSeparator />
           {/* DMOJ logs out with a POST, so the item goes to the confirmation page

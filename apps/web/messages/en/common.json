@@ -25,7 +25,8 @@
     "myProfile": "My profile",
     "editProfile": "Edit profile",
     "themeFollowSystem": "Follow the system",
-    "themeSwitch": "Theme: {current, select, light {light} dark {dark} other {system}}. Switch to {next, select, light {light} dark {dark} other {system}}."
+    "skinMaps": "MAPS",
+    "skinDomjudge": "DOMjudge"
   },
   "actions": {
     "save": "Save",
@@ -160,7 +161,8 @@
     "noMatches": "No matches for <term>{query}</term>.",
     "searchAllProblems": "Search all problems",
     "randomProblem": "Random problem",
-    "toggleDarkMode": "Toggle dark mode"
+    "toggleDarkMode": "Toggle dark mode",
+    "switchSkin": "Switch site theme"
   },
   "shortcuts": {
     "title": "Keyboard shortcuts",

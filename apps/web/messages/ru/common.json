@@ -25,7 +25,8 @@
     "myProfile": "Мой профиль",
     "editProfile": "Редактировать профиль",
     "themeFollowSystem": "Как в системе",
-    "themeSwitch": "Тема: {current, select, light {светлая} dark {тёмная} other {системная}}. Переключить на {next, select, light {светлую} dark {тёмную} other {системную}}."
+    "skinMaps": "MAPS",
+    "skinDomjudge": "DOMjudge"
   },
   "actions": {
     "save": "Сохранить",
@@ -160,7 +161,8 @@
     "noMatches": "Ничего не найдено по запросу <term>{query}</term>.",
     "searchAllProblems": "Искать по всем задачам",
     "randomProblem": "Случайная задача",
-    "toggleDarkMode": "Переключить тёмную тему"
+    "toggleDarkMode": "Переключить тёмную тему",
+    "switchSkin": "Сменить оформление сайта"
   },
   "shortcuts": {
     "title": "Горячие клавиши",

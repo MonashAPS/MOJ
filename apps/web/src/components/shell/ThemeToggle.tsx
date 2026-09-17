@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { cn, ToggleGroup, ToggleGroupItem, Tooltip } from "@moj/ui";
+import { ToggleGroup, ToggleGroupItem } from "@moj/ui";
 import { useMutation } from "convex/react";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -135,48 +135,5 @@ export function ThemeSegmented({
         {t("themeDark")}
       </ToggleGroupItem>
     </ToggleGroup>
-  );
-}
-
-/** The compact cycling button, for the auth pages and anywhere the segmented
- *  control will not fit. */
-export function ThemeToggle({
-  initial = "auto",
-  label = false,
-  tone = "surface",
-  className,
-}: {
-  initial?: ThemeChoice;
-  label?: boolean;
-  /** `nav` is the ghost-on-navy treatment for the top bar. */
-  tone?: "surface" | "nav";
-  className?: string;
-}) {
-  const t = useTranslations("common.nav");
-  const [theme, choose] = useTheme(initial);
-  const next: ThemeChoice = theme === "dark" ? "light" : theme === "light" ? "auto" : "dark";
-  const Icon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
-  const title = t("themeSwitch", { current: theme, next });
-
-  return (
-    <Tooltip content={title}>
-      <button
-        type="button"
-        aria-label={title}
-        onClick={() => choose(next)}
-        className={cn(
-          "inline-flex h-(--control-h) items-center gap-2 rounded-md px-3 text-sm transition-colors",
-          "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-royal/60",
-          tone === "nav"
-            ? "text-nav-ink/80 hover:bg-nav-hover hover:text-nav-ink"
-            : "border border-border-strong bg-card text-subtle hover:bg-secondary hover:text-foreground focus-visible:border-royal",
-          !label && "w-(--control-h) justify-center px-0",
-          className,
-        )}
-      >
-        <Icon size={16} aria-hidden />
-        {label ? <span>{t("theme")}</span> : null}
-      </button>
-    </Tooltip>
   );
 }
