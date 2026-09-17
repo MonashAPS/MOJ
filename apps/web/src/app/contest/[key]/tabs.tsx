@@ -1,12 +1,15 @@
 import type { ContestDetail } from "@convex/contests";
 import type { TabItem } from "@moj/ui";
-import { BarChart3, Copy, FileText, Gavel, Info, Pencil, PieChart, Users } from "lucide-react";
+import { BarChart3, Copy, FileText, Gavel, Info, Pencil, PieChart } from "lucide-react";
 import type { TabLabels } from "@/app/contests/tabs";
 
 /**
  * `contest/contest-tabs.html`, in DMOJ's order: Info, Statistics, Rankings,
- * Participation, MOSS, Edit, Clone — with Submissions added for the contest's
- * own submission list (SPEC section 8's `contest_all_user_submissions`).
+ * MOSS, Edit, Clone — with Submissions added for the contest's own submission
+ * list (SPEC section 8's `contest_all_user_submissions`).
+ *
+ * DMOJ's Participation tab is not among them: the rankings name every run and
+ * the submissions list every attempt, so it only ever restated them.
  */
 export function contestTabs(detail: ContestDetail, key: string, t: TabLabels): TabItem[] {
   const tabs: TabItem[] = [
@@ -33,15 +36,6 @@ export function contestTabs(detail: ContestDetail, key: string, t: TabLabels): T
         href: `/contest/${key}/ranking/`,
         icon: <BarChart3 aria-hidden />,
       });
-
-      if (viewer.isAuthenticated) {
-        tabs.push({
-          key: "participation",
-          label: t("participation"),
-          href: `/contest/${key}/participations/`,
-          icon: <Users aria-hidden />,
-        });
-      }
     } else {
       tabs.push({ key: "ranking", label: t("hiddenRankings"), icon: <BarChart3 aria-hidden /> });
     }

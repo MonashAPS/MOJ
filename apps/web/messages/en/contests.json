@@ -56,7 +56,6 @@
     "statistics": "Statistics",
     "rankings": "Rankings",
     "hiddenRankings": "Hidden rankings",
-    "participation": "Participation",
     "submissions": "Submissions",
     "moss": "MOSS",
     "edit": "Edit",
@@ -362,24 +361,8 @@
     "noSolutionsBody": "Nobody scored on {name} during this contest."
   },
   "participations": {
-    "metaTitle": "{name} participation",
-    "metaUserTitle": "{user} in {name}",
-    "metaFallback": "Participation",
     "metaSubmissions": "{user}'s submissions in {key}",
-    "metaProblemSubmissions": "{user}'s submissions for {problem} in {key}",
-    "ownRuns": "Your runs at this contest.",
-    "userRuns": "{user}'s runs at this contest.",
-    "lookupLabel": "View user participation",
-    "lookupPlaceholder": "Username",
-    "emptyTitle": "No participation",
-    "emptyOwnBody": "You have not taken part in this contest.",
-    "emptyUserBody": "{user} has not taken part in this contest.",
-    "virtualBadge": "virtual #{number}",
-    "liveBadge": "live",
-    "disqualifiedBadge": "DQ",
-    "stillRunning": "{time} · still running",
-    "disqualifiedNote": "Disqualified: this run does not score.",
-    "points": "{points} points"
+    "metaProblemSubmissions": "{user}'s submissions for {problem} in {key}"
   },
   "stats": {
     "metaTitle": "{name} statistics",

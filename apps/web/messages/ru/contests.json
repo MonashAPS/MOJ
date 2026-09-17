@@ -56,7 +56,6 @@
     "statistics": "Статистика",
     "rankings": "Таблица результатов",
     "hiddenRankings": "Скрытая таблица результатов",
-    "participation": "Участие",
     "submissions": "Посылки",
     "moss": "MOSS",
     "edit": "Изменить",
@@ -362,24 +361,8 @@
     "noSolutionsBody": "Никто не набрал баллов за {name} в этом соревновании."
   },
   "participations": {
-    "metaTitle": "Участие — {name}",
-    "metaUserTitle": "{user} в {name}",
-    "metaFallback": "Участие",
     "metaSubmissions": "Посылки от {user} в {key}",
-    "metaProblemSubmissions": "Посылки от {user} к задаче {problem} в {key}",
-    "ownRuns": "Ваши попытки в этом соревновании.",
-    "userRuns": "Попытки от {user} в этом соревновании.",
-    "lookupLabel": "Посмотреть участие пользователя",
-    "lookupPlaceholder": "Имя пользователя",
-    "emptyTitle": "Нет участия",
-    "emptyOwnBody": "Вы не участвовали в этом соревновании.",
-    "emptyUserBody": "{user} не участвовал в этом соревновании.",
-    "virtualBadge": "виртуальное №{number}",
-    "liveBadge": "живое",
-    "disqualifiedBadge": "DQ",
-    "stillRunning": "{time} · ещё идёт",
-    "disqualifiedNote": "Дисквалифицировано: эта попытка не засчитывается.",
-    "points": "{points} баллов"
+    "metaProblemSubmissions": "Посылки от {user} к задаче {problem} в {key}"
   },
   "stats": {
     "metaTitle": "Статистика — {name}",

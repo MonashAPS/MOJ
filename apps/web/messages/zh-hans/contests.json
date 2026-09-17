@@ -56,7 +56,6 @@
     "statistics": "统计",
     "rankings": "排名",
     "hiddenRankings": "隐藏排名",
-    "participation": "参赛记录",
     "submissions": "提交",
     "moss": "MOSS",
     "edit": "编辑",
@@ -362,24 +361,8 @@
     "noSolutionsBody": "此比赛期间没有人在 {name} 上得分。"
   },
   "participations": {
-    "metaTitle": "{name} 参赛记录",
-    "metaUserTitle": "{user} 在 {name}",
-    "metaFallback": "参赛记录",
     "metaSubmissions": "{user} 在 {key} 的提交",
-    "metaProblemSubmissions": "{user} 在 {key} 中对 {problem} 的提交",
-    "ownRuns": "你在此比赛的提交记录。",
-    "userRuns": "{user} 在此比赛的提交记录。",
-    "lookupLabel": "查看用户参赛记录",
-    "lookupPlaceholder": "用户名",
-    "emptyTitle": "暂无参赛记录",
-    "emptyOwnBody": "你还没有参加此比赛。",
-    "emptyUserBody": "{user} 还没有参加此比赛。",
-    "virtualBadge": "虚拟 #{number}",
-    "liveBadge": "正式",
-    "disqualifiedBadge": "DQ",
-    "stillRunning": "{time} · 进行中",
-    "disqualifiedNote": "已取消资格：此次提交不计分。",
-    "points": "{points} 分"
+    "metaProblemSubmissions": "{user} 在 {key} 中对 {problem} 的提交"
   },
   "stats": {
     "metaTitle": "{name} 统计",

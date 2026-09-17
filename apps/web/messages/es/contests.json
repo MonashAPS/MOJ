@@ -56,7 +56,6 @@
     "statistics": "Estadísticas",
     "rankings": "Clasificación",
     "hiddenRankings": "Clasificación oculta",
-    "participation": "Participación",
     "submissions": "Envíos",
     "moss": "MOSS",
     "edit": "Editar",
@@ -362,24 +361,8 @@
     "noSolutionsBody": "Nadie obtuvo puntos en {name} durante este concurso."
   },
   "participations": {
-    "metaTitle": "Participación en {name}",
-    "metaUserTitle": "{user} en {name}",
-    "metaFallback": "Participación",
     "metaSubmissions": "Envíos de {user} en {key}",
-    "metaProblemSubmissions": "Envíos de {user} para {problem} en {key}",
-    "ownRuns": "Tus envíos en este concurso.",
-    "userRuns": "Envíos de {user} en este concurso.",
-    "lookupLabel": "Ver la participación de un usuario",
-    "lookupPlaceholder": "Nombre de usuario",
-    "emptyTitle": "Sin participación",
-    "emptyOwnBody": "No has participado en este concurso.",
-    "emptyUserBody": "{user} no ha participado en este concurso.",
-    "virtualBadge": "virtual n.º{number}",
-    "liveBadge": "en vivo",
-    "disqualifiedBadge": "DQ",
-    "stillRunning": "{time} · todavía en curso",
-    "disqualifiedNote": "Descalificado: este envío no puntúa.",
-    "points": "{points} puntos"
+    "metaProblemSubmissions": "Envíos de {user} para {problem} en {key}"
   },
   "stats": {
     "metaTitle": "Estadísticas de {name}",
