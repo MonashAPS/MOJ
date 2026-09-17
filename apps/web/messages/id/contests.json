@@ -189,8 +189,6 @@
   },
   "clarifications": {
     "title": "Klarifikasi",
-    "emptyTitle": "Tidak ada klarifikasi",
-    "emptyBody": "Belum ada klarifikasi untuk kontes ini.",
     "postTitle": "Kirim klarifikasi",
     "problemOption": "{label}. {name}",
     "placeholder": "Apa yang perlu diklarifikasi?",
