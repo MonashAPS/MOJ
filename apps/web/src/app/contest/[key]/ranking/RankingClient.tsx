@@ -30,10 +30,13 @@ import { type ReactNode, useState } from "react";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips, useHumanDuration } from "@/components/contests/pieces";
 import { RankingCellSubmissions } from "@/components/contests/RankingCellSubmissions";
+import { useSkin } from "@/components/shell/SkinProvider";
 import { chosenValue } from "@/lib/choices";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { formatDateTime, formatPoints } from "@/lib/format";
+import { usesDomjudgeStructure } from "@/lib/skin";
 import { contestTabs, joinKindFor } from "../tabs";
+import { DomjudgeBoard } from "./DomjudgeBoard";
 
 const DASH = "—";
 
@@ -368,6 +371,10 @@ export function RankingClient({
   const [revealBusy, setRevealBusy] = useState(false);
   const unfreeze = useMutation(api.scoreboard.unfreezeContest);
 
+  // The DOMjudge skin's structure mode draws this page DOMjudge's way; the
+  // filters above the board and the window note are ours, and go with it.
+  const asDomjudge = usesDomjudgeStructure(useSkin());
+
   const args: FunctionArgs<typeof api.contests.rankings.ranking> = {
     key: contestKey,
     includeVirtual,
@@ -478,10 +485,10 @@ export function RankingClient({
             </Alert>
           ) : null}
 
-          <WindowNote detail={detail} />
+          {asDomjudge ? null : <WindowNote detail={detail} />}
 
           <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <div className={cn("flex flex-wrap items-center gap-x-5 gap-y-2", asDomjudge && "hidden")}>
               <Switch
                 label={t("includeVirtual")}
                 checked={includeVirtual}
@@ -504,7 +511,7 @@ export function RankingClient({
             </div>
 
             <div className="flex flex-wrap items-end gap-3">
-              {organizationOptions.length > 1 ? (
+              {organizationOptions.length > 1 && !asDomjudge ? (
                 <div className="grid gap-1">
                   <MicroLabel>{columns("organization")}</MicroLabel>
                   <Select
@@ -516,7 +523,7 @@ export function RankingClient({
                   />
                 </div>
               ) : null}
-              {classOptions.length > 0 ? (
+              {classOptions.length > 0 && !asDomjudge ? (
                 <div className="grid gap-1">
                   <MicroLabel>{t("class")}</MicroLabel>
                   <Select
@@ -550,6 +557,8 @@ export function RankingClient({
               title={t("nobodyTitle")}
               description={t("nobodyBody")}
             />
+          ) : asDomjudge ? (
+            <DomjudgeBoard data={data} contestKey={contestKey} precision={precision} pendingOf={pendingOf} />
           ) : (
             <div className="overflow-hidden overflow-x-auto rounded-md border border-border bg-card">
               <table className="w-full border-collapse text-base [&_tbody_tr:nth-child(even):not(:hover):not([data-selected])]:bg-zebra [&_tbody_tr:last-child_td]:border-b-0">

@@ -26,7 +26,10 @@
     "editProfile": "Editar perfil",
     "themeFollowSystem": "Seguir el sistema",
     "skinMaps": "MAPS",
-    "skinDomjudge": "DOMjudge"
+    "skinDomjudge": "DOMjudge",
+    "skinDepth": "Hasta dónde llega",
+    "skinColour": "Color",
+    "skinColourStructure": "Color + estructura"
   },
   "actions": {
     "save": "Guardar",

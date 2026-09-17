@@ -15,15 +15,35 @@ export const SKIN_COOKIE = "moj-skin";
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
-export const SKINS = ["maps", "domjudge"] as const;
+/**
+ * `domjudge` is the colours alone; `domjudge-structure` rebuilds the pages that
+ * DOMjudge lays out differently — the scoreboard above all — so that somebody
+ * who knows DOMjudge is looking at the thing they know rather than at ours in
+ * its clothes.
+ */
+const SKINS = ["maps", "domjudge", "domjudge-structure"] as const;
 
 export type Skin = (typeof SKINS)[number];
+
+/** What a theme card offers; the variants of one sit behind it. */
+export const SKIN_FAMILIES = ["maps", "domjudge"] as const;
+
+export type SkinFamily = (typeof SKIN_FAMILIES)[number];
 
 /** The house skin, for anyone who has never chosen. */
 export const DEFAULT_SKIN: Skin = "maps";
 
 function isSkin(value: string | undefined): value is Skin {
-  return value === "maps" || value === "domjudge";
+  return value === "maps" || value === "domjudge" || value === "domjudge-structure";
+}
+
+export function skinFamily(skin: Skin): SkinFamily {
+  return skin === "maps" ? "maps" : "domjudge";
+}
+
+/** Whether the pages themselves are laid out DOMjudge's way, not just painted. */
+export function usesDomjudgeStructure(skin: Skin): boolean {
+  return skin === "domjudge-structure";
 }
 
 /** What `<html>` should carry. Unlike the theme there is no "follow the system"
@@ -49,7 +69,9 @@ export function skinBootstrap(fallback: Skin = DEFAULT_SKIN): string {
   const cookie = JSON.stringify(SKIN_COOKIE);
   const fallbackValue = JSON.stringify(fallback);
 
-  return `(function(){try{var r=document.documentElement;var s=localStorage.getItem(${key});if(s!=="maps"&&s!=="domjudge"){s=${fallbackValue};}else{document.cookie=${cookie}+"="+s+";path=/;max-age=${COOKIE_MAX_AGE};samesite=lax";}r.setAttribute("data-skin",s);}catch(e){}})();`;
+  const known = JSON.stringify([...SKINS]);
+
+  return `(function(){try{var r=document.documentElement;var s=localStorage.getItem(${key});if(${known}.indexOf(s)<0){s=${fallbackValue};}else{document.cookie=${cookie}+"="+s+";path=/;max-age=${COOKIE_MAX_AGE};samesite=lax";}r.setAttribute("data-skin",s);}catch(e){}})();`;
 }
 
 /** Writes the cookie the server reads, mirroring what the bootstrap does. */

@@ -14,10 +14,13 @@
  * menu can paint a preview box in this skin while the page around it wears
  * another. tokens.css answers to `[data-skin="maps"]` for the same reason.
  *
+ * `|=` matches `domjudge` and `domjudge-structure` alike: the two differ in how
+ * the pages are built, never in what colour they are.
+ *
  * Import order: tokens.css, theme.css, skin.css, then this file.
  */
 
-[data-skin="domjudge"] {
+[data-skin|="domjudge"] {
   color-scheme: light;
 
   /* Chrome ---------------------------------------------------------------- *
@@ -148,8 +151,8 @@
    Both selectors are needed for the same reason as in tokens.css: the page wears
    the attribute on `<html>`, a preview box wears it on a `<div>`. */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"])[data-skin="domjudge"],
-  :root:not([data-theme="light"]) [data-skin="domjudge"] {
+  :root:not([data-theme="light"])[data-skin|="domjudge"],
+  :root:not([data-theme="light"]) [data-skin|="domjudge"] {
     color-scheme: dark;
 
     --nav: #1a1d20;
@@ -233,8 +236,8 @@
   }
 }
 
-:root[data-theme="dark"][data-skin="domjudge"],
-:root[data-theme="dark"] [data-skin="domjudge"] {
+:root[data-theme="dark"][data-skin|="domjudge"],
+:root[data-theme="dark"] [data-skin|="domjudge"] {
   color-scheme: dark;
 
   --nav: #1a1d20;
@@ -318,6 +321,6 @@
 
 /* The one decoration a token cannot switch off, the constellation field being a
    picture rather than a colour. Bootstrap puts nothing behind a page. */
-:root[data-skin="domjudge"] .page-constellations {
+:root[data-skin|="domjudge"] .page-constellations {
   display: none;
 }

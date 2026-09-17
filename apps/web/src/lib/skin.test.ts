@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SKIN, resolveSkin, type Skin, skinBootstrap } from "./skin";
+import {
+  DEFAULT_SKIN,
+  resolveSkin,
+  type Skin,
+  skinBootstrap,
+  skinFamily,
+  usesDomjudgeStructure,
+} from "./skin";
 
 type BootstrapTrace = { attribute: string | null; cookie: string };
 
@@ -43,9 +50,28 @@ describe("resolveSkin", () => {
   });
 });
 
+describe("the DOMjudge variants", () => {
+  it("are one family, so the card stays lit while the variant changes", () => {
+    expect(skinFamily("domjudge")).toBe("domjudge");
+    expect(skinFamily("domjudge-structure")).toBe("domjudge");
+    expect(skinFamily("maps")).toBe("maps");
+  });
+
+  it("only rebuild the pages when the structure one is chosen", () => {
+    expect(usesDomjudgeStructure("domjudge")).toBe(false);
+    expect(usesDomjudgeStructure("domjudge-structure")).toBe(true);
+    expect(usesDomjudgeStructure("maps")).toBe(false);
+  });
+
+  it("are both stored and read back", () => {
+    expect(resolveSkin("domjudge-structure")).toBe("domjudge-structure");
+  });
+});
+
 describe("skinBootstrap", () => {
   it("applies a stored choice", () => {
     expect(run("domjudge").attribute).toBe("domjudge");
+    expect(run("domjudge-structure").attribute).toBe("domjudge-structure");
   });
 
   it("writes the cookie the server reads next time", () => {
