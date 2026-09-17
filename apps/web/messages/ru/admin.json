@@ -514,7 +514,6 @@
       "format": "Формат",
       "labelScheme": "Метки задач",
       "labelSchemeLetters": "Буквы (A, B, C)",
-      "labelSchemeNumbers": "Числа (1, 2, 3)",
       "labelSchemeCustom": "Свои",
       "formatConfig": "Настройка формата",
       "formatConfigHint": "JSON. Оставьте пустым для значений формата по умолчанию.",

@@ -309,7 +309,9 @@ describe("ContestTestCase", () => {
     expect(contestTimeBeforeStart(contest, NOW)).toBeNull();
     expect(contestTimeBeforeEnd(contest, NOW)).toBeGreaterThan(0);
     expect(contestEnded(contest, NOW)).toBe(false);
-    expect(getContestLabelForProblem(contest, 0)).toBe("1");
+    // DMOJ's default format numbers its problems; every contest here is
+    // lettered, whatever format it runs under.
+    expect(getContestLabelForProblem(contest, 0)).toBe("A");
   });
 
   it("test_hidden_scoreboard_contest", () => {

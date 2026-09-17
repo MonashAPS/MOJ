@@ -430,17 +430,19 @@ describe("labels", () => {
     expect(letterLabel(51)).toBe("AZ");
     expect(letterLabel(52)).toBe("BA");
 
-    expect(getLabelForProblem(0, { scheme: "numbers" })).toBe("1");
+    // Numbers are a stored value nothing renders: every contest is lettered.
+    expect(getLabelForProblem(0, { scheme: "numbers" })).toBe("A");
     expect(getLabelForProblem(0, { scheme: "letters" })).toBe("A");
     expect(getLabelForProblem(1, { scheme: "custom", customLabels: ["P1", "P2"] })).toBe("P2");
     // Past the end of a custom list, fall back to letters.
     expect(getLabelForProblem(2, { scheme: "custom", customLabels: ["P1"] })).toBe("C");
   });
 
-  it("follows the format when the contest picks no scheme", () => {
-    expect(getContestLabelForProblem(contest, 0)).toBe("1");
+  it("letters a contest's problems whatever format it runs", () => {
+    expect(getContestLabelForProblem(contest, 0)).toBe("A");
     expect(getContestLabelForProblem({ ...contest, formatName: "icpc" }, 0)).toBe("A");
     expect(getContestLabels({ ...contest, formatName: "icpc" }, 3)).toEqual(["A", "B", "C"]);
+    expect(getContestLabels(contest, 3)).toEqual(["A", "B", "C"]);
   });
 });
 

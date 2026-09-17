@@ -398,10 +398,27 @@ export async function translationFor(ctx: QueryCtx, problemId: Id<"problems">, l
     .unique();
 }
 
-/** `ContestFormat.get_label_for_problem`, for the labels the list shows. */
-export function labelFor(contest: Doc<"contests">, index: number): string {
-  if (contest.labelScheme === "numbers") return String(index + 1);
+/** A heading, in markdown or in the raw HTML some imported statements use. */
+const SAMPLE_INPUT_HEADING = /(^[ \t]{0,3}#{1,6}|<h[1-6][^>]*>)[^\n]*\binput\b/im;
 
+const SAMPLE_OUTPUT_HEADING = /(^[ \t]{0,3}#{1,6}|<h[1-6][^>]*>)[^\n]*\boutput\b/im;
+
+/**
+ * Whether a statement looks like it carries samples to download.
+ *
+ * The samples are written into the statement rather than kept as test data, so
+ * the only thing that can be known without rendering every problem in a contest
+ * is whether it has the headings a sample sits under — the same pair the
+ * download itself reads the blocks from. A statement that heads a section and
+ * shows nothing under it offers an empty download, which the route refuses.
+ */
+export function statementHasSamples(markdown: string): boolean {
+  return SAMPLE_INPUT_HEADING.test(markdown) && SAMPLE_OUTPUT_HEADING.test(markdown);
+}
+
+/** `ContestFormat.get_label_for_problem`, for the labels the list shows: A, B,
+ *  C unless the contest names its problems itself. */
+export function labelFor(contest: Doc<"contests">, index: number): string {
   if (contest.labelScheme === "custom") {
     const custom = contest.customLabels[index];
 
