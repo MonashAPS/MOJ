@@ -207,3 +207,60 @@ export function decorateStatement(html: string): string {
 
   return out.join("");
 }
+
+/* -------------------------------------------------------------------------- */
+/* Sample data                                                                */
+/* -------------------------------------------------------------------------- */
+
+export type StatementSample = { input: string; output: string };
+
+/** `&amp;` last, so a statement that wrote `&amp;lt;` keeps its `&lt;`. */
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0*39;|&apos;/g, "'")
+    .replace(/&#x([0-9a-f]+);/gi, (_match, hex: string) => String.fromCodePoint(Number.parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_match, code: string) => String.fromCodePoint(Number(code)))
+    .replace(/&amp;/g, "&");
+}
+
+/** A rendered code block as the plain text a judge would read. */
+function blockText(blockHtml: string): string {
+  const body = /<pre(?:\s[^>]*)?>([\s\S]*?)<\/pre>/.exec(blockHtml)?.[1] ?? blockHtml;
+
+  // Every sample file ends with exactly one newline, whatever the statement did.
+  return `${decodeEntities(body.replace(/<[^>]*>/g, ""))
+    .replace(/\r\n/g, "\n")
+    .replace(/\s+$/, "")}\n`;
+}
+
+/**
+ * The samples a statement shows, as the files they would be on disk.
+ *
+ * Every input block is paired with the next output block, which is looser than
+ * the side-by-side layout's rule — that one refuses a pair with anything
+ * between the two blocks, because it is about to put them in one grid. Here the
+ * prose between them does not matter: what is downloaded is the data.
+ */
+export function extractSamples(html: string): StatementSample[] {
+  const samples: StatementSample[] = [];
+  let pending: string | null = null;
+
+  for (const block of findBlocks(html)) {
+    const { role } = roleFor(html, block.start);
+
+    if (role === "input") {
+      pending = blockText(block.html);
+      continue;
+    }
+
+    if (role === "output" && pending !== null) {
+      samples.push({ input: pending, output: blockText(block.html) });
+      pending = null;
+    }
+  }
+
+  return samples;
+}

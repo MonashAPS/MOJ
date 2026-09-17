@@ -105,8 +105,6 @@
     "tabManage": "Kelola pengiriman",
     "tabEdit": "Edit",
     "tabClone": "Klon",
-    "contestMode": "Mode kontes — soal <mono>{label}</mono>",
-    "contestModePretested": "Mode kontes — soal <mono>{label}</mono> · pretest",
     "submitSolution": "Kirim solusi",
     "noSubmissionsLeft": "Anda tidak memiliki sisa pengiriman untuk soal ini.",
     "logInToSubmit": "Masuk untuk mengirim solusi.",
@@ -136,7 +134,8 @@
     "allowedLanguages": "Bahasa yang diizinkan",
     "showContests": "Tampilkan kontes",
     "showFewer": "Tampilkan lebih sedikit",
-    "showAll": "Tampilkan semua {count}"
+    "showAll": "Tampilkan semua {count}",
+    "pretestedOnly": "Dinilai dengan pretest saja"
   },
   "statement": {
     "copied": "Disalin ke clipboard.",
@@ -170,7 +169,11 @@
     "submit": "Kirim!",
     "searchLanguages": "Cari bahasa",
     "noLanguages": "Tidak ada bahasa yang cocok.",
-    "noJudgeFor": "{name} — tidak ada juri daring untuk yang ini"
+    "noJudgeFor": "{name} — tidak ada juri daring untuk yang ini",
+    "chooseFile": "Pilih berkas",
+    "dropHere": "Lepaskan berkas kode sumber di sini untuk memuatnya",
+    "notText": "Berkas itu bukan kode sumber.",
+    "openFullPage": "Buka halaman pengiriman lengkap"
   },
   "rank": {
     "titleFor": "Solusi terbaik untuk {name}",
@@ -341,5 +344,8 @@
   },
   "pdf": {
     "internalError": "Kesalahan internal"
+  },
+  "samples": {
+    "none": "Soal ini tidak memiliki contoh untuk diunduh."
   }
 }

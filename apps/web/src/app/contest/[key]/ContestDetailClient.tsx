@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import type { ContestDetail, ContestProblemEntry } from "@convex/contests";
 import {
   Badge,
+  Button,
   ContentDescription,
   cn,
   EmptyRow,
@@ -21,11 +22,12 @@ import {
   TwoColumn,
 } from "@moj/ui";
 import { useQuery } from "convex/react";
-import { BookOpen, CircleHelp, Clock } from "lucide-react";
+import { BookOpen, CircleHelp, Clock, FileArchive, FileDown, Send } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips, OPEN_ENDED, ProblemStateIcon, useHumanDuration } from "@/components/contests/pieces";
+import { QuickSubmit } from "@/components/problems/QuickSubmit";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { formatDateTime, formatPoints } from "@/lib/format";
 import { Clarifications } from "./Clarifications";
@@ -104,6 +106,8 @@ function ProblemRow({
   contestKey,
   showEditorials,
   showState,
+  canSubmit,
+  defaultLanguageKey,
   ended,
   precision,
 }: {
@@ -111,6 +115,8 @@ function ProblemRow({
   contestKey: string;
   showEditorials: boolean;
   showState: boolean;
+  canSubmit: boolean;
+  defaultLanguageKey: string | null;
   ended: boolean;
   precision: number;
 }) {
@@ -208,6 +214,42 @@ function ProblemRow({
           )}
         </TableCell>
       ) : null}
+      {/* Above the row's own link, like the other cells that carry one of their
+          own — otherwise the overlay swallows the buttons. */}
+      <TableCell className="relative z-1 w-px">
+        <span className="flex items-center justify-end gap-1 whitespace-nowrap">
+          {problem.isAccessible ? (
+            <Tooltip content={t("statementHint")}>
+              <Button asChild variant="ghost" size="sm" icon={<FileDown size={14} />}>
+                <a href={`/problem/${problem.code}/pdf`} download={`${problem.code}.pdf`}>
+                  {t("statement")}
+                </a>
+              </Button>
+            </Tooltip>
+          ) : null}
+          {problem.isAccessible && problem.hasSamples ? (
+            <Tooltip content={t("samplesHint")}>
+              <Button asChild variant="ghost" size="sm" icon={<FileArchive size={14} />}>
+                <a href={`/problem/${problem.code}/samples`} download={`${problem.code}-samples.zip`}>
+                  {t("samples")}
+                </a>
+              </Button>
+            </Tooltip>
+          ) : null}
+          {problem.isAccessible && canSubmit ? (
+            <QuickSubmit
+              problemCode={problem.code}
+              problemName={problem.name}
+              defaultLanguageKey={defaultLanguageKey}
+              submissionsLeft={problem.submissionsLeft}
+            >
+              <Button variant="secondary" size="sm" icon={<Send size={14} />}>
+                {t("submit")}
+              </Button>
+            </QuickSubmit>
+          ) : null}
+        </span>
+      </TableCell>
     </TableRow>
   );
 }
@@ -360,10 +402,13 @@ export function ContestDetailClient({
   contestKey,
   initial,
   descriptionHtml,
+  defaultLanguageKey,
 }: {
   contestKey: string;
   initial: ContestDetail;
   descriptionHtml: string;
+  /** The submit dialog opens on the member's own language, as the page does. */
+  defaultLanguageKey: string | null;
 }) {
   const t = useTranslations("contests.detail");
   const columns = useTranslations("contests.columns");
@@ -441,11 +486,14 @@ export function ContestDetailClient({
                   {detail.metadata.hasPublicEditorials ? (
                     <TableHead className="w-20">{columns("editorial")}</TableHead>
                   ) : null}
+                  <TableHead numeric className="w-px">
+                    {columns("actions")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {detail.problems.length === 0 ? (
-                  <EmptyRow colSpan={7}>{t("noProblems")}</EmptyRow>
+                  <EmptyRow colSpan={8}>{t("noProblems")}</EmptyRow>
                 ) : (
                   detail.problems.map((problem) => (
                     <ProblemRow
@@ -454,6 +502,8 @@ export function ContestDetailClient({
                       contestKey={contestKey}
                       showEditorials={detail.metadata.hasPublicEditorials}
                       showState={showState}
+                      canSubmit={detail.viewer.isAuthenticated}
+                      defaultLanguageKey={defaultLanguageKey}
                       ended={detail.timing.ended}
                       precision={precision}
                     />

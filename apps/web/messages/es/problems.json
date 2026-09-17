@@ -105,8 +105,6 @@
     "tabManage": "Administrar envíos",
     "tabEdit": "Editar",
     "tabClone": "Clonar",
-    "contestMode": "Modo concurso — problema <mono>{label}</mono>",
-    "contestModePretested": "Modo concurso — problema <mono>{label}</mono> · con pretests",
     "submitSolution": "Enviar solución",
     "noSubmissionsLeft": "No te quedan envíos para este problema.",
     "logInToSubmit": "Inicia sesión para enviar una solución.",
@@ -136,7 +134,8 @@
     "allowedLanguages": "Lenguajes permitidos",
     "showContests": "Mostrar concursos",
     "showFewer": "Mostrar menos",
-    "showAll": "Mostrar los {count}"
+    "showAll": "Mostrar los {count}",
+    "pretestedOnly": "Juzgado solo con pretests"
   },
   "statement": {
     "copied": "Copiado al portapapeles.",
@@ -170,7 +169,11 @@
     "submit": "¡Enviar!",
     "searchLanguages": "Buscar lenguajes",
     "noLanguages": "Ningún lenguaje coincide.",
-    "noJudgeFor": "{name} — no hay ningún juez en línea para este"
+    "noJudgeFor": "{name} — no hay ningún juez en línea para este",
+    "chooseFile": "Elegir archivo",
+    "dropHere": "Suelta aquí un archivo de código para cargarlo",
+    "notText": "Ese archivo no es código fuente.",
+    "openFullPage": "Abrir la página de envío completa"
   },
   "rank": {
     "titleFor": "Mejores soluciones para {name}",
@@ -341,5 +344,8 @@
   },
   "pdf": {
     "internalError": "Error interno"
+  },
+  "samples": {
+    "none": "Este problema no tiene ejemplos para descargar."
   }
 }

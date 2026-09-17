@@ -3,18 +3,22 @@
 import { api } from "@convex/_generated/api";
 import { Alert, AlertDescription, AlertTitle, Button, Kbd, KbdGroup, Select } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
-import { TriangleAlert } from "lucide-react";
+import { Paperclip, TriangleAlert, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CodeEditor } from "@/components/problems/CodeEditor";
 import { LanguagePicker } from "@/components/problems/LanguagePicker";
 import { mutationError } from "@/lib/convex-error";
-
-const MAX_SOURCE_LENGTH = 65_536;
+import { languageForFile, MAX_SOURCE_LENGTH, readSourceFile } from "@/lib/submit-file";
 
 function draftKey(code: string, languageKey: string): string {
   return `submit:${code}:${languageKey}`;
+}
+
+/** A drag carrying files, rather than a selection moved within the editor. */
+function carriesFile(transfer: DataTransfer): boolean {
+  return [...transfer.types].includes("Files");
 }
 
 export function SubmitForm({
@@ -24,6 +28,7 @@ export function SubmitForm({
   initialSource = "",
   canPinJudge,
   submissionsLeft,
+  compact = false,
 }: {
   problemCode: string;
   problemName: string;
@@ -31,6 +36,8 @@ export function SubmitForm({
   initialSource?: string;
   canPinJudge: boolean;
   submissionsLeft: number | null;
+  /** Shorter, for the submit dialog the contest's problem list opens. */
+  compact?: boolean;
 }) {
   const t = useTranslations("problems.submit");
   const router = useRouter();
@@ -43,7 +50,10 @@ export function SubmitForm({
   const [judgePin, setJudgePin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
   const touched = useRef(initialSource.length > 0);
+  const filePicker = useRef<HTMLInputElement>(null);
 
   const template = useQuery(api.problems.languageTemplate, languageKey ? { languageKey } : "skip");
 
@@ -97,6 +107,35 @@ export function SubmitForm({
 
     return () => clearTimeout(timer);
   }, [source, languageKey, problemCode]);
+
+  /**
+   * A file dropped on the form or picked with the button, the way DOMjudge
+   * takes one: the text fills the editor and the extension moves the language,
+   * which the picker beside it can still overrule.
+   */
+  const loadFile = useCallback(
+    async (file: File) => {
+      setError(null);
+      const read = await readSourceFile(file);
+
+      if ("problem" in read) {
+        setError(read.problem === "tooLong" ? t("tooLong", { count: MAX_SOURCE_LENGTH }) : t("notText"));
+
+        return;
+      }
+
+      const named = languageForFile(file.name, languages, {
+        selected: languageKey,
+        preferred: defaultLanguageKey,
+      });
+
+      if (named) setLanguageKey(named);
+      touched.current = true;
+      setFileName(file.name);
+      setSource(read.source);
+    },
+    [defaultLanguageKey, languageKey, languages, t],
+  );
 
   const send = useCallback(async () => {
     if (busy) return;
@@ -164,10 +203,66 @@ export function SubmitForm({
         </Alert>
       ) : null}
 
-      <div className="flex min-h-[60dvh] flex-col overflow-hidden rounded-md border border-border bg-card">
-        <div className="flex h-9 shrink-0 items-center gap-3 border-b border-border bg-secondary px-2">
+      {/* The whole card takes the drop rather than the editor alone: a file let
+          go an inch outside it would otherwise be opened by the browser. */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: dropping a file is
+          a pointer-only shortcut for the Choose file button beside it, which is
+          the keyboard path and the one assistive technology is offered. */}
+      <div
+        className={`relative flex flex-col overflow-hidden rounded-md border border-border bg-card ${
+          compact ? "h-[52dvh]" : "min-h-[60dvh]"
+        }`}
+        onDragOver={(event) => {
+          if (!carriesFile(event.dataTransfer)) return;
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={(event) => {
+          const entered = event.relatedTarget instanceof Node ? event.relatedTarget : null;
+
+          if (!entered || !event.currentTarget.contains(entered)) setDragging(false);
+        }}
+        onDrop={(event) => {
+          if (!carriesFile(event.dataTransfer)) return;
+          event.preventDefault();
+          setDragging(false);
+          const file = event.dataTransfer.files[0];
+
+          if (file) void loadFile(file);
+        }}
+      >
+        <div className="flex h-9 shrink-0 items-center gap-2 border-b border-border bg-secondary px-2">
           <LanguagePicker languages={languages} value={languageKey} onChange={setLanguageKey} />
-          <span className="ml-auto font-mono text-sm tabular-nums text-muted-foreground">
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Upload size={14} />}
+            onClick={() => filePicker.current?.click()}
+          >
+            {t("chooseFile")}
+          </Button>
+          <input
+            ref={filePicker}
+            type="file"
+            className="sr-only"
+            aria-label={t("chooseFile")}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+
+              if (file) void loadFile(file);
+              // Cleared so that picking the same file again fires the change.
+              event.target.value = "";
+            }}
+          />
+          {fileName ? (
+            <span className="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+              <Paperclip size={13} aria-hidden className="shrink-0" />
+              <span className="truncate font-mono">{fileName}</span>
+            </span>
+          ) : null}
+          {/* First thing to go when the row runs out of room: the picker and
+              the file button are what a narrow screen needs from this row. */}
+          <span className="ml-auto shrink-0 font-mono text-sm tabular-nums text-muted-foreground max-sm:hidden">
             {lines.toLocaleString("en-AU")} × {source.length.toLocaleString("en-AU")}
           </span>
         </div>
@@ -215,6 +310,14 @@ export function SubmitForm({
             {t("submit")}
           </Button>
         </div>
+
+        {dragging ? (
+          <div className="pointer-events-none absolute inset-0 z-2 flex items-center justify-center bg-card/85">
+            <span className="rounded-md border-2 border-dashed border-primary px-6 py-4 text-base font-medium text-foreground">
+              {t("dropHere")}
+            </span>
+          </div>
+        ) : null}
       </div>
     </div>
   );

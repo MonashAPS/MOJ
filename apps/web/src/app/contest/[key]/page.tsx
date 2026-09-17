@@ -26,7 +26,10 @@ export async function generateMetadata({ params }: { params: Promise<{ key: stri
 export default async function ContestPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
 
-  const [detail] = await Promise.all([queryAsViewer(api.contests.get, { key }).catch(() => null)]);
+  const [detail, defaultLanguage] = await Promise.all([
+    queryAsViewer(api.contests.get, { key }).catch(() => null),
+    queryAsViewer(api.languages.viewerDefault, {}).catch(() => null),
+  ]);
 
   if (!detail || detail.access.kind === "notFound" || detail.access.kind === "inaccessible") notFound();
 
@@ -48,7 +51,12 @@ export default async function ContestPage({ params }: { params: Promise<{ key: s
           <AlertDescription>{t("noticeProctor")}</AlertDescription>
         </Alert>
       ) : null}
-      <ContestDetailClient contestKey={key} initial={detail} descriptionHtml={descriptionHtml} />
+      <ContestDetailClient
+        contestKey={key}
+        initial={detail}
+        descriptionHtml={descriptionHtml}
+        defaultLanguageKey={defaultLanguage?.key ?? null}
+      />
       <Comments targetType="contest" targetKey={key} />
     </>
   );

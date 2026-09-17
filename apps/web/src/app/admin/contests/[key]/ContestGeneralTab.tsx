@@ -35,9 +35,10 @@ const SCOREBOARD_OPTIONS = [
   { value: "H", labelKey: "scoreboardNobody" },
 ] as const;
 
+/** Numbering is gone from the site, so it is not offered here either; a contest
+ *  still holding it reads as lettered, which is what it now renders as. */
 const LABEL_SCHEME_OPTIONS = [
   { value: "letters", labelKey: "labelSchemeLetters" },
-  { value: "numbers", labelKey: "labelSchemeNumbers" },
   { value: "custom", labelKey: "labelSchemeCustom" },
 ] as const;
 
@@ -106,7 +107,11 @@ export function ContestGeneralTab({
   const [rateExclude, setRateExclude] = useState<string[]>(contest.rateExclude);
   const [formatName, setFormatName] = useState(contest.formatName);
   const [formatConfig, setFormatConfig] = useState(toJson(contest.formatConfig));
-  const [labelScheme, setLabelScheme] = useState(contest.labelScheme);
+
+  const [labelScheme, setLabelScheme] = useState(
+    contest.labelScheme === "numbers" ? "letters" : contest.labelScheme,
+  );
+
   const [customLabels, setCustomLabels] = useState(contest.customLabels.join(", "));
   const [scoreboardVisibility, setScoreboardVisibility] = useState(contest.scoreboardVisibility);
   const [freezeMinutes, setFreezeMinutes] = useState(String(contest.freezeMinutes));

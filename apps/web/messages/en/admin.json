@@ -514,7 +514,6 @@
       "format": "Format",
       "labelScheme": "Problem labels",
       "labelSchemeLetters": "Letters (A, B, C)",
-      "labelSchemeNumbers": "Numbers (1, 2, 3)",
       "labelSchemeCustom": "Custom",
       "formatConfig": "Format configuration",
       "formatConfigHint": "JSON. Leave empty to use the format's defaults.",

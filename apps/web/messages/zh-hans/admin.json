@@ -514,7 +514,6 @@
       "format": "赛制",
       "labelScheme": "题目标号方式",
       "labelSchemeLetters": "字母（A、B、C）",
-      "labelSchemeNumbers": "数字（1、2、3）",
       "labelSchemeCustom": "自定义",
       "formatConfig": "赛制配置",
       "formatConfigHint": "JSON 格式。留空则使用该赛制的默认配置。",

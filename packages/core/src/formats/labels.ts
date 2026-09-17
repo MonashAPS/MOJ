@@ -2,51 +2,40 @@
  * Contest problem labels.
  *
  * DMOJ lets a contest carry a Lua function (`Contest.problem_label_script`)
- * that turns a zero-based index into a label. MOJ replaces the sandboxed Lua
- * with three schemes on the contest row (SPEC section 4): `letters`, `numbers`
- * and `custom` with an explicit `customLabels` array. When the contest does not
- * pick a scheme the format's own default applies, which is DMOJ's behaviour
- * (`default` numbers its problems, `icpc` letters them).
+ * that turns a zero-based index into a label, and its `default` format numbers
+ * its problems. Ours letters them — A, B, C — whatever format a contest runs
+ * under, because that is how a contest problem is named out loud and in every
+ * scoreboard anybody here has read.
+ *
+ * A contest naming its own problems still wins, through `customLabels`. The
+ * `numbers` scheme stays in the union so no stored row has to be rewritten to
+ * deploy this, but nothing renders it any more.
  */
 
 import type { ContestRow, LabelScheme } from "../types";
-import { letterLabel, numberLabel } from "./base";
-import { getFormatOrDefault } from "./registry";
+import { letterLabel } from "./base";
 
 export interface LabelOptions {
   readonly scheme?: LabelScheme;
   readonly customLabels?: readonly string[];
-  /** Used when `scheme` is absent: the format decides. */
-  readonly formatName?: string;
 }
 
 /** The label for a zero-based contest problem index. */
 export function getLabelForProblem(index: number, options: LabelOptions = {}): string {
-  const scheme = options.scheme ?? getFormatOrDefault(options.formatName).defaultLabelScheme;
+  if (options.scheme === "custom") {
+    const labels = options.customLabels ?? [];
 
-  switch (scheme) {
-    case "letters":
-      return letterLabel(index);
-    case "custom": {
-      const labels = options.customLabels ?? [];
-
-      // Past the end of the list, fall back to letters so a short list never
-      // renders blank headers.
-      return labels[index] ?? letterLabel(index);
-    }
-
-    default:
-      return numberLabel(index);
+    // Past the end of the list, fall back to letters so a short list never
+    // renders blank headers.
+    return labels[index] ?? letterLabel(index);
   }
+
+  return letterLabel(index);
 }
 
 /** `Contest.get_label_for_problem` for a contest row. */
 export function getContestLabelForProblem(contest: ContestRow, index: number): string {
-  return getLabelForProblem(index, {
-    scheme: contest.labelScheme,
-    customLabels: contest.customLabels,
-    formatName: contest.formatName,
-  });
+  return getLabelForProblem(index, { scheme: contest.labelScheme, customLabels: contest.customLabels });
 }
 
 /** Labels for a whole contest, in problem order. */

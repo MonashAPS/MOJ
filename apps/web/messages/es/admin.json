@@ -514,7 +514,6 @@
       "format": "Formato",
       "labelScheme": "Etiquetas de los problemas",
       "labelSchemeLetters": "Letras (A, B, C)",
-      "labelSchemeNumbers": "Números (1, 2, 3)",
       "labelSchemeCustom": "Personalizado",
       "formatConfig": "Configuración del formato",
       "formatConfigHint": "JSON. Déjalo vacío para usar los valores predeterminados del formato.",

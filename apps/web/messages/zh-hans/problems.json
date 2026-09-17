@@ -105,8 +105,6 @@
     "tabManage": "管理提交",
     "tabEdit": "编辑",
     "tabClone": "克隆",
-    "contestMode": "比赛模式——题目 <mono>{label}</mono>",
-    "contestModePretested": "比赛模式——题目 <mono>{label}</mono>· 预测试",
     "submitSolution": "提交解答",
     "noSubmissionsLeft": "你在此题目上已没有剩余提交次数。",
     "logInToSubmit": "登录后即可提交解答。",
@@ -136,7 +134,8 @@
     "allowedLanguages": "允许使用的语言",
     "showContests": "显示比赛",
     "showFewer": "收起",
-    "showAll": "显示全部 {count} 个"
+    "showAll": "显示全部 {count} 个",
+    "pretestedOnly": "仅按预测试评测"
   },
   "statement": {
     "copied": "已复制到剪贴板。",
@@ -170,7 +169,11 @@
     "submit": "提交！",
     "searchLanguages": "搜索语言",
     "noLanguages": "没有匹配的语言。",
-    "noJudgeFor": "{name} — 没有在线评测机支持"
+    "noJudgeFor": "{name} — 没有在线评测机支持",
+    "chooseFile": "选择文件",
+    "dropHere": "拖入源代码文件即可载入",
+    "notText": "该文件不是源代码。",
+    "openFullPage": "打开完整提交页面"
   },
   "rank": {
     "titleFor": "{name} 的最佳解答",
@@ -341,5 +344,8 @@
   },
   "pdf": {
     "internalError": "内部错误"
+  },
+  "samples": {
+    "none": "本题没有可下载的样例。"
   }
 }

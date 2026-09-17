@@ -327,8 +327,6 @@ export const get = query({
 });
 
 function labelOf(contest: Doc<"contests">, index: number): string {
-  if (contest.labelScheme === "numbers") return String(index + 1);
-
   if (contest.labelScheme === "custom") return contest.customLabels[index] ?? letters(index);
 
   return letters(index);

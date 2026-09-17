@@ -56,7 +56,6 @@
     "statistics": "Statistik",
     "rankings": "Peringkat",
     "hiddenRankings": "Peringkat tersembunyi",
-    "participation": "Partisipasi",
     "submissions": "Pengiriman",
     "moss": "MOSS",
     "edit": "Edit",
@@ -185,7 +184,11 @@
     "curators": "{count, plural, other {Kurator}}",
     "testers": "{count, plural, other {Penguji}}",
     "spectators": "{count, plural, other {Penonton}}",
-    "problemsNotReleased": "Soal untuk kontes ini belum dirilis."
+    "problemsNotReleased": "Soal untuk kontes ini belum dirilis.",
+    "statement": "Soal",
+    "statementHint": "Unduh soal sebagai PDF",
+    "samples": "Contoh",
+    "samplesHint": "Unduh data contoh sebagai zip"
   },
   "clarifications": {
     "title": "Klarifikasi",
@@ -362,24 +365,8 @@
     "noSolutionsBody": "Belum ada yang mencetak skor pada {name} selama kontes ini."
   },
   "participations": {
-    "metaTitle": "Partisipasi {name}",
-    "metaUserTitle": "{user} di {name}",
-    "metaFallback": "Partisipasi",
     "metaSubmissions": "Pengiriman {user} di {key}",
-    "metaProblemSubmissions": "Pengiriman {user} untuk {problem} di {key}",
-    "ownRuns": "Run Anda pada kontes ini.",
-    "userRuns": "Run {user} pada kontes ini.",
-    "lookupLabel": "Lihat partisipasi pengguna",
-    "lookupPlaceholder": "Nama pengguna",
-    "emptyTitle": "Tidak ada partisipasi",
-    "emptyOwnBody": "Anda belum berpartisipasi dalam kontes ini.",
-    "emptyUserBody": "{user} belum berpartisipasi dalam kontes ini.",
-    "virtualBadge": "virtual #{number}",
-    "liveBadge": "live",
-    "disqualifiedBadge": "DQ",
-    "stillRunning": "{time} · masih berjalan",
-    "disqualifiedNote": "Didiskualifikasi: run ini tidak menghasilkan skor.",
-    "points": "{points} poin"
+    "metaProblemSubmissions": "Pengiriman {user} untuk {problem} di {key}"
   },
   "stats": {
     "metaTitle": "Statistik {name}",

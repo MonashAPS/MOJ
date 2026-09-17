@@ -514,7 +514,6 @@
       "format": "Format",
       "labelScheme": "Label soal",
       "labelSchemeLetters": "Huruf (A, B, C)",
-      "labelSchemeNumbers": "Angka (1, 2, 3)",
       "labelSchemeCustom": "Kustom",
       "formatConfig": "Konfigurasi format",
       "formatConfigHint": "JSON. Biarkan kosong untuk menggunakan default format.",

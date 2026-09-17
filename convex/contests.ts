@@ -46,7 +46,7 @@ import {
   toViewerRowInContest,
 } from "./contests/formats";
 import { optionalViewer } from "./lib/auth";
-import { canAccessProblem, loadViewerContext } from "./problems";
+import { canAccessProblem, loadViewerContext, statementHasSamples } from "./problems";
 
 /** One person's submission history, capped so a prolific account cannot
  *  turn the contest list into a full scan. */
@@ -1060,6 +1060,10 @@ export type ContestProblemEntry = {
   partial: boolean;
   isPretested: boolean;
   maxSubmissions: number | null;
+  /** `Problem.submissions_left` for the viewer's own run; null where uncapped. */
+  submissionsLeft: number | null;
+  /** Whether the statement has samples to download. */
+  hasSamples: boolean;
   /** SPEC section 20: how many people have solved it outside the contest too. */
   publicSolveCount: number;
   acRate: number;
@@ -1319,6 +1323,29 @@ export const get = query({
     // take it away again).
     const problemViewer = await loadViewerContext(ctx);
 
+    /**
+     * What a capped problem has left, counted once for the whole table rather
+     * than per row: the list can be submitted from now, and it has to say the
+     * same number the problem's own submit page does — which counts the run,
+     * not the contest, so a second virtual attempt starts over.
+     */
+    const usedInRun = new Map<Id<"problems">, number>();
+    const countingRun = inThisContest && !!currentParticipationDoc;
+
+    if (currentParticipationDoc && inThisContest) {
+      const runId = currentParticipationDoc._id;
+
+      const runSubmissions = await ctx.db
+        .query("submissions")
+        .withIndex("by_participation", (q) => q.eq("participationId", runId))
+        .collect();
+
+      for (const submission of runSubmissions) {
+        if (submission.status === "IE") continue;
+        usedInRun.set(submission.problemId, (usedInRun.get(submission.problemId) ?? 0) + 1);
+      }
+    }
+
     const problems: ContestProblemEntry[] = [];
     let hasPartials = false;
     let hasPretests = false;
@@ -1357,8 +1384,16 @@ export const get = query({
         partial: contestProblem.partial,
         isPretested: contestProblem.isPretested,
         maxSubmissions: contestProblem.maxSubmissions ?? null,
+        submissionsLeft:
+          countingRun && contestProblem.maxSubmissions
+            ? Math.max(contestProblem.maxSubmissions - (usedInRun.get(problem._id) ?? 0), 0)
+            : null,
         publicSolveCount: problem.userCount,
         acRate: problem.acRate,
+        // The default statement, not the reader's translation: this only says
+        // whether the button is worth offering, and a translated statement
+        // carries the same samples as the one it was translated from.
+        hasSamples: statementHasSamples(problem.description),
         hasPublicEditorial,
         isAccessible: await canAccessProblem(ctx, problem, problemViewer),
         state: state.state,
