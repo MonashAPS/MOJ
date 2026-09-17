@@ -1,12 +1,25 @@
 "use client";
 
 import type { ContestBarData } from "@convex/contests";
-import { cn, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@moj/ui";
-import { Clock, MoreHorizontal } from "lucide-react";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  cn,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@moj/ui";
+import { ChevronDown, Clock, LogOut, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useRef } from "react";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
+import { ThemeMenu } from "./ThemeMenu";
+import type { ViewerSummary } from "./UserBlock";
 
 function moveBetweenChips(ref: { current: HTMLDivElement | null }) {
   return (event: React.KeyboardEvent<HTMLAnchorElement>) => {
@@ -30,16 +43,63 @@ const CHIP_STATE = new Map<string, string>([
   ["untouched", "border-transparent bg-white/8 text-contest-bar-ink"],
 ]);
 
+/**
+ * The account, on the bar, for the contest that has taken the nav away.
+ *
+ * A locked-down contest is the whole site while it runs, and the nav it replaced
+ * was carrying the only way to change how the site looks or to sign out. Neither
+ * belongs to the contest, so neither is offered as somewhere to go: the menu has
+ * the theme and the way out, and nothing that would lead a contestant off.
+ */
+function BarAccount({ viewer }: { viewer: ViewerSummary }) {
+  const t = useTranslations("common.nav");
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={cn(
+          "flex h-6 shrink-0 items-center gap-1.5 rounded-xs px-1.5 text-sm",
+          "text-contest-bar-ink transition-colors hover:bg-white/10 hover:text-nav-ink",
+          "data-[state=open]:bg-white/10 data-[state=open]:text-nav-ink",
+        )}
+      >
+        <Avatar className="size-4.5">
+          <AvatarImage src={viewer.gravatarUrl} alt="" />
+          <AvatarFallback>{viewer.displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+        </Avatar>
+        <span className="max-w-[12ch] truncate font-mono max-[700px]:hidden">{viewer.displayName}</span>
+        <ChevronDown size={12} aria-hidden className="shrink-0 opacity-70" />
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="end" sideOffset={6} className="min-w-[260px]">
+        <DropdownMenuLabel>{t("theme")}</DropdownMenuLabel>
+        <ThemeMenu theme={viewer.siteTheme} className="px-1 pb-1" />
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive" asChild>
+          <Link href="/accounts/logout/">
+            <LogOut aria-hidden />
+            {t("logOut")}
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 /** SPEC section 20. Sticky directly under the nav on any page that belongs to
  *  the contest; the DMOJ floater covers everywhere else, and never both. */
 export function ContestBar({
   data,
   currentCode,
   viewerUsername,
+  account = null,
 }: {
   data: NonNullable<ContestBarData>;
   currentCode?: string;
   viewerUsername?: string | null;
+  /** Given only while the bar stands in for the nav, which is the one time the
+   *  account has nowhere else to live. */
+  account?: ViewerSummary | null;
 }) {
   const t = useTranslations("common.contestBar");
   const remaining = useCountdown(data.isSpectating ? null : data.endsAt);
@@ -158,6 +218,8 @@ export function ContestBar({
               ? t("openEnded")
               : formatDuration(remaining)}
       </span>
+
+      {account ? <BarAccount viewer={account} /> : null}
     </nav>
   );
 }
