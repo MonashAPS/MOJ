@@ -11,15 +11,18 @@ import { ProfileBootstrap } from "@/components/auth/ProfileBootstrap";
 import { CommandPalette, useCommandPalette } from "@/components/shell/CommandPalette";
 import { isInsideContest } from "@/lib/contest-lockdown";
 import type { NavNode } from "@/lib/nav";
+import { usesDomjudgeStructure } from "@/lib/skin";
 import { Announcement } from "./Announcement";
 import { BackdropDrift } from "./BackdropDrift";
 import { ContestBar } from "./ContestBar";
 import { ContestFloater } from "./ContestFloater";
+import { DomjudgeNav } from "./DomjudgeNav";
 import { Footer } from "./Footer";
 import { ImpersonationBar } from "./ImpersonationBar";
 import { NavBar } from "./NavBar";
 import { RouteProgress } from "./RouteProgress";
 import { ShortcutLayer } from "./ShortcutLayer";
+import { useSkin } from "./SkinProvider";
 import type { ViewerSummary } from "./UserBlock";
 
 /** The hall scoreboard is a projector surface, not a page of the site: it draws
@@ -103,6 +106,14 @@ export function SiteShell({
    */
   const lockedDown = !!joined && joined.contest.isLockedDown;
 
+  /**
+   * The DOMjudge skin's structure depth replaces the nav rather than repainting
+   * it: DOMjudge's bar is the contest's, and the site's own sections are not on
+   * it while you are in one.
+   */
+  const asDomjudge = usesDomjudgeStructure(useSkin());
+  const navContest = contest ? { key: contest.contest.key, name: contest.contest.name } : null;
+
   const strayFromContest =
     lockedDown &&
     !!joined &&
@@ -172,7 +183,17 @@ export function SiteShell({
       </a>
 
       <header ref={headerRef} className="fixed inset-x-0 top-0 z-(--z-nav)">
-        {lockedDown ? null : (
+        {lockedDown ? null : asDomjudge ? (
+          <DomjudgeNav
+            nav={nav}
+            viewer={viewer}
+            contest={navContest}
+            registrationOpen={registrationOpen}
+            onOpenSearch={() => setPaletteOpen(true)}
+            logoUrl={logoUrl}
+            siteName={siteName}
+          />
+        ) : (
           <NavBar
             nav={nav}
             viewer={viewer}
@@ -182,8 +203,9 @@ export function SiteShell({
             siteName={siteName}
           />
         )}
-        {/* The royal, carried across the top of every page. */}
-        <div aria-hidden className="h-[3px] bg-royal" />
+        {/* The royal, carried across the top of every page — and one of the
+            things DOMjudge's chrome does not have. */}
+        {asDomjudge ? null : <div aria-hidden className="h-[3px] bg-royal" />}
         {lockedDown && joined ? (
           <ContestBar
             data={joined}

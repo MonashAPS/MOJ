@@ -29,7 +29,11 @@
     "skinDomjudge": "DOMjudge",
     "skinDepth": "Насколько полно",
     "skinColour": "Цвета",
-    "skinColourStructure": "Цвета и структура"
+    "skinColourStructure": "Цвета и структура",
+    "domjudgeHome": "Главная",
+    "domjudgeScoreboard": "Таблица результатов",
+    "domjudgeSubmissions": "Посылки",
+    "domjudgeClarifications": "Уточнения"
   },
   "actions": {
     "save": "Сохранить",

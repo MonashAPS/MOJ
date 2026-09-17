@@ -29,7 +29,11 @@
     "skinDomjudge": "DOMjudge",
     "skinDepth": "Hasta dónde llega",
     "skinColour": "Color",
-    "skinColourStructure": "Color + estructura"
+    "skinColourStructure": "Color + estructura",
+    "domjudgeHome": "Inicio",
+    "domjudgeScoreboard": "Clasificación",
+    "domjudgeSubmissions": "Envíos",
+    "domjudgeClarifications": "Aclaraciones"
   },
   "actions": {
     "save": "Guardar",
