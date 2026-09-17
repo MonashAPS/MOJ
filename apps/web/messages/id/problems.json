@@ -105,8 +105,6 @@
     "tabManage": "Kelola pengiriman",
     "tabEdit": "Edit",
     "tabClone": "Klon",
-    "contestMode": "Mode kontes — soal <mono>{label}</mono>",
-    "contestModePretested": "Mode kontes — soal <mono>{label}</mono> · pretest",
     "submitSolution": "Kirim solusi",
     "noSubmissionsLeft": "Anda tidak memiliki sisa pengiriman untuk soal ini.",
     "logInToSubmit": "Masuk untuk mengirim solusi.",
@@ -136,7 +134,8 @@
     "allowedLanguages": "Bahasa yang diizinkan",
     "showContests": "Tampilkan kontes",
     "showFewer": "Tampilkan lebih sedikit",
-    "showAll": "Tampilkan semua {count}"
+    "showAll": "Tampilkan semua {count}",
+    "pretestedOnly": "Dinilai dengan pretest saja"
   },
   "statement": {
     "copied": "Disalin ke clipboard.",

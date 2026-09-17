@@ -105,8 +105,6 @@
     "tabManage": "Manage submissions",
     "tabEdit": "Edit",
     "tabClone": "Clone",
-    "contestMode": "Contest mode — problem <mono>{label}</mono>",
-    "contestModePretested": "Contest mode — problem <mono>{label}</mono> · pretested",
     "submitSolution": "Submit solution",
     "noSubmissionsLeft": "You have no submissions left for this problem.",
     "logInToSubmit": "Log in to submit a solution.",
@@ -136,7 +134,8 @@
     "allowedLanguages": "Allowed languages",
     "showContests": "Show contests",
     "showFewer": "Show fewer",
-    "showAll": "Show all {count}"
+    "showAll": "Show all {count}",
+    "pretestedOnly": "Judged on pretests only"
   },
   "statement": {
     "copied": "Copied to clipboard.",

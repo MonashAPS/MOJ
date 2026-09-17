@@ -187,12 +187,13 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
 
   return (
     <Panel title={problem.code} bodyClassName="grid min-w-0 gap-3 p-3 [&>*]:min-w-0">
-      {contestProblem ? (
+      {/* No "contest mode" banner: the contest bar sits across the top of the
+          page carrying every problem's letter with this one marked, so the line
+          restated what was already above it. A problem judged on pretests still
+          says so, which nothing else on the page does. */}
+      {contestProblem?.isPretested ? (
         <p className="-mx-3 -mt-3 border-b border-primary-line bg-primary-soft px-3 py-2 text-sm text-subtle">
-          {t.rich(contestProblem.isPretested ? "contestModePretested" : "contestMode", {
-            label: contestProblem.label,
-            mono: (chunks) => <span className="font-mono font-medium text-foreground">{chunks}</span>,
-          })}
+          {t("pretestedOnly")}
         </p>
       ) : null}
 

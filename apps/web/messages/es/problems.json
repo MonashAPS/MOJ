@@ -105,8 +105,6 @@
     "tabManage": "Administrar envíos",
     "tabEdit": "Editar",
     "tabClone": "Clonar",
-    "contestMode": "Modo concurso — problema <mono>{label}</mono>",
-    "contestModePretested": "Modo concurso — problema <mono>{label}</mono> · con pretests",
     "submitSolution": "Enviar solución",
     "noSubmissionsLeft": "No te quedan envíos para este problema.",
     "logInToSubmit": "Inicia sesión para enviar una solución.",
@@ -136,7 +134,8 @@
     "allowedLanguages": "Lenguajes permitidos",
     "showContests": "Mostrar concursos",
     "showFewer": "Mostrar menos",
-    "showAll": "Mostrar los {count}"
+    "showAll": "Mostrar los {count}",
+    "pretestedOnly": "Juzgado solo con pretests"
   },
   "statement": {
     "copied": "Copiado al portapapeles.",

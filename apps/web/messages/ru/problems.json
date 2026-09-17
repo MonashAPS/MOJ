@@ -105,8 +105,6 @@
     "tabManage": "Управление посылками",
     "tabEdit": "Изменить",
     "tabClone": "Клонировать",
-    "contestMode": "Режим соревнования — задача <mono>{label}</mono>",
-    "contestModePretested": "Режим соревнования — задача <mono>{label}</mono> · с претестами",
     "submitSolution": "Отправить решение",
     "noSubmissionsLeft": "У вас не осталось посылок для этой задачи.",
     "logInToSubmit": "Войдите, чтобы отправить решение.",
@@ -136,7 +134,8 @@
     "allowedLanguages": "Разрешённые языки",
     "showContests": "Показать соревнования",
     "showFewer": "Показать меньше",
-    "showAll": "Показать все {count}"
+    "showAll": "Показать все {count}",
+    "pretestedOnly": "Проверяется только на претестах"
   },
   "statement": {
     "copied": "Скопировано в буфер обмена.",
