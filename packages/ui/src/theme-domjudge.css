@@ -236,6 +236,28 @@
   }
 }
 
+:root[data-theme="dark"][data-skin="domjudge-structure"],
+:root[data-theme="dark"] [data-skin="domjudge-structure"] {
+  --nav: #1a1d20;
+  --nav-ink: #dee2e6;
+  --nav-ink-2: #adb5bd;
+  --nav-hover: rgba(255, 255, 255, 0.08);
+  --nav-active-bg: rgba(255, 255, 255, 0.12);
+  --nav-keyline: #000000;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])[data-skin="domjudge-structure"],
+  :root:not([data-theme="light"]) [data-skin="domjudge-structure"] {
+    --nav: #1a1d20;
+    --nav-ink: #dee2e6;
+    --nav-ink-2: #adb5bd;
+    --nav-hover: rgba(255, 255, 255, 0.08);
+    --nav-active-bg: rgba(255, 255, 255, 0.12);
+    --nav-keyline: #000000;
+  }
+}
+
 :root[data-theme="dark"][data-skin|="domjudge"],
 :root[data-theme="dark"] [data-skin|="domjudge"] {
   color-scheme: dark;
@@ -327,6 +349,16 @@
  * felt like the same site. The colour depth above leaves all of this alone.
  */
 [data-skin="domjudge-structure"] {
+  /* DOMjudge's bar is white with dark text and a rule under it, not a dark
+     slab: the dark navbar is the colour depth's approximation of ours. */
+  --nav: #ffffff;
+  --nav-ink: #212529;
+  --nav-ink-2: #495057;
+  --nav-hover: rgba(0, 0, 0, 0.05);
+  --nav-active-bg: rgba(0, 0, 0, 0.08);
+  --nav-keyline: #dee2e6;
+  --wordmark-ink: #212529;
+
   --fs-xs: 12px;
   --fs-sm: 14px;
   --fs-base: 16px;

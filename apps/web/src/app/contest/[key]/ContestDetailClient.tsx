@@ -476,6 +476,43 @@ export function ContestDetailClient({
   const showState = detail.viewer.isAuthenticated;
   const precision = contest.pointsPrecision;
 
+  // DOMjudge's problemset page has no title row, no tab strip and no banner: the
+  // bar above carries the contest, its clock and its pages, and all that is left
+  // for the page is the problems — and the way out, which is ours.
+  if (asDomjudge) {
+    return (
+      <div className="grid min-w-0 gap-8">
+        {joinKind ? (
+          <div className="flex justify-end">
+            <JoinControl
+              contestKey={contestKey}
+              kind={joinKind}
+              long
+              size="sm"
+              banned={detail.viewer.isBanned}
+            />
+          </div>
+        ) : null}
+
+        {showProblems ? (
+          <DomjudgeProblemset detail={detail} defaultLanguageKey={defaultLanguageKey} />
+        ) : (
+          <ProblemsNotReleased />
+        )}
+
+        <ContentDescription html={descriptionHtml} />
+
+        {contest.useClarifications ? (
+          <Clarifications
+            contestKey={contestKey}
+            canPost={detail.viewer.canEdit}
+            problems={detail.problems}
+          />
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <>
       <TitleRow
@@ -509,91 +546,71 @@ export function ContestDetailClient({
 
       <Banner detail={detail} />
 
-      {asDomjudge ? (
-        <div className="grid min-w-0 gap-8">
-          {showProblems ? (
-            <DomjudgeProblemset detail={detail} defaultLanguageKey={defaultLanguageKey} />
-          ) : (
-            <ProblemsNotReleased />
-          )}
+      <TwoColumn side={<Sidebar detail={detail} />}>
+        {!showProblems ? (
+          <ProblemsNotReleased />
+        ) : (
+          <section className="grid gap-2">
+            <h2 className="flex items-center gap-2 font-display text-h2 font-semibold">
+              <CircleHelp size={18} className="text-muted-foreground" aria-hidden />
+              {t("problems")}
+            </h2>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {showState ? <TableHead className="w-7" /> : null}
+                  <TableHead className="w-full">{columns("problem")}</TableHead>
+                  <TableHead numeric>{columns("points")}</TableHead>
+                  {showState ? <TableHead numeric>{columns("yourScore")}</TableHead> : null}
+                  <TableHead numeric>{columns("acRate")}</TableHead>
+                  <TableHead numeric>{columns("users")}</TableHead>
+                  {detail.metadata.hasPublicEditorials ? (
+                    <TableHead className="w-20">{columns("editorial")}</TableHead>
+                  ) : null}
+                  <TableHead numeric className="w-px">
+                    {columns("actions")}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {detail.problems.length === 0 ? (
+                  <EmptyRow colSpan={8}>{t("noProblems")}</EmptyRow>
+                ) : (
+                  detail.problems.map((problem) => (
+                    <ProblemRow
+                      key={problem.contestProblemId}
+                      problem={problem}
+                      contestKey={contestKey}
+                      showEditorials={detail.metadata.hasPublicEditorials}
+                      showState={showState}
+                      canSubmit={detail.viewer.isAuthenticated}
+                      defaultLanguageKey={defaultLanguageKey}
+                      ended={detail.timing.ended}
+                      precision={precision}
+                    />
+                  ))
+                )}
+              </TableBody>
+            </Table>
+            {detail.timing.ended &&
+            showState &&
+            detail.problems.some((problem) => problem.state !== "untouched") ? (
+              <p className="text-sm text-muted-foreground">{t("tickNote")}</p>
+            ) : null}
+          </section>
+        )}
 
-          <ContentDescription html={descriptionHtml} />
+        {/* Under the problems now: a long description used to bury them. */}
+        <ContentDescription html={descriptionHtml} className="mt-8" />
 
-          {contest.useClarifications ? (
-            <Clarifications
-              contestKey={contestKey}
-              canPost={detail.viewer.canEdit}
-              problems={detail.problems}
-            />
-          ) : null}
-        </div>
-      ) : (
-        <TwoColumn side={<Sidebar detail={detail} />}>
-          {!showProblems ? (
-            <ProblemsNotReleased />
-          ) : (
-            <section className="grid gap-2">
-              <h2 className="flex items-center gap-2 font-display text-h2 font-semibold">
-                <CircleHelp size={18} className="text-muted-foreground" aria-hidden />
-                {t("problems")}
-              </h2>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {showState ? <TableHead className="w-7" /> : null}
-                    <TableHead className="w-full">{columns("problem")}</TableHead>
-                    <TableHead numeric>{columns("points")}</TableHead>
-                    {showState ? <TableHead numeric>{columns("yourScore")}</TableHead> : null}
-                    <TableHead numeric>{columns("acRate")}</TableHead>
-                    <TableHead numeric>{columns("users")}</TableHead>
-                    {detail.metadata.hasPublicEditorials ? (
-                      <TableHead className="w-20">{columns("editorial")}</TableHead>
-                    ) : null}
-                    <TableHead numeric className="w-px">
-                      {columns("actions")}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {detail.problems.length === 0 ? (
-                    <EmptyRow colSpan={8}>{t("noProblems")}</EmptyRow>
-                  ) : (
-                    detail.problems.map((problem) => (
-                      <ProblemRow
-                        key={problem.contestProblemId}
-                        problem={problem}
-                        contestKey={contestKey}
-                        showEditorials={detail.metadata.hasPublicEditorials}
-                        showState={showState}
-                        canSubmit={detail.viewer.isAuthenticated}
-                        defaultLanguageKey={defaultLanguageKey}
-                        ended={detail.timing.ended}
-                        precision={precision}
-                      />
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-              {detail.timing.ended &&
-              showState &&
-              detail.problems.some((problem) => problem.state !== "untouched") ? (
-                <p className="text-sm text-muted-foreground">{t("tickNote")}</p>
-              ) : null}
-            </section>
-          )}
-
-          {/* Under the problems now: a long description used to bury them. */}
-          <ContentDescription html={descriptionHtml} className="mt-8" />
-
-          {contest.useClarifications ? (
-            <Clarifications
-              contestKey={contestKey}
-              canPost={detail.viewer.canEdit}
-              problems={detail.problems}
-            />
-          ) : null}
-        </TwoColumn>
-      )}
+        {contest.useClarifications ? (
+          <Clarifications
+            contestKey={contestKey}
+            canPost={detail.viewer.canEdit}
+            problems={detail.problems}
+          />
+        ) : null}
+      </TwoColumn>
     </>
   );
 }

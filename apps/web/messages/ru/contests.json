@@ -189,6 +189,12 @@
     "statementHint": "Скачать условие в PDF",
     "samples": "Примеры",
     "samplesHint": "Скачать примеры архивом",
+    "domjudgeProblemsTitle": "Задачи: {name}",
+    "domjudgeLimits": "Ограничения: {time} / {memory}",
+    "domjudgeSeconds": "{count, plural, one {# секунда} few {# секунды} many {# секунд} other {# секунды}}",
+    "domjudgeType": "Тип: {type}",
+    "domjudgePassFail": "зачёт или незачёт",
+    "domjudgeScoring": "с баллами",
     "submit": "Отправить"
   },
   "clarifications": {
