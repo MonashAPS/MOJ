@@ -116,7 +116,7 @@ export function DomjudgeProblemset({
     <section className="grid gap-5">
       {/* Centred and named after the contest: DOMjudge's problemset page carries
           no other heading, and no tab strip over it. */}
-      <h1 className="text-center font-display text-h1 font-semibold">
+      <h1 className="text-center font-display text-h1 font-medium">
         {t("domjudgeProblemsTitle", { name: detail.contest?.name ?? "" })}
       </h1>
 

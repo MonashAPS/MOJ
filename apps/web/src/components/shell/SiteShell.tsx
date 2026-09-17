@@ -113,6 +113,30 @@ export function SiteShell({
    */
   const asDomjudge = usesDomjudgeStructure(useSkin());
 
+  /**
+   * The contest the DOMjudge bar stands over. `navBar` only answers for a
+   * contest the viewer is inside, and DOMjudge carries the contest for a visitor
+   * reading its public pages too, so a contest route falls back to the chrome.
+   */
+  const chrome = useQuery(
+    api.contests.chrome,
+    asDomjudge && routeKey && !contest ? { key: routeKey } : "skip",
+  );
+
+  const navContest = contest
+    ? {
+        key: contest.contest.key,
+        name: contest.contest.name,
+        startTime: contest.contest.startTime,
+        endTime: contest.contest.endTime,
+        useClarifications: contest.contest.useClarifications,
+        endsAt: contest.endsAt,
+        ownSubmissions: contest.links.submissions && !!viewer,
+      }
+    : chrome
+      ? { ...chrome, endsAt: null, ownSubmissions: false }
+      : null;
+
   const strayFromContest =
     lockedDown &&
     !!joined &&
@@ -188,7 +212,7 @@ export function SiteShell({
           <DomjudgeNav
             nav={nav}
             viewer={viewer}
-            bar={contest ?? null}
+            contest={navContest}
             registrationOpen={registrationOpen}
             onOpenSearch={() => setPaletteOpen(true)}
             siteName={siteName}
