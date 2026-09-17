@@ -188,7 +188,8 @@
     "statement": "题面",
     "statementHint": "下载 PDF 题面",
     "samples": "样例",
-    "samplesHint": "下载样例数据压缩包"
+    "samplesHint": "下载样例数据压缩包",
+    "submit": "提交"
   },
   "clarifications": {
     "title": "答疑",

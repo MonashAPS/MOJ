@@ -188,7 +188,8 @@
     "statement": "Soal",
     "statementHint": "Unduh soal sebagai PDF",
     "samples": "Contoh",
-    "samplesHint": "Unduh data contoh sebagai zip"
+    "samplesHint": "Unduh data contoh sebagai zip",
+    "submit": "Kirim"
   },
   "clarifications": {
     "title": "Klarifikasi",
