@@ -184,7 +184,11 @@
     "curators": "{count, plural, one {Curador} other {Curadores}}",
     "testers": "{count, plural, one {Tester} other {Testers}}",
     "spectators": "{count, plural, one {Espectador} other {Espectadores}}",
-    "problemsNotReleased": "Los problemas de este concurso aún no se han publicado."
+    "problemsNotReleased": "Los problemas de este concurso aún no se han publicado.",
+    "statement": "Enunciado",
+    "statementHint": "Descargar el enunciado en PDF",
+    "samples": "Ejemplos",
+    "samplesHint": "Descargar los datos de ejemplo en un zip"
   },
   "clarifications": {
     "title": "Aclaraciones",

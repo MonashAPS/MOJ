@@ -345,5 +345,8 @@
   },
   "pdf": {
     "internalError": "Internal error"
+  },
+  "samples": {
+    "none": "This problem has no samples to download."
   }
 }

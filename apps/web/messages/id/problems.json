@@ -345,5 +345,8 @@
   },
   "pdf": {
     "internalError": "Kesalahan internal"
+  },
+  "samples": {
+    "none": "Soal ini tidak memiliki contoh untuk diunduh."
   }
 }

@@ -184,7 +184,11 @@
     "curators": "{count, plural, one {Curator} other {Curators}}",
     "testers": "{count, plural, one {Tester} other {Testers}}",
     "spectators": "{count, plural, one {Spectator} other {Spectators}}",
-    "problemsNotReleased": "The problems for this contest have not been released yet."
+    "problemsNotReleased": "The problems for this contest have not been released yet.",
+    "statement": "Statement",
+    "statementHint": "Download the statement as a PDF",
+    "samples": "Samples",
+    "samplesHint": "Download the sample data as a zip"
   },
   "clarifications": {
     "title": "Clarifications",

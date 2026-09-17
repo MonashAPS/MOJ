@@ -345,5 +345,8 @@
   },
   "pdf": {
     "internalError": "内部错误"
+  },
+  "samples": {
+    "none": "本题没有可下载的样例。"
   }
 }
