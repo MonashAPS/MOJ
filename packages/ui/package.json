@@ -10,6 +10,7 @@
     "./theme.css": "./src/theme.css",
     "./fonts.css": "./src/fonts.css",
     "./skin.css": "./src/skin.css",
+    "./theme-domjudge.css": "./src/theme-domjudge.css",
     "./*": "./src/*"
   },
   "scripts": {

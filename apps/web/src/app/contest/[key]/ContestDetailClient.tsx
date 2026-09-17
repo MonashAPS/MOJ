@@ -28,6 +28,7 @@ import { useTranslations } from "next-intl";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips, OPEN_ENDED, ProblemStateIcon, useHumanDuration } from "@/components/contests/pieces";
 import { QuickSubmit } from "@/components/problems/QuickSubmit";
+import { useSkin } from "@/components/shell/SkinProvider";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { formatDateTime, formatPoints } from "@/lib/format";
 import { Clarifications } from "./Clarifications";
@@ -124,6 +125,14 @@ function ProblemRow({
   const states = useTranslations("contests.problemState");
   const columns = useTranslations("contests.columns");
 
+  /**
+   * DOMjudge has no page for a problem: the statement is a PDF you download and
+   * the name in the list is text. Wearing its skin, so is this one — the row's
+   * way in is the Statement button beside it.
+   */
+  const skin = useSkin();
+  const openable = problem.isAccessible && skin !== "domjudge";
+
   const solvedNote =
     problem.state === "solved"
       ? ended && problem.solvedSinceContest
@@ -155,7 +164,7 @@ function ProblemRow({
           </span>
           <span className="grid min-w-0 gap-0.5">
             <span className="flex flex-wrap items-center gap-x-2">
-              {problem.isAccessible ? (
+              {openable ? (
                 <Link
                   href={`/problem/${problem.code}/`}
                   className="font-medium text-foreground before:absolute before:inset-0 hover:text-link"

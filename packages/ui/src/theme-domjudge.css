@@ -1,0 +1,323 @@
+/* The DOMjudge skin.
+ *
+ * DOMjudge's web interface is Bootstrap wearing almost none of its own
+ * decoration: a white page, a dark slab of a navbar, hairline tables, square-ish
+ * corners, the system font, and a scoreboard whose cells are the loudest green
+ * and red on the site. That is the whole look, and because every component here
+ * takes its colour from a token, the look is a list of tokens.
+ *
+ * The values are Bootstrap 5's own palette (#0d6efd primary, the $gray-100..900
+ * ramp, the subtle alert fills) with DOMjudge's scoreboard colours on top, since
+ * those are the one place it departs from stock Bootstrap.
+ *
+ * The selector is an attribute rather than `:root[data-skin]` so that the theme
+ * menu can paint a preview box in this skin while the page around it wears
+ * another. tokens.css answers to `[data-skin="maps"]` for the same reason.
+ *
+ * Import order: tokens.css, theme.css, skin.css, then this file.
+ */
+
+[data-skin="domjudge"] {
+  color-scheme: light;
+
+  /* Chrome ---------------------------------------------------------------- *
+   * `navbar-dark bg-dark`, and the contest bar a shade below it.             */
+  --nav: #343a40;
+  --nav-ink: #ffffff;
+  --nav-ink-2: rgba(255, 255, 255, 0.55);
+  --nav-hover: rgba(255, 255, 255, 0.1);
+  --nav-active-bg: rgba(255, 255, 255, 0.16);
+  --nav-keyline: #212529;
+  --wordmark-ink: #212529;
+  --contest-bar: #212529;
+  --contest-bar-ink: #e9ecef;
+
+  /* A panel header is a `card-header`: grey, not a navy band. */
+  --titlebar: #e9ecef;
+  --titlebar-ink: #212529;
+  --titlebar-ink-2: #6c757d;
+  --titlebar-line: #dee2e6;
+
+  /* Accent ---------------------------------------------------------------- *
+   * `$primary`, and the focus ring that every control draws from it.         */
+  --brand-royal: #0d6efd;
+  --accent: #0d6efd;
+  --accent-ink: #ffffff;
+  --accent-hover: #0b5ed7;
+  --accent-active: #0a58ca;
+  --accent-soft: #cfe2ff;
+  --accent-line: #b6d4fe;
+  --focus-ring: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  --focus-ring-inset: inset 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+
+  /* Surfaces and text ----------------------------------------------------- *
+   * White, with the club's grid and constellations switched off: Bootstrap
+   * puts nothing behind a page.                                              */
+  --bg: #ffffff;
+  --bg-2: #ffffff;
+  --bg-grid: transparent;
+  --bg-graph: transparent;
+  --surface: #ffffff;
+  --surface-2: #f8f9fa;
+  --surface-3: #e9ecef;
+  --ink: #212529;
+  --ink-2: #495057;
+  --muted: #6c757d;
+  --line: #dee2e6;
+  --line-strong: #ced4da;
+  --code-bg: #f8f9fa;
+  --code-line: #dee2e6;
+
+  --row-zebra: #f2f2f2;
+  --row-hover: #ececec;
+
+  --link: #0d6efd;
+  --link-hover: #0a58ca;
+  --link-active: #0a58ca;
+  --link-visited: #6f42c1;
+
+  /* Feedback -------------------------------------------------------------- *
+   * The `alert-*` fills, borders and text, as Bootstrap 5 mixes them.        */
+  --info-bg: #cff4fc;
+  --info-line: #b6effb;
+  --info-ink: #055160;
+  --success-bg: #d1e7dd;
+  --success-line: #badbcc;
+  --success-ink: #0f5132;
+  --warning-bg: #fff3cd;
+  --warning-line: #ffecb5;
+  --warning-ink: #664d03;
+  --danger-bg: #f8d7da;
+  --danger-line: #f5c2c7;
+  --danger-ink: #842029;
+  --announcement: #dc3545;
+
+  /* Verdicts -------------------------------------------------------------- */
+  --v-good: #146c43;
+  --v-good-bg: #d1e7dd;
+  --v-bad: #b02a37;
+  --v-bad-bg: #f8d7da;
+  --v-warn: #997404;
+  --v-warn-bg: #fff3cd;
+  --v-neutral: #6c757d;
+  --v-neutral-bg: #e9ecef;
+  --v-run: #0a58ca;
+  --v-run-bg: #cfe2ff;
+  --v-ie: #842029;
+
+  /* Scoreboard ------------------------------------------------------------ *
+   * DOMjudge's own, and the reason its scoreboard is legible from the back of
+   * a lecture theatre: solved is a green nobody would choose for a document,
+   * first blood is brighter still, pending is that yellow.                   */
+  --cell-solved-bg: #60e060;
+  --cell-solved-ink: #0a3d0a;
+  --cell-first-bg: #00df00;
+  --cell-first-ink: #003b00;
+  --cell-first-ring: #009b00;
+  --cell-failed-bg: #ff8b8b;
+  --cell-failed-ink: #4d0000;
+  --cell-judging-bg: #ffff64;
+  --cell-judging-ink: #4a4a00;
+  --cell-frozen-bg: #c8c8c8;
+  --cell-frozen-ink: #2b2b2b;
+
+  --state-untouched-bg: #f8f9fa;
+
+  /* Type ------------------------------------------------------------------ *
+   * One family for everything: DOMjudge has no display face.                 */
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-display: var(--font-body);
+  --font-mono: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --tracking-label: 0;
+  --tracking-rail: 0;
+
+  /* Shape ----------------------------------------------------------------- *
+   * `$border-radius`, and Bootstrap's two elevations for the things that
+   * float. A resting card has no shadow at all.                              */
+  --radius-sm: 0.2rem;
+  --radius: 0.25rem;
+  --radius-lg: 0.3rem;
+  --shadow-1: none;
+  --shadow-2: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  --shadow-3: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+  --shadow-hard: none;
+  --shadow: rgba(0, 0, 0, 0.15);
+}
+
+/* Bootstrap 5.3's dark mode, which is the same palette with the ramp inverted.
+   Both selectors are needed for the same reason as in tokens.css: the page wears
+   the attribute on `<html>`, a preview box wears it on a `<div>`. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])[data-skin="domjudge"],
+  :root:not([data-theme="light"]) [data-skin="domjudge"] {
+    color-scheme: dark;
+
+    --nav: #1a1d20;
+    --nav-keyline: #000000;
+    --wordmark-ink: #dee2e6;
+    --contest-bar: #000000;
+    --titlebar: #2b3035;
+    --titlebar-ink: #dee2e6;
+    --titlebar-ink-2: #adb5bd;
+    --titlebar-line: #495057;
+
+    --brand-royal: #6ea8fe;
+    --accent: #0d6efd;
+    --accent-hover: #3d8bfd;
+    --accent-active: #6ea8fe;
+    --accent-soft: #031633;
+    --accent-line: #084298;
+    --focus-ring: 0 0 0 0.25rem rgba(110, 168, 254, 0.25);
+    --focus-ring-inset: inset 0 0 0 0.25rem rgba(110, 168, 254, 0.25);
+
+    --bg: #212529;
+    --bg-2: #212529;
+    --surface: #2b3035;
+    --surface-2: #343a40;
+    --surface-3: #495057;
+    --ink: #dee2e6;
+    --ink-2: #adb5bd;
+    --muted: #8d959d;
+    --line: #495057;
+    --line-strong: #5c636a;
+    --code-bg: #1a1d20;
+    --code-line: #495057;
+
+    --row-zebra: #262b30;
+    --row-hover: #343a40;
+
+    --link: #6ea8fe;
+    --link-hover: #8bb9fe;
+    --link-active: #8bb9fe;
+    --link-visited: #a98eda;
+
+    --info-bg: #032830;
+    --info-line: #055160;
+    --info-ink: #6edff6;
+    --success-bg: #051b11;
+    --success-line: #0f5132;
+    --success-ink: #75b798;
+    --warning-bg: #332701;
+    --warning-line: #664d03;
+    --warning-ink: #ffda6a;
+    --danger-bg: #2c0b0e;
+    --danger-line: #842029;
+    --danger-ink: #ea868f;
+
+    --v-good: #75b798;
+    --v-good-bg: #051b11;
+    --v-bad: #ea868f;
+    --v-bad-bg: #2c0b0e;
+    --v-warn: #ffda6a;
+    --v-warn-bg: #332701;
+    --v-neutral: #adb5bd;
+    --v-neutral-bg: #343a40;
+    --v-run: #6ea8fe;
+    --v-run-bg: #031633;
+    --v-ie: #ea868f;
+
+    /* The scoreboard keeps its shout; only the text on it is re-cut. */
+    --cell-solved-bg: #1f7a1f;
+    --cell-solved-ink: #d8ffd8;
+    --cell-first-bg: #00a800;
+    --cell-first-ink: #002b00;
+    --cell-first-ring: #00df00;
+    --cell-failed-bg: #7a1f1f;
+    --cell-failed-ink: #ffd8d8;
+    --cell-judging-bg: #6b6b12;
+    --cell-judging-ink: #ffff9e;
+    --cell-frozen-bg: #495057;
+    --cell-frozen-ink: #dee2e6;
+
+    --state-untouched-bg: #343a40;
+  }
+}
+
+:root[data-theme="dark"][data-skin="domjudge"],
+:root[data-theme="dark"] [data-skin="domjudge"] {
+  color-scheme: dark;
+
+  --nav: #1a1d20;
+  --nav-keyline: #000000;
+  --wordmark-ink: #dee2e6;
+  --contest-bar: #000000;
+  --titlebar: #2b3035;
+  --titlebar-ink: #dee2e6;
+  --titlebar-ink-2: #adb5bd;
+  --titlebar-line: #495057;
+
+  --brand-royal: #6ea8fe;
+  --accent: #0d6efd;
+  --accent-hover: #3d8bfd;
+  --accent-active: #6ea8fe;
+  --accent-soft: #031633;
+  --accent-line: #084298;
+  --focus-ring: 0 0 0 0.25rem rgba(110, 168, 254, 0.25);
+  --focus-ring-inset: inset 0 0 0 0.25rem rgba(110, 168, 254, 0.25);
+
+  --bg: #212529;
+  --bg-2: #212529;
+  --surface: #2b3035;
+  --surface-2: #343a40;
+  --surface-3: #495057;
+  --ink: #dee2e6;
+  --ink-2: #adb5bd;
+  --muted: #8d959d;
+  --line: #495057;
+  --line-strong: #5c636a;
+  --code-bg: #1a1d20;
+  --code-line: #495057;
+
+  --row-zebra: #262b30;
+  --row-hover: #343a40;
+
+  --link: #6ea8fe;
+  --link-hover: #8bb9fe;
+  --link-active: #8bb9fe;
+  --link-visited: #a98eda;
+
+  --info-bg: #032830;
+  --info-line: #055160;
+  --info-ink: #6edff6;
+  --success-bg: #051b11;
+  --success-line: #0f5132;
+  --success-ink: #75b798;
+  --warning-bg: #332701;
+  --warning-line: #664d03;
+  --warning-ink: #ffda6a;
+  --danger-bg: #2c0b0e;
+  --danger-line: #842029;
+  --danger-ink: #ea868f;
+
+  --v-good: #75b798;
+  --v-good-bg: #051b11;
+  --v-bad: #ea868f;
+  --v-bad-bg: #2c0b0e;
+  --v-warn: #ffda6a;
+  --v-warn-bg: #332701;
+  --v-neutral: #adb5bd;
+  --v-neutral-bg: #343a40;
+  --v-run: #6ea8fe;
+  --v-run-bg: #031633;
+  --v-ie: #ea868f;
+
+  --cell-solved-bg: #1f7a1f;
+  --cell-solved-ink: #d8ffd8;
+  --cell-first-bg: #00a800;
+  --cell-first-ink: #002b00;
+  --cell-first-ring: #00df00;
+  --cell-failed-bg: #7a1f1f;
+  --cell-failed-ink: #ffd8d8;
+  --cell-judging-bg: #6b6b12;
+  --cell-judging-ink: #ffff9e;
+  --cell-frozen-bg: #495057;
+  --cell-frozen-ink: #dee2e6;
+
+  --state-untouched-bg: #343a40;
+}
+
+/* The one decoration a token cannot switch off, the constellation field being a
+   picture rather than a colour. Bootstrap puts nothing behind a page. */
+:root[data-skin="domjudge"] .page-constellations {
+  display: none;
+}
