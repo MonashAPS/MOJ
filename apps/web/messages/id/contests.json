@@ -189,6 +189,12 @@
     "statementHint": "Unduh soal sebagai PDF",
     "samples": "Contoh",
     "samplesHint": "Unduh data contoh sebagai zip",
+    "domjudgeProblemsTitle": "Soal {name}",
+    "domjudgeLimits": "Batas: {time} / {memory}",
+    "domjudgeSeconds": "{count, plural, other {# detik}}",
+    "domjudgeType": "Tipe: {type}",
+    "domjudgePassFail": "lulus-gagal",
+    "domjudgeScoring": "berskor",
     "submit": "Kirim"
   },
   "clarifications": {

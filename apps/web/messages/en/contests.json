@@ -189,6 +189,12 @@
     "statementHint": "Download the statement as a PDF",
     "samples": "Samples",
     "samplesHint": "Download the sample data as a zip",
+    "domjudgeProblemsTitle": "{name} problems",
+    "domjudgeLimits": "Limits: {time} / {memory}",
+    "domjudgeSeconds": "{count, plural, one {# second} other {# seconds}}",
+    "domjudgeType": "Type: {type}",
+    "domjudgePassFail": "pass-fail",
+    "domjudgeScoring": "scoring",
     "submit": "Submit"
   },
   "clarifications": {

@@ -112,7 +112,6 @@ export function SiteShell({
    * it while you are in one.
    */
   const asDomjudge = usesDomjudgeStructure(useSkin());
-  const navContest = contest ? { key: contest.contest.key, name: contest.contest.name } : null;
 
   const strayFromContest =
     lockedDown &&
@@ -183,17 +182,18 @@ export function SiteShell({
       </a>
 
       <header ref={headerRef} className="fixed inset-x-0 top-0 z-(--z-nav)">
-        {lockedDown ? null : asDomjudge ? (
+        {/* DOMjudge has one bar, and it is the contest's: at the structure depth
+            it stands in for the contest bar too, lockdown included. */}
+        {asDomjudge ? (
           <DomjudgeNav
             nav={nav}
             viewer={viewer}
-            contest={navContest}
+            bar={contest ?? null}
             registrationOpen={registrationOpen}
             onOpenSearch={() => setPaletteOpen(true)}
-            logoUrl={logoUrl}
             siteName={siteName}
           />
-        ) : (
+        ) : lockedDown ? null : (
           <NavBar
             nav={nav}
             viewer={viewer}
@@ -206,7 +206,7 @@ export function SiteShell({
         {/* The royal, carried across the top of every page — and one of the
             things DOMjudge's chrome does not have. */}
         {asDomjudge ? null : <div aria-hidden className="h-[3px] bg-royal" />}
-        {lockedDown && joined ? (
+        {asDomjudge ? null : lockedDown && joined ? (
           <ContestBar
             data={joined}
             currentCode={problemCode}

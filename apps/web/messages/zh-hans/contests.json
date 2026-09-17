@@ -189,6 +189,12 @@
     "statementHint": "下载 PDF 题面",
     "samples": "样例",
     "samplesHint": "下载样例数据压缩包",
+    "domjudgeProblemsTitle": "{name} 题目",
+    "domjudgeLimits": "限制：{time} / {memory}",
+    "domjudgeSeconds": "{count, plural, other {# 秒}}",
+    "domjudgeType": "类型：{type}",
+    "domjudgePassFail": "通过制",
+    "domjudgeScoring": "计分制",
     "submit": "提交"
   },
   "clarifications": {

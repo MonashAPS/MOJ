@@ -189,6 +189,12 @@
     "statementHint": "Descargar el enunciado en PDF",
     "samples": "Ejemplos",
     "samplesHint": "Descargar los datos de ejemplo en un zip",
+    "domjudgeProblemsTitle": "Problemas de {name}",
+    "domjudgeLimits": "Límites: {time} / {memory}",
+    "domjudgeSeconds": "{count, plural, one {# segundo} other {# segundos}}",
+    "domjudgeType": "Tipo: {type}",
+    "domjudgePassFail": "todo o nada",
+    "domjudgeScoring": "puntuado",
     "submit": "Enviar"
   },
   "clarifications": {
