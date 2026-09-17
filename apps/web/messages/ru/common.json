@@ -26,7 +26,10 @@
     "editProfile": "Редактировать профиль",
     "themeFollowSystem": "Как в системе",
     "skinMaps": "MAPS",
-    "skinDomjudge": "DOMjudge"
+    "skinDomjudge": "DOMjudge",
+    "skinDepth": "Насколько полно",
+    "skinColour": "Цвета",
+    "skinColourStructure": "Цвета и структура"
   },
   "actions": {
     "save": "Сохранить",

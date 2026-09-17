@@ -6,11 +6,13 @@ import {
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  ToggleGroup,
+  ToggleGroupItem,
   Tooltip,
 } from "@moj/ui";
 import { Check, Palette } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { SKINS, type Skin } from "@/lib/skin";
+import { SKIN_FAMILIES, type Skin, type SkinFamily, skinFamily } from "@/lib/skin";
 import { useSkinChoice } from "./SkinProvider";
 import { type ThemeChoice, ThemeSegmented } from "./ThemeToggle";
 
@@ -51,45 +53,69 @@ function SkinPreview({ skin }: { skin: Skin }) {
   );
 }
 
-const SKIN_LABEL: Record<Skin, string> = { maps: "skinMaps", domjudge: "skinDomjudge" };
+const FAMILY_LABEL: Record<SkinFamily, string> = { maps: "skinMaps", domjudge: "skinDomjudge" };
+
+/** The skin each card previews and selects; its variants sit behind the card. */
+const FAMILY_SKIN: Record<SkinFamily, Skin> = { maps: "maps", domjudge: "domjudge" };
 
 /**
- * Picking how the site looks: which design language, and light or dark within
- * it.
+ * Picking how the site looks: which design language, how much of it, and light
+ * or dark within that.
  *
- * The two are separate questions and the menu asks them separately — DOMjudge
- * has a dark mode of its own, and somebody who wants the house look at night
- * should not have to give up one to get the other.
+ * The questions are asked separately because they are separate — DOMjudge has a
+ * dark mode of its own, and somebody who wants the house look at night should
+ * not have to give up one to get the other. Choosing DOMjudge then asks how far
+ * it goes: its colours over our pages, or its pages as well.
  */
 export function ThemeMenu({ theme, className }: { theme?: ThemeChoice; className?: string }) {
   const t = useTranslations("common.nav");
   const { skin, choose } = useSkinChoice();
+  const family = skinFamily(skin);
 
   return (
     <div className={cn("grid gap-2", className)}>
       <div className="grid grid-cols-2 gap-2">
-        {SKINS.map((option) => (
+        {SKIN_FAMILIES.map((option) => (
           <button
             key={option}
             type="button"
-            aria-pressed={skin === option}
-            onClick={() => choose(option)}
+            aria-pressed={family === option}
+            // Staying inside a family keeps the variant: pressing the card you
+            // are already on must not quietly undo the choice behind it.
+            onClick={() => choose(family === option ? skin : FAMILY_SKIN[option])}
             className={cn(
               "grid cursor-pointer gap-1 rounded-md border p-1 text-left transition-[background-color,border-color]",
               "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-royal/60",
-              skin === option
+              family === option
                 ? "border-primary bg-primary-soft"
                 : "border-border hover:border-primary hover:bg-secondary",
             )}
           >
-            <SkinPreview skin={option} />
+            <SkinPreview skin={FAMILY_SKIN[option]} />
             <span className="flex items-center justify-between gap-1 px-0.5 text-sm font-medium">
-              {t(SKIN_LABEL[option])}
-              {skin === option ? <Check size={13} aria-hidden className="text-primary" /> : null}
+              {t(FAMILY_LABEL[option])}
+              {family === option ? <Check size={13} aria-hidden className="text-primary" /> : null}
             </span>
           </button>
         ))}
       </div>
+
+      {/* How far DOMjudge goes. The house skin has no such question: it is the
+          one the pages were built for. */}
+      {family === "domjudge" ? (
+        <ToggleGroup
+          type="single"
+          value={skin}
+          onValueChange={(value) => {
+            if (value === "domjudge" || value === "domjudge-structure") choose(value);
+          }}
+          aria-label={t("skinDepth")}
+        >
+          <ToggleGroupItem value="domjudge">{t("skinColour")}</ToggleGroupItem>
+          <ToggleGroupItem value="domjudge-structure">{t("skinColourStructure")}</ToggleGroupItem>
+        </ToggleGroup>
+      ) : null}
+
       <ThemeSegmented initial={theme} />
     </div>
   );

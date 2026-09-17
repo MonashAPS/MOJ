@@ -26,7 +26,10 @@
     "editProfile": "Edit profil",
     "themeFollowSystem": "Ikuti sistem",
     "skinMaps": "MAPS",
-    "skinDomjudge": "DOMjudge"
+    "skinDomjudge": "DOMjudge",
+    "skinDepth": "Seberapa jauh",
+    "skinColour": "Warna",
+    "skinColourStructure": "Warna + struktur"
   },
   "actions": {
     "save": "Simpan",

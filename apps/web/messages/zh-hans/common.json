@@ -26,7 +26,10 @@
     "editProfile": "编辑资料",
     "themeFollowSystem": "跟随系统",
     "skinMaps": "MAPS",
-    "skinDomjudge": "DOMjudge"
+    "skinDomjudge": "DOMjudge",
+    "skinDepth": "应用范围",
+    "skinColour": "配色",
+    "skinColourStructure": "配色 + 版式"
   },
   "actions": {
     "save": "保存",
