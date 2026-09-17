@@ -37,6 +37,13 @@ import { contestTabs, joinKindFor } from "./tabs";
 
 const DASH = "—";
 
+/** A download on a problem's row: quieter and shorter than a button, so two of
+ *  them stack inside one row without growing it. */
+const ROW_DOWNLOAD =
+  "flex h-6 items-center gap-1.5 rounded-sm px-1.5 text-sm text-subtle transition-colors " +
+  "hover:bg-secondary hover:text-foreground " +
+  "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-royal/60";
+
 /** DMOJ's `#banner`: one sentence saying where the viewer stands in the clock. */
 function Banner({ detail }: { detail: ContestDetail }) {
   const t = useTranslations("contests.detail");
@@ -238,24 +245,35 @@ function ProblemRow({
       {/* Above the row's own link, like the other cells that carry one of their
           own — otherwise the overlay swallows the buttons. */}
       <TableCell className="relative z-1 w-px">
-        <span className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+        <span className="flex items-center justify-end gap-2 whitespace-nowrap">
+          {/* The two downloads stack rather than sitting side by side: abreast
+              they made the widest column in the table out of two things you
+              press once, and the row is two lines tall anyway. */}
           {problem.isAccessible ? (
-            <Tooltip content={t("statementHint")}>
-              <Button asChild variant="ghost" size="sm" icon={<FileDown size={14} />}>
-                <a href={`/problem/${problem.code}/pdf`} download={`${problem.code}.pdf`}>
+            <span className="grid gap-0.5">
+              <Tooltip content={t("statementHint")}>
+                <a
+                  href={`/problem/${problem.code}/pdf`}
+                  download={`${problem.code}.pdf`}
+                  className={ROW_DOWNLOAD}
+                >
+                  <FileDown size={13} aria-hidden className="shrink-0 opacity-70" />
                   {t("statement")}
                 </a>
-              </Button>
-            </Tooltip>
-          ) : null}
-          {problem.isAccessible && problem.hasSamples ? (
-            <Tooltip content={t("samplesHint")}>
-              <Button asChild variant="ghost" size="sm" icon={<FileArchive size={14} />}>
-                <a href={`/problem/${problem.code}/samples`} download={`${problem.code}-samples.zip`}>
-                  {t("samples")}
-                </a>
-              </Button>
-            </Tooltip>
+              </Tooltip>
+              {problem.hasSamples ? (
+                <Tooltip content={t("samplesHint")}>
+                  <a
+                    href={`/problem/${problem.code}/samples`}
+                    download={`${problem.code}-samples.zip`}
+                    className={ROW_DOWNLOAD}
+                  >
+                    <FileArchive size={13} aria-hidden className="shrink-0 opacity-70" />
+                    {t("samples")}
+                  </a>
+                </Tooltip>
+              ) : null}
+            </span>
           ) : null}
           {problem.isAccessible && canSubmit ? (
             <QuickSubmit
