@@ -358,6 +358,8 @@
     "boardSummaryCell": "{solved} of {tried} who tried",
     "boardElapsed": "{count, plural, one {# minute elapsed} other {# minutes elapsed}}",
     "boardOver": "Contest over",
+    "boardPreliminary": "preliminary results - not final",
+    "boardFinal": "final results",
     "boardLegendFirst": "First to solve",
     "boardLegendSolved": "Solved",
     "boardLegendTried": "Tried, not solved",

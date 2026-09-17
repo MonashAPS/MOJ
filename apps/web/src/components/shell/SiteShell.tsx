@@ -132,9 +132,14 @@ export function SiteShell({
         useClarifications: contest.contest.useClarifications,
         endsAt: contest.endsAt,
         ownSubmissions: contest.links.submissions && !!viewer,
+        problems: contest.problems.map((problem) => ({
+          code: problem.code,
+          name: problem.name,
+          label: problem.label,
+        })),
       }
     : chrome
-      ? { ...chrome, endsAt: null, ownSubmissions: false }
+      ? { ...chrome, endsAt: null, ownSubmissions: false, problems: [] }
       : null;
 
   const strayFromContest =

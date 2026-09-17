@@ -358,6 +358,8 @@
     "boardSummaryCell": "{solved} dari {tried} yang mencoba",
     "boardElapsed": "{count, plural, other {# menit berjalan}}",
     "boardOver": "Kontes selesai",
+    "boardPreliminary": "hasil sementara - belum final",
+    "boardFinal": "hasil akhir",
     "boardLegendFirst": "Penyelesai pertama",
     "boardLegendSolved": "Terselesaikan",
     "boardLegendTried": "Dicoba, belum selesai",

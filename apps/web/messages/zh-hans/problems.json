@@ -155,6 +155,8 @@
   },
   "submit": {
     "titleFor": "提交到 {name}",
+    "title": "提交解答",
+    "problem": "题目",
     "emptySource": "提交内容不能为空。",
     "tooLong": "你的源代码不能超过 {count, number} 个字符。",
     "failed": "你的提交未被接受。",

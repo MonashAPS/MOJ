@@ -358,6 +358,8 @@
     "boardSummaryCell": "{tried} 支队伍中有 {solved} 支解出",
     "boardElapsed": "{count, plural, other {已进行 # 分钟}}",
     "boardOver": "比赛已结束",
+    "boardPreliminary": "初步结果，非最终",
+    "boardFinal": "最终结果",
     "boardLegendFirst": "首个解出",
     "boardLegendSolved": "已解出",
     "boardLegendTried": "尝试未解出",

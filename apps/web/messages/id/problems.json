@@ -155,6 +155,8 @@
   },
   "submit": {
     "titleFor": "Kirim ke {name}",
+    "title": "Kirim solusi",
+    "problem": "Soal",
     "emptySource": "Pengiriman memerlukan kode sumber.",
     "tooLong": "Kode sumber Anda maksimal boleh berisi {count, number} karakter.",
     "failed": "Pengiriman Anda tidak diterima.",

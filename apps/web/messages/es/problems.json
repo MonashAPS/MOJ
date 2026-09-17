@@ -155,6 +155,8 @@
   },
   "submit": {
     "titleFor": "Enviar a {name}",
+    "title": "Enviar una solución",
+    "problem": "Problema",
     "emptySource": "Un envío necesita algo de código fuente.",
     "tooLong": "Tu código fuente debe contener como máximo {count, number} caracteres.",
     "failed": "Tu envío no fue aceptado.",

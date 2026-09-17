@@ -218,7 +218,9 @@ function ProblemRow({
         )}
       </TableCell>
       {showEditorials ? (
-        <TableCell className="relative z-1 w-20">
+        // Right, with the numbers it sits among: the icon is narrow and a left
+        // edge put it halfway across a column its heading ends at.
+        <TableCell className="relative z-1 w-20 text-right">
           {problem.isAccessible && problem.hasPublicEditorial ? (
             <Tooltip content={columns("editorial")}>
               <Link href={`/problem/${problem.code}/editorial/`} className="text-good">
@@ -505,7 +507,9 @@ export function ContestDetailClient({
                   <TableHead numeric>{columns("acRate")}</TableHead>
                   <TableHead numeric>{columns("users")}</TableHead>
                   {detail.metadata.hasPublicEditorials ? (
-                    <TableHead className="w-20">{columns("editorial")}</TableHead>
+                    <TableHead numeric className="w-20">
+                      {columns("editorial")}
+                    </TableHead>
                   ) : null}
                 </TableRow>
               </TableHeader>
