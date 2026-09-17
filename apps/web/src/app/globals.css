@@ -4,6 +4,7 @@
 @import "@moj/ui/tokens.css";
 @import "@moj/ui/theme.css";
 @import "@moj/ui/skin.css";
+@import "@moj/ui/theme-domjudge.css";
 @import "@moj/content/styles/content.css";
 @import "katex/dist/katex.min.css";
 

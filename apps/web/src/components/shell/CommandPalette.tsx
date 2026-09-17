@@ -17,6 +17,7 @@ import {
   History,
   ListChecks,
   Moon,
+  Palette,
   Puzzle,
   Search,
   Trophy,
@@ -26,6 +27,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSkinChoice } from "@/components/shell/SkinProvider";
 import { applyTheme } from "@/components/shell/ThemeToggle";
 
 const RECENTS_KEY = "moj-palette-recents";
@@ -133,6 +135,7 @@ export function CommandPalette({
   onOpenChange: (open: boolean) => void;
 }) {
   const t = useTranslations("common.palette");
+  const { skin, choose } = useSkinChoice();
   const nav = useTranslations("common.nav");
   const states = useTranslations("common.states");
   const router = useRouter();
@@ -294,6 +297,16 @@ export function CommandPalette({
           >
             <Moon aria-hidden />
             {t("toggleDarkMode")}
+          </CommandItem>
+          <CommandItem
+            value="action switch skin theme domjudge"
+            onSelect={() => {
+              choose(skin === "domjudge" ? "maps" : "domjudge");
+              onOpenChange(false);
+            }}
+          >
+            <Palette aria-hidden />
+            {t("switchSkin")}
           </CommandItem>
         </CommandGroup>
       </CommandList>

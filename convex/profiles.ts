@@ -28,7 +28,7 @@ import { optionalViewer, requireStaff, requireViewer } from "./lib/auth";
 import { forbidden, invalid, notFound } from "./lib/errors";
 import { isNonEmptyString } from "./lib/json";
 import { insertProfileAggregates, patchProfile } from "./rankings";
-import { siteTheme } from "./schema";
+import { siteSkin, siteTheme } from "./schema";
 
 export const DEFAULT_TIMEZONE = "Australia/Melbourne";
 
@@ -899,15 +899,27 @@ export const updateProfile = mutation({
   },
 });
 
+/**
+ * The viewer's own look: light or dark, and which skin.
+ *
+ * Both are optional and only what arrives is written, because the two controls
+ * are separate and each one saves on its own. The profile is where a choice
+ * made on one machine is picked up on the next.
+ */
 export const setTheme = mutation({
-  args: { siteTheme },
+  args: { siteTheme: v.optional(siteTheme), siteSkin: v.optional(siteSkin) },
   handler: async (ctx, args) => {
     const profile = await optionalViewer(ctx);
 
     if (!profile) return null;
-    await ctx.db.patch(profile._id, { siteTheme: args.siteTheme });
+    const patch: Partial<Doc<"profiles">> = {};
 
-    return args.siteTheme;
+    if (args.siteTheme !== undefined) patch.siteTheme = args.siteTheme;
+
+    if (args.siteSkin !== undefined) patch.siteSkin = args.siteSkin;
+    await ctx.db.patch(profile._id, patch);
+
+    return { siteTheme: args.siteTheme ?? profile.siteTheme, siteSkin: args.siteSkin ?? profile.siteSkin };
   },
 });
 

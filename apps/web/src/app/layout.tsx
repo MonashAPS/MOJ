@@ -8,6 +8,7 @@ import { ConvexClientProvider } from "@/auth/convex-client";
 import { getServerSession } from "@/auth/session";
 import { BrandingStyle } from "@/components/shell/BrandingStyle";
 import { SiteShell } from "@/components/shell/SiteShell";
+import { SkinProvider } from "@/components/shell/SkinProvider";
 import { ThemeScript } from "@/components/shell/ThemeScript";
 import { UiText } from "@/components/shell/UiText";
 import { isInsideContest, PATHNAME_HEADER } from "@/lib/contest-lockdown";
@@ -16,6 +17,7 @@ import { gravatarUrl } from "@/lib/gravatar";
 import { viewerLanguage } from "@/lib/language.server";
 import { PublicConfigProvider } from "@/lib/public-config";
 import { publicConfig } from "@/lib/public-config.server";
+import { resolveSkin, SKIN_COOKIE } from "@/lib/skin";
 import { resolveTheme, THEME_COOKIE } from "@/lib/theme";
 import "./globals.css";
 
@@ -84,6 +86,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   const profile = viewerState?.profile ?? null;
 
+  // The skin the same way, except that the fallback is the viewer's own: a
+  // choice made on another machine travels with the profile, and the bootstrap
+  // is told the same fallback so it does not undo what the markup carries.
+  const profileSkin = profile?.siteSkin;
+  const skin = resolveSkin(jar.get(SKIN_COOKIE)?.value ?? profileSkin);
+
   const viewer = profile
     ? {
         username: profile.username,
@@ -103,11 +111,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html
       lang={language}
       data-theme={theme ?? undefined}
+      data-skin={skin}
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <head>
-        <ThemeScript defaultTheme={themeDefault} />
+        <ThemeScript defaultTheme={themeDefault} defaultSkin={resolveSkin(profileSkin)} />
         <BrandingStyle branding={branding} />
       </head>
       <body>
@@ -117,18 +126,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <UiText>
             <PublicConfigProvider config={config}>
               <ConvexClientProvider>
-                <SiteShell
-                  nav={shell?.nav ?? []}
-                  misc={shell?.misc ?? {}}
-                  viewer={viewer}
-                  registrationOpen={shell?.settings?.registrationOpen ?? true}
-                  language={language}
-                  logoUrl={branding?.logoUrl ?? null}
-                  siteName={branding?.siteLongName ?? "MAPS Online Judge"}
-                  initialContest={joined}
-                >
-                  {children}
-                </SiteShell>
+                <SkinProvider initial={skin}>
+                  <SiteShell
+                    nav={shell?.nav ?? []}
+                    misc={shell?.misc ?? {}}
+                    viewer={viewer}
+                    registrationOpen={shell?.settings?.registrationOpen ?? true}
+                    language={language}
+                    logoUrl={branding?.logoUrl ?? null}
+                    siteName={branding?.siteLongName ?? "MAPS Online Judge"}
+                    initialContest={joined}
+                  >
+                    {children}
+                  </SiteShell>
+                </SkinProvider>
               </ConvexClientProvider>
             </PublicConfigProvider>
           </UiText>

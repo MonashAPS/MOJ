@@ -11,6 +11,12 @@
  *     by :root:not([data-theme="light"])            explicitly chose light
  *   :root[data-theme="dark"]                        explicit dark
  *
+ * A named skin (see theme-domjudge.css) overrides these on `[data-skin=...]`,
+ * which is on `<html>` for the page and on the preview box in the theme menu.
+ * Every block below therefore answers to `[data-skin="maps"]` as well, so the
+ * house preview painted inside a DOMjudge page is the house palette rather than
+ * whatever it inherits.
+ *
  * Rules for consumers:
  *   - never hard-code a hex in a component; every colour comes from here
  *   - --brand-* are fixed brand constants, identical in both themes; they are
@@ -18,7 +24,8 @@
  *   - anything ending -ink is the foreground to use on the matching surface
  */
 
-:root {
+:root,
+[data-skin="maps"] {
   color-scheme: light;
 
   /* Brand constants ------------------------------------------------------- *
@@ -282,7 +289,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme="light"]),
+  :root:not([data-theme="light"]) [data-skin="maps"] {
     color-scheme: dark;
 
     /* The royal is lifted on dark so the nav keyline, the focus border and the
@@ -413,6 +421,7 @@
 /* `.theme-dark` is the same palette scoped to a subtree, for the one surface that
    is dark by identity whatever the viewer's theme is: the hall scoreboard. */
 :root[data-theme="dark"],
+:root[data-theme="dark"] [data-skin="maps"],
 .theme-dark {
   color-scheme: dark;
 

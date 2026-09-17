@@ -5,6 +5,10 @@ export const displayRank = v.union(v.literal("user"), v.literal("setter"), v.lit
 
 export const siteTheme = v.union(v.literal("auto"), v.literal("light"), v.literal("dark"));
 
+/** Which design language the site wears: the house one, or DOMjudge's. Optional
+ *  because every profile that predates the menu has never been asked. */
+export const siteSkin = v.union(v.literal("maps"), v.literal("domjudge"));
+
 /** The theme a visitor with no stored preference gets (SPEC section 24). */
 export const themeDefault = v.union(v.literal("system"), v.literal("light"), v.literal("dark"));
 
@@ -88,6 +92,7 @@ export default defineSchema({
     currentParticipationId: v.optional(v.id("contestParticipations")),
     mathEngine: v.string(),
     siteTheme,
+    siteSkin: v.optional(siteSkin),
     editorTheme: v.string(),
     lastAccess: v.optional(v.number()),
     ip: v.optional(v.string()),

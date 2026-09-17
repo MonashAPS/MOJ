@@ -25,7 +25,8 @@
     "myProfile": "Mi perfil",
     "editProfile": "Editar perfil",
     "themeFollowSystem": "Seguir el sistema",
-    "themeSwitch": "Tema: {current, select, light {claro} dark {oscuro} other {sistema}}. Cambiar a {next, select, light {claro} dark {oscuro} other {sistema}}."
+    "skinMaps": "MAPS",
+    "skinDomjudge": "DOMjudge"
   },
   "actions": {
     "save": "Guardar",
@@ -160,7 +161,8 @@
     "noMatches": "Sin resultados para <term>{query}</term>.",
     "searchAllProblems": "Buscar en todos los problemas",
     "randomProblem": "Problema aleatorio",
-    "toggleDarkMode": "Alternar modo oscuro"
+    "toggleDarkMode": "Alternar modo oscuro",
+    "switchSkin": "Cambiar el tema del sitio"
   },
   "shortcuts": {
     "title": "Atajos de teclado",

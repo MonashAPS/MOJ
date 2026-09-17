@@ -185,7 +185,12 @@ export function SiteShell({
         {/* The royal, carried across the top of every page. */}
         <div aria-hidden className="h-[3px] bg-royal" />
         {lockedDown && joined ? (
-          <ContestBar data={joined} currentCode={problemCode} viewerUsername={viewer?.username ?? null} />
+          <ContestBar
+            data={joined}
+            currentCode={problemCode}
+            viewerUsername={viewer?.username ?? null}
+            account={viewer}
+          />
         ) : onContestPage && contest ? (
           <ContestBar data={contest} currentCode={problemCode} viewerUsername={viewer?.username ?? null} />
         ) : routeKey && contest === undefined ? (

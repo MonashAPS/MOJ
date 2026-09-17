@@ -25,7 +25,8 @@
     "myProfile": "Profil saya",
     "editProfile": "Edit profil",
     "themeFollowSystem": "Ikuti sistem",
-    "themeSwitch": "Tema: {current, select, light {terang} dark {gelap} other {sistem}}. Beralih ke {next, select, light {terang} dark {gelap} other {sistem}}."
+    "skinMaps": "MAPS",
+    "skinDomjudge": "DOMjudge"
   },
   "actions": {
     "save": "Simpan",
@@ -160,7 +161,8 @@
     "noMatches": "Tidak ada hasil untuk <term>{query}</term>.",
     "searchAllProblems": "Cari semua soal",
     "randomProblem": "Soal acak",
-    "toggleDarkMode": "Alihkan mode gelap"
+    "toggleDarkMode": "Alihkan mode gelap",
+    "switchSkin": "Ganti tema situs"
   },
   "shortcuts": {
     "title": "Pintasan keyboard",
