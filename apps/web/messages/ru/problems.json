@@ -91,7 +91,6 @@
   "detail": {
     "noSuchProblem": "Такой задачи нет",
     "clarifications": "Вопросы",
-    "noClarifications": "Пока не было ни одного вопроса.",
     "contestProblemsNav": "Задачи соревнования",
     "requestClarification": "Задать вопрос",
     "reportIssue": "Сообщить об ошибке",
