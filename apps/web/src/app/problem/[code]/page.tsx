@@ -66,7 +66,12 @@ export default async function ProblemStatementPage({ params }: { params: Promise
 
   const siblings = bar?.problems ?? [];
   const here = siblings.findIndex((row) => row.code === problem.code);
-  const showClarifications = !!problem.contestProblem && bar?.contest.useClarifications === true;
+
+  // Nothing clarified is nothing to say: a heading over a line explaining its
+  // own emptiness sat above the statement on every contest problem.
+  const showClarifications =
+    !!problem.contestProblem && bar?.contest.useClarifications === true && problem.clarifications.length > 0;
+
   const previous = here > 0 ? siblings[here - 1] : undefined;
   const next = here >= 0 && here < siblings.length - 1 ? siblings[here + 1] : undefined;
 
@@ -95,20 +100,16 @@ export default async function ProblemStatementPage({ params }: { params: Promise
           <h2 className="mb-3 font-display text-h2 font-bold tracking-tight text-foreground">
             {t("clarifications")}
           </h2>
-          {problem.clarifications.length === 0 ? (
-            <p className="text-base text-muted-foreground">{t("noClarifications")}</p>
-          ) : (
-            <ul className="grid gap-3">
-              {problem.clarifications.map((clarification) => (
-                <li key={clarification.id} className="rounded-md border border-border bg-card p-3">
-                  <p className="mb-1 font-mono text-sm tabular-nums text-muted-foreground">
-                    {formatRelative(clarification.date)}
-                  </p>
-                  <p className="whitespace-pre-wrap text-base text-foreground">{clarification.description}</p>
-                </li>
-              ))}
-            </ul>
-          )}
+          <ul className="grid gap-3">
+            {problem.clarifications.map((clarification) => (
+              <li key={clarification.id} className="rounded-md border border-border bg-card p-3">
+                <p className="mb-1 font-mono text-sm tabular-nums text-muted-foreground">
+                  {formatRelative(clarification.date)}
+                </p>
+                <p className="whitespace-pre-wrap text-base text-foreground">{clarification.description}</p>
+              </li>
+            ))}
+          </ul>
         </section>
       ) : null}
 

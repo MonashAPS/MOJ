@@ -91,7 +91,6 @@
   "detail": {
     "noSuchProblem": "El problema no existe",
     "clarifications": "Aclaraciones",
-    "noClarifications": "No se ha hecho ninguna aclaración por el momento.",
     "contestProblemsNav": "Problemas del concurso",
     "requestClarification": "Solicitar aclaración",
     "reportIssue": "Reportar un problema",
