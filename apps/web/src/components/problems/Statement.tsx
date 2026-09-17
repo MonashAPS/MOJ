@@ -39,7 +39,10 @@ export function Statement({ html, className }: { html: string; className?: strin
     const timers = new Set<ReturnType<typeof setTimeout>>();
 
     async function onClick(event: MouseEvent) {
-      const target = event.target instanceof HTMLElement ? event.target : null;
+      // `Element`, not `HTMLElement`: the button's whole middle is an <svg>, and
+      // an SVG element is not an HTMLElement, so narrowing that way threw away
+      // every click on an icon and left only the padding around it working.
+      const target = event.target instanceof Element ? event.target : null;
       const toggle = target?.closest<HTMLButtonElement>("[data-statement-expand]");
 
       if (toggle) {
