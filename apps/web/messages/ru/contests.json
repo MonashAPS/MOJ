@@ -189,8 +189,6 @@
   },
   "clarifications": {
     "title": "Вопросы",
-    "emptyTitle": "Нет вопросов",
-    "emptyBody": "По этому соревнованию пока не было вопросов.",
     "postTitle": "Задать вопрос",
     "problemOption": "{label}. {name}",
     "placeholder": "Что нужно уточнить?",

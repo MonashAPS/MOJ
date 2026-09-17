@@ -189,8 +189,6 @@
   },
   "clarifications": {
     "title": "Clarifications",
-    "emptyTitle": "No clarifications",
-    "emptyBody": "Nothing has been clarified for this contest.",
     "postTitle": "Post a clarification",
     "problemOption": "{label}. {name}",
     "placeholder": "What needs clarifying?",

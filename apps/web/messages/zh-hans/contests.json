@@ -189,8 +189,6 @@
   },
   "clarifications": {
     "title": "答疑",
-    "emptyTitle": "暂无答疑",
-    "emptyBody": "此比赛暂无任何答疑。",
     "postTitle": "发布答疑",
     "problemOption": "{label}. {name}",
     "placeholder": "有什么需要澄清的？",

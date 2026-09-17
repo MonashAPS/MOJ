@@ -189,8 +189,6 @@
   },
   "clarifications": {
     "title": "Aclaraciones",
-    "emptyTitle": "Sin aclaraciones",
-    "emptyBody": "No se ha aclarado nada para este concurso.",
     "postTitle": "Publicar una aclaración",
     "problemOption": "{label}. {name}",
     "placeholder": "¿Qué necesita aclaración?",

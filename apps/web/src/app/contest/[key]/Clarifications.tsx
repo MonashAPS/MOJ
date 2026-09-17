@@ -2,7 +2,7 @@
 
 import { api } from "@convex/_generated/api";
 import type { ContestProblemEntry } from "@convex/contests";
-import { Button, EmptyState, Panel, Select, Textarea, toast } from "@moj/ui";
+import { Button, Panel, Select, Textarea, toast } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { MessageSquareWarning } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -55,19 +55,21 @@ export function Clarifications({
     }
   };
 
+  const asked = rows ?? [];
+  const canAsk = canPost && problems.length > 0;
+
+  // A contest with nothing to clarify says nothing. The panel was a heading over
+  // a sentence explaining its own emptiness, on every contest that never needed
+  // one. An editor still gets the form, because that is how the first one is
+  // written.
+  if (asked.length === 0 && !canAsk) return null;
+
   return (
     <section id="clarifications" className="mt-8 grid gap-3 scroll-mt-24">
-      <Panel title={t("title")} icon={<MessageSquareWarning size={14} aria-hidden />} bodyClassName="p-0">
-        {rows === undefined ? null : rows === null || rows.length === 0 ? (
-          <EmptyState
-            className="border-0 bg-transparent"
-            icon={<MessageSquareWarning aria-hidden />}
-            title={t("emptyTitle")}
-            description={t("emptyBody")}
-          />
-        ) : (
+      {asked.length > 0 ? (
+        <Panel title={t("title")} icon={<MessageSquareWarning size={14} aria-hidden />} bodyClassName="p-0">
           <ul>
-            {rows.map((row) => (
+            {asked.map((row) => (
               <li key={row._id} className="border-b border-border p-3 last:border-b-0">
                 <div className="flex flex-wrap items-baseline gap-2">
                   <span className="font-mono text-sm font-medium text-muted-foreground">{row.label}</span>
@@ -80,10 +82,10 @@ export function Clarifications({
               </li>
             ))}
           </ul>
-        )}
-      </Panel>
+        </Panel>
+      ) : null}
 
-      {canPost && problems.length > 0 ? (
+      {canAsk ? (
         <Panel title={t("postTitle")} bodyClassName="p-3">
           <form className="grid gap-3" onSubmit={submit}>
             <Select
