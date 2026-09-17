@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { activeNavKeys, type NavNode } from "@/lib/nav";
+import { DomjudgeSubmit } from "./DomjudgeSubmit";
 import { ThemeDropdown } from "./ThemeMenu";
 import { UserBlock, type ViewerSummary } from "./UserBlock";
 import { Wordmark } from "./Wordmark";
@@ -38,6 +39,8 @@ type Contest = NonNullable<ContestChrome> & {
   /** When the viewer's own window closes, if they are in it. */
   endsAt: number | null;
   ownSubmissions: boolean;
+  /** Empty unless the viewer is in the contest, which is when they may submit. */
+  problems: { code: string; name: string; label: string }[];
 };
 
 /** The contest clock DOMjudge writes at the end of its bar. */
@@ -174,6 +177,8 @@ export function DomjudgeNav({
               <Search size={16} aria-hidden />
             </button>
           ) : null}
+          {/* DOMjudge submits from the bar rather than from a problem page. */}
+          {contest && viewer ? <DomjudgeSubmit problems={contest.problems} /> : null}
           <ThemeDropdown />
           {viewer ? (
             <UserBlock viewer={viewer} registrationOpen={registrationOpen} />

@@ -126,6 +126,14 @@
 
   --state-untouched-bg: #f8f9fa;
 
+  /* The scoreboard's own furniture: the tint DOMjudge lays under a team's row,
+     and the three medals it hangs on the places. */
+  --board-row: #e4f2e4;
+  --board-head: #ffffff;
+  --medal-gold: #f0c000;
+  --medal-silver: #a8a8a8;
+  --medal-bronze: #c08040;
+
   /* Type ------------------------------------------------------------------ *
    * One family for everything: DOMjudge has no display face.                 */
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
@@ -233,6 +241,8 @@
     --cell-frozen-ink: #dee2e6;
 
     --state-untouched-bg: #343a40;
+    --board-row: #1b2e1b;
+    --board-head: #2b3035;
   }
 }
 
@@ -339,6 +349,8 @@
   --cell-frozen-ink: #dee2e6;
 
   --state-untouched-bg: #343a40;
+  --board-row: #1b2e1b;
+  --board-head: #2b3035;
 }
 
 /* The structure depth: DOMjudge's metrics as well as its colours.

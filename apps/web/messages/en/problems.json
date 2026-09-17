@@ -155,6 +155,8 @@
   },
   "submit": {
     "titleFor": "Submit to {name}",
+    "title": "Submit a solution",
+    "problem": "Problem",
     "emptySource": "A submission needs some source.",
     "tooLong": "Your source code must contain at most {count, number} characters.",
     "failed": "Your submission was not accepted.",

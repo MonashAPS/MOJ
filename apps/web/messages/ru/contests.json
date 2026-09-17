@@ -358,6 +358,8 @@
     "boardSummaryCell": "{solved} из {tried} попытавшихся",
     "boardElapsed": "{count, plural, one {прошла # минута} few {прошло # минуты} many {прошло # минут} other {прошло # минуты}}",
     "boardOver": "Соревнование завершено",
+    "boardPreliminary": "предварительные результаты, не окончательные",
+    "boardFinal": "окончательные результаты",
     "boardLegendFirst": "Решено первым",
     "boardLegendSolved": "Решено",
     "boardLegendTried": "Попытки без решения",

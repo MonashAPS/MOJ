@@ -439,28 +439,32 @@ export function RankingClient({
 
   return (
     <>
-      <TitleRow
-        title={
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            {contest?.name ?? t("metaFallback")}
-            {contest ? (
-              <ContestChips
-                isVisible={contest.isVisible}
-                isPrivate={contest.isPrivate}
-                isOrganizationPrivate={contest.isOrganizationPrivate}
-                isRated={contest.isRated}
-                organizations={contest.organizations}
-                tags={contest.tags}
-              />
-            ) : null}
-          </span>
-        }
-        tabs={contestTabs(detail, contestKey, tabLabels)}
-        active="ranking"
-        action={
-          joinKind ? <JoinControl contestKey={contestKey} kind={joinKind} long size="default" /> : undefined
-        }
-      />
+      {/* DOMjudge's board is the page: the strip above it carries the contest,
+          and the bar above that carries the contest's own pages. */}
+      {asDomjudge ? null : (
+        <TitleRow
+          title={
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              {contest?.name ?? t("metaFallback")}
+              {contest ? (
+                <ContestChips
+                  isVisible={contest.isVisible}
+                  isPrivate={contest.isPrivate}
+                  isOrganizationPrivate={contest.isOrganizationPrivate}
+                  isRated={contest.isRated}
+                  organizations={contest.organizations}
+                  tags={contest.tags}
+                />
+              ) : null}
+            </span>
+          }
+          tabs={contestTabs(detail, contestKey, tabLabels)}
+          active="ranking"
+          action={
+            joinKind ? <JoinControl contestKey={contestKey} kind={joinKind} long size="default" /> : undefined
+          }
+        />
+      )}
 
       {data === null || data === undefined ? (
         data === null ? (
@@ -558,7 +562,13 @@ export function RankingClient({
               description={t("nobodyBody")}
             />
           ) : asDomjudge ? (
-            <DomjudgeBoard data={data} contestKey={contestKey} precision={precision} pendingOf={pendingOf} />
+            <DomjudgeBoard
+              data={data}
+              contestKey={contestKey}
+              precision={precision}
+              pendingOf={pendingOf}
+              ended={detail.timing.ended}
+            />
           ) : (
             <div className="overflow-hidden overflow-x-auto rounded-md border border-border bg-card">
               <table className="w-full border-collapse text-base [&_tbody_tr:nth-child(even):not(:hover):not([data-selected])]:bg-zebra [&_tbody_tr:last-child_td]:border-b-0">

@@ -358,6 +358,8 @@
     "boardSummaryCell": "{solved} de {tried} que lo intentaron",
     "boardElapsed": "{count, plural, one {# minuto transcurrido} other {# minutos transcurridos}}",
     "boardOver": "El concurso ha terminado",
+    "boardPreliminary": "resultados preliminares, no definitivos",
+    "boardFinal": "resultados definitivos",
     "boardLegendFirst": "Primero en resolver",
     "boardLegendSolved": "Resuelto",
     "boardLegendTried": "Intentado, sin resolver",
