@@ -112,12 +112,21 @@ function BoardCellView({
       )}
     >
       {wrap(
-        <span className="block py-0.5 font-mono text-sm font-bold leading-tight tabular-nums">
-          {minutes !== null ? minutes : cell.pointsText}
-          <span className="block font-sans text-[11px] font-normal leading-tight">
-            {tries === null ? cell.timeText : t("boardTries", { count: tries })}
+        // Nothing was solved here, so there is no minute to give: a rejected
+        // cell says how many attempts it took and no more, which is what makes
+        // the number on a green cell read as a time.
+        solved ? (
+          <span className="block py-0.5 font-mono text-sm font-bold leading-tight tabular-nums">
+            {minutes !== null ? minutes : cell.pointsText}
+            <span className="block font-sans text-[11px] font-normal leading-tight">
+              {tries === null ? cell.timeText : t("boardTries", { count: tries })}
+            </span>
           </span>
-        </span>,
+        ) : (
+          <span className="block py-1.5 font-sans text-[11px] leading-tight">
+            {tries === null ? "" : t("boardTries", { count: tries })}
+          </span>
+        ),
       )}
     </td>
   );
