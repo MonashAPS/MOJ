@@ -122,13 +122,10 @@ function ProblemRow({
   const states = useTranslations("contests.problemState");
   const columns = useTranslations("contests.columns");
 
-  /**
-   * DOMjudge has no page for a problem: the statement is a PDF you download and
-   * the name in the list is text. Wearing its skin, so is this one — the row's
-   * way in is the Statement button beside it.
-   */
-  const skin = useSkin();
-  const openable = problem.isAccessible && skin !== "domjudge";
+  // Losing the problem page is DOMjudge's *structure*, which draws its own list
+  // and never reaches this row. Taking the link away here only ever hit the
+  // colour depth, which is our pages in its palette and keeps our pages' links.
+  const openable = problem.isAccessible;
 
   const solvedNote =
     problem.state === "solved"
