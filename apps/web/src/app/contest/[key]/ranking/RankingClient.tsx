@@ -35,6 +35,7 @@ import { chosenValue } from "@/lib/choices";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { formatDateTime, formatPoints } from "@/lib/format";
 import { usesDomjudgeStructure } from "@/lib/skin";
+import { useViewerLive } from "@/lib/useViewerLive";
 import { contestTabs, joinKindFor } from "../tabs";
 import { DomjudgeBoard } from "./DomjudgeBoard";
 
@@ -387,7 +388,10 @@ export function RankingClient({
 
   const live = useQuery(api.contests.rankings.ranking, args);
   const defaults = !includeVirtual && !includeSpectators && organizationSlug === ALL && classId === ALL;
-  const data = live ?? (defaults ? initial : null);
+  // An answer given before Convex has the identity is an answer for nobody:
+  // no own-row highlight, no staff controls, and on a restricted board a
+  // different set of rows entirely.
+  const data = useViewerLive(live, defaults ? initial : null, detail.viewer.isAuthenticated);
 
   const liveFrozen = useQuery(api.pages.contests.frozenCells, { key: contestKey });
   const frozen = liveFrozen === undefined ? initialFrozenCells : liveFrozen;

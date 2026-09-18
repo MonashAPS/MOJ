@@ -50,6 +50,7 @@ import {
   toggleSort,
 } from "@/lib/problem-query";
 import { formatPoints } from "@/lib/units";
+import { useViewerLive } from "@/lib/useViewerLive";
 
 type ListPayload = NonNullable<(typeof api.problems.list)["_returnType"]>;
 
@@ -309,8 +310,12 @@ export function ProblemsView({
     pageSize: 50,
   });
 
-  const data = live ?? initial;
-  const loading = live === undefined;
+  // `username` is what the server rendered with, so it says whether there is an
+  // identity the browser still has to catch up to.
+  const data = useViewerLive(live, initial, username !== null);
+  // Waiting covers both windows now: no answer yet, and an answer we are not
+  // taking because it was given for the wrong viewer.
+  const loading = data !== live;
 
   // `pages/problems:filterOptions` answers for the site; in contest mode the
   // list is the contest's own problems, so the panel offers what they carry.

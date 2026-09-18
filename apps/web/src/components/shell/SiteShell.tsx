@@ -12,6 +12,7 @@ import { CommandPalette, useCommandPalette } from "@/components/shell/CommandPal
 import { isInsideContest } from "@/lib/contest-lockdown";
 import type { NavNode } from "@/lib/nav";
 import { usesDomjudgeStructure } from "@/lib/skin";
+import { useViewerLive } from "@/lib/useViewerLive";
 import { Announcement } from "./Announcement";
 import { BackdropDrift } from "./BackdropDrift";
 import { ContestBar } from "./ContestBar";
@@ -87,7 +88,11 @@ export function SiteShell({
   // The server already knew the answer when it rendered this page. Waiting for
   // the socket instead meant the markup went out with a nav on it, and a
   // locked-down contestant watched it be taken away again after hydration.
-  const joined = liveJoined === undefined ? initialContest : liveJoined;
+  //
+  // And the first answer off the socket is not the member's: until Convex has
+  // the identity it answers as nobody, which for this query is null — the nav
+  // coming back for a beat in the middle of a contest.
+  const joined = useViewerLive(liveJoined, initialContest, !!viewer);
   const routed = useQuery(api.contests.navBar, routeKey ? { key: routeKey } : "skip");
   const contest = routeKey ? routed : joined;
   const problemCode = /^\/problem\/([a-z0-9._-]+)/.exec(pathname)?.[1];
