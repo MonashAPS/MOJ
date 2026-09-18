@@ -2,10 +2,10 @@ import { getFormatOrDefault } from "@moj/core";
 import type { GenericDatabaseWriter, GenericDataModel } from "convex/server";
 import type { Value } from "convex/values";
 import { v } from "convex/values";
-import type { TableNames } from "./_generated/dataModel";
+import type { Doc, TableNames } from "./_generated/dataModel";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { isJsonNumber, isJsonObject, isJsonString, type JsonObject, type JsonValue } from "./lib/json";
-import { insertProfileAggregates } from "./rankings";
+import { deleteProfileAggregates, insertProfileAggregates } from "./rankings";
 import schema from "./schema";
 
 const tableNames = new Set(Object.keys(schema.tables));
@@ -163,6 +163,11 @@ export const patchBatch = internalMutation({
 /**
  * Deletes up to `limit` documents from a table. The importer calls this in a
  * loop until isDone, so a large table clears without one huge transaction.
+ *
+ * A profile is also in three leaderboard aggregates, which are their own
+ * component and are not swept by deleting the row. Clearing the table without
+ * them left every cleared profile still counted: re-importing over a loaded
+ * deployment doubled the leaderboard's total and gave it pages of nothing.
  */
 export const clearTable = internalMutation({
   args: {
@@ -172,10 +177,20 @@ export const clearTable = internalMutation({
   returns: v.object({ deleted: v.number(), isDone: v.boolean() }),
   handler: async (ctx, args) => {
     const table = assertTable(args.table);
-    const limit = args.limit ?? 2000;
+    // Fewer at a time for profiles: each one is three trees to walk as well.
+    const limit = args.limit ?? (table === "profiles" ? 200 : 2000);
     const docs = await ctx.db.query(table).take(limit);
 
-    for (const doc of docs) await ctx.db.delete(doc._id);
+    for (const doc of docs) {
+      if (table === "profiles") {
+        // SAFETY: the query above read this document out of `profiles`, so it
+        // is a profile; the table name is a string here only because this
+        // mutation clears any of them.
+        await deleteProfileAggregates(ctx, doc as Doc<"profiles">);
+      }
+
+      await ctx.db.delete(doc._id);
+    }
 
     return { deleted: docs.length, isDone: docs.length < limit };
   },
