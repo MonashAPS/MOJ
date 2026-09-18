@@ -28,6 +28,11 @@ describe("minutesOf", () => {
 });
 
 describe("triesOf", () => {
+  it("takes the count the format recorded", () => {
+    expect(triesOf({ ...solved("00:20:00", 2), attempts: 5 })).toBe(5);
+    expect(triesOf({ ...failed(1), attempts: 4 })).toBe(4);
+  });
+
   it("counts the solve itself, on top of what it was penalised for", () => {
     expect(triesOf(solved("00:20:00", 2))).toBe(3);
     expect(triesOf(solved("00:20:00", 0))).toBe(1);

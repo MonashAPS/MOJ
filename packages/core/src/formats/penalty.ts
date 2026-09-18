@@ -26,6 +26,22 @@ export interface MaxPointsRow {
   readonly time: number;
   /** DMOJ's `prev`: rejected submissions counted for the penalty. */
   readonly penaltyCount: number;
+  /** Every submission the judge actually ran, up to and including the solve. */
+  readonly attempts: number;
+}
+
+/**
+ * How many times a problem was gone at.
+ *
+ * A scoreboard cell says "3 tries", which is the submissions the judge ran —
+ * so an internal error, and a compile error the judge refused, are not held
+ * against anyone, the same rule the penalty uses. A solved problem counts the
+ * solve itself; an unsolved one counts everything.
+ */
+export function attemptCount(submissions: readonly ContestSubmissionRow[], solvedAt: number | null): number {
+  const scored = submissions.filter(counts);
+
+  return solvedAt === null ? scored.length : scored.filter((row) => row.date <= solvedAt).length;
 }
 
 function counts(submission: ContestSubmissionRow): boolean {
@@ -52,16 +68,12 @@ export function computeMaxPointsRows(
         .map((submission) => submission.date),
     );
 
-    let penaltyCount = 0;
+    // Counted whatever the format's penalty is: a cell says how many tries it
+    // took even where nothing is added to the clock for them.
+    const attempts = attemptCount(submissions, points ? time : null);
+    const penaltyCount = penaltyMinutes ? (points ? attempts - 1 : attempts) : 0;
 
-    if (penaltyMinutes) {
-      const scored = submissions.filter(counts);
-      penaltyCount = points
-        ? scored.filter((submission) => submission.date <= time).length - 1
-        : scored.length;
-    }
-
-    rows.push({ problemId, points, time, penaltyCount });
+    rows.push({ problemId, points, time, penaltyCount, attempts });
   }
 
   return rows;

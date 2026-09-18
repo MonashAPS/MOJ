@@ -76,7 +76,12 @@ export function updateParticipationIcpc(input: UpdateParticipationInput): Partic
       last = Math.max(last, dt);
     }
 
-    formatData[row.problemId] = { time: dt, points: row.points, penalty: row.penaltyCount };
+    formatData[row.problemId] = {
+      time: dt,
+      points: row.points,
+      penalty: row.penaltyCount,
+      attempts: row.attempts,
+    };
     score += row.points;
   }
 

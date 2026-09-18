@@ -33,6 +33,7 @@ import {
   secondsSince,
   validateAgainstDefaults,
 } from "./base";
+import { attemptCount } from "./penalty";
 
 export const ECOO_DEFAULTS = { cumtime: false, first_ac_bonus: 10, time_bonus: 5 } as const;
 
@@ -96,7 +97,12 @@ export function updateParticipationEcoo(input: UpdateParticipationInput): Partic
       }
     }
 
-    formatData[problemId] = { time: dt, points, bonus };
+    formatData[problemId] = {
+      time: dt,
+      points,
+      bonus,
+      attempts: attemptCount(rows, points ? date : null),
+    };
   }
 
   let cumtime = 0;
