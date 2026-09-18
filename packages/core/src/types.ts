@@ -280,4 +280,6 @@ export interface FormatDataEntry {
   penalty?: number;
   /** Bonus points (ecoo). */
   bonus?: number;
+  /** Submissions the judge ran on it, the solve included. */
+  attempts?: number;
 }

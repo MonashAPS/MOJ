@@ -296,6 +296,9 @@ export type ParticipationCell = {
   penaltyText?: string;
   bonus?: number;
   bonusText?: string;
+  /** Submissions the judge ran on it, the solve included; absent on a
+   *  participation scored before the count was recorded. */
+  attempts?: number;
 };
 
 export type ParticipationRow = {
@@ -378,6 +381,7 @@ async function participationRows(
           penaltyText: cell.penaltyText,
           bonus: cell.bonus,
           bonusText: cell.bonusText,
+          attempts: cell.attempts,
         };
       }),
     });

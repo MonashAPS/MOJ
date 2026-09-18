@@ -96,8 +96,9 @@ describe("default format", () => {
     expect(update.cumtime).toBe(20 * 60);
     expect(update.tiebreaker).toBe(0);
     expect(update.formatData).toEqual({
-      [p1.id]: { time: 20 * 60, points: 100 },
-      [p2.id]: { time: 30 * 60, points: 0 },
+      // Two goes at the first, one at the second, which is what a cell counts.
+      [p1.id]: { time: 20 * 60, points: 100, attempts: 2 },
+      [p2.id]: { time: 30 * 60, points: 0, attempts: 1 },
     });
   });
 
@@ -105,7 +106,7 @@ describe("default format", () => {
     // 20 minutes and 640 milliseconds: DMOJ's format_data keeps the fraction
     // but cumtime is a PositiveIntegerField, so Django's int() drops it.
     const update = run("default", [submission(p1.id, 0, 100, { date: START + 1_200_640 })]);
-    expect(update.formatData[p1.id]).toEqual({ time: 1200.64, points: 100 });
+    expect(update.formatData[p1.id]).toEqual({ time: 1200.64, points: 100, attempts: 1 });
     expect(update.cumtime).toBe(1200);
     expect(Number.isInteger(update.cumtime)).toBe(true);
   });
@@ -138,8 +139,8 @@ describe("default format", () => {
     });
 
     expect(format.getProblemBreakdown(stored, contestProblems)).toEqual([
-      { time: 1200, points: 100 },
-      { time: 1800, points: 0 },
+      { time: 1200, points: 100, attempts: 2 },
+      { time: 1800, points: 0, attempts: 1 },
     ]);
   });
 
@@ -167,17 +168,17 @@ describe("ioi (legacy) format", () => {
     expect(update.score).toBe(100);
     expect(update.cumtime).toBe(0);
     expect(update.formatData).toEqual({
-      [p1.id]: { points: 100, time: 0 },
-      [p2.id]: { points: 0, time: 0 },
+      [p1.id]: { points: 100, time: 0, attempts: 2 },
+      [p2.id]: { points: 0, time: 0, attempts: 1 },
     });
   });
 
   it("uses the first submission to reach the maximum when cumtime is on", () => {
     const update = run("ioi", submissions, { cumtime: true });
     expect(update.cumtime).toBe(20 * 60);
-    expect(update.formatData[p1.id]).toEqual({ points: 100, time: 20 * 60 });
+    expect(update.formatData[p1.id]).toEqual({ points: 100, time: 20 * 60, attempts: 2 });
     // A zero-score problem records its time but adds nothing.
-    expect(update.formatData[p2.id]).toEqual({ points: 0, time: 30 * 60 });
+    expect(update.formatData[p2.id]).toEqual({ points: 0, time: 30 * 60, attempts: 1 });
   });
 
   it("validates its config", () => {
@@ -229,13 +230,13 @@ describe("ioi16 format", () => {
   it("sums the best score of every batch", () => {
     const update = run("ioi16", [first, second, third]);
     expect(update.score).toBe(50);
-    expect(update.formatData[p1.id]).toEqual({ points: 50, time: 0 });
+    expect(update.formatData[p1.id]).toEqual({ points: 50, time: 0, attempts: 3 });
   });
 
   it("times a problem by the last batch to reach its best score", () => {
     const update = run("ioi16", [first, second, third], { cumtime: true });
     // Batch 1 first hit 20 at minute 20, batch 2 hit 30 at minute 20.
-    expect(update.formatData[p1.id]).toEqual({ points: 50, time: 20 * 60 });
+    expect(update.formatData[p1.id]).toEqual({ points: 50, time: 20 * 60, attempts: 3 });
     expect(update.cumtime).toBe(20 * 60);
   });
 
@@ -246,7 +247,7 @@ describe("ioi16 format", () => {
     ]);
 
     const update = run("ioi16", [unbatched]);
-    expect(update.formatData[p1.id]).toEqual({ points: 5, time: 0 });
+    expect(update.formatData[p1.id]).toEqual({ points: 5, time: 0, attempts: 1 });
   });
 
   it("ignores submissions that are not fully graded", () => {
@@ -255,7 +256,8 @@ describe("ioi16 format", () => {
     });
 
     const update = run("ioi16", [first, queued]);
-    expect(update.formatData[p1.id]).toEqual({ points: 10, time: 0 });
+    // The queued one is not graded, but it was still a go at the problem.
+    expect(update.formatData[p1.id]).toEqual({ points: 10, time: 0, attempts: 2 });
   });
 });
 
@@ -274,9 +276,9 @@ describe("atcoder format", () => {
     expect(update.cumtime).toBe(10 * 60 + 1 * 5 * 60);
     expect(update.tiebreaker).toBe(0);
     expect(update.formatData).toEqual({
-      [p1.id]: { time: 10 * 60, points: 100, penalty: 1 },
+      [p1.id]: { time: 10 * 60, points: 100, penalty: 1, attempts: 2 },
       // An unsolved problem still displays its attempt count.
-      [p2.id]: { time: 20 * 60, points: 0, penalty: 1 },
+      [p2.id]: { time: 20 * 60, points: 0, penalty: 1, attempts: 1 },
     });
   });
 
@@ -326,8 +328,9 @@ describe("icpc format", () => {
     expect(update.cumtime).toBe(10 * 60 + 1 * 20 * 60);
     expect(update.tiebreaker).toBe(10 * 60);
     expect(update.formatData).toEqual({
-      [p1.id]: { time: 10 * 60, points: 100, penalty: 1 },
-      [p2.id]: { time: 20 * 60, points: 0, penalty: 1 },
+      // The solve counts itself, so one rejection is two tries.
+      [p1.id]: { time: 10 * 60, points: 100, penalty: 1, attempts: 2 },
+      [p2.id]: { time: 20 * 60, points: 0, penalty: 1, attempts: 1 },
     });
   });
 
@@ -356,11 +359,17 @@ describe("ecoo format", () => {
       time: 10 * 60,
       points: 100,
       bonus: 10 + p1TimeBonus,
+      attempts: 1,
     });
 
     // p2: two submissions, so no first-AC bonus.
     const p2TimeBonus = Math.floor((5 * 60 - 30) / 5);
-    expect(update.formatData[p2.id]).toEqual({ time: 30 * 60, points: 50, bonus: p2TimeBonus });
+    expect(update.formatData[p2.id]).toEqual({
+      time: 30 * 60,
+      points: 50,
+      bonus: p2TimeBonus,
+      attempts: 2,
+    });
 
     expect(update.score).toBe(100 + 10 + p1TimeBonus + 50 + p2TimeBonus);
     expect(update.cumtime).toBe(0);
@@ -368,7 +377,7 @@ describe("ecoo format", () => {
 
   it("awards no bonus for a zero score", () => {
     const update = run("ecoo", [submission(p1.id, 10, 0)]);
-    expect(update.formatData[p1.id]).toEqual({ time: 10 * 60, points: 0, bonus: 0 });
+    expect(update.formatData[p1.id]).toEqual({ time: 10 * 60, points: 0, bonus: 0, attempts: 1 });
     expect(update.score).toBe(0);
   });
 

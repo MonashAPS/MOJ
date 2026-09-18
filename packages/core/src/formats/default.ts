@@ -24,6 +24,7 @@ import {
   pointsPrecision,
   secondsSince,
 } from "./base";
+import { attemptCount } from "./penalty";
 
 export function validateDefaultConfig(config: FormatConfigInput): void {
   if (config === null || config === undefined) return;
@@ -51,7 +52,14 @@ export function updateParticipationDefault(input: UpdateParticipationInput): Par
     const dt = secondsSince(start, time);
 
     if (best) cumtime += dt;
-    formatData[problemId] = { time: dt, points: best };
+
+    // The earliest submission that reached the best score is the one the cell
+    // counts up to; without one, every attempt counts.
+    const solvedAt = best
+      ? Math.min(...rows.filter((row) => row.contestPoints === best).map((row) => row.date))
+      : null;
+
+    formatData[problemId] = { time: dt, points: best, attempts: attemptCount(rows, solvedAt) };
     points += best;
   }
 

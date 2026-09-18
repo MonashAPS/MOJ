@@ -31,6 +31,7 @@ import {
   secondsSince,
 } from "./base";
 import { resolveLegacyIoiConfig, validateLegacyIoiConfig } from "./legacyIoi";
+import { attemptCount } from "./penalty";
 
 export const IOI16_DEFAULTS = { cumtime: false } as const;
 
@@ -98,7 +99,9 @@ export function updateParticipationIoi16(input: UpdateParticipationInput): Parti
       time = Math.max(dt, time);
     }
 
-    formatData[problemId] = { points, time };
+    // Every judged submission, not the ones before a solve: a batch format has
+    // no single moment the problem was solved at.
+    formatData[problemId] = { points, time, attempts: attemptCount(rows, null) };
 
     if (config.cumtime && points) cumtime += time;
     score += points;

@@ -29,6 +29,7 @@ import {
   secondsSince,
   validateAgainstDefaults,
 } from "./base";
+import { attemptCount } from "./penalty";
 
 export const LEGACY_IOI_DEFAULTS = { cumtime: false } as const;
 
@@ -71,7 +72,7 @@ export function updateParticipationLegacyIoi(input: UpdateParticipationInput): P
       if (points) cumtime += dt;
     }
 
-    formatData[problemId] = { points, time: dt };
+    formatData[problemId] = { points, time: dt, attempts: attemptCount(rows, points ? time : null) };
     score += points;
   }
 

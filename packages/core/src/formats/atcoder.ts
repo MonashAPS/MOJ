@@ -71,7 +71,12 @@ export function updateParticipationAtcoder(input: UpdateParticipationInput): Par
 
     if (row.points) cumtime = Math.max(cumtime, dt);
 
-    formatData[row.problemId] = { time: dt, points: row.points, penalty: row.penaltyCount };
+    formatData[row.problemId] = {
+      time: dt,
+      points: row.points,
+      penalty: row.penaltyCount,
+      attempts: row.attempts,
+    };
     points += row.points;
   }
 

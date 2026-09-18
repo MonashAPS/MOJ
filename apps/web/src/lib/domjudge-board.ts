@@ -15,6 +15,8 @@ export type BoardCell = {
   timeText: string;
   /** ICPC's rejected-submission count; absent in formats that do not penalise. */
   penalty?: number;
+  /** Every submission the judge ran on it, the solve included. */
+  attempts?: number;
 };
 
 export type BoardRow = {
@@ -50,12 +52,14 @@ export function isSolved(state: string): boolean {
 /**
  * How many times the row went at the problem.
  *
- * The penalty count is the rejections that preceded the solve, so a solved
- * problem took one more attempt than it was penalised for. Null where the
- * contest's format does not count rejections at all, and the cell has nothing
- * to say but its score.
+ * Every format records this now, so the count is usually just there. A
+ * participation scored before it was recorded falls back to the penalty, which
+ * is the rejections that preceded the solve — one fewer than the tries it took.
+ * Null when neither is there, and the cell has nothing to say but its score.
  */
 export function triesOf(cell: BoardCell): number | null {
+  if (cell.attempts !== undefined) return cell.attempts;
+
   if (cell.penalty === undefined) return null;
 
   return isSolved(cell.state) ? cell.penalty + 1 : cell.penalty;

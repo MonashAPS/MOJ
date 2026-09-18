@@ -117,6 +117,9 @@ export interface ProblemCellDisplay {
   readonly penaltyText?: string;
   readonly bonus?: number;
   readonly bonusText?: string;
+  /** Submissions the judge ran on it, the solve included; absent on a row
+   *  scored before the count was recorded. */
+  readonly attempts?: number;
 }
 
 /** `ProblemCellDisplay` while `buildProblemCell` is still filling it in. */
@@ -343,6 +346,10 @@ export function buildProblemCell(
     pointsText: floatformat(entry.points),
     timeText: options.showTime === false ? "" : niceRepr(entry.time),
   };
+
+  // Every format records this now, so the cell carries it whatever the format;
+  // a participation scored before it did simply has none.
+  if (entry.attempts !== undefined) cell.attempts = entry.attempts;
 
   if (options.penalty) {
     cell.penalty = entry.penalty ?? 0;
