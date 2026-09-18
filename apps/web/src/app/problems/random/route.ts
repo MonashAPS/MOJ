@@ -1,7 +1,8 @@
 import { api } from "@convex/_generated/api";
-import { type NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { queryAsViewer } from "@/lib/convex-server";
 import { parseProblemQuery } from "@/lib/problem-query";
+import { redirectTo } from "@/lib/redirect";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
     seed,
   }).catch(() => null);
 
-  if (!picked) return NextResponse.redirect(new URL("/problems/", request.url));
+  if (!picked) return redirectTo("/problems/");
 
-  return NextResponse.redirect(new URL(`/problem/${picked.code}`, request.url));
+  return redirectTo(`/problem/${picked.code}`);
 }
