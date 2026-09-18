@@ -360,6 +360,7 @@ export const ranking = query({
               penaltyText: cell.penaltyText,
               bonus: cell.bonus,
               bonusText: cell.bonusText,
+              attempts: cell.attempts,
             };
           }),
         },
