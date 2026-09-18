@@ -30,6 +30,7 @@ import { useSkin } from "@/components/shell/SkinProvider";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { formatDateTime, formatPoints } from "@/lib/format";
 import { usesDomjudgeStructure } from "@/lib/skin";
+import { useViewerLive } from "@/lib/useViewerLive";
 import { Clarifications } from "./Clarifications";
 import { DomjudgeProblemset } from "./DomjudgeProblemset";
 import { ProblemsNotReleased } from "./ProblemsNotReleased";
@@ -397,7 +398,10 @@ export function ContestDetailClient({
   const columns = useTranslations("contests.columns");
   const tabLabels = useTranslations("contests.tabs");
   const live = useQuery(api.contests.get, { key: contestKey });
-  const detail = live?.contest ? live : initial;
+  // Not `live?.contest`: an answer given as nobody still carries the contest,
+  // and taking it drops the viewer's ticks, score and participation.
+  const answered = live?.contest ? live : undefined;
+  const detail = useViewerLive(answered, initial, initial.viewer.isAuthenticated);
   const contest = detail.contest;
   // DOMjudge's team home is the clock, the problem sheet and the clarifications
   // in one column; the panels beside ours are the site talking about itself.
