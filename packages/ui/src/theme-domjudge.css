@@ -126,9 +126,9 @@
 
   --state-untouched-bg: #f8f9fa;
 
-  /* The scoreboard's own furniture: the tint DOMjudge lays under a team's row,
-     and the three medals it hangs on the places. */
-  --board-row: #e4f2e4;
+  /* The scoreboard's own furniture. The row is the table's own ground: the
+     green belongs to the cells that were earned, not to the rows under them. */
+  --board-row: #ffffff;
   --board-head: #ffffff;
   --medal-gold: #f0c000;
   --medal-silver: #a8a8a8;
@@ -241,7 +241,7 @@
     --cell-frozen-ink: #dee2e6;
 
     --state-untouched-bg: #343a40;
-    --board-row: #1b2e1b;
+    --board-row: #2b3035;
     --board-head: #2b3035;
   }
 }
@@ -349,7 +349,7 @@
   --cell-frozen-ink: #dee2e6;
 
   --state-untouched-bg: #343a40;
-  --board-row: #1b2e1b;
+  --board-row: #2b3035;
   --board-head: #2b3035;
 }
 
