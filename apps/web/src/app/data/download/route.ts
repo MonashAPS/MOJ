@@ -9,7 +9,13 @@ import { redirectTo } from "@/lib/redirect";
  * than streaming the bytes through Next.
  */
 export async function GET() {
-  const download = await queryAsViewer(api.pages.users.dataExportDownload, {});
+  // The query requires a viewer and throws without one, which reached the
+  // browser as a 500 on a route anybody can type.
+  const download = await queryAsViewer(api.pages.users.dataExportDownload, {}).catch(
+    () => "signedOut" as const,
+  );
+
+  if (download === "signedOut") return redirectTo("/accounts/login/?next=%2Fdata%2Fprepare%2F");
 
   if (!download) return redirectTo("/data/prepare/");
 
