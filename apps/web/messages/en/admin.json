@@ -476,6 +476,9 @@
       "visible": "Visible",
       "hidden": "Hidden",
       "viewOnSite": "View on site",
+      "createdTitle": "Contest created.",
+      "createdHidden": "Add its problems here. It stays hidden until you make it visible under Access.",
+      "createdVisible": "Add its problems here. It is already listed, so people can see it.",
       "revisionsEmpty": "Every edit to this contest is recorded here with the reason it was made."
     },
     "general": {

@@ -476,6 +476,9 @@
       "visible": "Visible",
       "hidden": "Oculto",
       "viewOnSite": "Ver en el sitio",
+      "createdTitle": "Concurso creado.",
+      "createdHidden": "Añade aquí sus problemas. Seguirá oculto hasta que lo hagas visible en Acceso.",
+      "createdVisible": "Añade aquí sus problemas. Ya aparece en la lista, así que la gente puede verlo.",
       "revisionsEmpty": "Cada edición de este concurso se registra aquí con el motivo por el que se hizo."
     },
     "general": {

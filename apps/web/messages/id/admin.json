@@ -476,6 +476,9 @@
       "visible": "Terlihat",
       "hidden": "Tersembunyi",
       "viewOnSite": "Lihat di situs",
+      "createdTitle": "Kontes dibuat.",
+      "createdHidden": "Tambahkan soalnya di sini. Kontes tetap tersembunyi sampai kamu menampilkannya di Akses.",
+      "createdVisible": "Tambahkan soalnya di sini. Kontes sudah tercantum, jadi orang bisa melihatnya.",
       "revisionsEmpty": "Setiap perubahan pada kontes ini dicatat di sini beserta alasannya."
     },
     "general": {

@@ -1,9 +1,18 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { Badge, Button, EmptyState, SkeletonPanel, type TabItem } from "@moj/ui";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Badge,
+  Button,
+  EmptyState,
+  SkeletonPanel,
+  type TabItem,
+} from "@moj/ui";
 import { useQuery } from "convex/react";
-import { FileQuestion } from "lucide-react";
+import { FileQuestion, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -34,6 +43,8 @@ export function ContestEditor({ contestKey }: { contestKey: string }) {
   // MOVED carries.
   const moved = asked in MOVED ? MOVED[asked as keyof typeof MOVED] : undefined;
   const active = TABS.find((tab) => tab === asked) ?? moved ?? "setup";
+  // The wizard lands here once, with the flag in the URL; any navigation drops it.
+  const justCreated = params.get("created") === "1";
 
   const contest = useQuery(api.pages.admin.contests.edit, { key: contestKey });
   const options = useQuery(api.pages.admin.contests.options, {});
@@ -91,6 +102,13 @@ export function ContestEditor({ contestKey }: { contestKey: string }) {
         ) : null
       }
     >
+      {justCreated && contest ? (
+        <Alert variant="info" className="mb-4">
+          <Sparkles size={16} aria-hidden />
+          <AlertTitle>{t("createdTitle")}</AlertTitle>
+          <AlertDescription>{t(contest.isVisible ? "createdVisible" : "createdHidden")}</AlertDescription>
+        </Alert>
+      ) : null}
       {contest === undefined ? (
         <div className="grid gap-4">
           <SkeletonPanel lines={5} />

@@ -476,6 +476,9 @@
       "visible": "可见",
       "hidden": "隐藏",
       "viewOnSite": "在网站上查看",
+      "createdTitle": "比赛已创建。",
+      "createdHidden": "在这里添加题目。在你于“准入”中将其设为可见之前，它会一直隐藏。",
+      "createdVisible": "在这里添加题目。它已经列出，大家都能看到。",
       "revisionsEmpty": "此比赛的每一次修改及其原因都会记录在此。"
     },
     "general": {
