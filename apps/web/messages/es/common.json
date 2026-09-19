@@ -216,5 +216,23 @@
   },
   "files": {
     "title": "Archivos"
+  },
+  "audiences": {
+    "staff": "Personal",
+    "staffHint": "Autores y curadores.",
+    "testers": "Probadores",
+    "testersHint": "Las personas listadas como probadores.",
+    "spectators": "Espectadores",
+    "spectatorsHint": "Las personas listadas como espectadores.",
+    "contestants": "Concursantes",
+    "contestantsHint": "Cualquiera que se haya unido al concurso.",
+    "everyone": "Todos",
+    "everyoneHint": "Cualquiera que pueda verlo.",
+    "fromLabel": "Desde cuándo",
+    "from": {
+      "start": "desde el inicio",
+      "ownEnd": "una vez terminada su propia ventana",
+      "end": "una vez terminado el concurso"
+    }
   }
 }

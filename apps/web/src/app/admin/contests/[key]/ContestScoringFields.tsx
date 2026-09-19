@@ -1,9 +1,11 @@
 "use client";
 
-import { Field, FieldGroup, Input, RadioGroup, Select } from "@moj/ui";
+import { AUDIENCES, MOMENTS } from "@moj/core";
+import { Field, FieldGroup, Input, RadioGroup } from "@moj/ui";
 import { useTranslations } from "next-intl";
 import { useId, useRef } from "react";
 import { AdminCheckField, UserPicker } from "@/components/admin";
+import { AudienceSelect } from "@/components/audiences/AudienceSelect";
 import type { ContestGeneralFields } from "./generalFields";
 
 /**
@@ -15,17 +17,7 @@ import type { ContestGeneralFields } from "./generalFields";
  */
 
 /** The scoreboard choice arrives as the select's string; the tab narrows it. */
-/** Who sees the scoreboard, in the order the editor offers them. */
-export const SCOREBOARD_OPTIONS = [
-  { value: "V", labelKey: "scoreboardEveryone" },
-  { value: "C", labelKey: "scoreboardUntilEnd" },
-  { value: "P", labelKey: "scoreboardParticipants" },
-  { value: "H", labelKey: "scoreboardNobody" },
-] as const;
-
-export type FreezeValues = Pick<ContestGeneralFields, "freezeMinutes" | "blind"> & {
-  scoreboardVisibility: string;
-};
+export type FreezeValues = Pick<ContestGeneralFields, "freezeMinutes" | "blind" | "scoreboard">;
 
 export type RatingValues = Pick<
   ContestGeneralFields,
@@ -34,11 +26,9 @@ export type RatingValues = Pick<
 
 export function ContestFreezeFields({
   values,
-  scoreboardOptions,
   onChange,
 }: {
   values: FreezeValues;
-  scoreboardOptions: { value: string; label: string }[];
   onChange: (patch: Partial<FreezeValues>) => void;
 }) {
   const t = useTranslations("admin.contests.setup");
@@ -52,16 +42,15 @@ export function ContestFreezeFields({
 
   return (
     <>
-      <FieldGroup columns={2}>
-        <Field label={t("scoreboardVisibility")} htmlFor={ids.scoreboard}>
-          <Select
-            id={ids.scoreboard}
-            value={values.scoreboardVisibility}
-            onValueChange={(value) => onChange({ scoreboardVisibility: value })}
-            options={scoreboardOptions}
-          />
-        </Field>
-      </FieldGroup>
+      <Field label={t("scoreboardVisibility")} htmlFor={ids.scoreboard}>
+        <AudienceSelect
+          id={ids.scoreboard}
+          value={values.scoreboard}
+          offered={AUDIENCES}
+          moments={MOMENTS}
+          onChange={(scoreboard) => onChange({ scoreboard })}
+        />
+      </Field>
 
       <RadioGroup
         variant="card"

@@ -1,10 +1,11 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
+import type { Audience } from "@moj/core";
 import { Field, toast } from "@moj/ui";
 import { useMutation } from "convex/react";
 import { useTranslations } from "next-intl";
-import { useId, useState } from "react";
+import { type ReactNode, useId, useState } from "react";
 import {
   AdminCheckField,
   AdminForm,
@@ -14,13 +15,12 @@ import {
   UserPicker,
   useResolvedRefs,
 } from "@/components/admin";
-import { AudienceName } from "@/components/admin/AudiencePicker";
+import { AudienceName } from "@/components/audiences/AudienceSelect";
 import type { ContestEdit } from "./types";
 
 /** DMOJ's first fieldset plus the two "who may look" lists from Access. */
 export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
   const t = useTranslations("admin.contests.people");
-  const audiences = useTranslations("admin.components.audiences");
   const update = useMutation(api.admin.contests.update);
 
   const ids = {
@@ -40,6 +40,12 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
   const [viewSubmissions, setViewSubmissions] = useState<string[]>(contest.viewContestSubmissions);
   const [testerSeeScoreboard, setTesterSeeScoreboard] = useState(contest.testerSeeScoreboard);
   const [testerSeeSubmissions, setTesterSeeSubmissions] = useState(contest.testerSeeSubmissions);
+  const [spectatorSeeScoreboard, setSpectatorSeeScoreboard] = useState(contest.spectatorSeeScoreboard);
+
+  const [spectatorSeeProblemsEarly, setSpectatorSeeProblemsEarly] = useState(
+    contest.spectatorSeeProblemsEarly,
+  );
+
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +86,8 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
         viewContestSubmissionsProfileIds: idsFor(viewSubmissions),
         testerSeeScoreboard,
         testerSeeSubmissions,
+        spectatorSeeScoreboard,
+        spectatorSeeProblemsEarly,
         reason: reason.trim(),
       });
       setReason("");
@@ -96,29 +104,36 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
       <AdminFormError message={error} />
 
       <AdminSection title={t("sectionAudiences")} description={t("audiencesHint")} columns={1}>
-        <dl className="grid gap-2 sm:grid-cols-2">
-          {(
-            [
-              ["staff", authors.length + curators.length],
-              ["testers", testers.length],
-              ["spectators", spectators.length],
-              ["contestants", contest.userCount],
-              ["everyone", null],
-            ] as const
-          ).map(([name, count]) => (
-            <div key={name} className="rounded-md border border-border px-3 py-2">
-              <dt className="flex items-baseline justify-between gap-2 text-sm font-medium text-foreground">
-                <AudienceName audience={name} />
-                {count !== null ? (
-                  <span className="font-mono text-xs tabular-nums text-muted-foreground">{count}</span>
-                ) : null}
-              </dt>
-              <dd className="text-xs text-muted-foreground">
-                {name === "staff" ? audiences("staffAlways") : audiences(`${name}Hint`)}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <AudienceCard audience="staff" count={authors.length + curators.length} />
+          <AudienceCard audience="testers" count={testers.length}>
+            <AdminCheckField
+              label={t("testerSeeScoreboard")}
+              checked={testerSeeScoreboard}
+              onCheckedChange={setTesterSeeScoreboard}
+            />
+            <AdminCheckField
+              label={t("testerSeeSubmissions")}
+              checked={testerSeeSubmissions}
+              onCheckedChange={setTesterSeeSubmissions}
+            />
+            <p className="text-xs text-muted-foreground">{t("testerSeeProblemsAlways")}</p>
+          </AudienceCard>
+          <AudienceCard audience="spectators" count={spectators.length}>
+            <AdminCheckField
+              label={t("spectatorSeeScoreboard")}
+              checked={spectatorSeeScoreboard}
+              onCheckedChange={setSpectatorSeeScoreboard}
+            />
+            <AdminCheckField
+              label={t("spectatorSeeProblemsEarly")}
+              checked={spectatorSeeProblemsEarly}
+              onCheckedChange={setSpectatorSeeProblemsEarly}
+            />
+          </AudienceCard>
+          <AudienceCard audience="contestants" count={contest.userCount} />
+          <AudienceCard audience="everyone" />
+        </div>
       </AdminSection>
 
       <AdminSection title={t("sectionStaff")}>
@@ -141,19 +156,6 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
         </Field>
       </AdminSection>
 
-      <AdminSection title={t("sectionTesters")}>
-        <AdminCheckField
-          label={t("testerSeeScoreboard")}
-          checked={testerSeeScoreboard}
-          onCheckedChange={setTesterSeeScoreboard}
-        />
-        <AdminCheckField
-          label={t("testerSeeSubmissions")}
-          checked={testerSeeSubmissions}
-          onCheckedChange={setTesterSeeSubmissions}
-        />
-      </AdminSection>
-
       <AdminSection title={t("sectionViewers")}>
         <Field label={t("alwaysAdmit")} htmlFor={ids.scoreboard} hint={t("alwaysAdmitHint")}>
           <UserPicker
@@ -174,5 +176,31 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
       </AdminSection>
       <AdminFormFooter busy={busy} submitLabel={t("submit")} />
     </AdminForm>
+  );
+}
+
+/** One audience: its mark, its definition, how many are in it, and the options it carries. */
+function AudienceCard({
+  audience,
+  count,
+  children,
+}: {
+  audience: Audience;
+  count?: number;
+  children?: ReactNode;
+}) {
+  const t = useTranslations("common.audiences");
+
+  return (
+    <div className="grid gap-2 rounded-md border border-border px-3 py-2.5">
+      <div className="flex items-baseline justify-between gap-2 text-sm font-medium text-foreground">
+        <AudienceName audience={audience} />
+        {count !== undefined ? (
+          <span className="font-mono text-xs tabular-nums text-muted-foreground">{count}</span>
+        ) : null}
+      </div>
+      <p className="text-xs text-muted-foreground">{t(`${audience}Hint`)}</p>
+      {children ? <div className="grid gap-1.5 border-t border-border pt-2">{children}</div> : null}
+    </div>
   );
 }

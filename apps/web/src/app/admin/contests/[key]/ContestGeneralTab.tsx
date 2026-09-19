@@ -22,6 +22,7 @@ import {
   UserPicker,
   useResolvedRefs,
 } from "@/components/admin";
+import { useAudienceNames } from "@/components/audiences/AudienceSelect";
 import { useHumanDuration } from "@/components/contests/pieces";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import { chosenValue } from "@/lib/choices";
@@ -29,7 +30,7 @@ import { formatDateTime } from "@/lib/format";
 import { acknowledgedReason, ContestDangerDialog } from "./ContestDangerDialog";
 import { ContestEntryFields } from "./ContestEntryFields";
 import { ContestScheduleFields } from "./ContestScheduleFields";
-import { ContestFreezeFields, ContestRatingFields, SCOREBOARD_OPTIONS } from "./ContestScoringFields";
+import { ContestFreezeFields, ContestRatingFields } from "./ContestScoringFields";
 import { ContestSummary } from "./ContestSummary";
 import {
   argsFromFields,
@@ -72,6 +73,7 @@ export function ContestGeneralTab({
   const scoring = useTranslations("contests.scoring");
   const warn = useTranslations("admin.contests.warnings");
   const humanDuration = useHumanDuration();
+  const audienceNames = useAudienceNames();
   const update = useMutation(api.admin.contests.update);
   const formats = useQuery(api.contests.formats.list, {});
 
@@ -160,7 +162,13 @@ export function ContestGeneralTab({
   const dirty = Object.keys(changed).length > 0;
 
   const describeSource = describeSourceOf(draft, contest);
-  const summaryLines = describeContest(describeSource, { moment: formatDateTime, duration: humanDuration });
+
+  const summaryLines = describeContest(describeSource, {
+    moment: formatDateTime,
+    duration: humanDuration,
+    audiences: audienceNames,
+  });
+
   const warnings = contestWarnings(describeSource);
 
   /**
@@ -379,25 +387,7 @@ export function ContestGeneralTab({
 
         {on("scoring") ? (
           <AdminSection title={t("sectionFreeze")} columns={1}>
-            <ContestFreezeFields
-              values={draft}
-              scoreboardOptions={SCOREBOARD_OPTIONS.map((option) => ({
-                value: option.value,
-                label: t(option.labelKey),
-              }))}
-              onChange={({ scoreboardVisibility, ...patch }) =>
-                change({
-                  ...patch,
-                  ...(scoreboardVisibility !== undefined && {
-                    scoreboardVisibility: chosenValue(
-                      SCOREBOARD_OPTIONS,
-                      scoreboardVisibility,
-                      draft.scoreboardVisibility,
-                    ),
-                  }),
-                })
-              }
-            />
+            <ContestFreezeFields values={draft} onChange={change} />
           </AdminSection>
         ) : null}
 

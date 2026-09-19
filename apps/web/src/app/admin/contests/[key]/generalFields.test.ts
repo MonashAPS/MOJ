@@ -37,7 +37,7 @@ function contestEdit(overrides: Partial<ContestFieldSource> = {}): ContestFieldS
     formatName: "default",
     formatConfig: null,
     labels: { kind: "letters" },
-    scoreboardVisibility: "V",
+    scoreboard: { audiences: ["everyone"], from: "start" },
     freeze: null,
     rating: null,
     tagNames: [],

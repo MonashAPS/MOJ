@@ -1,12 +1,17 @@
 "use client";
 
-import { AUDIENCES, type Audience } from "@moj/core";
-import { Checkbox, Field, Select } from "@moj/ui";
-import { Eye, FlaskConical, Globe, ShieldCheck, Swords } from "lucide-react";
+import { AUDIENCES, type Audience, type AudiencePolicy, type Moment } from "@moj/core";
+import { Button, Checkbox, cn, Popover, PopoverContent, PopoverTrigger, RadioGroup } from "@moj/ui";
+import { ChevronDown, Eye, FlaskConical, Globe, ShieldCheck, Swords } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { type ReactNode, useId } from "react";
+import { useId } from "react";
 
-/** One mark per audience, shown wherever the audience is named. */
+/**
+ * Audiences are the one vocabulary for "who" on a contest or a problem. Each
+ * has its own mark, shown wherever it is named, and this is the one control
+ * for choosing a set of them and the moment they are let in from.
+ */
+
 const ICONS = {
   staff: ShieldCheck,
   testers: FlaskConical,
@@ -23,7 +28,7 @@ function AudienceIcon({ audience, size = 14 }: { audience: Audience; size?: numb
 
 /** The audience's mark and name together, as it reads everywhere. */
 export function AudienceName({ audience }: { audience: Audience }) {
-  const t = useTranslations("admin.components.audiences");
+  const t = useTranslations("common.audiences");
 
   return (
     <span className="inline-flex items-center gap-1.5">
@@ -33,99 +38,131 @@ export function AudienceName({ audience }: { audience: Audience }) {
   );
 }
 
-/**
- * Who, and from when: the one control for choosing an audience, so a file, a
- * scoreboard and the People tab all mean the same people by the same names.
- * Staff are always in and shown as such rather than offered.
- */
-export function AudiencePicker({
-  value,
-  from,
-  offered,
-  hasEnd,
-  onChange,
-}: {
-  value: readonly Audience[];
-  from: "now" | "end";
-  /** Which audiences the owner has at all; a problem has fewer than a contest. */
-  offered: readonly Audience[];
-  /** Whether "once it has ended" is a moment the owner will reach. */
-  hasEnd: boolean;
-  onChange: (next: { audiences: Audience[]; from: "now" | "end" }) => void;
-}) {
-  const t = useTranslations("admin.components.audiences");
-  const fromId = useId();
-  const everyone = value.includes("everyone");
+/** The audiences a policy names, in the fixed order, or staff when it names none. */
+function named(audiences: readonly Audience[]): readonly Audience[] {
+  if (audiences.includes("everyone")) return ["everyone"];
 
-  function toggle(audience: Audience, on: boolean) {
-    const rest = value.filter((name) => name !== audience);
-    onChange({ audiences: on ? [...rest, audience] : rest, from });
-  }
+  if (audiences.length === 0) return ["staff"];
+
+  return AUDIENCES.filter((name) => audiences.includes(name));
+}
+
+/** A policy as a line of marks and names: "Testers, Contestants · once the contest has ended". */
+export function AudienceLine({ policy }: { policy: AudiencePolicy }) {
+  const t = useTranslations("common.audiences");
 
   return (
-    <div className="grid gap-3">
-      <ul className="grid gap-2">
-        {AUDIENCES.filter((audience) => offered.includes(audience)).map((audience) => {
-          const staff = audience === "staff";
-          // Everyone already covers the others, so they read as included.
-          const covered = everyone && !staff && audience !== "everyone";
-
-          return (
-            <li key={audience} className="grid gap-0.5">
-              <Checkbox
-                label={<AudienceName audience={audience} />}
-                checked={staff || covered || value.includes(audience)}
-                disabled={staff || covered}
-                onCheckedChange={(on) => toggle(audience, on)}
-              />
-              <span className="pl-6 text-xs text-muted-foreground">
-                {staff ? t("staffAlways") : t(`${audience}Hint`)}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-
-      {hasEnd ? (
-        <Field label={t("from")} htmlFor={fromId}>
-          <Select
-            id={fromId}
-            value={from}
-            onValueChange={(next) =>
-              onChange({ audiences: [...value], from: next === "end" ? "end" : "now" })
-            }
-            options={[
-              { value: "now", label: t("fromNow") },
-              { value: "end", label: t("fromEnd") },
-            ]}
-          />
-        </Field>
+    <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-0.5">
+      {named(policy.audiences).map((audience, index) => (
+        <span key={audience} className="inline-flex items-center gap-1">
+          {index > 0 ? <span aria-hidden>,</span> : null}
+          <AudienceName audience={audience} />
+        </span>
+      ))}
+      {policy.from !== "start" ? (
+        <span className="text-muted-foreground">· {t(`from.${policy.from}`)}</span>
       ) : null}
-    </div>
+    </span>
   );
 }
 
-/** The audiences of a file, as a line of marks and names: "Testers, Contestants · once it has ended". */
-export function AudienceLine({ audiences, from }: { audiences: readonly Audience[]; from: "now" | "end" }) {
-  const t = useTranslations("admin.components.audiences");
+/**
+ * The dropdown: a button that reads as the policy, opening a box with a row
+ * per audience and, when the owner has moments to wait for, the moment.
+ */
+export function AudienceSelect({
+  value,
+  offered,
+  moments,
+  onChange,
+  id,
+  className,
+}: {
+  value: AudiencePolicy;
+  /** Which audiences the owner has at all; a problem has fewer than a contest. */
+  offered: readonly Audience[];
+  /** Which moments the owner can wait for; none hides the choice. */
+  moments: readonly Moment[];
+  onChange: (next: AudiencePolicy) => void;
+  id?: string;
+  className?: string;
+}) {
+  const t = useTranslations("common.audiences");
+  const groupId = useId();
+  const everyone = value.audiences.includes("everyone");
 
-  const named: readonly Audience[] = audiences.includes("everyone")
-    ? ["everyone"]
-    : audiences.length === 0
-      ? ["staff"]
-      : AUDIENCES.filter((name) => audiences.includes(name));
-
-  const marks: ReactNode[] = named.map((audience, index) => (
-    <span key={audience} className="inline-flex items-center gap-1.5">
-      {index > 0 ? <span aria-hidden>, </span> : null}
-      <AudienceName audience={audience} />
-    </span>
-  ));
+  function toggle(audience: Audience, on: boolean) {
+    const rest = value.audiences.filter((name) => name !== audience);
+    onChange({ audiences: on ? [...rest, audience] : rest, from: value.from });
+  }
 
   return (
-    <span className="inline-flex flex-wrap items-center gap-1">
-      {marks}
-      {from === "end" ? <span className="text-muted-foreground"> · {t("fromEnd")}</span> : null}
-    </span>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          id={id}
+          type="button"
+          variant="secondary"
+          className={cn(
+            "h-auto min-h-9 w-full justify-between gap-3 px-3 py-1.5 text-left font-normal",
+            className,
+          )}
+        >
+          <AudienceLine policy={value} />
+          <ChevronDown size={14} className="shrink-0 text-muted-foreground" aria-hidden />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[26rem] max-w-[calc(100vw-2rem)] p-0">
+        <ul className="grid">
+          {AUDIENCES.filter((audience) => offered.includes(audience)).map((audience) => {
+            const staff = audience === "staff";
+            // Everyone already covers the others, so they read as included.
+            const covered = everyone && !staff && audience !== "everyone";
+
+            return (
+              <li key={audience} className="border-b border-border px-3 py-2.5 last:border-b-0">
+                <Checkbox
+                  label={<AudienceName audience={audience} />}
+                  checked={staff || covered || value.audiences.includes(audience)}
+                  disabled={staff || covered}
+                  onCheckedChange={(on) => toggle(audience, on)}
+                />
+                <p className="pl-6 text-xs text-muted-foreground">{t(`${audience}Hint`)}</p>
+              </li>
+            );
+          })}
+        </ul>
+
+        {moments.length > 1 ? (
+          <div className="border-t border-border px-3 py-2.5">
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-label text-muted-foreground">
+              {t("fromLabel")}
+            </p>
+            <RadioGroup
+              name={groupId}
+              ariaLabel={t("fromLabel")}
+              value={value.from}
+              onValueChange={(next) =>
+                onChange({
+                  audiences: [...value.audiences],
+                  from: moments.find((candidate) => candidate === next) ?? value.from,
+                })
+              }
+              options={moments.map((moment) => ({ value: moment, label: t(`from.${moment}`) }))}
+            />
+          </div>
+        ) : null}
+      </PopoverContent>
+    </Popover>
   );
+}
+
+/** The audiences of a policy as one localised phrase, for prose that has no room for marks. */
+export function useAudienceNames(): (audiences: readonly Audience[]) => string {
+  const t = useTranslations("common.audiences");
+
+  return (audiences) =>
+    named(audiences)
+      .map((audience) => t(audience))
+      .join(", ");
 }

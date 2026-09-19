@@ -216,5 +216,23 @@
   },
   "files": {
     "title": "Berkas"
+  },
+  "audiences": {
+    "staff": "Staf",
+    "staffHint": "Penulis dan kurator.",
+    "testers": "Penguji",
+    "testersHint": "Orang-orang yang terdaftar sebagai penguji.",
+    "spectators": "Penonton",
+    "spectatorsHint": "Orang-orang yang terdaftar sebagai penonton.",
+    "contestants": "Peserta",
+    "contestantsHint": "Siapa pun yang telah bergabung ke kontes.",
+    "everyone": "Semua orang",
+    "everyoneHint": "Siapa pun yang bisa melihatnya.",
+    "fromLabel": "Sejak kapan",
+    "from": {
+      "start": "sejak awal",
+      "ownEnd": "setelah jendela mereka sendiri berakhir",
+      "end": "setelah kontes berakhir"
+    }
   }
 }

@@ -517,10 +517,6 @@
       "pretestsOnly": "Pretests only",
       "pretestsOnlyHint": "Grade against pretests during the contest.",
       "scoreboardVisibility": "Scoreboard visibility",
-      "scoreboardEveryone": "Everyone",
-      "scoreboardUntilEnd": "Everyone, once the contest has ended",
-      "scoreboardParticipants": "Everyone, once their own window has ended",
-      "scoreboardNobody": "Staff only",
       "pointsPrecision": "Points precision",
       "pointsPrecisionHint": "Decimal places on the scoreboard.",
       "sectionFreeze": "Freeze",
@@ -600,7 +596,7 @@
       "refused": "The change was refused.",
       "sectionStaff": "Staff",
       "sectionAudiences": "Audiences",
-      "audiencesHint": "Every choice of who may see something on this contest picks from these. Staff are always in.",
+      "audiencesHint": "Every choice of who may see something on this contest picks from these.",
       "authors": "Authors",
       "authorsHint": "They may edit the contest and see everything.",
       "curators": "Curators",
@@ -611,14 +607,16 @@
       "spectatorsHint": "They watch the contest without a participation of their own.",
       "alwaysAdmit": "Always admitted",
       "alwaysAdmitHint": "These users get into the contest whatever the entry rules say, and see the full board while it is hidden or frozen.",
-      "sectionTesters": "What testers see",
-      "testerSeeScoreboard": "Testers see the scoreboard",
+      "testerSeeScoreboard": "Testers see the scoreboard while it is hidden",
       "testerSeeSubmissions": "Testers see submissions",
       "sectionViewers": "Extra viewers",
       "viewSubmissions": "May see submissions",
       "viewSubmissionsHint": "These users see everyone's submissions during the contest.",
       "submit": "Save people",
-      "reasonHint": "Kept with the revision so the next person can see why this contest moved."
+      "reasonHint": "Kept with the revision so the next person can see why this contest moved.",
+      "spectatorSeeScoreboard": "Spectators see the scoreboard while it is hidden",
+      "spectatorSeeProblemsEarly": "Spectators see the problems before it starts",
+      "testerSeeProblemsAlways": "Testers see the problems before it starts."
     },
     "actions": {
       "refused": "The action was refused.",
@@ -781,6 +779,10 @@
       },
       "scoring": {
         "noFreeze": "The scoreboard updates all the way to the end.",
+        "scoreboardFromStart": "<b>{who}</b> can see the scoreboard from the start.",
+        "scoreboardFromOwnEnd": "<b>{who}</b> can see the scoreboard once their own window has ended.",
+        "scoreboardFromEnd": "<b>{who}</b> can see the scoreboard once the contest has ended.",
+        "scoreboardStaffOnly": "Only staff can see the scoreboard.",
         "freeze": "The scoreboard freezes <b>{minutes} minutes</b> before the end, at <b>{at}</b>.",
         "blind": "Contestants also see their own verdicts as pending, which lifts when the contest ends.",
         "labelsCustom": "Problems use {count, plural, one {# custom label} other {# custom labels}}.",
@@ -2232,21 +2234,6 @@
       "removeDescription": "The file is deleted. Nobody can download it any more.",
       "change": "Change",
       "changeTitle": "Who may download {name}"
-    },
-    "audiences": {
-      "staff": "Staff",
-      "staffAlways": "Authors and curators. Always in.",
-      "testers": "Testers",
-      "testersHint": "The people listed as testers.",
-      "spectators": "Spectators",
-      "spectatorsHint": "The people listed as spectators.",
-      "contestants": "Contestants",
-      "contestantsHint": "Anyone who has joined the contest.",
-      "everyone": "Everyone",
-      "everyoneHint": "Anyone who can see it at all.",
-      "from": "Available",
-      "fromNow": "As soon as it is added",
-      "fromEnd": "Once the contest has ended"
     }
   },
   "proctor": {

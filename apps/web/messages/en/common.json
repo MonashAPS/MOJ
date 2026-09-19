@@ -216,5 +216,23 @@
   },
   "files": {
     "title": "Files"
+  },
+  "audiences": {
+    "staff": "Staff",
+    "staffHint": "Authors and curators.",
+    "testers": "Testers",
+    "testersHint": "The people listed as testers.",
+    "spectators": "Spectators",
+    "spectatorsHint": "The people listed as spectators.",
+    "contestants": "Contestants",
+    "contestantsHint": "Anyone who has joined the contest.",
+    "everyone": "Everyone",
+    "everyoneHint": "Anyone who can see it at all.",
+    "fromLabel": "From when",
+    "from": {
+      "start": "from the start",
+      "ownEnd": "once their own window has ended",
+      "end": "once the contest has ended"
+    }
   }
 }

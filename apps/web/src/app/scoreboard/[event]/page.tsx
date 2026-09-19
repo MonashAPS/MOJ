@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   };
 }
 
-/** SPEC section 7: the hall board ignores `scoreboardVisibility`, so treat the
+/** SPEC section 7: the hall board ignores the contest's scoreboard policy, so treat the
  *  URL as public — a private event is the only one that is staff-only. */
 export default async function HallScoreboardPage({ params }: Params) {
   const { event } = await params;
