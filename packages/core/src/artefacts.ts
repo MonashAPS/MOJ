@@ -1,24 +1,39 @@
 /**
- * Files attached to a contest or a problem: an editorial, a printed statement
- * booklet, sample data too big for the statement.
+ * Audiences: the fixed vocabulary for "who" on a contest or a problem.
+ *
+ * Everything that chooses who may see something picks from these, so the word
+ * on a file, on the scoreboard setting and on the People tab is the same word
+ * meaning the same people.
  */
 
-import type { ArtefactVisibility } from "./types";
+/**
+ * - `staff`: the editors, and always in on everything.
+ * - `testers`, `spectators`: the People tab's lists.
+ * - `contestants`: anyone who has joined the contest.
+ * - `everyone`: anyone who can see the contest or the problem at all.
+ */
+export type Audience = "staff" | "testers" | "spectators" | "contestants" | "everyone";
 
-export interface ArtefactAudience {
-  /** The viewer edits the contest or problem the file is attached to. */
-  readonly canEdit: boolean;
-  /** The viewer can see that contest or problem at all. */
-  readonly canView: boolean;
-  /** The contest has ended; always false for a problem's file. */
-  readonly ended: boolean;
+export const AUDIENCES: readonly Audience[] = ["staff", "testers", "spectators", "contestants", "everyone"];
+
+/** A problem has no contest to join or watch, so it offers fewer. */
+export const PROBLEM_AUDIENCES: readonly Audience[] = ["staff", "testers", "everyone"];
+
+/** Which audiences a viewer is in, decided by whoever holds the data. */
+export type AudienceMembership = Readonly<Record<Audience, boolean>>;
+
+/** A file's audience: who, and from when. Staff need no listing. */
+export interface FileAudience {
+  readonly audiences: readonly Audience[];
+  /** `end` holds the file until the contest is over; a problem's file is always `now`. */
+  readonly from: "now" | "end";
 }
 
-/** Whether a viewer may download a file with this visibility. */
-export function artefactIsVisible(visibility: ArtefactVisibility, audience: ArtefactAudience): boolean {
-  if (audience.canEdit) return true;
+/** Whether a viewer may download a file. */
+export function artefactIsVisible(file: FileAudience, viewer: AudienceMembership, ended: boolean): boolean {
+  if (viewer.staff) return true;
 
-  if (!audience.canView) return false;
+  if (file.from === "end" && !ended) return false;
 
-  return visibility === "everyone" || (visibility === "afterEnd" && audience.ended);
+  return file.audiences.some((audience) => viewer[audience]);
 }
