@@ -517,10 +517,10 @@
       "pretestsOnly": "Только претесты",
       "pretestsOnlyHint": "Оценивать по претестам во время соревнования.",
       "scoreboardVisibility": "Видимость таблицы результатов",
-      "scoreboardEveryone": "Видна всем",
-      "scoreboardUntilEnd": "Скрыта до конца соревнования",
-      "scoreboardParticipants": "Видна только участникам",
-      "scoreboardNobody": "Скрыта от всех",
+      "scoreboardEveryone": "Все",
+      "scoreboardUntilEnd": "Все, после окончания контеста",
+      "scoreboardParticipants": "Только участники",
+      "scoreboardNobody": "Только персонал",
       "pointsPrecision": "Точность баллов",
       "pointsPrecisionHint": "Число знаков после запятой в таблице результатов.",
       "sectionFreeze": "Заморозка",
@@ -599,6 +599,8 @@
       "saved": "Люди сохранены.",
       "refused": "В изменении отказано.",
       "sectionStaff": "Персонал",
+      "sectionAudiences": "Аудитории",
+      "audiencesHint": "Любой выбор того, кто может что-то видеть в этом контесте, делается из них. Персонал включён всегда.",
       "authors": "Авторы",
       "authorsHint": "Могут редактировать соревнование и видят всё.",
       "curators": "Кураторы",
@@ -2223,16 +2225,28 @@
       "listTitle": "{count, plural, one {# файл} few {# файла} other {# файлов}}",
       "columnName": "Файл",
       "columnSize": "Размер",
-      "columnVisibility": "Кто может скачать",
+      "columnAudience": "Кто может скачать",
       "columnUploaded": "Загружен",
       "remove": "Удалить",
       "removeTitle": "Удалить {name}?",
       "removeDescription": "Файл удаляется. Скачать его больше никто не сможет.",
-      "visibility": {
-        "staff": "Только персонал",
-        "everyone": "Все, кто это видит",
-        "afterEnd": "Все, после окончания"
-      }
+      "change": "Изменить",
+      "changeTitle": "Кто может скачать {name}"
+    },
+    "audiences": {
+      "staff": "Персонал",
+      "staffAlways": "Авторы и кураторы. Всегда включены.",
+      "testers": "Тестеры",
+      "testersHint": "Люди из списка тестеров.",
+      "spectators": "Наблюдатели",
+      "spectatorsHint": "Люди из списка наблюдателей.",
+      "contestants": "Участники",
+      "contestantsHint": "Все, кто вошёл в контест.",
+      "everyone": "Все",
+      "everyoneHint": "Все, кто вообще может это видеть.",
+      "from": "Доступно",
+      "fromNow": "Сразу после добавления",
+      "fromEnd": "После окончания контеста"
     }
   },
   "proctor": {

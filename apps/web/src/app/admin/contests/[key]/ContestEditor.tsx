@@ -119,7 +119,7 @@ export function ContestEditor({ contestKey }: { contestKey: string }) {
       ) : active === "problems" ? (
         <ContestProblemsTab contest={contest} />
       ) : active === "files" ? (
-        <ArtefactsEditor owner={{ kind: "contest", key: contestKey }} hasEnd />
+        <ArtefactsEditor owner={{ kind: "contest", key: contestKey }} />
       ) : active === "people" ? (
         <ContestPeopleTab contest={contest} />
       ) : active === "actions" ? (

@@ -517,10 +517,10 @@
       "pretestsOnly": "Hanya pretest",
       "pretestsOnlyHint": "Nilai berdasarkan pretest selama kontes berlangsung.",
       "scoreboardVisibility": "Visibilitas papan skor",
-      "scoreboardEveryone": "Terlihat oleh semua orang",
-      "scoreboardUntilEnd": "Tersembunyi hingga kontes berakhir",
-      "scoreboardParticipants": "Hanya terlihat oleh peserta",
-      "scoreboardNobody": "Tersembunyi dari semua orang",
+      "scoreboardEveryone": "Semua orang",
+      "scoreboardUntilEnd": "Semua orang, setelah kontes berakhir",
+      "scoreboardParticipants": "Hanya peserta",
+      "scoreboardNobody": "Hanya staf",
       "pointsPrecision": "Presisi poin",
       "pointsPrecisionHint": "Jumlah angka desimal pada papan skor.",
       "sectionFreeze": "Pembekuan",
@@ -599,6 +599,8 @@
       "saved": "Orang tersimpan.",
       "refused": "Perubahan ditolak.",
       "sectionStaff": "Staf",
+      "sectionAudiences": "Audiens",
+      "audiencesHint": "Setiap pilihan tentang siapa yang boleh melihat sesuatu di kontes ini diambil dari daftar ini. Staf selalu termasuk.",
       "authors": "Penulis",
       "authorsHint": "Mereka dapat mengedit kontes dan melihat segalanya.",
       "curators": "Kurator",
@@ -2223,16 +2225,28 @@
       "listTitle": "{count, plural, other {# berkas}}",
       "columnName": "Berkas",
       "columnSize": "Ukuran",
-      "columnVisibility": "Siapa yang boleh mengunduh",
+      "columnAudience": "Siapa yang boleh mengunduh",
       "columnUploaded": "Diunggah",
       "remove": "Hapus",
       "removeTitle": "Hapus {name}?",
       "removeDescription": "Berkas dihapus. Tidak ada yang bisa mengunduhnya lagi.",
-      "visibility": {
-        "staff": "Hanya staf",
-        "everyone": "Semua yang bisa melihatnya",
-        "afterEnd": "Semua orang, setelah berakhir"
-      }
+      "change": "Ubah",
+      "changeTitle": "Siapa yang boleh mengunduh {name}"
+    },
+    "audiences": {
+      "staff": "Staf",
+      "staffAlways": "Penulis dan kurator. Selalu termasuk.",
+      "testers": "Penguji",
+      "testersHint": "Orang-orang yang terdaftar sebagai penguji.",
+      "spectators": "Penonton",
+      "spectatorsHint": "Orang-orang yang terdaftar sebagai penonton.",
+      "contestants": "Peserta",
+      "contestantsHint": "Siapa pun yang telah bergabung ke kontes.",
+      "everyone": "Semua orang",
+      "everyoneHint": "Siapa pun yang bisa melihatnya.",
+      "from": "Tersedia",
+      "fromNow": "Segera setelah ditambahkan",
+      "fromEnd": "Setelah kontes berakhir"
     }
   },
   "proctor": {

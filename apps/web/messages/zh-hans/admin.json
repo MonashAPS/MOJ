@@ -517,10 +517,10 @@
       "pretestsOnly": "仅预测试",
       "pretestsOnlyHint": "比赛期间仅按预测试评分。",
       "scoreboardVisibility": "排行榜可见性",
-      "scoreboardEveryone": "对所有人可见",
-      "scoreboardUntilEnd": "比赛结束前隐藏",
-      "scoreboardParticipants": "仅对参赛者可见",
-      "scoreboardNobody": "对所有人隐藏",
+      "scoreboardEveryone": "所有人",
+      "scoreboardUntilEnd": "所有人（比赛结束后）",
+      "scoreboardParticipants": "仅参赛者",
+      "scoreboardNobody": "仅工作人员",
       "pointsPrecision": "分值精度",
       "pointsPrecisionHint": "排行榜上显示的小数位数。",
       "sectionFreeze": "封榜",
@@ -599,6 +599,8 @@
       "saved": "人员已保存。",
       "refused": "更改被拒绝。",
       "sectionStaff": "工作人员",
+      "sectionAudiences": "受众",
+      "audiencesHint": "本比赛中关于谁能看到内容的每一项选择都从这些受众中选取。工作人员始终包含在内。",
       "authors": "作者",
       "authorsHint": "他们可以编辑比赛并查看一切内容。",
       "curators": "策划",
@@ -2223,16 +2225,28 @@
       "listTitle": "{count, plural, other {# 个文件}}",
       "columnName": "文件",
       "columnSize": "大小",
-      "columnVisibility": "谁可以下载",
+      "columnAudience": "谁可以下载",
       "columnUploaded": "上传时间",
       "remove": "删除",
       "removeTitle": "删除 {name}？",
       "removeDescription": "文件将被删除，之后任何人都无法下载。",
-      "visibility": {
-        "staff": "仅工作人员",
-        "everyone": "所有能看到它的人",
-        "afterEnd": "所有人（比赛结束后）"
-      }
+      "change": "更改",
+      "changeTitle": "谁可以下载 {name}"
+    },
+    "audiences": {
+      "staff": "工作人员",
+      "staffAlways": "作者与策划人，始终包含。",
+      "testers": "测试者",
+      "testersHint": "列为测试者的人。",
+      "spectators": "观众",
+      "spectatorsHint": "列为观众的人。",
+      "contestants": "参赛者",
+      "contestantsHint": "已加入比赛的任何人。",
+      "everyone": "所有人",
+      "everyoneHint": "任何能看到它的人。",
+      "from": "可用时间",
+      "fromNow": "添加后立即",
+      "fromEnd": "比赛结束后"
     }
   },
   "proctor": {

@@ -2,13 +2,12 @@
 
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import type { ArtefactVisibility } from "@moj/core";
+import { AUDIENCES, type Audience, PROBLEM_AUDIENCES } from "@moj/core";
 import {
   Badge,
   Button,
   EmptyState,
   Panel,
-  Select,
   Table,
   TableBody,
   TableCell,
@@ -23,17 +22,19 @@ import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { formatBytes, formatDateTime } from "@/lib/format";
 import { AdminFormError } from "./AdminForm";
+import { AudienceLine, AudiencePicker } from "./AudiencePicker";
 import { ConfirmAction } from "./console";
+import { RecordDialog } from "./RecordDialog";
 
 /**
  * Files attached to a contest or a problem: an editorial, a printed booklet,
  * data too big for the statement. Each is uploaded straight to storage and
- * then recorded with who may download it.
+ * then recorded with its audience.
  */
 
 export type ArtefactOwner = { kind: "contest"; key: string } | { kind: "problem"; code: string };
 
-const VISIBILITIES: readonly ArtefactVisibility[] = ["staff", "everyone", "afterEnd"];
+type FileAudience = { audiences: Audience[]; from: "now" | "end" };
 
 /** Convex's upload endpoint answers `{storageId}`. */
 function isUploadAnswer(body: unknown): body is { storageId: Id<"_storage"> } {
@@ -42,11 +43,7 @@ function isUploadAnswer(body: unknown): body is { storageId: Id<"_storage"> } {
   );
 }
 
-function isVisibility(value: string): value is ArtefactVisibility {
-  return VISIBILITIES.some((candidate) => candidate === value);
-}
-
-export function ArtefactsEditor({ owner, hasEnd = false }: { owner: ArtefactOwner; hasEnd?: boolean }) {
+export function ArtefactsEditor({ owner }: { owner: ArtefactOwner }) {
   const t = useTranslations("admin.components.artefacts");
   const files = useQuery(api.admin.artefacts.list, { owner });
   const uploadUrl = useMutation(api.admin.artefacts.uploadUrl);
@@ -54,13 +51,13 @@ export function ArtefactsEditor({ owner, hasEnd = false }: { owner: ArtefactOwne
   const update = useMutation(api.admin.artefacts.update);
   const remove = useMutation(api.admin.artefacts.remove);
   const picker = useRef<HTMLInputElement>(null);
-  const [visibility, setVisibility] = useState<ArtefactVisibility>("everyone");
+  const [next, setNext] = useState<FileAudience>({ audiences: ["everyone"], from: "now" });
+  const [editing, setEditing] = useState<{ id: Id<"artefacts">; name: string } & FileAudience>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // A problem has no end for "afterwards" to wait on.
-  const offered = hasEnd ? VISIBILITIES : VISIBILITIES.filter((value) => value !== "afterEnd");
-  const options = offered.map((value) => ({ value, label: t(`visibility.${value}`) }));
+  const hasEnd = owner.kind === "contest";
+  const offered = hasEnd ? AUDIENCES : PROBLEM_AUDIENCES;
 
   async function upload(file: File) {
     setError(null);
@@ -84,7 +81,7 @@ export function ArtefactsEditor({ owner, hasEnd = false }: { owner: ArtefactOwne
         storageId: answer.storageId,
         name: file.name,
         contentType: file.type || "application/octet-stream",
-        visibility,
+        ...next,
       });
       toast.success(t("added", { name: file.name }));
     } catch (caught) {
@@ -94,14 +91,18 @@ export function ArtefactsEditor({ owner, hasEnd = false }: { owner: ArtefactOwne
     setBusy(false);
   }
 
-  async function changeVisibility(id: Id<"artefacts">, value: string) {
-    if (!isVisibility(value)) return;
+  async function saveAudience() {
+    if (!editing) return;
+    setBusy(true);
 
     try {
-      await update({ id, visibility: value });
+      await update({ id: editing.id, audiences: editing.audiences, from: editing.from });
+      setEditing(undefined);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("refused"));
     }
+
+    setBusy(false);
   }
 
   async function drop(id: Id<"artefacts">, name: string) {
@@ -117,13 +118,15 @@ export function ArtefactsEditor({ owner, hasEnd = false }: { owner: ArtefactOwne
     <div className="grid gap-4">
       <AdminFormError message={error} />
 
-      <Panel title={t("uploadTitle")} bodyClassName="grid gap-3 p-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Select
-            value={visibility}
-            onValueChange={(value) => isVisibility(value) && setVisibility(value)}
-            options={options}
-          />
+      <Panel title={t("uploadTitle")} bodyClassName="grid gap-4 p-4">
+        <AudiencePicker
+          value={next.audiences}
+          from={next.from}
+          offered={offered}
+          hasEnd={hasEnd}
+          onChange={setNext}
+        />
+        <div>
           <Button
             variant="secondary"
             icon={<Upload size={14} />}
@@ -159,7 +162,7 @@ export function ArtefactsEditor({ owner, hasEnd = false }: { owner: ArtefactOwne
               <TableRow>
                 <TableHead>{t("columnName")}</TableHead>
                 <TableHead>{t("columnSize")}</TableHead>
-                <TableHead>{t("columnVisibility")}</TableHead>
+                <TableHead>{t("columnAudience")}</TableHead>
                 <TableHead>{t("columnUploaded")}</TableHead>
                 <TableHead />
               </TableRow>
@@ -175,12 +178,23 @@ export function ArtefactsEditor({ owner, hasEnd = false }: { owner: ArtefactOwne
                   </TableCell>
                   <TableCell numeric>{formatBytes(file.size)}</TableCell>
                   <TableCell>
-                    <Select
-                      value={file.visibility}
-                      onValueChange={(value) => void changeVisibility(file.id, value)}
-                      options={options}
-                      ariaLabel={t("columnVisibility")}
-                    />
+                    <span className="flex flex-wrap items-center gap-2">
+                      <AudienceLine audiences={file.audiences} from={file.from} />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setEditing({
+                            id: file.id,
+                            name: file.name,
+                            audiences: [...file.audiences],
+                            from: file.from,
+                          })
+                        }
+                      >
+                        {t("change")}
+                      </Button>
+                    </span>
                   </TableCell>
                   <TableCell>
                     <span className="font-mono text-sm tabular-nums text-muted-foreground">
@@ -210,6 +224,26 @@ export function ArtefactsEditor({ owner, hasEnd = false }: { owner: ArtefactOwne
           </Table>
         </Panel>
       )}
+
+      <RecordDialog
+        open={editing !== undefined}
+        onOpenChange={(open) => !open && setEditing(undefined)}
+        title={editing ? t("changeTitle", { name: editing.name }) : ""}
+        onSubmit={saveAudience}
+        busy={busy}
+        error={null}
+        submitLabel={t("change")}
+      >
+        {editing ? (
+          <AudiencePicker
+            value={editing.audiences}
+            from={editing.from}
+            offered={offered}
+            hasEnd={hasEnd}
+            onChange={(change) => setEditing({ ...editing, ...change })}
+          />
+        ) : null}
+      </RecordDialog>
     </div>
   );
 }

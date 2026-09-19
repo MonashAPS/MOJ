@@ -517,10 +517,10 @@
       "pretestsOnly": "Pretests only",
       "pretestsOnlyHint": "Grade against pretests during the contest.",
       "scoreboardVisibility": "Scoreboard visibility",
-      "scoreboardEveryone": "Visible to everyone",
-      "scoreboardUntilEnd": "Hidden until the contest ends",
-      "scoreboardParticipants": "Visible to participants only",
-      "scoreboardNobody": "Hidden from everyone",
+      "scoreboardEveryone": "Everyone",
+      "scoreboardUntilEnd": "Everyone, once the contest has ended",
+      "scoreboardParticipants": "Contestants only",
+      "scoreboardNobody": "Staff only",
       "pointsPrecision": "Points precision",
       "pointsPrecisionHint": "Decimal places on the scoreboard.",
       "sectionFreeze": "Freeze",
@@ -599,6 +599,8 @@
       "saved": "People saved.",
       "refused": "The change was refused.",
       "sectionStaff": "Staff",
+      "sectionAudiences": "Audiences",
+      "audiencesHint": "Every choice of who may see something on this contest picks from these. Staff are always in.",
       "authors": "Authors",
       "authorsHint": "They may edit the contest and see everything.",
       "curators": "Curators",
@@ -2223,16 +2225,28 @@
       "listTitle": "{count, plural, one {# file} other {# files}}",
       "columnName": "File",
       "columnSize": "Size",
-      "columnVisibility": "Who may download it",
+      "columnAudience": "Who may download it",
       "columnUploaded": "Uploaded",
       "remove": "Remove",
       "removeTitle": "Remove {name}?",
       "removeDescription": "The file is deleted. Nobody can download it any more.",
-      "visibility": {
-        "staff": "Staff only",
-        "everyone": "Everyone who can see it",
-        "afterEnd": "Everyone, once it has ended"
-      }
+      "change": "Change",
+      "changeTitle": "Who may download {name}"
+    },
+    "audiences": {
+      "staff": "Staff",
+      "staffAlways": "Authors and curators. Always in.",
+      "testers": "Testers",
+      "testersHint": "The people listed as testers.",
+      "spectators": "Spectators",
+      "spectatorsHint": "The people listed as spectators.",
+      "contestants": "Contestants",
+      "contestantsHint": "Anyone who has joined the contest.",
+      "everyone": "Everyone",
+      "everyoneHint": "Anyone who can see it at all.",
+      "from": "Available",
+      "fromNow": "As soon as it is added",
+      "fromEnd": "Once the contest has ended"
     }
   },
   "proctor": {
