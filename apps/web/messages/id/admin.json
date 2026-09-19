@@ -519,7 +519,7 @@
       "scoreboardVisibility": "Visibilitas papan skor",
       "scoreboardEveryone": "Semua orang",
       "scoreboardUntilEnd": "Semua orang, setelah kontes berakhir",
-      "scoreboardParticipants": "Hanya peserta",
+      "scoreboardParticipants": "Semua orang, setelah jendela mereka sendiri berakhir",
       "scoreboardNobody": "Hanya staf",
       "pointsPrecision": "Presisi poin",
       "pointsPrecisionHint": "Jumlah angka desimal pada papan skor.",

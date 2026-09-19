@@ -519,7 +519,7 @@
       "scoreboardVisibility": "Visibilidad del marcador",
       "scoreboardEveryone": "Todos",
       "scoreboardUntilEnd": "Todos, una vez terminado el concurso",
-      "scoreboardParticipants": "Solo concursantes",
+      "scoreboardParticipants": "Todos, una vez terminada su propia ventana",
       "scoreboardNobody": "Solo personal",
       "pointsPrecision": "Precisión de los puntos",
       "pointsPrecisionHint": "Cifras decimales en el marcador.",

@@ -519,7 +519,7 @@
       "scoreboardVisibility": "Scoreboard visibility",
       "scoreboardEveryone": "Everyone",
       "scoreboardUntilEnd": "Everyone, once the contest has ended",
-      "scoreboardParticipants": "Contestants only",
+      "scoreboardParticipants": "Everyone, once their own window has ended",
       "scoreboardNobody": "Staff only",
       "pointsPrecision": "Points precision",
       "pointsPrecisionHint": "Decimal places on the scoreboard.",

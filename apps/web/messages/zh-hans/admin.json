@@ -519,7 +519,7 @@
       "scoreboardVisibility": "排行榜可见性",
       "scoreboardEveryone": "所有人",
       "scoreboardUntilEnd": "所有人（比赛结束后）",
-      "scoreboardParticipants": "仅参赛者",
+      "scoreboardParticipants": "所有人（各自的时段结束后）",
       "scoreboardNobody": "仅工作人员",
       "pointsPrecision": "分值精度",
       "pointsPrecisionHint": "排行榜上显示的小数位数。",

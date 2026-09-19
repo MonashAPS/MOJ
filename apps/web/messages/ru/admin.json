@@ -519,7 +519,7 @@
       "scoreboardVisibility": "Видимость таблицы результатов",
       "scoreboardEveryone": "Все",
       "scoreboardUntilEnd": "Все, после окончания контеста",
-      "scoreboardParticipants": "Только участники",
+      "scoreboardParticipants": "Все, после окончания своего окна",
       "scoreboardNobody": "Только персонал",
       "pointsPrecision": "Точность баллов",
       "pointsPrecisionHint": "Число знаков после запятой в таблице результатов.",
