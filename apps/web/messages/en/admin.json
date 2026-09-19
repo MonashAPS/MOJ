@@ -686,6 +686,80 @@
       "required": "Require screen sharing",
       "saved": "Proctoring settings saved",
       "refused": "The judge refused the change."
+    },
+    "setup": {
+      "scheduleMode": "How the clock runs",
+      "scheduleTogether": "Everyone at once",
+      "scheduleTogetherHint": "Everybody competes between the start and the end, and penalty time counts from the contest start for all of them.",
+      "scheduleWindow": "A window each",
+      "scheduleWindowHint": "The contest is open between the two times, and each contestant gets their own clock starting when they join — their penalty time starts then too, not when the contest opens. Every window still stops at the contest end.",
+      "starts": "Starts",
+      "ends": "Ends",
+      "opens": "Opens",
+      "closes": "Closes",
+      "windowLength": "Each contestant gets",
+      "windowLengthHint": "Minutes, from the moment they join.",
+      "lockedAfter": "Locked after",
+      "lockedAfterHint": "Submissions stop being editable and rejudgeable. Leave empty for never."
+    },
+    "summary": {
+      "title": "What this contest will do",
+      "unsaved": "Unsaved changes",
+      "group": {
+        "when": "When",
+        "who": "Who",
+        "scoring": "Scoring",
+        "rating": "Rating",
+        "check": "Worth checking"
+      },
+      "when": {
+        "window": "Runs {start} to {end}, {length} long.",
+        "together": "Everyone shares one clock, and penalty time counts from the start.",
+        "ownWindow": "Each contestant gets {length} from when they join, and their penalty time starts then too.",
+        "ownWindowCutoff": "Joining after {at} leaves less than that, because every window still stops at the contest end.",
+        "locked": "Submissions stop being editable after {at}."
+      },
+      "who": {
+        "hidden": "Hidden from the contest list.",
+        "open": "Anyone can find it and enter.",
+        "restrictedOrganizations": "Only members of the organisations and classes it names.",
+        "restrictedNamed": "Only the {count, plural, one {# named person} other {# named people}}.",
+        "restrictedBoth": "Only people who are both in a named organisation and on the list of {count, plural, one {# person} other {# people}}.",
+        "restrictedEither": "People in a named organisation, or any of the {count, plural, one {# named person} other {# named people}}.",
+        "accessCode": "An access code is needed the first time someone joins.",
+        "joinLimit": "Only members of the organisations named under the join limit may enter."
+      },
+      "scoring": {
+        "noFreeze": "The scoreboard updates all the way to the end.",
+        "freeze": "The scoreboard stops updating {minutes} minutes before the end, at {at}, and stays frozen until someone reveals it.",
+        "blind": "Contestants also see their own verdicts as pending, which lifts when the contest ends.",
+        "labelsCustom": "Problems use {count, plural, one {# custom label} other {# custom labels}}.",
+        "pretests": "Only pretests run while the contest is on."
+      },
+      "rating": {
+        "unrated": "Unrated.",
+        "ratedScorers": "Rated, for competitors who submitted something.",
+        "ratedEveryone": "Rated, including competitors who submitted nothing.",
+        "ratedBand": "Only competitors whose previous rating is between {floor} and {ceiling} are rated; anyone who has never been rated counts as {newcomer}.",
+        "performanceCeiling": "Performance is capped at {at}."
+      }
+    },
+    "warnings": {
+      "windowIsWholeContest": "The window is the whole contest, so it gives nobody extra time — but it still moves every competitor's penalty clock to the moment they joined. Choose \"Everyone at once\" unless that is what you want.",
+      "windowExceedsContest": "The window is longer than the contest, so it does nothing except move every competitor's penalty clock to the moment they joined.",
+      "scheduleChangedMidContest": "{count, plural, one {# person is} other {# people are}} already competing. Changing the clock moves their penalty times retroactively.",
+      "freezeCoversContest": "The freeze is at least as long as the contest, so the scoreboard would never move at all.",
+      "blindLiftsBeforeFreeze": "Contestants stop seeing their own verdicts as pending when the contest ends, but the scoreboard stays frozen until someone reveals it.",
+      "restrictedNamesNobody": "Entry is restricted but names nobody, so nobody but staff can get in.",
+      "entryNeedsBothGates": "Both gates are on, so a competitor has to be in a named organisation AND on the named list. Anyone in the organisation who is not also named is locked out.",
+      "joinLimitNamesNobody": "The join limit names no organisation, so nobody can join at all.",
+      "alwaysAdmitIsFullAccess": "The {count, plural, one {# person} other {# people}} listed as scoreboard viewers are admitted to the whole contest, not just its scoreboard.",
+      "hiddenWhileRunning": "The contest is running and hidden from the list.",
+      "ratingBandEmpty": "The rating floor is above the ceiling, so nobody is eligible.",
+      "ratingFloorExcludesNewcomers": "A floor of {floor} excludes everyone who has never been rated, because they count as {newcomer}.",
+      "rateEveryoneWithExclusions": "Rating everyone, minus {count, plural, one {# exclusion} other {# exclusions}}.",
+      "customLabelsShort": "{labels, plural, one {# label} other {# labels}} for {problems} problems; the rest fall back to letters.",
+      "pretestsWithoutPretestedProblems": "Pretests-only is on, but no problem in this contest is marked as pretested, so it does nothing."
     }
   },
   "submissions": {

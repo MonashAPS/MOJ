@@ -686,6 +686,80 @@
       "required": "Wajibkan berbagi layar",
       "saved": "Pengaturan pengawasan tersimpan",
       "refused": "Juri menolak perubahan ini."
+    },
+    "setup": {
+      "scheduleMode": "Bagaimana jam berjalan",
+      "scheduleTogether": "Semua sekaligus",
+      "scheduleTogetherHint": "Semua orang bertanding antara waktu mulai dan selesai, dan waktu penalti dihitung dari awal kontes untuk semuanya.",
+      "scheduleWindow": "Jendela masing-masing",
+      "scheduleWindowHint": "Kontes terbuka di antara dua waktu itu, dan setiap peserta mendapat jamnya sendiri yang mulai saat ia bergabung — waktu penaltinya juga mulai saat itu, bukan saat kontes dibuka. Setiap jendela tetap berhenti di akhir kontes.",
+      "starts": "Mulai",
+      "ends": "Selesai",
+      "opens": "Dibuka",
+      "closes": "Ditutup",
+      "windowLength": "Setiap peserta mendapat",
+      "windowLengthHint": "Menit, sejak saat ia bergabung.",
+      "lockedAfter": "Dikunci setelah",
+      "lockedAfterHint": "Pengiriman berhenti bisa disunting dan dinilai ulang. Kosongkan untuk tidak pernah."
+    },
+    "summary": {
+      "title": "Apa yang akan dilakukan kontes ini",
+      "unsaved": "Perubahan belum disimpan",
+      "group": {
+        "when": "Kapan",
+        "who": "Siapa",
+        "scoring": "Penilaian",
+        "rating": "Peringkat",
+        "check": "Perlu diperiksa"
+      },
+      "when": {
+        "window": "Berlangsung {start} sampai {end}, selama {length}.",
+        "together": "Semua berbagi satu jam, dan waktu penalti dihitung dari awal.",
+        "ownWindow": "Setiap peserta mendapat {length} sejak ia bergabung, dan waktu penaltinya juga mulai saat itu.",
+        "ownWindowCutoff": "Bergabung setelah {at} menyisakan kurang dari itu, karena setiap jendela tetap berhenti di akhir kontes.",
+        "locked": "Pengiriman berhenti bisa disunting setelah {at}."
+      },
+      "who": {
+        "hidden": "Disembunyikan dari daftar kontes.",
+        "open": "Siapa pun bisa menemukannya dan masuk.",
+        "restrictedOrganizations": "Hanya anggota organisasi dan kelas yang disebutkan.",
+        "restrictedNamed": "Hanya {count, plural, other {# orang yang disebutkan}}.",
+        "restrictedBoth": "Hanya orang yang sekaligus ada di organisasi yang disebutkan dan dalam daftar {count, plural, other {# orang}}.",
+        "restrictedEither": "Orang dari organisasi yang disebutkan, atau salah satu dari {count, plural, other {# orang yang disebutkan}}.",
+        "accessCode": "Kode akses diperlukan saat seseorang pertama kali bergabung.",
+        "joinLimit": "Hanya anggota organisasi yang disebut pada batas bergabung yang bisa masuk."
+      },
+      "scoring": {
+        "noFreeze": "Papan skor terus diperbarui sampai akhir.",
+        "freeze": "Papan skor berhenti diperbarui {minutes} menit sebelum akhir, pada {at}, dan tetap beku sampai seseorang membukanya.",
+        "blind": "Peserta juga melihat hasil mereka sendiri sebagai tertunda, yang berakhir saat kontes selesai.",
+        "labelsCustom": "Soal memakai {count, plural, other {# label khusus}}.",
+        "pretests": "Hanya prauji yang dijalankan selama kontes."
+      },
+      "rating": {
+        "unrated": "Tanpa peringkat.",
+        "ratedScorers": "Berperingkat, untuk peserta yang mengirimkan sesuatu.",
+        "ratedEveryone": "Berperingkat, termasuk peserta yang tidak mengirim apa pun.",
+        "ratedBand": "Hanya peserta dengan peringkat sebelumnya antara {floor} dan {ceiling} yang diberi peringkat; yang belum pernah dinilai dihitung sebagai {newcomer}.",
+        "performanceCeiling": "Performa dibatasi pada {at}."
+      }
+    },
+    "warnings": {
+      "windowIsWholeContest": "Jendelanya sepanjang seluruh kontes, jadi tidak memberi waktu tambahan kepada siapa pun — tetapi tetap memindahkan jam penalti setiap peserta ke saat ia bergabung. Pilih \"Semua sekaligus\" kecuali memang itu yang Anda mau.",
+      "windowExceedsContest": "Jendelanya lebih panjang daripada kontes, jadi tidak melakukan apa pun selain memindahkan jam penalti setiap peserta ke saat ia bergabung.",
+      "scheduleChangedMidContest": "{count, plural, other {# orang}} sudah bertanding. Mengubah jam memindahkan waktu penalti mereka secara surut.",
+      "freezeCoversContest": "Pembekuan setidaknya sepanjang kontes, jadi papan skor tidak akan bergerak sama sekali.",
+      "blindLiftsBeforeFreeze": "Peserta berhenti melihat hasil mereka sebagai tertunda saat kontes selesai, tetapi papan skor tetap beku sampai seseorang membukanya.",
+      "restrictedNamesNobody": "Akses dibatasi tetapi tidak menyebut siapa pun, jadi hanya staf yang bisa masuk.",
+      "entryNeedsBothGates": "Kedua gerbang aktif, jadi peserta harus ada di organisasi yang disebutkan DAN dalam daftar nama. Siapa pun di organisasi yang tidak disebutkan namanya akan terkunci.",
+      "joinLimitNamesNobody": "Batas bergabung tidak menyebut organisasi mana pun, jadi tidak ada yang bisa bergabung.",
+      "alwaysAdmitIsFullAccess": "{count, plural, other {# orang}} yang terdaftar sebagai penonton papan skor diterima ke seluruh kontes, bukan hanya papan skornya.",
+      "hiddenWhileRunning": "Kontes sedang berjalan dan disembunyikan dari daftar.",
+      "ratingBandEmpty": "Batas bawah peringkat lebih tinggi daripada batas atas, jadi tidak ada yang memenuhi syarat.",
+      "ratingFloorExcludesNewcomers": "Batas bawah {floor} mengecualikan semua yang belum pernah dinilai, karena mereka dihitung sebagai {newcomer}.",
+      "rateEveryoneWithExclusions": "Memberi peringkat kepada semua, dikurangi {count, plural, other {# pengecualian}}.",
+      "customLabelsShort": "{labels, plural, other {# label}} untuk {problems} soal; sisanya kembali memakai huruf.",
+      "pretestsWithoutPretestedProblems": "Hanya prauji aktif, tetapi tidak ada soal di kontes ini yang ditandai sebagai prauji, jadi tidak berpengaruh."
     }
   },
   "submissions": {

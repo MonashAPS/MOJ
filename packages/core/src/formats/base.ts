@@ -145,7 +145,9 @@ export interface ParticipationResultDisplay {
  */
 export interface ScoringLine {
   readonly key: string;
-  readonly values?: Readonly<Record<string, number>>;
+  /** Strings as well as numbers: a summary line interpolates dates and names,
+   *  which the web app formats for the viewer's locale before passing them in. */
+  readonly values?: Readonly<Record<string, number | string>>;
 }
 
 export interface ContestFormat {
