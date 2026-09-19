@@ -6,7 +6,7 @@
  * of DMOJ's, each one a port of the corresponding DMOJ method.
  */
 
-export * from "./artefacts";
+export * from "./audiences";
 
 export * from "./contest/describe";
 
