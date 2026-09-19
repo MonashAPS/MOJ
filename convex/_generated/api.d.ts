@@ -84,6 +84,7 @@ import type * as proctor from "../proctor.js";
 import type * as profiles from "../profiles.js";
 import type * as profiles_apiTokens from "../profiles/apiTokens.js";
 import type * as profiles_dataExport from "../profiles/dataExport.js";
+import type * as profiles_dedupe from "../profiles/dedupe.js";
 import type * as rankings from "../rankings.js";
 import type * as ratings from "../ratings.js";
 import type * as scoreboard from "../scoreboard.js";
@@ -179,6 +180,7 @@ declare const fullApi: ApiFromModules<{
   profiles: typeof profiles;
   "profiles/apiTokens": typeof profiles_apiTokens;
   "profiles/dataExport": typeof profiles_dataExport;
+  "profiles/dedupe": typeof profiles_dedupe;
   rankings: typeof rankings;
   ratings: typeof ratings;
   scoreboard: typeof scoreboard;
