@@ -26,6 +26,7 @@ import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import { chosenValue } from "@/lib/choices";
 import { formatDateTime } from "@/lib/format";
 import { acknowledgedReason, ContestDangerDialog } from "./ContestDangerDialog";
+import { ContestEntryFields } from "./ContestEntryFields";
 import { ContestScheduleFields } from "./ContestScheduleFields";
 import { ContestSummary } from "./ContestSummary";
 import {
@@ -126,7 +127,7 @@ export function ContestGeneralTab({
   const [privateContestants, setPrivateContestants] = useState<string[]>(initial.privateContestants);
   const [organizationSlugs, setOrganizationSlugs] = useState<string[]>(initial.organizationSlugs);
   const [classNames, setClassNames] = useState<string[]>(initial.classNames);
-  const [limitJoinOrganizations, setLimitJoinOrganizations] = useState(initial.limitJoinOrganizations);
+  const [isOrganizationPrivate, setIsOrganizationPrivate] = useState(initial.isOrganizationPrivate);
   const [joinOrganizationSlugs, setJoinOrganizationSlugs] = useState<string[]>(initial.joinOrganizationSlugs);
   const [tagNames, setTagNames] = useState<string[]>(initial.tagNames);
   const [lockedAfter, setLockedAfter] = useState<number | null>(initial.lockedAfter);
@@ -223,7 +224,7 @@ export function ContestGeneralTab({
     privateContestants,
     organizationSlugs,
     classNames,
-    limitJoinOrganizations,
+    isOrganizationPrivate,
     joinOrganizationSlugs,
     tagNames,
     lockedAfter,
@@ -325,11 +326,11 @@ export function ContestGeneralTab({
     timeLimit: timeLimit.trim() ? Number(timeLimit) * 60 : null,
     isVisible,
     isPrivate,
-    isOrganizationPrivate: organizationSlugs.length > 0 || classNames.length > 0,
+    isOrganizationPrivate,
     privateContestantProfileIds: privateContestants,
     organizationIds: organizationSlugs,
     classIds: classNames,
-    limitJoinOrganizations,
+    limitJoinOrganizations: joinOrganizationSlugs.length > 0,
     joinOrganizationIds: joinOrganizationSlugs,
     freezeMinutes: Number(freezeMinutes) || 0,
     blindDuringFreeze,
@@ -412,14 +413,6 @@ export function ContestGeneralTab({
         <AdminSection title={t("sectionSettings")}>
           <AdminWideField>
             <div className="grid gap-2 sm:grid-cols-3">
-              <AdminCheckField
-                label={t("visible")}
-                hint={t("visibleHint")}
-                checked={isVisible}
-                onCheckedChange={setIsVisible}
-                disabled={!permissions.changeContestVisibility}
-                disabledReason={t("missingPermission", { permission: "judge.change_contest_visibility" })}
-              />
               <AdminCheckField
                 label={t("clarifications")}
                 hint={t("clarificationsHint")}
@@ -628,89 +621,52 @@ export function ContestGeneralTab({
           </Field>
         </AdminSection>
 
-        <AdminSection title={t("sectionAccess")}>
-          <Field
-            label={t("accessCode")}
-            htmlFor={ids.accessCode}
-            optional={t("optional")}
-            hint={t("accessCodeHint")}
-          >
-            <Input
-              id={ids.accessCode}
-              mono
-              value={accessCode}
-              disabled={!permissions.contestAccessCode}
-              title={
-                permissions.contestAccessCode
-                  ? undefined
-                  : t("missingPermission", { permission: "judge.contest_access_code" })
+        <AdminSection title={t("sectionAccess")} columns={1}>
+          <ContestEntryFields
+            values={{
+              isVisible,
+              isPrivate,
+              isOrganizationPrivate,
+              privateContestants,
+              organizationSlugs,
+              classNames,
+              joinOrganizationSlugs,
+              accessCode,
+            }}
+            organizationOptions={(options?.organizations ?? []).map((row) => ({
+              value: row.slug,
+              label: row.name,
+            }))}
+            classOptions={(options?.classes ?? []).map((row) => ({
+              value: row.name,
+              label: row.organization ? `${row.name} (${row.organization})` : row.name,
+            }))}
+            canRestrict={permissions.createPrivateContest}
+            canSetAccessCode={permissions.contestAccessCode}
+            canChangeVisibility={permissions.changeContestVisibility}
+            missingPermission={(permission) => t("missingPermission", { permission })}
+            onChange={(patch) => {
+              if (patch.isVisible !== undefined) setIsVisible(patch.isVisible);
+
+              if (patch.isPrivate !== undefined) setIsPrivate(patch.isPrivate);
+
+              if (patch.isOrganizationPrivate !== undefined) {
+                setIsOrganizationPrivate(patch.isOrganizationPrivate);
               }
-              onChange={(event) => setAccessCode(event.target.value)}
-            />
-          </Field>
-          <AdminCheckField
-            label={t("private")}
-            hint={t("privateHint")}
-            checked={isPrivate}
-            onCheckedChange={setIsPrivate}
-            disabled={!permissions.createPrivateContest}
-            disabledReason={t("missingPermission", { permission: "judge.create_private_contest" })}
-          />
-          <Field label={t("privateContestants")} htmlFor={ids.contestants} className="sm:col-span-2">
-            <UserPicker
-              id={ids.contestants}
-              values={privateContestants}
-              onChange={setPrivateContestants}
-              disabled={!permissions.createPrivateContest}
-              disabledReason={t("missingPermission", { permission: "judge.create_private_contest" })}
-              ariaLabel={t("privateContestants")}
-            />
-          </Field>
-          <Field label={t("organizations")} htmlFor={ids.organizations} hint={t("organizationsHint")}>
-            <div
-              title={
-                permissions.createPrivateContest
-                  ? undefined
-                  : t("missingPermission", { permission: "judge.create_private_contest" })
+
+              if (patch.privateContestants !== undefined) setPrivateContestants(patch.privateContestants);
+
+              if (patch.organizationSlugs !== undefined) setOrganizationSlugs(patch.organizationSlugs);
+
+              if (patch.classNames !== undefined) setClassNames(patch.classNames);
+
+              if (patch.joinOrganizationSlugs !== undefined) {
+                setJoinOrganizationSlugs(patch.joinOrganizationSlugs);
               }
-            >
-              <MultiSelect
-                id={ids.organizations}
-                values={organizationSlugs}
-                onChange={setOrganizationSlugs}
-                options={(options?.organizations ?? []).map((row) => ({ value: row.slug, label: row.name }))}
-                placeholder={t("organizationsPlaceholder")}
-                disabled={!permissions.createPrivateContest}
-              />
-            </div>
-          </Field>
-          <Field label={t("classes")} htmlFor={ids.classes} optional={t("optional")}>
-            <MultiSelect
-              id={ids.classes}
-              values={classNames}
-              onChange={setClassNames}
-              options={(options?.classes ?? []).map((row) => ({
-                value: row.name,
-                label: row.organization ? `${row.name} (${row.organization})` : row.name,
-              }))}
-              placeholder={t("classesPlaceholder")}
-            />
-          </Field>
-          <AdminCheckField
-            label={t("limitJoin")}
-            hint={t("limitJoinHint")}
-            checked={limitJoinOrganizations}
-            onCheckedChange={setLimitJoinOrganizations}
+
+              if (patch.accessCode !== undefined) setAccessCode(patch.accessCode);
+            }}
           />
-          <Field label={t("joinOrganizations")} htmlFor={ids.joinOrganizations}>
-            <MultiSelect
-              id={ids.joinOrganizations}
-              values={joinOrganizationSlugs}
-              onChange={setJoinOrganizationSlugs}
-              options={(options?.organizations ?? []).map((row) => ({ value: row.slug, label: row.name }))}
-              placeholder={t("joinOrganizationsPlaceholder")}
-            />
-          </Field>
         </AdminSection>
 
         <AdminSection title={t("sectionPresentation")}>
