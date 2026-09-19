@@ -8,9 +8,9 @@ import { describe, expect, it } from "vitest";
 import { participationEndTime, participationStart } from "../contestTiming";
 import { contestAccessCheck, contestIsLiveJoinableBy } from "../permissions";
 import { rateContest } from "../ratings";
+import { freezeTime } from "../scoreboard";
 import { createParticipation, createUser, withOrganizations } from "../test.fixtures";
 import { describeContest } from "./describe";
-import { freezeAt } from "./settings";
 import { blockingWarnings, contestWarnings, dangerWarnings } from "./warnings";
 
 const HOUR = 60 * 60 * 1000;
@@ -23,17 +23,26 @@ const CONTEST = {
   startTime: START,
   endTime: START + 3 * HOUR,
   isVisible: true,
-  isPrivate: false,
-  isOrganizationPrivate: false,
-  scoreboardVisibility: "V" as const,
-};
+  schedule: { kind: "together" },
+  entry: { kind: "open" },
+  labels: { kind: "letters" },
+  scoreboardVisibility: "V",
+} as const;
+
+const RESTRICTED = {
+  kind: "restricted",
+  match: "all",
+  organizationIds: [],
+  classIds: [],
+  profileIds: [],
+} as const;
 
 function keysOf(warnings: ReturnType<typeof contestWarnings>): string[] {
   return warnings.map((warning) => warning.key);
 }
 
 describe("a per-participant window as long as the contest", () => {
-  const contest = { ...CONTEST, timeLimit: (3 * HOUR) / 1000 };
+  const contest = { ...CONTEST, schedule: { kind: "window", seconds: (3 * HOUR) / 1000 } } as const;
 
   it("is flagged as a danger", () => {
     const warnings = contestWarnings(contest, { now: START });
@@ -59,33 +68,33 @@ describe("a per-participant window as long as the contest", () => {
   });
 
   it("says nothing about a window that is genuinely shorter", () => {
-    const shorter = { ...CONTEST, timeLimit: HOUR / 1000 };
+    const shorter = { ...CONTEST, schedule: { kind: "window", seconds: HOUR / 1000 } } as const;
 
     expect(keysOf(contestWarnings(shorter, { now: START }))).not.toContain("windowIsWholeContest");
   });
 });
 
 describe("a freeze at least as long as the contest", () => {
-  const contest = { ...CONTEST, freezeMinutes: 180 };
+  const contest = { ...CONTEST, freeze: { minutes: 180, blind: false } };
 
   it("blocks the save", () => {
     expect(blockingWarnings(contestWarnings(contest)).map((w) => w.key)).toEqual(["freezeCoversContest"]);
   });
 
   it("blocks it because the board would be frozen from the moment it opens", () => {
-    expect(freezeAt(contest)).toBe(contest.startTime);
+    expect(freezeTime(contest)).toBe(contest.startTime);
   });
 });
 
 describe("an entry gate that names nobody", () => {
   it("blocks the save", () => {
-    const contest = { ...CONTEST, isPrivate: true, privateContestantProfileIds: [] };
+    const contest = { ...CONTEST, entry: RESTRICTED };
 
     expect(blockingWarnings(contestWarnings(contest)).map((w) => w.key)).toEqual(["restrictedNamesNobody"]);
   });
 
   it("blocks it because the access check admits nobody but staff", () => {
-    const contest = { ...CONTEST, isPrivate: true, privateContestantProfileIds: [] };
+    const contest = { ...CONTEST, entry: RESTRICTED };
 
     expect(contestAccessCheck(contest, createUser("nobody")).kind).toBe("privateContest");
   });
@@ -94,10 +103,7 @@ describe("an entry gate that names nobody", () => {
 describe("both entry gates at once", () => {
   const contest = {
     ...CONTEST,
-    isPrivate: true,
-    isOrganizationPrivate: true,
-    organizationIds: ["o1"],
-    privateContestantProfileIds: ["someone-else"],
+    entry: { ...RESTRICTED, organizationIds: ["o1"], profileIds: ["someone-else"] },
   };
 
   it("is a danger, not merely a note", () => {
@@ -112,7 +118,7 @@ describe("both entry gates at once", () => {
 });
 
 describe("a join limit naming no organisation", () => {
-  const contest = { ...CONTEST, limitJoinOrganizations: true, joinOrganizationIds: [] };
+  const contest = { ...CONTEST, joinLimit: { organizationIds: [] } };
 
   it("blocks the save", () => {
     expect(blockingWarnings(contestWarnings(contest)).map((w) => w.key)).toEqual(["joinLimitNamesNobody"]);
@@ -126,7 +132,7 @@ describe("a join limit naming no organisation", () => {
 });
 
 describe("a rating floor above the newcomer rating", () => {
-  const contest = { ...CONTEST, isRated: true, ratingFloor: 1300 };
+  const contest = { ...CONTEST, rating: { everyone: false, excludeProfileIds: [], floor: 1300 } };
 
   it("is a danger", () => {
     expect(dangerWarnings(contestWarnings(contest)).map((w) => w.key)).toContain(
@@ -144,13 +150,13 @@ describe("a rating floor above the newcomer rating", () => {
       submissionCount: 3,
     };
 
-    expect(rateContest([newcomer], { contest })).toEqual([]);
+    expect(rateContest([newcomer], { rating: contest.rating })).toEqual([]);
     // The same competitor is rated once the floor is at or below 1200.
-    expect(rateContest([newcomer], { contest: { ...contest, ratingFloor: 1200 } })).toHaveLength(1);
+    expect(rateContest([newcomer], { rating: { ...contest.rating, floor: 1200 } })).toHaveLength(1);
   });
 
   it("says nothing when the floor is at the newcomer rating", () => {
-    const at = { ...CONTEST, isRated: true, ratingFloor: 1200 };
+    const at = { ...CONTEST, rating: { everyone: false, excludeProfileIds: [], floor: 1200 } };
 
     expect(keysOf(contestWarnings(at))).not.toContain("ratingFloorExcludesNewcomers");
   });
@@ -170,7 +176,7 @@ describe("an ordinary contest", () => {
 
 describe("the summary of a windowed contest", () => {
   it("says the penalty clock starts when the competitor does", () => {
-    const contest = { ...CONTEST, timeLimit: HOUR / 1000 };
+    const contest = { ...CONTEST, schedule: { kind: "window", seconds: HOUR / 1000 } } as const;
     const keys = describeContest(contest).map((line) => line.key);
 
     expect(keys).toContain("ownWindow");
@@ -184,11 +190,10 @@ describe("severity ordering", () => {
   it("puts what blocks a save above what merely surprises", () => {
     const contest = {
       ...CONTEST,
-      freezeMinutes: 180,
-      timeLimit: (3 * HOUR) / 1000,
-      isRated: true,
-      ratingFloor: 1300,
-    };
+      freeze: { minutes: 180, blind: false },
+      schedule: { kind: "window", seconds: (3 * HOUR) / 1000 },
+      rating: { everyone: false, excludeProfileIds: [], floor: 1300 },
+    } as const;
 
     const severities = contestWarnings(contest, { now: START }).map((warning) => warning.severity);
 

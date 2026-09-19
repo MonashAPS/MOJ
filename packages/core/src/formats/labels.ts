@@ -5,43 +5,24 @@
  * that turns a zero-based index into a label, and its `default` format numbers
  * its problems. Ours letters them — A, B, C — whatever format a contest runs
  * under, because that is how a contest problem is named out loud and in every
- * scoreboard anybody here has read.
- *
- * A contest naming its own problems still wins, through `customLabels`. The
- * `numbers` scheme stays in the union so no stored row has to be rewritten to
- * deploy this, but nothing renders it any more.
+ * scoreboard anybody here has read. A contest naming its own problems wins.
  */
 
-import { labelsOf } from "../contest/settings";
-import type { ContestRow, LabelScheme } from "../types";
+import type { ContestLabels, ContestRow } from "../types";
 import { letterLabel } from "./base";
 
-export interface LabelOptions {
-  readonly scheme?: LabelScheme;
-  readonly customLabels?: readonly string[];
-}
-
 /** The label for a zero-based contest problem index. */
-export function getLabelForProblem(index: number, options: LabelOptions = {}): string {
-  if (options.scheme === "custom") {
-    const labels = options.customLabels ?? [];
-
-    // Past the end of the list, fall back to letters so a short list never
-    // renders blank headers.
-    return labels[index] ?? letterLabel(index);
-  }
+export function getLabelForProblem(index: number, labels: ContestLabels): string {
+  // Past the end of a custom list, fall back to letters so a short list never
+  // renders blank headers.
+  if (labels.kind === "custom") return labels.labels[index] ?? letterLabel(index);
 
   return letterLabel(index);
 }
 
 /** `Contest.get_label_for_problem` for a contest row. */
 export function getContestLabelForProblem(contest: ContestRow, index: number): string {
-  const labels = labelsOf(contest);
-
-  if (labels.kind === "custom")
-    return getLabelForProblem(index, { scheme: "custom", customLabels: labels.labels });
-
-  return letterLabel(index);
+  return getLabelForProblem(index, contest.labels);
 }
 
 /** Labels for a whole contest, in problem order. */

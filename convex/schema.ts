@@ -48,7 +48,50 @@ export const globalSourceVisibility = v.union(
 
 export const scoreboardVisibility = v.union(v.literal("V"), v.literal("C"), v.literal("P"), v.literal("H"));
 
-export const labelScheme = v.union(v.literal("letters"), v.literal("numbers"), v.literal("custom"));
+/** How a contest's clock runs. A window starts each competitor's clock, and penalty time, when they join. */
+export const contestSchedule = v.union(
+  v.object({ kind: v.literal("together") }),
+  v.object({ kind: v.literal("window"), seconds: v.number() }),
+);
+
+/**
+ * Who may enter a contest. A restricted contest gates on the organisations and
+ * classes it names, and on the people it names; `match` says whether both gates
+ * must be cleared or either will do.
+ */
+export const contestEntry = v.union(
+  v.object({ kind: v.literal("open") }),
+  v.object({
+    kind: v.literal("restricted"),
+    match: v.union(v.literal("all"), v.literal("any")),
+    organizationIds: v.array(v.id("organizations")),
+    classIds: v.array(v.id("classes")),
+    profileIds: v.array(v.id("profiles")),
+  }),
+);
+
+/** Which organisations may join a contest once entry is allowed. */
+export const contestJoinLimit = v.object({ organizationIds: v.array(v.id("organizations")) });
+
+export const contestFreeze = v.object({
+  minutes: v.number(),
+  /** Contestants see their own verdicts as pending until the contest ends. */
+  blind: v.boolean(),
+});
+
+export const contestRating = v.object({
+  /** Rate competitors who submitted nothing too. */
+  everyone: v.boolean(),
+  excludeProfileIds: v.array(v.id("profiles")),
+  floor: v.optional(v.number()),
+  ceiling: v.optional(v.number()),
+  performanceCeiling: v.optional(v.number()),
+});
+
+export const contestLabels = v.union(
+  v.object({ kind: v.literal("letters") }),
+  v.object({ kind: v.literal("custom"), labels: v.array(v.string()) }),
+);
 
 export const requestState = v.union(v.literal("P"), v.literal("A"), v.literal("R"));
 
@@ -559,20 +602,34 @@ export default defineSchema({
     description: v.string(),
     startTime: v.number(),
     endTime: v.number(),
-    timeLimit: v.optional(v.number()),
+    schedule: contestSchedule,
     isVisible: v.boolean(),
-    isRated: v.boolean(),
-    viewContestScoreboardProfileIds: v.array(v.id("profiles")),
+    entry: contestEntry,
+    /** `entry.kind === "open"`, for the search index, which cannot look inside a union. */
+    isOpenEntry: v.boolean(),
+    /** Absent means anyone who can enter may join. */
+    joinLimit: v.optional(contestJoinLimit),
+    /** Absent means the board never freezes. */
+    freeze: v.optional(contestFreeze),
+    /** The reveal ceremony's progress. A hall board's freeze belongs to its
+     *  event, so this lives beside the contest's own freeze rather than in it. */
+    reveal: v.optional(
+      v.object({
+        /** The whole board is shown; lifted by the ceremony, not by the contest ending. */
+        lifted: v.boolean(),
+        /** Cells revealed one at a time so far. */
+        /** `participationId` is the board row's id, which `@moj/core` hands back as a string. */
+        cells: v.array(v.object({ participationId: v.string(), cellIndex: v.number() })),
+      }),
+    ),
+    /** Absent means unrated. */
+    rating: v.optional(contestRating),
+    labels: contestLabels,
+    /** Admitted to the whole contest, whatever `entry` says, and to its scoreboard. */
+    alwaysAdmitProfileIds: v.array(v.id("profiles")),
     viewContestSubmissionsProfileIds: v.array(v.id("profiles")),
     scoreboardVisibility,
     useClarifications: v.boolean(),
-    ratingFloor: v.optional(v.number()),
-    ratingCeiling: v.optional(v.number()),
-    performanceCeilingOverride: v.optional(v.number()),
-    rateAll: v.boolean(),
-    rateExcludeProfileIds: v.array(v.id("profiles")),
-    isPrivate: v.boolean(),
-    privateContestantProfileIds: v.array(v.id("profiles")),
     hideProblemTags: v.boolean(),
     hideProblemAuthors: v.boolean(),
     /** Opts out of the lockdown a contest gets by default, where the site turns
@@ -580,14 +637,6 @@ export default defineSchema({
      *  bar and the problems list is blurred away. Off means locked down. */
     disableLockdown: v.optional(v.boolean()),
     runPretestsOnly: v.boolean(),
-    showShortDisplay: v.boolean(),
-    isOrganizationPrivate: v.boolean(),
-    organizationIds: v.array(v.id("organizations")),
-    limitJoinOrganizations: v.boolean(),
-    joinOrganizationIds: v.array(v.id("organizations")),
-    classIds: v.array(v.id("classes")),
-    ogImage: v.optional(v.string()),
-    logoOverrideImage: v.optional(v.string()),
     tagIds: v.array(v.id("contestTags")),
     userCount: v.number(),
     summary: v.optional(v.string()),
@@ -595,16 +644,8 @@ export default defineSchema({
     bannedProfileIds: v.array(v.id("profiles")),
     formatName: v.string(),
     formatConfig: v.any(),
-    labelScheme,
-    customLabels: v.array(v.string()),
     lockedAfter: v.optional(v.number()),
     pointsPrecision: v.number(),
-    freezeMinutes: v.number(),
-    blindDuringFreeze: v.boolean(),
-    revealedUntilRank: v.optional(v.number()),
-    isUnfrozen: v.optional(v.boolean()),
-    freezeRevealed: v.optional(v.boolean()),
-    revealState: v.optional(v.any()),
     /** Opens its problems only while the viewer is sharing their whole screen. */
     proctorRequired: v.optional(v.boolean()),
     legacyId: v.optional(v.number()),
@@ -615,7 +656,7 @@ export default defineSchema({
     .index("by_legacyId", ["legacyId"])
     .searchIndex("search_name", {
       searchField: "name",
-      filterFields: ["isVisible", "isPrivate", "isOrganizationPrivate"],
+      filterFields: ["isVisible", "isOpenEntry"],
     }),
 
   contestProblems: defineTable({

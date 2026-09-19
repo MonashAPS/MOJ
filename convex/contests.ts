@@ -11,6 +11,7 @@
 
 import {
   type ContestAccess,
+  type ContestSchedule,
   contestAccessCheck,
   contestCanSeeFullScoreboard,
   contestCanSeeOwnScoreboard,
@@ -76,7 +77,7 @@ export type ContestBarData = {
     startTime: number;
     endTime: number;
     useClarifications: boolean;
-    freezeMinutes: number;
+    freeze: { minutes: number } | null;
     /** The site turns into this contest while the viewer is competing in it. */
     /** The site turns into this contest while the viewer is competing in it.
      *  On unless the contest opted out. */
@@ -126,11 +127,10 @@ export type ContestListRow = {
   name: string;
   startTime: number;
   endTime: number;
-  timeLimit: number | null;
+  schedule: ContestSchedule;
   userCount: number;
   isRated: boolean;
-  isPrivate: boolean;
-  isOrganizationPrivate: boolean;
+  isOpenEntry: boolean;
   isVisible: boolean;
   formatName: string;
   tags: TagRef[];
@@ -216,6 +216,10 @@ async function tagRefs(ctx: QueryCtx | MutationCtx, ids: readonly Id<"contestTag
   }
 
   return out;
+}
+
+function gateOrganizationIds(contest: Doc<"contests">): Id<"organizations">[] {
+  return contest.entry.kind === "restricted" ? contest.entry.organizationIds : [];
 }
 
 async function organizationRefs(
@@ -362,13 +366,11 @@ export const homeSidebar = query({
       .collect();
 
     const ongoing = rows
-      .filter(
-        (row) => !row.isPrivate && !row.isOrganizationPrivate && row.startTime <= now && row.endTime > now,
-      )
+      .filter((row) => row.isOpenEntry && row.startTime <= now && row.endTime > now)
       .sort((a, b) => a.endTime - b.endTime);
 
     const upcoming = rows
-      .filter((row) => !row.isPrivate && !row.isOrganizationPrivate && row.startTime > now)
+      .filter((row) => row.isOpenEntry && row.startTime > now)
       .sort((a, b) => a.startTime - b.startTime);
 
     return [
@@ -509,7 +511,7 @@ export const navBar = query({
         startTime: contest.startTime,
         endTime: contest.endTime,
         useClarifications: contest.useClarifications,
-        freezeMinutes: contest.freezeMinutes,
+        freeze: contest.freeze ? { minutes: contest.freeze.minutes } : null,
         isLockedDown: contest.disableLockdown !== true,
       },
       problems,
@@ -644,15 +646,14 @@ async function listRow(
     name: contest.name,
     startTime: contest.startTime,
     endTime: contest.endTime,
-    timeLimit: contest.timeLimit ?? null,
+    schedule: contest.schedule,
     userCount: contest.userCount,
-    isRated: contest.isRated,
-    isPrivate: contest.isPrivate,
-    isOrganizationPrivate: contest.isOrganizationPrivate,
+    isRated: contest.rating !== undefined,
+    isOpenEntry: contest.isOpenEntry,
     isVisible: contest.isVisible,
     formatName: contest.formatName,
     tags: await tagRefs(ctx, contest.tagIds),
-    organizations: await organizationRefs(ctx, contest.organizationIds),
+    organizations: await organizationRefs(ctx, gateOrganizationIds(contest)),
     authors: await userRefs(ctx, contest.authorProfileIds),
     isEditorOrTester: editorOrTester,
     hasCompleted,
@@ -987,7 +988,7 @@ export const calendar = query({
         name: contest.name,
         startTime: contest.startTime,
         endTime: contest.endTime,
-        isRated: contest.isRated,
+        isRated: contest.rating !== undefined,
       };
 
       if (startDay === endDay) buckets.get(startDay)?.oneday.push(row);
@@ -1089,8 +1090,8 @@ export type AccessDecision =
   | {
       kind: "privateContest";
       name: string;
-      isPrivate: boolean;
-      isOrganizationPrivate: boolean;
+      /** Gated on named people, so an organisation member may still be out. */
+      byName: boolean;
       organizations: OrganizationRef[];
       classes: { _id: Id<"classes">; name: string; slug: string }[];
     };
@@ -1150,26 +1151,19 @@ export type ContestDetail = {
     summary: string | null;
     startTime: number;
     endTime: number;
-    timeLimit: number | null;
+    schedule: ContestSchedule;
     isVisible: boolean;
-    isRated: boolean;
-    isPrivate: boolean;
-    isOrganizationPrivate: boolean;
+    isOpenEntry: boolean;
     useClarifications: boolean;
     hideProblemTags: boolean;
     hideProblemAuthors: boolean;
     runPretestsOnly: boolean;
-    showShortDisplay: boolean;
     scoreboardVisibility: string;
-    freezeMinutes: number;
-    blindDuringFreeze: boolean;
+    freeze: { minutes: number; blind: boolean } | null;
+    rating: { floor: number | null; ceiling: number | null } | null;
     pointsPrecision: number;
     userCount: number;
-    ogImage: string | null;
-    logoOverrideImage: string | null;
     lockedAfter: number | null;
-    ratingFloor: number | null;
-    ratingCeiling: number | null;
     proctorRequired: boolean;
     tags: TagRef[];
     organizations: OrganizationRef[];
@@ -1191,7 +1185,7 @@ export type ContestDetail = {
     hasSubmissionCap: boolean;
     hasPublicEditorials: boolean;
   };
-  format: { name: string; displayName: string; shortFormDisplay: ScoringLine[]; labelScheme: string };
+  format: { name: string; displayName: string; shortFormDisplay: ScoringLine[] };
   participation: ParticipationSummary | null;
   liveParticipation: ParticipationSummary | null;
   timing: {
@@ -1245,7 +1239,6 @@ function emptyDetail(access: AccessDecision, now: number): ContestDetail {
       name: "default",
       displayName: "Default",
       shortFormDisplay: [],
-      labelScheme: "numbers",
     },
     participation: null,
     liveParticipation: null,
@@ -1332,21 +1325,22 @@ export const get = query({
 
     if (!inThisContest && access.kind !== "ok") {
       if (access.kind === "inaccessible") return emptyDetail({ kind: "inaccessible" }, now);
-      const organizations = await organizationRefs(ctx, contest.organizationIds);
+      const organizations = await organizationRefs(ctx, gateOrganizationIds(contest));
       const classes: { _id: Id<"classes">; name: string; slug: string }[] = [];
 
-      for (const id of contest.classIds) {
-        const row = await ctx.db.get(id);
+      if (contest.entry.kind === "restricted") {
+        for (const id of contest.entry.classIds) {
+          const row = await ctx.db.get(id);
 
-        if (row) classes.push({ _id: row._id, name: row.name, slug: row.slug });
+          if (row) classes.push({ _id: row._id, name: row.name, slug: row.slug });
+        }
       }
 
       return emptyDetail(
         {
           kind: "privateContest",
           name: contest.name,
-          isPrivate: contest.isPrivate,
-          isOrganizationPrivate: contest.isOrganizationPrivate,
+          byName: contest.entry.kind === "restricted" && contest.entry.profileIds.length > 0,
           organizations,
           classes,
         },
@@ -1515,29 +1509,24 @@ export const get = query({
         summary: contest.summary ?? null,
         startTime: contest.startTime,
         endTime: contest.endTime,
-        timeLimit: contest.timeLimit ?? null,
+        schedule: contest.schedule,
         isVisible: contest.isVisible,
-        isRated: contest.isRated,
-        isPrivate: contest.isPrivate,
-        isOrganizationPrivate: contest.isOrganizationPrivate,
+        isOpenEntry: contest.isOpenEntry,
         useClarifications: contest.useClarifications,
         hideProblemTags: contest.hideProblemTags,
         hideProblemAuthors: contest.hideProblemAuthors,
         runPretestsOnly: contest.runPretestsOnly,
-        showShortDisplay: contest.showShortDisplay,
         scoreboardVisibility: contest.scoreboardVisibility,
-        freezeMinutes: contest.freezeMinutes,
-        blindDuringFreeze: contest.blindDuringFreeze,
+        freeze: contest.freeze ? { minutes: contest.freeze.minutes, blind: contest.freeze.blind } : null,
+        rating: contest.rating
+          ? { floor: contest.rating.floor ?? null, ceiling: contest.rating.ceiling ?? null }
+          : null,
         pointsPrecision: contest.pointsPrecision,
         userCount: contest.userCount,
-        ogImage: contest.ogImage ?? null,
-        logoOverrideImage: contest.logoOverrideImage ?? null,
         lockedAfter: contest.lockedAfter ?? null,
-        ratingFloor: contest.ratingFloor ?? null,
-        ratingCeiling: contest.ratingCeiling ?? null,
         proctorRequired: contest.proctorRequired ?? false,
         tags: await tagRefs(ctx, contest.tagIds),
-        organizations: await organizationRefs(ctx, contest.organizationIds),
+        organizations: await organizationRefs(ctx, gateOrganizationIds(contest)),
         authors: await userRefs(ctx, contest.authorProfileIds),
         curators: await userRefs(ctx, contest.curatorProfileIds),
         testers: await userRefs(ctx, contest.testerProfileIds),
@@ -1556,7 +1545,6 @@ export const get = query({
         name: format.name,
         displayName: format.displayName,
         shortFormDisplay,
-        labelScheme: contest.labelScheme,
       },
       participation: currentParticipation ? summarise(contest, currentParticipation, now) : null,
       liveParticipation: liveParticipation ? summarise(contest, liveParticipation, now) : null,

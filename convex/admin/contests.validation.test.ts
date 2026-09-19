@@ -54,15 +54,21 @@ describe("the rating settings", () => {
     const t = await seed();
 
     await expect(
-      asUser(t, "setter").mutation(api.admin.contests.update, { key: "weekly", isRated: true }),
+      asUser(t, "setter").mutation(api.admin.contests.update, {
+        key: "weekly",
+        rating: { everyone: false, excludeProfileIds: [] },
+      }),
     ).rejects.toThrow(/judge.contest_rating/);
   });
 
   test("still save for someone who has it", async () => {
     const t = await seed();
-    await asUser(t, "root").mutation(api.admin.contests.update, { key: "weekly", isRated: true });
+    await asUser(t, "root").mutation(api.admin.contests.update, {
+      key: "weekly",
+      rating: { everyone: false, excludeProfileIds: [] },
+    });
 
-    expect((await contest(t))?.isRated).toBe(true);
+    expect((await contest(t))?.rating).toEqual({ everyone: false, excludeProfileIds: [] });
   });
 
   test("do not block an edit that leaves them alone", async () => {
@@ -78,15 +84,21 @@ describe("a freeze at least as long as the contest", () => {
     const t = await seed();
 
     await expect(
-      asUser(t, "root").mutation(api.admin.contests.update, { key: "weekly", freezeMinutes: 180 }),
+      asUser(t, "root").mutation(api.admin.contests.update, {
+        key: "weekly",
+        freeze: { minutes: 180, blind: false },
+      }),
     ).rejects.toThrow(/shorter than the contest/);
   });
 
   test("is fine one minute under", async () => {
     const t = await seed();
-    await asUser(t, "root").mutation(api.admin.contests.update, { key: "weekly", freezeMinutes: 179 });
+    await asUser(t, "root").mutation(api.admin.contests.update, {
+      key: "weekly",
+      freeze: { minutes: 179, blind: false },
+    });
 
-    expect((await contest(t))?.freezeMinutes).toBe(179);
+    expect((await contest(t))?.freeze).toEqual({ minutes: 179, blind: false });
   });
 });
 
@@ -95,15 +107,21 @@ describe("a per-participant window of zero", () => {
     const t = await seed();
 
     await expect(
-      asUser(t, "root").mutation(api.admin.contests.update, { key: "weekly", timeLimit: 0 }),
+      asUser(t, "root").mutation(api.admin.contests.update, {
+        key: "weekly",
+        schedule: { kind: "window", seconds: 0 },
+      }),
     ).rejects.toThrow(/longer than zero/);
   });
 
-  test("is cleared with null, which means the whole contest", async () => {
+  test("is not a thing a shared clock can say", async () => {
     const t = await seed();
-    await asUser(t, "root").mutation(api.admin.contests.update, { key: "weekly", timeLimit: null });
+    await asUser(t, "root").mutation(api.admin.contests.update, {
+      key: "weekly",
+      schedule: { kind: "together" },
+    });
 
-    expect((await contest(t))?.timeLimit).toBeUndefined();
+    expect((await contest(t))?.schedule).toEqual({ kind: "together" });
   });
 });
 

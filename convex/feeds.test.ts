@@ -48,7 +48,10 @@ async function seed() {
 
     await insertContest(ctx, { key: "open", startTime: 10_000, endTime: 20_000 });
     await insertContest(ctx, { key: "hidden", isVisible: false });
-    await insertContest(ctx, { key: "secret", isPrivate: true });
+    await insertContest(ctx, {
+      key: "secret",
+      entry: { kind: "restricted", match: "all", organizationIds: [], classIds: [], profileIds: [] },
+    });
 
     await ctx.db.insert("comments", {
       targetType: "problem",

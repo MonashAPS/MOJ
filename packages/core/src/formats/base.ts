@@ -156,8 +156,6 @@ export interface ContestFormat {
   /** DMOJ's human-facing `name`. */
   readonly displayName: string;
   readonly configDefaults: FormatConfigDefaults;
-  /** Label scheme this format uses when the contest does not override it. */
-  readonly defaultLabelScheme: "letters" | "numbers";
 
   /** `validate(config)`; throws `FormatConfigError`. */
   validate(config: FormatConfigInput): void;
@@ -183,9 +181,6 @@ export interface ContestFormat {
     participation: Pick<ContestParticipationRow, "formatData">,
     contestProblems: readonly ContestProblemRow[],
   ): (FormatDataEntry | null)[];
-
-  /** DMOJ's per-format label. The contest's `labelScheme` overrides it. */
-  getLabelForProblem(index: number): string;
 
   /** Message keys for the markdown lines describing the format's settings. */
   getShortFormDisplay(config?: FormatConfigInput): ScoringLine[];
@@ -389,11 +384,6 @@ export function breakdown(
   const data = participation.formatData ?? {};
 
   return contestProblems.map((problem) => data[problem.id] ?? null);
-}
-
-/** `DefaultContestFormat.get_label_for_problem`: 1, 2, 3, ... */
-export function numberLabel(index: number): string {
-  return String(index + 1);
 }
 
 /** `ICPCContestFormat.get_label_for_problem`: A, B, ... Z, AA, AB, ... */

@@ -150,8 +150,7 @@ describe("contest mode", () => {
       startTime: now - 7200_000,
       // The freeze started half an hour ago and the contest is still running.
       endTime: now + 1800_000,
-      freezeMinutes: 60,
-      blindDuringFreeze: true,
+      freeze: { minutes: 60, blind: true },
       scoreboardVisibility: "V",
     });
 

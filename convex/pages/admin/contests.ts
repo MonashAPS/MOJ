@@ -5,6 +5,7 @@
 
 import { contestIsEditableBy } from "@moj/core";
 import { v } from "convex/values";
+import type { Id } from "../../_generated/dataModel";
 import { query } from "../../_generated/server";
 import { contestByKey, labelsForContest, toContestRow, toViewerRowInContest } from "../../contests/formats";
 import { consolePermissions, staffViewer, usernamesOf } from "./console";
@@ -49,28 +50,26 @@ export const edit = query({
       });
     }
 
-    const organizationSlugs: string[] = [];
+    const organizationSlugs = async (ids: readonly Id<"organizations">[]) => {
+      const slugs: string[] = [];
 
-    for (const id of contest.organizationIds) {
-      const row = await ctx.db.get(id);
+      for (const id of ids) {
+        const row = await ctx.db.get(id);
 
-      if (row) organizationSlugs.push(row.slug);
-    }
+        if (row) slugs.push(row.slug);
+      }
 
-    const joinOrganizationSlugs: string[] = [];
-
-    for (const id of contest.joinOrganizationIds) {
-      const row = await ctx.db.get(id);
-
-      if (row) joinOrganizationSlugs.push(row.slug);
-    }
+      return slugs;
+    };
 
     const classNames: string[] = [];
 
-    for (const id of contest.classIds) {
-      const row = await ctx.db.get(id);
+    if (contest.entry.kind === "restricted") {
+      for (const id of contest.entry.classIds) {
+        const row = await ctx.db.get(id);
 
-      if (row) classNames.push(row.name);
+        if (row) classNames.push(row.name);
+      }
     }
 
     const tagNames: string[] = [];
@@ -110,29 +109,36 @@ export const edit = query({
       summary: contest.summary ?? "",
       startTime: contest.startTime,
       endTime: contest.endTime,
-      timeLimit: contest.timeLimit ?? null,
+      schedule: contest.schedule,
       isVisible: contest.isVisible,
-      isRated: contest.isRated,
-      ratingFloor: contest.ratingFloor ?? null,
-      ratingCeiling: contest.ratingCeiling ?? null,
-      performanceCeilingOverride: contest.performanceCeilingOverride ?? null,
-      rateAll: contest.rateAll,
-      rateExclude: await usernamesOf(ctx, contest.rateExcludeProfileIds),
+      entry:
+        contest.entry.kind === "open"
+          ? { kind: "open" as const }
+          : {
+              kind: "restricted" as const,
+              match: contest.entry.match,
+              organizationSlugs: await organizationSlugs(contest.entry.organizationIds),
+              classNames,
+              usernames: await usernamesOf(ctx, contest.entry.profileIds),
+            },
+      joinLimit: contest.joinLimit
+        ? { organizationSlugs: await organizationSlugs(contest.joinLimit.organizationIds) }
+        : null,
+      freeze: contest.freeze ?? null,
+      rating: contest.rating
+        ? {
+            everyone: contest.rating.everyone,
+            excluded: await usernamesOf(ctx, contest.rating.excludeProfileIds),
+            floor: contest.rating.floor ?? null,
+            ceiling: contest.rating.ceiling ?? null,
+            performanceCeiling: contest.rating.performanceCeiling ?? null,
+          }
+        : null,
+      labels: contest.labels,
       formatName: contest.formatName,
       formatConfig: contest.formatConfig ?? null,
-      labelScheme: contest.labelScheme,
-      customLabels: contest.customLabels,
       scoreboardVisibility: contest.scoreboardVisibility,
-      freezeMinutes: contest.freezeMinutes,
-      blindDuringFreeze: contest.blindDuringFreeze,
       accessCode: contest.accessCode ?? "",
-      isPrivate: contest.isPrivate,
-      privateContestants: await usernamesOf(ctx, contest.privateContestantProfileIds),
-      isOrganizationPrivate: contest.isOrganizationPrivate,
-      organizationSlugs,
-      classNames,
-      limitJoinOrganizations: contest.limitJoinOrganizations,
-      joinOrganizationSlugs,
       tagNames,
       lockedAfter: contest.lockedAfter ?? null,
       pointsPrecision: contest.pointsPrecision,
@@ -141,17 +147,14 @@ export const edit = query({
       disableLockdown: contest.disableLockdown ?? false,
       hideProblemAuthors: contest.hideProblemAuthors,
       runPretestsOnly: contest.runPretestsOnly,
-      showShortDisplay: contest.showShortDisplay,
       useClarifications: contest.useClarifications,
-      ogImage: contest.ogImage ?? "",
-      logoOverrideImage: contest.logoOverrideImage ?? "",
       authors: await usernamesOf(ctx, contest.authorProfileIds),
       curators: await usernamesOf(ctx, contest.curatorProfileIds),
       testers: await usernamesOf(ctx, contest.testerProfileIds),
       spectators: await usernamesOf(ctx, contest.spectatorProfileIds),
       testerSeeScoreboard: contest.testerSeeScoreboard,
       testerSeeSubmissions: contest.testerSeeSubmissions,
-      viewContestScoreboard: await usernamesOf(ctx, contest.viewContestScoreboardProfileIds),
+      alwaysAdmit: await usernamesOf(ctx, contest.alwaysAdmitProfileIds),
       viewContestSubmissions: await usernamesOf(ctx, contest.viewContestSubmissionsProfileIds),
       bannedUsers: await usernamesOf(ctx, contest.bannedProfileIds),
       userCount: contest.userCount,

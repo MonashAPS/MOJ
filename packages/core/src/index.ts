@@ -8,8 +8,6 @@
 
 export * from "./contest/describe";
 
-export * from "./contest/settings";
-
 export * from "./contest/warnings";
 
 export * from "./contestTiming";

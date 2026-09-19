@@ -25,6 +25,7 @@ import type { ProblemRow, ProfileRow } from "@moj/core/types";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { type MutationCtx, type QueryCtx, query } from "./_generated/server";
+import { labelForProblem } from "./contests/formats";
 import { optionalViewer } from "./lib/auth";
 import { notFound } from "./lib/errors";
 import { proctorBlocksContestProblems } from "./lib/proctor";
@@ -416,26 +417,6 @@ export function statementHasSamples(markdown: string): boolean {
   return SAMPLE_INPUT_HEADING.test(markdown) && SAMPLE_OUTPUT_HEADING.test(markdown);
 }
 
-/** `ContestFormat.get_label_for_problem`, for the labels the list shows: A, B,
- *  C unless the contest names its problems itself. */
-export function labelFor(contest: Doc<"contests">, index: number): string {
-  if (contest.labelScheme === "custom") {
-    const custom = contest.customLabels[index];
-
-    if (custom) return custom;
-  }
-
-  let label = "";
-  let n = index;
-
-  do {
-    label = String.fromCharCode(65 + (n % 26)) + label;
-    n = Math.floor(n / 26) - 1;
-  } while (n >= 0);
-
-  return label;
-}
-
 /* -------------------------------------------------------------------------- */
 /* list                                                                       */
 /* -------------------------------------------------------------------------- */
@@ -674,7 +655,7 @@ export const list = query({
         for (const [index, link] of links.entries()) {
           allowed.add(link.problemId);
           const bucket = labelsByProblem.get(link.problemId) ?? [];
-          bucket.push({ contest, label: labelFor(contest, index) });
+          bucket.push({ contest, label: labelForProblem(contest, index) });
           labelsByProblem.set(link.problemId, bucket);
         }
       }
@@ -917,7 +898,7 @@ export const get = query({
       appearedIn.push({
         contestKey: contest.key,
         contestName: contest.name,
-        label: labelFor(contest, index < 0 ? link.order : index),
+        label: labelForProblem(contest, index < 0 ? link.order : index),
         startTime: contest.startTime,
         endTime: contest.endTime,
         points: link.points,
@@ -1094,7 +1075,7 @@ export const get = query({
       contestProblem:
         contestProblem && viewer.contest
           ? {
-              label: labelFor(viewer.contest, contestProblem.order),
+              label: labelForProblem(viewer.contest, contestProblem.order),
               points: contestProblem.points,
               partial: contestProblem.partial,
               isPretested: contestProblem.isPretested,

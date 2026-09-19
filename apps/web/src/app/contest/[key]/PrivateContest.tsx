@@ -9,16 +9,16 @@ type PrivateAccess = Extract<AccessDecision, { kind: "privateContest" }>;
 /** `contest/private.html`: who may open this contest, and nothing else. */
 export function PrivateContest({ access }: { access: PrivateAccess }) {
   const t = useTranslations("contests.private");
-  const { organizations, classes, isPrivate, isOrganizationPrivate } = access;
+  const { organizations, classes, byName } = access;
 
   const organizationsLead =
-    organizations.length > 0 ? (isPrivate ? t("organizationsAdditional") : t("organizationsOnly")) : null;
+    organizations.length > 0 ? (byName ? t("organizationsAdditional") : t("organizationsOnly")) : null;
 
   const classesLead =
     classes.length > 0
       ? organizations.length > 0
         ? t("classesAlternatively")
-        : isPrivate
+        : byName
           ? t("classesAdditional")
           : t("classesOnly")
       : null;
@@ -29,10 +29,10 @@ export function PrivateContest({ access }: { access: PrivateAccess }) {
       <Alert variant="info">
         <Lock size={16} aria-hidden />
         <AlertTitle>{t("accessDenied")}</AlertTitle>
-        <AlertDescription>{isPrivate ? t("privateToUsers") : t("restricted")}</AlertDescription>
+        <AlertDescription>{byName ? t("privateToUsers") : t("restricted")}</AlertDescription>
       </Alert>
 
-      {isOrganizationPrivate && (organizationsLead || classesLead) ? (
+      {organizationsLead || classesLead ? (
         <div className="mt-6 grid gap-4">
           {organizationsLead ? (
             <Panel title={t("organizations")} bodyClassName="p-0">

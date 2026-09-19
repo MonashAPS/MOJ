@@ -31,7 +31,7 @@ const contest = createContest("c", {
   isVisible: true,
 });
 
-const timed = { ...contest, timeLimit: 30 * 60 };
+const timed = { ...contest, schedule: { kind: "window", seconds: 30 * 60 } as const };
 
 describe("participation windows", () => {
   it("an untimed live participation runs to the contest end", () => {
@@ -70,22 +70,6 @@ describe("participation windows", () => {
     expect(participationEndTime(virtual, timed)).toBe(virtual.realStart + 30 * MINUTE);
     expect(participationEndTime(virtual, contest)).toBe(virtual.realStart + 2 * HOUR);
     expect(participationTimeRemaining(virtual, contest, NOW)).toBe(2 * HOUR);
-  });
-
-  it("a zero time limit is treated as no limit", () => {
-    const zero = { ...contest, timeLimit: 0 };
-    const virtual = createParticipation("c", "u", { realStart: NOW, virtual: 1 });
-    expect(participationEndTime(virtual, zero)).toBe(virtual.realStart + 2 * HOUR);
-  });
-
-  it("a zero time limit is no limit for a live participation too", () => {
-    // Reading zero as a limit made this `min(realStart + 0, endTime)`, so the
-    // window closed the moment the competitor joined.
-    const zero = { ...contest, timeLimit: 0 };
-    const live = createParticipation("c", "u", { realStart: NOW, virtual: 0 });
-
-    expect(participationEndTime(live, zero)).toBe(contest.endTime);
-    expect(participationHasEnded(live, zero, NOW)).toBe(false);
   });
 
   it("reports no remaining time once the window closes", () => {
@@ -150,7 +134,7 @@ describe("contestJoinDecision", () => {
   });
 
   it("cannot enter a contest limited to organizations you are not in", () => {
-    const limited = { ...open, limitJoinOrganizations: true, joinOrganizationIds: ["open"] };
+    const limited = { ...open, joinLimit: { organizationIds: ["open"] } };
     expect(contestJoinDecision(limited, user, { now: NOW })).toEqual({ kind: "cannotEnter" });
   });
 

@@ -85,9 +85,9 @@ function Banner({ detail }: { detail: ContestDetail }) {
       </span>
       {contest ? (
         <span className="font-mono text-sm tabular-nums text-muted-foreground">
-          {contest.timeLimit
+          {contest.schedule.kind === "window"
             ? windowCopy("windowBetween", {
-                duration: humanDuration(contest.timeLimit * 1000),
+                duration: humanDuration(contest.schedule.seconds * 1000),
                 start: formatDateTime(contest.startTime),
                 end: formatDateTime(contest.endTime),
               })
@@ -284,14 +284,16 @@ function Sidebar({ detail }: { detail: ContestDetail }) {
 
   // The bounds go in as text: they are ratings, not quantities, and a
   // thousands separator in "rated between 1,200 and 1,800" reads as a mistake.
-  const ratingLine = !contest.isRated
+  const rating = contest.rating;
+
+  const ratingLine = !rating
     ? t("notRated")
-    : contest.ratingFloor !== null && contest.ratingCeiling !== null
-      ? t("ratedBetween", { floor: String(contest.ratingFloor), ceiling: String(contest.ratingCeiling) })
-      : contest.ratingFloor !== null
-        ? t("ratedAtLeast", { floor: String(contest.ratingFloor) })
-        : contest.ratingCeiling !== null
-          ? t("ratedAtMost", { ceiling: String(contest.ratingCeiling) })
+    : rating.floor !== null && rating.ceiling !== null
+      ? t("ratedBetween", { floor: String(rating.floor), ceiling: String(rating.ceiling) })
+      : rating.floor !== null
+        ? t("ratedAtLeast", { floor: String(rating.floor) })
+        : rating.ceiling !== null
+          ? t("ratedAtMost", { ceiling: String(rating.ceiling) })
           : t("isRated");
 
   return (
@@ -305,10 +307,10 @@ function Sidebar({ detail }: { detail: ContestDetail }) {
             {contest.endTime - contest.startTime > OPEN_ENDED ? DASH : formatDateTime(contest.endTime)}
           </span>
         </InfoRow>
-        <InfoRow label={contest.timeLimit ? t("window") : t("duration")}>
+        <InfoRow label={contest.schedule.kind === "window" ? t("window") : t("duration")}>
           <span className="font-mono text-sm tabular-nums">
-            {contest.timeLimit
-              ? humanDuration(contest.timeLimit * 1000)
+            {contest.schedule.kind === "window"
+              ? humanDuration(contest.schedule.seconds * 1000)
               : contest.endTime - contest.startTime > OPEN_ENDED
                 ? duration("openEnded")
                 : humanDuration(contest.endTime - contest.startTime)}
@@ -321,10 +323,10 @@ function Sidebar({ detail }: { detail: ContestDetail }) {
         <InfoRow label={t("scoreboard")}>
           {t(SCOREBOARD_KEYS.get(contest.scoreboardVisibility) ?? "scoreboardVisible")}
         </InfoRow>
-        {contest.freezeMinutes > 0 ? (
+        {contest.freeze ? (
           <InfoRow label={t("freeze")}>
             <span className="font-mono text-sm tabular-nums">
-              {t("freezeBeforeEnd", { count: contest.freezeMinutes })}
+              {t("freezeBeforeEnd", { count: contest.freeze.minutes })}
             </span>
           </InfoRow>
         ) : null}
@@ -464,9 +466,8 @@ export function ContestDetailClient({
             {contest.name}
             <ContestChips
               isVisible={contest.isVisible}
-              isPrivate={contest.isPrivate}
-              isOrganizationPrivate={contest.isOrganizationPrivate}
-              isRated={contest.isRated}
+              isOpenEntry={contest.isOpenEntry}
+              isRated={contest.rating !== null}
               organizations={contest.organizations}
               tags={contest.tags}
             />

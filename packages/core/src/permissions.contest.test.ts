@@ -111,8 +111,7 @@ const contests = {
     endTime: NOW + 100 * DAY,
     isVisible: true,
     scoreboardVisibility: "C",
-    labelScheme: "custom",
-    customLabels: ["0", "1", "2"],
+    labels: { kind: "custom", labels: ["0", "1", "2"] },
     spectatorProfileIds: ["non_staff_spectator"],
   }),
   non_staff_author: createContest("non_staff_author", {
@@ -126,7 +125,7 @@ const contests = {
   contest_scoreboard: createContest("contest_scoreboard", {
     startTime: NOW - 10 * DAY,
     endTime: NOW + 100 * DAY,
-    timeLimit: DAY / 1000,
+    schedule: { kind: "window", seconds: DAY / 1000 },
     isVisible: true,
     scoreboardVisibility: "C",
     testerProfileIds: ["non_staff_tester"],
@@ -134,7 +133,7 @@ const contests = {
   particip_scoreboard: createContest("particip_scoreboard", {
     startTime: NOW - 10 * DAY,
     endTime: NOW + 100 * DAY,
-    timeLimit: DAY / 1000,
+    schedule: { kind: "window", seconds: DAY / 1000 },
     isVisible: true,
     scoreboardVisibility: "P",
     testerProfileIds: ["non_staff_tester"],
@@ -142,7 +141,7 @@ const contests = {
   visible_scoreboard: createContest("visible_scoreboard", {
     startTime: NOW - 10 * DAY,
     endTime: NOW + 100 * DAY,
-    timeLimit: DAY / 1000,
+    schedule: { kind: "window", seconds: DAY / 1000 },
     isVisible: true,
     scoreboardVisibility: "V",
     testerProfileIds: ["non_staff_tester"],
@@ -150,7 +149,7 @@ const contests = {
   full_hidden_board: createContest("full_hidden_board", {
     startTime: NOW - 100 * DAY,
     endTime: NOW - DAY,
-    timeLimit: DAY / 1000,
+    schedule: { kind: "window", seconds: DAY / 1000 },
     isVisible: true,
     scoreboardVisibility: "H",
     authorProfileIds: ["non_staff_author"],
@@ -161,7 +160,7 @@ const contests = {
   future_contest: createContest("future_contest", {
     startTime: NOW + 3 * DAY,
     endTime: NOW + 5 * DAY,
-    timeLimit: DAY / 1000,
+    schedule: { kind: "window", seconds: DAY / 1000 },
     isVisible: true,
     scoreboardVisibility: "C",
     authorProfileIds: ["non_staff_author"],
@@ -172,7 +171,7 @@ const contests = {
   tester_see_board: createContest("tester_see_board", {
     startTime: NOW - 100 * DAY,
     endTime: NOW + 100 * DAY,
-    timeLimit: DAY / 1000,
+    schedule: { kind: "window", seconds: DAY / 1000 },
     isVisible: true,
     scoreboardVisibility: "H",
     testerProfileIds: ["non_staff_tester"],
@@ -181,10 +180,9 @@ const contests = {
   limit_org_join: createContest("limit_org_join", {
     startTime: NOW - 2 * DAY,
     endTime: NOW + 2 * DAY,
-    timeLimit: DAY / 1000,
+    schedule: { kind: "window", seconds: DAY / 1000 },
     isVisible: true,
-    limitJoinOrganizations: true,
-    joinOrganizationIds: ["open"],
+    joinLimit: { organizationIds: ["open"] },
     scoreboardVisibility: "V",
     authorProfileIds: ["non_staff_author"],
     curatorProfileIds: ["staff_contest_edit_own"],
@@ -194,34 +192,36 @@ const contests = {
     startTime: NOW - 5 * DAY,
     endTime: NOW - 3 * DAY,
     isVisible: true,
-    isPrivate: true,
-    isOrganizationPrivate: true,
-    privateContestantProfileIds: ["staff_contest_edit_own"],
+    entry: {
+      kind: "restricted",
+      match: "all",
+      organizationIds: [],
+      classIds: [],
+      profileIds: ["staff_contest_edit_own"],
+    },
     testerProfileIds: ["non_staff_tester"],
   }),
   organization_private: createContest("organization_private", {
     startTime: NOW - 5 * DAY,
     endTime: NOW + 6 * DAY,
     isVisible: true,
-    isOrganizationPrivate: true,
-    organizationIds: ["open"],
-    viewContestScoreboardProfileIds: ["normal"],
+    entry: { kind: "restricted", match: "all", organizationIds: ["open"], classIds: [], profileIds: [] },
+    alwaysAdmitProfileIds: ["normal"],
     testerProfileIds: ["non_staff_tester"],
   }),
   future_org_private: createContest("future_org_private", {
     startTime: NOW + 3 * DAY,
     endTime: NOW + 6 * DAY,
     isVisible: true,
-    isOrganizationPrivate: true,
-    organizationIds: ["open"],
-    viewContestScoreboardProfileIds: ["normal"],
+    entry: { kind: "restricted", match: "all", organizationIds: ["open"], classIds: [], profileIds: [] },
+    alwaysAdmitProfileIds: ["normal"],
     testerProfileIds: ["non_staff_tester"],
   }),
   private_user: createContest("private_user", {
     startTime: NOW - 3 * DAY,
     endTime: NOW + 6 * DAY,
     isVisible: true,
-    isPrivate: true,
+    entry: { kind: "restricted", match: "all", organizationIds: [], classIds: [], profileIds: [] },
     testerProfileIds: ["non_staff_tester"],
   }),
   non_visible_contest: createContest("non_visible_contest", {
@@ -614,28 +614,38 @@ describe("ContestTestCase", () => {
   });
 
   it("test_private_contest_methods", () => {
-    // A user must be both in an allowed organization and in the private list.
+    // With both an organisation and a person named, and `match: "all"`, a
+    // competitor has to be in the organisation and be named.
     const normalOpenOrg = users.normal_open_org;
-    expect(contestAccessCheck(contests.private, normalOpenOrg)).toEqual({
+
+    const entry = {
+      kind: "restricted",
+      match: "all",
+      organizationIds: ["open"],
+      classIds: [],
+      profileIds: ["staff_contest_edit_own"],
+    } as const;
+
+    const withOrg = { ...contests.private, entry };
+
+    expect(contestAccessCheck(withOrg, normalOpenOrg)).toEqual({
       kind: "privateContest",
-      organizationIds: [],
+      organizationIds: ["open"],
     });
 
-    const withUser = {
-      ...contests.private,
-      privateContestantProfileIds: [
-        ...(contests.private.privateContestantProfileIds ?? []),
-        "normal_open_org",
-      ],
-    };
+    const withUser = { ...withOrg, entry: { ...entry, organizationIds: [] } };
 
     expect(contestAccessCheck(withUser, normalOpenOrg)).toEqual({
       kind: "privateContest",
       organizationIds: [],
     });
 
-    const withOrg = { ...withUser, organizationIds: ["open"] };
-    checkMatrix(withOrg, {
+    const withBoth = {
+      ...withOrg,
+      entry: { ...entry, profileIds: [...entry.profileIds, "normal_open_org"] },
+    };
+
+    checkMatrix(withBoth, {
       normal_open_org: {
         can_see_own_scoreboard: true,
         can_see_full_scoreboard: true,

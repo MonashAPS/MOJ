@@ -40,7 +40,6 @@ import {
 } from "./contests/formats";
 import { isStaff, optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, invalid, notFound } from "./lib/errors";
-import { isJsonArray, isJsonObject, isJsonString, type MaybeJson } from "./lib/json";
 
 /* -------------------------------------------------------------------------- */
 /* Shapes                                                                     */
@@ -212,22 +211,12 @@ function flagUrl(pattern: string | null | undefined, username: string): string |
   return pattern.replace("{username}", encodeURIComponent(username));
 }
 
-/** The reveals staff have already performed, as stored on the contest. */
-export type PersistedReveal = { participationId: string; cellIndex: number };
+/** One cell the ceremony has shown, as the contest records it. */
+export type PersistedReveal = NonNullable<Doc<"contests">["reveal"]>["cells"][number];
 
-function isPersistedReveal(entry: MaybeJson): entry is PersistedReveal {
-  return isJsonObject(entry) && isJsonString(entry.participationId) && Number.isInteger(entry.cellIndex);
-}
-
+/** The reveals staff have already performed, as a list of their own. */
 function persistedReveals(contest: Doc<"contests">): PersistedReveal[] {
-  const state = contest.revealState;
-
-  if (!isJsonObject(state)) return [];
-  const revealed = state.revealed;
-
-  if (!isJsonArray(revealed)) return [];
-
-  return revealed.flatMap((entry) => (isPersistedReveal(entry) ? [entry] : []));
+  return [...(contest.reveal?.cells ?? [])];
 }
 
 /** Apply one recorded reveal in place; mirrors `applyReveal` in `@moj/core`. */
@@ -365,7 +354,7 @@ async function buildDivision(
   }
 
   // The event's freeze wins over the contest's own, as the fork's config does.
-  const freezeMinutes = contest.freezeRevealed ? 0 : event.freezeMinutes;
+  const freezeMinutes = contest.reveal?.lifted ? 0 : event.freezeMinutes;
   const freezeOffset = freezeOffsetFor(contest, freezeMinutes);
   const penaltyMinutes = penaltyMinutesFor(toContestRow(contest));
 
@@ -467,7 +456,7 @@ function serialiseDivision(built: BuiltDivision, includeReveal: boolean, now: nu
     duration: (contest.endTime - contest.startTime) / 1000,
     penaltyMinutes: built.penaltyMinutes,
     isFrozen: revealPending > 0,
-    isUnfrozen: contest.freezeRevealed === true,
+    isUnfrozen: contest.reveal?.lifted === true,
     hasStarted: contest.startTime <= now,
     hasEnded: contest.endTime < now,
     inPersonCount: rows.filter((row) => row.inPerson).length,
@@ -603,12 +592,17 @@ function divisionsToTouch(contests: Doc<"contests">[], contestKey?: string): Doc
   return [contest];
 }
 
+/** Lifting the freeze forgets the ceremony's progress; freezing again keeps it. */
+async function liftFreeze(ctx: MutationCtx, contest: Doc<"contests">, lifted: boolean): Promise<void> {
+  await ctx.db.patch(contest._id, { reveal: { lifted, cells: lifted ? [] : persistedReveals(contest) } });
+}
+
 async function writeReveals(
   ctx: MutationCtx,
   contest: Doc<"contests">,
-  revealed: PersistedReveal[],
+  cells: PersistedReveal[],
 ): Promise<void> {
-  await ctx.db.patch(contest._id, { revealState: { revealed } });
+  await ctx.db.patch(contest._id, { reveal: { lifted: contest.reveal?.lifted ?? false, cells } });
 }
 
 /** Reveal the next frozen cell, bottom-up, in one division. */
@@ -717,13 +711,7 @@ export const unfreeze = mutation({
     const touched = divisionsToTouch(contests, contestKey);
     const revealed = frozen !== true;
 
-    for (const contest of touched) {
-      await ctx.db.patch(contest._id, {
-        freezeRevealed: revealed,
-        isUnfrozen: revealed,
-        revealState: revealed ? { revealed: [] } : contest.revealState,
-      });
-    }
+    for (const contest of touched) await liftFreeze(ctx, contest, revealed);
 
     return { contests: touched.length };
   },
@@ -841,11 +829,7 @@ export const unfreezeContest = mutation({
     const viewer = await toViewerRowInContest(ctx, profile);
 
     if (!canRevealContests(viewer, [toContestRow(contest)])) throw forbidden();
-    await ctx.db.patch(contest._id, {
-      freezeRevealed: revealed,
-      isUnfrozen: revealed,
-      revealState: revealed ? { revealed: [] } : contest.revealState,
-    });
+    await liftFreeze(ctx, contest, revealed);
 
     return null;
   },

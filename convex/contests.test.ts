@@ -49,8 +49,13 @@ describe("access matrix", () => {
       await insertMembership(ctx, { organizationId, profileId: memberId });
       await insertContest(ctx, {
         key: "orgonly",
-        isOrganizationPrivate: true,
-        organizationIds: [organizationId],
+        entry: {
+          kind: "restricted",
+          match: "all",
+          organizationIds: [organizationId],
+          classIds: [],
+          profileIds: [],
+        },
       });
     });
 

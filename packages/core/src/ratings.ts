@@ -10,8 +10,7 @@
  * monotonicity of performance in rank are DMOJ's.
  */
 
-import { ratingOf } from "./contest/settings";
-import type { ContestRow, Id } from "./types";
+import type { ContestRating, Id } from "./types";
 
 /* -------------------------------------------------------------------------- */
 /* Constants (judge/ratings.py:12)                                            */
@@ -305,10 +304,7 @@ export interface RatingInputRow {
 }
 
 export interface RateContestOptions {
-  readonly contest?: Pick<
-    ContestRow,
-    "rateAll" | "ratingFloor" | "ratingCeiling" | "performanceCeilingOverride" | "rateExcludeProfileIds"
-  >;
+  readonly rating?: ContestRating;
   /** Past performances per profile, newest rated contest first. */
   readonly priorHistory?: Readonly<Record<Id, readonly number[]>>;
   /** `last_rated` for the produced rows. */
@@ -326,19 +322,16 @@ export interface RatingOutputRow {
   readonly lastRated: number;
 }
 
-/** `Contest.performance_ceiling` (judge/models/contest.py:299). */
-export /**
+/**
  * The cap on a competitor's computed performance, or null for none.
  *
- * Only the setting that says so. DMOJ also derives one from `ratingCeiling` at
- * `+ CONTEST_PERF_CEILING_INCREMENT`, so a ceiling set to exclude strong
- * competitors from being rated silently capped everyone else's performance too
- * — one control doing two unrelated jobs, with nothing saying so.
+ * Only the setting that says so. DMOJ also derives one from the rating ceiling
+ * at `+ CONTEST_PERF_CEILING_INCREMENT`, so a ceiling set to keep strong
+ * competitors out of the rating silently capped everyone else's performance —
+ * one control doing two unrelated jobs, with nothing saying so.
  */
-function performanceCeiling(
-  contest: Pick<ContestRow, "performanceCeilingOverride"> | undefined,
-): number | null {
-  return contest?.performanceCeilingOverride ?? null;
+export function performanceCeiling(rating: ContestRating | undefined): number | null {
+  return rating?.performanceCeiling ?? null;
 }
 
 /**
@@ -352,9 +345,7 @@ export function rateContest(
   rows: readonly RatingInputRow[],
   options: RateContestOptions = {},
 ): RatingOutputRow[] {
-  const contest = options.contest;
-  // A contest with no row behaves as the defaults did: rate the scorers, no band.
-  const settings = contest ? ratingOf({ ...contest, isRated: true }) : null;
+  const settings = options.rating;
   const excluded = new Set(settings?.excludeProfileIds ?? []);
 
   const eligible = rows.filter((row) => {
@@ -367,11 +358,11 @@ export function rateContest(
     // excludes everyone who has never been rated.
     const lastRating = row.lastRating ?? RATING_INIT;
 
-    if (settings?.floor !== null && settings?.floor !== undefined && lastRating < settings.floor) {
+    if (settings?.floor !== undefined && lastRating < settings.floor) {
       return false;
     }
 
-    if (settings?.ceiling !== null && settings?.ceiling !== undefined && lastRating > settings.ceiling) {
+    if (settings?.ceiling !== undefined && lastRating > settings.ceiling) {
       return false;
     }
 
@@ -401,7 +392,7 @@ export function rateContest(
     oldMean,
     timesRanked,
     historicalP,
-    performanceCeiling(contest),
+    performanceCeiling(options.rating),
   );
 
   const lastRated = options.now ?? Date.now();

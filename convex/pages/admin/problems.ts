@@ -8,10 +8,10 @@ import { hasPerm, problemIsEditableBy, problemIsInEditableSet } from "@moj/core"
 import { v } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
 import { mutation, query } from "../../_generated/server";
+import { labelForProblem } from "../../contests/formats";
 import { requireViewer } from "../../lib/auth";
 import { forbidden, invalid, mojError } from "../../lib/errors";
 import {
-  labelFor,
   loadViewerContext,
   PROBLEM_CODE_PATTERN,
   problemByCode,
@@ -307,7 +307,7 @@ export const edit = query({
       appearances.push({
         contestKey: contest.key,
         contestName: contest.name,
-        label: labelFor(contest, index < 0 ? link.order : index),
+        label: labelForProblem(contest, index < 0 ? link.order : index),
         startTime: contest.startTime,
       });
     }

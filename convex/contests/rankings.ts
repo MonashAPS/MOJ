@@ -86,7 +86,7 @@ export type RankingPayload = {
     key: string;
     name: string;
     formatName: string;
-    freezeMinutes: number;
+    freeze: { minutes: number } | null;
     pointsPrecision: number;
     startTime: number;
     endTime: number;
@@ -133,7 +133,7 @@ async function organizationsOf(ctx: QueryCtx, profileId: Id<"profiles">): Promis
 
 /** Staff (or `view_contest_scoreboard`) have revealed the frozen board. */
 export function contestIsRevealed(contest: Doc<"contests">): boolean {
-  return contest.freezeRevealed === true || contest.isUnfrozen === true;
+  return contest.reveal?.lifted === true;
 }
 
 /**
@@ -414,7 +414,7 @@ export const ranking = query({
         key: contest.key,
         name: contest.name,
         formatName: contest.formatName,
-        freezeMinutes: contest.freezeMinutes,
+        freeze: contest.freeze ? { minutes: contest.freeze.minutes } : null,
         pointsPrecision: contest.pointsPrecision,
         startTime: contest.startTime,
         endTime: contest.endTime,

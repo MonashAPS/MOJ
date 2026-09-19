@@ -35,6 +35,7 @@ import {
   argsFromFields,
   type ContestGeneralFields,
   changedArgs,
+  describeSourceOf,
   type FormatConfig,
   fieldsFromContest,
   toJson,
@@ -48,17 +49,19 @@ const SCOREBOARD_OPTIONS = [
   { value: "H", labelKey: "scoreboardNobody" },
 ] as const;
 
-/** Numbering is gone from the site, so it is not offered here either; a contest
- *  still holding it reads as lettered, which is what it now renders as. */
-const LABEL_SCHEME_OPTIONS = [
+const LABEL_OPTIONS = [
   { value: "letters", labelKey: "labelSchemeLetters" },
   { value: "custom", labelKey: "labelSchemeCustom" },
 ] as const;
 
-/** `ContestAdmin.fieldsets`, every field, on one page with the reason at the end. */
 /** Which of the three settings tabs is on screen. */
 export type SettingsTab = "setup" | "access" | "scoring";
 
+/**
+ * The three settings tabs are one form with one draft and one save, so a field
+ * is only sent when it changed and the summary describes the whole contest
+ * rather than the part on screen.
+ */
 export function ContestGeneralTab({
   contest,
   options,
@@ -68,11 +71,6 @@ export function ContestGeneralTab({
   options: ContestOptions | undefined;
   tab: SettingsTab;
 }) {
-  /**
-   * The three tabs are one form with one draft and one save, so a field is
-   * still only sent when it changed and the summary still describes the whole
-   * contest rather than the part on screen.
-   */
   const on = (which: SettingsTab) => which === tab;
 
   const t = useTranslations("admin.contests.general");
@@ -85,78 +83,21 @@ export function ContestGeneralTab({
   const ids = {
     name: useId(),
     summary: useId(),
-    start: useId(),
-    end: useId(),
-    timeLimit: useId(),
     format: useId(),
     formatConfig: useId(),
-    labelScheme: useId(),
+    labels: useId(),
     customLabels: useId(),
-    scoreboard: useId(),
-    freeze: useId(),
-    accessCode: useId(),
-    contestants: useId(),
-    organizations: useId(),
-    classes: useId(),
-    joinOrganizations: useId(),
     tags: useId(),
-    locked: useId(),
     precision: useId(),
-    ogImage: useId(),
-    logo: useId(),
-    rateExclude: useId(),
     banned: useId(),
-    ratingFloor: useId(),
-    ratingCeiling: useId(),
-    performanceCeiling: useId(),
   };
 
-  // One projection of the stored contest, which the controls are seeded from and
-  // the save diffs against. Both sides of the comparison therefore read the row
-  // the same way, so a field the form cannot represent exactly never looks
-  // changed and never lands in the patch.
+  // One projection of the stored contest, which the draft is seeded from and
+  // the save diffs against. Both sides of the comparison read the row the same
+  // way, so a field the form cannot represent exactly never looks changed.
   const initial = useMemo(() => fieldsFromContest(contest), [contest]);
-
-  const [name, setName] = useState(initial.name);
-  const [description, setDescription] = useState(initial.description);
-  const [summary, setSummary] = useState(initial.summary);
-  const [startTime, setStartTime] = useState<number | null>(initial.startTime);
-  const [endTime, setEndTime] = useState<number | null>(initial.endTime);
-  const [timeLimit, setTimeLimit] = useState(initial.timeLimit);
-  const [isVisible, setIsVisible] = useState(initial.isVisible);
-  const [isRated, setIsRated] = useState(initial.isRated);
-  const [ratingFloor, setRatingFloor] = useState(initial.ratingFloor);
-  const [ratingCeiling, setRatingCeiling] = useState(initial.ratingCeiling);
-  const [performanceCeiling, setPerformanceCeiling] = useState(initial.performanceCeiling);
-  const [rateAll, setRateAll] = useState(initial.rateAll);
-  const [rateExclude, setRateExclude] = useState<string[]>(initial.rateExclude);
-  const [formatName, setFormatName] = useState(initial.formatName);
-  const [formatConfig, setFormatConfig] = useState(initial.formatConfig);
-  const [labelScheme, setLabelScheme] = useState(initial.labelScheme);
-  const [customLabels, setCustomLabels] = useState(initial.customLabels);
-  const [scoreboardVisibility, setScoreboardVisibility] = useState(initial.scoreboardVisibility);
-  const [freezeMinutes, setFreezeMinutes] = useState(initial.freezeMinutes);
-  const [blindDuringFreeze, setBlindDuringFreeze] = useState(initial.blindDuringFreeze);
-  const [accessCode, setAccessCode] = useState(initial.accessCode);
-  const [isPrivate, setIsPrivate] = useState(initial.isPrivate);
-  const [privateContestants, setPrivateContestants] = useState<string[]>(initial.privateContestants);
-  const [organizationSlugs, setOrganizationSlugs] = useState<string[]>(initial.organizationSlugs);
-  const [classNames, setClassNames] = useState<string[]>(initial.classNames);
-  const [isOrganizationPrivate, setIsOrganizationPrivate] = useState(initial.isOrganizationPrivate);
-  const [joinOrganizationSlugs, setJoinOrganizationSlugs] = useState<string[]>(initial.joinOrganizationSlugs);
-  const [tagNames, setTagNames] = useState<string[]>(initial.tagNames);
-  const [lockedAfter, setLockedAfter] = useState<number | null>(initial.lockedAfter);
-  const [pointsPrecision, setPointsPrecision] = useState(initial.pointsPrecision);
-  const [hideProblemTags, setHideProblemTags] = useState(initial.hideProblemTags);
-  const [disableLockdown, setHideNonContestProblems] = useState(initial.disableLockdown);
-  const [hideProblemAuthors, setHideProblemAuthors] = useState(initial.hideProblemAuthors);
-  const [runPretestsOnly, setRunPretestsOnly] = useState(initial.runPretestsOnly);
-  const [proctorRequired, setProctorRequired] = useState(initial.proctorRequired);
-  const [showShortDisplay, setShowShortDisplay] = useState(initial.showShortDisplay);
-  const [useClarifications, setUseClarifications] = useState(initial.useClarifications);
-  const [ogImage, setOgImage] = useState(initial.ogImage);
-  const [logoOverrideImage, setLogoOverrideImage] = useState(initial.logoOverrideImage);
-  const [bannedUsers, setBannedUsers] = useState<string[]>(initial.bannedUsers);
+  const [draft, setDraft] = useState(initial);
+  const change = (patch: Partial<ContestGeneralFields>) => setDraft((current) => ({ ...current, ...patch }));
 
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -179,7 +120,7 @@ export function ContestGeneralTab({
   }, [initial.formatConfig]);
 
   const parsedConfig = useMemo(() => {
-    const text = formatConfig.trim();
+    const text = draft.formatConfig.trim();
 
     if (!text) return { ok: true as const, value: null };
 
@@ -190,74 +131,42 @@ export function ContestGeneralTab({
     } catch {
       return { ok: false as const, value: null };
     }
-  }, [formatConfig]);
+  }, [draft.formatConfig]);
 
   const validation = useQuery(
     api.contests.formats.validate,
-    parsedConfig.ok ? { name: formatName, config: parsedConfig.value } : "skip",
+    parsedConfig.ok ? { name: draft.formatName, config: parsedConfig.value } : "skip",
   );
 
   const described = useQuery(
     api.contests.formats.describe,
-    parsedConfig.ok ? { name: formatName, config: parsedConfig.value } : "skip",
+    parsedConfig.ok ? { name: draft.formatName, config: parsedConfig.value } : "skip",
   );
 
   const refs = useResolvedRefs({
-    usernames: [...privateContestants, ...rateExclude, ...bannedUsers],
-    organizationSlugs,
-    joinOrganizationSlugs,
-    classNames,
-    tagNames,
+    usernames: [...draft.namedUsers, ...draft.rateExclude, ...draft.bannedUsers],
+    organizationSlugs: draft.organizationSlugs,
+    joinOrganizationSlugs: draft.joinOrganizationSlugs,
+    classNames: draft.classNames,
+    tagNames: draft.tagNames,
   });
 
   const permissions = contest.permissions;
   const configError = !parsedConfig.ok ? t("formatConfigInvalid") : (validation?.error ?? null);
 
-  /** What the controls hold right now, in the same shape `initial` is in. */
-  const current: ContestGeneralFields = {
-    name,
-    description,
-    summary,
-    startTime,
-    endTime,
-    timeLimit,
-    isVisible,
-    isRated,
-    ratingFloor,
-    ratingCeiling,
-    performanceCeiling,
-    rateAll,
-    rateExclude,
-    formatName,
-    formatConfig,
-    labelScheme,
-    customLabels,
-    scoreboardVisibility,
-    freezeMinutes,
-    blindDuringFreeze,
-    accessCode,
-    isPrivate,
-    privateContestants,
-    organizationSlugs,
-    classNames,
-    isOrganizationPrivate,
-    joinOrganizationSlugs,
-    tagNames,
-    lockedAfter,
-    pointsPrecision,
-    hideProblemTags,
-    disableLockdown,
-    hideProblemAuthors,
-    runPretestsOnly,
-    proctorRequired,
-    showShortDisplay,
-    useClarifications,
-    ogImage,
-    logoOverrideImage,
-    bannedUsers,
-  };
+  // What a save would send. The same refs on both sides, so a list that only
+  // changed because the resolver answered does not read as an edit, and a list
+  // left behind by a mode that no longer reads it does not either.
+  const changed = changedArgs(
+    argsFromFields(initial, refs, initialConfig),
+    argsFromFields(draft, refs, parsedConfig.value),
+  );
 
-  const dirty = JSON.stringify(current) !== JSON.stringify(initial);
+  const dirty = Object.keys(changed).length > 0;
+
+  const describeSource = describeSourceOf(draft, contest);
+  const summaryLines = describeContest(describeSource, { moment: formatDateTime, duration: humanDuration });
+  const warnings = contestWarnings(describeSource);
 
   /**
    * Validate, then either save or ask. A blocked warning is refused outright
@@ -289,9 +198,7 @@ export function ContestGeneralTab({
       return;
     }
 
-    const dangers = dangerWarnings(warnings);
-
-    if (dangers.length > 0) {
+    if (dangerWarnings(warnings).length > 0) {
       setConfirming(true);
 
       return;
@@ -303,14 +210,7 @@ export function ContestGeneralTab({
   async function commit(acknowledged: readonly ContestWarning[]) {
     setConfirming(false);
 
-    // The same refs on both sides, so a list that only changed because the
-    // resolver answered does not read as an edit.
-    const changed = changedArgs(
-      argsFromFields(initial, refs, initialConfig),
-      argsFromFields(current, refs, parsedConfig.value),
-    );
-
-    if (Object.keys(changed).length === 0) {
+    if (!dirty) {
       toast.success(t("saved"));
 
       return;
@@ -333,47 +233,7 @@ export function ContestGeneralTab({
     setBusy(false);
   }
 
-  /**
-   * The draft as the settings shapes read it, so the summary describes what is
-   * on screen rather than what is saved.
-   */
-  const describeSource = {
-    startTime: startTime ?? contest.startTime,
-    endTime: endTime ?? contest.endTime,
-    timeLimit: timeLimit.trim() ? Number(timeLimit) * 60 : null,
-    isVisible,
-    isPrivate,
-    isOrganizationPrivate,
-    privateContestantProfileIds: privateContestants,
-    organizationIds: organizationSlugs,
-    classIds: classNames,
-    limitJoinOrganizations: joinOrganizationSlugs.length > 0,
-    joinOrganizationIds: joinOrganizationSlugs,
-    freezeMinutes: Number(freezeMinutes) || 0,
-    blindDuringFreeze,
-    isRated,
-    rateAll,
-    rateExcludeProfileIds: rateExclude,
-    ratingFloor: ratingFloor.trim() ? Number(ratingFloor) : null,
-    ratingCeiling: ratingCeiling.trim() ? Number(ratingCeiling) : null,
-    performanceCeilingOverride: performanceCeiling.trim() ? Number(performanceCeiling) : null,
-    labelScheme,
-    customLabels: customLabels
-      .split(",")
-      .map((label) => label.trim())
-      .filter(Boolean),
-    accessCode: accessCode.trim() || null,
-    lockedAfter,
-    runPretestsOnly,
-  };
-
-  const summaryLines = describeContest(describeSource, {
-    moment: formatDateTime,
-    // The contest pages already say how long something is, in words, per locale.
-    duration: humanDuration,
-  });
-
-  const warnings = contestWarnings(describeSource);
+  const missingPermission = (permission: string) => t("missingPermission", { permission });
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)] lg:items-start">
@@ -386,7 +246,11 @@ export function ContestGeneralTab({
               <Input mono value={contest.key} readOnly disabled title={t("keyFixed")} />
             </Field>
             <Field label={t("name")} htmlFor={ids.name}>
-              <Input id={ids.name} value={name} onChange={(event) => setName(event.target.value)} />
+              <Input
+                id={ids.name}
+                value={draft.name}
+                onChange={(event) => change({ name: event.target.value })}
+              />
             </Field>
             <Field
               label={t("summary")}
@@ -396,9 +260,18 @@ export function ContestGeneralTab({
             >
               <Input
                 id={ids.summary}
-                value={summary}
-                onChange={(event) => setSummary(event.target.value)}
+                value={draft.summary}
+                onChange={(event) => change({ summary: event.target.value })}
                 placeholder={t("summaryPlaceholder")}
+              />
+            </Field>
+            <Field label={t("tags")} htmlFor={ids.tags} optional={t("optional")} className="sm:col-span-2">
+              <MultiSelect
+                id={ids.tags}
+                values={draft.tagNames}
+                onChange={(tagNames) => change({ tagNames })}
+                options={(options?.tags ?? []).map((row) => ({ value: row.name, label: row.name }))}
+                placeholder={t("tagsPlaceholder")}
               />
             </Field>
           </AdminSection>
@@ -407,7 +280,12 @@ export function ContestGeneralTab({
         {on("setup") ? (
           <Panel title={t("sectionDescription")} bodyClassName="p-4">
             <Field label={t("description")} hint={t("descriptionHint")}>
-              <MarkdownEditor value={description} onChange={setDescription} preset="contest" rows={14} />
+              <MarkdownEditor
+                value={draft.description}
+                onChange={(description) => change({ description })}
+                preset="contest"
+                rows={14}
+              />
             </Field>
           </Panel>
         ) : null}
@@ -415,21 +293,13 @@ export function ContestGeneralTab({
         {on("setup") ? (
           <AdminSection title={t("sectionScheduling")} columns={1}>
             <ContestScheduleFields
-              startTime={startTime}
-              endTime={endTime}
-              windowMinutes={timeLimit}
-              lockedAfter={lockedAfter}
+              startTime={draft.startTime}
+              endTime={draft.endTime}
+              windowMinutes={draft.windowMinutes}
+              lockedAfter={draft.lockedAfter}
               canLock={permissions.lockContest}
-              lockDisabledReason={t("missingPermission", { permission: "judge.lock_contest" })}
-              onChange={(patch) => {
-                if (patch.startTime !== undefined) setStartTime(patch.startTime);
-
-                if (patch.endTime !== undefined) setEndTime(patch.endTime);
-
-                if (patch.windowMinutes !== undefined) setTimeLimit(patch.windowMinutes);
-
-                if (patch.lockedAfter !== undefined) setLockedAfter(patch.lockedAfter);
-              }}
+              lockDisabledReason={missingPermission("judge.lock_contest")}
+              onChange={change}
             />
           </AdminSection>
         ) : null}
@@ -441,42 +311,36 @@ export function ContestGeneralTab({
                 <AdminCheckField
                   label={t("clarifications")}
                   hint={t("clarificationsHint")}
-                  checked={useClarifications}
-                  onCheckedChange={setUseClarifications}
+                  checked={draft.useClarifications}
+                  onCheckedChange={(useClarifications) => change({ useClarifications })}
                 />
                 <AdminCheckField
                   label={t("hideProblemTags")}
-                  checked={hideProblemTags}
-                  onCheckedChange={setHideProblemTags}
+                  checked={draft.hideProblemTags}
+                  onCheckedChange={(hideProblemTags) => change({ hideProblemTags })}
                 />
                 <AdminCheckField
                   label={t("hideProblemAuthors")}
-                  checked={hideProblemAuthors}
-                  onCheckedChange={setHideProblemAuthors}
+                  checked={draft.hideProblemAuthors}
+                  onCheckedChange={(hideProblemAuthors) => change({ hideProblemAuthors })}
                 />
                 <AdminCheckField
                   label={t("disableLockdown")}
                   hint={t("disableLockdownHint")}
-                  checked={disableLockdown}
-                  onCheckedChange={setHideNonContestProblems}
+                  checked={draft.disableLockdown}
+                  onCheckedChange={(disableLockdown) => change({ disableLockdown })}
                 />
                 <AdminCheckField
                   label={t("proctorRequired")}
                   hint={t("proctorRequiredHint")}
-                  checked={proctorRequired}
-                  onCheckedChange={setProctorRequired}
+                  checked={draft.proctorRequired}
+                  onCheckedChange={(proctorRequired) => change({ proctorRequired })}
                 />
                 <AdminCheckField
                   label={t("pretestsOnly")}
                   hint={t("pretestsOnlyHint")}
-                  checked={runPretestsOnly}
-                  onCheckedChange={setRunPretestsOnly}
-                />
-                <AdminCheckField
-                  label={t("shortDisplay")}
-                  hint={t("shortDisplayHint")}
-                  checked={showShortDisplay}
-                  onCheckedChange={setShowShortDisplay}
+                  checked={draft.runPretestsOnly}
+                  onCheckedChange={(runPretestsOnly) => change({ runPretestsOnly })}
                 />
               </div>
             </AdminWideField>
@@ -485,8 +349,8 @@ export function ContestGeneralTab({
                 id={ids.precision}
                 mono
                 inputMode="numeric"
-                value={pointsPrecision}
-                onChange={(event) => setPointsPrecision(event.target.value)}
+                value={draft.pointsPrecision}
+                onChange={(event) => change({ pointsPrecision: event.target.value })}
               />
             </Field>
           </AdminSection>
@@ -495,22 +359,23 @@ export function ContestGeneralTab({
         {on("scoring") ? (
           <AdminSection title={t("sectionFreeze")} columns={1}>
             <ContestFreezeFields
-              values={{ freezeMinutes, blindDuringFreeze, scoreboardVisibility }}
+              values={draft}
               scoreboardOptions={SCOREBOARD_OPTIONS.map((option) => ({
                 value: option.value,
                 label: t(option.labelKey),
               }))}
-              onChange={(patch) => {
-                if (patch.freezeMinutes !== undefined) setFreezeMinutes(patch.freezeMinutes);
-
-                if (patch.blindDuringFreeze !== undefined) setBlindDuringFreeze(patch.blindDuringFreeze);
-
-                if (patch.scoreboardVisibility !== undefined) {
-                  setScoreboardVisibility(
-                    chosenValue(SCOREBOARD_OPTIONS, patch.scoreboardVisibility, scoreboardVisibility),
-                  );
-                }
-              }}
+              onChange={({ scoreboardVisibility, ...patch }) =>
+                change({
+                  ...patch,
+                  ...(scoreboardVisibility !== undefined && {
+                    scoreboardVisibility: chosenValue(
+                      SCOREBOARD_OPTIONS,
+                      scoreboardVisibility,
+                      draft.scoreboardVisibility,
+                    ),
+                  }),
+                })
+              }
             />
           </AdminSection>
         ) : null}
@@ -520,27 +385,20 @@ export function ContestGeneralTab({
             <Field label={t("format")} htmlFor={ids.format}>
               <Select
                 id={ids.format}
-                value={formatName}
-                onValueChange={(value) => {
-                  setFormatName(value);
-                  const chosen = (formats ?? []).find((row) => row.name === value);
-
-                  if (chosen) setFormatConfig(toJson(chosen.configDefaults));
+                value={draft.formatName}
+                onValueChange={(formatName) => {
+                  const chosen = (formats ?? []).find((row) => row.name === formatName);
+                  change({ formatName, ...(chosen && { formatConfig: toJson(chosen.configDefaults) }) });
                 }}
                 options={(formats ?? []).map((row) => ({ value: row.name, label: row.displayName }))}
               />
             </Field>
-            <Field label={t("labelScheme")} htmlFor={ids.labelScheme}>
+            <Field label={t("labelScheme")} htmlFor={ids.labels}>
               <Select
-                id={ids.labelScheme}
-                value={labelScheme}
-                onValueChange={(value) =>
-                  setLabelScheme(chosenValue(LABEL_SCHEME_OPTIONS, value, labelScheme))
-                }
-                options={LABEL_SCHEME_OPTIONS.map((option) => ({
-                  value: option.value,
-                  label: t(option.labelKey),
-                }))}
+                id={ids.labels}
+                value={draft.labels}
+                onValueChange={(value) => change({ labels: chosenValue(LABEL_OPTIONS, value, draft.labels) })}
+                options={LABEL_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
               />
             </Field>
             <Field
@@ -559,12 +417,12 @@ export function ContestGeneralTab({
                 mono
                 rows={6}
                 invalid={!!configError}
-                value={formatConfig}
-                onChange={(event) => setFormatConfig(event.target.value)}
+                value={draft.formatConfig}
+                onChange={(event) => change({ formatConfig: event.target.value })}
                 placeholder={'{\n  "penalty": 20\n}'}
               />
             </Field>
-            {labelScheme === "custom" ? (
+            {draft.labels === "custom" ? (
               <Field
                 label={t("customLabels")}
                 htmlFor={ids.customLabels}
@@ -574,8 +432,8 @@ export function ContestGeneralTab({
                 <Input
                   id={ids.customLabels}
                   mono
-                  value={customLabels}
-                  onChange={(event) => setCustomLabels(event.target.value)}
+                  value={draft.customLabels}
+                  onChange={(event) => change({ customLabels: event.target.value })}
                   placeholder="A1, A2, B1"
                 />
               </Field>
@@ -586,23 +444,11 @@ export function ContestGeneralTab({
         {on("scoring") ? (
           <AdminSection title={t("sectionRating")} columns={1}>
             <ContestRatingFields
-              values={{ isRated, rateAll, ratingFloor, ratingCeiling, performanceCeiling, rateExclude }}
+              values={draft}
               canRate={permissions.contestRating}
               canOverridePerformanceCeiling={permissions.overridePerformanceCeiling}
-              missingPermission={(permission) => t("missingPermission", { permission })}
-              onChange={(patch) => {
-                if (patch.isRated !== undefined) setIsRated(patch.isRated);
-
-                if (patch.rateAll !== undefined) setRateAll(patch.rateAll);
-
-                if (patch.ratingFloor !== undefined) setRatingFloor(patch.ratingFloor);
-
-                if (patch.ratingCeiling !== undefined) setRatingCeiling(patch.ratingCeiling);
-
-                if (patch.performanceCeiling !== undefined) setPerformanceCeiling(patch.performanceCeiling);
-
-                if (patch.rateExclude !== undefined) setRateExclude(patch.rateExclude);
-              }}
+              missingPermission={missingPermission}
+              onChange={change}
             />
           </AdminSection>
         ) : null}
@@ -610,16 +456,7 @@ export function ContestGeneralTab({
         {on("access") ? (
           <AdminSection title={t("sectionAccess")} columns={1}>
             <ContestEntryFields
-              values={{
-                isVisible,
-                isPrivate,
-                isOrganizationPrivate,
-                privateContestants,
-                organizationSlugs,
-                classNames,
-                joinOrganizationSlugs,
-                accessCode,
-              }}
+              values={draft}
               organizationOptions={(options?.organizations ?? []).map((row) => ({
                 value: row.slug,
                 label: row.name,
@@ -631,61 +468,9 @@ export function ContestGeneralTab({
               canRestrict={permissions.createPrivateContest}
               canSetAccessCode={permissions.contestAccessCode}
               canChangeVisibility={permissions.changeContestVisibility}
-              missingPermission={(permission) => t("missingPermission", { permission })}
-              onChange={(patch) => {
-                if (patch.isVisible !== undefined) setIsVisible(patch.isVisible);
-
-                if (patch.isPrivate !== undefined) setIsPrivate(patch.isPrivate);
-
-                if (patch.isOrganizationPrivate !== undefined) {
-                  setIsOrganizationPrivate(patch.isOrganizationPrivate);
-                }
-
-                if (patch.privateContestants !== undefined) setPrivateContestants(patch.privateContestants);
-
-                if (patch.organizationSlugs !== undefined) setOrganizationSlugs(patch.organizationSlugs);
-
-                if (patch.classNames !== undefined) setClassNames(patch.classNames);
-
-                if (patch.joinOrganizationSlugs !== undefined) {
-                  setJoinOrganizationSlugs(patch.joinOrganizationSlugs);
-                }
-
-                if (patch.accessCode !== undefined) setAccessCode(patch.accessCode);
-              }}
+              missingPermission={missingPermission}
+              onChange={change}
             />
-          </AdminSection>
-        ) : null}
-
-        {on("setup") ? (
-          <AdminSection title={t("sectionPresentation")}>
-            <Field label={t("tags")} htmlFor={ids.tags} optional={t("optional")}>
-              <MultiSelect
-                id={ids.tags}
-                values={tagNames}
-                onChange={setTagNames}
-                options={(options?.tags ?? []).map((row) => ({ value: row.name, label: row.name }))}
-                placeholder={t("tagsPlaceholder")}
-              />
-            </Field>
-            <Field label={t("ogImage")} htmlFor={ids.ogImage} optional={t("optional")}>
-              <Input
-                id={ids.ogImage}
-                mono
-                value={ogImage}
-                onChange={(event) => setOgImage(event.target.value)}
-                placeholder="https://"
-              />
-            </Field>
-            <Field label={t("logoOverride")} htmlFor={ids.logo} optional={t("optional")}>
-              <Input
-                id={ids.logo}
-                mono
-                value={logoOverrideImage}
-                onChange={(event) => setLogoOverrideImage(event.target.value)}
-                placeholder="https://"
-              />
-            </Field>
           </AdminSection>
         ) : null}
 
@@ -694,8 +479,8 @@ export function ContestGeneralTab({
             <Field label={t("bannedUsers")} htmlFor={ids.banned} hint={t("bannedUsersHint")}>
               <UserPicker
                 id={ids.banned}
-                values={bannedUsers}
-                onChange={setBannedUsers}
+                values={draft.bannedUsers}
+                onChange={(bannedUsers) => change({ bannedUsers })}
                 ariaLabel={t("bannedUsers")}
               />
             </Field>

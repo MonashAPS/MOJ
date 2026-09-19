@@ -1,23 +1,10 @@
 import { createHash } from "node:crypto";
-import { getFormatOrDefault } from "@moj/core";
 import type { ImportContext } from "../context.ts";
 import { groupM2M } from "../context.ts";
 import { isJsonObject, type JsonObject, type JsonValue } from "../json.ts";
 import type { Step } from "./types.ts";
 
 const SCOREBOARD_VISIBILITY = new Set(["V", "C", "P", "H"]);
-
-/**
- * DMOJ has no `label_scheme` column: with no `problem_label_script` the format
- * class decides, and every format except `icpc` inherits DefaultContestFormat's
- * `str(index + 1)`. MOJ's contest row must carry a scheme, so the import writes
- * the one the format would have produced rather than assuming letters.
- */
-function labelSchemeFor(formatName: string, labelScript: string): "letters" | "numbers" | "custom" {
-  if (labelScript.trim() !== "") return "custom";
-
-  return getFormatOrDefault(formatName).defaultLabelScheme;
-}
 
 /**
  * DMOJ keys `format_data` by `ContestProblem.id`, so the numbers in the dump
@@ -236,11 +223,80 @@ const contestsStep: Step = {
         ctx.report.warn("contests", `unknown scoreboard_visibility ${visibility}, stored as V`, id);
       }
 
-      const labelScript = row.s("problem_label_script");
-
-      if (labelScript.trim() !== "") {
-        ctx.report.warn("contests", "problem_label_script is not portable, label scheme set to custom", id);
+      // A Lua label script is not portable; the contest letters its problems.
+      if (row.s("problem_label_script").trim() !== "") {
+        ctx.report.warn("contests", "problem_label_script is not portable, problems are lettered", id);
       }
+
+      const organizationIds = ctx.refs(
+        "organizations",
+        organizations.get(id),
+        "judge_contest_organizations",
+        "organization_id",
+        id,
+      );
+
+      const classIds = ctx.refs("classes", classes.get(id), "judge_contest_classes", "class_id", id);
+
+      const namedProfileIds = ctx.refs(
+        "profiles",
+        privateContestants.get(id),
+        "judge_contest_private_contestants",
+        "profile_id",
+        id,
+      );
+
+      // DMOJ's two flags each gate on their own lists, and both have to be
+      // cleared. A flag on with nothing behind it admitted nobody; here the
+      // gate simply is not there, which only differs when the other one is.
+      const byOrganization = row.b("is_organization_private");
+      const byName = row.b("is_private");
+
+      const entry: JsonObject =
+        byOrganization || byName
+          ? {
+              kind: "restricted" as const,
+              match: "all" as const,
+              organizationIds: byOrganization ? organizationIds : [],
+              classIds: byOrganization ? classIds : [],
+              profileIds: byName ? namedProfileIds : [],
+            }
+          : { kind: "open" as const };
+
+      const joinOrganizationIds = ctx.refs(
+        "organizations",
+        joinOrganizations.get(id),
+        "judge_contest_join_organizations",
+        "organization_id",
+        id,
+      );
+
+      // A limit naming nobody let nobody join. Nothing wants to say that, so it
+      // imports as no limit, and the report says which contests changed.
+      if (row.b("limit_join_organizations") && joinOrganizationIds.length === 0) {
+        ctx.report.warn(
+          "contests",
+          "limit_join_organizations named no organisation, imported as no limit",
+          id,
+        );
+      }
+
+      const windowSeconds = durationToSeconds(row.nOpt("time_limit"));
+      const floor = row.nOpt("rating_floor");
+      const ceiling = row.nOpt("rating_ceiling");
+
+      const rating: JsonObject = {
+        everyone: row.b("rate_all"),
+        excludeProfileIds: ctx.refs(
+          "profiles",
+          rateExclude.get(id),
+          "judge_contest_rate_exclude",
+          "profile_id",
+          id,
+        ),
+        ...(floor !== undefined && { floor }),
+        ...(ceiling !== undefined && { ceiling }),
+      };
 
       await emitter.emit({
         key: row.s("key"),
@@ -260,10 +316,16 @@ const contestsStep: Step = {
         description: row.s("description"),
         startTime: row.t("start_time"),
         endTime: row.t("end_time"),
-        timeLimit: durationToSeconds(row.nOpt("time_limit")),
+        schedule: windowSeconds
+          ? { kind: "window" as const, seconds: windowSeconds }
+          : { kind: "together" as const },
         isVisible: row.b("is_visible"),
-        isRated: row.b("is_rated"),
-        viewContestScoreboardProfileIds: ctx.refs(
+        entry,
+        isOpenEntry: entry.kind === "open",
+        joinLimit: joinOrganizationIds.length > 0 ? { organizationIds: joinOrganizationIds } : undefined,
+        rating: row.b("is_rated") ? rating : undefined,
+        labels: { kind: "letters" as const },
+        alwaysAdmitProfileIds: ctx.refs(
           "profiles",
           viewScoreboard.get(id),
           "judge_contest_view_contest_scoreboard",
@@ -279,47 +341,9 @@ const contestsStep: Step = {
         ),
         scoreboardVisibility: SCOREBOARD_VISIBILITY.has(visibility) ? visibility : "V",
         useClarifications: row.b("use_clarifications"),
-        ratingFloor: row.nOpt("rating_floor"),
-        ratingCeiling: row.nOpt("rating_ceiling"),
-        rateAll: row.b("rate_all"),
-        rateExcludeProfileIds: ctx.refs(
-          "profiles",
-          rateExclude.get(id),
-          "judge_contest_rate_exclude",
-          "profile_id",
-          id,
-        ),
-        isPrivate: row.b("is_private"),
-        privateContestantProfileIds: ctx.refs(
-          "profiles",
-          privateContestants.get(id),
-          "judge_contest_private_contestants",
-          "profile_id",
-          id,
-        ),
         hideProblemTags: row.b("hide_problem_tags"),
         hideProblemAuthors: row.b("hide_problem_authors"),
         runPretestsOnly: row.b("run_pretests_only"),
-        showShortDisplay: row.b("show_short_display"),
-        isOrganizationPrivate: row.b("is_organization_private"),
-        organizationIds: ctx.refs(
-          "organizations",
-          organizations.get(id),
-          "judge_contest_organizations",
-          "organization_id",
-          id,
-        ),
-        limitJoinOrganizations: row.b("limit_join_organizations"),
-        joinOrganizationIds: ctx.refs(
-          "organizations",
-          joinOrganizations.get(id),
-          "judge_contest_join_organizations",
-          "organization_id",
-          id,
-        ),
-        classIds: ctx.refs("classes", classes.get(id), "judge_contest_classes", "class_id", id),
-        ogImage: row.sOpt("og_image"),
-        logoOverrideImage: row.sOpt("logo_override_image"),
         tagIds: ctx.refs("contestTags", tags.get(id), "judge_contest_tags", "contesttag_id", id),
         userCount: row.n("user_count"),
         summary: row.sOpt("summary"),
@@ -333,12 +357,8 @@ const contestsStep: Step = {
         ),
         formatName: row.s("format_name"),
         formatConfig: row.json("format_config"),
-        labelScheme: labelSchemeFor(row.s("format_name"), labelScript),
-        customLabels: [],
         lockedAfter: row.tOpt("locked_after"),
         pointsPrecision: row.n("points_precision"),
-        freezeMinutes: 0,
-        blindDuringFreeze: false,
         legacyId: id,
       });
     }

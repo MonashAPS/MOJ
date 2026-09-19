@@ -1,5 +1,6 @@
 "use client";
 
+import type { ContestSchedule } from "@moj/core";
 import { Button, Field, FormFooter, Input, Panel, TitleRow } from "@moj/ui";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -16,15 +17,15 @@ export function JoinPanel({
   requiresAccessCode,
   isVirtual,
   alreadyIn,
-  timeLimit,
+  schedule,
 }: {
   contestKey: string;
   contestName: string;
   requiresAccessCode: boolean;
   isVirtual: boolean;
   alreadyIn: boolean;
-  /** Seconds. A window contest starts a clock of its own on join. */
-  timeLimit: number | null;
+  /** A window contest starts a clock of its own on join. */
+  schedule: ContestSchedule;
 }) {
   const [state, formAction, pending] = useActionState(joinContest, null);
   const t = useTranslations("contests.join");
@@ -61,10 +62,13 @@ export function JoinPanel({
                     ? t("alreadyIn")
                     : isVirtual
                       ? t("virtualWindow", {
-                          duration: timeLimit ? humanDuration(timeLimit * 1000) : t("fullLength"),
+                          duration:
+                            schedule.kind === "window"
+                              ? humanDuration(schedule.seconds * 1000)
+                              : t("fullLength"),
                         })
-                      : timeLimit
-                        ? t("windowStarts", { duration: humanDuration(timeLimit * 1000) })
+                      : schedule.kind === "window"
+                        ? t("windowStarts", { duration: humanDuration(schedule.seconds * 1000) })
                         : t("firstTime")}
                 </p>
                 {joinErrorOf(state) ? <p className="text-sm text-bad">{joinErrorOf(state)}</p> : null}

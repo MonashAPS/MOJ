@@ -24,7 +24,6 @@ import {
   cumtimeSeconds,
   groupByProblem,
   numberConfig,
-  numberLabel,
   pointsPrecision,
   secondsSince,
   validateAgainstDefaults,
@@ -92,7 +91,6 @@ export const atcoderFormat: ContestFormat = {
   name: "atcoder",
   displayName: "AtCoder",
   configDefaults: ATCODER_DEFAULTS,
-  defaultLabelScheme: "numbers",
 
   validate: validateAtcoderConfig,
   resolveConfig: (config) => resolveAtcoderConfig(config),
@@ -112,7 +110,6 @@ export const atcoderFormat: ContestFormat = {
   },
 
   getProblemBreakdown: breakdown,
-  getLabelForProblem: numberLabel,
 
   getShortFormDisplay(config) {
     const { penalty } = resolveAtcoderConfig(config);

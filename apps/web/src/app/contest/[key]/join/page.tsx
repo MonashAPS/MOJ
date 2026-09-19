@@ -45,7 +45,7 @@ export default async function ContestJoinPage({ params }: { params: Promise<{ ke
       requiresAccessCode={detail.viewer.requiresAccessCode}
       isVirtual={detail.timing.ended}
       alreadyIn={detail.viewer.inContest}
-      timeLimit={detail.contest.timeLimit}
+      schedule={detail.contest.schedule}
     />
   );
 }

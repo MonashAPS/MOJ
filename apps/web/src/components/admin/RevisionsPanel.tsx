@@ -78,18 +78,37 @@ function asSnapshot(snapshot: Revision["snapshot"]): JsonObject {
   return snapshot;
 }
 
-/** Field-by-field, both ways: what a snapshot gained, lost or changed. */
+/**
+ * Field-by-field, both ways: what a snapshot gained, lost or changed.
+ *
+ * A field holding an object, such as a contest's entry or rating, is compared
+ * one member at a time under a dotted name, so the diff says which part moved
+ * rather than printing two blobs of JSON.
+ */
 function diff(before: Revision, after: Revision, words: BooleanWords): Change[] {
-  const left = asSnapshot(before.snapshot);
-  const right = asSnapshot(after.snapshot);
+  return diffObjects(asSnapshot(before.snapshot), asSnapshot(after.snapshot), words, "");
+}
+
+function diffObjects(left: JsonObject, right: JsonObject, words: BooleanWords, prefix: string): Change[] {
   const fields = [...new Set([...Object.keys(left), ...Object.keys(right)])].sort();
   const changes: Change[] = [];
 
   for (const field of fields) {
-    const a = render(left[field], words);
-    const b = render(right[field], words);
+    const a = left[field];
+    const b = right[field];
+    const name = prefix ? `${prefix}.${field}` : field;
 
-    if (a !== b) changes.push({ field, before: a, after: b });
+    if ((a !== undefined && isNestedObject(a)) || (b !== undefined && isNestedObject(b))) {
+      const aMembers = a !== undefined && isNestedObject(a) ? a : {};
+      const bMembers = b !== undefined && isNestedObject(b) ? b : {};
+      changes.push(...diffObjects(aMembers, bMembers, words, name));
+      continue;
+    }
+
+    const shownA = render(a, words);
+    const shownB = render(b, words);
+
+    if (shownA !== shownB) changes.push({ field: name, before: shownA, after: shownB });
   }
 
   return changes;
@@ -149,7 +168,10 @@ export function RevisionsPanel({
   const panelTitle = title ?? t("title");
 
   function fieldLabel(field: string): string {
-    return t.has(`fields.${field}`) ? t(`fields.${field}`) : fallbackLabel(field);
+    return field
+      .split(".")
+      .map((part) => (t.has(`fields.${part}`) ? t(`fields.${part}`) : fallbackLabel(part)))
+      .join(" › ");
   }
 
   if (pending) {

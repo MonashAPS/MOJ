@@ -92,7 +92,7 @@ export default async function ContestTagPage({ params }: { params: Promise<{ nam
                     <ContestWindow
                       startTime={contest.startTime}
                       endTime={contest.endTime}
-                      timeLimit={contest.timeLimit}
+                      schedule={contest.schedule}
                     />
                   </div>
                 </TableCell>

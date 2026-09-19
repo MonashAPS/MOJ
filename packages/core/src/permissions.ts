@@ -11,7 +11,7 @@
  * judge/models/interface.py, judge/models/profile.py.
  */
 
-import { type ContestEntry, entryOf, joinLimitOf } from "./contest/settings";
+import { entryAdmits } from "./contest/entry";
 import { participationHasEnded } from "./contestTiming";
 import type {
   BlogPostRow,
@@ -417,7 +417,7 @@ export function contestCanSeeFullScoreboard(
 
   if (contestStarted(contest, now) && has(contest.spectatorProfileIds, viewer.id)) return true;
 
-  if (has(contest.viewContestScoreboardProfileIds, viewer.id)) return true;
+  if (has(contest.alwaysAdmitProfileIds, viewer.id)) return true;
 
   if (
     contest.scoreboardVisibility === SCOREBOARD_AFTER_PARTICIPATION &&
@@ -462,7 +462,10 @@ const ACCESS_OK: ContestAccess = { kind: "ok" };
 const ACCESS_INACCESSIBLE: ContestAccess = { kind: "inaccessible" };
 
 function privateContest(contest: ContestRow): ContestAccess {
-  return { kind: "privateContest", organizationIds: contest.organizationIds ?? [] };
+  return {
+    kind: "privateContest",
+    organizationIds: contest.entry.kind === "restricted" ? contest.entry.organizationIds : [],
+  };
 }
 
 /**
@@ -476,7 +479,7 @@ export function contestAccessCheck(contest: ContestRow, viewer: Viewer): Contest
   if (!isAuthenticated(viewer)) {
     if (!contest.isVisible) return ACCESS_INACCESSIBLE;
 
-    if (contest.isPrivate || contest.isOrganizationPrivate) return privateContest(contest);
+    if (contest.entry.kind !== "open") return privateContest(contest);
 
     return ACCESS_OK;
   }
@@ -492,42 +495,12 @@ export function contestAccessCheck(contest: ContestRow, viewer: Viewer): Contest
   if (has(contest.spectatorProfileIds, viewer.id)) return ACCESS_OK;
 
   if (!contest.isVisible) return ACCESS_INACCESSIBLE;
-  const entry = entryOf(contest);
 
-  if (entry.kind === "open") return ACCESS_OK;
+  if (contest.entry.kind === "open") return ACCESS_OK;
 
-  // Named "view the scoreboard", but it returns here, so it admits outright.
-  if (has(contest.viewContestScoreboardProfileIds, viewer.id)) return ACCESS_OK;
+  if (has(contest.alwaysAdmitProfileIds, viewer.id)) return ACCESS_OK;
 
-  return entrySatisfiedBy(entry, viewer) ? ACCESS_OK : privateContest(contest);
-}
-
-/**
- * Whether a viewer clears a restricted contest's gates.
- *
- * An organisation gate is satisfied by an organisation *or* a class, and a
- * `match` of "all" means every populated gate has to be cleared — so a contest
- * with both an organisation gate and a named-people gate admits only the people
- * in both, which is why turning the second on for an organisation contest locks
- * out every member who is not also named.
- */
-function entrySatisfiedBy(entry: Extract<ContestEntry, { kind: "restricted" }>, viewer: Viewer): boolean {
-  if (!isAuthenticated(viewer)) return false;
-  const gates: boolean[] = [];
-
-  // Each gate that is on has to be cleared, and one naming nobody never is.
-  if (entry.byOrganization) {
-    gates.push(
-      intersects(entry.organizationIds, viewer.organizationIds) ||
-        intersects(entry.classIds, viewer.classIds),
-    );
-  }
-
-  if (entry.byName) gates.push(has(entry.profileIds, viewer.id));
-
-  if (gates.length === 0) return false;
-
-  return entry.match === "all" ? gates.every(Boolean) : gates.some(Boolean);
+  return entryAdmits(contest.entry, viewer) ? ACCESS_OK : privateContest(contest);
 }
 
 /** `Contest.is_accessible_by(user)` (contest.py:441). */
@@ -570,7 +543,7 @@ export function contestIsLiveJoinableBy(
 
   if (contestHasCompletedContest(contest, viewer, context)) return false;
 
-  const joinLimit = joinLimitOf(contest);
+  const joinLimit = contest.joinLimit;
 
   // A class satisfies this the way it satisfies the entry gate. DMOJ intersects
   // the join list against organisations only, which made a class-gated contest
@@ -591,7 +564,7 @@ export function contestIsSpectatableBy(contest: ContestRow, viewer: Viewer): boo
 
   if (contestIsEditor(contest, viewer.id) || has(contest.testerProfileIds, viewer.id)) return true;
 
-  const joinLimit = joinLimitOf(contest);
+  const joinLimit = contest.joinLimit;
 
   if (joinLimit) {
     return (
@@ -605,27 +578,17 @@ export function contestIsSpectatableBy(contest: ContestRow, viewer: Viewer): boo
 
 /** `Contest.get_visible_contests(user)` (contest.py:461) as a predicate. */
 export function contestIsVisibleTo(contest: ContestRow, viewer: Viewer): boolean {
-  if (!isAuthenticated(viewer)) {
-    return contest.isVisible && !contest.isOrganizationPrivate && !contest.isPrivate;
-  }
+  if (!isAuthenticated(viewer)) return contest.isVisible && contest.entry.kind === "open";
 
   if (hasPerm(viewer, "judge.see_private_contest") || hasPerm(viewer, "judge.edit_all_contest")) {
     return true;
   }
 
-  const orgCheck =
-    intersects(contest.organizationIds, viewer.organizationIds) ||
-    intersects(contest.classIds, viewer.classIds);
-
-  const inUsers = has(contest.privateContestantProfileIds, viewer.id);
-
   const visible =
     contest.isVisible &&
-    (has(contest.viewContestScoreboardProfileIds, viewer.id) ||
-      (!contest.isOrganizationPrivate && !contest.isPrivate) ||
-      (!contest.isOrganizationPrivate && contest.isPrivate && inUsers) ||
-      (contest.isOrganizationPrivate && !contest.isPrivate && orgCheck) ||
-      (contest.isOrganizationPrivate && contest.isPrivate && inUsers && orgCheck));
+    (contest.entry.kind === "open" ||
+      has(contest.alwaysAdmitProfileIds, viewer.id) ||
+      entryAdmits(contest.entry, viewer));
 
   return (
     visible ||

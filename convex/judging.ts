@@ -33,6 +33,7 @@ import type { WithoutSystemFields } from "convex/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { toContestRow } from "./contests/formats";
 import {
   applyHandshake,
   applyHeartbeat,
@@ -540,24 +541,7 @@ export async function recomputeParticipation(
       order: row.order,
       maxSubmissions: row.maxSubmissions ?? null,
     })),
-    contest: {
-      id: contest._id,
-      key: contest.key,
-      name: contest.name,
-      startTime: contest.startTime,
-      endTime: contest.endTime,
-      timeLimit: contest.timeLimit ?? null,
-      isVisible: contest.isVisible,
-      isPrivate: contest.isPrivate,
-      isOrganizationPrivate: contest.isOrganizationPrivate,
-      scoreboardVisibility: contest.scoreboardVisibility,
-      formatName: contest.formatName,
-      formatConfig: contest.formatConfig,
-      pointsPrecision: contest.pointsPrecision,
-      freezeMinutes: contest.freezeMinutes,
-      blindDuringFreeze: contest.blindDuringFreeze,
-      lockedAfter: contest.lockedAfter ?? null,
-    },
+    contest: toContestRow(contest),
   });
 
   await ctx.db.patch(participationId, {

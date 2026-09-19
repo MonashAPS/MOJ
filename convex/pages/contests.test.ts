@@ -60,7 +60,7 @@ describe("frozenCells", () => {
         key: "frozen",
         startTime: now - 3 * HOUR,
         endTime: now + 30 * MINUTE,
-        freezeMinutes: 60,
+        freeze: { minutes: 60, blind: false },
       });
 
       const contestProblemId = await insertContestProblem(ctx, {

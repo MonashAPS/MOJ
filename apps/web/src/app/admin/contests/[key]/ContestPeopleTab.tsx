@@ -34,7 +34,7 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
   const [curators, setCurators] = useState<string[]>(contest.curators);
   const [testers, setTesters] = useState<string[]>(contest.testers);
   const [spectators, setSpectators] = useState<string[]>(contest.spectators);
-  const [viewScoreboard, setViewScoreboard] = useState<string[]>(contest.viewContestScoreboard);
+  const [alwaysAdmit, setAlwaysAdmit] = useState<string[]>(contest.alwaysAdmit);
   const [viewSubmissions, setViewSubmissions] = useState<string[]>(contest.viewContestSubmissions);
   const [testerSeeScoreboard, setTesterSeeScoreboard] = useState(contest.testerSeeScoreboard);
   const [testerSeeSubmissions, setTesterSeeSubmissions] = useState(contest.testerSeeSubmissions);
@@ -43,7 +43,7 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
   const [error, setError] = useState<string | null>(null);
 
   const refs = useResolvedRefs({
-    usernames: [...authors, ...curators, ...testers, ...spectators, ...viewScoreboard, ...viewSubmissions],
+    usernames: [...authors, ...curators, ...testers, ...spectators, ...alwaysAdmit, ...viewSubmissions],
   });
 
   const idsFor = refs.profileIdsFor;
@@ -74,7 +74,7 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
         curatorProfileIds: idsFor(curators),
         testerProfileIds: idsFor(testers),
         spectatorProfileIds: idsFor(spectators),
-        viewContestScoreboardProfileIds: idsFor(viewScoreboard),
+        alwaysAdmitProfileIds: idsFor(alwaysAdmit),
         viewContestSubmissionsProfileIds: idsFor(viewSubmissions),
         testerSeeScoreboard,
         testerSeeSubmissions,
@@ -127,12 +127,12 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
       </AdminSection>
 
       <AdminSection title={t("sectionViewers")}>
-        <Field label={t("viewScoreboard")} htmlFor={ids.scoreboard} hint={t("viewScoreboardHint")}>
+        <Field label={t("alwaysAdmit")} htmlFor={ids.scoreboard} hint={t("alwaysAdmitHint")}>
           <UserPicker
             id={ids.scoreboard}
-            values={viewScoreboard}
-            onChange={setViewScoreboard}
-            ariaLabel={t("viewScoreboard")}
+            values={alwaysAdmit}
+            onChange={setAlwaysAdmit}
+            ariaLabel={t("alwaysAdmit")}
           />
         </Field>
         <Field label={t("viewSubmissions")} htmlFor={ids.submissions} hint={t("viewSubmissionsHint")}>

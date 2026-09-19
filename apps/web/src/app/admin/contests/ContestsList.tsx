@@ -25,8 +25,7 @@ type Row = {
   endTime: number;
   isVisible: boolean;
   isRated: boolean;
-  isPrivate: boolean;
-  isOrganizationPrivate: boolean;
+  isOpenEntry: boolean;
   userCount: number;
   formatName: string;
   problemCount: number;
@@ -101,11 +100,11 @@ export function ContestsList() {
               {t("rated")}
             </Badge>
           ) : null}
-          {row.isPrivate || row.isOrganizationPrivate ? (
+          {row.isOpenEntry ? null : (
             <Badge variant="warn" rounding="square">
               {t("private")}
             </Badge>
-          ) : null}
+          )}
         </div>
       ),
     },
