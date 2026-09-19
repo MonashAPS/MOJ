@@ -503,7 +503,7 @@ export function ContestGeneralTab({
 
         {on("access") ? (
           <AdminSection title={t("sectionJustice")} columns={1}>
-            <Field label={t("bannedUsers")} htmlFor={ids.banned} hint={t("bannedUsersHint")}>
+            <Field label={t("bannedUsers")} htmlFor={ids.banned}>
               <UserPicker
                 id={ids.banned}
                 values={draft.bannedUsers}

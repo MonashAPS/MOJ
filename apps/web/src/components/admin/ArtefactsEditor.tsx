@@ -118,7 +118,6 @@ export function ArtefactsEditor({ owner, hasEnd = false }: { owner: ArtefactOwne
       <AdminFormError message={error} />
 
       <Panel title={t("uploadTitle")} bodyClassName="grid gap-3 p-4">
-        <p className="text-sm text-muted-foreground">{t("uploadHint")}</p>
         <div className="flex flex-wrap items-center gap-2">
           <Select
             value={visibility}

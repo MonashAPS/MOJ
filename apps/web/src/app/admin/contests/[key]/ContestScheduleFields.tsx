@@ -110,7 +110,7 @@ export function ContestScheduleFields({
           </Field>
         ) : null}
 
-        <Field label={t("lockedAfter")} htmlFor={ids.locked} hint={t("lockedAfterHint")}>
+        <Field label={t("lockedAfter")} htmlFor={ids.locked}>
           {/* A permission you lack disables the control and says why, rather than
               hiding it and letting you believe the setting does not exist. */}
           <div title={canLock ? undefined : lockDisabledReason}>
