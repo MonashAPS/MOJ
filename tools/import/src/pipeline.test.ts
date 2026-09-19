@@ -144,13 +144,16 @@ describe("full transform over a fixture dump", () => {
       key: "week1",
       schedule: { kind: "window", seconds: 18000 },
       formatName: "icpc",
-      scoreboardVisibility: "C",
+      scoreboard: { audiences: ["everyone"], from: "end" },
       labels: { kind: "letters" },
       pointsPrecision: 2,
     });
     expect(contests[0]?.formatConfig).toEqual({ penalty: 20 });
     expect(contests[0]?.freeze).toBeUndefined();
-    expect(contests[1]).toMatchObject({ schedule: { kind: "together" }, scoreboardVisibility: "V" });
+    expect(contests[1]).toMatchObject({
+      schedule: { kind: "together" },
+      scoreboard: { audiences: ["everyone"], from: "start" },
+    });
   });
 
   it("letters every contest's problems, whatever its format or label script", () => {
