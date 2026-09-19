@@ -153,7 +153,16 @@ export function ContestGeneralTab({
 
   const permissions = contest.permissions;
   const configError = !parsedConfig.ok ? t("formatConfigInvalid") : (validation?.error ?? null);
-  const dirty = JSON.stringify(draft) !== JSON.stringify(initial);
+
+  // What a save would send. The same refs on both sides, so a list that only
+  // changed because the resolver answered does not read as an edit, and a list
+  // left behind by a mode that no longer reads it does not either.
+  const changed = changedArgs(
+    argsFromFields(initial, refs, initialConfig),
+    argsFromFields(draft, refs, parsedConfig.value),
+  );
+
+  const dirty = Object.keys(changed).length > 0;
 
   const describeSource = describeSourceOf(draft, contest);
   const summaryLines = describeContest(describeSource, { moment: formatDateTime, duration: humanDuration });
@@ -201,14 +210,7 @@ export function ContestGeneralTab({
   async function commit(acknowledged: readonly ContestWarning[]) {
     setConfirming(false);
 
-    // The same refs on both sides, so a list that only changed because the
-    // resolver answered does not read as an edit.
-    const changed = changedArgs(
-      argsFromFields(initial, refs, initialConfig),
-      argsFromFields(draft, refs, parsedConfig.value),
-    );
-
-    if (Object.keys(changed).length === 0) {
+    if (!dirty) {
       toast.success(t("saved"));
 
       return;
