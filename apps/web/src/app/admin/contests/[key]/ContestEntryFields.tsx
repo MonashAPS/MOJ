@@ -80,12 +80,7 @@ export function ContestEntryFields({
         onValueChange={(next) => onChange({ entry: next === "restricted" ? "restricted" : "open" })}
         options={[
           { value: "open", label: t("entryOpen"), description: t("entryOpenHint") },
-          {
-            value: "restricted",
-            label: t("entryRestricted"),
-            description: t("entryRestrictedHint"),
-            disabled: !canRestrict,
-          },
+          { value: "restricted", label: t("entryRestricted"), disabled: !canRestrict },
         ]}
       />
 

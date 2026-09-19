@@ -72,6 +72,7 @@ function keyFromName(name: string): string {
 export function NewContestWizard() {
   const t = useTranslations("admin.contests.new");
   const setup = useTranslations("admin.contests.setup");
+  const formatBlurb = useTranslations("admin.contests.formats");
   const actions = useTranslations("common.actions");
   const router = useRouter();
   const create = useMutation(api.admin.contests.create);
@@ -222,6 +223,7 @@ export function NewContestWizard() {
                 options={(formats ?? []).map((row) => ({
                   value: row.name,
                   label: row.displayName,
+                  description: formatBlurb.has(row.name) ? formatBlurb(row.name) : undefined,
                 }))}
               />
             </AdminSection>

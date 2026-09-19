@@ -176,7 +176,6 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
               </Command>
             </PopoverContent>
           </Popover>
-          <span className="text-sm text-muted-foreground">{t("reorderHint")}</span>
         </div>
 
         {contest.problems.length === 0 ? (
@@ -339,14 +338,13 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
         )}
       </Panel>
 
-      <p className="text-sm text-muted-foreground">
-        {t("inlineSaveNote")}{" "}
-        {contest.problems.some((problem) => problem.isPretested) ? (
+      {contest.problems.some((problem) => problem.isPretested) ? (
+        <p className="text-sm text-muted-foreground">
           <Badge variant="warn" rounding="square">
             {t("pretestsInUse")}
           </Badge>
-        ) : null}
-      </p>
+        </p>
+      ) : null}
 
       <AlertDialog open={pendingRemove !== null} onOpenChange={(open) => !open && setPendingRemove(null)}>
         <AlertDialogContent>
