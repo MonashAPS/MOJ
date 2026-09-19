@@ -49,7 +49,7 @@ async function frozenContest(t: T, extra: Overrides<"contests"> = {}) {
       endTime: end,
       formatName: "icpc",
       formatConfig: { penalty: 20 },
-      freezeMinutes: 60,
+      freeze: { minutes: 60, blind: false },
       authorProfileIds: [editorId],
       ...extra,
     });
@@ -166,14 +166,14 @@ describe("ranking with a freeze", () => {
 
   test("a contestant does not see through the freeze either", async () => {
     const t = setupTest();
-    await frozenContest(t, { blindDuringFreeze: true });
+    await frozenContest(t, { freeze: { minutes: 60, blind: true } });
 
     const own = await t.withIdentity(identityOf("bob")).query(api.contests.rankings.ranking, { key: "icpc" });
     const bob = (own?.rows ?? []).find((row) => row.user.username === "bob");
     expect(bob?.points).toBe(0);
     expect(bob?.frozen).toBe(true);
 
-    // The submission-row masking `blindDuringFreeze` drives lives in
+    // The submission-row masking `freeze.blind` drives lives in
     // `@moj/core`; this is the contract the submissions module reads.
     const contest = await t.run(async (ctx) => {
       const row = await ctx.db
@@ -192,11 +192,11 @@ describe("ranking with a freeze", () => {
         startTime: contest?.startTime ?? 0,
         endTime: contest?.endTime ?? 0,
         isVisible: true,
-        isPrivate: false,
-        isOrganizationPrivate: false,
+        schedule: { kind: "together" },
+        entry: { kind: "open" },
+        labels: { kind: "letters" },
         scoreboardVisibility: "V",
-        freezeMinutes: 60,
-        blindDuringFreeze: true,
+        freeze: { minutes: 60, blind: true },
       },
       null,
       { now: (contest?.endTime ?? 0) - MINUTE, viewerProfileId: "p1" },
@@ -355,7 +355,7 @@ describe("ratings", () => {
           key,
           startTime: now - endsAgo - HOUR,
           endTime: now - endsAgo,
-          isRated: true,
+          rating: { everyone: false, excludeProfileIds: [] },
         });
 
         const contestProblemId = await insertContestProblem(ctx, {
@@ -440,7 +440,7 @@ describe("ratings", () => {
     const t = setupTest();
     await t.run(async (ctx) => {
       await insertProfile(ctx, { username: "nobody" });
-      await insertContest(ctx, { key: "rated", isRated: true });
+      await insertContest(ctx, { key: "rated", rating: { everyone: false, excludeProfileIds: [] } });
     });
     await expect(
       t.withIdentity(identityOf("nobody")).mutation(api.ratings.rateContest, { key: "rated" }),
@@ -708,7 +708,7 @@ describe("the staff console", () => {
       endTime: now + HOUR,
       formatName: "icpc",
       formatConfig: { penalty: 20 },
-      freezeMinutes: 30,
+      freeze: { minutes: 30, blind: false },
       reason: "Set up the weekly",
     });
 

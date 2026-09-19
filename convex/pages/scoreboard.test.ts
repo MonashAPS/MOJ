@@ -62,7 +62,6 @@ async function event(t: T, isPublic = true) {
       endTime: end,
       formatName: "icpc",
       formatConfig: { penalty: 20 },
-      labelScheme: "letters",
     });
 
     const divB = await insertContest(ctx, {
@@ -72,7 +71,6 @@ async function event(t: T, isPublic = true) {
       endTime: end,
       formatName: "icpc",
       formatConfig: { penalty: 20 },
-      labelScheme: "letters",
     });
 
     const cpA = await insertContestProblem(ctx, {

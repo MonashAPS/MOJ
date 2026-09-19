@@ -500,7 +500,7 @@ export const disqualify = mutation({
     await ctx.db.patch(contest._id, { bannedProfileIds: [...banned] });
 
     // DMOJ re-rates the contest chain when the contest is rated and has ratings.
-    if (contest.isRated) {
+    if (contest.rating) {
       const rated = await ctx.db
         .query("ratings")
         .withIndex("by_contest", (q) => q.eq("contestId", contest._id))

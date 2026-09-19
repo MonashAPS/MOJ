@@ -60,7 +60,7 @@ describe("a contest revision", () => {
     expect(snapshot.name).toBe("Weekly 2");
     // Fields the patch never mentioned are in the snapshot too, which is what
     // makes two revisions comparable.
-    expect(snapshot).toHaveProperty("freezeMinutes");
+    expect(snapshot).toHaveProperty("freeze");
     expect(snapshot).toHaveProperty("scoreboardVisibility");
     expect(snapshot).not.toHaveProperty("before");
     expect(snapshot).not.toHaveProperty("after");
@@ -84,14 +84,26 @@ describe("a contest revision", () => {
     await asUser(t, "root").mutation(api.admin.contests.update, {
       key: "weekly",
       curatorProfileIds: ids.profileId ? [ids.profileId] : [],
-      organizationIds: ids.organizationId ? [ids.organizationId] : [],
+      entry: {
+        kind: "restricted",
+        match: "all",
+        organizationIds: ids.organizationId ? [ids.organizationId] : [],
+        classIds: [],
+        profileIds: [],
+      },
     });
 
     const snapshot = await latestSnapshot(t);
 
     // A diff of two lists of document ids tells the reader nothing.
     expect(snapshot.curators).toEqual(["judge"]);
-    expect(snapshot.organizations).toEqual(["maps"]);
+    expect(snapshot.entry).toEqual({
+      kind: "restricted",
+      match: "all",
+      organizations: ["maps"],
+      classes: [],
+      people: [],
+    });
   });
 
   test("is the same shape whichever mutation wrote it", async () => {

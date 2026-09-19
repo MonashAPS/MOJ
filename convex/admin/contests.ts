@@ -15,6 +15,7 @@ import {
   CONTEST_KEY_PATTERN,
   contestByKey,
   describeFormatError,
+  labelForProblem,
   loadContestProblems,
   toContestRow,
   toViewerRowInContest,
@@ -22,19 +23,29 @@ import {
 import { hasPerm, optionalViewer, requireViewer } from "../lib/auth";
 import { writeRevision } from "../lib/community";
 import { forbidden, invalid, mojError, notFound } from "../lib/errors";
-import { labelScheme, scoreboardVisibility } from "../schema";
+import { isJsonObject, type MaybeJson } from "../lib/json";
+import {
+  contestEntry,
+  contestFreeze,
+  contestJoinLimit,
+  contestLabels,
+  contestRating,
+  contestSchedule,
+  scoreboardVisibility,
+} from "../schema";
 
 /* -------------------------------------------------------------------------- */
 /* Field validators                                                           */
 /* -------------------------------------------------------------------------- */
 
-const writable = {
+/** The fields a contest's editor may write, as the document stores them. */
+const plainWritable = {
   name: v.optional(v.string()),
   description: v.optional(v.string()),
   summary: v.optional(v.union(v.string(), v.null())),
   startTime: v.optional(v.number()),
   endTime: v.optional(v.number()),
-  timeLimit: v.optional(v.union(v.number(), v.null())),
+  schedule: v.optional(contestSchedule),
   authorProfileIds: v.optional(v.array(v.id("profiles"))),
   curatorProfileIds: v.optional(v.array(v.id("profiles"))),
   testerProfileIds: v.optional(v.array(v.id("profiles"))),
@@ -42,43 +53,30 @@ const writable = {
   testerSeeScoreboard: v.optional(v.boolean()),
   testerSeeSubmissions: v.optional(v.boolean()),
   isVisible: v.optional(v.boolean()),
-  isRated: v.optional(v.boolean()),
-  viewContestScoreboardProfileIds: v.optional(v.array(v.id("profiles"))),
+  joinLimit: v.optional(v.union(contestJoinLimit, v.null())),
+  freeze: v.optional(v.union(contestFreeze, v.null())),
+  rating: v.optional(v.union(contestRating, v.null())),
+  labels: v.optional(contestLabels),
+  alwaysAdmitProfileIds: v.optional(v.array(v.id("profiles"))),
   viewContestSubmissionsProfileIds: v.optional(v.array(v.id("profiles"))),
   scoreboardVisibility: v.optional(scoreboardVisibility),
   useClarifications: v.optional(v.boolean()),
-  ratingFloor: v.optional(v.union(v.number(), v.null())),
-  ratingCeiling: v.optional(v.union(v.number(), v.null())),
-  performanceCeilingOverride: v.optional(v.union(v.number(), v.null())),
-  rateAll: v.optional(v.boolean()),
-  rateExcludeProfileIds: v.optional(v.array(v.id("profiles"))),
-  isPrivate: v.optional(v.boolean()),
-  privateContestantProfileIds: v.optional(v.array(v.id("profiles"))),
   hideProblemTags: v.optional(v.boolean()),
   hideProblemAuthors: v.optional(v.boolean()),
   disableLockdown: v.optional(v.boolean()),
   runPretestsOnly: v.optional(v.boolean()),
-  showShortDisplay: v.optional(v.boolean()),
-  isOrganizationPrivate: v.optional(v.boolean()),
-  organizationIds: v.optional(v.array(v.id("organizations"))),
-  limitJoinOrganizations: v.optional(v.boolean()),
-  joinOrganizationIds: v.optional(v.array(v.id("organizations"))),
-  classIds: v.optional(v.array(v.id("classes"))),
-  ogImage: v.optional(v.union(v.string(), v.null())),
-  logoOverrideImage: v.optional(v.union(v.string(), v.null())),
   tagIds: v.optional(v.array(v.id("contestTags"))),
   accessCode: v.optional(v.union(v.string(), v.null())),
   bannedProfileIds: v.optional(v.array(v.id("profiles"))),
   formatName: v.optional(v.string()),
   formatConfig: v.optional(v.any()),
-  labelScheme: v.optional(labelScheme),
-  customLabels: v.optional(v.array(v.string())),
   lockedAfter: v.optional(v.union(v.number(), v.null())),
   pointsPrecision: v.optional(v.number()),
-  freezeMinutes: v.optional(v.number()),
-  blindDuringFreeze: v.optional(v.boolean()),
   proctorRequired: v.optional(v.boolean()),
 };
+
+/** `entry` is apart because writing it also writes the index projection `isOpenEntry`. */
+const writable = { ...plainWritable, entry: v.optional(contestEntry) };
 
 /** `create` takes these three explicitly, so they are dropped from the spread. */
 const {
@@ -90,13 +88,15 @@ const {
 
 type WritablePatch = Partial<Doc<"contests">>;
 
-type WritableField = keyof typeof writable & keyof Doc<"contests">;
+type PlainField = keyof typeof plainWritable & keyof Doc<"contests">;
 
 /**
  * Every writable field as the mutations receive it: absent when it was not
  * sent, and null on the ones whose validator spells "unset" that way.
  */
-type ContestWriteArgs = { [K in WritableField]?: Doc<"contests">[K] | null };
+type ContestWriteArgs = { [K in PlainField]?: Doc<"contests">[K] | null } & {
+  readonly entry?: Doc<"contests">["entry"];
+};
 
 /**
  * `Object.keys` widens to `string[]` so that a value with extra properties
@@ -108,7 +108,7 @@ function keysOf<T extends object>(value: T): (keyof T & string)[] {
   return Object.keys(value) as (keyof T & string)[];
 }
 
-const WRITABLE_FIELDS = keysOf(writable);
+const PLAIN_FIELDS = keysOf(plainWritable);
 
 /**
  * Fields the schema requires to be present, where a null is the value itself.
@@ -119,7 +119,7 @@ const WRITABLE_FIELDS = keysOf(writable);
  */
 const NULL_IS_A_VALUE = new Set<string>(["formatConfig"]);
 
-function copyField<K extends WritableField>(patch: WritablePatch, args: ContestWriteArgs, key: K): void {
+function copyField<K extends PlainField>(patch: WritablePatch, args: ContestWriteArgs, key: K): void {
   const value = args[key];
 
   if (value === undefined) return;
@@ -131,7 +131,12 @@ function copyField<K extends WritableField>(patch: WritablePatch, args: ContestW
 function buildPatch(args: ContestWriteArgs): WritablePatch {
   const patch: WritablePatch = {};
 
-  for (const key of WRITABLE_FIELDS) copyField(patch, args, key);
+  for (const key of PLAIN_FIELDS) copyField(patch, args, key);
+
+  if (args.entry !== undefined) {
+    patch.entry = args.entry;
+    patch.isOpenEntry = args.entry.kind === "open";
+  }
 
   return patch;
 }
@@ -148,14 +153,30 @@ async function requireEditable(ctx: MutationCtx, key: string) {
   return { profile, contest, viewer };
 }
 
+function sameJson(left: MaybeJson, right: MaybeJson): boolean {
+  if (left === right) return true;
+
+  if (Array.isArray(left) && Array.isArray(right)) {
+    return left.length === right.length && left.every((item, index) => sameJson(item, right[index]));
+  }
+
+  if (isJsonObject(left) && isJsonObject(right)) {
+    const keys = Object.keys(left);
+
+    return keys.length === Object.keys(right).length && keys.every((key) => sameJson(left[key], right[key]));
+  }
+
+  return false;
+}
+
 /** Guard the fields DMOJ gates behind their own permission. */
 function checkGatedFields(
   patch: WritablePatch,
   before: Doc<"contests"> | null,
   viewer: Awaited<ReturnType<typeof toViewerRowInContest>>,
 ): void {
-  const changed = <K extends keyof Doc<"contests">>(field: K): boolean =>
-    field in patch && (!before || patch[field] !== before[field]);
+  const changed = (field: "isVisible" | "lockedAfter" | "accessCode" | "rating"): boolean =>
+    field in patch && (!before || !sameJson(patch[field] ?? null, before[field] ?? null));
 
   if (changed("isVisible") && !hasPermCode(viewer, "judge.change_contest_visibility")) {
     throw forbidden("Missing permission judge.change_contest_visibility.");
@@ -169,29 +190,25 @@ function checkGatedFields(
     throw forbidden("Missing permission judge.contest_access_code.");
   }
 
-  if (changed("performanceCeilingOverride") && !hasPermCode(viewer, "judge.override_performance_ceiling")) {
-    throw forbidden("Missing permission judge.override_performance_ceiling.");
-  }
+  const entryKind = patch.entry?.kind ?? before?.entry.kind ?? "open";
 
-  if (
-    (changed("isPrivate") || changed("isOrganizationPrivate")) &&
-    !hasPermCode(viewer, "judge.create_private_contest")
-  ) {
+  if (entryKind !== (before?.entry.kind ?? "open") && !hasPermCode(viewer, "judge.create_private_contest")) {
     throw forbidden("Missing permission judge.create_private_contest.");
   }
 
-  // The form disables all five behind this permission, but nothing stopped a
-  // caller that was not the form, so the rule only held for people using the UI.
-  const ratingFields = [
-    "isRated",
-    "rateAll",
-    "rateExcludeProfileIds",
-    "ratingFloor",
-    "ratingCeiling",
-  ] as const;
+  if (changed("rating")) {
+    if (!hasPermCode(viewer, "judge.contest_rating")) {
+      throw forbidden("Missing permission judge.contest_rating.");
+    }
 
-  if (ratingFields.some((field) => changed(field)) && !hasPermCode(viewer, "judge.contest_rating")) {
-    throw forbidden("Missing permission judge.contest_rating.");
+    const ceilingBefore = before?.rating?.performanceCeiling;
+
+    if (
+      patch.rating?.performanceCeiling !== ceilingBefore &&
+      !hasPermCode(viewer, "judge.override_performance_ceiling")
+    ) {
+      throw forbidden("Missing permission judge.override_performance_ceiling.");
+    }
   }
 }
 
@@ -203,39 +220,74 @@ function hasPermCode(viewer: Awaited<ReturnType<typeof toViewerRowInContest>>, c
   return viewer.permissions.includes(code);
 }
 
+/** The value a field will have once the patch lands: the patch's if it was sent, else the stored one. */
+function after<K extends keyof Doc<"contests">>(
+  patch: WritablePatch,
+  before: Doc<"contests"> | null,
+  field: K,
+): Doc<"contests">[K] | undefined {
+  return field in patch ? patch[field] : before?.[field];
+}
+
 function validateTiming(patch: WritablePatch, before: Doc<"contests"> | null): void {
-  const startTime = patch.startTime ?? before?.startTime;
-  const endTime = patch.endTime ?? before?.endTime;
+  const startTime = after(patch, before, "startTime");
+  const endTime = after(patch, before, "endTime");
 
   if (startTime !== undefined && endTime !== undefined && endTime <= startTime) {
     throw invalid("The contest must end after it starts.");
   }
 
-  const freezeMinutes = patch.freezeMinutes ?? before?.freezeMinutes ?? 0;
+  const schedule = after(patch, before, "schedule");
 
-  if (freezeMinutes < 0) throw invalid("The freeze cannot be negative.");
-
-  // `freezeTime` clamps a freeze this long to the contest start, so the whole
-  // contest is frozen and the scoreboard never moves at all.
-  if (startTime !== undefined && endTime !== undefined && freezeMinutes * 60_000 >= endTime - startTime) {
-    throw invalid("The freeze must be shorter than the contest.");
+  if (schedule?.kind === "window" && schedule.seconds <= 0) {
+    throw invalid("A per-participant window must be longer than zero.");
   }
 
-  // Zero is not "no limit" everywhere it is read, and a window of no length is
-  // not a thing anyone wants; clearing the field is how you say "the whole
-  // contest".
-  if (patch.timeLimit === 0) {
-    throw invalid("A per-participant window must be longer than zero; clear it for the whole contest.");
+  const freeze = after(patch, before, "freeze");
+
+  if (freeze) {
+    if (freeze.minutes <= 0) throw invalid("A freeze must be longer than zero; remove it for none.");
+
+    // `freezeTime` clamps a freeze this long to the contest start, so the whole
+    // contest is frozen and the scoreboard never moves at all.
+    if (startTime !== undefined && endTime !== undefined && freeze.minutes * 60_000 >= endTime - startTime) {
+      throw invalid("The freeze must be shorter than the contest.");
+    }
   }
 
-  const precision = patch.pointsPrecision ?? before?.pointsPrecision ?? 3;
+  const precision = after(patch, before, "pointsPrecision") ?? 3;
 
   if (precision < 0 || precision > 10) throw invalid("Points precision must be between 0 and 10.");
 }
 
+function validateAudience(patch: WritablePatch, before: Doc<"contests"> | null): void {
+  const entry = after(patch, before, "entry");
+
+  if (
+    entry?.kind === "restricted" &&
+    entry.organizationIds.length === 0 &&
+    entry.classIds.length === 0 &&
+    entry.profileIds.length === 0
+  ) {
+    throw invalid("A restricted contest must name an organisation, a class or a person.");
+  }
+
+  const joinLimit = after(patch, before, "joinLimit");
+
+  if (joinLimit && joinLimit.organizationIds.length === 0) {
+    throw invalid("A join limit must name an organisation; remove it to let anyone who can enter join.");
+  }
+
+  const rating = after(patch, before, "rating");
+
+  if (rating?.floor !== undefined && rating.ceiling !== undefined && rating.floor > rating.ceiling) {
+    throw invalid("The rating floor cannot be above the ceiling.");
+  }
+}
+
 function validateFormat(patch: WritablePatch, before: Doc<"contests"> | null): void {
-  const formatName = patch.formatName ?? before?.formatName ?? "default";
-  const formatConfig = "formatConfig" in patch ? patch.formatConfig : before?.formatConfig;
+  const formatName = after(patch, before, "formatName") ?? "default";
+  const formatConfig = after(patch, before, "formatConfig");
 
   try {
     validateContestFormatConfig(formatName, formatConfig);
@@ -256,8 +308,7 @@ export type AdminContestRow = {
   endTime: number;
   isVisible: boolean;
   isRated: boolean;
-  isPrivate: boolean;
-  isOrganizationPrivate: boolean;
+  isOpenEntry: boolean;
   userCount: number;
   formatName: string;
   problemCount: number;
@@ -303,9 +354,8 @@ export const list = query({
         startTime: contest.startTime,
         endTime: contest.endTime,
         isVisible: contest.isVisible,
-        isRated: contest.isRated,
-        isPrivate: contest.isPrivate,
-        isOrganizationPrivate: contest.isOrganizationPrivate,
+        isRated: contest.rating !== undefined,
+        isOpenEntry: contest.isOpenEntry,
         userCount: contest.userCount,
         formatName: contest.formatName,
         problemCount: problems.length,
@@ -346,31 +396,13 @@ export const get = query({
         ...row,
         code: problem?.code ?? "",
         name: problem?.name ?? "",
-        label: labelOf(contest, index),
+        label: labelForProblem(contest, index),
       });
     }
 
     return { contest, problems };
   },
 });
-
-function labelOf(contest: Doc<"contests">, index: number): string {
-  if (contest.labelScheme === "custom") return contest.customLabels[index] ?? letters(index);
-
-  return letters(index);
-}
-
-function letters(index: number): string {
-  let value = index + 1;
-  let label = "";
-
-  while (value > 0) {
-    label = String.fromCharCode(((value - 1) % 26) + 65) + label;
-    value = Math.floor((value - 1) / 26);
-  }
-
-  return label;
-}
 
 /* -------------------------------------------------------------------------- */
 /* Create and update                                                          */
@@ -404,7 +436,10 @@ export const create = mutation({
     const patch = buildPatch(args);
     checkGatedFields(patch, null, viewer);
     validateTiming({ ...patch, startTime: args.startTime, endTime: args.endTime }, null);
+    validateAudience(patch, null);
     validateFormat(patch, null);
+
+    const entry = patch.entry ?? { kind: "open" };
 
     const contestId = await ctx.db.insert("contests", {
       key,
@@ -418,31 +453,22 @@ export const create = mutation({
       description: patch.description ?? "",
       startTime: args.startTime,
       endTime: args.endTime,
-      timeLimit: patch.timeLimit,
+      schedule: patch.schedule ?? { kind: "together" },
       isVisible: patch.isVisible ?? false,
-      isRated: patch.isRated ?? false,
-      viewContestScoreboardProfileIds: patch.viewContestScoreboardProfileIds ?? [],
+      entry,
+      isOpenEntry: entry.kind === "open",
+      joinLimit: patch.joinLimit,
+      freeze: patch.freeze,
+      rating: patch.rating,
+      labels: patch.labels ?? { kind: "letters" },
+      alwaysAdmitProfileIds: patch.alwaysAdmitProfileIds ?? [],
       viewContestSubmissionsProfileIds: patch.viewContestSubmissionsProfileIds ?? [],
       scoreboardVisibility: patch.scoreboardVisibility ?? "V",
       useClarifications: patch.useClarifications ?? true,
-      ratingFloor: patch.ratingFloor,
-      ratingCeiling: patch.ratingCeiling,
-      performanceCeilingOverride: patch.performanceCeilingOverride,
-      rateAll: patch.rateAll ?? false,
-      rateExcludeProfileIds: patch.rateExcludeProfileIds ?? [],
-      isPrivate: patch.isPrivate ?? false,
-      privateContestantProfileIds: patch.privateContestantProfileIds ?? [],
       hideProblemTags: patch.hideProblemTags ?? false,
       hideProblemAuthors: patch.hideProblemAuthors ?? false,
+      disableLockdown: patch.disableLockdown ?? false,
       runPretestsOnly: patch.runPretestsOnly ?? false,
-      showShortDisplay: patch.showShortDisplay ?? false,
-      isOrganizationPrivate: patch.isOrganizationPrivate ?? false,
-      organizationIds: patch.organizationIds ?? [],
-      limitJoinOrganizations: patch.limitJoinOrganizations ?? false,
-      joinOrganizationIds: patch.joinOrganizationIds ?? [],
-      classIds: patch.classIds ?? [],
-      ogImage: patch.ogImage,
-      logoOverrideImage: patch.logoOverrideImage,
       tagIds: patch.tagIds ?? [],
       userCount: 0,
       summary: patch.summary,
@@ -450,15 +476,8 @@ export const create = mutation({
       bannedProfileIds: patch.bannedProfileIds ?? [],
       formatName: patch.formatName ?? "default",
       formatConfig: "formatConfig" in patch ? patch.formatConfig : null,
-      labelScheme: patch.labelScheme ?? "letters",
-      customLabels: patch.customLabels ?? [],
       lockedAfter: patch.lockedAfter,
       pointsPrecision: patch.pointsPrecision ?? 3,
-      freezeMinutes: patch.freezeMinutes ?? 0,
-      blindDuringFreeze: patch.blindDuringFreeze ?? false,
-      // Both are in `writable` and reach the patch, so a create that set either
-      // used to have it accepted and then dropped on the floor here.
-      disableLockdown: patch.disableLockdown ?? false,
       proctorRequired: patch.proctorRequired ?? false,
     });
 
@@ -485,6 +504,7 @@ export const update = mutation({
 
     checkGatedFields(patch, contest, viewer);
     validateTiming(patch, contest);
+    validateAudience(patch, contest);
     validateFormat(patch, contest);
 
     await ctx.db.patch(contest._id, patch);
@@ -569,25 +589,37 @@ async function snapshotContest(ctx: MutationCtx, contestId: Id<"contests">) {
     summary: contest.summary ?? null,
     startTime: contest.startTime,
     endTime: contest.endTime,
-    timeLimit: contest.timeLimit ?? null,
+    schedule: contest.schedule,
     lockedAfter: contest.lockedAfter ?? null,
     isVisible: contest.isVisible,
-    isPrivate: contest.isPrivate,
-    isOrganizationPrivate: contest.isOrganizationPrivate,
+    entry:
+      contest.entry.kind === "open"
+        ? { kind: "open" }
+        : {
+            kind: "restricted",
+            match: contest.entry.match,
+            organizations: await namesOf(contest.entry.organizationIds, (row) => row.slug),
+            classes: await namesOf(contest.entry.classIds, (row) => row.name),
+            people: await usernames(contest.entry.profileIds),
+          },
     accessCode: contest.accessCode ?? null,
-    limitJoinOrganizations: contest.limitJoinOrganizations,
-    isRated: contest.isRated,
-    rateAll: contest.rateAll,
-    ratingFloor: contest.ratingFloor ?? null,
-    ratingCeiling: contest.ratingCeiling ?? null,
-    performanceCeilingOverride: contest.performanceCeilingOverride ?? null,
+    joinLimit: contest.joinLimit
+      ? { organizations: await namesOf(contest.joinLimit.organizationIds, (row) => row.slug) }
+      : null,
+    rating: contest.rating
+      ? {
+          everyone: contest.rating.everyone,
+          excluded: await usernames(contest.rating.excludeProfileIds),
+          floor: contest.rating.floor ?? null,
+          ceiling: contest.rating.ceiling ?? null,
+          performanceCeiling: contest.rating.performanceCeiling ?? null,
+        }
+      : null,
     scoreboardVisibility: contest.scoreboardVisibility,
-    freezeMinutes: contest.freezeMinutes,
-    blindDuringFreeze: contest.blindDuringFreeze,
+    freeze: contest.freeze ?? null,
     formatName: contest.formatName,
     formatConfig: contest.formatConfig ?? null,
-    labelScheme: contest.labelScheme,
-    customLabels: contest.customLabels,
+    labels: contest.labels,
     pointsPrecision: contest.pointsPrecision,
     runPretestsOnly: contest.runPretestsOnly,
     useClarifications: contest.useClarifications,
@@ -595,21 +627,15 @@ async function snapshotContest(ctx: MutationCtx, contestId: Id<"contests">) {
     hideProblemAuthors: contest.hideProblemAuthors,
     disableLockdown: contest.disableLockdown ?? false,
     proctorRequired: contest.proctorRequired ?? false,
-    showShortDisplay: contest.showShortDisplay,
     testerSeeScoreboard: contest.testerSeeScoreboard,
     testerSeeSubmissions: contest.testerSeeSubmissions,
     authors: await usernames(contest.authorProfileIds),
     curators: await usernames(contest.curatorProfileIds),
     testers: await usernames(contest.testerProfileIds),
     spectators: await usernames(contest.spectatorProfileIds),
-    privateContestants: await usernames(contest.privateContestantProfileIds),
-    rateExclude: await usernames(contest.rateExcludeProfileIds),
     bannedUsers: await usernames(contest.bannedProfileIds),
-    viewContestScoreboard: await usernames(contest.viewContestScoreboardProfileIds),
+    alwaysAdmit: await usernames(contest.alwaysAdmitProfileIds),
     viewContestSubmissions: await usernames(contest.viewContestSubmissionsProfileIds),
-    organizations: await namesOf(contest.organizationIds, (row) => row.slug),
-    joinOrganizations: await namesOf(contest.joinOrganizationIds, (row) => row.slug),
-    classes: await namesOf(contest.classIds, (row) => row.name),
     tags: await namesOf(contest.tagIds, (row) => row.name),
     problems,
   };

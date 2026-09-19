@@ -52,10 +52,8 @@ export const clone = mutation({
       userCount: 0,
       lockedAfter: undefined,
       authorProfileIds: [profile._id],
-      revealState: undefined,
-      freezeRevealed: undefined,
-      revealedUntilRank: undefined,
-      isUnfrozen: undefined,
+      // The freeze comes along; the reveal ceremony does not.
+      reveal: undefined,
     });
 
     for (const contestProblem of await loadContestProblems(ctx, contest._id)) {

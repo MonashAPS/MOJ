@@ -224,7 +224,7 @@ export const sitemap = query({
       .collect();
 
     for (const contest of contestRows) {
-      if (contest.isPrivate || contest.isOrganizationPrivate) continue;
+      if (!contest.isOpenEntry) continue;
       out.push({
         location: `/contest/${contest.key}`,
         changefreq: "hourly",
@@ -278,7 +278,7 @@ export const contests = query({
       .collect();
 
     return rows
-      .filter((row) => !row.isPrivate && !row.isOrganizationPrivate)
+      .filter((row) => row.isOpenEntry)
       .sort((a, b) => a.startTime - b.startTime)
       .map((row) => ({
         _id: row._id,

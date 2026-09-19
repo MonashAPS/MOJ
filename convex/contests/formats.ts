@@ -41,40 +41,28 @@ export function toContestRow(contest: Doc<"contests">): ContestRow {
     name: contest.name,
     startTime: contest.startTime,
     endTime: contest.endTime,
-    timeLimit: contest.timeLimit ?? null,
+    schedule: contest.schedule,
     isVisible: contest.isVisible,
-    isPrivate: contest.isPrivate,
-    isOrganizationPrivate: contest.isOrganizationPrivate,
+    entry: contest.entry,
+    joinLimit: contest.joinLimit,
+    freeze: contest.freeze,
+    rating: contest.rating,
+    labels: contest.labels,
     authorProfileIds: contest.authorProfileIds,
     curatorProfileIds: contest.curatorProfileIds,
     testerProfileIds: contest.testerProfileIds,
     spectatorProfileIds: contest.spectatorProfileIds,
     testerSeeScoreboard: contest.testerSeeScoreboard,
     testerSeeSubmissions: contest.testerSeeSubmissions,
-    viewContestScoreboardProfileIds: contest.viewContestScoreboardProfileIds,
+    alwaysAdmitProfileIds: contest.alwaysAdmitProfileIds,
     viewContestSubmissionsProfileIds: contest.viewContestSubmissionsProfileIds,
-    privateContestantProfileIds: contest.privateContestantProfileIds,
-    organizationIds: contest.organizationIds,
-    classIds: contest.classIds,
-    limitJoinOrganizations: contest.limitJoinOrganizations,
-    joinOrganizationIds: contest.joinOrganizationIds,
     bannedProfileIds: contest.bannedProfileIds,
     accessCode: contest.accessCode ?? null,
     scoreboardVisibility: contest.scoreboardVisibility,
     formatName: contest.formatName,
     formatConfig: contest.formatConfig,
-    labelScheme: contest.labelScheme,
-    customLabels: contest.customLabels,
     pointsPrecision: contest.pointsPrecision,
     runPretestsOnly: contest.runPretestsOnly,
-    isRated: contest.isRated,
-    rateAll: contest.rateAll,
-    ratingFloor: contest.ratingFloor ?? null,
-    ratingCeiling: contest.ratingCeiling ?? null,
-    performanceCeilingOverride: contest.performanceCeilingOverride ?? null,
-    rateExcludeProfileIds: contest.rateExcludeProfileIds,
-    freezeMinutes: contest.freezeMinutes,
-    blindDuringFreeze: contest.blindDuringFreeze,
     lockedAfter: contest.lockedAfter ?? null,
   };
 }
@@ -302,7 +290,6 @@ export type FormatChoice = {
   name: string;
   displayName: string;
   configDefaults: ContestFormat["configDefaults"];
-  defaultLabelScheme: string;
 };
 
 /** The choices the contest editor offers, with their defaults. */
@@ -316,7 +303,6 @@ export const list = query({
         name,
         displayName,
         configDefaults: { ...format.configDefaults },
-        defaultLabelScheme: format.defaultLabelScheme,
       };
     });
   },

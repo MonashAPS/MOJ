@@ -160,6 +160,14 @@ async function apiViewer(ctx: QueryCtx): Promise<{ profile: Doc<"profiles"> | nu
 /* Contests                                                                   */
 /* -------------------------------------------------------------------------- */
 
+function gateOrganizationIds(contest: Doc<"contests">): Id<"organizations">[] {
+  return contest.entry.kind === "restricted" ? contest.entry.organizationIds : [];
+}
+
+function gateClassCount(contest: Doc<"contests">): number {
+  return contest.entry.kind === "restricted" ? contest.entry.classIds.length : 0;
+}
+
 async function contestTagNames(ctx: QueryCtx, contest: Doc<"contests">): Promise<string[]> {
   const names: string[] = [];
 
@@ -196,11 +204,11 @@ export const contests = query({
     for (const contest of rows) {
       if (!contestIsVisibleTo(toContestRow(contest), viewer)) continue;
 
-      if (args.is_rated !== undefined && contest.isRated !== args.is_rated) continue;
+      if (args.is_rated !== undefined && (contest.rating !== undefined) !== args.is_rated) continue;
 
       if (args.key && !args.key.includes(contest.key)) continue;
 
-      if (wantedOrganizations && !contest.organizationIds.some((id) => wantedOrganizations.has(id))) {
+      if (wantedOrganizations && !gateOrganizationIds(contest).some((id) => wantedOrganizations.has(id))) {
         continue;
       }
 
@@ -213,9 +221,9 @@ export const contests = query({
         name: contest.name,
         start_time: iso(contest.startTime),
         end_time: iso(contest.endTime),
-        time_limit: contest.timeLimit ?? null,
-        is_rated: contest.isRated,
-        rate_all: contest.isRated && contest.rateAll,
+        time_limit: contest.schedule.kind === "window" ? contest.schedule.seconds : null,
+        is_rated: contest.rating !== undefined,
+        rate_all: contest.rating?.everyone ?? false,
         tags,
       });
     }
@@ -391,21 +399,20 @@ export const contest = query({
       name: contestDoc.name,
       start_time: iso(contestDoc.startTime),
       end_time: iso(contestDoc.endTime),
-      time_limit: contestDoc.timeLimit ?? null,
-      is_rated: contestDoc.isRated,
-      rate_all: contestDoc.isRated && contestDoc.rateAll,
+      time_limit: contestDoc.schedule.kind === "window" ? contestDoc.schedule.seconds : null,
+      is_rated: contestDoc.rating !== undefined,
+      rate_all: contestDoc.rating?.everyone ?? false,
       tags: await contestTagNames(ctx, contestDoc),
       has_rating: hasRating,
-      rating_floor: contestDoc.ratingFloor ?? null,
-      rating_ceiling: contestDoc.ratingCeiling ?? null,
-      performance_ceiling: contestDoc.performanceCeilingOverride ?? null,
+      rating_floor: contestDoc.rating?.floor ?? null,
+      rating_ceiling: contestDoc.rating?.ceiling ?? null,
+      performance_ceiling: contestDoc.rating?.performanceCeiling ?? null,
       hidden_scoreboard: ["C", "P", "H"].includes(contestDoc.scoreboardVisibility),
       scoreboard_visibility: contestDoc.scoreboardVisibility,
-      is_organization_private: contestDoc.isOrganizationPrivate,
-      organizations: contestDoc.isOrganizationPrivate
-        ? await organizationApiIds(ctx, contestDoc.organizationIds)
-        : [],
-      is_private: contestDoc.isPrivate,
+      // DMOJ's two flags: gated on organisations, and gated on named people.
+      is_organization_private: gateOrganizationIds(contestDoc).length > 0 || gateClassCount(contestDoc) > 0,
+      organizations: await organizationApiIds(ctx, gateOrganizationIds(contestDoc)),
+      is_private: contestDoc.entry.kind === "restricted" && contestDoc.entry.profileIds.length > 0,
       format: { name: contestDoc.formatName, config: contestDoc.formatConfig },
       problems,
       rankings,
@@ -470,7 +477,7 @@ export const participations = query({
               contestDoc.curatorProfileIds.includes(profile._id);
           }
 
-          allowed = allowed || contestDoc.viewContestScoreboardProfileIds.includes(profile._id);
+          allowed = allowed || contestDoc.alwaysAdmitProfileIds.includes(profile._id);
         }
 
         if (!allowed) continue;

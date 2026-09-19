@@ -103,13 +103,7 @@ export async function rateOne(ctx: MutationCtx, contest: Doc<"contests">): Promi
   }
 
   const output = computeRatings(rows, {
-    contest: {
-      rateAll: contest.rateAll,
-      ratingFloor: contest.ratingFloor ?? null,
-      ratingCeiling: contest.ratingCeiling ?? null,
-      performanceCeilingOverride: contest.performanceCeilingOverride ?? null,
-      rateExcludeProfileIds: contest.rateExcludeProfileIds,
-    },
+    rating: contest.rating,
     priorHistory,
     now: Date.now(),
   });
@@ -176,7 +170,7 @@ export const rateContestInternal = internalMutation({
     let contests = 0;
 
     for (const row of later.sort((a, b) => a.endTime - b.endTime)) {
-      if (!row.isRated) continue;
+      if (!row.rating) continue;
       rated += await rateOne(ctx, row);
       contests += 1;
     }
@@ -199,7 +193,7 @@ export const rateContest = mutation({
 
     if (!contest) throw notFound(`Contest "${key}"`);
 
-    if (!contest.isRated) {
+    if (!contest.rating) {
       return { contests: 0, rated: 0 };
     }
 

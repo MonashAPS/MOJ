@@ -13,11 +13,11 @@ import { makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation, type QueryCtx, query } from "../_generated/server";
+import { labelForProblem } from "../contests/formats";
 import type { JobArgs } from "../jobs";
 import { writeRevision } from "../lib/community";
 import { forbidden, invalid, notFound } from "../lib/errors";
 import {
-  labelFor,
   loadViewerContext,
   PROBLEM_CODE_PATTERN,
   problemByCode,
@@ -1097,7 +1097,7 @@ export const contestUsage = query({
       out.push({
         contestKey: contest.key,
         contestName: contest.name,
-        label: labelFor(contest, index < 0 ? link.order : index),
+        label: labelForProblem(contest, index < 0 ? link.order : index),
         points: link.points,
         startTime: contest.startTime,
       });

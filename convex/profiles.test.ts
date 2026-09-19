@@ -387,7 +387,7 @@ function ratedContest(key: string, endTime: number) {
     name: key,
     startTime: endTime - HOUR,
     endTime,
-    isRated: true,
+    rating: { everyone: false, excludeProfileIds: [] },
     useClarifications: false,
     formatConfig: {},
   };

@@ -51,7 +51,7 @@ async function divisionFeed(
   eventFreezeMinutes: number,
   limit: number,
 ): Promise<FeedItem[]> {
-  const freezeMinutes = contest.freezeRevealed ? 0 : eventFreezeMinutes;
+  const freezeMinutes = contest.reveal?.lifted ? 0 : eventFreezeMinutes;
   const freezeOffset = freezeOffsetFor(contest, freezeMinutes);
 
   const contestProblems = await loadContestProblems(ctx, contest._id);

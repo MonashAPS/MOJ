@@ -1,4 +1,3 @@
-import { getFormatOrDefault } from "@moj/core";
 import type { GenericDatabaseWriter, GenericDataModel } from "convex/server";
 import type { Value } from "convex/values";
 import { v } from "convex/values";
@@ -319,54 +318,6 @@ export const backfillFormatDataKeys = internalMutation({
       scanned: page.page.length,
       rewritten,
       droppedKeys,
-      continueCursor: page.isDone ? null : page.continueCursor,
-      isDone: page.isDone,
-    };
-  },
-});
-
-/**
- * Repairs an import made before the contest label fix.
- *
- * DMOJ has no label column: with no `problem_label_script` the format class
- * decides, and only `icpc` letters its problems while every other format
- * inherits `DefaultContestFormat.get_label_for_problem`, which is
- * `str(index + 1)`. An early import wrote `letters` for every contest. Rewrites
- * only that exact mistake: a contest still on `letters`, with no custom labels,
- * whose format would have numbered its problems.
- */
-export const backfillLabelScheme = internalMutation({
-  args: {
-    cursor: v.union(v.string(), v.null()),
-    numItems: v.optional(v.number()),
-  },
-  returns: v.object({
-    scanned: v.number(),
-    rewritten: v.number(),
-    continueCursor: v.union(v.string(), v.null()),
-    isDone: v.boolean(),
-  }),
-  handler: async (ctx, args) => {
-    const page = await ctx.db
-      .query("contests")
-      .paginate({ cursor: args.cursor, numItems: args.numItems ?? 200 });
-
-    let rewritten = 0;
-
-    for (const contest of page.page) {
-      if (contest.labelScheme !== "letters") continue;
-
-      if (contest.customLabels.length > 0) continue;
-      const scheme = getFormatOrDefault(contest.formatName).defaultLabelScheme;
-
-      if (scheme === "letters") continue;
-      await ctx.db.patch(contest._id, { labelScheme: scheme });
-      rewritten++;
-    }
-
-    return {
-      scanned: page.page.length,
-      rewritten,
       continueCursor: page.isDone ? null : page.continueCursor,
       isDone: page.isDone,
     };
