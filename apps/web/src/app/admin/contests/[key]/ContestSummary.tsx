@@ -24,6 +24,11 @@ const SEVERITY_ICON = {
   caution: Info,
 } as const;
 
+/** The values a line is about, so a sentence reads as a fact rather than prose. */
+function bold(chunks: ReactNode) {
+  return <strong className="font-medium text-foreground">{chunks}</strong>;
+}
+
 const SEVERITY_CLASS = {
   blocked: "text-(--v-bad)",
   danger: "text-(--v-warn)",
@@ -67,8 +72,8 @@ export function ContestSummary({
               {t(`group.${group}`)}
             </h3>
             {inGroup.map((line) => (
-              <p key={`${group}.${line.key}`} className="text-sm text-foreground">
-                {t(`${group}.${line.key}`, line.values)}
+              <p key={`${group}.${line.key}`} className="text-sm text-muted-foreground">
+                {t.rich(`${group}.${line.key}`, { ...line.values, b: bold })}
               </p>
             ))}
           </section>
