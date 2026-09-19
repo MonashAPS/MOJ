@@ -1,7 +1,6 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
 import { Field, Input, MultiSelect, Panel, Select, Textarea, toast } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { useTranslations } from "next-intl";
@@ -15,18 +14,19 @@ import {
   AdminWideField,
   DateTimeField,
   UserPicker,
+  useResolvedRefs,
 } from "@/components/admin";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import { chosenValue } from "@/lib/choices";
+import {
+  argsFromFields,
+  type ContestGeneralFields,
+  changedArgs,
+  type FormatConfig,
+  fieldsFromContest,
+  toJson,
+} from "./generalFields";
 import type { ContestEdit, ContestOptions } from "./types";
-
-/** A format's config is whatever the format decided to store, so the editor
- *  shows it as the JSON it is. */
-function toJson(value: ContestEdit["formatConfig"]): string {
-  if (value === null || value === undefined) return "";
-
-  return JSON.stringify(value, null, 2);
-}
 
 const SCOREBOARD_OPTIONS = [
   { value: "V", labelKey: "scoreboardEveryone" },
@@ -84,61 +84,70 @@ export function ContestGeneralTab({
     performanceCeiling: useId(),
   };
 
-  const [name, setName] = useState(contest.name);
-  const [description, setDescription] = useState(contest.description);
-  const [summary, setSummary] = useState(contest.summary);
-  const [startTime, setStartTime] = useState<number | null>(contest.startTime);
-  const [endTime, setEndTime] = useState<number | null>(contest.endTime);
+  // One projection of the stored contest, which the controls are seeded from and
+  // the save diffs against. Both sides of the comparison therefore read the row
+  // the same way, so a field the form cannot represent exactly never looks
+  // changed and never lands in the patch.
+  const initial = useMemo(() => fieldsFromContest(contest), [contest]);
 
-  const [timeLimit, setTimeLimit] = useState(
-    contest.timeLimit === null ? "" : String(Math.round(contest.timeLimit / 60)),
-  );
-
-  const [isVisible, setIsVisible] = useState(contest.isVisible);
-  const [isRated, setIsRated] = useState(contest.isRated);
-  const [ratingFloor, setRatingFloor] = useState(contest.ratingFloor?.toString() ?? "");
-  const [ratingCeiling, setRatingCeiling] = useState(contest.ratingCeiling?.toString() ?? "");
-
-  const [performanceCeiling, setPerformanceCeiling] = useState(
-    contest.performanceCeilingOverride?.toString() ?? "",
-  );
-
-  const [rateAll, setRateAll] = useState(contest.rateAll);
-  const [rateExclude, setRateExclude] = useState<string[]>(contest.rateExclude);
-  const [formatName, setFormatName] = useState(contest.formatName);
-  const [formatConfig, setFormatConfig] = useState(toJson(contest.formatConfig));
-
-  const [labelScheme, setLabelScheme] = useState(
-    contest.labelScheme === "numbers" ? "letters" : contest.labelScheme,
-  );
-
-  const [customLabels, setCustomLabels] = useState(contest.customLabels.join(", "));
-  const [scoreboardVisibility, setScoreboardVisibility] = useState(contest.scoreboardVisibility);
-  const [freezeMinutes, setFreezeMinutes] = useState(String(contest.freezeMinutes));
-  const [blindDuringFreeze, setBlindDuringFreeze] = useState(contest.blindDuringFreeze);
-  const [accessCode, setAccessCode] = useState(contest.accessCode);
-  const [isPrivate, setIsPrivate] = useState(contest.isPrivate);
-  const [privateContestants, setPrivateContestants] = useState<string[]>(contest.privateContestants);
-  const [organizationSlugs, setOrganizationSlugs] = useState<string[]>(contest.organizationSlugs);
-  const [classNames, setClassNames] = useState<string[]>(contest.classNames);
-  const [limitJoinOrganizations, setLimitJoinOrganizations] = useState(contest.limitJoinOrganizations);
-  const [joinOrganizationSlugs, setJoinOrganizationSlugs] = useState<string[]>(contest.joinOrganizationSlugs);
-  const [tagNames, setTagNames] = useState<string[]>(contest.tagNames);
-  const [lockedAfter, setLockedAfter] = useState<number | null>(contest.lockedAfter);
-  const [pointsPrecision, setPointsPrecision] = useState(String(contest.pointsPrecision));
-  const [hideProblemTags, setHideProblemTags] = useState(contest.hideProblemTags);
-  const [disableLockdown, setHideNonContestProblems] = useState(contest.disableLockdown);
-  const [hideProblemAuthors, setHideProblemAuthors] = useState(contest.hideProblemAuthors);
-  const [runPretestsOnly, setRunPretestsOnly] = useState(contest.runPretestsOnly);
-  const [showShortDisplay, setShowShortDisplay] = useState(contest.showShortDisplay);
-  const [useClarifications, setUseClarifications] = useState(contest.useClarifications);
-  const [ogImage, setOgImage] = useState(contest.ogImage);
-  const [logoOverrideImage, setLogoOverrideImage] = useState(contest.logoOverrideImage);
-  const [bannedUsers, setBannedUsers] = useState<string[]>(contest.bannedUsers);
+  const [name, setName] = useState(initial.name);
+  const [description, setDescription] = useState(initial.description);
+  const [summary, setSummary] = useState(initial.summary);
+  const [startTime, setStartTime] = useState<number | null>(initial.startTime);
+  const [endTime, setEndTime] = useState<number | null>(initial.endTime);
+  const [timeLimit, setTimeLimit] = useState(initial.timeLimit);
+  const [isVisible, setIsVisible] = useState(initial.isVisible);
+  const [isRated, setIsRated] = useState(initial.isRated);
+  const [ratingFloor, setRatingFloor] = useState(initial.ratingFloor);
+  const [ratingCeiling, setRatingCeiling] = useState(initial.ratingCeiling);
+  const [performanceCeiling, setPerformanceCeiling] = useState(initial.performanceCeiling);
+  const [rateAll, setRateAll] = useState(initial.rateAll);
+  const [rateExclude, setRateExclude] = useState<string[]>(initial.rateExclude);
+  const [formatName, setFormatName] = useState(initial.formatName);
+  const [formatConfig, setFormatConfig] = useState(initial.formatConfig);
+  const [labelScheme, setLabelScheme] = useState(initial.labelScheme);
+  const [customLabels, setCustomLabels] = useState(initial.customLabels);
+  const [scoreboardVisibility, setScoreboardVisibility] = useState(initial.scoreboardVisibility);
+  const [freezeMinutes, setFreezeMinutes] = useState(initial.freezeMinutes);
+  const [blindDuringFreeze, setBlindDuringFreeze] = useState(initial.blindDuringFreeze);
+  const [accessCode, setAccessCode] = useState(initial.accessCode);
+  const [isPrivate, setIsPrivate] = useState(initial.isPrivate);
+  const [privateContestants, setPrivateContestants] = useState<string[]>(initial.privateContestants);
+  const [organizationSlugs, setOrganizationSlugs] = useState<string[]>(initial.organizationSlugs);
+  const [classNames, setClassNames] = useState<string[]>(initial.classNames);
+  const [limitJoinOrganizations, setLimitJoinOrganizations] = useState(initial.limitJoinOrganizations);
+  const [joinOrganizationSlugs, setJoinOrganizationSlugs] = useState<string[]>(initial.joinOrganizationSlugs);
+  const [tagNames, setTagNames] = useState<string[]>(initial.tagNames);
+  const [lockedAfter, setLockedAfter] = useState<number | null>(initial.lockedAfter);
+  const [pointsPrecision, setPointsPrecision] = useState(initial.pointsPrecision);
+  const [hideProblemTags, setHideProblemTags] = useState(initial.hideProblemTags);
+  const [disableLockdown, setHideNonContestProblems] = useState(initial.disableLockdown);
+  const [hideProblemAuthors, setHideProblemAuthors] = useState(initial.hideProblemAuthors);
+  const [runPretestsOnly, setRunPretestsOnly] = useState(initial.runPretestsOnly);
+  const [showShortDisplay, setShowShortDisplay] = useState(initial.showShortDisplay);
+  const [useClarifications, setUseClarifications] = useState(initial.useClarifications);
+  const [ogImage, setOgImage] = useState(initial.ogImage);
+  const [logoOverrideImage, setLogoOverrideImage] = useState(initial.logoOverrideImage);
+  const [bannedUsers, setBannedUsers] = useState<string[]>(initial.bannedUsers);
 
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const initialConfig = useMemo(() => {
+    const text = initial.formatConfig.trim();
+
+    if (!text) return null;
+
+    try {
+      // SAFETY: a format's config is `v.any()` and each format validates its own
+      // shape, so `FormatConfig` is as narrow as this gets; the parse is only
+      // here so the save compares configs by value rather than by whitespace.
+      return JSON.parse(text) as FormatConfig;
+    } catch {
+      return null;
+    }
+  }, [initial.formatConfig]);
 
   const parsedConfig = useMemo(() => {
     const text = formatConfig.trim();
@@ -164,10 +173,8 @@ export function ContestGeneralTab({
     parsedConfig.ok ? { name: formatName, config: parsedConfig.value } : "skip",
   );
 
-  const usernames = [...privateContestants, ...rateExclude, ...bannedUsers];
-  const profiles = useQuery(api.pages.admin.console.resolveProfiles, { usernames });
-
-  const refs = useQuery(api.pages.admin.console.resolveContestRefs, {
+  const refs = useResolvedRefs({
+    usernames: [...privateContestants, ...rateExclude, ...bannedUsers],
     organizationSlugs,
     joinOrganizationSlugs,
     classNames,
@@ -177,15 +184,50 @@ export function ContestGeneralTab({
   const permissions = contest.permissions;
   const configError = !parsedConfig.ok ? t("formatConfigInvalid") : (validation?.error ?? null);
 
-  function idsFor(list: string[]): Id<"profiles">[] {
-    const map = profiles?.ids ?? {};
+  /** What the controls hold right now, in the same shape `initial` is in. */
+  const current: ContestGeneralFields = {
+    name,
+    description,
+    summary,
+    startTime,
+    endTime,
+    timeLimit,
+    isVisible,
+    isRated,
+    ratingFloor,
+    ratingCeiling,
+    performanceCeiling,
+    rateAll,
+    rateExclude,
+    formatName,
+    formatConfig,
+    labelScheme,
+    customLabels,
+    scoreboardVisibility,
+    freezeMinutes,
+    blindDuringFreeze,
+    accessCode,
+    isPrivate,
+    privateContestants,
+    organizationSlugs,
+    classNames,
+    limitJoinOrganizations,
+    joinOrganizationSlugs,
+    tagNames,
+    lockedAfter,
+    pointsPrecision,
+    hideProblemTags,
+    disableLockdown,
+    hideProblemAuthors,
+    runPretestsOnly,
+    showShortDisplay,
+    useClarifications,
+    ogImage,
+    logoOverrideImage,
+    bannedUsers,
+  };
 
-    return list.flatMap((username) => {
-      const id = map[username];
-
-      return id ? [id] : [];
-    });
-  }
+  const dirty = JSON.stringify(current) !== JSON.stringify(initial);
 
   async function save() {
     setError(null);
@@ -196,54 +238,33 @@ export function ContestGeneralTab({
       return;
     }
 
+    // Every name has to have resolved. Saving through the window where they
+    // have not wrote empty lists over populated ones.
+    if (refs.blockedMessage) {
+      setError(refs.blockedMessage);
+
+      return;
+    }
+
+    // The same refs on both sides, so a list that only changed because the
+    // resolver answered does not read as an edit.
+    const changed = changedArgs(
+      argsFromFields(initial, refs, initialConfig),
+      argsFromFields(current, refs, parsedConfig.value),
+    );
+
+    if (Object.keys(changed).length === 0) {
+      toast.success(t("saved"));
+
+      return;
+    }
+
     setBusy(true);
 
     try {
       await update({
         key: contest.key,
-        name,
-        description,
-        summary: summary.trim() || null,
-        startTime: startTime ?? contest.startTime,
-        endTime: endTime ?? contest.endTime,
-        timeLimit: timeLimit.trim() ? Number(timeLimit) * 60 : null,
-        isVisible,
-        isRated,
-        ratingFloor: ratingFloor.trim() ? Number(ratingFloor) : null,
-        ratingCeiling: ratingCeiling.trim() ? Number(ratingCeiling) : null,
-        performanceCeilingOverride: performanceCeiling.trim() ? Number(performanceCeiling) : null,
-        rateAll,
-        rateExcludeProfileIds: idsFor(rateExclude),
-        formatName,
-        formatConfig: parsedConfig.value,
-        labelScheme,
-        customLabels: customLabels
-          .split(",")
-          .map((label) => label.trim())
-          .filter(Boolean),
-        scoreboardVisibility,
-        freezeMinutes: Number(freezeMinutes) || 0,
-        blindDuringFreeze,
-        accessCode: accessCode.trim() || null,
-        isPrivate,
-        privateContestantProfileIds: idsFor(privateContestants),
-        isOrganizationPrivate: organizationSlugs.length > 0 || classNames.length > 0,
-        organizationIds: refs?.organizationIds ?? [],
-        classIds: refs?.classIds ?? [],
-        limitJoinOrganizations,
-        joinOrganizationIds: refs?.joinOrganizationIds ?? [],
-        tagIds: refs?.tagIds ?? [],
-        lockedAfter,
-        pointsPrecision: Number(pointsPrecision) || 0,
-        hideProblemTags,
-        disableLockdown,
-        hideProblemAuthors,
-        runPretestsOnly,
-        showShortDisplay,
-        useClarifications,
-        ogImage: ogImage.trim() || null,
-        logoOverrideImage: logoOverrideImage.trim() || null,
-        bannedProfileIds: idsFor(bannedUsers),
+        ...changed,
         reason: reason.trim(),
       });
       setReason("");
@@ -256,7 +277,7 @@ export function ContestGeneralTab({
   }
 
   return (
-    <AdminForm onSubmit={save}>
+    <AdminForm onSubmit={save} dirty={dirty}>
       <AdminFormError message={error} />
 
       <AdminSection title={t("sectionGeneral")}>

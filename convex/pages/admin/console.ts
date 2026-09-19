@@ -114,7 +114,15 @@ export const resolveProfiles = query({
   },
 });
 
-/** The same for organisations, classes and tags, which the form also names. */
+/**
+ * The same for organisations, classes and tags, which the form also names.
+ *
+ * `missing` is the half that matters. A name this could not resolve used to be
+ * dropped on the floor and the form sent the shortened list as though that were
+ * what the operator asked for, so a save that raced the reference tables wrote
+ * an empty organisation list over a populated one. Callers refuse to save while
+ * anything is missing; `resolveProfiles` above reports it the same way.
+ */
 export const resolveContestRefs = query({
   args: {
     organizationSlugs: v.optional(v.array(v.string())),
@@ -125,7 +133,24 @@ export const resolveContestRefs = query({
   handler: async (ctx, args) => {
     const viewer = await staffViewer(ctx);
 
-    if (!viewer) return { organizationIds: [], joinOrganizationIds: [], classIds: [], tagIds: [] };
+    const everyName = [
+      ...(args.organizationSlugs ?? []),
+      ...(args.joinOrganizationSlugs ?? []),
+      ...(args.classNames ?? []),
+      ...(args.tagNames ?? []),
+    ];
+
+    // A viewer who may not read the reference tables resolves nothing, so every
+    // name is missing rather than every list being quietly empty.
+    if (!viewer) {
+      return {
+        organizationIds: [],
+        joinOrganizationIds: [],
+        classIds: [],
+        tagIds: [],
+        missing: [...new Set(everyName)],
+      };
+    }
 
     const organizationIdBySlug = new Map<string, Id<"organizations">>();
 
@@ -140,14 +165,27 @@ export const resolveContestRefs = query({
 
     for (const row of await ctx.db.query("contestTags").collect()) tagIdByName.set(row.name, row._id);
 
-    const pick = <T>(names: string[] | undefined, from: Map<string, T>): T[] =>
-      (names ?? []).map((name) => from.get(name)).filter((id): id is T => id !== undefined);
+    const missing = new Set<string>();
+
+    const pick = <T>(names: string[] | undefined, from: Map<string, T>): T[] => {
+      const ids: T[] = [];
+
+      for (const name of names ?? []) {
+        const id = from.get(name);
+
+        if (id === undefined) missing.add(name);
+        else ids.push(id);
+      }
+
+      return ids;
+    };
 
     return {
       organizationIds: pick(args.organizationSlugs, organizationIdBySlug),
       joinOrganizationIds: pick(args.joinOrganizationSlugs, organizationIdBySlug),
       classIds: pick(args.classNames, classIdByName),
       tagIds: pick(args.tagNames, tagIdByName),
+      missing: [...missing],
     };
   },
 });

@@ -1,9 +1,8 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
 import { Field, toast } from "@moj/ui";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import {
@@ -13,6 +12,7 @@ import {
   AdminFormFooter,
   AdminSection,
   UserPicker,
+  useResolvedRefs,
 } from "@/components/admin";
 import type { ContestEdit } from "./types";
 
@@ -42,32 +42,25 @@ export function ContestPeopleTab({ contest }: { contest: ContestEdit }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const usernames = [
-    ...authors,
-    ...curators,
-    ...testers,
-    ...spectators,
-    ...viewScoreboard,
-    ...viewSubmissions,
-  ];
+  const refs = useResolvedRefs({
+    usernames: [...authors, ...curators, ...testers, ...spectators, ...viewScoreboard, ...viewSubmissions],
+  });
 
-  const profiles = useQuery(api.pages.admin.console.resolveProfiles, { usernames });
-
-  function idsFor(list: string[]): Id<"profiles">[] {
-    const map = profiles?.ids ?? {};
-
-    return list.flatMap((username) => {
-      const id = map[username];
-
-      return id ? [id] : [];
-    });
-  }
+  const idsFor = refs.profileIdsFor;
 
   async function save() {
     setError(null);
 
     if (authors.length === 0) {
       setError(t("errorNoAuthor"));
+
+      return;
+    }
+
+    // A username that resolved to nothing used to be dropped, which quietly
+    // removed people from the staff lists the save was meant to preserve.
+    if (refs.blockedMessage) {
+      setError(refs.blockedMessage);
 
       return;
     }

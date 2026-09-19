@@ -13,6 +13,7 @@ import {
   insertContest,
   insertContestProblem,
   insertLanguage,
+  insertOrganization,
   insertProblem,
   insertProblemGroup,
   insertProfile,
@@ -164,5 +165,49 @@ describe("pages/admin console lookups", () => {
 
     expect(Object.keys(resolved.ids)).toEqual(["root"]);
     expect(resolved.missing).toEqual(["nobody"]);
+  });
+
+  /**
+   * A name nothing matches used to be dropped from the resolved list, and the
+   * form sent what was left as though that were what the operator asked for. A
+   * save that raced this query therefore wrote an empty organisation list over
+   * a populated one. The caller can only refuse if it is told.
+   */
+  test("a slug nothing matches is reported rather than dropped", async () => {
+    const { t } = await seed();
+    await insertOrganization(t, { slug: "maps", name: "MAPS" });
+
+    const resolved = await asUser(t, "root").query(api.pages.admin.console.resolveContestRefs, {
+      organizationSlugs: ["maps", "ghost"],
+    });
+
+    expect(resolved.organizationIds).toHaveLength(1);
+    expect(resolved.missing).toEqual(["ghost"]);
+  });
+
+  test("everything resolves for a slug that is there", async () => {
+    const { t } = await seed();
+    await insertOrganization(t, { slug: "maps", name: "MAPS" });
+
+    const resolved = await asUser(t, "root").query(api.pages.admin.console.resolveContestRefs, {
+      organizationSlugs: ["maps"],
+    });
+
+    expect(resolved.missing).toEqual([]);
+  });
+
+  test("a viewer who may not read the reference tables resolves nothing at all", async () => {
+    const { t } = await seed();
+    await insertOrganization(t, { slug: "maps", name: "MAPS" });
+
+    // Not staff: every name comes back missing, so the form refuses to save
+    // rather than sending the empty lists this used to answer with.
+    const resolved = await asUser(t, "member").query(api.pages.admin.console.resolveContestRefs, {
+      organizationSlugs: ["maps"],
+      tagNames: ["weekly"],
+    });
+
+    expect(resolved.organizationIds).toEqual([]);
+    expect(resolved.missing).toEqual(["maps", "weekly"]);
   });
 });

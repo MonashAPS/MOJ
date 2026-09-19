@@ -1988,6 +1988,10 @@
         "sunday": "Mg"
       }
     },
+    "refs": {
+      "stillResolving": "Nama-nama pada formulir ini masih dicari. Coba lagi sebentar.",
+      "unknownNames": "Tidak ada yang cocok dengan {names}. Perbaiki atau hapus sebelum menyimpan, jika tidak entri itu akan hilang."
+    },
     "userPicker": {
       "add": "Tambahkan pengguna",
       "chosen": "Pengguna yang dipilih",
