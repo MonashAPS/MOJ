@@ -11,7 +11,7 @@ type Revision = {
   createdAt: number;
   reason: string;
   author: string | null;
-  snapshot: unknown;
+  snapshot: JsonValue | undefined;
 };
 
 /** The same row straight off a Convex query, where the id is `_id` and a
@@ -21,7 +21,7 @@ export type RevisionRow = {
   createdAt: number;
   reason: string;
   author: string | null;
-  snapshot?: unknown;
+  snapshot?: JsonValue;
 };
 
 type Change = { field: string; before: string; after: string };
@@ -37,7 +37,7 @@ type JsonObject = { [field: string]: JsonValue };
 type JsonValue = string | number | boolean | null | JsonValue[] | JsonObject;
 
 /** Only an object snapshot has fields to compare; anything else diffs as empty. */
-function isSnapshotObject(snapshot: unknown): snapshot is JsonObject {
+function isSnapshotObject(snapshot: JsonValue | undefined): snapshot is JsonObject {
   return typeof snapshot === "object" && snapshot !== null && !Array.isArray(snapshot);
 }
 
@@ -58,10 +58,30 @@ function render(value: JsonValue | undefined, words: BooleanWords): string {
   return String(value);
 }
 
+/**
+ * A snapshot to compare, out of what a section stored.
+ *
+ * Contest edits used to store the patch as `{ before, after }` rather than the
+ * row, which diffed as two fields called "Before" and "After" holding raw JSON.
+ * They store the row now, but the old rows are still in the table, and the
+ * `after` half is the closest thing to a snapshot they carry — so an edit from
+ * before the change still lines up against its neighbours.
+ */
+function asSnapshot(snapshot: Revision["snapshot"]): JsonObject {
+  if (!isSnapshotObject(snapshot)) return {};
+  const after = snapshot.after;
+
+  if (after !== undefined && "before" in snapshot && Object.keys(snapshot).length === 2) {
+    return isNestedObject(after) ? after : {};
+  }
+
+  return snapshot;
+}
+
 /** Field-by-field, both ways: what a snapshot gained, lost or changed. */
 function diff(before: Revision, after: Revision, words: BooleanWords): Change[] {
-  const left: JsonObject = isSnapshotObject(before.snapshot) ? before.snapshot : {};
-  const right: JsonObject = isSnapshotObject(after.snapshot) ? after.snapshot : {};
+  const left = asSnapshot(before.snapshot);
+  const right = asSnapshot(after.snapshot);
   const fields = [...new Set([...Object.keys(left), ...Object.keys(right)])].sort();
   const changes: Change[] = [];
 

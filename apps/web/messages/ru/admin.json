@@ -2067,7 +2067,17 @@
         "freezeMinutes": "Заморозка",
         "blindDuringFreeze": "Скрывать вердикты во время заморозки",
         "lockedAfter": "Заблокировано после",
-        "pointsPrecision": "Точность баллов"
+        "pointsPrecision": "Точность баллов",
+        "isPrivate": "Приватный",
+        "privateContestants": "Указанные участники",
+        "rateAll": "Рейтинг для всех",
+        "rateExclude": "Без рейтинга",
+        "limitJoinOrganizations": "Ограничить, кто может вступить",
+        "joinOrganizations": "Организации, которые могут вступить",
+        "testerSeeScoreboard": "Тестировщики видят таблицу",
+        "testerSeeSubmissions": "Тестировщики видят посылки",
+        "viewContestScoreboard": "Видят таблицу результатов",
+        "viewContestSubmissions": "Видят посылки"
       }
     }
   },

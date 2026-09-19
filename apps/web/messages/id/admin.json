@@ -2067,7 +2067,17 @@
         "freezeMinutes": "Pembekuan",
         "blindDuringFreeze": "Sembunyikan selama pembekuan",
         "lockedAfter": "Dikunci setelah",
-        "pointsPrecision": "Presisi poin"
+        "pointsPrecision": "Presisi poin",
+        "isPrivate": "Privat",
+        "privateContestants": "Peserta yang disebutkan",
+        "rateAll": "Beri peringkat semua",
+        "rateExclude": "Tidak pernah diberi peringkat",
+        "limitJoinOrganizations": "Batasi siapa yang boleh bergabung",
+        "joinOrganizations": "Organisasi yang boleh bergabung",
+        "testerSeeScoreboard": "Penguji melihat papan skor",
+        "testerSeeSubmissions": "Penguji melihat pengiriman",
+        "viewContestScoreboard": "Melihat papan skor",
+        "viewContestSubmissions": "Melihat pengiriman"
       }
     }
   },

@@ -2067,7 +2067,17 @@
         "freezeMinutes": "Freeze",
         "blindDuringFreeze": "Blind during freeze",
         "lockedAfter": "Locked after",
-        "pointsPrecision": "Points precision"
+        "pointsPrecision": "Points precision",
+        "isPrivate": "Private",
+        "privateContestants": "Named contestants",
+        "rateAll": "Rate everyone",
+        "rateExclude": "Never rated",
+        "limitJoinOrganizations": "Limit who may join",
+        "joinOrganizations": "Organisations that may join",
+        "testerSeeScoreboard": "Testers see the scoreboard",
+        "testerSeeSubmissions": "Testers see submissions",
+        "viewContestScoreboard": "Scoreboard viewers",
+        "viewContestSubmissions": "Submission viewers"
       }
     }
   },

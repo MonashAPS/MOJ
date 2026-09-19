@@ -2067,7 +2067,17 @@
         "freezeMinutes": "封榜",
         "blindDuringFreeze": "封榜期间隐藏结果",
         "lockedAfter": "锁定时间",
-        "pointsPrecision": "分值精度"
+        "pointsPrecision": "分值精度",
+        "isPrivate": "私有",
+        "privateContestants": "指定参赛者",
+        "rateAll": "为所有人评分",
+        "rateExclude": "从不评分",
+        "limitJoinOrganizations": "限制可加入者",
+        "joinOrganizations": "可加入的组织",
+        "testerSeeScoreboard": "测试者可见排行榜",
+        "testerSeeSubmissions": "测试者可见提交",
+        "viewContestScoreboard": "可见排行榜",
+        "viewContestSubmissions": "可见提交"
       }
     }
   },
