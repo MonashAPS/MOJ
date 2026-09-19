@@ -138,30 +138,26 @@ describe("full transform over a fixture dump", () => {
     expect(orphan?.licenseId).toBeUndefined();
   });
 
-  it("converts the contest duration from microseconds to seconds", () => {
+  it("converts a contest duration from microseconds into a window in seconds", () => {
     const contests = docs(dir, "contests");
     expect(contests[0]).toMatchObject({
       key: "week1",
-      timeLimit: 18000,
+      schedule: { kind: "window", seconds: 18000 },
       formatName: "icpc",
       scoreboardVisibility: "C",
-      labelScheme: "letters",
+      labels: { kind: "letters" },
       pointsPrecision: 2,
-      freezeMinutes: 0,
-      blindDuringFreeze: false,
     });
     expect(contests[0]?.formatConfig).toEqual({ penalty: 20 });
-    expect(contests[1]).toMatchObject({ labelScheme: "custom", scoreboardVisibility: "V" });
-    expect(contests[1]?.timeLimit).toBeUndefined();
+    expect(contests[0]?.freeze).toBeUndefined();
+    expect(contests[1]).toMatchObject({ schedule: { kind: "together" }, scoreboardVisibility: "V" });
   });
 
-  it("takes the label scheme from the format, as DMOJ's format class does", () => {
+  it("letters every contest's problems, whatever its format or label script", () => {
     const contests = docs(dir, "contests");
-    // icpc letters its problems, every other format numbers them; a Lua
-    // problem_label_script is not portable and becomes `custom`.
-    expect(contests[0]).toMatchObject({ key: "week1", formatName: "icpc", labelScheme: "letters" });
-    expect(contests[1]).toMatchObject({ key: "week2", formatName: "default", labelScheme: "custom" });
-    expect(contests[2]).toMatchObject({ key: "week3", formatName: "default", labelScheme: "numbers" });
+
+    // week2 carries a Lua problem_label_script, which is not portable.
+    for (const contest of contests) expect(contest.labels).toEqual({ kind: "letters" });
   });
 
   it("rekeys format_data from ContestProblem ids to the imported ids", () => {
