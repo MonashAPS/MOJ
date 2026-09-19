@@ -38,3 +38,5 @@ export { type RevisionRow, RevisionsPanel } from "./RevisionsPanel";
 export { ADMIN_SECTIONS } from "./sections";
 
 export { UserPicker } from "./UserPicker";
+
+export { type ResolvedRefs, useResolvedRefs } from "./useResolvedRefs";

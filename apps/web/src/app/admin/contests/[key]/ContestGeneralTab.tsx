@@ -1,7 +1,6 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
 import { Field, Input, MultiSelect, Panel, Select, Textarea, toast } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { useTranslations } from "next-intl";
@@ -15,6 +14,7 @@ import {
   AdminWideField,
   DateTimeField,
   UserPicker,
+  useResolvedRefs,
 } from "@/components/admin";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import { chosenValue } from "@/lib/choices";
@@ -164,10 +164,8 @@ export function ContestGeneralTab({
     parsedConfig.ok ? { name: formatName, config: parsedConfig.value } : "skip",
   );
 
-  const usernames = [...privateContestants, ...rateExclude, ...bannedUsers];
-  const profiles = useQuery(api.pages.admin.console.resolveProfiles, { usernames });
-
-  const refs = useQuery(api.pages.admin.console.resolveContestRefs, {
+  const refs = useResolvedRefs({
+    usernames: [...privateContestants, ...rateExclude, ...bannedUsers],
     organizationSlugs,
     joinOrganizationSlugs,
     classNames,
@@ -176,22 +174,21 @@ export function ContestGeneralTab({
 
   const permissions = contest.permissions;
   const configError = !parsedConfig.ok ? t("formatConfigInvalid") : (validation?.error ?? null);
-
-  function idsFor(list: string[]): Id<"profiles">[] {
-    const map = profiles?.ids ?? {};
-
-    return list.flatMap((username) => {
-      const id = map[username];
-
-      return id ? [id] : [];
-    });
-  }
+  const idsFor = refs.profileIdsFor;
 
   async function save() {
     setError(null);
 
     if (configError) {
       setError(configError);
+
+      return;
+    }
+
+    // Every name has to have resolved. Saving through the window where they
+    // have not wrote empty lists over populated ones.
+    if (refs.blockedMessage) {
+      setError(refs.blockedMessage);
 
       return;
     }
@@ -228,11 +225,11 @@ export function ContestGeneralTab({
         isPrivate,
         privateContestantProfileIds: idsFor(privateContestants),
         isOrganizationPrivate: organizationSlugs.length > 0 || classNames.length > 0,
-        organizationIds: refs?.organizationIds ?? [],
-        classIds: refs?.classIds ?? [],
+        organizationIds: refs.organizationIds,
+        classIds: refs.classIds,
         limitJoinOrganizations,
-        joinOrganizationIds: refs?.joinOrganizationIds ?? [],
-        tagIds: refs?.tagIds ?? [],
+        joinOrganizationIds: refs.joinOrganizationIds,
+        tagIds: refs.tagIds,
         lockedAfter,
         pointsPrecision: Number(pointsPrecision) || 0,
         hideProblemTags,

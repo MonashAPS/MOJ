@@ -1988,6 +1988,10 @@
         "sunday": "Su"
       }
     },
+    "refs": {
+      "stillResolving": "Still looking up the names on this form. Try again in a moment.",
+      "unknownNames": "Nothing matches {names}. Fix or remove it before saving, or the entry would be dropped."
+    },
     "userPicker": {
       "add": "Add a user",
       "chosen": "Chosen users",

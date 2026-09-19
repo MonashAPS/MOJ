@@ -1988,6 +1988,10 @@
         "sunday": "日"
       }
     },
+    "refs": {
+      "stillResolving": "仍在查找此表单中的名称，请稍后重试。",
+      "unknownNames": "找不到与 {names} 匹配的项。请在保存前修正或移除，否则该条目会被丢弃。"
+    },
     "userPicker": {
       "add": "添加用户",
       "chosen": "已选用户",

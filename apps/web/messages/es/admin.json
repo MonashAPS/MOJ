@@ -1988,6 +1988,10 @@
         "sunday": "do"
       }
     },
+    "refs": {
+      "stillResolving": "Todavía se están buscando los nombres de este formulario. Inténtalo de nuevo en un momento.",
+      "unknownNames": "No hay nada que coincida con {names}. Corrígelo o quítalo antes de guardar, o se descartaría la entrada."
+    },
     "userPicker": {
       "add": "Añadir un usuario",
       "chosen": "Usuarios elegidos",
