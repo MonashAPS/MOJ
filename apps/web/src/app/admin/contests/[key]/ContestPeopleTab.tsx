@@ -192,7 +192,7 @@ function AudienceCard({
   const t = useTranslations("common.audiences");
 
   return (
-    <div className="grid gap-2 rounded-md border border-border px-3 py-2.5">
+    <div className="grid content-start gap-2 rounded-md border border-border px-3 py-2.5">
       <div className="flex items-baseline justify-between gap-2 text-sm font-medium text-foreground">
         <AudienceName audience={audience} />
         {count !== undefined ? (
