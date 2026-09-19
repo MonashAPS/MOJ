@@ -25,9 +25,8 @@ export function CloneForm({ contestKey, detail }: { contestKey: string; detail: 
             {contest ? (
               <ContestChips
                 isVisible={contest.isVisible}
-                isPrivate={contest.isPrivate}
-                isOrganizationPrivate={contest.isOrganizationPrivate}
-                isRated={contest.isRated}
+                isOpenEntry={contest.isOpenEntry}
+                isRated={contest.rating !== null}
                 organizations={contest.organizations}
                 tags={contest.tags}
               />

@@ -59,13 +59,14 @@ function WindowNote({ detail }: { detail: ContestDetail }) {
 
   if (!contest) return null;
 
-  const window = contest.timeLimit
-    ? duration("windowBetween", {
-        duration: humanDuration(contest.timeLimit * 1000),
-        start: formatDateTime(contest.startTime),
-        end: formatDateTime(contest.endTime),
-      })
-    : null;
+  const window =
+    contest.schedule.kind === "window"
+      ? duration("windowBetween", {
+          duration: humanDuration(contest.schedule.seconds * 1000),
+          start: formatDateTime(contest.startTime),
+          end: formatDateTime(contest.endTime),
+        })
+      : null;
 
   const clock = remaining !== null && remaining <= COUNTDOWN_HORIZON ? formatDuration(remaining) : null;
 
@@ -453,9 +454,8 @@ export function RankingClient({
               {contest ? (
                 <ContestChips
                   isVisible={contest.isVisible}
-                  isPrivate={contest.isPrivate}
-                  isOrganizationPrivate={contest.isOrganizationPrivate}
-                  isRated={contest.isRated}
+                  isOpenEntry={contest.isOpenEntry}
+                  isRated={contest.rating !== null}
                   organizations={contest.organizations}
                   tags={contest.tags}
                 />
@@ -546,7 +546,7 @@ export function RankingClient({
                   />
                 </div>
               ) : null}
-              {detail.viewer.canEdit && contest && contest.freezeMinutes > 0 ? (
+              {detail.viewer.canEdit && contest?.freeze ? (
                 <Button
                   variant="secondary"
                   size="sm"

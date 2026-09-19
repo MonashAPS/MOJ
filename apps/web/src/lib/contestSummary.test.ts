@@ -20,75 +20,54 @@ const HOUR = 60 * 60 * 1000;
 
 const START = Date.UTC(2026, 0, 1, 10);
 
+const PLAIN: DescribeSource = {
+  startTime: START,
+  endTime: START + 3 * HOUR,
+  isVisible: true,
+  schedule: { kind: "together" },
+  entry: { kind: "open" },
+  labels: { kind: "letters" },
+};
+
 /** A contest of each shape the editor can produce, so every branch emits. */
 const CORPUS: DescribeSource[] = [
-  {
-    startTime: START,
-    endTime: START + 3 * HOUR,
-    isVisible: true,
-    isPrivate: false,
-    isOrganizationPrivate: false,
-  },
+  PLAIN,
   // Windowed, which is the branch the incident came from.
-  {
-    startTime: START,
-    endTime: START + 3 * HOUR,
-    isVisible: true,
-    isPrivate: false,
-    isOrganizationPrivate: false,
-    timeLimit: HOUR / 1000,
-  },
+  { ...PLAIN, schedule: { kind: "window", seconds: HOUR / 1000 } },
   // Windowed as long as the contest, plus a freeze that covers it.
   {
-    startTime: START,
-    endTime: START + 3 * HOUR,
+    ...PLAIN,
     isVisible: false,
-    isPrivate: false,
-    isOrganizationPrivate: false,
-    timeLimit: (3 * HOUR) / 1000,
-    freezeMinutes: 180,
-    blindDuringFreeze: true,
+    schedule: { kind: "window", seconds: (3 * HOUR) / 1000 },
+    freeze: { minutes: 180, blind: true },
     lockedAfter: START + 4 * HOUR,
     runPretestsOnly: true,
   },
-  // Restricted by organisation and by name at once, with a join limit.
+  // Restricted by organisation and by name at once, with a join limit naming nobody.
   {
-    startTime: START,
-    endTime: START + 3 * HOUR,
-    isVisible: true,
-    isPrivate: true,
-    isOrganizationPrivate: true,
-    organizationIds: ["o1"],
-    privateContestantProfileIds: ["p1"],
-    limitJoinOrganizations: true,
-    joinOrganizationIds: [],
+    ...PLAIN,
+    entry: { kind: "restricted", match: "all", organizationIds: ["o1"], classIds: [], profileIds: ["p1"] },
+    joinLimit: { organizationIds: [] },
     accessCode: "hunter2",
-    viewContestScoreboardProfileIds: ["p2"],
+    alwaysAdmitProfileIds: ["p2"],
   },
   // Restricted and naming nobody.
   {
-    startTime: START,
-    endTime: START + 3 * HOUR,
-    isVisible: true,
-    isPrivate: true,
-    isOrganizationPrivate: false,
+    ...PLAIN,
+    entry: { kind: "restricted", match: "all", organizationIds: [], classIds: [], profileIds: [] },
   },
   // Rated, with a band that excludes newcomers and a custom label list.
   {
-    startTime: START,
-    endTime: START + 3 * HOUR,
-    isVisible: true,
-    isPrivate: false,
-    isOrganizationPrivate: false,
-    isRated: true,
-    rateAll: true,
-    rateExcludeProfileIds: ["p1"],
-    ratingFloor: 1300,
-    ratingCeiling: 2400,
-    performanceCeilingOverride: 3000,
-    labelScheme: "custom",
-    customLabels: ["A1"],
-    freezeMinutes: 30,
+    ...PLAIN,
+    rating: {
+      everyone: true,
+      excludeProfileIds: ["p1"],
+      floor: 1300,
+      ceiling: 2400,
+      performanceCeiling: 3000,
+    },
+    labels: { kind: "custom", labels: ["A1"] },
+    freeze: { minutes: 30, blind: false },
   },
 ];
 

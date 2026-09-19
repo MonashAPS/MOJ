@@ -1,3 +1,4 @@
+import type { ContestSchedule } from "@moj/core";
 import { Badge, cn, Tooltip } from "@moj/ui";
 import { BarChart3, Check, CircleDashed, CircleSlash2, EyeOff, Lock, Users } from "lucide-react";
 import Link from "next/link";
@@ -48,15 +49,13 @@ function ContestTagChip({ tag }: { tag: TagRef }) {
 /** `contest_head` in DMOJ's list.html: the chips that follow a contest's name. */
 export function ContestChips({
   isVisible,
-  isPrivate,
-  isOrganizationPrivate,
+  isOpenEntry,
   isRated,
   organizations,
   tags,
 }: {
   isVisible: boolean;
-  isPrivate: boolean;
-  isOrganizationPrivate: boolean;
+  isOpenEntry: boolean;
   isRated: boolean;
   organizations: OrganizationRef[];
   tags: TagRef[];
@@ -71,19 +70,19 @@ export function ContestChips({
           {t("hidden")}
         </Badge>
       ) : null}
-      {isOrganizationPrivate ? (
+      {isOpenEntry ? null : organizations.length > 0 ? (
         organizations.map((organization) => (
           <Badge key={organization._id} variant="outline" rounding="pill" mono>
             <Lock size={11} aria-hidden />
             {organization.shortName || organization.name}
           </Badge>
         ))
-      ) : isPrivate ? (
+      ) : (
         <Badge variant="neutral" rounding="pill" mono>
           <Lock size={11} aria-hidden />
           {t("private")}
         </Badge>
-      ) : null}
+      )}
       {isRated ? (
         <Badge variant="warn" rounding="pill" mono>
           <BarChart3 size={11} aria-hidden />
@@ -128,25 +127,26 @@ export const OPEN_ENDED = 100 * 24 * 3600_000;
 export function ContestWindow({
   startTime,
   endTime,
-  timeLimit,
+  schedule,
   className,
 }: {
   startTime: number;
   endTime: number;
-  timeLimit: number | null;
+  schedule: ContestSchedule;
   className?: string;
 }) {
   const t = useTranslations("contests.duration");
   const humanDuration = useHumanDuration();
+  const windowed = schedule.kind === "window";
 
   return (
     <div className={cn("font-mono text-sm tabular-nums text-muted-foreground", className)}>
       <div>
-        {timeLimit ? `${formatDateTime(startTime)} – ${formatDateTime(endTime)}` : formatDateTime(startTime)}
+        {windowed ? `${formatDateTime(startTime)} – ${formatDateTime(endTime)}` : formatDateTime(startTime)}
       </div>
       <div>
-        {timeLimit
-          ? t("window", { duration: humanDuration(timeLimit * 1000) })
+        {schedule.kind === "window"
+          ? t("window", { duration: humanDuration(schedule.seconds * 1000) })
           : endTime - startTime > OPEN_ENDED
             ? t("openEnded")
             : t("length", { duration: humanDuration(endTime - startTime) })}

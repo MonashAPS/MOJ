@@ -97,7 +97,7 @@ export function ContestActionsTab({ contest }: { contest: ContestEdit }) {
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title={t("ratingTitle")} bodyClassName="grid gap-3 p-4">
           <p className="text-sm text-muted-foreground">
-            {contest.isRated ? t("ratingRated") : t("ratingNotRated")}
+            {contest.rating !== null ? t("ratingRated") : t("ratingNotRated")}
           </p>
           <Button
             variant="secondary"

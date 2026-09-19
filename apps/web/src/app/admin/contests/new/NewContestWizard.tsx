@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { contestWarnings, describeContest } from "@moj/core";
+import { contestWarnings, type DescribeSource, describeContest } from "@moj/core";
 import { Button, cn, Field, FieldGroup, Input, RadioGroup } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
@@ -40,7 +40,6 @@ interface Draft {
   endTime: number | null;
   windowMinutes: string;
   formatName: string;
-  freezeMinutes: string;
   isVisible: boolean;
   isRated: boolean;
   useClarifications: boolean;
@@ -54,7 +53,6 @@ function emptyDraft(now: number): Draft {
     endTime: now + 4 * HOUR,
     windowMinutes: "",
     formatName: "default",
-    freezeMinutes: "0",
     isVisible: false,
     isRated: false,
     useClarifications: true,
@@ -90,15 +88,20 @@ export function NewContestWizard() {
   const keyOk = /^[a-z0-9]+$/.test(draft.key) && draft.key.length <= 20;
   const ready = keyOk && draft.name.trim().length > 0;
 
-  const describeSource = {
+  const schedule = draft.windowMinutes.trim()
+    ? { kind: "window" as const, seconds: Number(draft.windowMinutes) * 60 }
+    : { kind: "together" as const };
+
+  const rating = draft.isRated ? { everyone: false, excludeProfileIds: [] } : undefined;
+
+  const describeSource: DescribeSource = {
     startTime: draft.startTime ?? Date.now(),
     endTime: draft.endTime ?? Date.now() + HOUR,
-    timeLimit: draft.windowMinutes.trim() ? Number(draft.windowMinutes) * 60 : null,
+    schedule,
+    entry: { kind: "open" },
+    labels: { kind: "letters" },
+    rating,
     isVisible: draft.isVisible,
-    isPrivate: false,
-    isOrganizationPrivate: false,
-    freezeMinutes: Number(draft.freezeMinutes) || 0,
-    isRated: draft.isRated,
   };
 
   async function submit() {
@@ -130,11 +133,10 @@ export function NewContestWizard() {
         name: draft.name.trim(),
         startTime: draft.startTime,
         endTime: draft.endTime,
-        timeLimit: draft.windowMinutes.trim() ? Number(draft.windowMinutes) * 60 : null,
+        schedule,
         formatName: draft.formatName,
-        freezeMinutes: Number(draft.freezeMinutes) || 0,
         isVisible: draft.isVisible,
-        isRated: draft.isRated,
+        rating,
         useClarifications: draft.useClarifications,
       });
 

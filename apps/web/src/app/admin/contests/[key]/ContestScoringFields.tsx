@@ -2,32 +2,27 @@
 
 import { Field, FieldGroup, Input, RadioGroup, Select } from "@moj/ui";
 import { useTranslations } from "next-intl";
-import { useId } from "react";
+import { useId, useRef } from "react";
 import { AdminCheckField, UserPicker } from "@/components/admin";
+import type { ContestGeneralFields } from "./generalFields";
 
 /**
  * Whether the board freezes, and whether the contest counts.
  *
- * Both were clusters of settings that are inert without the one that turns them
- * on: `blindDuringFreeze` does nothing at a freeze of zero minutes, and all five
- * rating settings do nothing on an unrated contest — but the form left every one
- * of them enabled, so they read as things that were in effect.
+ * Each is a card and then only the fields that mode uses: a blind over no
+ * freeze, or a rating floor on an unrated contest, is not a thing the form can
+ * say.
  */
 
-export interface FreezeValues {
-  freezeMinutes: string;
-  blindDuringFreeze: boolean;
+/** The scoreboard choice arrives as the select's string; the tab narrows it. */
+export type FreezeValues = Pick<ContestGeneralFields, "freezeMinutes" | "blind"> & {
   scoreboardVisibility: string;
-}
+};
 
-export interface RatingValues {
-  isRated: boolean;
-  rateAll: boolean;
-  ratingFloor: string;
-  ratingCeiling: string;
-  performanceCeiling: string;
-  rateExclude: string[];
-}
+export type RatingValues = Pick<
+  ContestGeneralFields,
+  "isRated" | "rateEveryone" | "ratingFloor" | "ratingCeiling" | "performanceCeiling" | "rateExclude"
+>;
 
 export function ContestFreezeFields({
   values,
@@ -40,7 +35,12 @@ export function ContestFreezeFields({
 }) {
   const t = useTranslations("admin.contests.setup");
   const ids = { minutes: useId(), scoreboard: useId() };
-  const frozen = (Number(values.freezeMinutes) || 0) > 0;
+  const frozen = values.freezeMinutes.trim() !== "";
+
+  /** What the freeze was before it was turned off, so turning it back on is not a retyping exercise. */
+  const lastMinutes = useRef("60");
+
+  if (frozen) lastMinutes.current = values.freezeMinutes;
 
   return (
     <>
@@ -60,11 +60,9 @@ export function ContestFreezeFields({
         name="freeze-mode"
         ariaLabel={t("freezeMode")}
         value={frozen ? "freeze" : "none"}
-        // Turning the freeze off clears the blind with it, because a blind of
-        // nothing is a setting that reads as on and does nothing.
         onValueChange={(next) =>
           onChange(
-            next === "freeze" ? { freezeMinutes: "60" } : { freezeMinutes: "0", blindDuringFreeze: false },
+            next === "freeze" ? { freezeMinutes: lastMinutes.current } : { freezeMinutes: "", blind: false },
           )
         }
         options={[
@@ -87,8 +85,8 @@ export function ContestFreezeFields({
           <AdminCheckField
             label={t("blindDuringFreeze")}
             hint={t("blindDuringFreezeHint")}
-            checked={values.blindDuringFreeze}
-            onCheckedChange={(checked) => onChange({ blindDuringFreeze: checked })}
+            checked={values.blind}
+            onCheckedChange={(checked) => onChange({ blind: checked })}
           />
         </FieldGroup>
       ) : null}
@@ -131,8 +129,8 @@ export function ContestRatingFields({
           <RadioGroup
             name="rate-who"
             ariaLabel={t("rateWho")}
-            value={values.rateAll ? "everyone" : "scorers"}
-            onValueChange={(next) => onChange({ rateAll: next === "everyone" })}
+            value={values.rateEveryone ? "everyone" : "scorers"}
+            onValueChange={(next) => onChange({ rateEveryone: next === "everyone" })}
             options={[
               { value: "scorers", label: t("rateScorers") },
               { value: "everyone", label: t("rateEveryone") },

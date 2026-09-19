@@ -1,15 +1,17 @@
 /**
- * The general tab used to send all forty fields on every save, so opening a
- * contest and pressing Save rewrote the whole row — including the two fields the
- * form cannot represent exactly, which it therefore rewrote to something else.
- *
- * What these prove is the property that stops it: editing one field produces a
- * patch containing that field and nothing else, so a value the form reads
- * differently from how it is stored is never in the patch to begin with.
+ * A save sends only what differs from the stored contest, so editing one field
+ * produces a patch containing that field and nothing else, and the shapes the
+ * form builds round-trip through the projection the save diffs against.
  */
 
 import { describe, expect, it } from "vitest";
-import { argsFromFields, type ContestFieldSource, changedArgs, fieldsFromContest } from "./generalFields";
+import {
+  argsFromFields,
+  type ContestFieldSource,
+  changedArgs,
+  describeSourceOf,
+  fieldsFromContest,
+} from "./generalFields";
 
 const REFS = {
   profileIdsFor: () => [],
@@ -27,28 +29,17 @@ function contestEdit(overrides: Partial<ContestFieldSource> = {}): ContestFieldS
     summary: "",
     startTime: Date.UTC(2026, 0, 1, 10),
     endTime: Date.UTC(2026, 0, 1, 13),
-    timeLimit: null,
+    schedule: { kind: "together" },
     isVisible: true,
-    isRated: false,
-    ratingFloor: null,
-    ratingCeiling: null,
-    performanceCeilingOverride: null,
-    rateAll: false,
-    rateExclude: [],
+    entry: { kind: "open" },
+    joinLimit: null,
+    accessCode: "",
     formatName: "default",
     formatConfig: null,
-    labelScheme: "letters",
-    customLabels: [],
+    labels: { kind: "letters" },
     scoreboardVisibility: "V",
-    freezeMinutes: 0,
-    blindDuringFreeze: false,
-    accessCode: "",
-    isPrivate: false,
-    isOrganizationPrivate: false,
-    privateContestants: [],
-    organizationSlugs: [],
-    classNames: [],
-    joinOrganizationSlugs: [],
+    freeze: null,
+    rating: null,
     tagNames: [],
     lockedAfter: null,
     pointsPrecision: 3,
@@ -57,10 +48,7 @@ function contestEdit(overrides: Partial<ContestFieldSource> = {}): ContestFieldS
     hideProblemAuthors: false,
     runPretestsOnly: false,
     proctorRequired: false,
-    showShortDisplay: false,
     useClarifications: true,
-    ogImage: "",
-    logoOverrideImage: "",
     bannedUsers: [],
     ...overrides,
   };
@@ -76,72 +64,91 @@ function patchAfterEditing(contest: ContestFieldSource, edit: Partial<ReturnType
   );
 }
 
-describe("fields the form cannot represent exactly", () => {
-  it("reads a label scheme it cannot offer as letters", () => {
-    // Every contest in the database carries "numbers", which has never rendered
-    // as anything but letters, and the form has no option for it. This is what a
-    // save that sent every field would therefore have written back.
-    const contest = contestEdit({ labelScheme: "numbers" });
-
-    expect(argsFromFields(fieldsFromContest(contest), REFS, null).labelScheme).toBe("letters");
-  });
-
-  it("leaves that label scheme out of the patch when something else is edited", () => {
-    const contest = contestEdit({ labelScheme: "numbers" });
-
-    expect(patchAfterEditing(contest, { name: "Weekly 2" })).toEqual({ name: "Weekly 2" });
-  });
-
-  it("keeps organisation privacy that no list backs up", () => {
-    // It used to be derived from whether the lists were empty, so a save on a
-    // contest whose lists had not loaded turned it off and opened the contest.
-    // It is a control of its own now, and an untouched save leaves it alone.
-    const contest = contestEdit({ isOrganizationPrivate: true, organizationSlugs: [] });
-
-    expect(patchAfterEditing(contest, { name: "Weekly 2" })).toEqual({ name: "Weekly 2" });
-    expect(fieldsFromContest(contest).isOrganizationPrivate).toBe(true);
-  });
-
-  it("keeps a per-participant window in seconds across the round trip", () => {
+describe("the shapes across the round trip", () => {
+  it("keeps a per-participant window in seconds", () => {
     // The one live windowed contest: 300 minutes shown, 18000 seconds stored.
-    const contest = contestEdit({ timeLimit: 300 * 60, endTime: Date.UTC(2026, 0, 10, 10) });
+    const contest = contestEdit({
+      schedule: { kind: "window", seconds: 300 * 60 },
+      endTime: Date.UTC(2026, 0, 10, 10),
+    });
 
-    expect(fieldsFromContest(contest).timeLimit).toBe("300");
-    expect(argsFromFields(fieldsFromContest(contest), REFS, null).timeLimit).toBe(18000);
+    expect(fieldsFromContest(contest).windowMinutes).toBe("300");
+    expect(argsFromFields(fieldsFromContest(contest), REFS, null).schedule).toEqual({
+      kind: "window",
+      seconds: 18000,
+    });
+    expect(patchAfterEditing(contest, { name: "Weekly 2" })).toEqual({ name: "Weekly 2" });
+  });
+
+  it("keeps a restricted entry, its match and its names", () => {
+    const contest = contestEdit({
+      entry: {
+        kind: "restricted",
+        match: "any",
+        organizationSlugs: ["maps"],
+        classNames: ["FIT1045"],
+        usernames: ["alice"],
+      },
+    });
+
+    const fields = fieldsFromContest(contest);
+    expect(fields).toMatchObject({ entry: "restricted", entryMatch: "any", namedUsers: ["alice"] });
+    expect(patchAfterEditing(contest, { name: "Weekly 2" })).toEqual({ name: "Weekly 2" });
+    // The summary counts names, so it reads them where the mutation reads ids.
+    expect(describeSourceOf(fields, contest).entry).toEqual({
+      kind: "restricted",
+      match: "any",
+      organizationIds: ["maps"],
+      classIds: ["FIT1045"],
+      profileIds: ["alice"],
+    });
+  });
+
+  it("keeps a rating band, with the blanks left out", () => {
+    const contest = contestEdit({
+      rating: { everyone: true, excluded: [], floor: 1300, ceiling: null, performanceCeiling: null },
+    });
+
+    expect(argsFromFields(fieldsFromContest(contest), REFS, null).rating).toEqual({
+      everyone: true,
+      excludeProfileIds: [],
+      floor: 1300,
+    });
     expect(patchAfterEditing(contest, { name: "Weekly 2" })).toEqual({ name: "Weekly 2" });
   });
 });
 
 describe("a contest the operator has edited", () => {
   it("sends the field that changed and nothing else", () => {
-    const contest = contestEdit();
-    const before = argsFromFields(fieldsFromContest(contest), REFS, null);
-    const after = argsFromFields({ ...fieldsFromContest(contest), name: "Weekly 2" }, REFS, null);
-
-    expect(changedArgs(before, after)).toEqual({ name: "Weekly 2" });
+    expect(patchAfterEditing(contestEdit(), { name: "Weekly 2" })).toEqual({ name: "Weekly 2" });
   });
 
-  it("sends a cleared optional as null, which is what clears it", () => {
-    const contest = contestEdit({ ratingFloor: 1300 });
-    const before = argsFromFields(fieldsFromContest(contest), REFS, null);
-    const after = argsFromFields({ ...fieldsFromContest(contest), ratingFloor: "" }, REFS, null);
+  it("sends a mode turned off as null, which is what removes it", () => {
+    const contest = contestEdit({ freeze: { minutes: 60, blind: true } });
 
-    expect(changedArgs(before, after)).toEqual({ ratingFloor: null });
+    expect(patchAfterEditing(contest, { freezeMinutes: "", blind: false })).toEqual({ freeze: null });
+    expect(
+      patchAfterEditing(
+        contestEdit({
+          rating: { everyone: false, excluded: [], floor: null, ceiling: null, performanceCeiling: null },
+        }),
+        { isRated: false },
+      ),
+    ).toEqual({ rating: null });
   });
 
   it("limits joining exactly when the join list names somebody", () => {
-    // The checkbox is gone: a limit naming nobody admits nobody, and nothing
-    // wants to say that.
+    const refs = { ...REFS, joinOrganizationIds: ["org1"] };
     const contest = contestEdit();
-    const before = argsFromFields(fieldsFromContest(contest), REFS, null);
+    const before = argsFromFields(fieldsFromContest(contest), refs, null);
 
     const after = argsFromFields(
       { ...fieldsFromContest(contest), joinOrganizationSlugs: ["maps"] },
-      REFS,
+      refs,
       null,
     );
 
-    expect(changedArgs(before, after)).toEqual({ limitJoinOrganizations: true });
+    expect(changedArgs(before, after)).toEqual({ joinLimit: { organizationIds: ["org1"] } });
   });
 
   it("compares the format config by value, not by how it was typed", () => {

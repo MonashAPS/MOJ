@@ -4,39 +4,28 @@ import { Field, FieldGroup, Input, MultiSelect, RadioGroup } from "@moj/ui";
 import { useTranslations } from "next-intl";
 import { useId } from "react";
 import { AdminCheckField, UserPicker } from "@/components/admin";
+import type { ContestGeneralFields } from "./generalFields";
 
 /**
  * Who can find a contest, and who can get into it.
  *
- * This replaces nine controls that only meant something in combination:
- * `isPrivate` and `isOrganizationPrivate` gating three separate lists, a
- * `limitJoinOrganizations` checkbox with a list of its own, and an access code.
- * Whether a contest was restricted at all could only be worked out by reading
- * all of them, and one of the flags was not even a control — the form set it
- * from whether the organisation list happened to be empty, so clearing the list
- * silently opened the contest up.
- *
- * It is two cards now: open, or restricted. Restricted reveals the three ways to
- * name an audience, which are additive. The join limit is one list rather than a
- * checkbox and a list, because a limit naming nobody admits nobody and there is
- * no reason to be able to say that.
+ * Two cards: open, or restricted. Restricted reveals the three ways to name an
+ * audience, and once both an organisation and a person are named, whether a
+ * competitor needs to clear both gates or either one. The join limit is one
+ * list rather than a checkbox and a list, because a limit naming nobody admits
+ * nobody and there is no reason to be able to say that.
  */
-type EntryMode = "open" | "restricted";
-
-function entryModeOf(byName: boolean, byOrganization: boolean): EntryMode {
-  return byName || byOrganization ? "restricted" : "open";
-}
-
-export interface EntryValues {
-  isVisible: boolean;
-  isPrivate: boolean;
-  isOrganizationPrivate: boolean;
-  privateContestants: string[];
-  organizationSlugs: string[];
-  classNames: string[];
-  joinOrganizationSlugs: string[];
-  accessCode: string;
-}
+export type EntryValues = Pick<
+  ContestGeneralFields,
+  | "isVisible"
+  | "entry"
+  | "entryMatch"
+  | "organizationSlugs"
+  | "classNames"
+  | "namedUsers"
+  | "joinOrganizationSlugs"
+  | "accessCode"
+>;
 
 export function ContestEntryFields({
   values,
@@ -67,27 +56,8 @@ export function ContestEntryFields({
     accessCode: useId(),
   };
 
-  const mode = entryModeOf(values.isPrivate, values.isOrganizationPrivate);
-
-  /**
-   * Switching to open turns the gates off and leaves the lists alone, so the
-   * choice is reversible. The lists are inert while the gates are off, because
-   * `contestAccessCheck` stops before it reads them.
-   */
-  function setMode(next: string) {
-    if (next === "open") {
-      onChange({ isPrivate: false, isOrganizationPrivate: false });
-
-      return;
-    }
-
-    // Restricted with nothing named admits nobody, so the gate that has names
-    // behind it comes on; a contest naming neither is warned about.
-    onChange({
-      isPrivate: values.privateContestants.length > 0,
-      isOrganizationPrivate: values.organizationSlugs.length > 0 || values.classNames.length > 0,
-    });
-  }
+  const byOrganization = values.organizationSlugs.length > 0 || values.classNames.length > 0;
+  const byName = values.namedUsers.length > 0;
 
   return (
     <>
@@ -100,12 +70,14 @@ export function ContestEntryFields({
         disabledReason={missingPermission("judge.change_contest_visibility")}
       />
 
+      {/* Switching to open leaves the lists alone, so the choice is reversible;
+          they are inert until the contest is restricted again. */}
       <RadioGroup
         variant="card"
         name="entry-mode"
         ariaLabel={t("entryMode")}
-        value={mode}
-        onValueChange={setMode}
+        value={values.entry}
+        onValueChange={(next) => onChange({ entry: next === "restricted" ? "restricted" : "open" })}
         options={[
           { value: "open", label: t("entryOpen"), description: t("entryOpenHint") },
           {
@@ -117,56 +89,48 @@ export function ContestEntryFields({
         ]}
       />
 
-      {mode === "restricted" ? (
+      {values.entry === "restricted" ? (
         <FieldGroup columns={2}>
           <Field label={t("entryOrganizations")} htmlFor={ids.organizations}>
             <MultiSelect
               id={ids.organizations}
               values={values.organizationSlugs}
-              onChange={(next) =>
-                onChange({
-                  organizationSlugs: next,
-                  isOrganizationPrivate: next.length > 0 || values.classNames.length > 0,
-                })
-              }
+              onChange={(next) => onChange({ organizationSlugs: next })}
               options={organizationOptions}
               placeholder={t("entryOrganizationsPlaceholder")}
-              disabled={!canRestrict}
             />
           </Field>
           <Field label={t("entryClasses")} htmlFor={ids.classes}>
             <MultiSelect
               id={ids.classes}
               values={values.classNames}
-              onChange={(next) =>
-                onChange({
-                  classNames: next,
-                  isOrganizationPrivate: next.length > 0 || values.organizationSlugs.length > 0,
-                })
-              }
+              onChange={(next) => onChange({ classNames: next })}
               options={classOptions}
               placeholder={t("entryClassesPlaceholder")}
             />
           </Field>
-          <Field
-            label={t("entryNamed")}
-            htmlFor={ids.contestants}
-            hint={
-              values.isOrganizationPrivate && values.privateContestants.length > 0
-                ? t("entryBothGatesHint")
-                : undefined
-            }
-            className="sm:col-span-2"
-          >
+          <Field label={t("entryNamed")} htmlFor={ids.contestants} className="sm:col-span-2">
             <UserPicker
               id={ids.contestants}
-              values={values.privateContestants}
-              onChange={(next) => onChange({ privateContestants: next, isPrivate: next.length > 0 })}
-              disabled={!canRestrict}
-              disabledReason={missingPermission("judge.create_private_contest")}
+              values={values.namedUsers}
+              onChange={(next) => onChange({ namedUsers: next })}
               ariaLabel={t("entryNamed")}
             />
           </Field>
+          {byOrganization && byName ? (
+            <RadioGroup
+              variant="card"
+              name="entry-match"
+              ariaLabel={t("entryMatch")}
+              value={values.entryMatch}
+              onValueChange={(next) => onChange({ entryMatch: next === "any" ? "any" : "all" })}
+              options={[
+                { value: "all", label: t("entryMatchAll"), description: t("entryMatchAllHint") },
+                { value: "any", label: t("entryMatchAny"), description: t("entryMatchAnyHint") },
+              ]}
+              className="sm:col-span-2"
+            />
+          ) : null}
         </FieldGroup>
       ) : null}
 

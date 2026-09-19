@@ -1,20 +1,15 @@
 /**
- * The general tab's form values, and what they mean as mutation arguments.
+ * The settings tabs' form values, and what they mean as mutation arguments.
  *
  * Both halves are pure so they can be tested, which matters here because the web
  * app has no DOM tests: everything worth proving about this form has to live
  * outside the component.
  *
- * The reason it exists is that the tab used to send all forty fields on every
- * save. That made every save a rewrite of the whole row, and two fields the form
- * cannot represent exactly were rewritten with it — `labelScheme: "numbers"`,
- * which the form reads as `letters`, and `isOrganizationPrivate`, which the form
- * derives from whether the organisation and class lists are empty. Opening a
- * contest and pressing Save changed both. Sending only what differs makes an
- * untouched field impossible to damage, because it is never in the patch.
+ * A save sends only what differs from the stored contest, so an untouched field
+ * is never in the patch and can never be damaged by one.
  */
 
-import type { Id } from "@convex/_generated/dataModel";
+import type { DescribeSource } from "@moj/core";
 import type { ContestEdit } from "./types";
 
 /**
@@ -34,7 +29,8 @@ export function toJson(value: FormatConfig): string {
 
 /**
  * What the controls hold. Strings where the widget is a text input, so the
- * coercion happens once, here, rather than inline in the JSX.
+ * coercion happens once, here, rather than inline in the JSX. An empty string
+ * in `windowMinutes` or `freezeMinutes` is the mode with no number in it.
  */
 export interface ContestGeneralFields {
   name: string;
@@ -42,29 +38,31 @@ export interface ContestGeneralFields {
   summary: string;
   startTime: number | null;
   endTime: number | null;
-  /** Minutes, because that is what the field asks for; the mutation takes seconds. */
-  timeLimit: string;
+  /** Minutes each contestant gets, or "" when everyone runs on the contest's clock. */
+  windowMinutes: string;
   isVisible: boolean;
+  entry: "open" | "restricted";
+  entryMatch: "all" | "any";
+  organizationSlugs: string[];
+  classNames: string[];
+  namedUsers: string[];
+  /** Organisations that may join; empty means anyone who can enter. */
+  joinOrganizationSlugs: string[];
+  accessCode: string;
+  formatName: string;
+  formatConfig: string;
+  labels: "letters" | "custom";
+  customLabels: string;
+  scoreboardVisibility: ContestEdit["scoreboardVisibility"];
+  /** Minutes before the end, or "" for no freeze. */
+  freezeMinutes: string;
+  blind: boolean;
   isRated: boolean;
+  rateEveryone: boolean;
   ratingFloor: string;
   ratingCeiling: string;
   performanceCeiling: string;
-  rateAll: boolean;
   rateExclude: string[];
-  formatName: string;
-  formatConfig: string;
-  labelScheme: "letters" | "custom";
-  customLabels: string;
-  scoreboardVisibility: ContestEdit["scoreboardVisibility"];
-  freezeMinutes: string;
-  blindDuringFreeze: boolean;
-  accessCode: string;
-  isPrivate: boolean;
-  isOrganizationPrivate: boolean;
-  privateContestants: string[];
-  organizationSlugs: string[];
-  classNames: string[];
-  joinOrganizationSlugs: string[];
   tagNames: string[];
   lockedAfter: number | null;
   pointsPrecision: string;
@@ -73,15 +71,12 @@ export interface ContestGeneralFields {
   hideProblemAuthors: boolean;
   runPretestsOnly: boolean;
   proctorRequired: boolean;
-  showShortDisplay: boolean;
   useClarifications: boolean;
-  ogImage: string;
-  logoOverrideImage: string;
   bannedUsers: string[];
 }
 
 /**
- * The part of a contest this tab reads. Naming it, rather than taking the whole
+ * The part of a contest these tabs read. Naming it, rather than taking the whole
  * `ContestEdit`, is what lets the tests build one without pretending to be the
  * ids and permissions `edit` also resolves and nothing here touches.
  */
@@ -92,28 +87,17 @@ export type ContestFieldSource = Pick<
   | "summary"
   | "startTime"
   | "endTime"
-  | "timeLimit"
+  | "schedule"
   | "isVisible"
-  | "isRated"
-  | "ratingFloor"
-  | "ratingCeiling"
-  | "performanceCeilingOverride"
-  | "rateAll"
-  | "rateExclude"
+  | "entry"
+  | "joinLimit"
+  | "accessCode"
   | "formatName"
   | "formatConfig"
-  | "labelScheme"
-  | "customLabels"
+  | "labels"
   | "scoreboardVisibility"
-  | "freezeMinutes"
-  | "blindDuringFreeze"
-  | "accessCode"
-  | "isPrivate"
-  | "isOrganizationPrivate"
-  | "privateContestants"
-  | "organizationSlugs"
-  | "classNames"
-  | "joinOrganizationSlugs"
+  | "freeze"
+  | "rating"
   | "tagNames"
   | "lockedAfter"
   | "pointsPrecision"
@@ -122,22 +106,14 @@ export type ContestFieldSource = Pick<
   | "hideProblemAuthors"
   | "runPretestsOnly"
   | "proctorRequired"
-  | "showShortDisplay"
   | "useClarifications"
-  | "ogImage"
-  | "logoOverrideImage"
   | "bannedUsers"
 >;
 
-/**
- * The stored contest as the controls hold it.
- *
- * `labelScheme: "numbers"` reads as `letters` because numbering was removed from
- * the site and a contest still carrying it already renders as lettered. Reading
- * it that way is only safe because the save diffs against this same projection,
- * so an untouched contest sends no `labelScheme` at all and keeps what it has.
- */
+/** The stored contest as the controls hold it. */
 export function fieldsFromContest(contest: ContestFieldSource): ContestGeneralFields {
+  const restricted = contest.entry.kind === "restricted" ? contest.entry : null;
+
   return {
     name: contest.name,
     description: contest.description,
@@ -147,28 +123,29 @@ export function fieldsFromContest(contest: ContestFieldSource): ContestGeneralFi
     // Whole minutes. A stored value that is not a whole number of minutes cannot
     // survive the round trip, and would be rewritten to the nearest one by any
     // save that touches the schedule.
-    timeLimit: contest.timeLimit === null ? "" : String(Math.round(contest.timeLimit / 60)),
+    windowMinutes:
+      contest.schedule.kind === "window" ? String(Math.round(contest.schedule.seconds / 60)) : "",
     isVisible: contest.isVisible,
-    isRated: contest.isRated,
-    ratingFloor: contest.ratingFloor?.toString() ?? "",
-    ratingCeiling: contest.ratingCeiling?.toString() ?? "",
-    performanceCeiling: contest.performanceCeilingOverride?.toString() ?? "",
-    rateAll: contest.rateAll,
-    rateExclude: contest.rateExclude,
+    entry: contest.entry.kind,
+    entryMatch: restricted?.match ?? "all",
+    organizationSlugs: restricted?.organizationSlugs ?? [],
+    classNames: restricted?.classNames ?? [],
+    namedUsers: restricted?.usernames ?? [],
+    joinOrganizationSlugs: contest.joinLimit?.organizationSlugs ?? [],
+    accessCode: contest.accessCode,
     formatName: contest.formatName,
     formatConfig: toJson(contest.formatConfig),
-    labelScheme: contest.labelScheme === "custom" ? "custom" : "letters",
-    customLabels: contest.customLabels.join(", "),
+    labels: contest.labels.kind,
+    customLabels: contest.labels.kind === "custom" ? contest.labels.labels.join(", ") : "",
     scoreboardVisibility: contest.scoreboardVisibility,
-    freezeMinutes: String(contest.freezeMinutes),
-    blindDuringFreeze: contest.blindDuringFreeze,
-    accessCode: contest.accessCode,
-    isPrivate: contest.isPrivate,
-    isOrganizationPrivate: contest.isOrganizationPrivate,
-    privateContestants: contest.privateContestants,
-    organizationSlugs: contest.organizationSlugs,
-    classNames: contest.classNames,
-    joinOrganizationSlugs: contest.joinOrganizationSlugs,
+    freezeMinutes: contest.freeze ? String(contest.freeze.minutes) : "",
+    blind: contest.freeze?.blind ?? false,
+    isRated: contest.rating !== null,
+    rateEveryone: contest.rating?.everyone ?? false,
+    ratingFloor: contest.rating?.floor?.toString() ?? "",
+    ratingCeiling: contest.rating?.ceiling?.toString() ?? "",
+    performanceCeiling: contest.rating?.performanceCeiling?.toString() ?? "",
+    rateExclude: contest.rating?.excluded ?? [],
     tagNames: contest.tagNames,
     lockedAfter: contest.lockedAfter,
     pointsPrecision: String(contest.pointsPrecision),
@@ -177,27 +154,120 @@ export function fieldsFromContest(contest: ContestFieldSource): ContestGeneralFi
     hideProblemAuthors: contest.hideProblemAuthors,
     runPretestsOnly: contest.runPretestsOnly,
     proctorRequired: contest.proctorRequired,
-    showShortDisplay: contest.showShortDisplay,
     useClarifications: contest.useClarifications,
-    ogImage: contest.ogImage,
-    logoOverrideImage: contest.logoOverrideImage,
     bannedUsers: contest.bannedUsers,
   };
 }
 
-/** The ids the names on the form resolved to, from `useResolvedRefs`. */
-export interface FieldRefs {
-  profileIdsFor: (usernames: readonly string[]) => Id<"profiles">[];
-  organizationIds: Id<"organizations">[];
-  joinOrganizationIds: Id<"organizations">[];
-  classIds: Id<"classes">[];
-  tagIds: Id<"contestTags">[];
+/**
+ * What the names on the form stand for. The mutation wants document ids, from
+ * `useResolvedRefs`; the summary is happy with the names themselves, because
+ * it only ever counts them.
+ */
+export interface SettingsRefs<P extends string, O extends string, C extends string> {
+  profileIdsFor: (usernames: readonly string[]) => P[];
+  organizationIds: O[];
+  joinOrganizationIds: O[];
+  classIds: C[];
 }
 
-/** Every argument `admin.contests.update` takes from this tab, except `key` and `reason`. */
-export type ContestGeneralArgs = ReturnType<typeof argsFromFields>;
+/** The ids the names on the form resolved to, from `useResolvedRefs`. */
+export type FieldRefs<P extends string, O extends string, C extends string, T extends string> = SettingsRefs<
+  P,
+  O,
+  C
+> & {
+  tagIds: T[];
+};
 
-export function argsFromFields(fields: ContestGeneralFields, refs: FieldRefs, formatConfig: FormatConfig) {
+function optionalNumber(text: string): number | undefined {
+  return text.trim() ? Number(text) : undefined;
+}
+
+/** The settings the form holds, as the shapes the contest stores. */
+function settingsOf<P extends string, O extends string, C extends string>(
+  fields: ContestGeneralFields,
+  refs: SettingsRefs<P, O, C>,
+) {
+  return {
+    schedule: fields.windowMinutes.trim()
+      ? { kind: "window" as const, seconds: Number(fields.windowMinutes) * 60 }
+      : { kind: "together" as const },
+    entry:
+      fields.entry === "open"
+        ? { kind: "open" as const }
+        : {
+            kind: "restricted" as const,
+            match: fields.entryMatch,
+            organizationIds: refs.organizationIds,
+            classIds: refs.classIds,
+            profileIds: refs.profileIdsFor(fields.namedUsers),
+          },
+    // A join limit naming nobody admits nobody, and nothing wants to say that,
+    // so the limit exists exactly when the list has somebody in it.
+    joinLimit: fields.joinOrganizationSlugs.length > 0 ? { organizationIds: refs.joinOrganizationIds } : null,
+    freeze: fields.freezeMinutes.trim()
+      ? { minutes: Number(fields.freezeMinutes), blind: fields.blind }
+      : null,
+    rating: fields.isRated
+      ? {
+          everyone: fields.rateEveryone,
+          excludeProfileIds: refs.profileIdsFor(fields.rateExclude),
+          floor: optionalNumber(fields.ratingFloor),
+          ceiling: optionalNumber(fields.ratingCeiling),
+          performanceCeiling: optionalNumber(fields.performanceCeiling),
+        }
+      : null,
+    labels:
+      fields.labels === "custom"
+        ? {
+            kind: "custom" as const,
+            labels: fields.customLabels
+              .split(",")
+              .map((label) => label.trim())
+              .filter(Boolean),
+          }
+        : { kind: "letters" as const },
+  };
+}
+
+/**
+ * The draft as the summary reads it: names stand in for ids, and a date the
+ * picker has momentarily emptied reads as the stored one.
+ */
+export function describeSourceOf(
+  fields: ContestGeneralFields,
+  saved: { startTime: number; endTime: number },
+): DescribeSource {
+  const settings = settingsOf(fields, {
+    profileIdsFor: (usernames) => [...usernames],
+    organizationIds: fields.organizationSlugs,
+    joinOrganizationIds: fields.joinOrganizationSlugs,
+    classIds: fields.classNames,
+  });
+
+  return {
+    startTime: fields.startTime ?? saved.startTime,
+    endTime: fields.endTime ?? saved.endTime,
+    schedule: settings.schedule,
+    entry: settings.entry,
+    joinLimit: settings.joinLimit ?? undefined,
+    freeze: settings.freeze ? settings.freeze : undefined,
+    rating: settings.rating ?? undefined,
+    labels: settings.labels,
+    isVisible: fields.isVisible,
+    accessCode: fields.accessCode.trim() || null,
+    lockedAfter: fields.lockedAfter,
+    runPretestsOnly: fields.runPretestsOnly,
+  };
+}
+
+/** Every argument `admin.contests.update` takes from these tabs, except `key` and `reason`. */
+export function argsFromFields<P extends string, O extends string, C extends string, T extends string>(
+  fields: ContestGeneralFields,
+  refs: FieldRefs<P, O, C, T>,
+  formatConfig: FormatConfig,
+) {
   return {
     name: fields.name,
     description: fields.description,
@@ -206,36 +276,12 @@ export function argsFromFields(fields: ContestGeneralFields, refs: FieldRefs, fo
     // null here is a transient state and leaving the key out keeps what is stored.
     startTime: fields.startTime ?? undefined,
     endTime: fields.endTime ?? undefined,
-    timeLimit: fields.timeLimit.trim() ? Number(fields.timeLimit) * 60 : null,
+    ...settingsOf(fields, refs),
     isVisible: fields.isVisible,
-    isRated: fields.isRated,
-    ratingFloor: fields.ratingFloor.trim() ? Number(fields.ratingFloor) : null,
-    ratingCeiling: fields.ratingCeiling.trim() ? Number(fields.ratingCeiling) : null,
-    performanceCeilingOverride: fields.performanceCeiling.trim() ? Number(fields.performanceCeiling) : null,
-    rateAll: fields.rateAll,
-    rateExcludeProfileIds: refs.profileIdsFor(fields.rateExclude),
+    accessCode: fields.accessCode.trim() || null,
     formatName: fields.formatName,
     formatConfig,
-    labelScheme: fields.labelScheme,
-    customLabels: fields.customLabels
-      .split(",")
-      .map((label) => label.trim())
-      .filter(Boolean),
     scoreboardVisibility: fields.scoreboardVisibility,
-    freezeMinutes: Number(fields.freezeMinutes) || 0,
-    blindDuringFreeze: fields.blindDuringFreeze,
-    accessCode: fields.accessCode.trim() || null,
-    isPrivate: fields.isPrivate,
-    privateContestantProfileIds: refs.profileIdsFor(fields.privateContestants),
-    // A control of its own now. Deriving it from whether the lists were empty
-    // meant clearing them silently opened the contest to everybody.
-    isOrganizationPrivate: fields.isOrganizationPrivate,
-    organizationIds: refs.organizationIds,
-    classIds: refs.classIds,
-    // A join limit naming nobody admits nobody, and nothing wants to say that,
-    // so the flag is whether the list has anything in it.
-    limitJoinOrganizations: fields.joinOrganizationSlugs.length > 0,
-    joinOrganizationIds: refs.joinOrganizationIds,
     tagIds: refs.tagIds,
     lockedAfter: fields.lockedAfter,
     pointsPrecision: Number(fields.pointsPrecision) || 0,
@@ -244,10 +290,7 @@ export function argsFromFields(fields: ContestGeneralFields, refs: FieldRefs, fo
     hideProblemAuthors: fields.hideProblemAuthors,
     runPretestsOnly: fields.runPretestsOnly,
     proctorRequired: fields.proctorRequired,
-    showShortDisplay: fields.showShortDisplay,
     useClarifications: fields.useClarifications,
-    ogImage: fields.ogImage.trim() || null,
-    logoOverrideImage: fields.logoOverrideImage.trim() || null,
     bannedProfileIds: refs.profileIdsFor(fields.bannedUsers),
   };
 }
@@ -255,24 +298,21 @@ export function argsFromFields(fields: ContestGeneralFields, refs: FieldRefs, fo
 /**
  * The arguments that differ, which is all a save needs to send.
  *
- * `admin.contests.update` skips every absent key (`copyField`), so a field left
- * out is a field left alone — including the two this form cannot represent
- * exactly. Comparison is structural, so a list reordered by the picker counts as
- * a change and a list merely re-resolved does not.
+ * `admin.contests.update` skips every absent key, so a field left out is a
+ * field left alone. Comparison is structural, so a list reordered by the picker
+ * counts as a change and a list merely re-resolved does not.
  */
-export function changedArgs(
-  before: ContestGeneralArgs,
-  after: ContestGeneralArgs,
-): Partial<ContestGeneralArgs> {
+export function changedArgs<Args extends object>(before: Args, after: Args): Partial<Args> {
   // SAFETY: the keys come from `after` itself, so each is one of its own; the
   // standard library types `Object.keys` as `string[]` only because a wider
   // object could have been passed, which this signature forbids. The entries
   // then carry `after`'s own values, so the result is a subset of its shape.
-  const keys = Object.keys(after) as (keyof ContestGeneralArgs)[];
+  const keys = Object.keys(after) as (keyof Args)[];
 
   const entries = keys
     .filter((key) => JSON.stringify(before[key]) !== JSON.stringify(after[key]))
     .map((key) => [key, after[key]] as const);
 
-  return Object.fromEntries(entries);
+  // SAFETY: `entries` pairs each of `after`'s own keys with its own value.
+  return Object.fromEntries(entries) as Partial<Args>;
 }

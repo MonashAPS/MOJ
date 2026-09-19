@@ -70,8 +70,7 @@ function ContestName({ contest }: { contest: ContestListRow }) {
       </Link>
       <ContestChips
         isVisible={contest.isVisible}
-        isPrivate={contest.isPrivate}
-        isOrganizationPrivate={contest.isOrganizationPrivate}
+        isOpenEntry={contest.isOpenEntry}
         isRated={contest.isRated}
         organizations={contest.organizations}
         tags={contest.tags}
@@ -86,11 +85,7 @@ function ContestBlock({ contest, when }: { contest: ContestListRow; when?: React
       <div className="grid gap-1">
         <ContestName contest={contest} />
         {when}
-        <ContestWindow
-          startTime={contest.startTime}
-          endTime={contest.endTime}
-          timeLimit={contest.timeLimit}
-        />
+        <ContestWindow startTime={contest.startTime} endTime={contest.endTime} schedule={contest.schedule} />
         {contest.progress ? <ContestProgress progress={contest.progress} /> : null}
       </div>
     </TableCell>
@@ -145,7 +140,10 @@ function ActiveRow({ participation }: { participation: ActiveParticipation }) {
       <ContestBlock
         contest={contest}
         when={
-          <Countdown sentence={contest.timeLimit ? "windowEndsIn" : "endsIn"} endsAt={participation.endsAt} />
+          <Countdown
+            sentence={contest.schedule.kind === "window" ? "windowEndsIn" : "endsIn"}
+            endsAt={participation.endsAt}
+          />
         }
       />
       <TableCell numeric className="align-middle">
