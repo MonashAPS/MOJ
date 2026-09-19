@@ -327,56 +327,64 @@ export function NewContestWizard() {
           ) : null}
 
           {step === "who" ? (
-            <AdminSection title={t("stepWhoTitle")} description={t("stepWhoHint")} columns={1}>
-              <AdminCheckField
-                label={setup("visible")}
-                hint={setup("visibleHint")}
-                checked={draft.isVisible}
-                onCheckedChange={(checked) => change({ isVisible: checked })}
-              />
-              <AdminCheckField
-                label={t("clarifications")}
-                hint={t("clarificationsHint")}
-                checked={draft.useClarifications}
-                onCheckedChange={(checked) => change({ useClarifications: checked })}
-              />
-              <AdminCheckField
-                label={setup("afterEndPublish")}
-                hint={setup("afterEndPublishHint")}
-                checked={draft.publishProblemsAtEnd}
-                onCheckedChange={(checked) => change({ publishProblemsAtEnd: checked })}
-              />
-              <ContestFreezeFields
-                values={draft}
-                scoreboardOptions={SCOREBOARD_OPTIONS.map((option) => ({
-                  value: option.value,
-                  label: general(option.labelKey),
-                }))}
-                onChange={({ scoreboardVisibility, ...patch }) =>
-                  change({
-                    ...patch,
-                    ...(scoreboardVisibility !== undefined && {
-                      scoreboardVisibility: chosenValue(
-                        SCOREBOARD_OPTIONS,
-                        scoreboardVisibility,
-                        draft.scoreboardVisibility,
-                      ),
-                    }),
-                  })
-                }
-              />
-              <RadioGroup
-                variant="card"
-                name="rating-mode"
-                ariaLabel={setup("ratingMode")}
-                value={draft.isRated ? "rated" : "unrated"}
-                onValueChange={(next) => change({ isRated: next === "rated" })}
-                options={[
-                  { value: "unrated", label: setup("unrated"), description: setup("unratedHint") },
-                  { value: "rated", label: setup("rated"), description: setup("ratedHint") },
-                ]}
-              />
-            </AdminSection>
+            <>
+              <AdminSection title={t("stepWhoTitle")} description={t("stepWhoHint")} columns={1}>
+                <AdminCheckField
+                  label={setup("visible")}
+                  hint={setup("visibleHint")}
+                  checked={draft.isVisible}
+                  onCheckedChange={(checked) => change({ isVisible: checked })}
+                />
+                <AdminCheckField
+                  label={t("clarifications")}
+                  hint={t("clarificationsHint")}
+                  checked={draft.useClarifications}
+                  onCheckedChange={(checked) => change({ useClarifications: checked })}
+                />
+                <AdminCheckField
+                  label={setup("afterEndPublish")}
+                  hint={setup("afterEndPublishHint")}
+                  checked={draft.publishProblemsAtEnd}
+                  onCheckedChange={(checked) => change({ publishProblemsAtEnd: checked })}
+                />
+              </AdminSection>
+
+              <AdminSection title={t("sectionScoreboard")} columns={1}>
+                <ContestFreezeFields
+                  values={draft}
+                  scoreboardOptions={SCOREBOARD_OPTIONS.map((option) => ({
+                    value: option.value,
+                    label: general(option.labelKey),
+                  }))}
+                  onChange={({ scoreboardVisibility, ...patch }) =>
+                    change({
+                      ...patch,
+                      ...(scoreboardVisibility !== undefined && {
+                        scoreboardVisibility: chosenValue(
+                          SCOREBOARD_OPTIONS,
+                          scoreboardVisibility,
+                          draft.scoreboardVisibility,
+                        ),
+                      }),
+                    })
+                  }
+                />
+              </AdminSection>
+
+              <AdminSection title={general("sectionRating")} columns={1}>
+                <RadioGroup
+                  variant="card"
+                  name="rating-mode"
+                  ariaLabel={setup("ratingMode")}
+                  value={draft.isRated ? "rated" : "unrated"}
+                  onValueChange={(next) => change({ isRated: next === "rated" })}
+                  options={[
+                    { value: "unrated", label: setup("unrated"), description: setup("unratedHint") },
+                    { value: "rated", label: setup("rated"), description: setup("ratedHint") },
+                  ]}
+                />
+              </AdminSection>
+            </>
           ) : null}
 
           <div className="flex flex-wrap items-center justify-between gap-2">
