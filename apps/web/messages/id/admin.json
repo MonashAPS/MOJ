@@ -760,7 +760,7 @@
       },
       "who": {
         "hidden": "Disembunyikan dari daftar kontes.",
-        "open": "Siapa pun bisa menemukannya dan masuk.",
+        "open": "Siapa pun yang punya akun bisa masuk.",
         "restrictedNobody": "Tidak ada selain staf, sampai seseorang disebutkan.",
         "restrictedOrganizations": "Hanya anggota organisasi dan kelas yang disebutkan.",
         "restrictedNamed": "Hanya {count, plural, other {# orang yang disebutkan}}.",

@@ -760,7 +760,7 @@
       },
       "who": {
         "hidden": "已从比赛列表中隐藏。",
-        "open": "任何人都可以找到并参加。",
+        "open": "任何拥有账号的人都可以参加。",
         "restrictedNobody": "在指定任何人之前，只有工作人员可以进入。",
         "restrictedOrganizations": "仅限所列组织和班级的成员。",
         "restrictedNamed": "仅限 {count, plural, other {# 位指定人员}}。",

@@ -760,7 +760,7 @@
       },
       "who": {
         "hidden": "Oculto de la lista de concursos.",
-        "open": "Cualquiera puede encontrarlo y entrar.",
+        "open": "Cualquiera con una cuenta puede entrar.",
         "restrictedNobody": "Nadie salvo el personal, hasta que se nombre a alguien.",
         "restrictedOrganizations": "Solo miembros de las organizaciones y clases que nombra.",
         "restrictedNamed": "Solo {count, plural, one {# persona nombrada} other {# personas nombradas}}.",
