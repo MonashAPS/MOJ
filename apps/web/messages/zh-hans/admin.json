@@ -212,6 +212,7 @@
         "limits": "语言限制",
         "clarifications": "答疑",
         "data": "测试数据",
+        "files": "文件",
         "revisions": "版本记录",
         "actions": "操作"
       },
@@ -466,6 +467,7 @@
         "access": "参赛范围",
         "scoring": "计分",
         "problems": "题目",
+        "files": "文件",
         "people": "人员",
         "actions": "操作",
         "history": "历史"
@@ -496,6 +498,7 @@
       "description": "简介",
       "descriptionHint": "支持 Markdown，将显示在比赛自己的页面上。",
       "sectionScheduling": "日程",
+      "sectionAfterwards": "比赛结束时",
       "starts": "开始时间",
       "start": "开始",
       "ends": "结束时间",
@@ -694,6 +697,11 @@
       "closes": "关闭",
       "windowLength": "每位选手可用",
       "windowLengthHint": "分钟，从加入的那一刻算起。",
+      "afterEndKeep": "题目保持原样",
+      "afterEndKeepHint": "比赛结束后，私有题目仍然私有。",
+      "afterEndPublish": "比赛结束时公开题目",
+      "afterEndPublishHint": "比赛一结束，每道题目即成为公开题目，任何人都可以练习。",
+      "afterEndDone": "已于 {at} 公开。",
       "lockedAfter": "锁定于",
       "lockedAfterHint": "提交将无法再编辑。留空表示永不。",
       "visible": "列出",
@@ -759,7 +767,9 @@
         "together": "所有人共用一个计时，罚时从开始计算。",
         "ownWindow": "每位选手从加入时起有 <b>{length}</b>，<b>罚时也从那时开始</b>。",
         "ownWindowCutoff": "在 <b>{at}</b> 之后加入会少于该时长。",
-        "locked": "提交在 <b>{at}</b> 之后无法再编辑。"
+        "locked": "提交在 <b>{at}</b> 之后无法再编辑。",
+        "publishAtEnd": "其题目将于 <b>{at}</b> 对所有人公开。",
+        "problemsPublished": "其题目已于 <b>{at}</b> 公开。"
       },
       "who": {
         "hidden": "已从比赛列表中隐藏。",
@@ -2172,6 +2182,7 @@
         "bannedUsers": "已封禁用户",
         "endTime": "结束",
         "entry": "准入",
+        "files": "文件",
         "formatConfig": "赛制配置",
         "formatName": "赛制",
         "freeze": "封榜",
@@ -2185,6 +2196,8 @@
         "lockedAfter": "锁定时间",
         "memoryLimit": "内存限制",
         "pointsPrecision": "分值精度",
+        "problemsPublishedAt": "题目公开时间",
+        "publishProblemsAtEnd": "结束时公开题目",
         "rating": "评分",
         "schedule": "计时方式",
         "shortCircuit": "遇错即停",
@@ -2193,6 +2206,30 @@
         "testerSeeScoreboard": "测试者可见排行榜",
         "testerSeeSubmissions": "测试者可见提交",
         "viewContestSubmissions": "可见提交"
+      }
+    },
+    "artefacts": {
+      "uploadTitle": "添加文件",
+      "uploadHint": "题解、印刷版题目册、题面放不下的数据。先选择谁可以下载，再选择文件。",
+      "choose": "选择文件",
+      "uploadFailed": "上传失败。",
+      "refused": "该更改被拒绝。",
+      "added": "已添加 {name}。",
+      "removed": "已删除 {name}。",
+      "emptyTitle": "还没有文件",
+      "emptyDescription": "在这里添加的文件会在题面旁提供下载。",
+      "listTitle": "{count, plural, other {# 个文件}}",
+      "columnName": "文件",
+      "columnSize": "大小",
+      "columnVisibility": "谁可以下载",
+      "columnUploaded": "上传时间",
+      "remove": "删除",
+      "removeTitle": "删除 {name}？",
+      "removeDescription": "文件将被删除，之后任何人都无法下载。",
+      "visibility": {
+        "staff": "仅工作人员",
+        "everyone": "所有能看到它的人",
+        "afterEnd": "所有人（比赛结束后）"
       }
     }
   },

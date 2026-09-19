@@ -11,6 +11,13 @@ crons.interval("judge offline marking", { minutes: 1 }, internal.judgeApi.markOf
 
 crons.interval("stale contest-mode cleanup", { minutes: 5 }, internal.jobs.contests.sweepContestMode, {});
 
+crons.interval(
+  "publish ended contests' problems",
+  { minutes: 5 },
+  internal.jobs.contests.publishEndedContestProblems,
+  {},
+);
+
 crons.interval("stats refresh", { minutes: 15 }, internal.stats.refresh, {});
 
 // Recordings are the largest thing stored and the least often looked at.

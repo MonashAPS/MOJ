@@ -213,5 +213,8 @@
     "stepKeepBody": "Kamu akan dikeluarkan dari kontes jika menutup tab ini",
     "liveTitle": "Semuanya berjalan",
     "liveKeepOpen": "Jangan tutup tab ini"
+  },
+  "files": {
+    "title": "Berkas"
   }
 }

@@ -24,6 +24,7 @@ import { useQuery } from "convex/react";
 import { BookOpen, CircleHelp, Clock } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { ArtefactList } from "@/components/artefacts/ArtefactList";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips, OPEN_ENDED, ProblemStateIcon, useHumanDuration } from "@/components/contests/pieces";
 import { useSkin } from "@/components/shell/SkinProvider";
@@ -339,6 +340,8 @@ function Sidebar({ detail }: { detail: ContestDetail }) {
           <InfoRow label={t("access")}>{t("accessCodeRequired")}</InfoRow>
         ) : null}
       </Panel>
+
+      <ArtefactList owner={{ kind: "contest", key: contest.key }} />
 
       {detail.format.shortFormDisplay.length > 0 ? (
         <Panel title={t("panelScoring")} bodyClassName="p-3">

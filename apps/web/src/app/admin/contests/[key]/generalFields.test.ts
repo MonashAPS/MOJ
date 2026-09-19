@@ -48,6 +48,8 @@ function contestEdit(overrides: Partial<ContestFieldSource> = {}): ContestFieldS
     hideProblemAuthors: false,
     runPretestsOnly: false,
     proctorRequired: false,
+    publishProblemsAtEnd: false,
+    problemsPublishedAt: null,
     useClarifications: true,
     bannedUsers: [],
     ...overrides,
@@ -102,6 +104,17 @@ describe("the shapes across the round trip", () => {
       classIds: ["FIT1045"],
       profileIds: ["alice"],
     });
+  });
+
+  it("sends publishing at the end as the flag it is", () => {
+    expect(patchAfterEditing(contestEdit(), { publishProblemsAtEnd: true })).toEqual({
+      publishProblemsAtEnd: true,
+    });
+    // Once published, the summary says so from the saved moment, not the draft.
+    const done = contestEdit({ publishProblemsAtEnd: true, problemsPublishedAt: Date.UTC(2026, 0, 1, 13) });
+    expect(describeSourceOf(fieldsFromContest(done), done).problemsPublishedAt).toBe(
+      Date.UTC(2026, 0, 1, 13),
+    );
   });
 
   it("keeps a rating band, with the blanks left out", () => {

@@ -8,7 +8,7 @@ import {
   dangerWarnings,
   describeContest,
 } from "@moj/core";
-import { Field, Input, MultiSelect, Panel, Select, Textarea, toast } from "@moj/ui";
+import { Field, Input, MultiSelect, Panel, RadioGroup, Select, Textarea, toast } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { useTranslations } from "next-intl";
 import { useId, useMemo, useState } from "react";
@@ -74,6 +74,7 @@ export function ContestGeneralTab({
   const on = (which: SettingsTab) => which === tab;
 
   const t = useTranslations("admin.contests.general");
+  const setup = useTranslations("admin.contests.setup");
   const scoring = useTranslations("contests.scoring");
   const warn = useTranslations("admin.contests.warnings");
   const humanDuration = useHumanDuration();
@@ -301,6 +302,32 @@ export function ContestGeneralTab({
               lockDisabledReason={missingPermission("judge.lock_contest")}
               onChange={change}
             />
+          </AdminSection>
+        ) : null}
+
+        {on("setup") ? (
+          <AdminSection title={t("sectionAfterwards")} columns={1}>
+            <RadioGroup
+              variant="card"
+              name="after-end"
+              ariaLabel={t("sectionAfterwards")}
+              value={draft.publishProblemsAtEnd ? "publish" : "keep"}
+              onValueChange={(next) => change({ publishProblemsAtEnd: next === "publish" })}
+              options={[
+                { value: "keep", label: setup("afterEndKeep"), description: setup("afterEndKeepHint") },
+                {
+                  value: "publish",
+                  label: setup("afterEndPublish"),
+                  description: setup("afterEndPublishHint"),
+                  disabled: contest.problemsPublishedAt !== null,
+                },
+              ]}
+            />
+            {contest.problemsPublishedAt !== null ? (
+              <p className="text-sm text-muted-foreground">
+                {setup("afterEndDone", { at: formatDateTime(contest.problemsPublishedAt) })}
+              </p>
+            ) : null}
           </AdminSection>
         ) : null}
 

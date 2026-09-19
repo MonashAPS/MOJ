@@ -56,6 +56,9 @@ const CORPUS: DescribeSource[] = [
     ...PLAIN,
     entry: { kind: "restricted", match: "all", organizationIds: [], classIds: [], profileIds: [] },
   },
+  // Publishes its problems when it ends; and one where that has happened.
+  { ...PLAIN, publishProblemsAtEnd: true },
+  { ...PLAIN, publishProblemsAtEnd: true, problemsPublishedAt: START + 3 * HOUR },
   // Rated, with a band that excludes newcomers and a custom label list.
   {
     ...PLAIN,

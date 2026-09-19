@@ -174,6 +174,19 @@ describe("an ordinary contest", () => {
   });
 });
 
+describe("the summary of a contest that publishes its problems", () => {
+  it("says when, and then that it did", () => {
+    const keys = (source: Parameters<typeof describeContest>[0]) =>
+      describeContest(source).map((line) => line.key);
+
+    expect(keys({ ...CONTEST, publishProblemsAtEnd: true })).toContain("publishAtEnd");
+    expect(keys({ ...CONTEST, publishProblemsAtEnd: true, problemsPublishedAt: START + 3 * HOUR })).toContain(
+      "problemsPublished",
+    );
+    expect(keys(CONTEST)).not.toContain("publishAtEnd");
+  });
+});
+
 describe("the summary of a windowed contest", () => {
   it("says the penalty clock starts when the competitor does", () => {
     const contest = { ...CONTEST, schedule: { kind: "window", seconds: HOUR / 1000 } } as const;

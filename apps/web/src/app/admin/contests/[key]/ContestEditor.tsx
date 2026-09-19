@@ -16,13 +16,13 @@ import { FileQuestion, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { AdminShell, RevisionsPanel } from "@/components/admin";
+import { AdminShell, ArtefactsEditor, RevisionsPanel } from "@/components/admin";
 import { ContestActionsTab } from "./ContestActionsTab";
 import { ContestGeneralTab } from "./ContestGeneralTab";
 import { ContestPeopleTab } from "./ContestPeopleTab";
 import { ContestProblemsTab } from "./ContestProblemsTab";
 
-const TABS = ["setup", "access", "scoring", "problems", "people", "actions", "history"] as const;
+const TABS = ["setup", "access", "scoring", "problems", "files", "people", "actions", "history"] as const;
 
 /**
  * Where the tabs that used to exist now live. `general` was one page of nine
@@ -118,6 +118,8 @@ export function ContestEditor({ contestKey }: { contestKey: string }) {
         <ContestGeneralTab contest={contest} options={options} tab={active} />
       ) : active === "problems" ? (
         <ContestProblemsTab contest={contest} />
+      ) : active === "files" ? (
+        <ArtefactsEditor owner={{ kind: "contest", key: contestKey }} hasEnd />
       ) : active === "people" ? (
         <ContestPeopleTab contest={contest} />
       ) : active === "actions" ? (

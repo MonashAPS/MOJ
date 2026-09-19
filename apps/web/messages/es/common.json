@@ -213,5 +213,8 @@
     "stepKeepBody": "Saldrás del concurso si cierras esta pestaña",
     "liveTitle": "Todo funciona",
     "liveKeepOpen": "No cierres esta pestaña"
+  },
+  "files": {
+    "title": "Archivos"
   }
 }

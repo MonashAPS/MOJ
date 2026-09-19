@@ -212,6 +212,7 @@
         "limits": "Language limits",
         "clarifications": "Clarifications",
         "data": "Test data",
+        "files": "Files",
         "revisions": "Revisions",
         "actions": "Actions"
       },
@@ -466,6 +467,7 @@
         "access": "Access",
         "scoring": "Scoring",
         "problems": "Problems",
+        "files": "Files",
         "people": "People",
         "actions": "Actions",
         "history": "History"
@@ -496,6 +498,7 @@
       "description": "Description",
       "descriptionHint": "Markdown, shown on the contest's own page.",
       "sectionScheduling": "Scheduling",
+      "sectionAfterwards": "When it ends",
       "starts": "Starts",
       "start": "Start",
       "ends": "Ends",
@@ -694,6 +697,11 @@
       "closes": "Closes",
       "windowLength": "Each contestant gets",
       "windowLengthHint": "Minutes, from the moment they join.",
+      "afterEndKeep": "Keep the problems as they are",
+      "afterEndKeepHint": "Private problems stay private after the contest.",
+      "afterEndPublish": "Publish the problems when it ends",
+      "afterEndPublishHint": "Every problem becomes public the moment the contest ends, so anyone can practise it.",
+      "afterEndDone": "Published on {at}.",
       "lockedAfter": "Locked after",
       "lockedAfterHint": "Submissions stop being editable. Empty for never.",
       "visible": "Listed",
@@ -759,7 +767,9 @@
         "together": "Everyone shares one clock, and penalty time counts from the start.",
         "ownWindow": "Each contestant gets <b>{length}</b> from when they join, and <b>their penalty time starts then too</b>.",
         "ownWindowCutoff": "Joining after <b>{at}</b> leaves less than that.",
-        "locked": "Submissions stop being editable after <b>{at}</b>."
+        "locked": "Submissions stop being editable after <b>{at}</b>.",
+        "publishAtEnd": "Its problems are published to everyone at <b>{at}</b>.",
+        "problemsPublished": "Its problems were published on <b>{at}</b>."
       },
       "who": {
         "hidden": "Hidden from the contest list.",
@@ -2172,6 +2182,7 @@
         "bannedUsers": "Banned users",
         "endTime": "End",
         "entry": "Entry",
+        "files": "Files",
         "formatConfig": "Format configuration",
         "formatName": "Format",
         "freeze": "Freeze",
@@ -2185,6 +2196,8 @@
         "lockedAfter": "Locked after",
         "memoryLimit": "Memory limit",
         "pointsPrecision": "Points precision",
+        "problemsPublishedAt": "Problems published",
+        "publishProblemsAtEnd": "Publish problems at the end",
         "rating": "Rating",
         "schedule": "Clock",
         "shortCircuit": "Short circuit",
@@ -2193,6 +2206,30 @@
         "testerSeeScoreboard": "Testers see the scoreboard",
         "testerSeeSubmissions": "Testers see submissions",
         "viewContestSubmissions": "Submission viewers"
+      }
+    },
+    "artefacts": {
+      "uploadTitle": "Add a file",
+      "uploadHint": "An editorial, a printed booklet, data too big for the statement. Choose who may download it, then pick the file.",
+      "choose": "Choose a file",
+      "uploadFailed": "The upload did not go through.",
+      "refused": "That change was refused.",
+      "added": "Added {name}.",
+      "removed": "Removed {name}.",
+      "emptyTitle": "No files yet",
+      "emptyDescription": "Files added here are offered for download beside the statement.",
+      "listTitle": "{count, plural, one {# file} other {# files}}",
+      "columnName": "File",
+      "columnSize": "Size",
+      "columnVisibility": "Who may download it",
+      "columnUploaded": "Uploaded",
+      "remove": "Remove",
+      "removeTitle": "Remove {name}?",
+      "removeDescription": "The file is deleted. Nobody can download it any more.",
+      "visibility": {
+        "staff": "Staff only",
+        "everyone": "Everyone who can see it",
+        "afterEnd": "Everyone, once it has ended"
       }
     }
   },

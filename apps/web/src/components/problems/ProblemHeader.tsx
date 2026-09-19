@@ -4,6 +4,7 @@ import { Button, PageTabs, type TabItem, TitleRow, TwoColumn } from "@moj/ui";
 import { CheckCircle2, CircleDashed, CircleSlash2, FileDown } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { ArtefactList } from "@/components/artefacts/ArtefactList";
 import { ProblemTabLink } from "@/components/problems/EditorialLink";
 import { type ProblemDetail, ProblemInfoBox } from "@/components/problems/ProblemInfoBox";
 import { type ProblemTabKey, problemTabs } from "@/components/problems/tabs";
@@ -92,7 +93,16 @@ export function ProblemPage({
       {/* `TitleRow`'s own rule, drawn here instead so it closes the tab row. */}
       <hr className="page-rule mb-6 mt-3" />
       <div id="content-body">
-        <TwoColumn side={<ProblemInfoBox problem={problem} />}>{children}</TwoColumn>
+        <TwoColumn
+          side={
+            <>
+              <ProblemInfoBox problem={problem} />
+              <ArtefactList owner={{ kind: "problem", code: problem.code }} />
+            </>
+          }
+        >
+          {children}
+        </TwoColumn>
       </div>
     </>
   );

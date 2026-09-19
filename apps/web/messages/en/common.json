@@ -213,5 +213,8 @@
     "stepKeepBody": "You will be exited out of the contest if you close this tab",
     "liveTitle": "It all works",
     "liveKeepOpen": "Do not close this tab"
+  },
+  "files": {
+    "title": "Files"
   }
 }

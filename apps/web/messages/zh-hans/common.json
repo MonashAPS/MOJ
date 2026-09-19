@@ -213,5 +213,8 @@
     "stepKeepBody": "关闭此标签页会让你退出比赛",
     "liveTitle": "一切正常",
     "liveKeepOpen": "请勿关闭此标签页"
+  },
+  "files": {
+    "title": "文件"
   }
 }
