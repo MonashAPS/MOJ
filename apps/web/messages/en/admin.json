@@ -742,7 +742,11 @@
         "ratedEveryone": "Rated, including competitors who submitted nothing.",
         "ratedBand": "Only competitors whose previous rating is between {floor} and {ceiling} are rated; anyone who has never been rated counts as {newcomer}.",
         "performanceCeiling": "Performance is capped at {at}."
-      }
+      },
+      "confirmTitle": "Save this anyway?",
+      "confirmBody": "These settings work, and they do something other than they look like they do.",
+      "confirmCancel": "Go back",
+      "confirmSave": "Save anyway"
     },
     "warnings": {
       "windowIsWholeContest": "The window is the whole contest, so it gives nobody extra time — but it still moves every competitor's penalty clock to the moment they joined. Choose \"Everyone at once\" unless that is what you want.",
