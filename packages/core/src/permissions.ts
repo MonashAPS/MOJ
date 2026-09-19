@@ -11,6 +11,7 @@
  * judge/models/interface.py, judge/models/profile.py.
  */
 
+import { type ContestEntry, entryOf, joinLimitOf } from "./contest/settings";
 import { participationHasEnded } from "./contestTiming";
 import type {
   BlogPostRow,
@@ -491,27 +492,42 @@ export function contestAccessCheck(contest: ContestRow, viewer: Viewer): Contest
   if (has(contest.spectatorProfileIds, viewer.id)) return ACCESS_OK;
 
   if (!contest.isVisible) return ACCESS_INACCESSIBLE;
+  const entry = entryOf(contest);
 
-  if (!contest.isPrivate && !contest.isOrganizationPrivate) return ACCESS_OK;
+  if (entry.kind === "open") return ACCESS_OK;
 
+  // Named "view the scoreboard", but it returns here, so it admits outright.
   if (has(contest.viewContestScoreboardProfileIds, viewer.id)) return ACCESS_OK;
 
-  const inOrg =
-    intersects(contest.organizationIds, viewer.organizationIds) ||
-    intersects(contest.classIds, viewer.classIds);
+  return entrySatisfiedBy(entry, viewer) ? ACCESS_OK : privateContest(contest);
+}
 
-  const inUsers = has(contest.privateContestantProfileIds, viewer.id);
+/**
+ * Whether a viewer clears a restricted contest's gates.
+ *
+ * An organisation gate is satisfied by an organisation *or* a class, and a
+ * `match` of "all" means every populated gate has to be cleared — so a contest
+ * with both an organisation gate and a named-people gate admits only the people
+ * in both, which is why turning the second on for an organisation contest locks
+ * out every member who is not also named.
+ */
+function entrySatisfiedBy(entry: Extract<ContestEntry, { kind: "restricted" }>, viewer: Viewer): boolean {
+  if (!isAuthenticated(viewer)) return false;
+  const gates: boolean[] = [];
 
-  if (!contest.isPrivate && contest.isOrganizationPrivate) {
-    return inOrg ? ACCESS_OK : privateContest(contest);
+  // Each gate that is on has to be cleared, and one naming nobody never is.
+  if (entry.byOrganization) {
+    gates.push(
+      intersects(entry.organizationIds, viewer.organizationIds) ||
+        intersects(entry.classIds, viewer.classIds),
+    );
   }
 
-  if (contest.isPrivate && !contest.isOrganizationPrivate) {
-    return inUsers ? ACCESS_OK : privateContest(contest);
-  }
+  if (entry.byName) gates.push(has(entry.profileIds, viewer.id));
 
-  // Both flags set: the user must clear both gates.
-  return inOrg && inUsers ? ACCESS_OK : privateContest(contest);
+  if (gates.length === 0) return false;
+
+  return entry.match === "all" ? gates.every(Boolean) : gates.some(Boolean);
 }
 
 /** `Contest.is_accessible_by(user)` (contest.py:441). */
@@ -554,9 +570,12 @@ export function contestIsLiveJoinableBy(
 
   if (contestHasCompletedContest(contest, viewer, context)) return false;
 
-  if (contest.limitJoinOrganizations) {
-    return intersects(contest.joinOrganizationIds, viewer.organizationIds);
-  }
+  const joinLimit = joinLimitOf(contest);
+
+  // Organisations only: a class that satisfies the entry gate does not satisfy
+  // this one, so a class-gated contest with a join limit is unjoinable by
+  // exactly the people it is for.
+  if (joinLimit) return intersects(joinLimit.organizationIds, viewer.organizationIds);
 
   return true;
 }
