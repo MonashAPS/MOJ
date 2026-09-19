@@ -463,12 +463,13 @@
       "breadcrumbConsole": "工作人员后台",
       "breadcrumbContests": "比赛",
       "tabs": {
-        "general": "常规",
+        "setup": "设置",
+        "access": "参赛范围",
+        "scoring": "计分",
         "problems": "题目",
         "people": "人员",
-        "proctoring": "监考",
         "actions": "操作",
-        "revisions": "版本记录"
+        "history": "历史"
       },
       "missingTitle": "没有此比赛",
       "missingDescription": "不存在该 ID 的比赛，或你没有编辑权限。",
@@ -570,7 +571,9 @@
       "bannedUsers": "已封禁用户",
       "bannedUsersHint": "他们无法加入，保存后也会被移出比赛模式。",
       "submit": "保存比赛",
-      "reasonHint": "会随版本记录一同保存，方便他人了解此比赛的变更原因。"
+      "reasonHint": "会随版本记录一同保存，方便他人了解此比赛的变更原因。",
+      "proctorRequired": "需要共享屏幕",
+      "proctorRequiredHint": "只有在选手共享整个屏幕时题目才会打开。"
     },
     "problems": {
       "refused": "更改被拒绝。",
@@ -696,13 +699,6 @@
           "action": "解锁"
         }
       }
-    },
-    "proctoring": {
-      "title": "监考",
-      "intro": "有监考的比赛只在参赛者共享整个屏幕期间开放题目",
-      "required": "要求共享屏幕",
-      "saved": "监考设置已保存",
-      "refused": "评测机拒绝了本次修改。"
     },
     "setup": {
       "scheduleMode": "计时方式",

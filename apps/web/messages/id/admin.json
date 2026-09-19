@@ -463,12 +463,13 @@
       "breadcrumbConsole": "Konsol staf",
       "breadcrumbContests": "Kontes",
       "tabs": {
-        "general": "Umum",
+        "setup": "Pengaturan",
+        "access": "Akses",
+        "scoring": "Penilaian",
         "problems": "Soal",
         "people": "Orang",
-        "proctoring": "Pengawasan",
-        "actions": "Aksi",
-        "revisions": "Revisi"
+        "actions": "Tindakan",
+        "history": "Riwayat"
       },
       "missingTitle": "Kontes tidak ditemukan",
       "missingDescription": "Tidak ada kontes dengan ID tersebut, atau Anda tidak memiliki izin untuk mengeditnya.",
@@ -570,7 +571,9 @@
       "bannedUsers": "Pengguna yang diblokir",
       "bannedUsersHint": "Mereka tidak dapat bergabung, dan akan dikeluarkan dari mode kontes saat ini disimpan.",
       "submit": "Simpan kontes",
-      "reasonHint": "Disimpan bersama revisi agar orang berikutnya tahu alasan perubahan kontes ini."
+      "reasonHint": "Disimpan bersama revisi agar orang berikutnya tahu alasan perubahan kontes ini.",
+      "proctorRequired": "Wajib berbagi layar",
+      "proctorRequiredHint": "Soal hanya terbuka selama peserta membagikan seluruh layarnya."
     },
     "problems": {
       "refused": "Perubahan ditolak.",
@@ -696,13 +699,6 @@
           "action": "Buka kunci"
         }
       }
-    },
-    "proctoring": {
-      "title": "Pengawasan",
-      "intro": "Kontes yang diawasi hanya membuka soalnya selama peserta membagikan seluruh layarnya",
-      "required": "Wajibkan berbagi layar",
-      "saved": "Pengaturan pengawasan tersimpan",
-      "refused": "Juri menolak perubahan ini."
     },
     "setup": {
       "scheduleMode": "Bagaimana jam berjalan",

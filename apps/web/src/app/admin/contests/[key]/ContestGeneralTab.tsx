@@ -56,13 +56,25 @@ const LABEL_SCHEME_OPTIONS = [
 ] as const;
 
 /** `ContestAdmin.fieldsets`, every field, on one page with the reason at the end. */
+/** Which of the three settings tabs is on screen. */
+export type SettingsTab = "setup" | "access" | "scoring";
+
 export function ContestGeneralTab({
   contest,
   options,
+  tab,
 }: {
   contest: ContestEdit;
   options: ContestOptions | undefined;
+  tab: SettingsTab;
 }) {
+  /**
+   * The three tabs are one form with one draft and one save, so a field is
+   * still only sent when it changed and the summary still describes the whole
+   * contest rather than the part on screen.
+   */
+  const on = (which: SettingsTab) => which === tab;
+
   const t = useTranslations("admin.contests.general");
   const scoring = useTranslations("contests.scoring");
   const warn = useTranslations("admin.contests.warnings");
@@ -139,6 +151,7 @@ export function ContestGeneralTab({
   const [disableLockdown, setHideNonContestProblems] = useState(initial.disableLockdown);
   const [hideProblemAuthors, setHideProblemAuthors] = useState(initial.hideProblemAuthors);
   const [runPretestsOnly, setRunPretestsOnly] = useState(initial.runPretestsOnly);
+  const [proctorRequired, setProctorRequired] = useState(initial.proctorRequired);
   const [showShortDisplay, setShowShortDisplay] = useState(initial.showShortDisplay);
   const [useClarifications, setUseClarifications] = useState(initial.useClarifications);
   const [ogImage, setOgImage] = useState(initial.ogImage);
@@ -236,6 +249,7 @@ export function ContestGeneralTab({
     disableLockdown,
     hideProblemAuthors,
     runPretestsOnly,
+    proctorRequired,
     showShortDisplay,
     useClarifications,
     ogImage,
@@ -366,299 +380,327 @@ export function ContestGeneralTab({
       <AdminForm onSubmit={save} dirty={dirty}>
         <AdminFormError message={error} />
 
-        <AdminSection title={t("sectionGeneral")}>
-          <Field label={t("key")}>
-            <Input mono value={contest.key} readOnly disabled title={t("keyFixed")} />
-          </Field>
-          <Field label={t("name")} htmlFor={ids.name}>
-            <Input id={ids.name} value={name} onChange={(event) => setName(event.target.value)} />
-          </Field>
-          <Field
-            label={t("summary")}
-            htmlFor={ids.summary}
-            optional={t("optional")}
-            className="sm:col-span-2"
-          >
-            <Input
-              id={ids.summary}
-              value={summary}
-              onChange={(event) => setSummary(event.target.value)}
-              placeholder={t("summaryPlaceholder")}
-            />
-          </Field>
-        </AdminSection>
-
-        <Panel title={t("sectionDescription")} bodyClassName="p-4">
-          <Field label={t("description")} hint={t("descriptionHint")}>
-            <MarkdownEditor value={description} onChange={setDescription} preset="contest" rows={14} />
-          </Field>
-        </Panel>
-
-        <AdminSection title={t("sectionScheduling")} columns={1}>
-          <ContestScheduleFields
-            startTime={startTime}
-            endTime={endTime}
-            windowMinutes={timeLimit}
-            lockedAfter={lockedAfter}
-            canLock={permissions.lockContest}
-            lockDisabledReason={t("missingPermission", { permission: "judge.lock_contest" })}
-            onChange={(patch) => {
-              if (patch.startTime !== undefined) setStartTime(patch.startTime);
-
-              if (patch.endTime !== undefined) setEndTime(patch.endTime);
-
-              if (patch.windowMinutes !== undefined) setTimeLimit(patch.windowMinutes);
-
-              if (patch.lockedAfter !== undefined) setLockedAfter(patch.lockedAfter);
-            }}
-          />
-        </AdminSection>
-
-        <AdminSection title={t("sectionSettings")}>
-          <AdminWideField>
-            <div className="grid gap-2 sm:grid-cols-3">
-              <AdminCheckField
-                label={t("clarifications")}
-                hint={t("clarificationsHint")}
-                checked={useClarifications}
-                onCheckedChange={setUseClarifications}
-              />
-              <AdminCheckField
-                label={t("hideProblemTags")}
-                checked={hideProblemTags}
-                onCheckedChange={setHideProblemTags}
-              />
-              <AdminCheckField
-                label={t("hideProblemAuthors")}
-                checked={hideProblemAuthors}
-                onCheckedChange={setHideProblemAuthors}
-              />
-              <AdminCheckField
-                label={t("disableLockdown")}
-                hint={t("disableLockdownHint")}
-                checked={disableLockdown}
-                onCheckedChange={setHideNonContestProblems}
-              />
-              <AdminCheckField
-                label={t("pretestsOnly")}
-                hint={t("pretestsOnlyHint")}
-                checked={runPretestsOnly}
-                onCheckedChange={setRunPretestsOnly}
-              />
-              <AdminCheckField
-                label={t("shortDisplay")}
-                hint={t("shortDisplayHint")}
-                checked={showShortDisplay}
-                onCheckedChange={setShowShortDisplay}
-              />
-            </div>
-          </AdminWideField>
-          <Field label={t("pointsPrecision")} htmlFor={ids.precision} hint={t("pointsPrecisionHint")}>
-            <Input
-              id={ids.precision}
-              mono
-              inputMode="numeric"
-              value={pointsPrecision}
-              onChange={(event) => setPointsPrecision(event.target.value)}
-            />
-          </Field>
-        </AdminSection>
-
-        <AdminSection title={t("sectionFreeze")} columns={1}>
-          <ContestFreezeFields
-            values={{ freezeMinutes, blindDuringFreeze, scoreboardVisibility }}
-            scoreboardOptions={SCOREBOARD_OPTIONS.map((option) => ({
-              value: option.value,
-              label: t(option.labelKey),
-            }))}
-            onChange={(patch) => {
-              if (patch.freezeMinutes !== undefined) setFreezeMinutes(patch.freezeMinutes);
-
-              if (patch.blindDuringFreeze !== undefined) setBlindDuringFreeze(patch.blindDuringFreeze);
-
-              if (patch.scoreboardVisibility !== undefined) {
-                setScoreboardVisibility(
-                  chosenValue(SCOREBOARD_OPTIONS, patch.scoreboardVisibility, scoreboardVisibility),
-                );
-              }
-            }}
-          />
-        </AdminSection>
-
-        <AdminSection title={t("sectionFormat")}>
-          <Field label={t("format")} htmlFor={ids.format}>
-            <Select
-              id={ids.format}
-              value={formatName}
-              onValueChange={(value) => {
-                setFormatName(value);
-                const chosen = (formats ?? []).find((row) => row.name === value);
-
-                if (chosen) setFormatConfig(toJson(chosen.configDefaults));
-              }}
-              options={(formats ?? []).map((row) => ({ value: row.name, label: row.displayName }))}
-            />
-          </Field>
-          <Field label={t("labelScheme")} htmlFor={ids.labelScheme}>
-            <Select
-              id={ids.labelScheme}
-              value={labelScheme}
-              onValueChange={(value) => setLabelScheme(chosenValue(LABEL_SCHEME_OPTIONS, value, labelScheme))}
-              options={LABEL_SCHEME_OPTIONS.map((option) => ({
-                value: option.value,
-                label: t(option.labelKey),
-              }))}
-            />
-          </Field>
-          <Field
-            label={t("formatConfig")}
-            htmlFor={ids.formatConfig}
-            error={configError ?? undefined}
-            hint={
-              described?.lines?.length
-                ? described.lines.map((line) => scoring(line.key, line.values)).join(" ")
-                : t("formatConfigHint")
-            }
-            className="sm:col-span-2"
-          >
-            <Textarea
-              id={ids.formatConfig}
-              mono
-              rows={6}
-              invalid={!!configError}
-              value={formatConfig}
-              onChange={(event) => setFormatConfig(event.target.value)}
-              placeholder={'{\n  "penalty": 20\n}'}
-            />
-          </Field>
-          {labelScheme === "custom" ? (
+        {on("setup") ? (
+          <AdminSection title={t("sectionGeneral")}>
+            <Field label={t("key")}>
+              <Input mono value={contest.key} readOnly disabled title={t("keyFixed")} />
+            </Field>
+            <Field label={t("name")} htmlFor={ids.name}>
+              <Input id={ids.name} value={name} onChange={(event) => setName(event.target.value)} />
+            </Field>
             <Field
-              label={t("customLabels")}
-              htmlFor={ids.customLabels}
-              hint={t("customLabelsHint")}
+              label={t("summary")}
+              htmlFor={ids.summary}
+              optional={t("optional")}
               className="sm:col-span-2"
             >
               <Input
-                id={ids.customLabels}
-                mono
-                value={customLabels}
-                onChange={(event) => setCustomLabels(event.target.value)}
-                placeholder="A1, A2, B1"
+                id={ids.summary}
+                value={summary}
+                onChange={(event) => setSummary(event.target.value)}
+                placeholder={t("summaryPlaceholder")}
               />
             </Field>
-          ) : null}
-        </AdminSection>
+          </AdminSection>
+        ) : null}
 
-        <AdminSection title={t("sectionRating")} columns={1}>
-          <ContestRatingFields
-            values={{ isRated, rateAll, ratingFloor, ratingCeiling, performanceCeiling, rateExclude }}
-            canRate={permissions.contestRating}
-            canOverridePerformanceCeiling={permissions.overridePerformanceCeiling}
-            missingPermission={(permission) => t("missingPermission", { permission })}
-            onChange={(patch) => {
-              if (patch.isRated !== undefined) setIsRated(patch.isRated);
+        {on("setup") ? (
+          <Panel title={t("sectionDescription")} bodyClassName="p-4">
+            <Field label={t("description")} hint={t("descriptionHint")}>
+              <MarkdownEditor value={description} onChange={setDescription} preset="contest" rows={14} />
+            </Field>
+          </Panel>
+        ) : null}
 
-              if (patch.rateAll !== undefined) setRateAll(patch.rateAll);
+        {on("setup") ? (
+          <AdminSection title={t("sectionScheduling")} columns={1}>
+            <ContestScheduleFields
+              startTime={startTime}
+              endTime={endTime}
+              windowMinutes={timeLimit}
+              lockedAfter={lockedAfter}
+              canLock={permissions.lockContest}
+              lockDisabledReason={t("missingPermission", { permission: "judge.lock_contest" })}
+              onChange={(patch) => {
+                if (patch.startTime !== undefined) setStartTime(patch.startTime);
 
-              if (patch.ratingFloor !== undefined) setRatingFloor(patch.ratingFloor);
+                if (patch.endTime !== undefined) setEndTime(patch.endTime);
 
-              if (patch.ratingCeiling !== undefined) setRatingCeiling(patch.ratingCeiling);
+                if (patch.windowMinutes !== undefined) setTimeLimit(patch.windowMinutes);
 
-              if (patch.performanceCeiling !== undefined) setPerformanceCeiling(patch.performanceCeiling);
+                if (patch.lockedAfter !== undefined) setLockedAfter(patch.lockedAfter);
+              }}
+            />
+          </AdminSection>
+        ) : null}
 
-              if (patch.rateExclude !== undefined) setRateExclude(patch.rateExclude);
-            }}
-          />
-        </AdminSection>
+        {on("setup") ? (
+          <AdminSection title={t("sectionSettings")}>
+            <AdminWideField>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <AdminCheckField
+                  label={t("clarifications")}
+                  hint={t("clarificationsHint")}
+                  checked={useClarifications}
+                  onCheckedChange={setUseClarifications}
+                />
+                <AdminCheckField
+                  label={t("hideProblemTags")}
+                  checked={hideProblemTags}
+                  onCheckedChange={setHideProblemTags}
+                />
+                <AdminCheckField
+                  label={t("hideProblemAuthors")}
+                  checked={hideProblemAuthors}
+                  onCheckedChange={setHideProblemAuthors}
+                />
+                <AdminCheckField
+                  label={t("disableLockdown")}
+                  hint={t("disableLockdownHint")}
+                  checked={disableLockdown}
+                  onCheckedChange={setHideNonContestProblems}
+                />
+                <AdminCheckField
+                  label={t("proctorRequired")}
+                  hint={t("proctorRequiredHint")}
+                  checked={proctorRequired}
+                  onCheckedChange={setProctorRequired}
+                />
+                <AdminCheckField
+                  label={t("pretestsOnly")}
+                  hint={t("pretestsOnlyHint")}
+                  checked={runPretestsOnly}
+                  onCheckedChange={setRunPretestsOnly}
+                />
+                <AdminCheckField
+                  label={t("shortDisplay")}
+                  hint={t("shortDisplayHint")}
+                  checked={showShortDisplay}
+                  onCheckedChange={setShowShortDisplay}
+                />
+              </div>
+            </AdminWideField>
+            <Field label={t("pointsPrecision")} htmlFor={ids.precision} hint={t("pointsPrecisionHint")}>
+              <Input
+                id={ids.precision}
+                mono
+                inputMode="numeric"
+                value={pointsPrecision}
+                onChange={(event) => setPointsPrecision(event.target.value)}
+              />
+            </Field>
+          </AdminSection>
+        ) : null}
 
-        <AdminSection title={t("sectionAccess")} columns={1}>
-          <ContestEntryFields
-            values={{
-              isVisible,
-              isPrivate,
-              isOrganizationPrivate,
-              privateContestants,
-              organizationSlugs,
-              classNames,
-              joinOrganizationSlugs,
-              accessCode,
-            }}
-            organizationOptions={(options?.organizations ?? []).map((row) => ({
-              value: row.slug,
-              label: row.name,
-            }))}
-            classOptions={(options?.classes ?? []).map((row) => ({
-              value: row.name,
-              label: row.organization ? `${row.name} (${row.organization})` : row.name,
-            }))}
-            canRestrict={permissions.createPrivateContest}
-            canSetAccessCode={permissions.contestAccessCode}
-            canChangeVisibility={permissions.changeContestVisibility}
-            missingPermission={(permission) => t("missingPermission", { permission })}
-            onChange={(patch) => {
-              if (patch.isVisible !== undefined) setIsVisible(patch.isVisible);
+        {on("scoring") ? (
+          <AdminSection title={t("sectionFreeze")} columns={1}>
+            <ContestFreezeFields
+              values={{ freezeMinutes, blindDuringFreeze, scoreboardVisibility }}
+              scoreboardOptions={SCOREBOARD_OPTIONS.map((option) => ({
+                value: option.value,
+                label: t(option.labelKey),
+              }))}
+              onChange={(patch) => {
+                if (patch.freezeMinutes !== undefined) setFreezeMinutes(patch.freezeMinutes);
 
-              if (patch.isPrivate !== undefined) setIsPrivate(patch.isPrivate);
+                if (patch.blindDuringFreeze !== undefined) setBlindDuringFreeze(patch.blindDuringFreeze);
 
-              if (patch.isOrganizationPrivate !== undefined) {
-                setIsOrganizationPrivate(patch.isOrganizationPrivate);
+                if (patch.scoreboardVisibility !== undefined) {
+                  setScoreboardVisibility(
+                    chosenValue(SCOREBOARD_OPTIONS, patch.scoreboardVisibility, scoreboardVisibility),
+                  );
+                }
+              }}
+            />
+          </AdminSection>
+        ) : null}
+
+        {on("scoring") ? (
+          <AdminSection title={t("sectionFormat")}>
+            <Field label={t("format")} htmlFor={ids.format}>
+              <Select
+                id={ids.format}
+                value={formatName}
+                onValueChange={(value) => {
+                  setFormatName(value);
+                  const chosen = (formats ?? []).find((row) => row.name === value);
+
+                  if (chosen) setFormatConfig(toJson(chosen.configDefaults));
+                }}
+                options={(formats ?? []).map((row) => ({ value: row.name, label: row.displayName }))}
+              />
+            </Field>
+            <Field label={t("labelScheme")} htmlFor={ids.labelScheme}>
+              <Select
+                id={ids.labelScheme}
+                value={labelScheme}
+                onValueChange={(value) =>
+                  setLabelScheme(chosenValue(LABEL_SCHEME_OPTIONS, value, labelScheme))
+                }
+                options={LABEL_SCHEME_OPTIONS.map((option) => ({
+                  value: option.value,
+                  label: t(option.labelKey),
+                }))}
+              />
+            </Field>
+            <Field
+              label={t("formatConfig")}
+              htmlFor={ids.formatConfig}
+              error={configError ?? undefined}
+              hint={
+                described?.lines?.length
+                  ? described.lines.map((line) => scoring(line.key, line.values)).join(" ")
+                  : t("formatConfigHint")
               }
+              className="sm:col-span-2"
+            >
+              <Textarea
+                id={ids.formatConfig}
+                mono
+                rows={6}
+                invalid={!!configError}
+                value={formatConfig}
+                onChange={(event) => setFormatConfig(event.target.value)}
+                placeholder={'{\n  "penalty": 20\n}'}
+              />
+            </Field>
+            {labelScheme === "custom" ? (
+              <Field
+                label={t("customLabels")}
+                htmlFor={ids.customLabels}
+                hint={t("customLabelsHint")}
+                className="sm:col-span-2"
+              >
+                <Input
+                  id={ids.customLabels}
+                  mono
+                  value={customLabels}
+                  onChange={(event) => setCustomLabels(event.target.value)}
+                  placeholder="A1, A2, B1"
+                />
+              </Field>
+            ) : null}
+          </AdminSection>
+        ) : null}
 
-              if (patch.privateContestants !== undefined) setPrivateContestants(patch.privateContestants);
+        {on("scoring") ? (
+          <AdminSection title={t("sectionRating")} columns={1}>
+            <ContestRatingFields
+              values={{ isRated, rateAll, ratingFloor, ratingCeiling, performanceCeiling, rateExclude }}
+              canRate={permissions.contestRating}
+              canOverridePerformanceCeiling={permissions.overridePerformanceCeiling}
+              missingPermission={(permission) => t("missingPermission", { permission })}
+              onChange={(patch) => {
+                if (patch.isRated !== undefined) setIsRated(patch.isRated);
 
-              if (patch.organizationSlugs !== undefined) setOrganizationSlugs(patch.organizationSlugs);
+                if (patch.rateAll !== undefined) setRateAll(patch.rateAll);
 
-              if (patch.classNames !== undefined) setClassNames(patch.classNames);
+                if (patch.ratingFloor !== undefined) setRatingFloor(patch.ratingFloor);
 
-              if (patch.joinOrganizationSlugs !== undefined) {
-                setJoinOrganizationSlugs(patch.joinOrganizationSlugs);
-              }
+                if (patch.ratingCeiling !== undefined) setRatingCeiling(patch.ratingCeiling);
 
-              if (patch.accessCode !== undefined) setAccessCode(patch.accessCode);
-            }}
-          />
-        </AdminSection>
+                if (patch.performanceCeiling !== undefined) setPerformanceCeiling(patch.performanceCeiling);
 
-        <AdminSection title={t("sectionPresentation")}>
-          <Field label={t("tags")} htmlFor={ids.tags} optional={t("optional")}>
-            <MultiSelect
-              id={ids.tags}
-              values={tagNames}
-              onChange={setTagNames}
-              options={(options?.tags ?? []).map((row) => ({ value: row.name, label: row.name }))}
-              placeholder={t("tagsPlaceholder")}
+                if (patch.rateExclude !== undefined) setRateExclude(patch.rateExclude);
+              }}
             />
-          </Field>
-          <Field label={t("ogImage")} htmlFor={ids.ogImage} optional={t("optional")}>
-            <Input
-              id={ids.ogImage}
-              mono
-              value={ogImage}
-              onChange={(event) => setOgImage(event.target.value)}
-              placeholder="https://"
-            />
-          </Field>
-          <Field label={t("logoOverride")} htmlFor={ids.logo} optional={t("optional")}>
-            <Input
-              id={ids.logo}
-              mono
-              value={logoOverrideImage}
-              onChange={(event) => setLogoOverrideImage(event.target.value)}
-              placeholder="https://"
-            />
-          </Field>
-        </AdminSection>
+          </AdminSection>
+        ) : null}
 
-        <AdminSection title={t("sectionJustice")} columns={1}>
-          <Field label={t("bannedUsers")} htmlFor={ids.banned} hint={t("bannedUsersHint")}>
-            <UserPicker
-              id={ids.banned}
-              values={bannedUsers}
-              onChange={setBannedUsers}
-              ariaLabel={t("bannedUsers")}
+        {on("access") ? (
+          <AdminSection title={t("sectionAccess")} columns={1}>
+            <ContestEntryFields
+              values={{
+                isVisible,
+                isPrivate,
+                isOrganizationPrivate,
+                privateContestants,
+                organizationSlugs,
+                classNames,
+                joinOrganizationSlugs,
+                accessCode,
+              }}
+              organizationOptions={(options?.organizations ?? []).map((row) => ({
+                value: row.slug,
+                label: row.name,
+              }))}
+              classOptions={(options?.classes ?? []).map((row) => ({
+                value: row.name,
+                label: row.organization ? `${row.name} (${row.organization})` : row.name,
+              }))}
+              canRestrict={permissions.createPrivateContest}
+              canSetAccessCode={permissions.contestAccessCode}
+              canChangeVisibility={permissions.changeContestVisibility}
+              missingPermission={(permission) => t("missingPermission", { permission })}
+              onChange={(patch) => {
+                if (patch.isVisible !== undefined) setIsVisible(patch.isVisible);
+
+                if (patch.isPrivate !== undefined) setIsPrivate(patch.isPrivate);
+
+                if (patch.isOrganizationPrivate !== undefined) {
+                  setIsOrganizationPrivate(patch.isOrganizationPrivate);
+                }
+
+                if (patch.privateContestants !== undefined) setPrivateContestants(patch.privateContestants);
+
+                if (patch.organizationSlugs !== undefined) setOrganizationSlugs(patch.organizationSlugs);
+
+                if (patch.classNames !== undefined) setClassNames(patch.classNames);
+
+                if (patch.joinOrganizationSlugs !== undefined) {
+                  setJoinOrganizationSlugs(patch.joinOrganizationSlugs);
+                }
+
+                if (patch.accessCode !== undefined) setAccessCode(patch.accessCode);
+              }}
             />
-          </Field>
-        </AdminSection>
+          </AdminSection>
+        ) : null}
+
+        {on("setup") ? (
+          <AdminSection title={t("sectionPresentation")}>
+            <Field label={t("tags")} htmlFor={ids.tags} optional={t("optional")}>
+              <MultiSelect
+                id={ids.tags}
+                values={tagNames}
+                onChange={setTagNames}
+                options={(options?.tags ?? []).map((row) => ({ value: row.name, label: row.name }))}
+                placeholder={t("tagsPlaceholder")}
+              />
+            </Field>
+            <Field label={t("ogImage")} htmlFor={ids.ogImage} optional={t("optional")}>
+              <Input
+                id={ids.ogImage}
+                mono
+                value={ogImage}
+                onChange={(event) => setOgImage(event.target.value)}
+                placeholder="https://"
+              />
+            </Field>
+            <Field label={t("logoOverride")} htmlFor={ids.logo} optional={t("optional")}>
+              <Input
+                id={ids.logo}
+                mono
+                value={logoOverrideImage}
+                onChange={(event) => setLogoOverrideImage(event.target.value)}
+                placeholder="https://"
+              />
+            </Field>
+          </AdminSection>
+        ) : null}
+
+        {on("access") ? (
+          <AdminSection title={t("sectionJustice")} columns={1}>
+            <Field label={t("bannedUsers")} htmlFor={ids.banned} hint={t("bannedUsersHint")}>
+              <UserPicker
+                id={ids.banned}
+                values={bannedUsers}
+                onChange={setBannedUsers}
+                ariaLabel={t("bannedUsers")}
+              />
+            </Field>
+          </AdminSection>
+        ) : null}
         <AdminFormFooter busy={busy} submitLabel={t("submit")} />
       </AdminForm>
 

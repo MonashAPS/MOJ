@@ -463,12 +463,13 @@
       "breadcrumbConsole": "Consola de personal",
       "breadcrumbContests": "Concursos",
       "tabs": {
-        "general": "General",
+        "setup": "Configuración",
+        "access": "Acceso",
+        "scoring": "Puntuación",
         "problems": "Problemas",
         "people": "Personas",
-        "proctoring": "Supervisión",
         "actions": "Acciones",
-        "revisions": "Revisiones"
+        "history": "Historial"
       },
       "missingTitle": "El concurso no existe",
       "missingDescription": "No hay ningún concurso con ese id, o no es uno que puedas editar.",
@@ -570,7 +571,9 @@
       "bannedUsers": "Usuarios baneados",
       "bannedUsersHint": "No pueden unirse, y se les saca del modo concurso cuando se guarda esto.",
       "submit": "Guardar concurso",
-      "reasonHint": "Se guarda con la revisión para que la siguiente persona vea por qué cambió este concurso."
+      "reasonHint": "Se guarda con la revisión para que la siguiente persona vea por qué cambió este concurso.",
+      "proctorRequired": "Requiere compartir pantalla",
+      "proctorRequiredHint": "Los problemas solo se abren mientras el participante comparte toda su pantalla."
     },
     "problems": {
       "refused": "El cambio fue rechazado.",
@@ -696,13 +699,6 @@
           "action": "Desbloquear"
         }
       }
-    },
-    "proctoring": {
-      "title": "Supervisión",
-      "intro": "Un concurso supervisado abre sus problemas solo mientras la persona comparte toda su pantalla",
-      "required": "Requerir compartir pantalla",
-      "saved": "Ajustes de supervisión guardados",
-      "refused": "El juez rechazó el cambio."
     },
     "setup": {
       "scheduleMode": "Cómo corre el reloj",

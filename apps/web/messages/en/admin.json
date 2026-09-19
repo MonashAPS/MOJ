@@ -463,12 +463,13 @@
       "breadcrumbConsole": "Staff console",
       "breadcrumbContests": "Contests",
       "tabs": {
-        "general": "General",
+        "setup": "Setup",
+        "access": "Access",
+        "scoring": "Scoring",
         "problems": "Problems",
         "people": "People",
-        "proctoring": "Proctoring",
         "actions": "Actions",
-        "revisions": "Revisions"
+        "history": "History"
       },
       "missingTitle": "No such contest",
       "missingDescription": "There is no contest with that id, or it is not one you may edit.",
@@ -570,7 +571,9 @@
       "bannedUsers": "Banned users",
       "bannedUsersHint": "They cannot join, and are dropped out of contest mode when this is saved.",
       "submit": "Save contest",
-      "reasonHint": "Kept with the revision so the next person can see why this contest moved."
+      "reasonHint": "Kept with the revision so the next person can see why this contest moved.",
+      "proctorRequired": "Screen sharing required",
+      "proctorRequiredHint": "Problems open only while the contestant is sharing their whole screen."
     },
     "problems": {
       "refused": "The change was refused.",
@@ -696,13 +699,6 @@
           "action": "Unlock"
         }
       }
-    },
-    "proctoring": {
-      "title": "Proctoring",
-      "intro": "A proctored contest opens its problems only while the competitor is sharing their whole screen",
-      "required": "Require screen sharing",
-      "saved": "Proctoring settings saved",
-      "refused": "The judge refused the change."
     },
     "setup": {
       "scheduleMode": "How the clock runs",

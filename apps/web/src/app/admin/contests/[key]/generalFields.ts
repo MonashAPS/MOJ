@@ -72,6 +72,7 @@ export interface ContestGeneralFields {
   disableLockdown: boolean;
   hideProblemAuthors: boolean;
   runPretestsOnly: boolean;
+  proctorRequired: boolean;
   showShortDisplay: boolean;
   useClarifications: boolean;
   ogImage: string;
@@ -120,6 +121,7 @@ export type ContestFieldSource = Pick<
   | "disableLockdown"
   | "hideProblemAuthors"
   | "runPretestsOnly"
+  | "proctorRequired"
   | "showShortDisplay"
   | "useClarifications"
   | "ogImage"
@@ -174,6 +176,7 @@ export function fieldsFromContest(contest: ContestFieldSource): ContestGeneralFi
     disableLockdown: contest.disableLockdown,
     hideProblemAuthors: contest.hideProblemAuthors,
     runPretestsOnly: contest.runPretestsOnly,
+    proctorRequired: contest.proctorRequired,
     showShortDisplay: contest.showShortDisplay,
     useClarifications: contest.useClarifications,
     ogImage: contest.ogImage,
@@ -240,6 +243,7 @@ export function argsFromFields(fields: ContestGeneralFields, refs: FieldRefs, fo
     disableLockdown: fields.disableLockdown,
     hideProblemAuthors: fields.hideProblemAuthors,
     runPretestsOnly: fields.runPretestsOnly,
+    proctorRequired: fields.proctorRequired,
     showShortDisplay: fields.showShortDisplay,
     useClarifications: fields.useClarifications,
     ogImage: fields.ogImage.trim() || null,

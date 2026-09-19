@@ -56,6 +56,7 @@ function contestEdit(overrides: Partial<ContestFieldSource> = {}): ContestFieldS
     disableLockdown: false,
     hideProblemAuthors: false,
     runPretestsOnly: false,
+    proctorRequired: false,
     showShortDisplay: false,
     useClarifications: true,
     ogImage: "",
