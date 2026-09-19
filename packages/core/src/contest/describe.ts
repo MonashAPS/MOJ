@@ -31,7 +31,16 @@ export type DescribeSource = Pick<
   "startTime" | "endTime" | "schedule" | "entry" | "joinLimit" | "freeze" | "rating" | "labels"
 > &
   Partial<
-    Pick<ContestRow, "isVisible" | "accessCode" | "lockedAfter" | "runPretestsOnly" | "alwaysAdmitProfileIds">
+    Pick<
+      ContestRow,
+      | "isVisible"
+      | "accessCode"
+      | "lockedAfter"
+      | "runPretestsOnly"
+      | "alwaysAdmitProfileIds"
+      | "publishProblemsAtEnd"
+      | "problemsPublishedAt"
+    >
   >;
 
 export interface DescribeOptions {
@@ -85,6 +94,16 @@ export function describeContest(contest: DescribeSource, options: DescribeOption
 
   if (contest.lockedAfter != null) {
     lines.push({ group: "when", key: "locked", values: { at: moment(contest.lockedAfter) } });
+  }
+
+  if (contest.problemsPublishedAt !== undefined) {
+    lines.push({
+      group: "when",
+      key: "problemsPublished",
+      values: { at: moment(contest.problemsPublishedAt) },
+    });
+  } else if (contest.publishProblemsAtEnd) {
+    lines.push({ group: "when", key: "publishAtEnd", values: { at: moment(contest.endTime) } });
   }
 
   /* ------------------------------------------------------------------ who -- */

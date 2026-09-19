@@ -201,7 +201,18 @@ export interface ContestRow {
   readonly pointsPrecision?: number;
   readonly runPretestsOnly?: boolean;
   readonly lockedAfter?: Timestamp | null;
+  /** Every problem in the contest is made public the moment it ends. */
+  readonly publishProblemsAtEnd?: boolean;
+  /** When that happened, once it has. */
+  readonly problemsPublishedAt?: Timestamp;
 }
+
+/**
+ * Who may download a file attached to a contest or a problem: its editors,
+ * anyone who can see the thing it is attached to, or the latter only once a
+ * contest has ended.
+ */
+export type ArtefactVisibility = "staff" | "everyone" | "afterEnd";
 
 /** `ContestParticipation.LIVE` */
 export const PARTICIPATION_LIVE = 0;
