@@ -150,6 +150,48 @@
   font-weight: 700;
 }
 
+/*
+ * `||hidden||`, from remarkSpoiler. Covered until the reader hovers or focuses
+ * it; the span carries tabindex="0" so a tap on a phone counts as asking.
+ *
+ * Two rules hide it because two things can be inside: `color: transparent` for
+ * the text, `visibility: hidden` for anything with its own box, such as an
+ * inline code span or an image.
+ */
+.content-description .spoiler {
+  background: var(--content-ink-2);
+  border-radius: var(--content-radius);
+  color: transparent;
+  cursor: pointer;
+  padding: 0 0.15em;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.content-description .spoiler > * {
+  visibility: hidden;
+}
+
+.content-description .spoiler:hover,
+.content-description .spoiler:focus,
+.content-description .spoiler:focus-within {
+  background: var(--content-code-bg);
+  color: inherit;
+}
+
+.content-description .spoiler:hover > *,
+.content-description .spoiler:focus > *,
+.content-description .spoiler:focus-within > * {
+  visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content-description .spoiler {
+    transition: none;
+  }
+}
+
 .content-description sub,
 .content-description sup {
   font-size: 75%;
@@ -461,5 +503,12 @@
 
   .content-description a.user-link {
     color: inherit;
+  }
+
+  .content-description .spoiler,
+  .content-description .spoiler > * {
+    background: none;
+    color: inherit;
+    visibility: visible;
   }
 }
