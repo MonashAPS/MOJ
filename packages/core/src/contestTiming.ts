@@ -9,6 +9,7 @@
  * `undefined` means "the whole contest window".
  */
 
+import { scheduleOf, windowMillis } from "./contest/settings";
 import {
   contestIsAccessibleBy,
   contestIsLiveJoinableBy,
@@ -41,11 +42,6 @@ export function participationIsVirtual(participation: ContestParticipationRow): 
   return participation.virtual > 0;
 }
 
-function hasTimeLimit(contest: ContestRow): contest is ContestRow & { readonly timeLimit: number } {
-  // Python treats a zero timedelta as falsy, and so does DMOJ here.
-  return contest.timeLimit != null && contest.timeLimit !== 0;
-}
-
 /**
  * `ContestParticipation.start` (contest.py:561).
  *
@@ -53,9 +49,9 @@ function hasTimeLimit(contest: ContestRow): contest is ContestRow & { readonly t
  * contest does; everything else starts when the participation was created.
  */
 export function participationStart(participation: ContestParticipationRow, contest: ContestRow): number {
-  const untimed = contest.timeLimit == null;
+  const shared = scheduleOf(contest).kind === "together";
 
-  if (untimed && (participationIsLive(participation) || participationIsSpectating(participation))) {
+  if (shared && (participationIsLive(participation) || participationIsSpectating(participation))) {
     return contest.startTime;
   }
 
@@ -72,20 +68,20 @@ export function participationStart(participation: ContestParticipationRow, conte
 export function participationEndTime(participation: ContestParticipationRow, contest: ContestRow): number {
   if (participationIsSpectating(participation)) return contest.endTime;
 
+  const window = windowMillis(contest);
+
   if (participation.virtual !== PARTICIPATION_LIVE) {
-    if (hasTimeLimit(contest)) return participation.realStart + contest.timeLimit * 1000;
+    if (window !== null) return participation.realStart + window;
 
     return participation.realStart + (contest.endTime - contest.startTime);
   }
 
-  // `hasTimeLimit`, not `!= null`: DMOJ tests the duration for truth and a zero
-  // timedelta is falsy, so zero means the whole window there. Reading it as a
-  // limit here made the live branch `min(realStart + 0, endTime)`, which is
-  // `realStart` — the participation ended the instant anyone joined. The virtual
-  // branch above was always right, which is why only it had a test.
-  if (!hasTimeLimit(contest)) return contest.endTime;
+  // One reading for both branches. The live one used to test `timeLimit == null`
+  // instead, so a stored zero made this `min(realStart + 0, endTime)`, which is
+  // `realStart` — the participation ended the instant anyone joined.
+  if (window === null) return contest.endTime;
 
-  return Math.min(participation.realStart + contest.timeLimit * 1000, contest.endTime);
+  return Math.min(participation.realStart + window, contest.endTime);
 }
 
 /** `ContestParticipation.ended` (contest.py:584). */

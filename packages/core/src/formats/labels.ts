@@ -12,6 +12,7 @@
  * deploy this, but nothing renders it any more.
  */
 
+import { labelsOf } from "../contest/settings";
 import type { ContestRow, LabelScheme } from "../types";
 import { letterLabel } from "./base";
 
@@ -35,7 +36,12 @@ export function getLabelForProblem(index: number, options: LabelOptions = {}): s
 
 /** `Contest.get_label_for_problem` for a contest row. */
 export function getContestLabelForProblem(contest: ContestRow, index: number): string {
-  return getLabelForProblem(index, { scheme: contest.labelScheme, customLabels: contest.customLabels });
+  const labels = labelsOf(contest);
+
+  if (labels.kind === "custom")
+    return getLabelForProblem(index, { scheme: "custom", customLabels: labels.labels });
+
+  return letterLabel(index);
 }
 
 /** Labels for a whole contest, in problem order. */

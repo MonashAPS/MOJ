@@ -10,6 +10,7 @@
  * monotonicity of performance in rank are DMOJ's.
  */
 
+import { ratingOf } from "./contest/settings";
 import type { ContestRow, Id } from "./types";
 
 /* -------------------------------------------------------------------------- */
@@ -326,18 +327,18 @@ export interface RatingOutputRow {
 }
 
 /** `Contest.performance_ceiling` (judge/models/contest.py:299). */
-export function performanceCeiling(
-  contest: Pick<ContestRow, "performanceCeilingOverride" | "ratingCeiling"> | undefined,
+export /**
+ * The cap on a competitor's computed performance, or null for none.
+ *
+ * Only the setting that says so. DMOJ also derives one from `ratingCeiling` at
+ * `+ CONTEST_PERF_CEILING_INCREMENT`, so a ceiling set to exclude strong
+ * competitors from being rated silently capped everyone else's performance too
+ * — one control doing two unrelated jobs, with nothing saying so.
+ */
+function performanceCeiling(
+  contest: Pick<ContestRow, "performanceCeilingOverride"> | undefined,
 ): number | null {
-  if (!contest) return null;
-
-  if (contest.performanceCeilingOverride !== null && contest.performanceCeilingOverride !== undefined) {
-    return contest.performanceCeilingOverride;
-  }
-
-  if (contest.ratingCeiling) return contest.ratingCeiling + CONTEST_PERF_CEILING_INCREMENT;
-
-  return null;
+  return contest?.performanceCeilingOverride ?? null;
 }
 
 /**
@@ -352,22 +353,26 @@ export function rateContest(
   options: RateContestOptions = {},
 ): RatingOutputRow[] {
   const contest = options.contest;
-  const excluded = new Set(contest?.rateExcludeProfileIds ?? []);
+  // A contest with no row behaves as the defaults did: rate the scorers, no band.
+  const settings = contest ? ratingOf({ ...contest, isRated: true }) : null;
+  const excluded = new Set(settings?.excludeProfileIds ?? []);
 
   const eligible = rows.filter((row) => {
     if ((row.virtual ?? 0) !== 0) return false;
 
     if (excluded.has(row.profileId)) return false;
 
-    if (!contest?.rateAll && !(row.submissionCount ?? 0)) return false;
+    if (!settings?.everyone && !(row.submissionCount ?? 0)) return false;
+    // Filters on the competitor's *previous* rating, so a floor above 1200
+    // excludes everyone who has never been rated.
     const lastRating = row.lastRating ?? RATING_INIT;
 
-    if (contest?.ratingFloor !== null && contest?.ratingFloor !== undefined) {
-      if (lastRating < contest.ratingFloor) return false;
+    if (settings?.floor !== null && settings?.floor !== undefined && lastRating < settings.floor) {
+      return false;
     }
 
-    if (contest?.ratingCeiling !== null && contest?.ratingCeiling !== undefined) {
-      if (lastRating > contest.ratingCeiling) return false;
+    if (settings?.ceiling !== null && settings?.ceiling !== undefined && lastRating > settings.ceiling) {
+      return false;
     }
 
     return true;

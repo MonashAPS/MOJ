@@ -333,11 +333,18 @@ describe("rateContest", () => {
     expect(result.map((row) => row.rating)).toEqual([1721, 1399, 891]);
   });
 
-  it("computes the performance ceiling as DMOJ does", () => {
+  it("caps performance only where a cap was asked for", () => {
     expect(performanceCeiling(undefined)).toBeNull();
-    expect(performanceCeiling({ performanceCeilingOverride: null, ratingCeiling: null })).toBeNull();
-    expect(performanceCeiling({ performanceCeilingOverride: null, ratingCeiling: 1600 })).toBe(2000);
-    expect(performanceCeiling({ performanceCeilingOverride: 1234, ratingCeiling: 1600 })).toBe(1234);
+    expect(performanceCeiling({ performanceCeilingOverride: null })).toBeNull();
+    expect(performanceCeiling({ performanceCeilingOverride: 1234 })).toBe(1234);
+  });
+
+  it("does not let the eligibility ceiling cap performance", () => {
+    // DMOJ derives a cap of ratingCeiling + 400, so a ceiling set to keep strong
+    // competitors out of the rating silently capped everyone else's performance.
+    const rated = { performanceCeilingOverride: null, ratingCeiling: 1600 };
+
+    expect(performanceCeiling(rated)).toBeNull();
   });
 });
 
