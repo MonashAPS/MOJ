@@ -440,7 +440,24 @@
       "descriptionHint": "Markdown, se muestra en la página propia del concurso.",
       "submit": "Crear concurso",
       "submitBusy": "Creando…",
-      "reasonHint": "Se guarda con la revisión para que la siguiente persona vea por qué cambió este concurso."
+      "reasonHint": "Se guarda con la revisión para que la siguiente persona vea por qué cambió este concurso.",
+      "step": {
+        "what": "Qué es",
+        "when": "Cuándo",
+        "who": "Para quién"
+      },
+      "stepWhatTitle": "¿Qué es?",
+      "stepWhatHint": "Un id para la URL, un nombre que la gente lee y cómo se puntúa.",
+      "stepWhenTitle": "¿Cuándo se celebra?",
+      "stepWhenHint": "Y con el reloj de quién.",
+      "stepWhoTitle": "¿Para quién es?",
+      "stepWhoHint": "Puedes restringir la entrada y añadir problemas cuando exista.",
+      "back": "Atrás",
+      "continue": "Continuar",
+      "createAndOpen": "Crear y añadir problemas",
+      "presetSaturday": "Este sábado, 10:00, 5 horas",
+      "presetTomorrow": "Mañana, 18:00, 2 horas",
+      "presetNow": "Empieza ahora, 3 horas"
     },
     "editor": {
       "breadcrumbConsole": "Consola de personal",

@@ -440,7 +440,24 @@
       "descriptionHint": "支持 Markdown，将显示在比赛自己的页面上。",
       "submit": "创建比赛",
       "submitBusy": "正在创建…",
-      "reasonHint": "会随版本记录一同保存，方便他人了解此比赛的变更原因。"
+      "reasonHint": "会随版本记录一同保存，方便他人了解此比赛的变更原因。",
+      "step": {
+        "what": "是什么",
+        "when": "什么时候",
+        "who": "面向谁"
+      },
+      "stepWhatTitle": "这是什么？",
+      "stepWhatHint": "用于网址的标识、供人阅读的名称，以及计分方式。",
+      "stepWhenTitle": "什么时候举行？",
+      "stepWhenHint": "以及使用谁的计时。",
+      "stepWhoTitle": "面向谁？",
+      "stepWhoHint": "创建之后可以限制参赛范围并添加题目。",
+      "back": "返回",
+      "continue": "继续",
+      "createAndOpen": "创建并添加题目",
+      "presetSaturday": "本周六 10:00，5 小时",
+      "presetTomorrow": "明天 18:00，2 小时",
+      "presetNow": "立即开始，3 小时"
     },
     "editor": {
       "breadcrumbConsole": "工作人员后台",

@@ -440,7 +440,24 @@
       "descriptionHint": "Markdown, shown on the contest's own page.",
       "submit": "Create contest",
       "submitBusy": "Creating…",
-      "reasonHint": "Kept with the revision so the next person can see why this contest moved."
+      "reasonHint": "Kept with the revision so the next person can see why this contest moved.",
+      "step": {
+        "what": "What is it",
+        "when": "When",
+        "who": "Who for"
+      },
+      "stepWhatTitle": "What is it?",
+      "stepWhatHint": "An id for the URL, a name people read, and how it is scored.",
+      "stepWhenTitle": "When does it run?",
+      "stepWhenHint": "And whose clock it runs on.",
+      "stepWhoTitle": "Who is it for?",
+      "stepWhoHint": "You can restrict entry and add problems once it exists.",
+      "back": "Back",
+      "continue": "Continue",
+      "createAndOpen": "Create and add problems",
+      "presetSaturday": "This Saturday, 10:00, 5 hours",
+      "presetTomorrow": "Tomorrow, 18:00, 2 hours",
+      "presetNow": "Starts now, 3 hours"
     },
     "editor": {
       "breadcrumbConsole": "Staff console",
