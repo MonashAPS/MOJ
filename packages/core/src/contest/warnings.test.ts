@@ -179,8 +179,9 @@ describe("the summary of a contest that publishes its problems", () => {
     const keys = (source: Parameters<typeof describeContest>[0]) =>
       describeContest(source).map((line) => line.key);
 
-    expect(keys({ ...CONTEST, publishProblemsAtEnd: true })).toContain("publishAtEnd");
-    expect(keys({ ...CONTEST, publishProblemsAtEnd: true, problemsPublishedAt: START + 3 * HOUR })).toContain(
+    expect(keys({ ...CONTEST, publishProblemsAt: "start" })).toContain("publishAtStart");
+    expect(keys({ ...CONTEST, publishProblemsAt: "end" })).toContain("publishAtEnd");
+    expect(keys({ ...CONTEST, publishProblemsAt: "end", problemsPublishedAt: START + 3 * HOUR })).toContain(
       "problemsPublished",
     );
     expect(keys(CONTEST)).not.toContain("publishAtEnd");
