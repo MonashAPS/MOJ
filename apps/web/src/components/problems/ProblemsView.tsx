@@ -12,7 +12,6 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-  Skeleton,
   Table,
   TableBody,
   TableCell,
@@ -253,24 +252,6 @@ function StackedRow({ item, username }: { item: ListItem; username: string | nul
   );
 }
 
-function TableSkeleton({ columns }: { columns: number }) {
-  return (
-    <tbody>
-      {Array.from({ length: 10 }, (_, index) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: skeleton rows have no identity
-        <tr key={index}>
-          {Array.from({ length: columns }, (_, cell) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: skeleton cells have no identity
-            <td key={cell} className="h-(--row-h) border-b border-border px-3">
-              <Skeleton className={cn("h-3", cell === 1 ? "w-48" : "w-12")} />
-            </td>
-          ))}
-        </tr>
-      ))}
-    </tbody>
-  );
-}
-
 export function ProblemsView({
   initial,
   initialOptions,
@@ -312,10 +293,14 @@ export function ProblemsView({
 
   // `username` is what the server rendered with, so it says whether there is an
   // identity the browser still has to catch up to.
+  //
+  // There is no loading state to go with this. `initial` was fetched for the
+  // same query the page is showing, so the list is already right before the
+  // subscription answers; a skeleton here replaced every row with a placeholder
+  // for the moment after hydration and jumped the page out from under anyone
+  // reading the bottom of it. A filter change goes through `startTransition`,
+  // which holds the rendered list until the next server answer arrives.
   const data = useViewerLive(live, initial, username !== null);
-  // Waiting covers both windows now: no answer yet, and an answer we are not
-  // taking because it was given for the wrong viewer.
-  const loading = data !== live;
 
   // `pages/problems:filterOptions` answers for the site; in contest mode the
   // list is the contest's own problems, so the panel offers what they carry.
@@ -364,7 +349,7 @@ export function ProblemsView({
     <>
       <ActiveFilters query={query} options={options} onApply={apply} />
 
-      {data.items.length === 0 && !loading ? (
+      {data.items.length === 0 ? (
         <EmptyState
           icon={<Search size={20} />}
           title={t("emptyTitle")}
@@ -414,41 +399,37 @@ export function ProblemsView({
                   <SortHead label={t("columnUsers")} sort="userCount" query={query} onApply={apply} numeric />
                 </TableRow>
               </TableHeader>
-              {loading ? (
-                <TableSkeleton columns={columns} />
-              ) : (
-                <TableBody>
-                  {data.groups && (query.groupByContest || query.contests.length > 0)
-                    ? data.groups.flatMap((group) => [
-                        <TableRow key={`g-${group.contestKey}`} className="bg-secondary hover:bg-secondary">
-                          <TableCell colSpan={columns} className="h-(--row-h-dense) py-0">
-                            <span className="flex items-center justify-between gap-3">
-                              <Link
-                                href={`/contest/${group.contestKey}`}
-                                className="font-sans text-xs font-semibold uppercase tracking-label text-subtle hover:text-link"
-                              >
-                                {group.contestName}
-                              </Link>
-                              <span className="font-mono text-sm tabular-nums text-muted-foreground">
-                                {formatDate(group.startTime)}
-                              </span>
+              <TableBody>
+                {data.groups && (query.groupByContest || query.contests.length > 0)
+                  ? data.groups.flatMap((group) => [
+                      <TableRow key={`g-${group.contestKey}`} className="bg-secondary hover:bg-secondary">
+                        <TableCell colSpan={columns} className="h-(--row-h-dense) py-0">
+                          <span className="flex items-center justify-between gap-3">
+                            <Link
+                              href={`/contest/${group.contestKey}`}
+                              className="font-sans text-xs font-semibold uppercase tracking-label text-subtle hover:text-link"
+                            >
+                              {group.contestName}
+                            </Link>
+                            <span className="font-mono text-sm tabular-nums text-muted-foreground">
+                              {formatDate(group.startTime)}
                             </span>
-                          </TableCell>
-                        </TableRow>,
-                        ...group.items.map((item) => (
-                          <Row
-                            key={`${group.contestKey}-${item.id}`}
-                            item={item}
-                            query={query}
-                            username={username}
-                          />
-                        )),
-                      ])
-                    : data.items.map((item) => (
-                        <Row key={item.id} item={item} query={query} username={username} />
-                      ))}
-                </TableBody>
-              )}
+                          </span>
+                        </TableCell>
+                      </TableRow>,
+                      ...group.items.map((item) => (
+                        <Row
+                          key={`${group.contestKey}-${item.id}`}
+                          item={item}
+                          query={query}
+                          username={username}
+                        />
+                      )),
+                    ])
+                  : data.items.map((item) => (
+                      <Row key={item.id} item={item} query={query} username={username} />
+                    ))}
+              </TableBody>
             </Table>
           </div>
 

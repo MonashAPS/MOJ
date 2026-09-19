@@ -3,10 +3,12 @@
  *
  * The pipeline mirrors `judge/jinja2/markdown/__init__.py` step for step:
  *
+ *   loosenHtmlBlocks        -, a MOJ addition: markdown inside `<details>`
  *   remark-parse            mistune.Markdown
  *   remark-gfm              tables, strikethrough, autolinks
  *   remarkTildeMath         MathInlineGrammar (`~x~`, `\(x\)`, `\[x\]`, `$$x$$`)
  *   remark-math             `$x$`, plus block `$$`
+ *   remarkSpoiler           -, a MOJ addition: `||hidden||`
  *   heading demotion        AwesomeRenderer.header
  *   HTML escaping           mistune `escape=True` for the `safe_mode` styles
  *   remark-rehype           -
@@ -34,6 +36,7 @@ import remarkRehype from "remark-rehype";
 import { type BundledLanguage, bundledLanguages, createHighlighter, type Highlighter } from "shiki";
 import { type PluggableList, unified } from "unified";
 
+import { loosenHtmlBlocks } from "./html-blocks.js";
 import { plainTextFromMdast, type SummaryOptions, truncateSummary } from "./plain.js";
 import { collectFenceLanguages, normaliseLanguage, rehypeCodehilite } from "./plugins/rehype-codehilite.js";
 import {
@@ -57,6 +60,7 @@ import {
   remarkDemoteHeadings,
   remarkEscapeHtml,
 } from "./plugins/remark-dmoj.js";
+import remarkSpoiler from "./plugins/remark-spoiler.js";
 import remarkTildeMath from "./plugins/remark-tilde-math.js";
 import { type Preset, presetConfig } from "./presets.js";
 import { MATHML_TAGS } from "./sanitize/bleach-whitelist.js";
@@ -160,7 +164,7 @@ async function runPlugins(plugins: PluggableList, tree: HastRoot | MdastRoot): P
   return result as HastRoot;
 }
 
-function parseMdast(source: string, singleDollar: boolean): MdastRoot {
+function parseMdast(source: string, singleDollar: boolean, rawHtml = false): MdastRoot {
   return (
     unified()
       .use(remarkParse)
@@ -169,7 +173,10 @@ function parseMdast(source: string, singleDollar: boolean): MdastRoot {
       // `remarkTildeMath` afterwards is what puts its `$$` rule ahead of `remark-math`'s.
       .use(remarkMath, { singleDollarTextMath: singleDollar })
       .use(remarkTildeMath)
-      .parse(source)
+      // Only where raw HTML is parsed: a preset that escapes it prints the source
+      // back to the reader, and a blank line this put there would be one they
+      // never wrote.
+      .parse(rawHtml ? loosenHtmlBlocks(source) : source)
   );
 }
 
@@ -191,9 +198,9 @@ export async function renderMarkdown(
   const highlight = options.highlight ?? true;
   const singleDollar = options.singleDollarMath ?? true;
 
-  const mdast = parseMdast(source, singleDollar);
+  const mdast = parseMdast(source, singleDollar, config.rawHtml);
 
-  const toHast: PluggableList = [[remarkCollect, { into: collected, demoteBy }]];
+  const toHast: PluggableList = [[remarkCollect, { into: collected, demoteBy }], remarkSpoiler];
 
   // `safe_mode` styles print raw HTML instead of parsing it.
   if (!config.rawHtml) toHast.push(remarkEscapeHtml);

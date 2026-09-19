@@ -13,15 +13,41 @@ export async function viewerUserId(ctx: AuthCtx): Promise<string | null> {
   return identity?.subject ?? null;
 }
 
+/**
+ * The profile an account signs in as.
+ *
+ * `unique()` was what this used, and a deployment that grew a second row for one
+ * account answered every page with a server error instead: an import landing on
+ * a live deployment is enough to grow one, because `ProfileBootstrap` creates a
+ * profile for whoever is signed in while the table is empty and the import then
+ * writes the account's own. `convex/importer.ts` upserts profiles by `userId`
+ * now, so that no longer happens; this reads past the damage a deployment may
+ * already carry rather than taking the site down over it.
+ *
+ * The oldest `joinDate` wins, which is the account as it has existed longest: a
+ * row invented mid-import joins today, and the account's own row joined when the
+ * account did.
+ */
+export async function profileForUserId(ctx: AuthCtx, userId: string): Promise<Viewer | null> {
+  const profiles = await ctx.db
+    .query("profiles")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .take(2);
+
+  const [first, second] = profiles;
+
+  if (!first || !second) return first ?? null;
+
+  // The index reads oldest row first, so `first` also wins an equal join date.
+  return second.joinDate < first.joinDate ? second : first;
+}
+
 export async function optionalViewer(ctx: AuthCtx): Promise<Viewer | null> {
   const userId = await viewerUserId(ctx);
 
   if (!userId) return null;
 
-  return await ctx.db
-    .query("profiles")
-    .withIndex("by_userId", (q) => q.eq("userId", userId))
-    .unique();
+  return await profileForUserId(ctx, userId);
 }
 
 export async function requireViewer(ctx: AuthCtx): Promise<Viewer> {
@@ -31,10 +57,7 @@ export async function requireViewer(ctx: AuthCtx): Promise<Viewer> {
     throw mojError("UNAUTHENTICATED", "You must be logged in to do that.");
   }
 
-  const profile = await ctx.db
-    .query("profiles")
-    .withIndex("by_userId", (q) => q.eq("userId", identity.subject))
-    .unique();
+  const profile = await profileForUserId(ctx, identity.subject);
 
   if (!profile) {
     throw mojError("NO_PROFILE", "Your account has no profile yet.");

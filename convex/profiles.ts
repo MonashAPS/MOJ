@@ -24,7 +24,7 @@ import {
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation, type QueryCtx, query } from "./_generated/server";
-import { optionalViewer, requireStaff, requireViewer } from "./lib/auth";
+import { optionalViewer, profileForUserId, requireStaff, requireViewer } from "./lib/auth";
 import { forbidden, invalid, notFound } from "./lib/errors";
 import { isNonEmptyString } from "./lib/json";
 import { insertProfileAggregates, patchProfile } from "./rankings";
@@ -110,10 +110,7 @@ export const byUsername = query({
 export const byUserId = query({
   args: { userId: v.string() },
   handler: async (ctx, { userId }) => {
-    return await ctx.db
-      .query("profiles")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .unique();
+    return await profileForUserId(ctx, userId);
   },
 });
 
@@ -167,10 +164,7 @@ async function upsertProfile(
     displayRank?: "user" | "setter" | "admin";
   },
 ): Promise<Id<"profiles">> {
-  const existing: Doc<"profiles"> | null = await ctx.db
-    .query("profiles")
-    .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-    .unique();
+  const existing: Doc<"profiles"> | null = await profileForUserId(ctx, args.userId);
 
   const languageId = await languageIdForKey(ctx, args.languageKey);
 

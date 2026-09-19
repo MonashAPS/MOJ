@@ -129,13 +129,15 @@ export const USER_SAFE_ATTRS = {
  *   - `data-username` / `data-rating` on `a`: the `[user:]` reference anchors the web app
  *     hydrates with rating colours.
  *   - `aria-hidden` everywhere and `tabindex` on `pre`: emitted by KaTeX and Shiki.
+ *   - `tabindex` on `span`: what `remarkSpoiler` gives a spoiler so a touch can
+ *     open it, since a phone has no hover.
  */
 export const MOJ_EXTRA_ATTRS = {
   "*": ["aria-hidden"],
   a: ["rel", "data-username", "data-rating"],
   img: ["loading", "decoding"],
   pre: ["tabindex"],
-  span: ["data-line"],
+  span: ["data-line", "tabindex"],
 } satisfies AttributeAllowlist;
 
 const PROPERTY_NAMES = new Map<string, string>([
