@@ -114,7 +114,7 @@ export async function snapshotContest(ctx: QueryCtx, contestId: Id<"contests">) 
     hideProblemAuthors: contest.hideProblemAuthors,
     disableLockdown: contest.disableLockdown ?? false,
     proctorRequired: contest.proctorRequired ?? false,
-    publishProblemsAtEnd: contest.publishProblemsAtEnd ?? false,
+    publishProblemsAt: contest.publishProblemsAt ?? null,
     problemsPublishedAt: contest.problemsPublishedAt ?? null,
     testerSeeScoreboard: contest.testerSeeScoreboard,
     testerSeeSubmissions: contest.testerSeeSubmissions,

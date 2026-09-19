@@ -143,7 +143,7 @@ export const edit = query({
       lockedAfter: contest.lockedAfter ?? null,
       pointsPrecision: contest.pointsPrecision,
       proctorRequired: contest.proctorRequired ?? false,
-      publishProblemsAtEnd: contest.publishProblemsAtEnd ?? false,
+      publishProblemsAt: contest.publishProblemsAt ?? null,
       problemsPublishedAt: contest.problemsPublishedAt ?? null,
       hideProblemTags: contest.hideProblemTags,
       disableLockdown: contest.disableLockdown ?? false,

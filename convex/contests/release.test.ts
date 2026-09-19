@@ -18,7 +18,7 @@ import { setupTest, type T } from "../test.setup";
 
 const HOUR = 3_600_000;
 
-async function seed(t: T, endsAgo: number, publishProblemsAtEnd = true) {
+async function seed(t: T, endsAgo: number, publishProblemsAt: "start" | "end" | undefined = "end") {
   return await t.run(async (ctx) => {
     const languageId = await insertLanguage(ctx, { key: "PY3" });
 
@@ -40,7 +40,7 @@ async function seed(t: T, endsAgo: number, publishProblemsAtEnd = true) {
       key: "weekly",
       startTime: now - endsAgo - HOUR,
       endTime: now - endsAgo,
-      publishProblemsAtEnd,
+      publishProblemsAt,
     });
 
     await insertContestProblem(ctx, { contestId, problemId: alpha, order: 0, points: 1 });
@@ -133,17 +133,50 @@ describe("the sweep", () => {
   });
 });
 
+describe("publishing at the start", () => {
+  it("publishes once the contest has started, and not before", async () => {
+    const t = setupTest();
+    // Started an hour ago, ends in an hour.
+    await seed(t, -HOUR, "start");
+    await t.run(async (ctx) => {
+      const problem = await insertProblem(ctx, { code: "delta", isPublic: false });
+
+      const later = await insertContest(ctx, {
+        key: "later",
+        startTime: Date.now() + HOUR,
+        endTime: Date.now() + 2 * HOUR,
+        publishProblemsAt: "start",
+      });
+
+      await insertContestProblem(ctx, { contestId: later, problemId: problem, order: 0, points: 1 });
+    });
+
+    expect(await t.mutation(internal.jobs.contests.publishEndedContestProblems, {})).toEqual({
+      contests: 1,
+      problems: 2,
+    });
+    expect(await isPublic(t, "alpha")).toBe(true);
+    expect(await isPublic(t, "delta")).toBe(false);
+
+    const reasons = await t.run(async (ctx) =>
+      (await ctx.db.query("revisions").collect()).map((row) => row.reason),
+    );
+
+    expect(reasons).toContain("Published when contest weekly started");
+  });
+});
+
 describe("turning the setting on after the end", () => {
   it("publishes in the same save", async () => {
     const t = setupTest();
-    await seed(t, HOUR, false);
+    await seed(t, HOUR, undefined);
     await t.run(async (ctx) => {
       await insertProfile(ctx, { username: "root", isStaff: true, isSuperuser: true });
     });
 
     await t
       .withIdentity(identityOf("root"))
-      .mutation(api.admin.contests.update, { key: "weekly", publishProblemsAtEnd: true });
+      .mutation(api.admin.contests.update, { key: "weekly", publishProblemsAt: "end" });
 
     expect(await isPublic(t, "alpha")).toBe(true);
     expect(await isPublic(t, "beta")).toBe(true);
