@@ -2067,7 +2067,17 @@
         "freezeMinutes": "Congelamiento",
         "blindDuringFreeze": "Ciego durante el congelamiento",
         "lockedAfter": "Bloqueado después de",
-        "pointsPrecision": "Precisión de los puntos"
+        "pointsPrecision": "Precisión de los puntos",
+        "isPrivate": "Privado",
+        "privateContestants": "Concursantes nombrados",
+        "rateAll": "Puntuar a todos",
+        "rateExclude": "Nunca puntuados",
+        "limitJoinOrganizations": "Limitar quién puede unirse",
+        "joinOrganizations": "Organizaciones que pueden unirse",
+        "testerSeeScoreboard": "Los testers ven la clasificación",
+        "testerSeeSubmissions": "Los testers ven los envíos",
+        "viewContestScoreboard": "Ven la clasificación",
+        "viewContestSubmissions": "Ven los envíos"
       }
     }
   },

@@ -179,6 +179,20 @@ function checkGatedFields(
   ) {
     throw forbidden("Missing permission judge.create_private_contest.");
   }
+
+  // The form disables all five behind this permission, but nothing stopped a
+  // caller that was not the form, so the rule only held for people using the UI.
+  const ratingFields = [
+    "isRated",
+    "rateAll",
+    "rateExcludeProfileIds",
+    "ratingFloor",
+    "ratingCeiling",
+  ] as const;
+
+  if (ratingFields.some((field) => changed(field)) && !hasPermCode(viewer, "judge.contest_rating")) {
+    throw forbidden("Missing permission judge.contest_rating.");
+  }
 }
 
 function hasPermCode(viewer: Awaited<ReturnType<typeof toViewerRowInContest>>, code: string): boolean {
@@ -200,6 +214,20 @@ function validateTiming(patch: WritablePatch, before: Doc<"contests"> | null): v
   const freezeMinutes = patch.freezeMinutes ?? before?.freezeMinutes ?? 0;
 
   if (freezeMinutes < 0) throw invalid("The freeze cannot be negative.");
+
+  // `freezeTime` clamps a freeze this long to the contest start, so the whole
+  // contest is frozen and the scoreboard never moves at all.
+  if (startTime !== undefined && endTime !== undefined && freezeMinutes * 60_000 >= endTime - startTime) {
+    throw invalid("The freeze must be shorter than the contest.");
+  }
+
+  // Zero is not "no limit" everywhere it is read, and a window of no length is
+  // not a thing anyone wants; clearing the field is how you say "the whole
+  // contest".
+  if (patch.timeLimit === 0) {
+    throw invalid("A per-participant window must be longer than zero; clear it for the whole contest.");
+  }
+
   const precision = patch.pointsPrecision ?? before?.pointsPrecision ?? 3;
 
   if (precision < 0 || precision > 10) throw invalid("Points precision must be between 0 and 10.");
@@ -428,13 +456,17 @@ export const create = mutation({
       pointsPrecision: patch.pointsPrecision ?? 3,
       freezeMinutes: patch.freezeMinutes ?? 0,
       blindDuringFreeze: patch.blindDuringFreeze ?? false,
+      // Both are in `writable` and reach the patch, so a create that set either
+      // used to have it accepted and then dropped on the floor here.
+      disableLockdown: patch.disableLockdown ?? false,
+      proctorRequired: patch.proctorRequired ?? false,
     });
 
     await writeRevision(
       ctx,
       "contest",
       contestId,
-      { key, name: args.name },
+      await snapshotContest(ctx, contestId),
       profile._id,
       args.reason ?? "Created contest",
     );
@@ -460,7 +492,7 @@ export const update = mutation({
       ctx,
       "contest",
       contest._id,
-      { before: pick(contest, keysOf(patch)), after: patch },
+      await snapshotContest(ctx, contest._id),
       profile._id,
       args.reason ?? "Edited contest",
     );
@@ -469,21 +501,118 @@ export const update = mutation({
   },
 });
 
-function copyRowField<K extends keyof Doc<"contests">>(
-  out: WritablePatch,
-  row: Doc<"contests">,
-  key: K,
-): void {
-  out[key] = row[key];
-}
+/**
+ * The whole contest, as a revision records it.
+ *
+ * `RevisionsPanel` compares any two snapshots field by field, which is the model
+ * `snapshotProblem` in admin/problems.ts is written for. Contest revisions used
+ * to store nine different shapes instead — `update` stored `{ before, after }`,
+ * `setVisibility` stored `{ isVisible }`, `addProblem` stored the code it added
+ * — so comparing two of them rendered a pair of raw JSON blobs rather than a
+ * diff. Every contest mutation stores this now, so any two are comparable.
+ *
+ * Ids are resolved to the names they are chosen by, for the same reason: a diff
+ * of two lists of document ids tells the reader nothing.
+ */
+async function snapshotContest(ctx: MutationCtx, contestId: Id<"contests">) {
+  const contest = await ctx.db.get(contestId);
 
-/** The fields a revision records as they stood before the edit. */
-function pick(row: Doc<"contests">, keys: readonly (keyof Doc<"contests">)[]): WritablePatch {
-  const out: WritablePatch = {};
+  if (!contest) return null;
 
-  for (const key of keys) copyRowField(out, row, key);
+  const usernames = async (ids: readonly Id<"profiles">[]) => {
+    const out: string[] = [];
 
-  return out;
+    for (const id of ids) {
+      const row = await ctx.db.get(id);
+
+      if (row) out.push(row.username);
+    }
+
+    return out.sort();
+  };
+
+  const namesOf = async <T extends "organizations" | "classes" | "contestTags">(
+    ids: readonly Id<T>[],
+    nameOf: (row: Doc<T>) => string,
+  ) => {
+    const out: string[] = [];
+
+    for (const id of ids) {
+      const row = await ctx.db.get(id);
+
+      if (row) out.push(nameOf(row));
+    }
+
+    return out.sort();
+  };
+
+  const contestProblems = await loadContestProblems(ctx, contestId);
+  const problems: { code: string; points: number; partial: boolean; isPretested: boolean }[] = [];
+
+  for (const contestProblem of contestProblems) {
+    const problem = await ctx.db.get(contestProblem.problemId);
+
+    if (problem) {
+      problems.push({
+        code: problem.code,
+        points: contestProblem.points,
+        partial: contestProblem.partial,
+        isPretested: contestProblem.isPretested,
+      });
+    }
+  }
+
+  return {
+    key: contest.key,
+    name: contest.name,
+    description: contest.description,
+    summary: contest.summary ?? null,
+    startTime: contest.startTime,
+    endTime: contest.endTime,
+    timeLimit: contest.timeLimit ?? null,
+    lockedAfter: contest.lockedAfter ?? null,
+    isVisible: contest.isVisible,
+    isPrivate: contest.isPrivate,
+    isOrganizationPrivate: contest.isOrganizationPrivate,
+    accessCode: contest.accessCode ?? null,
+    limitJoinOrganizations: contest.limitJoinOrganizations,
+    isRated: contest.isRated,
+    rateAll: contest.rateAll,
+    ratingFloor: contest.ratingFloor ?? null,
+    ratingCeiling: contest.ratingCeiling ?? null,
+    performanceCeilingOverride: contest.performanceCeilingOverride ?? null,
+    scoreboardVisibility: contest.scoreboardVisibility,
+    freezeMinutes: contest.freezeMinutes,
+    blindDuringFreeze: contest.blindDuringFreeze,
+    formatName: contest.formatName,
+    formatConfig: contest.formatConfig ?? null,
+    labelScheme: contest.labelScheme,
+    customLabels: contest.customLabels,
+    pointsPrecision: contest.pointsPrecision,
+    runPretestsOnly: contest.runPretestsOnly,
+    useClarifications: contest.useClarifications,
+    hideProblemTags: contest.hideProblemTags,
+    hideProblemAuthors: contest.hideProblemAuthors,
+    disableLockdown: contest.disableLockdown ?? false,
+    proctorRequired: contest.proctorRequired ?? false,
+    showShortDisplay: contest.showShortDisplay,
+    testerSeeScoreboard: contest.testerSeeScoreboard,
+    testerSeeSubmissions: contest.testerSeeSubmissions,
+    authors: await usernames(contest.authorProfileIds),
+    curators: await usernames(contest.curatorProfileIds),
+    testers: await usernames(contest.testerProfileIds),
+    spectators: await usernames(contest.spectatorProfileIds),
+    privateContestants: await usernames(contest.privateContestantProfileIds),
+    rateExclude: await usernames(contest.rateExcludeProfileIds),
+    bannedUsers: await usernames(contest.bannedProfileIds),
+    viewContestScoreboard: await usernames(contest.viewContestScoreboardProfileIds),
+    viewContestSubmissions: await usernames(contest.viewContestSubmissionsProfileIds),
+    organizations: await namesOf(contest.organizationIds, (row) => row.slug),
+    joinOrganizations: await namesOf(contest.joinOrganizationIds, (row) => row.slug),
+    classes: await namesOf(contest.classIds, (row) => row.name),
+    tags: await namesOf(contest.tagIds, (row) => row.name),
+    problems,
+  };
 }
 
 export const setVisibility = mutation({
@@ -500,7 +629,7 @@ export const setVisibility = mutation({
       ctx,
       "contest",
       contest._id,
-      { isVisible },
+      await snapshotContest(ctx, contest._id),
       profile._id,
       reason ?? (isVisible ? "Made contest visible" : "Hid contest"),
     );
@@ -528,7 +657,7 @@ export const setLocked = mutation({
       ctx,
       "contest",
       contest._id,
-      { lockedAfter },
+      await snapshotContest(ctx, contest._id),
       profile._id,
       reason ?? (lockedAfter === null ? "Unlocked contest" : "Locked contest"),
     );
@@ -588,7 +717,7 @@ export const addProblem = mutation({
       ctx,
       "contest",
       contest._id,
-      { addedProblem: problem.code, points: args.points },
+      await snapshotContest(ctx, contest._id),
       profile._id,
       args.reason ?? `Added problem ${problem.code}`,
     );
@@ -641,7 +770,7 @@ export const updateProblem = mutation({
       ctx,
       "contest",
       contest._id,
-      { contestProblemId: args.contestProblemId, patch },
+      await snapshotContest(ctx, contest._id),
       profile._id,
       args.reason ?? "Edited contest problem",
     );
@@ -674,7 +803,7 @@ export const removeProblem = mutation({
       ctx,
       "contest",
       contest._id,
-      { removedProblemId: row.problemId },
+      await snapshotContest(ctx, contest._id),
       profile._id,
       reason ?? "Removed contest problem",
     );
@@ -703,7 +832,7 @@ export const reorderProblems = mutation({
       ctx,
       "contest",
       contest._id,
-      { order },
+      await snapshotContest(ctx, contest._id),
       profile._id,
       reason ?? "Reordered contest problems",
     );
@@ -740,7 +869,14 @@ export const rescore = mutation({
       contestId: contest._id,
       cursor: 0,
     });
-    await writeRevision(ctx, "contest", contest._id, {}, profile._id, reason ?? "Rescored contest");
+    await writeRevision(
+      ctx,
+      "contest",
+      contest._id,
+      await snapshotContest(ctx, contest._id),
+      profile._id,
+      reason ?? "Rescored contest",
+    );
 
     return { jobId, total: participations.length };
   },
@@ -772,7 +908,14 @@ export const rate = mutation({
       jobId,
       contestId: contest._id,
     });
-    await writeRevision(ctx, "contest", contest._id, {}, profile._id, reason ?? "Rated contest");
+    await writeRevision(
+      ctx,
+      "contest",
+      contest._id,
+      await snapshotContest(ctx, contest._id),
+      profile._id,
+      reason ?? "Rated contest",
+    );
 
     return { jobId };
   },
@@ -816,7 +959,7 @@ export const rejudgeProblem = mutation({
       ctx,
       "contest",
       contest._id,
-      { contestProblemId },
+      await snapshotContest(ctx, contest._id),
       profile._id,
       reason ?? "Rejudged contest problem",
     );
