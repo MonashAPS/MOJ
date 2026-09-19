@@ -26,6 +26,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
+  RadioGroup,
   Table,
   TableBody,
   TableCell,
@@ -39,6 +40,7 @@ import { ChevronDown, ChevronUp, GripVertical, ListChecks, Plus, Trash2 } from "
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { AdminFormError, JobProgress } from "@/components/admin";
+import { formatDateTime } from "@/lib/format";
 import type { ContestEdit } from "./types";
 
 type ContestProblem = ContestEdit["problems"][number];
@@ -53,6 +55,7 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
   const removeProblem = useMutation(api.admin.contests.removeProblem);
   const reorderProblems = useMutation(api.admin.contests.reorderProblems);
   const rejudgeProblem = useMutation(api.admin.contests.rejudgeProblem);
+  const updateContest = useMutation(api.admin.contests.update);
 
   const [term, setTerm] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -117,10 +120,51 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
     );
   }
 
+  async function setPublishing(next: string) {
+    const publishProblemsAt = next === "start" || next === "end" ? next : null;
+
+    try {
+      await updateContest({ key: contest.key, publishProblemsAt });
+      toast.success(t("publishSaved"));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t("refused"));
+    }
+  }
+
   return (
     <div className="grid gap-4">
       <AdminFormError message={error} />
       {jobId ? <JobProgress jobId={jobId} title={contest.key} onDismiss={() => setJobId(null)} /> : null}
+
+      <Panel title={t("publishTitle")} bodyClassName="grid gap-3 p-4">
+        <RadioGroup
+          variant="card"
+          name="publish-problems"
+          ariaLabel={t("publishTitle")}
+          value={contest.publishProblemsAt ?? "never"}
+          onValueChange={(next) => void setPublishing(next)}
+          options={[
+            { value: "never", label: t("publishNever"), description: t("publishNeverHint") },
+            {
+              value: "start",
+              label: t("publishStart"),
+              description: t("publishStartHint"),
+              disabled: contest.problemsPublishedAt !== null,
+            },
+            {
+              value: "end",
+              label: t("publishEnd"),
+              description: t("publishEndHint"),
+              disabled: contest.problemsPublishedAt !== null,
+            },
+          ]}
+        />
+        {contest.problemsPublishedAt !== null ? (
+          <p className="text-sm text-muted-foreground">
+            {t("publishDone", { at: formatDateTime(contest.problemsPublishedAt) })}
+          </p>
+        ) : null}
+      </Panel>
 
       <Panel title={t("panelTitle", { count: contest.problems.length })} bodyClassName="grid gap-0 p-0">
         <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
