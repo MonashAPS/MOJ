@@ -60,10 +60,10 @@ export interface ContestGeneralFields {
   blindDuringFreeze: boolean;
   accessCode: string;
   isPrivate: boolean;
+  isOrganizationPrivate: boolean;
   privateContestants: string[];
   organizationSlugs: string[];
   classNames: string[];
-  limitJoinOrganizations: boolean;
   joinOrganizationSlugs: string[];
   tagNames: string[];
   lockedAfter: number | null;
@@ -72,6 +72,7 @@ export interface ContestGeneralFields {
   disableLockdown: boolean;
   hideProblemAuthors: boolean;
   runPretestsOnly: boolean;
+  proctorRequired: boolean;
   showShortDisplay: boolean;
   useClarifications: boolean;
   ogImage: string;
@@ -108,10 +109,10 @@ export type ContestFieldSource = Pick<
   | "blindDuringFreeze"
   | "accessCode"
   | "isPrivate"
+  | "isOrganizationPrivate"
   | "privateContestants"
   | "organizationSlugs"
   | "classNames"
-  | "limitJoinOrganizations"
   | "joinOrganizationSlugs"
   | "tagNames"
   | "lockedAfter"
@@ -120,6 +121,7 @@ export type ContestFieldSource = Pick<
   | "disableLockdown"
   | "hideProblemAuthors"
   | "runPretestsOnly"
+  | "proctorRequired"
   | "showShortDisplay"
   | "useClarifications"
   | "ogImage"
@@ -162,10 +164,10 @@ export function fieldsFromContest(contest: ContestFieldSource): ContestGeneralFi
     blindDuringFreeze: contest.blindDuringFreeze,
     accessCode: contest.accessCode,
     isPrivate: contest.isPrivate,
+    isOrganizationPrivate: contest.isOrganizationPrivate,
     privateContestants: contest.privateContestants,
     organizationSlugs: contest.organizationSlugs,
     classNames: contest.classNames,
-    limitJoinOrganizations: contest.limitJoinOrganizations,
     joinOrganizationSlugs: contest.joinOrganizationSlugs,
     tagNames: contest.tagNames,
     lockedAfter: contest.lockedAfter,
@@ -174,6 +176,7 @@ export function fieldsFromContest(contest: ContestFieldSource): ContestGeneralFi
     disableLockdown: contest.disableLockdown,
     hideProblemAuthors: contest.hideProblemAuthors,
     runPretestsOnly: contest.runPretestsOnly,
+    proctorRequired: contest.proctorRequired,
     showShortDisplay: contest.showShortDisplay,
     useClarifications: contest.useClarifications,
     ogImage: contest.ogImage,
@@ -224,12 +227,14 @@ export function argsFromFields(fields: ContestGeneralFields, refs: FieldRefs, fo
     accessCode: fields.accessCode.trim() || null,
     isPrivate: fields.isPrivate,
     privateContestantProfileIds: refs.profileIdsFor(fields.privateContestants),
-    // Not a control: the form says a contest is organisation-private when it
-    // names an organisation or a class.
-    isOrganizationPrivate: fields.organizationSlugs.length > 0 || fields.classNames.length > 0,
+    // A control of its own now. Deriving it from whether the lists were empty
+    // meant clearing them silently opened the contest to everybody.
+    isOrganizationPrivate: fields.isOrganizationPrivate,
     organizationIds: refs.organizationIds,
     classIds: refs.classIds,
-    limitJoinOrganizations: fields.limitJoinOrganizations,
+    // A join limit naming nobody admits nobody, and nothing wants to say that,
+    // so the flag is whether the list has anything in it.
+    limitJoinOrganizations: fields.joinOrganizationSlugs.length > 0,
     joinOrganizationIds: refs.joinOrganizationIds,
     tagIds: refs.tagIds,
     lockedAfter: fields.lockedAfter,
@@ -238,6 +243,7 @@ export function argsFromFields(fields: ContestGeneralFields, refs: FieldRefs, fo
     disableLockdown: fields.disableLockdown,
     hideProblemAuthors: fields.hideProblemAuthors,
     runPretestsOnly: fields.runPretestsOnly,
+    proctorRequired: fields.proctorRequired,
     showShortDisplay: fields.showShortDisplay,
     useClarifications: fields.useClarifications,
     ogImage: fields.ogImage.trim() || null,

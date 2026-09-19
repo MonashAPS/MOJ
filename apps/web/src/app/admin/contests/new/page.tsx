@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { NewContestForm } from "./NewContestForm";
+import { NewContestWizard } from "./NewContestWizard";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin.contests.new");
@@ -9,5 +9,5 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function NewContestPage() {
-  return <NewContestForm />;
+  return <NewContestWizard />;
 }

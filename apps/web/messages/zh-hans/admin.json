@@ -440,18 +440,36 @@
       "descriptionHint": "支持 Markdown，将显示在比赛自己的页面上。",
       "submit": "创建比赛",
       "submitBusy": "正在创建…",
-      "reasonHint": "会随版本记录一同保存，方便他人了解此比赛的变更原因。"
+      "reasonHint": "会随版本记录一同保存，方便他人了解此比赛的变更原因。",
+      "step": {
+        "what": "是什么",
+        "when": "什么时候",
+        "who": "面向谁"
+      },
+      "stepWhatTitle": "这是什么？",
+      "stepWhatHint": "用于网址的标识、供人阅读的名称，以及计分方式。",
+      "stepWhenTitle": "什么时候举行？",
+      "stepWhenHint": "以及使用谁的计时。",
+      "stepWhoTitle": "面向谁？",
+      "stepWhoHint": "创建之后可以限制参赛范围并添加题目。",
+      "back": "返回",
+      "continue": "继续",
+      "createAndOpen": "创建并添加题目",
+      "presetSaturday": "本周六 10:00，5 小时",
+      "presetTomorrow": "明天 18:00，2 小时",
+      "presetNow": "立即开始，3 小时"
     },
     "editor": {
       "breadcrumbConsole": "工作人员后台",
       "breadcrumbContests": "比赛",
       "tabs": {
-        "general": "常规",
+        "setup": "设置",
+        "access": "参赛范围",
+        "scoring": "计分",
         "problems": "题目",
         "people": "人员",
-        "proctoring": "监考",
         "actions": "操作",
-        "revisions": "版本记录"
+        "history": "历史"
       },
       "missingTitle": "没有此比赛",
       "missingDescription": "不存在该 ID 的比赛，或你没有编辑权限。",
@@ -553,7 +571,9 @@
       "bannedUsers": "已封禁用户",
       "bannedUsersHint": "他们无法加入，保存后也会被移出比赛模式。",
       "submit": "保存比赛",
-      "reasonHint": "会随版本记录一同保存，方便他人了解此比赛的变更原因。"
+      "reasonHint": "会随版本记录一同保存，方便他人了解此比赛的变更原因。",
+      "proctorRequired": "需要共享屏幕",
+      "proctorRequiredHint": "只有在选手共享整个屏幕时题目才会打开。"
     },
     "problems": {
       "refused": "更改被拒绝。",
@@ -680,19 +700,12 @@
         }
       }
     },
-    "proctoring": {
-      "title": "监考",
-      "intro": "有监考的比赛只在参赛者共享整个屏幕期间开放题目",
-      "required": "要求共享屏幕",
-      "saved": "监考设置已保存",
-      "refused": "评测机拒绝了本次修改。"
-    },
     "setup": {
       "scheduleMode": "计时方式",
       "scheduleTogether": "所有人同时进行",
-      "scheduleTogetherHint": "所有人在开始与结束之间比赛，罚时对每个人都从比赛开始计算。",
+      "scheduleTogetherHint": "所有人的罚时都从比赛开始计算。",
       "scheduleWindow": "各自的时段",
-      "scheduleWindowHint": "比赛在两个时间之间开放，每位选手有自己的计时，从加入时开始——罚时也从那一刻开始，而不是比赛开放时。所有时段仍会在比赛结束时截止。",
+      "scheduleWindowHint": "每位选手的计时和罚时都从加入时开始。",
       "starts": "开始",
       "ends": "结束",
       "opens": "开放",
@@ -700,7 +713,50 @@
       "windowLength": "每位选手可用",
       "windowLengthHint": "分钟，从加入的那一刻算起。",
       "lockedAfter": "锁定于",
-      "lockedAfterHint": "提交将无法再编辑或重判。留空表示永不锁定。"
+      "lockedAfterHint": "提交将无法再编辑。留空表示永不。",
+      "visible": "列出",
+      "visibleHint": "在比赛列表中显示。工作人员始终可以访问。",
+      "entryMode": "谁可以参加",
+      "entryOpen": "任何人",
+      "entryOpenHint": "任何拥有账号的人都可以加入。",
+      "entryRestricted": "仅限你指定的人",
+      "entryRestrictedHint": "指定组织、班级或人员。指定两类表示两者都要满足。",
+      "entryOrganizations": "组织",
+      "entryOrganizationsPlaceholder": "任意组织",
+      "entryClasses": "班级",
+      "entryClassesPlaceholder": "任意班级",
+      "entryNamed": "指定人员",
+      "entryBothGatesHint": "同时指定了组织和人员名单，因此参赛者必须两者都满足。",
+      "accessCode": "访问码",
+      "accessCodeHint": "首次加入时询问。工作人员无需提供。",
+      "joinLimit": "仅这些组织可以加入",
+      "joinLimitHint": "留空则任何能看到比赛的人都可以加入。",
+      "joinLimitPlaceholder": "任何能看到的人",
+      "freezeMode": "排行榜封榜",
+      "freezeNone": "不封榜",
+      "freezeNoneHint": "排行榜一直更新到结束。",
+      "freezeLast": "封锁最后阶段",
+      "freezeLastHint": "保持封榜直到有人揭晓，揭晓是单独的操作。",
+      "freezeMinutes": "封榜时长",
+      "freezeMinutesHint": "结束前的分钟数。必须短于比赛时长。",
+      "blindDuringFreeze": "同时隐藏选手自己的判定",
+      "blindDuringFreezeHint": "他们会看到自己的提交为等待中。比赛结束时解除。",
+      "scoreboardVisibility": "谁可以看排行榜",
+      "ratingMode": "评分",
+      "unrated": "不计评分",
+      "unratedHint": "没有人的评分会变动。",
+      "rated": "计评分",
+      "ratedHint": "只有在「操作」中执行评分时评分才会变动。",
+      "rateWho": "为谁评分",
+      "rateScorers": "仅有提交的选手",
+      "rateEveryone": "所有加入者，包括没有提交的人",
+      "ratingFloor": "评分下限",
+      "ratingFloorHint": "读取此前的评分；新人按 1200 计算。留空表示不限。",
+      "ratingCeiling": "评分上限",
+      "ratingCeilingHint": "排除高于此值的选手。留空表示不限。",
+      "performanceCeiling": "表现分上限",
+      "performanceCeilingHint": "限制本场比赛可授予的表现分。留空表示不限。",
+      "rateExclude": "从不评分"
     },
     "summary": {
       "title": "这场比赛会如何运行",
@@ -713,11 +769,11 @@
         "check": "值得检查"
       },
       "when": {
-        "window": "从 {start} 到 {end}，共 {length}。",
+        "window": "从 <b>{start}</b> 到 <b>{end}</b>，共 <b>{length}</b>。",
         "together": "所有人共用一个计时，罚时从开始计算。",
-        "ownWindow": "每位选手从加入时起有 {length}，罚时也从那时开始。",
-        "ownWindowCutoff": "在 {at} 之后加入会少于该时长，因为所有时段仍在比赛结束时截止。",
-        "locked": "提交在 {at} 之后无法再编辑。"
+        "ownWindow": "每位选手从加入时起有 <b>{length}</b>，<b>罚时也从那时开始</b>。",
+        "ownWindowCutoff": "在 <b>{at}</b> 之后加入会少于该时长。",
+        "locked": "提交在 <b>{at}</b> 之后无法再编辑。"
       },
       "who": {
         "hidden": "已从比赛列表中隐藏。",
@@ -731,7 +787,7 @@
       },
       "scoring": {
         "noFreeze": "排行榜会一直更新到结束。",
-        "freeze": "排行榜在结束前 {minutes} 分钟、即 {at} 停止更新，并保持封榜直到有人揭晓。",
+        "freeze": "排行榜在结束前 <b>{minutes} 分钟</b>、即 <b>{at}</b> 封榜。",
         "blind": "选手也会看到自己的判定显示为等待中，这会在比赛结束时解除。",
         "labelsCustom": "题目使用 {count, plural, other {# 个自定义标签}}。",
         "pretests": "比赛期间只运行预测试。"
@@ -740,8 +796,8 @@
         "unrated": "不计评分。",
         "ratedScorers": "计评分，面向有提交的选手。",
         "ratedEveryone": "计评分，包括没有任何提交的选手。",
-        "ratedBand": "只有此前评分在 {floor} 到 {ceiling} 之间的选手会被计入；从未评过分的人按 {newcomer} 计算。",
-        "performanceCeiling": "表现分上限为 {at}。"
+        "ratedBand": "只有此前评分在 <b>{floor}</b> 到 <b>{ceiling}</b> 之间的选手会被计入；新人按 <b>{newcomer}</b> 计算。",
+        "performanceCeiling": "表现分上限为 <b>{at}</b>。"
       },
       "confirmTitle": "仍要保存吗？",
       "confirmBody": "这些设置可以运行，但它们的实际效果与看起来的不同。",
@@ -749,15 +805,15 @@
       "confirmSave": "仍然保存"
     },
     "warnings": {
-      "windowIsWholeContest": "时段等于整场比赛，因此不会给任何人额外时间，却仍会把每位选手的罚时起点移到他们加入的那一刻。除非这正是你想要的，否则请选择「所有人同时进行」。",
-      "windowExceedsContest": "时段比比赛还长，因此除了把每位选手的罚时起点移到加入那一刻之外没有任何作用。",
-      "scheduleChangedMidContest": "已有 {count, plural, other {# 人}}在参赛。更改计时会追溯性地改变他们的罚时。",
+      "windowIsWholeContest": "不会给任何人额外时间，却仍把每个罚时起点移到加入时刻。",
+      "windowExceedsContest": "比比赛还长，因此只会把每个罚时起点移到加入时刻。",
+      "scheduleChangedMidContest": "已有 {count, plural, other {# 人}}在参赛；他们的罚时会改变。",
       "freezeCoversContest": "封榜时长不短于整场比赛，排行榜将完全不会变动。",
-      "blindLiftsBeforeFreeze": "比赛结束时选手不再看到自己的判定为等待中，但排行榜仍保持封榜直到有人揭晓。",
+      "blindLiftsBeforeFreeze": "隐藏在比赛结束时解除，封榜不会。",
       "restrictedNamesNobody": "参赛已受限却未指定任何人，因此只有工作人员能进入。",
-      "entryNeedsBothGates": "两道限制都已开启，选手必须既属于所列组织又在名单中。组织中未被列名的人都会被挡在外面。",
+      "entryNeedsBothGates": "组织中未被列名的成员会被挡在外面。",
       "joinLimitNamesNobody": "加入限制未指定任何组织，因此没有人能加入。",
-      "alwaysAdmitIsFullAccess": "被列为排行榜查看者的 {count, plural, other {# 人}}会获得整场比赛的访问权限，而不只是排行榜。",
+      "alwaysAdmitIsFullAccess": "排行榜查看者会获得整场比赛的访问权限，而不只是排行榜。",
       "hiddenWhileRunning": "比赛正在进行中且已从列表隐藏。",
       "ratingBandEmpty": "评分下限高于上限，因此无人符合条件。",
       "ratingFloorExcludesNewcomers": "{floor} 的下限会排除所有从未评过分的人，因为他们按 {newcomer} 计算。",

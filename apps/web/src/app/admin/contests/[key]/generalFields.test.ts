@@ -44,10 +44,10 @@ function contestEdit(overrides: Partial<ContestFieldSource> = {}): ContestFieldS
     blindDuringFreeze: false,
     accessCode: "",
     isPrivate: false,
+    isOrganizationPrivate: false,
     privateContestants: [],
     organizationSlugs: [],
     classNames: [],
-    limitJoinOrganizations: false,
     joinOrganizationSlugs: [],
     tagNames: [],
     lockedAfter: null,
@@ -56,6 +56,7 @@ function contestEdit(overrides: Partial<ContestFieldSource> = {}): ContestFieldS
     disableLockdown: false,
     hideProblemAuthors: false,
     runPretestsOnly: false,
+    proctorRequired: false,
     showShortDisplay: false,
     useClarifications: true,
     ogImage: "",
@@ -91,12 +92,14 @@ describe("fields the form cannot represent exactly", () => {
     expect(patchAfterEditing(contest, { name: "Weekly 2" })).toEqual({ name: "Weekly 2" });
   });
 
-  it("leaves organisation privacy alone when something else is edited", () => {
-    // `isOrganizationPrivate` is derived from the lists rather than edited, so a
-    // full save turned it off for any contest whose lists happened to be empty.
-    const contest = contestEdit({ organizationSlugs: [] });
+  it("keeps organisation privacy that no list backs up", () => {
+    // It used to be derived from whether the lists were empty, so a save on a
+    // contest whose lists had not loaded turned it off and opened the contest.
+    // It is a control of its own now, and an untouched save leaves it alone.
+    const contest = contestEdit({ isOrganizationPrivate: true, organizationSlugs: [] });
 
     expect(patchAfterEditing(contest, { name: "Weekly 2" })).toEqual({ name: "Weekly 2" });
+    expect(fieldsFromContest(contest).isOrganizationPrivate).toBe(true);
   });
 
   it("keeps a per-participant window in seconds across the round trip", () => {
@@ -126,13 +129,19 @@ describe("a contest the operator has edited", () => {
     expect(changedArgs(before, after)).toEqual({ ratingFloor: null });
   });
 
-  it("turns on organisation privacy when the first organisation is named", () => {
+  it("limits joining exactly when the join list names somebody", () => {
+    // The checkbox is gone: a limit naming nobody admits nobody, and nothing
+    // wants to say that.
     const contest = contestEdit();
     const before = argsFromFields(fieldsFromContest(contest), REFS, null);
 
-    const after = argsFromFields({ ...fieldsFromContest(contest), organizationSlugs: ["maps"] }, REFS, null);
+    const after = argsFromFields(
+      { ...fieldsFromContest(contest), joinOrganizationSlugs: ["maps"] },
+      REFS,
+      null,
+    );
 
-    expect(changedArgs(before, after)).toEqual({ isOrganizationPrivate: true });
+    expect(changedArgs(before, after)).toEqual({ limitJoinOrganizations: true });
   });
 
   it("compares the format config by value, not by how it was typed", () => {

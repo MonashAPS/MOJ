@@ -12,27 +12,41 @@ import { ContestActionsTab } from "./ContestActionsTab";
 import { ContestGeneralTab } from "./ContestGeneralTab";
 import { ContestPeopleTab } from "./ContestPeopleTab";
 import { ContestProblemsTab } from "./ContestProblemsTab";
-import { ContestProctorTab } from "./ContestProctorTab";
 
-const TABS = ["general", "problems", "people", "proctoring", "actions", "revisions"] as const;
+const TABS = ["setup", "access", "scoring", "problems", "people", "actions", "history"] as const;
+
+/**
+ * Where the tabs that used to exist now live. `general` was one page of nine
+ * sections and `proctoring` was a page with one checkbox on it; both are links
+ * people have in bookmarks and in Slack.
+ */
+const MOVED = {
+  general: "setup",
+  proctoring: "setup",
+  revisions: "history",
+} satisfies Record<string, (typeof TABS)[number]>;
 
 export function ContestEditor({ contestKey }: { contestKey: string }) {
   const t = useTranslations("admin.contests.editor");
   const params = useSearchParams();
-  const active = TABS.find((tab) => tab === params.get("tab")) ?? "general";
+  const asked = params.get("tab") ?? "";
+  // SAFETY: guarded by the `in` check on the line itself, so the key is one
+  // MOVED carries.
+  const moved = asked in MOVED ? MOVED[asked as keyof typeof MOVED] : undefined;
+  const active = TABS.find((tab) => tab === asked) ?? moved ?? "setup";
 
   const contest = useQuery(api.pages.admin.contests.edit, { key: contestKey });
   const options = useQuery(api.pages.admin.contests.options, {});
 
   const revisions = useQuery(
     api.pages.admin.revisions.byKey,
-    active === "revisions" ? { entityType: "contest" as const, key: contestKey } : "skip",
+    active === "history" ? { entityType: "contest" as const, key: contestKey } : "skip",
   );
 
   const tabs: TabItem[] = TABS.map((tab) => ({
     key: tab,
     label: t(`tabs.${tab}`),
-    href: tab === "general" ? `/admin/contests/${contestKey}/` : `/admin/contests/${contestKey}/?tab=${tab}`,
+    href: tab === "setup" ? `/admin/contests/${contestKey}/` : `/admin/contests/${contestKey}/?tab=${tab}`,
   }));
 
   const breadcrumb = [
@@ -82,14 +96,12 @@ export function ContestEditor({ contestKey }: { contestKey: string }) {
           <SkeletonPanel lines={5} />
           <SkeletonPanel lines={3} />
         </div>
-      ) : active === "general" ? (
-        <ContestGeneralTab contest={contest} options={options} />
+      ) : active === "setup" || active === "access" || active === "scoring" ? (
+        <ContestGeneralTab contest={contest} options={options} tab={active} />
       ) : active === "problems" ? (
         <ContestProblemsTab contest={contest} />
       ) : active === "people" ? (
         <ContestPeopleTab contest={contest} />
-      ) : active === "proctoring" ? (
-        <ContestProctorTab contest={contest} />
       ) : active === "actions" ? (
         <ContestActionsTab contest={contest} />
       ) : (

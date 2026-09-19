@@ -440,18 +440,36 @@
       "descriptionHint": "Markdown, se muestra en la página propia del concurso.",
       "submit": "Crear concurso",
       "submitBusy": "Creando…",
-      "reasonHint": "Se guarda con la revisión para que la siguiente persona vea por qué cambió este concurso."
+      "reasonHint": "Se guarda con la revisión para que la siguiente persona vea por qué cambió este concurso.",
+      "step": {
+        "what": "Qué es",
+        "when": "Cuándo",
+        "who": "Para quién"
+      },
+      "stepWhatTitle": "¿Qué es?",
+      "stepWhatHint": "Un id para la URL, un nombre que la gente lee y cómo se puntúa.",
+      "stepWhenTitle": "¿Cuándo se celebra?",
+      "stepWhenHint": "Y con el reloj de quién.",
+      "stepWhoTitle": "¿Para quién es?",
+      "stepWhoHint": "Puedes restringir la entrada y añadir problemas cuando exista.",
+      "back": "Atrás",
+      "continue": "Continuar",
+      "createAndOpen": "Crear y añadir problemas",
+      "presetSaturday": "Este sábado, 10:00, 5 horas",
+      "presetTomorrow": "Mañana, 18:00, 2 horas",
+      "presetNow": "Empieza ahora, 3 horas"
     },
     "editor": {
       "breadcrumbConsole": "Consola de personal",
       "breadcrumbContests": "Concursos",
       "tabs": {
-        "general": "General",
+        "setup": "Configuración",
+        "access": "Acceso",
+        "scoring": "Puntuación",
         "problems": "Problemas",
         "people": "Personas",
-        "proctoring": "Supervisión",
         "actions": "Acciones",
-        "revisions": "Revisiones"
+        "history": "Historial"
       },
       "missingTitle": "El concurso no existe",
       "missingDescription": "No hay ningún concurso con ese id, o no es uno que puedas editar.",
@@ -553,7 +571,9 @@
       "bannedUsers": "Usuarios baneados",
       "bannedUsersHint": "No pueden unirse, y se les saca del modo concurso cuando se guarda esto.",
       "submit": "Guardar concurso",
-      "reasonHint": "Se guarda con la revisión para que la siguiente persona vea por qué cambió este concurso."
+      "reasonHint": "Se guarda con la revisión para que la siguiente persona vea por qué cambió este concurso.",
+      "proctorRequired": "Requiere compartir pantalla",
+      "proctorRequiredHint": "Los problemas solo se abren mientras el participante comparte toda su pantalla."
     },
     "problems": {
       "refused": "El cambio fue rechazado.",
@@ -680,19 +700,12 @@
         }
       }
     },
-    "proctoring": {
-      "title": "Supervisión",
-      "intro": "Un concurso supervisado abre sus problemas solo mientras la persona comparte toda su pantalla",
-      "required": "Requerir compartir pantalla",
-      "saved": "Ajustes de supervisión guardados",
-      "refused": "El juez rechazó el cambio."
-    },
     "setup": {
       "scheduleMode": "Cómo corre el reloj",
       "scheduleTogether": "Todos a la vez",
-      "scheduleTogetherHint": "Todos compiten entre el inicio y el final, y el tiempo de penalización se cuenta desde el inicio del concurso para todos.",
+      "scheduleTogetherHint": "La penalización cuenta desde el inicio del concurso para todos.",
       "scheduleWindow": "Una ventana para cada uno",
-      "scheduleWindowHint": "El concurso está abierto entre las dos horas y cada participante tiene su propio reloj que empieza cuando se une; su tiempo de penalización empieza entonces, no cuando abre el concurso. Toda ventana termina igualmente al final del concurso.",
+      "scheduleWindowHint": "El reloj de cada participante, y su penalización, empieza cuando se une.",
       "starts": "Empieza",
       "ends": "Termina",
       "opens": "Abre",
@@ -700,7 +713,50 @@
       "windowLength": "Cada participante recibe",
       "windowLengthHint": "Minutos, desde el momento en que se une.",
       "lockedAfter": "Bloqueado después de",
-      "lockedAfterHint": "Los envíos dejan de poder editarse y rejuzgarse. Déjalo vacío para nunca."
+      "lockedAfterHint": "Los envíos dejan de poder editarse. Vacío para nunca.",
+      "visible": "Listado",
+      "visibleHint": "Mostrarlo en la lista de concursos. El personal siempre puede acceder.",
+      "entryMode": "Quién puede entrar",
+      "entryOpen": "Cualquiera",
+      "entryOpenHint": "Cualquier persona con cuenta puede unirse.",
+      "entryRestricted": "Solo quienes indiques",
+      "entryRestrictedHint": "Indica organizaciones, clases o personas. Indicar dos tipos exige cumplir ambos.",
+      "entryOrganizations": "Organizaciones",
+      "entryOrganizationsPlaceholder": "Cualquier organización",
+      "entryClasses": "Clases",
+      "entryClassesPlaceholder": "Cualquier clase",
+      "entryNamed": "Personas indicadas",
+      "entryBothGatesHint": "Se indican a la vez una organización y una lista de personas, así que hay que cumplir ambas.",
+      "accessCode": "Código de acceso",
+      "accessCodeHint": "Se pide la primera vez que alguien se une. El personal nunca lo necesita.",
+      "joinLimit": "Solo estas organizaciones pueden unirse",
+      "joinLimitHint": "Déjalo vacío para que pueda unirse cualquiera que vea el concurso.",
+      "joinLimitPlaceholder": "Cualquiera que pueda verlo",
+      "freezeMode": "Congelación de la clasificación",
+      "freezeNone": "Sin congelar",
+      "freezeNoneHint": "La clasificación sigue actualizándose hasta el final.",
+      "freezeLast": "Congelar el tramo final",
+      "freezeLastHint": "Sigue congelada hasta que alguien la revele, que es una acción aparte.",
+      "freezeMinutes": "Congelada los últimos",
+      "freezeMinutesHint": "Minutos antes del final. Debe ser menor que el concurso.",
+      "blindDuringFreeze": "Ocultar también los veredictos propios",
+      "blindDuringFreezeHint": "Ven sus propios envíos como pendientes. Termina al acabar el concurso.",
+      "scoreboardVisibility": "Quién ve la clasificación",
+      "ratingMode": "Clasificación",
+      "unrated": "Sin clasificación",
+      "unratedHint": "No cambia la puntuación de nadie.",
+      "rated": "Con clasificación",
+      "ratedHint": "Las puntuaciones cambian solo cuando alguien las ejecuta desde Acciones.",
+      "rateWho": "Quién se clasifica",
+      "rateScorers": "Solo quienes hayan enviado algo",
+      "rateEveryone": "Todos los que se unieron, incluidos quienes no enviaron nada",
+      "ratingFloor": "Puntuación mínima",
+      "ratingFloorHint": "Lee la puntuación anterior; quien no tenga cuenta como 1200. Vacío para ninguno.",
+      "ratingCeiling": "Puntuación máxima",
+      "ratingCeilingHint": "Excluye a quienes estén por encima. Vacío para ninguna.",
+      "performanceCeiling": "Límite de rendimiento",
+      "performanceCeilingHint": "Limita el rendimiento que puede otorgar este concurso. Vacío para ninguno.",
+      "rateExclude": "Nunca clasificados"
     },
     "summary": {
       "title": "Qué hará este concurso",
@@ -713,11 +769,11 @@
         "check": "Conviene revisar"
       },
       "when": {
-        "window": "Se celebra del {start} al {end}, con una duración de {length}.",
+        "window": "Del <b>{start}</b> al <b>{end}</b>, con una duración de <b>{length}</b>.",
         "together": "Todos comparten un reloj y el tiempo de penalización cuenta desde el inicio.",
-        "ownWindow": "Cada participante recibe {length} desde que se une, y su tiempo de penalización empieza entonces.",
-        "ownWindowCutoff": "Unirse después de {at} deja menos que eso, porque toda ventana termina igualmente al final del concurso.",
-        "locked": "Los envíos dejan de poder editarse después de {at}."
+        "ownWindow": "Cada participante recibe <b>{length}</b> desde que se une, y <b>su tiempo de penalización empieza entonces</b>.",
+        "ownWindowCutoff": "Unirse después de <b>{at}</b> deja menos que eso.",
+        "locked": "Los envíos dejan de poder editarse después de <b>{at}</b>."
       },
       "who": {
         "hidden": "Oculto de la lista de concursos.",
@@ -731,7 +787,7 @@
       },
       "scoring": {
         "noFreeze": "La clasificación se actualiza hasta el final.",
-        "freeze": "La clasificación deja de actualizarse {minutes} minutos antes del final, a las {at}, y sigue congelada hasta que alguien la revele.",
+        "freeze": "La clasificación se congela <b>{minutes} minutos</b> antes del final, a las <b>{at}</b>.",
         "blind": "Los participantes también ven sus propios veredictos como pendientes, lo que termina cuando acaba el concurso.",
         "labelsCustom": "Los problemas usan {count, plural, one {# etiqueta personalizada} other {# etiquetas personalizadas}}.",
         "pretests": "Durante el concurso solo se ejecutan las pruebas previas."
@@ -740,8 +796,8 @@
         "unrated": "Sin clasificación.",
         "ratedScorers": "Con clasificación, para quienes hayan enviado algo.",
         "ratedEveryone": "Con clasificación, incluidos quienes no hayan enviado nada.",
-        "ratedBand": "Solo se clasifica a quienes tengan una puntuación previa entre {floor} y {ceiling}; quien nunca haya sido clasificado cuenta como {newcomer}.",
-        "performanceCeiling": "El rendimiento se limita a {at}."
+        "ratedBand": "Solo se clasifican puntuaciones previas entre <b>{floor}</b> y <b>{ceiling}</b>; quien no tenga cuenta como <b>{newcomer}</b>.",
+        "performanceCeiling": "El rendimiento se limita a <b>{at}</b>."
       },
       "confirmTitle": "¿Guardar de todos modos?",
       "confirmBody": "Estos ajustes funcionan, y hacen algo distinto de lo que parece.",
@@ -749,15 +805,15 @@
       "confirmSave": "Guardar de todos modos"
     },
     "warnings": {
-      "windowIsWholeContest": "La ventana es todo el concurso, así que no da tiempo extra a nadie, pero mueve el reloj de penalización de cada participante al momento en que se unió. Elige «Todos a la vez» salvo que sea lo que quieres.",
-      "windowExceedsContest": "La ventana es más larga que el concurso, así que no hace nada salvo mover el reloj de penalización de cada participante al momento en que se unió.",
-      "scheduleChangedMidContest": "{count, plural, one {# persona ya está compitiendo} other {# personas ya están compitiendo}}. Cambiar el reloj mueve sus tiempos de penalización retroactivamente.",
+      "windowIsWholeContest": "No da tiempo extra a nadie, y aun así mueve cada reloj de penalización al momento en que se unieron.",
+      "windowExceedsContest": "Más larga que el concurso, así que solo mueve cada reloj de penalización al momento en que se unieron.",
+      "scheduleChangedMidContest": "{count, plural, one {# persona ya compite} other {# personas ya compiten}}; sus tiempos de penalización se mueven.",
       "freezeCoversContest": "La congelación dura al menos tanto como el concurso, así que la clasificación no se movería nunca.",
-      "blindLiftsBeforeFreeze": "Los participantes dejan de ver sus veredictos como pendientes al acabar el concurso, pero la clasificación sigue congelada hasta que alguien la revele.",
+      "blindLiftsBeforeFreeze": "La ocultación termina al acabar el concurso; la congelación no.",
       "restrictedNamesNobody": "La entrada está restringida pero no nombra a nadie, así que solo el personal puede entrar.",
-      "entryNeedsBothGates": "Ambas puertas están activas, así que un participante debe estar en una organización nombrada Y en la lista de personas. Quien esté en la organización sin estar nombrado queda fuera.",
+      "entryNeedsBothGates": "Los miembros de la organización que no estén nombrados quedan fuera.",
       "joinLimitNamesNobody": "El límite de entrada no nombra ninguna organización, así que nadie puede entrar.",
-      "alwaysAdmitIsFullAccess": "{count, plural, one {La # persona indicada} other {Las # personas indicadas}} como observadoras de la clasificación entran a todo el concurso, no solo a su clasificación.",
+      "alwaysAdmitIsFullAccess": "Quienes ven la clasificación entran a todo el concurso, no solo a ella.",
       "hiddenWhileRunning": "El concurso está en marcha y oculto de la lista.",
       "ratingBandEmpty": "El mínimo de clasificación está por encima del máximo, así que nadie es elegible.",
       "ratingFloorExcludesNewcomers": "Un mínimo de {floor} excluye a todo el que nunca haya sido clasificado, porque cuentan como {newcomer}.",
