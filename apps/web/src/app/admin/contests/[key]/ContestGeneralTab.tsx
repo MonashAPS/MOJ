@@ -29,6 +29,7 @@ import { formatDateTime } from "@/lib/format";
 import { acknowledgedReason, ContestDangerDialog } from "./ContestDangerDialog";
 import { ContestEntryFields } from "./ContestEntryFields";
 import { ContestScheduleFields } from "./ContestScheduleFields";
+import { ContestFreezeFields, ContestRatingFields } from "./ContestScoringFields";
 import { ContestSummary } from "./ContestSummary";
 import {
   argsFromFields,
@@ -452,19 +453,6 @@ export function ContestGeneralTab({
               />
             </div>
           </AdminWideField>
-          <Field label={t("scoreboardVisibility")} htmlFor={ids.scoreboard}>
-            <Select
-              id={ids.scoreboard}
-              value={scoreboardVisibility}
-              onValueChange={(value) =>
-                setScoreboardVisibility(chosenValue(SCOREBOARD_OPTIONS, value, scoreboardVisibility))
-              }
-              options={SCOREBOARD_OPTIONS.map((option) => ({
-                value: option.value,
-                label: t(option.labelKey),
-              }))}
-            />
-          </Field>
           <Field label={t("pointsPrecision")} htmlFor={ids.precision} hint={t("pointsPrecisionHint")}>
             <Input
               id={ids.precision}
@@ -476,21 +464,24 @@ export function ContestGeneralTab({
           </Field>
         </AdminSection>
 
-        <AdminSection title={t("sectionFreeze")}>
-          <Field label={t("freeze")} htmlFor={ids.freeze} hint={t("freezeHint")}>
-            <Input
-              id={ids.freeze}
-              mono
-              inputMode="numeric"
-              value={freezeMinutes}
-              onChange={(event) => setFreezeMinutes(event.target.value)}
-            />
-          </Field>
-          <AdminCheckField
-            label={t("blindDuringFreeze")}
-            hint={t("blindDuringFreezeHint")}
-            checked={blindDuringFreeze}
-            onCheckedChange={setBlindDuringFreeze}
+        <AdminSection title={t("sectionFreeze")} columns={1}>
+          <ContestFreezeFields
+            values={{ freezeMinutes, blindDuringFreeze, scoreboardVisibility }}
+            scoreboardOptions={SCOREBOARD_OPTIONS.map((option) => ({
+              value: option.value,
+              label: t(option.labelKey),
+            }))}
+            onChange={(patch) => {
+              if (patch.freezeMinutes !== undefined) setFreezeMinutes(patch.freezeMinutes);
+
+              if (patch.blindDuringFreeze !== undefined) setBlindDuringFreeze(patch.blindDuringFreeze);
+
+              if (patch.scoreboardVisibility !== undefined) {
+                setScoreboardVisibility(
+                  chosenValue(SCOREBOARD_OPTIONS, patch.scoreboardVisibility, scoreboardVisibility),
+                );
+              }
+            }}
           />
         </AdminSection>
 
@@ -558,70 +549,26 @@ export function ContestGeneralTab({
           ) : null}
         </AdminSection>
 
-        <AdminSection title={t("sectionRating")}>
-          <AdminWideField>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <AdminCheckField
-                label={t("rated")}
-                hint={t("ratedHint")}
-                checked={isRated}
-                onCheckedChange={setIsRated}
-                disabled={!permissions.contestRating}
-                disabledReason={t("missingPermission", { permission: "judge.contest_rating" })}
-              />
-              <AdminCheckField
-                label={t("rateAll")}
-                hint={t("rateAllHint")}
-                checked={rateAll}
-                onCheckedChange={setRateAll}
-                disabled={!permissions.contestRating}
-                disabledReason={t("missingPermission", { permission: "judge.contest_rating" })}
-              />
-            </div>
-          </AdminWideField>
-          <Field label={t("ratingFloor")} htmlFor={ids.ratingFloor} optional={t("optional")}>
-            <Input
-              id={ids.ratingFloor}
-              mono
-              inputMode="numeric"
-              value={ratingFloor}
-              onChange={(event) => setRatingFloor(event.target.value)}
-            />
-          </Field>
-          <Field label={t("ratingCeiling")} htmlFor={ids.ratingCeiling} optional={t("optional")}>
-            <Input
-              id={ids.ratingCeiling}
-              mono
-              inputMode="numeric"
-              value={ratingCeiling}
-              onChange={(event) => setRatingCeiling(event.target.value)}
-            />
-          </Field>
-          <Field label={t("performanceCeiling")} htmlFor={ids.performanceCeiling} optional={t("optional")}>
-            <Input
-              id={ids.performanceCeiling}
-              mono
-              inputMode="numeric"
-              disabled={!permissions.overridePerformanceCeiling}
-              title={
-                permissions.overridePerformanceCeiling
-                  ? undefined
-                  : t("missingPermission", { permission: "judge.override_performance_ceiling" })
-              }
-              value={performanceCeiling}
-              onChange={(event) => setPerformanceCeiling(event.target.value)}
-            />
-          </Field>
-          <Field label={t("rateExclude")} htmlFor={ids.rateExclude} className="sm:col-span-2">
-            <UserPicker
-              id={ids.rateExclude}
-              values={rateExclude}
-              onChange={setRateExclude}
-              disabled={!permissions.contestRating}
-              disabledReason={t("missingPermission", { permission: "judge.contest_rating" })}
-              ariaLabel={t("rateExclude")}
-            />
-          </Field>
+        <AdminSection title={t("sectionRating")} columns={1}>
+          <ContestRatingFields
+            values={{ isRated, rateAll, ratingFloor, ratingCeiling, performanceCeiling, rateExclude }}
+            canRate={permissions.contestRating}
+            canOverridePerformanceCeiling={permissions.overridePerformanceCeiling}
+            missingPermission={(permission) => t("missingPermission", { permission })}
+            onChange={(patch) => {
+              if (patch.isRated !== undefined) setIsRated(patch.isRated);
+
+              if (patch.rateAll !== undefined) setRateAll(patch.rateAll);
+
+              if (patch.ratingFloor !== undefined) setRatingFloor(patch.ratingFloor);
+
+              if (patch.ratingCeiling !== undefined) setRatingCeiling(patch.ratingCeiling);
+
+              if (patch.performanceCeiling !== undefined) setPerformanceCeiling(patch.performanceCeiling);
+
+              if (patch.rateExclude !== undefined) setRateExclude(patch.rateExclude);
+            }}
+          />
         </AdminSection>
 
         <AdminSection title={t("sectionAccess")} columns={1}>
