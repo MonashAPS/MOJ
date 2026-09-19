@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
+import { contestWarnings, describeContest } from "@moj/core";
 import { Field, Input, MultiSelect, Panel, Select, Textarea, toast } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { useTranslations } from "next-intl";
@@ -12,12 +13,14 @@ import {
   AdminFormFooter,
   AdminSection,
   AdminWideField,
-  DateTimeField,
   UserPicker,
   useResolvedRefs,
 } from "@/components/admin";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import { chosenValue } from "@/lib/choices";
+import { formatDateTime } from "@/lib/format";
+import { ContestScheduleFields } from "./ContestScheduleFields";
+import { ContestSummary } from "./ContestSummary";
 import {
   argsFromFields,
   type ContestGeneralFields,
@@ -276,417 +279,448 @@ export function ContestGeneralTab({
     setBusy(false);
   }
 
+  /**
+   * The draft as the settings shapes read it, so the summary describes what is
+   * on screen rather than what is saved.
+   */
+  const describeSource = {
+    startTime: startTime ?? contest.startTime,
+    endTime: endTime ?? contest.endTime,
+    timeLimit: timeLimit.trim() ? Number(timeLimit) * 60 : null,
+    isVisible,
+    isPrivate,
+    isOrganizationPrivate: organizationSlugs.length > 0 || classNames.length > 0,
+    privateContestantProfileIds: privateContestants,
+    organizationIds: organizationSlugs,
+    classIds: classNames,
+    limitJoinOrganizations,
+    joinOrganizationIds: joinOrganizationSlugs,
+    freezeMinutes: Number(freezeMinutes) || 0,
+    blindDuringFreeze,
+    isRated,
+    rateAll,
+    rateExcludeProfileIds: rateExclude,
+    ratingFloor: ratingFloor.trim() ? Number(ratingFloor) : null,
+    ratingCeiling: ratingCeiling.trim() ? Number(ratingCeiling) : null,
+    performanceCeilingOverride: performanceCeiling.trim() ? Number(performanceCeiling) : null,
+    labelScheme,
+    customLabels: customLabels
+      .split(",")
+      .map((label) => label.trim())
+      .filter(Boolean),
+    accessCode: accessCode.trim() || null,
+    lockedAfter,
+    runPretestsOnly,
+  };
+
+  const summaryLines = describeContest(describeSource, {
+    moment: formatDateTime,
+    duration: (millis) => t("minutes", { count: Math.round(millis / 60_000) }),
+  });
+
+  const warnings = contestWarnings(describeSource);
+
   return (
-    <AdminForm onSubmit={save} dirty={dirty}>
-      <AdminFormError message={error} />
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)] lg:items-start">
+      <AdminForm onSubmit={save} dirty={dirty}>
+        <AdminFormError message={error} />
 
-      <AdminSection title={t("sectionGeneral")}>
-        <Field label={t("key")}>
-          <Input mono value={contest.key} readOnly disabled title={t("keyFixed")} />
-        </Field>
-        <Field label={t("name")} htmlFor={ids.name}>
-          <Input id={ids.name} value={name} onChange={(event) => setName(event.target.value)} />
-        </Field>
-        <Field label={t("summary")} htmlFor={ids.summary} optional={t("optional")} className="sm:col-span-2">
-          <Input
-            id={ids.summary}
-            value={summary}
-            onChange={(event) => setSummary(event.target.value)}
-            placeholder={t("summaryPlaceholder")}
-          />
-        </Field>
-      </AdminSection>
-
-      <Panel title={t("sectionDescription")} bodyClassName="p-4">
-        <Field label={t("description")} hint={t("descriptionHint")}>
-          <MarkdownEditor value={description} onChange={setDescription} preset="contest" rows={14} />
-        </Field>
-      </Panel>
-
-      <AdminSection title={t("sectionScheduling")}>
-        <Field label={t("starts")} htmlFor={ids.start}>
-          <DateTimeField id={ids.start} value={startTime} onChange={setStartTime} ariaLabel={t("start")} />
-        </Field>
-        <Field label={t("ends")} htmlFor={ids.end}>
-          <DateTimeField id={ids.end} value={endTime} onChange={setEndTime} ariaLabel={t("end")} />
-        </Field>
-        <Field
-          label={t("timeLimit")}
-          htmlFor={ids.timeLimit}
-          optional={t("optional")}
-          hint={t("timeLimitHint")}
-        >
-          <Input
-            id={ids.timeLimit}
-            mono
-            inputMode="numeric"
-            value={timeLimit}
-            onChange={(event) => setTimeLimit(event.target.value)}
-            placeholder="180"
-          />
-        </Field>
-        <Field
-          label={t("lockedAfter")}
-          htmlFor={ids.locked}
-          optional={t("optional")}
-          hint={t("lockedAfterHint")}
-        >
-          <DateTimeField
-            id={ids.locked}
-            value={lockedAfter}
-            onChange={setLockedAfter}
-            clearable
-            ariaLabel={t("lockedAfter")}
-            disabled={!permissions.lockContest}
-          />
-        </Field>
-      </AdminSection>
-
-      <AdminSection title={t("sectionSettings")}>
-        <AdminWideField>
-          <div className="grid gap-2 sm:grid-cols-3">
-            <AdminCheckField
-              label={t("visible")}
-              hint={t("visibleHint")}
-              checked={isVisible}
-              onCheckedChange={setIsVisible}
-              disabled={!permissions.changeContestVisibility}
-              disabledReason={t("missingPermission", { permission: "judge.change_contest_visibility" })}
-            />
-            <AdminCheckField
-              label={t("clarifications")}
-              hint={t("clarificationsHint")}
-              checked={useClarifications}
-              onCheckedChange={setUseClarifications}
-            />
-            <AdminCheckField
-              label={t("hideProblemTags")}
-              checked={hideProblemTags}
-              onCheckedChange={setHideProblemTags}
-            />
-            <AdminCheckField
-              label={t("hideProblemAuthors")}
-              checked={hideProblemAuthors}
-              onCheckedChange={setHideProblemAuthors}
-            />
-            <AdminCheckField
-              label={t("disableLockdown")}
-              hint={t("disableLockdownHint")}
-              checked={disableLockdown}
-              onCheckedChange={setHideNonContestProblems}
-            />
-            <AdminCheckField
-              label={t("pretestsOnly")}
-              hint={t("pretestsOnlyHint")}
-              checked={runPretestsOnly}
-              onCheckedChange={setRunPretestsOnly}
-            />
-            <AdminCheckField
-              label={t("shortDisplay")}
-              hint={t("shortDisplayHint")}
-              checked={showShortDisplay}
-              onCheckedChange={setShowShortDisplay}
-            />
-          </div>
-        </AdminWideField>
-        <Field label={t("scoreboardVisibility")} htmlFor={ids.scoreboard}>
-          <Select
-            id={ids.scoreboard}
-            value={scoreboardVisibility}
-            onValueChange={(value) =>
-              setScoreboardVisibility(chosenValue(SCOREBOARD_OPTIONS, value, scoreboardVisibility))
-            }
-            options={SCOREBOARD_OPTIONS.map((option) => ({
-              value: option.value,
-              label: t(option.labelKey),
-            }))}
-          />
-        </Field>
-        <Field label={t("pointsPrecision")} htmlFor={ids.precision} hint={t("pointsPrecisionHint")}>
-          <Input
-            id={ids.precision}
-            mono
-            inputMode="numeric"
-            value={pointsPrecision}
-            onChange={(event) => setPointsPrecision(event.target.value)}
-          />
-        </Field>
-      </AdminSection>
-
-      <AdminSection title={t("sectionFreeze")}>
-        <Field label={t("freeze")} htmlFor={ids.freeze} hint={t("freezeHint")}>
-          <Input
-            id={ids.freeze}
-            mono
-            inputMode="numeric"
-            value={freezeMinutes}
-            onChange={(event) => setFreezeMinutes(event.target.value)}
-          />
-        </Field>
-        <AdminCheckField
-          label={t("blindDuringFreeze")}
-          hint={t("blindDuringFreezeHint")}
-          checked={blindDuringFreeze}
-          onCheckedChange={setBlindDuringFreeze}
-        />
-      </AdminSection>
-
-      <AdminSection title={t("sectionFormat")}>
-        <Field label={t("format")} htmlFor={ids.format}>
-          <Select
-            id={ids.format}
-            value={formatName}
-            onValueChange={(value) => {
-              setFormatName(value);
-              const chosen = (formats ?? []).find((row) => row.name === value);
-
-              if (chosen) setFormatConfig(toJson(chosen.configDefaults));
-            }}
-            options={(formats ?? []).map((row) => ({ value: row.name, label: row.displayName }))}
-          />
-        </Field>
-        <Field label={t("labelScheme")} htmlFor={ids.labelScheme}>
-          <Select
-            id={ids.labelScheme}
-            value={labelScheme}
-            onValueChange={(value) => setLabelScheme(chosenValue(LABEL_SCHEME_OPTIONS, value, labelScheme))}
-            options={LABEL_SCHEME_OPTIONS.map((option) => ({
-              value: option.value,
-              label: t(option.labelKey),
-            }))}
-          />
-        </Field>
-        <Field
-          label={t("formatConfig")}
-          htmlFor={ids.formatConfig}
-          error={configError ?? undefined}
-          hint={
-            described?.lines?.length
-              ? described.lines.map((line) => scoring(line.key, line.values)).join(" ")
-              : t("formatConfigHint")
-          }
-          className="sm:col-span-2"
-        >
-          <Textarea
-            id={ids.formatConfig}
-            mono
-            rows={6}
-            invalid={!!configError}
-            value={formatConfig}
-            onChange={(event) => setFormatConfig(event.target.value)}
-            placeholder={'{\n  "penalty": 20\n}'}
-          />
-        </Field>
-        {labelScheme === "custom" ? (
+        <AdminSection title={t("sectionGeneral")}>
+          <Field label={t("key")}>
+            <Input mono value={contest.key} readOnly disabled title={t("keyFixed")} />
+          </Field>
+          <Field label={t("name")} htmlFor={ids.name}>
+            <Input id={ids.name} value={name} onChange={(event) => setName(event.target.value)} />
+          </Field>
           <Field
-            label={t("customLabels")}
-            htmlFor={ids.customLabels}
-            hint={t("customLabelsHint")}
+            label={t("summary")}
+            htmlFor={ids.summary}
+            optional={t("optional")}
             className="sm:col-span-2"
           >
             <Input
-              id={ids.customLabels}
-              mono
-              value={customLabels}
-              onChange={(event) => setCustomLabels(event.target.value)}
-              placeholder="A1, A2, B1"
+              id={ids.summary}
+              value={summary}
+              onChange={(event) => setSummary(event.target.value)}
+              placeholder={t("summaryPlaceholder")}
             />
           </Field>
-        ) : null}
-      </AdminSection>
+        </AdminSection>
 
-      <AdminSection title={t("sectionRating")}>
-        <AdminWideField>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <AdminCheckField
-              label={t("rated")}
-              hint={t("ratedHint")}
-              checked={isRated}
-              onCheckedChange={setIsRated}
+        <Panel title={t("sectionDescription")} bodyClassName="p-4">
+          <Field label={t("description")} hint={t("descriptionHint")}>
+            <MarkdownEditor value={description} onChange={setDescription} preset="contest" rows={14} />
+          </Field>
+        </Panel>
+
+        <AdminSection title={t("sectionScheduling")} columns={1}>
+          <ContestScheduleFields
+            startTime={startTime}
+            endTime={endTime}
+            windowMinutes={timeLimit}
+            lockedAfter={lockedAfter}
+            canLock={permissions.lockContest}
+            lockDisabledReason={t("missingPermission", { permission: "judge.lock_contest" })}
+            onChange={(patch) => {
+              if (patch.startTime !== undefined) setStartTime(patch.startTime);
+
+              if (patch.endTime !== undefined) setEndTime(patch.endTime);
+
+              if (patch.windowMinutes !== undefined) setTimeLimit(patch.windowMinutes);
+
+              if (patch.lockedAfter !== undefined) setLockedAfter(patch.lockedAfter);
+            }}
+          />
+        </AdminSection>
+
+        <AdminSection title={t("sectionSettings")}>
+          <AdminWideField>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <AdminCheckField
+                label={t("visible")}
+                hint={t("visibleHint")}
+                checked={isVisible}
+                onCheckedChange={setIsVisible}
+                disabled={!permissions.changeContestVisibility}
+                disabledReason={t("missingPermission", { permission: "judge.change_contest_visibility" })}
+              />
+              <AdminCheckField
+                label={t("clarifications")}
+                hint={t("clarificationsHint")}
+                checked={useClarifications}
+                onCheckedChange={setUseClarifications}
+              />
+              <AdminCheckField
+                label={t("hideProblemTags")}
+                checked={hideProblemTags}
+                onCheckedChange={setHideProblemTags}
+              />
+              <AdminCheckField
+                label={t("hideProblemAuthors")}
+                checked={hideProblemAuthors}
+                onCheckedChange={setHideProblemAuthors}
+              />
+              <AdminCheckField
+                label={t("disableLockdown")}
+                hint={t("disableLockdownHint")}
+                checked={disableLockdown}
+                onCheckedChange={setHideNonContestProblems}
+              />
+              <AdminCheckField
+                label={t("pretestsOnly")}
+                hint={t("pretestsOnlyHint")}
+                checked={runPretestsOnly}
+                onCheckedChange={setRunPretestsOnly}
+              />
+              <AdminCheckField
+                label={t("shortDisplay")}
+                hint={t("shortDisplayHint")}
+                checked={showShortDisplay}
+                onCheckedChange={setShowShortDisplay}
+              />
+            </div>
+          </AdminWideField>
+          <Field label={t("scoreboardVisibility")} htmlFor={ids.scoreboard}>
+            <Select
+              id={ids.scoreboard}
+              value={scoreboardVisibility}
+              onValueChange={(value) =>
+                setScoreboardVisibility(chosenValue(SCOREBOARD_OPTIONS, value, scoreboardVisibility))
+              }
+              options={SCOREBOARD_OPTIONS.map((option) => ({
+                value: option.value,
+                label: t(option.labelKey),
+              }))}
+            />
+          </Field>
+          <Field label={t("pointsPrecision")} htmlFor={ids.precision} hint={t("pointsPrecisionHint")}>
+            <Input
+              id={ids.precision}
+              mono
+              inputMode="numeric"
+              value={pointsPrecision}
+              onChange={(event) => setPointsPrecision(event.target.value)}
+            />
+          </Field>
+        </AdminSection>
+
+        <AdminSection title={t("sectionFreeze")}>
+          <Field label={t("freeze")} htmlFor={ids.freeze} hint={t("freezeHint")}>
+            <Input
+              id={ids.freeze}
+              mono
+              inputMode="numeric"
+              value={freezeMinutes}
+              onChange={(event) => setFreezeMinutes(event.target.value)}
+            />
+          </Field>
+          <AdminCheckField
+            label={t("blindDuringFreeze")}
+            hint={t("blindDuringFreezeHint")}
+            checked={blindDuringFreeze}
+            onCheckedChange={setBlindDuringFreeze}
+          />
+        </AdminSection>
+
+        <AdminSection title={t("sectionFormat")}>
+          <Field label={t("format")} htmlFor={ids.format}>
+            <Select
+              id={ids.format}
+              value={formatName}
+              onValueChange={(value) => {
+                setFormatName(value);
+                const chosen = (formats ?? []).find((row) => row.name === value);
+
+                if (chosen) setFormatConfig(toJson(chosen.configDefaults));
+              }}
+              options={(formats ?? []).map((row) => ({ value: row.name, label: row.displayName }))}
+            />
+          </Field>
+          <Field label={t("labelScheme")} htmlFor={ids.labelScheme}>
+            <Select
+              id={ids.labelScheme}
+              value={labelScheme}
+              onValueChange={(value) => setLabelScheme(chosenValue(LABEL_SCHEME_OPTIONS, value, labelScheme))}
+              options={LABEL_SCHEME_OPTIONS.map((option) => ({
+                value: option.value,
+                label: t(option.labelKey),
+              }))}
+            />
+          </Field>
+          <Field
+            label={t("formatConfig")}
+            htmlFor={ids.formatConfig}
+            error={configError ?? undefined}
+            hint={
+              described?.lines?.length
+                ? described.lines.map((line) => scoring(line.key, line.values)).join(" ")
+                : t("formatConfigHint")
+            }
+            className="sm:col-span-2"
+          >
+            <Textarea
+              id={ids.formatConfig}
+              mono
+              rows={6}
+              invalid={!!configError}
+              value={formatConfig}
+              onChange={(event) => setFormatConfig(event.target.value)}
+              placeholder={'{\n  "penalty": 20\n}'}
+            />
+          </Field>
+          {labelScheme === "custom" ? (
+            <Field
+              label={t("customLabels")}
+              htmlFor={ids.customLabels}
+              hint={t("customLabelsHint")}
+              className="sm:col-span-2"
+            >
+              <Input
+                id={ids.customLabels}
+                mono
+                value={customLabels}
+                onChange={(event) => setCustomLabels(event.target.value)}
+                placeholder="A1, A2, B1"
+              />
+            </Field>
+          ) : null}
+        </AdminSection>
+
+        <AdminSection title={t("sectionRating")}>
+          <AdminWideField>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <AdminCheckField
+                label={t("rated")}
+                hint={t("ratedHint")}
+                checked={isRated}
+                onCheckedChange={setIsRated}
+                disabled={!permissions.contestRating}
+                disabledReason={t("missingPermission", { permission: "judge.contest_rating" })}
+              />
+              <AdminCheckField
+                label={t("rateAll")}
+                hint={t("rateAllHint")}
+                checked={rateAll}
+                onCheckedChange={setRateAll}
+                disabled={!permissions.contestRating}
+                disabledReason={t("missingPermission", { permission: "judge.contest_rating" })}
+              />
+            </div>
+          </AdminWideField>
+          <Field label={t("ratingFloor")} htmlFor={ids.ratingFloor} optional={t("optional")}>
+            <Input
+              id={ids.ratingFloor}
+              mono
+              inputMode="numeric"
+              value={ratingFloor}
+              onChange={(event) => setRatingFloor(event.target.value)}
+            />
+          </Field>
+          <Field label={t("ratingCeiling")} htmlFor={ids.ratingCeiling} optional={t("optional")}>
+            <Input
+              id={ids.ratingCeiling}
+              mono
+              inputMode="numeric"
+              value={ratingCeiling}
+              onChange={(event) => setRatingCeiling(event.target.value)}
+            />
+          </Field>
+          <Field label={t("performanceCeiling")} htmlFor={ids.performanceCeiling} optional={t("optional")}>
+            <Input
+              id={ids.performanceCeiling}
+              mono
+              inputMode="numeric"
+              disabled={!permissions.overridePerformanceCeiling}
+              title={
+                permissions.overridePerformanceCeiling
+                  ? undefined
+                  : t("missingPermission", { permission: "judge.override_performance_ceiling" })
+              }
+              value={performanceCeiling}
+              onChange={(event) => setPerformanceCeiling(event.target.value)}
+            />
+          </Field>
+          <Field label={t("rateExclude")} htmlFor={ids.rateExclude} className="sm:col-span-2">
+            <UserPicker
+              id={ids.rateExclude}
+              values={rateExclude}
+              onChange={setRateExclude}
               disabled={!permissions.contestRating}
               disabledReason={t("missingPermission", { permission: "judge.contest_rating" })}
+              ariaLabel={t("rateExclude")}
             />
-            <AdminCheckField
-              label={t("rateAll")}
-              hint={t("rateAllHint")}
-              checked={rateAll}
-              onCheckedChange={setRateAll}
-              disabled={!permissions.contestRating}
-              disabledReason={t("missingPermission", { permission: "judge.contest_rating" })}
-            />
-          </div>
-        </AdminWideField>
-        <Field label={t("ratingFloor")} htmlFor={ids.ratingFloor} optional={t("optional")}>
-          <Input
-            id={ids.ratingFloor}
-            mono
-            inputMode="numeric"
-            value={ratingFloor}
-            onChange={(event) => setRatingFloor(event.target.value)}
-          />
-        </Field>
-        <Field label={t("ratingCeiling")} htmlFor={ids.ratingCeiling} optional={t("optional")}>
-          <Input
-            id={ids.ratingCeiling}
-            mono
-            inputMode="numeric"
-            value={ratingCeiling}
-            onChange={(event) => setRatingCeiling(event.target.value)}
-          />
-        </Field>
-        <Field label={t("performanceCeiling")} htmlFor={ids.performanceCeiling} optional={t("optional")}>
-          <Input
-            id={ids.performanceCeiling}
-            mono
-            inputMode="numeric"
-            disabled={!permissions.overridePerformanceCeiling}
-            title={
-              permissions.overridePerformanceCeiling
-                ? undefined
-                : t("missingPermission", { permission: "judge.override_performance_ceiling" })
-            }
-            value={performanceCeiling}
-            onChange={(event) => setPerformanceCeiling(event.target.value)}
-          />
-        </Field>
-        <Field label={t("rateExclude")} htmlFor={ids.rateExclude} className="sm:col-span-2">
-          <UserPicker
-            id={ids.rateExclude}
-            values={rateExclude}
-            onChange={setRateExclude}
-            disabled={!permissions.contestRating}
-            disabledReason={t("missingPermission", { permission: "judge.contest_rating" })}
-            ariaLabel={t("rateExclude")}
-          />
-        </Field>
-      </AdminSection>
+          </Field>
+        </AdminSection>
 
-      <AdminSection title={t("sectionAccess")}>
-        <Field
-          label={t("accessCode")}
-          htmlFor={ids.accessCode}
-          optional={t("optional")}
-          hint={t("accessCodeHint")}
-        >
-          <Input
-            id={ids.accessCode}
-            mono
-            value={accessCode}
-            disabled={!permissions.contestAccessCode}
-            title={
-              permissions.contestAccessCode
-                ? undefined
-                : t("missingPermission", { permission: "judge.contest_access_code" })
-            }
-            onChange={(event) => setAccessCode(event.target.value)}
-          />
-        </Field>
-        <AdminCheckField
-          label={t("private")}
-          hint={t("privateHint")}
-          checked={isPrivate}
-          onCheckedChange={setIsPrivate}
-          disabled={!permissions.createPrivateContest}
-          disabledReason={t("missingPermission", { permission: "judge.create_private_contest" })}
-        />
-        <Field label={t("privateContestants")} htmlFor={ids.contestants} className="sm:col-span-2">
-          <UserPicker
-            id={ids.contestants}
-            values={privateContestants}
-            onChange={setPrivateContestants}
+        <AdminSection title={t("sectionAccess")}>
+          <Field
+            label={t("accessCode")}
+            htmlFor={ids.accessCode}
+            optional={t("optional")}
+            hint={t("accessCodeHint")}
+          >
+            <Input
+              id={ids.accessCode}
+              mono
+              value={accessCode}
+              disabled={!permissions.contestAccessCode}
+              title={
+                permissions.contestAccessCode
+                  ? undefined
+                  : t("missingPermission", { permission: "judge.contest_access_code" })
+              }
+              onChange={(event) => setAccessCode(event.target.value)}
+            />
+          </Field>
+          <AdminCheckField
+            label={t("private")}
+            hint={t("privateHint")}
+            checked={isPrivate}
+            onCheckedChange={setIsPrivate}
             disabled={!permissions.createPrivateContest}
             disabledReason={t("missingPermission", { permission: "judge.create_private_contest" })}
-            ariaLabel={t("privateContestants")}
           />
-        </Field>
-        <Field label={t("organizations")} htmlFor={ids.organizations} hint={t("organizationsHint")}>
-          <div
-            title={
-              permissions.createPrivateContest
-                ? undefined
-                : t("missingPermission", { permission: "judge.create_private_contest" })
-            }
-          >
-            <MultiSelect
-              id={ids.organizations}
-              values={organizationSlugs}
-              onChange={setOrganizationSlugs}
-              options={(options?.organizations ?? []).map((row) => ({ value: row.slug, label: row.name }))}
-              placeholder={t("organizationsPlaceholder")}
+          <Field label={t("privateContestants")} htmlFor={ids.contestants} className="sm:col-span-2">
+            <UserPicker
+              id={ids.contestants}
+              values={privateContestants}
+              onChange={setPrivateContestants}
               disabled={!permissions.createPrivateContest}
+              disabledReason={t("missingPermission", { permission: "judge.create_private_contest" })}
+              ariaLabel={t("privateContestants")}
             />
-          </div>
-        </Field>
-        <Field label={t("classes")} htmlFor={ids.classes} optional={t("optional")}>
-          <MultiSelect
-            id={ids.classes}
-            values={classNames}
-            onChange={setClassNames}
-            options={(options?.classes ?? []).map((row) => ({
-              value: row.name,
-              label: row.organization ? `${row.name} (${row.organization})` : row.name,
-            }))}
-            placeholder={t("classesPlaceholder")}
+          </Field>
+          <Field label={t("organizations")} htmlFor={ids.organizations} hint={t("organizationsHint")}>
+            <div
+              title={
+                permissions.createPrivateContest
+                  ? undefined
+                  : t("missingPermission", { permission: "judge.create_private_contest" })
+              }
+            >
+              <MultiSelect
+                id={ids.organizations}
+                values={organizationSlugs}
+                onChange={setOrganizationSlugs}
+                options={(options?.organizations ?? []).map((row) => ({ value: row.slug, label: row.name }))}
+                placeholder={t("organizationsPlaceholder")}
+                disabled={!permissions.createPrivateContest}
+              />
+            </div>
+          </Field>
+          <Field label={t("classes")} htmlFor={ids.classes} optional={t("optional")}>
+            <MultiSelect
+              id={ids.classes}
+              values={classNames}
+              onChange={setClassNames}
+              options={(options?.classes ?? []).map((row) => ({
+                value: row.name,
+                label: row.organization ? `${row.name} (${row.organization})` : row.name,
+              }))}
+              placeholder={t("classesPlaceholder")}
+            />
+          </Field>
+          <AdminCheckField
+            label={t("limitJoin")}
+            hint={t("limitJoinHint")}
+            checked={limitJoinOrganizations}
+            onCheckedChange={setLimitJoinOrganizations}
           />
-        </Field>
-        <AdminCheckField
-          label={t("limitJoin")}
-          hint={t("limitJoinHint")}
-          checked={limitJoinOrganizations}
-          onCheckedChange={setLimitJoinOrganizations}
-        />
-        <Field label={t("joinOrganizations")} htmlFor={ids.joinOrganizations}>
-          <MultiSelect
-            id={ids.joinOrganizations}
-            values={joinOrganizationSlugs}
-            onChange={setJoinOrganizationSlugs}
-            options={(options?.organizations ?? []).map((row) => ({ value: row.slug, label: row.name }))}
-            placeholder={t("joinOrganizationsPlaceholder")}
-          />
-        </Field>
-      </AdminSection>
+          <Field label={t("joinOrganizations")} htmlFor={ids.joinOrganizations}>
+            <MultiSelect
+              id={ids.joinOrganizations}
+              values={joinOrganizationSlugs}
+              onChange={setJoinOrganizationSlugs}
+              options={(options?.organizations ?? []).map((row) => ({ value: row.slug, label: row.name }))}
+              placeholder={t("joinOrganizationsPlaceholder")}
+            />
+          </Field>
+        </AdminSection>
 
-      <AdminSection title={t("sectionPresentation")}>
-        <Field label={t("tags")} htmlFor={ids.tags} optional={t("optional")}>
-          <MultiSelect
-            id={ids.tags}
-            values={tagNames}
-            onChange={setTagNames}
-            options={(options?.tags ?? []).map((row) => ({ value: row.name, label: row.name }))}
-            placeholder={t("tagsPlaceholder")}
-          />
-        </Field>
-        <Field label={t("ogImage")} htmlFor={ids.ogImage} optional={t("optional")}>
-          <Input
-            id={ids.ogImage}
-            mono
-            value={ogImage}
-            onChange={(event) => setOgImage(event.target.value)}
-            placeholder="https://"
-          />
-        </Field>
-        <Field label={t("logoOverride")} htmlFor={ids.logo} optional={t("optional")}>
-          <Input
-            id={ids.logo}
-            mono
-            value={logoOverrideImage}
-            onChange={(event) => setLogoOverrideImage(event.target.value)}
-            placeholder="https://"
-          />
-        </Field>
-      </AdminSection>
+        <AdminSection title={t("sectionPresentation")}>
+          <Field label={t("tags")} htmlFor={ids.tags} optional={t("optional")}>
+            <MultiSelect
+              id={ids.tags}
+              values={tagNames}
+              onChange={setTagNames}
+              options={(options?.tags ?? []).map((row) => ({ value: row.name, label: row.name }))}
+              placeholder={t("tagsPlaceholder")}
+            />
+          </Field>
+          <Field label={t("ogImage")} htmlFor={ids.ogImage} optional={t("optional")}>
+            <Input
+              id={ids.ogImage}
+              mono
+              value={ogImage}
+              onChange={(event) => setOgImage(event.target.value)}
+              placeholder="https://"
+            />
+          </Field>
+          <Field label={t("logoOverride")} htmlFor={ids.logo} optional={t("optional")}>
+            <Input
+              id={ids.logo}
+              mono
+              value={logoOverrideImage}
+              onChange={(event) => setLogoOverrideImage(event.target.value)}
+              placeholder="https://"
+            />
+          </Field>
+        </AdminSection>
 
-      <AdminSection title={t("sectionJustice")} columns={1}>
-        <Field label={t("bannedUsers")} htmlFor={ids.banned} hint={t("bannedUsersHint")}>
-          <UserPicker
-            id={ids.banned}
-            values={bannedUsers}
-            onChange={setBannedUsers}
-            ariaLabel={t("bannedUsers")}
-          />
-        </Field>
-      </AdminSection>
-      <AdminFormFooter busy={busy} submitLabel={t("submit")} />
-    </AdminForm>
+        <AdminSection title={t("sectionJustice")} columns={1}>
+          <Field label={t("bannedUsers")} htmlFor={ids.banned} hint={t("bannedUsersHint")}>
+            <UserPicker
+              id={ids.banned}
+              values={bannedUsers}
+              onChange={setBannedUsers}
+              ariaLabel={t("bannedUsers")}
+            />
+          </Field>
+        </AdminSection>
+        <AdminFormFooter busy={busy} submitLabel={t("submit")} />
+      </AdminForm>
+
+      <ContestSummary lines={summaryLines} warnings={warnings} dirty={dirty} />
+    </div>
   );
 }

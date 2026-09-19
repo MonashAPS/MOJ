@@ -6,7 +6,11 @@
  * of DMOJ's, each one a port of the corresponding DMOJ method.
  */
 
+export * from "./contest/describe";
+
 export * from "./contest/settings";
+
+export * from "./contest/warnings";
 
 export * from "./contestTiming";
 
