@@ -13,6 +13,7 @@ import {
   type ContestParticipationRow,
   type Viewer as CoreViewer,
   canSeeSubmissionDetail,
+  contestScoreboardIsPublic,
   hasPerm as coreHasPerm,
   isSuperuser as coreIsSuperuser,
   isLocked,
@@ -176,14 +177,7 @@ function lists(profileIds: readonly string[], profileId: string): boolean {
  * the contest is one whose submissions they may see.
  */
 function contestSubmissionsVisible(contest: Doc<"contests">, viewer: CoreViewer, now: number): boolean {
-  if (contest.scoreboardVisibility === "V") return true;
-
-  if (
-    contest.endTime < now &&
-    (contest.scoreboardVisibility === "P" || contest.scoreboardVisibility === "C")
-  ) {
-    return true;
-  }
+  if (contestScoreboardIsPublic(toContestRow(contest), now)) return true;
 
   if (!viewer) return false;
 

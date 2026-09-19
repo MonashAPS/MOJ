@@ -3,18 +3,19 @@
  * where to fetch one. Staff manage them in admin/artefacts.ts.
  */
 
+import type { PolicyClock } from "@moj/core";
 import {
   type AudienceMembership,
-  artefactIsVisible,
   contestAccessCheck,
-  contestIsEditableBy,
+  contestAudiences,
+  policyAdmits,
   problemIsEditableBy,
 } from "@moj/core";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { type QueryCtx, query } from "./_generated/server";
 import { artefactsOfContest, artefactsOfProblem } from "./artefacts/names";
-import { contestByKey, toContestRow, toViewerRowInContest } from "./contests/formats";
+import { contestByKey, toContestRow, toParticipationRow, toViewerRowInContest } from "./contests/formats";
 import { optionalViewer } from "./lib/auth";
 import { canAccessProblem, loadViewerContext, problemByCode, toCoreProblem } from "./problems";
 
@@ -28,11 +29,14 @@ export type ArtefactRow = {
   uploadedAt: number;
 };
 
-/** Which audiences the viewer is in, and whether the owner's clock has run out. */
-type Standing = { membership: AudienceMembership; ended: boolean };
+/** Which audiences the viewer is in, and where the owner's clocks stand. */
+type Standing = { membership: AudienceMembership; clock: PolicyClock };
 
-/** The viewer's standing on a contest, from its people lists, their participation and its access rules. */
-export async function contestStanding(ctx: QueryCtx, contest: Doc<"contests">): Promise<Standing> {
+/**
+ * The viewer's standing on a contest. Files sit behind the same gate as the
+ * contest page: somebody the access rules keep out has no standing at all.
+ */
+export async function contestStanding(ctx: QueryCtx, contest: Doc<"contests">): Promise<Standing | null> {
   const profile = await optionalViewer(ctx);
   const viewer = await toViewerRowInContest(ctx, profile);
   const row = toContestRow(contest);
@@ -44,32 +48,43 @@ export async function contestStanding(ctx: QueryCtx, contest: Doc<"contests">): 
         .first()
     : null;
 
+  const membership = contestAudiences(row, viewer, {
+    liveParticipation: participation ? toParticipationRow(participation) : null,
+  });
+
+  if (!membership.staff && contestAccessCheck(row, viewer).kind !== "ok") return null;
+
+  const now = Date.now();
+  const ended = contest.endTime <= now;
+
   return {
-    membership: {
-      staff: contestIsEditableBy(row, viewer),
-      testers: profile !== null && contest.testerProfileIds.includes(profile._id),
-      spectators: profile !== null && contest.spectatorProfileIds.includes(profile._id),
-      contestants: participation !== null,
-      everyone: contestAccessCheck(row, viewer).kind === "ok",
+    membership,
+    clock: {
+      ended,
+      ownEnded:
+        ended ||
+        (participation !== null && participation.realStart + (contest.endTime - contest.startTime) <= now),
     },
-    ended: contest.endTime <= Date.now(),
   };
 }
 
 /** The viewer's standing on a problem. It has no contest to join or watch. */
-export async function problemStanding(ctx: QueryCtx, problem: Doc<"problems">): Promise<Standing> {
+export async function problemStanding(ctx: QueryCtx, problem: Doc<"problems">): Promise<Standing | null> {
   const viewer = await loadViewerContext(ctx);
   const profileId = viewer.profile?._id;
+  const staff = problemIsEditableBy(toCoreProblem(problem), viewer.core);
+
+  if (!staff && !(await canAccessProblem(ctx, problem, viewer))) return null;
 
   return {
     membership: {
-      staff: problemIsEditableBy(toCoreProblem(problem), viewer.core),
+      staff,
       testers: profileId !== undefined && problem.testerProfileIds.includes(profileId),
       spectators: false,
       contestants: false,
-      everyone: await canAccessProblem(ctx, problem, viewer),
+      everyone: true,
     },
-    ended: false,
+    clock: { ended: false, ownEnded: false },
   };
 }
 
@@ -98,9 +113,11 @@ function toRow(artefact: Doc<"artefacts">): ArtefactRow {
   };
 }
 
-function visibleRows(rows: readonly Doc<"artefacts">[], standing: Standing): ArtefactRow[] {
+function visibleRows(rows: readonly Doc<"artefacts">[], standing: Standing | null): ArtefactRow[] {
+  if (!standing) return [];
+
   return rows
-    .filter((row) => artefactIsVisible(row, standing.membership, standing.ended))
+    .filter((row) => policyAdmits(row, standing.membership, standing.clock))
     .sort((a, b) => a.name.localeCompare(b.name))
     .map(toRow);
 }
@@ -141,7 +158,7 @@ export const download = query({
     if (!artefact) return null;
     const standing = await standingOf(ctx, artefact);
 
-    if (!standing || !artefactIsVisible(artefact, standing.membership, standing.ended)) return null;
+    if (!standing || !policyAdmits(artefact, standing.membership, standing.clock)) return null;
     const url = await ctx.storage.getUrl(artefact.storageId);
 
     if (!url) return null;

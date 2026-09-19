@@ -1,17 +1,23 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { blockingWarnings, contestWarnings, type DescribeSource, describeContest } from "@moj/core";
+import {
+  type AudiencePolicy,
+  blockingWarnings,
+  contestWarnings,
+  type DescribeSource,
+  describeContest,
+} from "@moj/core";
 import { Button, cn, Field, FieldGroup, Input, RadioGroup } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
-import { ContestFreezeFields, SCOREBOARD_OPTIONS } from "@/app/admin/contests/[key]/ContestScoringFields";
+import { ContestFreezeFields } from "@/app/admin/contests/[key]/ContestScoringFields";
 import { ContestSummary } from "@/app/admin/contests/[key]/ContestSummary";
 import { AdminCheckField, AdminFormError, AdminSection, AdminShell, DateTimeField } from "@/components/admin";
+import { useAudienceNames } from "@/components/audiences/AudienceSelect";
 import { useHumanDuration } from "@/components/contests/pieces";
-import { chosenValue } from "@/lib/choices";
 import { formatDateTime } from "@/lib/format";
 
 /**
@@ -47,7 +53,7 @@ interface Draft {
   /** Minutes before the end, or "" for no freeze. */
   freezeMinutes: string;
   blind: boolean;
-  scoreboardVisibility: (typeof SCOREBOARD_OPTIONS)[number]["value"];
+  scoreboard: AudiencePolicy;
   publishProblemsAtEnd: boolean;
   useClarifications: boolean;
 }
@@ -64,7 +70,7 @@ function emptyDraft(now: number): Draft {
     isRated: false,
     freezeMinutes: "",
     blind: false,
-    scoreboardVisibility: "V",
+    scoreboard: { audiences: ["everyone"], from: "start" },
     publishProblemsAtEnd: false,
     useClarifications: true,
   };
@@ -89,6 +95,7 @@ export function NewContestWizard() {
   const create = useMutation(api.admin.contests.create);
   const formats = useQuery(api.contests.formats.list, {});
   const humanDuration = useHumanDuration();
+  const audienceNames = useAudienceNames();
 
   const ids = { key: useId(), name: useId(), start: useId(), end: useId(), window: useId() };
   const [step, setStep] = useState<Step>("what");
@@ -118,6 +125,7 @@ export function NewContestWizard() {
     schedule,
     entry: { kind: "open" },
     labels: { kind: "letters" },
+    scoreboard: draft.scoreboard,
     rating,
     freeze,
     isVisible: draft.isVisible,
@@ -169,7 +177,7 @@ export function NewContestWizard() {
         isVisible: draft.isVisible,
         rating,
         freeze,
-        scoreboardVisibility: draft.scoreboardVisibility,
+        scoreboard: { audiences: [...draft.scoreboard.audiences], from: draft.scoreboard.from },
         publishProblemsAtEnd: draft.publishProblemsAtEnd,
         useClarifications: draft.useClarifications,
       });
@@ -350,25 +358,7 @@ export function NewContestWizard() {
               </AdminSection>
 
               <AdminSection title={t("sectionScoreboard")} columns={1}>
-                <ContestFreezeFields
-                  values={draft}
-                  scoreboardOptions={SCOREBOARD_OPTIONS.map((option) => ({
-                    value: option.value,
-                    label: general(option.labelKey),
-                  }))}
-                  onChange={({ scoreboardVisibility, ...patch }) =>
-                    change({
-                      ...patch,
-                      ...(scoreboardVisibility !== undefined && {
-                        scoreboardVisibility: chosenValue(
-                          SCOREBOARD_OPTIONS,
-                          scoreboardVisibility,
-                          draft.scoreboardVisibility,
-                        ),
-                      }),
-                    })
-                  }
-                />
+                <ContestFreezeFields values={draft} onChange={change} />
               </AdminSection>
 
               <AdminSection title={general("sectionRating")} columns={1}>
@@ -416,7 +406,11 @@ export function NewContestWizard() {
         </div>
 
         <ContestSummary
-          lines={describeContest(describeSource, { moment: formatDateTime, duration: humanDuration })}
+          lines={describeContest(describeSource, {
+            moment: formatDateTime,
+            duration: humanDuration,
+            audiences: audienceNames,
+          })}
           warnings={warnings}
           dirty={false}
         />

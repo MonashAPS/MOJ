@@ -7,6 +7,23 @@ import type { Step } from "./types.ts";
 const SCOREBOARD_VISIBILITY = new Set(["V", "C", "P", "H"]);
 
 /**
+ * DMOJ's four scoreboard policies as an audience policy. Hidden ("H") still let
+ * spectators watch, which the spectator flag now carries.
+ */
+function scoreboardPolicy(visibility: string): JsonObject {
+  switch (visibility) {
+    case "C":
+      return { audiences: ["everyone"], from: "end" };
+    case "P":
+      return { audiences: ["everyone"], from: "ownEnd" };
+    case "H":
+      return { audiences: [], from: "start" };
+    default:
+      return { audiences: ["everyone"], from: "start" };
+  }
+}
+
+/**
  * DMOJ keys `format_data` by `ContestProblem.id`, so the numbers in the dump
  * mean nothing once the rows are in Convex. Rewrite them to the new ids;
  * anything that no longer resolves is dropped, as its contest problem was.
@@ -313,6 +330,9 @@ const contestsStep: Step = {
         ),
         testerSeeScoreboard: row.b("tester_see_scoreboard"),
         testerSeeSubmissions: row.b("tester_see_submissions"),
+        // DMOJ always showed spectators the board once the contest started.
+        spectatorSeeScoreboard: true,
+        spectatorSeeProblemsEarly: false,
         description: row.s("description"),
         startTime: row.t("start_time"),
         endTime: row.t("end_time"),
@@ -339,7 +359,7 @@ const contestsStep: Step = {
           "profile_id",
           id,
         ),
-        scoreboardVisibility: SCOREBOARD_VISIBILITY.has(visibility) ? visibility : "V",
+        scoreboard: scoreboardPolicy(visibility),
         useClarifications: row.b("use_clarifications"),
         hideProblemTags: row.b("hide_problem_tags"),
         hideProblemAuthors: row.b("hide_problem_authors"),

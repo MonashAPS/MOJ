@@ -25,6 +25,7 @@ import { BookOpen, CircleHelp, Clock } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ArtefactList } from "@/components/artefacts/ArtefactList";
+import { AudienceLine } from "@/components/audiences/AudienceSelect";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips, OPEN_ENDED, ProblemStateIcon, useHumanDuration } from "@/components/contests/pieces";
 import { useSkin } from "@/components/shell/SkinProvider";
@@ -267,12 +268,6 @@ function UserList({
 }
 
 /** DMOJ's scoreboard-visibility codes, as the sentence each one reads as. */
-const SCOREBOARD_KEYS = new Map([
-  ["V", "scoreboardVisible"],
-  ["C", "scoreboardAfterWindow"],
-  ["P", "scoreboardHidden"],
-  ["H", "scoreboardAlwaysHidden"],
-]);
 
 function Sidebar({ detail }: { detail: ContestDetail }) {
   const t = useTranslations("contests.detail");
@@ -322,7 +317,7 @@ function Sidebar({ detail }: { detail: ContestDetail }) {
         </InfoRow>
         <InfoRow label={t("rated")}>{ratingLine}</InfoRow>
         <InfoRow label={t("scoreboard")}>
-          {t(SCOREBOARD_KEYS.get(contest.scoreboardVisibility) ?? "scoreboardVisible")}
+          <AudienceLine policy={contest.scoreboard} />
         </InfoRow>
         {contest.freeze ? (
           <InfoRow label={t("freeze")}>

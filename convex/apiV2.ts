@@ -160,6 +160,15 @@ async function apiViewer(ctx: QueryCtx): Promise<{ profile: Doc<"profiles"> | nu
 /* Contests                                                                   */
 /* -------------------------------------------------------------------------- */
 
+/** DMOJ's four policies, as the nearest reading of an audience policy. */
+function dmojScoreboardLetter(contest: Doc<"contests">): "V" | "C" | "P" | "H" {
+  const { audiences, from } = contest.scoreboard;
+
+  if (!audiences.includes("everyone")) return "H";
+
+  return from === "start" ? "V" : from === "end" ? "C" : "P";
+}
+
 function gateOrganizationIds(contest: Doc<"contests">): Id<"organizations">[] {
   return contest.entry.kind === "restricted" ? contest.entry.organizationIds : [];
 }
@@ -407,8 +416,8 @@ export const contest = query({
       rating_floor: contestDoc.rating?.floor ?? null,
       rating_ceiling: contestDoc.rating?.ceiling ?? null,
       performance_ceiling: contestDoc.rating?.performanceCeiling ?? null,
-      hidden_scoreboard: ["C", "P", "H"].includes(contestDoc.scoreboardVisibility),
-      scoreboard_visibility: contestDoc.scoreboardVisibility,
+      hidden_scoreboard: dmojScoreboardLetter(contestDoc) !== "V",
+      scoreboard_visibility: dmojScoreboardLetter(contestDoc),
       // DMOJ's two flags: gated on organisations, and gated on named people.
       is_organization_private: gateOrganizationIds(contestDoc).length > 0 || gateClassCount(contestDoc) > 0,
       organizations: await organizationApiIds(ctx, gateOrganizationIds(contestDoc)),

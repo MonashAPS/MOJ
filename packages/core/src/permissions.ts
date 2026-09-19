@@ -11,6 +11,7 @@
  * judge/models/interface.py, judge/models/profile.py.
  */
 
+import { type AudienceMembership, policyAdmits, policyIsPublic } from "./audiences";
 import { entryAdmits } from "./contest/entry";
 import { participationHasEnded } from "./contestTiming";
 import type {
@@ -319,14 +320,6 @@ export function solutionIsAccessibleBy(
 /* Contests                                                                   */
 /* -------------------------------------------------------------------------- */
 
-export const SCOREBOARD_VISIBLE = "V";
-
-export const SCOREBOARD_AFTER_CONTEST = "C";
-
-export const SCOREBOARD_AFTER_PARTICIPATION = "P";
-
-export const SCOREBOARD_HIDDEN = "H";
-
 export interface ContestViewerContext {
   readonly now?: number;
   /**
@@ -380,53 +373,62 @@ export function contestHasCompletedContest(
   return participationHasEnded(participation, contest, context.now ?? Date.now());
 }
 
-/** `Contest.show_scoreboard` (contest.py:263). */
-export function contestShowScoreboard(contest: ContestRow, now: number = Date.now()): boolean {
-  if (!contestStarted(contest, now)) return false;
+/** Which audiences a viewer is in on a contest. */
+export function contestAudiences(
+  contest: ContestRow,
+  viewer: Viewer,
+  context: ContestViewerContext = {},
+): AudienceMembership {
+  const signedIn = isAuthenticated(viewer);
 
-  if (
-    (contest.scoreboardVisibility === SCOREBOARD_AFTER_CONTEST ||
-      contest.scoreboardVisibility === SCOREBOARD_AFTER_PARTICIPATION) &&
-    !contestEnded(contest, now)
-  ) {
-    return false;
-  }
-
-  return contest.scoreboardVisibility !== SCOREBOARD_HIDDEN;
+  // Who reaches the contest at all is the access check's business, decided
+  // before any of this; "everyone" is everyone who did.
+  return {
+    staff:
+      contestIsEditableBy(contest, viewer) ||
+      (signedIn && contestIsEditor(contest, viewer.id)) ||
+      hasPerm(viewer, "judge.see_private_contest"),
+    testers: signedIn && has(contest.testerProfileIds, viewer.id),
+    spectators: signedIn && has(contest.spectatorProfileIds, viewer.id),
+    contestants: context.liveParticipation != null || contestIsInContest(contest, viewer),
+    everyone: true,
+  };
 }
 
-/** `Contest.can_see_full_scoreboard(user)` (contest.py:236). */
+/** Whether the board is open to the public right now, with no standing of their own. */
+export function contestScoreboardIsPublic(contest: ContestRow, now: number = Date.now()): boolean {
+  if (!contestStarted(contest, now)) return false;
+
+  return policyIsPublic(contest.scoreboard, contestEnded(contest, now));
+}
+
+/**
+ * `Contest.can_see_full_scoreboard(user)` (contest.py:236), on the audience
+ * policy: staff always, the always-admitted, testers and spectators with their
+ * flag, and then whoever the policy admits now.
+ */
 export function contestCanSeeFullScoreboard(
   contest: ContestRow,
   viewer: Viewer,
   context: ContestViewerContext = {},
 ): boolean {
   const now = context.now ?? Date.now();
+  const membership = contestAudiences(contest, viewer, context);
 
-  if (contestShowScoreboard(contest, now)) return true;
+  if (membership.staff) return true;
 
-  if (!isAuthenticated(viewer)) return false;
+  if (isAuthenticated(viewer) && has(contest.alwaysAdmitProfileIds, viewer.id)) return true;
 
-  if (hasPerm(viewer, "judge.see_private_contest") || hasPerm(viewer, "judge.edit_all_contest")) {
-    return true;
-  }
+  if (!contestStarted(contest, now)) return false;
 
-  if (contestIsEditor(contest, viewer.id)) return true;
+  if (membership.testers && contest.testerSeeScoreboard) return true;
 
-  if (contest.testerSeeScoreboard && has(contest.testerProfileIds, viewer.id)) return true;
+  if (membership.spectators && contest.spectatorSeeScoreboard) return true;
 
-  if (contestStarted(contest, now) && has(contest.spectatorProfileIds, viewer.id)) return true;
-
-  if (has(contest.alwaysAdmitProfileIds, viewer.id)) return true;
-
-  if (
-    contest.scoreboardVisibility === SCOREBOARD_AFTER_PARTICIPATION &&
-    contestHasCompletedContest(contest, viewer, context)
-  ) {
-    return true;
-  }
-
-  return false;
+  return policyAdmits(contest.scoreboard, membership, {
+    ended: contestEnded(contest, now),
+    ownEnded: contestHasCompletedContest(contest, viewer, context),
+  });
 }
 
 /** `Contest.can_see_own_scoreboard(user)` (contest.py:227). */
@@ -441,15 +443,7 @@ export function contestCanSeeOwnScoreboard(
 
   if (!contestStarted(contest, now)) return false;
 
-  if (
-    !contestShowScoreboard(contest, now) &&
-    !contestIsInContest(contest, viewer) &&
-    !contestHasCompletedContest(contest, viewer, context)
-  ) {
-    return false;
-  }
-
-  return true;
+  return contestIsInContest(contest, viewer) || contestHasCompletedContest(contest, viewer, context);
 }
 
 export type ContestAccess =

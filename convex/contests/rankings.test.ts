@@ -195,7 +195,7 @@ describe("ranking with a freeze", () => {
         schedule: { kind: "together" },
         entry: { kind: "open" },
         labels: { kind: "letters" },
-        scoreboardVisibility: "V",
+        scoreboard: { audiences: ["everyone"], from: "start" },
         freeze: { minutes: 60, blind: true },
       },
       null,
@@ -229,7 +229,7 @@ describe("ranking with a freeze", () => {
     const t = setupTest();
 
     const fixture = await frozenContest(t, {
-      scoreboardVisibility: "C",
+      scoreboard: { audiences: ["everyone"], from: "end" },
       endTime: Date.now() + HOUR,
     });
 

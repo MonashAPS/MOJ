@@ -27,7 +27,7 @@ import {
   contestIsLiveJoinableBy,
   contestIsSpectatableBy,
   contestIsVisibleTo,
-  contestShowScoreboard,
+  contestScoreboardIsPublic,
   contestStarted,
 } from "./permissions";
 import type { CommonUsers } from "./test.fixtures";
@@ -110,7 +110,7 @@ const contests = {
     startTime: NOW - DAY,
     endTime: NOW + 100 * DAY,
     isVisible: true,
-    scoreboardVisibility: "C",
+    scoreboard: { audiences: ["everyone"], from: "end" },
     labels: { kind: "custom", labels: ["0", "1", "2"] },
     spectatorProfileIds: ["non_staff_spectator"],
   }),
@@ -118,7 +118,7 @@ const contests = {
     startTime: NOW - DAY,
     endTime: NOW + 100 * DAY,
     isVisible: true,
-    scoreboardVisibility: "C",
+    scoreboard: { audiences: ["everyone"], from: "end" },
     authorProfileIds: ["non_staff_author"],
     curatorProfileIds: ["staff_contest_edit_own"],
   }),
@@ -127,7 +127,7 @@ const contests = {
     endTime: NOW + 100 * DAY,
     schedule: { kind: "window", seconds: DAY / 1000 },
     isVisible: true,
-    scoreboardVisibility: "C",
+    scoreboard: { audiences: ["everyone"], from: "end" },
     testerProfileIds: ["non_staff_tester"],
   }),
   particip_scoreboard: createContest("particip_scoreboard", {
@@ -135,7 +135,7 @@ const contests = {
     endTime: NOW + 100 * DAY,
     schedule: { kind: "window", seconds: DAY / 1000 },
     isVisible: true,
-    scoreboardVisibility: "P",
+    scoreboard: { audiences: ["everyone"], from: "ownEnd" },
     testerProfileIds: ["non_staff_tester"],
   }),
   visible_scoreboard: createContest("visible_scoreboard", {
@@ -143,7 +143,7 @@ const contests = {
     endTime: NOW + 100 * DAY,
     schedule: { kind: "window", seconds: DAY / 1000 },
     isVisible: true,
-    scoreboardVisibility: "V",
+    scoreboard: { audiences: ["everyone"], from: "start" },
     testerProfileIds: ["non_staff_tester"],
   }),
   full_hidden_board: createContest("full_hidden_board", {
@@ -151,7 +151,7 @@ const contests = {
     endTime: NOW - DAY,
     schedule: { kind: "window", seconds: DAY / 1000 },
     isVisible: true,
-    scoreboardVisibility: "H",
+    scoreboard: { audiences: [], from: "start" },
     authorProfileIds: ["non_staff_author"],
     curatorProfileIds: ["staff_contest_edit_own"],
     testerProfileIds: ["non_staff_tester"],
@@ -162,7 +162,7 @@ const contests = {
     endTime: NOW + 5 * DAY,
     schedule: { kind: "window", seconds: DAY / 1000 },
     isVisible: true,
-    scoreboardVisibility: "C",
+    scoreboard: { audiences: ["everyone"], from: "end" },
     authorProfileIds: ["non_staff_author"],
     curatorProfileIds: ["staff_contest_edit_own"],
     testerProfileIds: ["non_staff_tester"],
@@ -173,7 +173,7 @@ const contests = {
     endTime: NOW + 100 * DAY,
     schedule: { kind: "window", seconds: DAY / 1000 },
     isVisible: true,
-    scoreboardVisibility: "H",
+    scoreboard: { audiences: [], from: "start" },
     testerProfileIds: ["non_staff_tester"],
     testerSeeScoreboard: true,
   }),
@@ -183,7 +183,7 @@ const contests = {
     schedule: { kind: "window", seconds: DAY / 1000 },
     isVisible: true,
     joinLimit: { organizationIds: ["open"] },
-    scoreboardVisibility: "V",
+    scoreboard: { audiences: ["everyone"], from: "start" },
     authorProfileIds: ["non_staff_author"],
     curatorProfileIds: ["staff_contest_edit_own"],
     testerProfileIds: ["non_staff_tester"],
@@ -303,7 +303,7 @@ function checkMatrix(contest: ContestRow, matrix: Matrix): void {
 describe("ContestTestCase", () => {
   it("test_basic_contest", () => {
     const contest = contests.basic;
-    expect(contestShowScoreboard(contest, NOW)).toBe(true);
+    expect(contestScoreboardIsPublic(contest, NOW)).toBe(true);
     expect(contestWindowLength(contest)).toBe(101 * DAY);
     expect(contestStarted(contest, NOW)).toBe(true);
     expect(contestTimeBeforeStart(contest, NOW)).toBeNull();
@@ -316,7 +316,7 @@ describe("ContestTestCase", () => {
 
   it("test_hidden_scoreboard_contest", () => {
     const contest = contests.hidden_scoreboard;
-    expect(contestShowScoreboard(contest, NOW)).toBe(false);
+    expect(contestScoreboardIsPublic(contest, NOW)).toBe(false);
 
     for (let i = 0; i < 3; i++) {
       expect(getContestLabelForProblem(contest, i)).toBe(String(i));
@@ -333,7 +333,7 @@ describe("ContestTestCase", () => {
   it("test_organization_private_contest", () => {
     const contest = contests.organization_private;
     expect(contestStarted(contest, NOW)).toBe(true);
-    expect(contestShowScoreboard(contest, NOW)).toBe(true);
+    expect(contestScoreboardIsPublic(contest, NOW)).toBe(true);
     expect(contestEnded(contest, NOW)).toBe(false);
     expect(contestTimeBeforeStart(contest, NOW)).toBeNull();
     expect(contestTimeBeforeEnd(contest, NOW)).toBeGreaterThan(0);
@@ -342,7 +342,7 @@ describe("ContestTestCase", () => {
   it("test_future_organization_private_contest", () => {
     const contest = contests.future_org_private;
     expect(contestStarted(contest, NOW)).toBe(false);
-    expect(contestShowScoreboard(contest, NOW)).toBe(false);
+    expect(contestScoreboardIsPublic(contest, NOW)).toBe(false);
     expect(contestEnded(contest, NOW)).toBe(false);
     expect(contestTimeBeforeStart(contest, NOW)).toBeGreaterThan(0);
     expect(contestTimeBeforeEnd(contest, NOW)).toBeGreaterThan(0);

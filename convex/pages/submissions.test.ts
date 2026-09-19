@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 import { api } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import {
   asUser,
   insertContest,
@@ -35,7 +35,7 @@ async function makeContest(
     isVisible?: boolean;
     startTime?: number;
     endTime?: number;
-    scoreboardVisibility?: "V" | "C" | "P" | "H";
+    scoreboard?: Doc<"contests">["scoreboard"];
   } = {},
 ): Promise<Id<"contests">> {
   return await insertContest(t, {
@@ -44,7 +44,7 @@ async function makeContest(
     startTime: options.startTime ?? Date.now() - 7_200_000,
     endTime: options.endTime ?? Date.now() - 3_600_000,
     isVisible: options.isVisible ?? true,
-    scoreboardVisibility: options.scoreboardVisibility ?? "V",
+    scoreboard: options.scoreboard ?? { audiences: ["everyone"], from: "start" },
     useClarifications: false,
     formatConfig: {},
   });

@@ -47,7 +47,7 @@ describe("contest mode", () => {
     const contestId = await insertContest(t, {
       startTime: now - 3600_000,
       endTime: now + 3600_000,
-      scoreboardVisibility: "H",
+      scoreboard: { audiences: [], from: "start" },
     });
 
     const contestProblemId = await insertContestProblem(t, {
@@ -106,7 +106,7 @@ describe("contest mode", () => {
       key: "scoped",
       startTime: now - 3600_000,
       endTime: now + 3600_000,
-      scoreboardVisibility: "V",
+      scoreboard: { audiences: ["everyone"], from: "start" },
     });
 
     const contestProblemId = await insertContestProblem(t, {
@@ -151,7 +151,7 @@ describe("contest mode", () => {
       // The freeze started half an hour ago and the contest is still running.
       endTime: now + 1800_000,
       freeze: { minutes: 60, blind: true },
-      scoreboardVisibility: "V",
+      scoreboard: { audiences: ["everyone"], from: "start" },
     });
 
     const contestProblemId = await insertContestProblem(t, {
@@ -230,14 +230,14 @@ describe("contest mode", () => {
       key: "hidden",
       startTime: now - 3600_000,
       endTime: now + 3600_000,
-      scoreboardVisibility: "H",
+      scoreboard: { audiences: [], from: "start" },
     });
 
     const open = await insertContest(t, {
       key: "open",
       startTime: now - 3600_000,
       endTime: now + 3600_000,
-      scoreboardVisibility: "V",
+      scoreboard: { audiences: ["everyone"], from: "start" },
     });
 
     for (const contestId of [hidden, open]) {

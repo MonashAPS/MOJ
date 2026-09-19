@@ -517,10 +517,6 @@
       "pretestsOnly": "Hanya pretest",
       "pretestsOnlyHint": "Nilai berdasarkan pretest selama kontes berlangsung.",
       "scoreboardVisibility": "Visibilitas papan skor",
-      "scoreboardEveryone": "Semua orang",
-      "scoreboardUntilEnd": "Semua orang, setelah kontes berakhir",
-      "scoreboardParticipants": "Semua orang, setelah jendela mereka sendiri berakhir",
-      "scoreboardNobody": "Hanya staf",
       "pointsPrecision": "Presisi poin",
       "pointsPrecisionHint": "Jumlah angka desimal pada papan skor.",
       "sectionFreeze": "Pembekuan",
@@ -600,7 +596,7 @@
       "refused": "Perubahan ditolak.",
       "sectionStaff": "Staf",
       "sectionAudiences": "Audiens",
-      "audiencesHint": "Setiap pilihan tentang siapa yang boleh melihat sesuatu di kontes ini diambil dari daftar ini. Staf selalu termasuk.",
+      "audiencesHint": "Setiap pilihan tentang siapa yang boleh melihat sesuatu di kontes ini diambil dari daftar ini.",
       "authors": "Penulis",
       "authorsHint": "Mereka dapat mengedit kontes dan melihat segalanya.",
       "curators": "Kurator",
@@ -611,14 +607,16 @@
       "spectatorsHint": "Mereka menonton kontes tanpa partisipasi sendiri.",
       "alwaysAdmit": "Selalu diterima",
       "alwaysAdmitHint": "Pengguna ini dapat masuk ke kontes apa pun aturan masuknya, dan melihat papan skor lengkap saat disembunyikan atau dibekukan.",
-      "sectionTesters": "Apa yang dilihat penguji",
-      "testerSeeScoreboard": "Penguji dapat melihat papan skor",
-      "testerSeeSubmissions": "Penguji dapat melihat pengiriman",
+      "testerSeeScoreboard": "Penguji melihat papan skor saat disembunyikan",
+      "testerSeeSubmissions": "Penguji melihat pengumpulan",
       "sectionViewers": "Pengguna tambahan",
       "viewSubmissions": "Boleh melihat pengiriman",
       "viewSubmissionsHint": "Pengguna ini dapat melihat pengiriman semua orang selama kontes berlangsung.",
       "submit": "Simpan orang",
-      "reasonHint": "Disimpan bersama revisi agar orang berikutnya tahu alasan perubahan kontes ini."
+      "reasonHint": "Disimpan bersama revisi agar orang berikutnya tahu alasan perubahan kontes ini.",
+      "spectatorSeeScoreboard": "Penonton melihat papan skor saat disembunyikan",
+      "spectatorSeeProblemsEarly": "Penonton melihat soal sebelum kontes dimulai",
+      "testerSeeProblemsAlways": "Penguji melihat soal sebelum kontes dimulai."
     },
     "actions": {
       "refused": "Aksi ditolak.",
@@ -781,6 +779,10 @@
       },
       "scoring": {
         "noFreeze": "Papan skor terus diperbarui sampai akhir.",
+        "scoreboardFromStart": "<b>{who}</b> dapat melihat papan skor sejak awal.",
+        "scoreboardFromOwnEnd": "<b>{who}</b> dapat melihat papan skor setelah jendela mereka sendiri berakhir.",
+        "scoreboardFromEnd": "<b>{who}</b> dapat melihat papan skor setelah kontes berakhir.",
+        "scoreboardStaffOnly": "Hanya staf yang dapat melihat papan skor.",
         "freeze": "Papan skor beku <b>{minutes} menit</b> sebelum akhir, pada <b>{at}</b>.",
         "blind": "Peserta juga melihat hasil mereka sendiri sebagai tertunda, yang berakhir saat kontes selesai.",
         "labelsCustom": "Soal memakai {count, plural, other {# label khusus}}.",
@@ -2232,21 +2234,6 @@
       "removeDescription": "Berkas dihapus. Tidak ada yang bisa mengunduhnya lagi.",
       "change": "Ubah",
       "changeTitle": "Siapa yang boleh mengunduh {name}"
-    },
-    "audiences": {
-      "staff": "Staf",
-      "staffAlways": "Penulis dan kurator. Selalu termasuk.",
-      "testers": "Penguji",
-      "testersHint": "Orang-orang yang terdaftar sebagai penguji.",
-      "spectators": "Penonton",
-      "spectatorsHint": "Orang-orang yang terdaftar sebagai penonton.",
-      "contestants": "Peserta",
-      "contestantsHint": "Siapa pun yang telah bergabung ke kontes.",
-      "everyone": "Semua orang",
-      "everyoneHint": "Siapa pun yang bisa melihatnya.",
-      "from": "Tersedia",
-      "fromNow": "Segera setelah ditambahkan",
-      "fromEnd": "Setelah kontes berakhir"
     }
   },
   "proctor": {

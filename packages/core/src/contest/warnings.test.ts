@@ -26,7 +26,7 @@ const CONTEST = {
   schedule: { kind: "together" },
   entry: { kind: "open" },
   labels: { kind: "letters" },
-  scoreboardVisibility: "V",
+  scoreboard: { audiences: ["everyone"], from: "start" },
 } as const;
 
 const RESTRICTED = {
@@ -170,7 +170,7 @@ describe("an ordinary contest", () => {
   it("describes itself as shared, open, unfrozen and unrated", () => {
     const keys = describeContest(CONTEST).map((line) => line.key);
 
-    expect(keys).toEqual(["window", "together", "open", "noFreeze", "unrated"]);
+    expect(keys).toEqual(["window", "together", "open", "scoreboardFromStart", "noFreeze", "unrated"]);
   });
 });
 

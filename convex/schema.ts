@@ -46,7 +46,8 @@ export const globalSourceVisibility = v.union(
   v.literal("only-own"),
 );
 
-export const scoreboardVisibility = v.union(v.literal("V"), v.literal("C"), v.literal("P"), v.literal("H"));
+/** When a policy starts admitting; see `@moj/core`'s `Moment`. */
+export const moment = v.union(v.literal("start"), v.literal("ownEnd"), v.literal("end"));
 
 /** How a contest's clock runs. A window starts each competitor's clock, and penalty time, when they join. */
 export const contestSchedule = v.union(
@@ -96,6 +97,9 @@ export const audience = v.union(
   v.literal("contestants"),
   v.literal("everyone"),
 );
+
+/** Who may see something, and from when. Staff need no listing. */
+export const audiencePolicy = v.object({ audiences: v.array(audience), from: moment });
 
 export const contestLabels = v.union(
   v.object({ kind: v.literal("letters") }),
@@ -608,6 +612,10 @@ export default defineSchema({
     spectatorProfileIds: v.array(v.id("profiles")),
     testerSeeScoreboard: v.boolean(),
     testerSeeSubmissions: v.boolean(),
+    /** Spectators see the board while the policy hides it. */
+    spectatorSeeScoreboard: v.boolean(),
+    /** Spectators may open the problems before the contest starts, as testers always may. */
+    spectatorSeeProblemsEarly: v.boolean(),
     description: v.string(),
     startTime: v.number(),
     endTime: v.number(),
@@ -637,7 +645,8 @@ export default defineSchema({
     /** Admitted to the whole contest, whatever `entry` says, and to its scoreboard. */
     alwaysAdmitProfileIds: v.array(v.id("profiles")),
     viewContestSubmissionsProfileIds: v.array(v.id("profiles")),
-    scoreboardVisibility,
+    /** Who sees the full board, and from when; staff, the always-admitted and the flags above come first. */
+    scoreboard: audiencePolicy,
     useClarifications: v.boolean(),
     hideProblemTags: v.boolean(),
     hideProblemAuthors: v.boolean(),
@@ -949,10 +958,8 @@ export default defineSchema({
     storageId: v.id("_storage"),
     size: v.number(),
     contentType: v.string(),
-    /** Who may download it; staff always may. */
-    audiences: v.array(audience),
-    /** `end` holds it until the contest is over. */
-    from: v.union(v.literal("now"), v.literal("end")),
+    /** Who may download it, and from when: the start, or once the contest has ended. */
+    ...audiencePolicy.fields,
     uploadedByProfileId: v.id("profiles"),
     uploadedAt: v.number(),
   })

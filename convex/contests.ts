@@ -10,6 +10,7 @@
  */
 
 import {
+  type AudiencePolicy,
   type ContestAccess,
   type ContestSchedule,
   contestAccessCheck,
@@ -22,7 +23,7 @@ import {
   contestIsSpectatableBy,
   contestIsVisibleTo,
   contestJoinDecision,
-  contestShowScoreboard,
+  contestScoreboardIsPublic,
   contestStarted,
   freezeTime,
   hasPerm,
@@ -593,7 +594,11 @@ function problemsReleasedFor(
 
   const started = contest.startTime <= now;
 
-  return started && (taking || contest.spectatorProfileIds.includes(profile._id));
+  const spectator = contest.spectatorProfileIds.includes(profile._id);
+
+  if (spectator && contest.spectatorSeeProblemsEarly) return true;
+
+  return started && (taking || spectator);
 }
 
 async function progressFor(
@@ -1158,7 +1163,7 @@ export type ContestDetail = {
     hideProblemTags: boolean;
     hideProblemAuthors: boolean;
     runPretestsOnly: boolean;
-    scoreboardVisibility: string;
+    scoreboard: AudiencePolicy;
     freeze: { minutes: number; blind: boolean } | null;
     rating: { floor: number | null; ceiling: number | null } | null;
     pointsPrecision: number;
@@ -1516,7 +1521,7 @@ export const get = query({
         hideProblemTags: contest.hideProblemTags,
         hideProblemAuthors: contest.hideProblemAuthors,
         runPretestsOnly: contest.runPretestsOnly,
-        scoreboardVisibility: contest.scoreboardVisibility,
+        scoreboard: contest.scoreboard,
         freeze: contest.freeze ? { minutes: contest.freeze.minutes, blind: contest.freeze.blind } : null,
         rating: contest.rating
           ? { floor: contest.rating.floor ?? null, ceiling: contest.rating.ceiling ?? null }
@@ -1579,7 +1584,7 @@ export const get = query({
           !contestIsLiveJoinableBy(contestRow, viewer, context) &&
           contestIsSpectatableBy(contestRow, viewer),
         canJoinVirtual: !!profile && contestEnded(contestRow, now),
-        canSeeScoreboard: contestShowScoreboard(contestRow, now),
+        canSeeScoreboard: contestScoreboardIsPublic(contestRow, now),
         canSeeFullScoreboard: contestCanSeeFullScoreboard(contestRow, viewer, context),
         canSeeOwnScoreboard: contestCanSeeOwnScoreboard(contestRow, viewer, context),
       },

@@ -15,7 +15,7 @@
 import { windowMillis } from "../contestTiming";
 import type { ScoringLine } from "../formats/base";
 import { freezeTime } from "../scoreboard";
-import type { ContestRow, Timestamp } from "../types";
+import type { Audience, ContestRow, Timestamp } from "../types";
 import { nameGate, organizationGate } from "./entry";
 
 /** Which part of the summary a line belongs under. */
@@ -34,6 +34,7 @@ export type DescribeSource = Pick<
     Pick<
       ContestRow,
       | "isVisible"
+      | "scoreboard"
       | "accessCode"
       | "lockedAfter"
       | "runPretestsOnly"
@@ -50,6 +51,8 @@ export interface DescribeOptions {
   readonly duration?: (millis: number) => string;
   /** How many organisations and classes the entry gate names, once resolved. */
   readonly audience?: string;
+  /** The audiences of a policy, named as the viewer reads them. */
+  readonly audiences?: (list: readonly Audience[]) => string;
   /** How many problems the contest carries, for the lines that count them. */
   readonly problemCount?: number;
 }
@@ -137,6 +140,25 @@ export function describeContest(contest: DescribeSource, options: DescribeOption
   if (contest.joinLimit) lines.push({ group: "who", key: "joinLimit" });
 
   /* -------------------------------------------------------------- scoring -- */
+
+  if (contest.scoreboard) {
+    const board = contest.scoreboard;
+
+    if (board.audiences.length === 0) {
+      lines.push({ group: "scoring", key: "scoreboardStaffOnly" });
+    } else {
+      const who = (options.audiences ?? ((list) => list.join(", ")))(board.audiences);
+
+      const key =
+        board.from === "start"
+          ? "scoreboardFromStart"
+          : board.from === "ownEnd"
+            ? "scoreboardFromOwnEnd"
+            : "scoreboardFromEnd";
+
+      lines.push({ group: "scoring", key, values: { who } });
+    }
+  }
 
   const freeze = contest.freeze;
   const frozenAt = freezeTime(contest);

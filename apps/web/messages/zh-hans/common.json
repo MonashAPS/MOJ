@@ -216,5 +216,23 @@
   },
   "files": {
     "title": "文件"
+  },
+  "audiences": {
+    "staff": "工作人员",
+    "staffHint": "作者与策划人。",
+    "testers": "测试者",
+    "testersHint": "列为测试者的人。",
+    "spectators": "观众",
+    "spectatorsHint": "列为观众的人。",
+    "contestants": "参赛者",
+    "contestantsHint": "已加入比赛的任何人。",
+    "everyone": "所有人",
+    "everyoneHint": "任何能看到它的人。",
+    "fromLabel": "起始时间",
+    "from": {
+      "start": "从一开始",
+      "ownEnd": "各自的时段结束后",
+      "end": "比赛结束后"
+    }
   }
 }

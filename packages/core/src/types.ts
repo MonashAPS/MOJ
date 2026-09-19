@@ -38,7 +38,26 @@ export type SubmissionSourceVisibility = "A" | "S" | "O" | "F";
 export type GlobalSubmissionSourceVisibility = "all" | "all-solved" | "only-own";
 
 /** Contest.scoreboard_visibility. */
-export type ScoreboardVisibility = "V" | "C" | "P" | "H";
+/**
+ * The fixed vocabulary for "who" on a contest or a problem:
+ * - `staff`: the editors, and in on everything without being listed;
+ * - `testers`, `spectators`: the People tab's lists;
+ * - `contestants`: anyone who has joined the contest;
+ * - `everyone`: anyone who can see the contest or the problem at all.
+ */
+export type Audience = "staff" | "testers" | "spectators" | "contestants" | "everyone";
+
+/**
+ * When a policy starts admitting its audiences: from the contest's start,
+ * once the viewer's own window has ended, or once the contest has ended.
+ */
+export type Moment = "start" | "ownEnd" | "end";
+
+/** Who may see something, and from when. Staff need no listing. */
+export interface AudiencePolicy {
+  readonly audiences: readonly Audience[];
+  readonly from: Moment;
+}
 
 export type DisplayRank = "user" | "setter" | "admin" | (string & {});
 
@@ -190,12 +209,17 @@ export interface ContestRow {
   readonly spectatorProfileIds?: readonly Id[];
   readonly testerSeeScoreboard?: boolean;
   readonly testerSeeSubmissions?: boolean;
+  /** Spectators see the board while the policy hides it, like testers with the flag above. */
+  readonly spectatorSeeScoreboard?: boolean;
+  /** Spectators may open the problems before the contest starts, as testers always may. */
+  readonly spectatorSeeProblemsEarly?: boolean;
   /** Admitted to the whole contest, whatever `entry` says, and to its scoreboard. */
   readonly alwaysAdmitProfileIds?: readonly Id[];
   readonly viewContestSubmissionsProfileIds?: readonly Id[];
   readonly bannedProfileIds?: readonly Id[];
   readonly accessCode?: string | null;
-  readonly scoreboardVisibility: ScoreboardVisibility;
+  /** Who sees the full board, and from when; the bypasses above come first. */
+  readonly scoreboard: AudiencePolicy;
   readonly formatName?: string;
   readonly formatConfig?: JsonValue;
   readonly pointsPrecision?: number;
@@ -206,13 +230,6 @@ export interface ContestRow {
   /** When that happened, once it has. */
   readonly problemsPublishedAt?: Timestamp;
 }
-
-/**
- * Who may download a file attached to a contest or a problem: its editors,
- * anyone who can see the thing it is attached to, or the latter only once a
- * contest has ended.
- */
-export type ArtefactVisibility = "staff" | "everyone" | "afterEnd";
 
 /** `ContestParticipation.LIVE` */
 export const PARTICIPATION_LIVE = 0;

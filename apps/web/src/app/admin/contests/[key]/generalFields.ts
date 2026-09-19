@@ -9,7 +9,7 @@
  * is never in the patch and can never be damaged by one.
  */
 
-import type { DescribeSource } from "@moj/core";
+import type { AudiencePolicy, DescribeSource } from "@moj/core";
 import type { ContestEdit } from "./types";
 
 /**
@@ -53,7 +53,7 @@ export interface ContestGeneralFields {
   formatConfig: string;
   labels: "letters" | "custom";
   customLabels: string;
-  scoreboardVisibility: ContestEdit["scoreboardVisibility"];
+  scoreboard: AudiencePolicy;
   /** Minutes before the end, or "" for no freeze. */
   freezeMinutes: string;
   blind: boolean;
@@ -96,7 +96,7 @@ export type ContestFieldSource = Pick<
   | "formatName"
   | "formatConfig"
   | "labels"
-  | "scoreboardVisibility"
+  | "scoreboard"
   | "freeze"
   | "rating"
   | "tagNames"
@@ -140,7 +140,7 @@ export function fieldsFromContest(contest: ContestFieldSource): ContestGeneralFi
     formatConfig: toJson(contest.formatConfig),
     labels: contest.labels.kind,
     customLabels: contest.labels.kind === "custom" ? contest.labels.labels.join(", ") : "",
-    scoreboardVisibility: contest.scoreboardVisibility,
+    scoreboard: contest.scoreboard,
     freezeMinutes: contest.freeze ? String(contest.freeze.minutes) : "",
     blind: contest.freeze?.blind ?? false,
     isRated: contest.rating !== null,
@@ -260,6 +260,7 @@ export function describeSourceOf(
     rating: settings.rating ?? undefined,
     labels: settings.labels,
     isVisible: fields.isVisible,
+    scoreboard: fields.scoreboard,
     accessCode: fields.accessCode.trim() || null,
     lockedAfter: fields.lockedAfter,
     runPretestsOnly: fields.runPretestsOnly,
@@ -287,7 +288,8 @@ export function argsFromFields<P extends string, O extends string, C extends str
     accessCode: fields.accessCode.trim() || null,
     formatName: fields.formatName,
     formatConfig,
-    scoreboardVisibility: fields.scoreboardVisibility,
+    // The mutation takes a list it may keep; the draft holds a frozen one.
+    scoreboard: { audiences: [...fields.scoreboard.audiences], from: fields.scoreboard.from },
     tagIds: refs.tagIds,
     lockedAfter: fields.lockedAfter,
     pointsPrecision: Number(fields.pointsPrecision) || 0,
