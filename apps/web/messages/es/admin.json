@@ -699,7 +699,7 @@
       "entryOpen": "Cualquiera",
       "entryOpenHint": "Cualquier persona con cuenta puede unirse.",
       "entryRestricted": "Solo quienes indiques",
-      "entryRestrictedHint": "Indica organizaciones, clases o personas. Indicar dos tipos exige cumplir ambos.",
+      "entryRestrictedHint": "Indica organizaciones, clases o personas.",
       "entryOrganizations": "Organizaciones",
       "entryOrganizationsPlaceholder": "Cualquier organización",
       "entryClasses": "Clases",
@@ -761,6 +761,7 @@
       "who": {
         "hidden": "Oculto de la lista de concursos.",
         "open": "Cualquiera puede encontrarlo y entrar.",
+        "restrictedNobody": "Nadie salvo el personal, hasta que se nombre a alguien.",
         "restrictedOrganizations": "Solo miembros de las organizaciones y clases que nombra.",
         "restrictedNamed": "Solo {count, plural, one {# persona nombrada} other {# personas nombradas}}.",
         "restrictedBoth": "Solo quienes estén a la vez en una organización nombrada y en la lista de {count, plural, one {# persona} other {# personas}}.",

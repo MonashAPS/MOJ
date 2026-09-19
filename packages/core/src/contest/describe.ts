@@ -95,6 +95,8 @@ export function describeContest(contest: DescribeSource, options: DescribeOption
 
   if (entry.kind === "open") {
     lines.push({ group: "who", key: "open" });
+  } else if (!organizationGate(entry) && !nameGate(entry)) {
+    lines.push({ group: "who", key: "restrictedNobody" });
   } else if (organizationGate(entry) && nameGate(entry)) {
     lines.push({
       group: "who",

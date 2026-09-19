@@ -699,7 +699,7 @@
       "entryOpen": "Anyone",
       "entryOpenHint": "Anybody with an account can join.",
       "entryRestricted": "Only people you name",
-      "entryRestrictedHint": "Name organisations, classes or people. Naming two kinds means both must match.",
+      "entryRestrictedHint": "Name organisations, classes or people.",
       "entryOrganizations": "Organisations",
       "entryOrganizationsPlaceholder": "Any organisation",
       "entryClasses": "Classes",
@@ -761,6 +761,7 @@
       "who": {
         "hidden": "Hidden from the contest list.",
         "open": "Anyone can find it and enter.",
+        "restrictedNobody": "Nobody but staff, until somebody is named.",
         "restrictedOrganizations": "Only members of the organisations and classes it names.",
         "restrictedNamed": "Only the {count, plural, one {# named person} other {# named people}}.",
         "restrictedBoth": "Only people who are both in a named organisation and on the list of {count, plural, one {# person} other {# people}}.",
