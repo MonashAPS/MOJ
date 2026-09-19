@@ -19,6 +19,8 @@ export {
   AdminToolbar,
 } from "./AdminTable";
 
+export { ArtefactsEditor } from "./ArtefactsEditor";
+
 export { Crumbs } from "./Crumbs";
 
 export { ConfirmAction, CopyButton, DASH, Flags, SearchBox, StatusLine } from "./console";

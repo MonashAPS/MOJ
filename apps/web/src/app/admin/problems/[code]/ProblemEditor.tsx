@@ -7,7 +7,7 @@ import { FileQuestion } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { AdminShell, RevisionsPanel } from "@/components/admin";
+import { AdminShell, ArtefactsEditor, RevisionsPanel } from "@/components/admin";
 import { ProblemActionsTab } from "./ProblemActionsTab";
 import {
   ProblemClarificationsTab,
@@ -26,6 +26,7 @@ const TABS = [
   "limits",
   "clarifications",
   "data",
+  "files",
   "revisions",
   "actions",
 ] as const;
@@ -111,6 +112,8 @@ export function ProblemEditor({ code }: { code: string }) {
         <ProblemClarificationsTab problem={problem} />
       ) : active === "data" ? (
         <TestDataTab code={code} />
+      ) : active === "files" ? (
+        <ArtefactsEditor owner={{ kind: "problem", code }} />
       ) : active === "revisions" ? (
         <RevisionsPanel revisions={revisions} emptyDescription={t("revisionsEmpty")} />
       ) : (

@@ -42,6 +42,7 @@ interface Draft {
   formatName: string;
   isVisible: boolean;
   isRated: boolean;
+  publishProblemsAtEnd: boolean;
   useClarifications: boolean;
 }
 
@@ -55,6 +56,7 @@ function emptyDraft(now: number): Draft {
     formatName: "default",
     isVisible: false,
     isRated: false,
+    publishProblemsAtEnd: false,
     useClarifications: true,
   };
 }
@@ -102,6 +104,7 @@ export function NewContestWizard() {
     labels: { kind: "letters" },
     rating,
     isVisible: draft.isVisible,
+    publishProblemsAtEnd: draft.publishProblemsAtEnd,
   };
 
   async function submit() {
@@ -137,6 +140,7 @@ export function NewContestWizard() {
         formatName: draft.formatName,
         isVisible: draft.isVisible,
         rating,
+        publishProblemsAtEnd: draft.publishProblemsAtEnd,
         useClarifications: draft.useClarifications,
       });
 
@@ -304,6 +308,12 @@ export function NewContestWizard() {
                 hint={t("clarificationsHint")}
                 checked={draft.useClarifications}
                 onCheckedChange={(checked) => change({ useClarifications: checked })}
+              />
+              <AdminCheckField
+                label={setup("afterEndPublish")}
+                hint={setup("afterEndPublishHint")}
+                checked={draft.publishProblemsAtEnd}
+                onCheckedChange={(checked) => change({ publishProblemsAtEnd: checked })}
               />
               <RadioGroup
                 variant="card"

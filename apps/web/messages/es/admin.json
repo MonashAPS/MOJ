@@ -212,6 +212,7 @@
         "limits": "Límites por lenguaje",
         "clarifications": "Aclaraciones",
         "data": "Datos de prueba",
+        "files": "Archivos",
         "revisions": "Revisiones",
         "actions": "Acciones"
       },
@@ -466,6 +467,7 @@
         "access": "Acceso",
         "scoring": "Puntuación",
         "problems": "Problemas",
+        "files": "Archivos",
         "people": "Personas",
         "actions": "Acciones",
         "history": "Historial"
@@ -496,6 +498,7 @@
       "description": "Descripción",
       "descriptionHint": "Markdown, se muestra en la página propia del concurso.",
       "sectionScheduling": "Programación",
+      "sectionAfterwards": "Al terminar",
       "starts": "Comienza",
       "start": "Comienzo",
       "ends": "Termina",
@@ -694,6 +697,11 @@
       "closes": "Cierra",
       "windowLength": "Cada participante recibe",
       "windowLengthHint": "Minutos, desde el momento en que se une.",
+      "afterEndKeep": "Dejar los problemas como están",
+      "afterEndKeepHint": "Los problemas privados siguen privados tras el concurso.",
+      "afterEndPublish": "Publicar los problemas al terminar",
+      "afterEndPublishHint": "Cada problema pasa a ser público en cuanto termina el concurso, para que cualquiera pueda practicar.",
+      "afterEndDone": "Publicados el {at}.",
       "lockedAfter": "Bloqueado después de",
       "lockedAfterHint": "Los envíos dejan de poder editarse. Vacío para nunca.",
       "visible": "Listado",
@@ -759,7 +767,9 @@
         "together": "Todos comparten un reloj y el tiempo de penalización cuenta desde el inicio.",
         "ownWindow": "Cada participante recibe <b>{length}</b> desde que se une, y <b>su tiempo de penalización empieza entonces</b>.",
         "ownWindowCutoff": "Unirse después de <b>{at}</b> deja menos que eso.",
-        "locked": "Los envíos dejan de poder editarse después de <b>{at}</b>."
+        "locked": "Los envíos dejan de poder editarse después de <b>{at}</b>.",
+        "publishAtEnd": "Sus problemas se publican para todos el <b>{at}</b>.",
+        "problemsPublished": "Sus problemas se publicaron el <b>{at}</b>."
       },
       "who": {
         "hidden": "Oculto de la lista de concursos.",
@@ -2172,6 +2182,7 @@
         "bannedUsers": "Usuarios baneados",
         "endTime": "Fin",
         "entry": "Acceso",
+        "files": "Archivos",
         "formatConfig": "Configuración del formato",
         "formatName": "Formato",
         "freeze": "Congelación",
@@ -2185,6 +2196,8 @@
         "lockedAfter": "Bloqueado después de",
         "memoryLimit": "Límite de memoria",
         "pointsPrecision": "Precisión de los puntos",
+        "problemsPublishedAt": "Problemas publicados",
+        "publishProblemsAtEnd": "Publicar problemas al final",
         "rating": "Clasificación",
         "schedule": "Reloj",
         "shortCircuit": "Cortocircuito",
@@ -2193,6 +2206,30 @@
         "testerSeeScoreboard": "Los testers ven la clasificación",
         "testerSeeSubmissions": "Los testers ven los envíos",
         "viewContestSubmissions": "Ven los envíos"
+      }
+    },
+    "artefacts": {
+      "uploadTitle": "Añadir un archivo",
+      "uploadHint": "Un editorial, un cuadernillo impreso, datos demasiado grandes para el enunciado. Elige quién puede descargarlo y luego el archivo.",
+      "choose": "Elegir un archivo",
+      "uploadFailed": "La subida no se completó.",
+      "refused": "Ese cambio fue rechazado.",
+      "added": "Añadido {name}.",
+      "removed": "Eliminado {name}.",
+      "emptyTitle": "Aún no hay archivos",
+      "emptyDescription": "Los archivos añadidos aquí se ofrecen para descargar junto al enunciado.",
+      "listTitle": "{count, plural, one {# archivo} other {# archivos}}",
+      "columnName": "Archivo",
+      "columnSize": "Tamaño",
+      "columnVisibility": "Quién puede descargarlo",
+      "columnUploaded": "Subido",
+      "remove": "Eliminar",
+      "removeTitle": "¿Eliminar {name}?",
+      "removeDescription": "El archivo se borra. Nadie podrá descargarlo más.",
+      "visibility": {
+        "staff": "Solo personal",
+        "everyone": "Todos los que puedan verlo",
+        "afterEnd": "Todos, una vez terminado"
       }
     }
   },
