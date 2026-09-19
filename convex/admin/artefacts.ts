@@ -3,7 +3,13 @@
  * on the owner, whose snapshot lists its files.
  */
 
-import { contestIsEditableBy, PROBLEM_AUDIENCES, problemIsEditableBy } from "@moj/core";
+import {
+  AUDIENCES,
+  contestIsEditableBy,
+  FILE_MOMENTS,
+  PROBLEM_AUDIENCES,
+  problemIsEditableBy,
+} from "@moj/core";
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation, query } from "../_generated/server";
@@ -14,7 +20,7 @@ import { requireViewer } from "../lib/auth";
 import { writeRevision } from "../lib/community";
 import { forbidden, invalid, notFound } from "../lib/errors";
 import { loadViewerContext, problemByCode, toCoreProblem } from "../problems";
-import { audience } from "../schema";
+import { audience, moment } from "../schema";
 import { writeProblemRevision } from "./problems";
 
 /** What a file is attached to, named the way the editor names it. */
@@ -89,11 +95,13 @@ async function recordChange(ctx: MutationCtx, target: Owner, reason: string): Pr
   await writeProblemRevision(ctx, target.problem._id, target.profileId, reason);
 }
 
-/** A problem has nobody to join or watch it and no end to wait for. */
-function checkAudience(
-  target: Owner,
-  file: { audiences: readonly Doc<"artefacts">["audiences"][number][]; from: Doc<"artefacts">["from"] },
-): void {
+type Policy = { audiences: readonly Doc<"artefacts">["audiences"][number][]; from: Doc<"artefacts">["from"] };
+
+/** A file cannot wait for a window, and a problem has nobody to join or watch it and no end. */
+function checkPolicy(target: Owner, file: Policy): void {
+  if (!FILE_MOMENTS.includes(file.from))
+    throw invalid("A file is available from the start or once the contest has ended.");
+
   if (target.kind !== "problem") return;
 
   if (file.audiences.some((name) => !PROBLEM_AUDIENCES.includes(name))) {
@@ -101,6 +109,14 @@ function checkAudience(
   }
 
   if (file.from === "end") throw invalid("A problem has no end to wait for.");
+}
+
+/** Staff are never listed, and the rest keep one order. */
+function normalise(file: Policy) {
+  return {
+    audiences: AUDIENCES.filter((name) => name !== "staff" && file.audiences.includes(name)),
+    from: file.from,
+  };
 }
 
 export const uploadUrl = mutation({
@@ -119,14 +135,14 @@ export const add = mutation({
     name: v.string(),
     contentType: v.string(),
     audiences: v.array(audience),
-    from: v.union(v.literal("now"), v.literal("end")),
+    from: moment,
   },
   handler: async (ctx, args): Promise<Id<"artefacts">> => {
     const target = await requireOwnerEditor(ctx, args.owner);
     const name = args.name.trim();
 
     if (!name) throw invalid("A file needs a name.");
-    checkAudience(target, args);
+    checkPolicy(target, args);
     const stored = await ctx.db.system.get(args.storageId);
 
     if (!stored) throw invalid("The upload did not arrive.");
@@ -140,8 +156,7 @@ export const add = mutation({
       storageId: args.storageId,
       size: stored.size,
       contentType: args.contentType || stored.contentType || "application/octet-stream",
-      audiences: args.audiences,
-      from: args.from,
+      ...normalise(args),
       uploadedByProfileId: target.profileId,
       uploadedAt: Date.now(),
     });
@@ -157,7 +172,7 @@ export const update = mutation({
     id: v.id("artefacts"),
     name: v.optional(v.string()),
     audiences: v.optional(v.array(audience)),
-    from: v.optional(v.union(v.literal("now"), v.literal("end"))),
+    from: v.optional(moment),
   },
   handler: async (ctx, args): Promise<null> => {
     const artefact = await ctx.db.get(args.id);
@@ -174,11 +189,9 @@ export const update = mutation({
     }
 
     if (args.audiences !== undefined || args.from !== undefined) {
-      const audiences = args.audiences ?? artefact.audiences;
-      const from = args.from ?? artefact.from;
-      checkAudience(target, { audiences, from });
-      patch.audiences = audiences;
-      patch.from = from;
+      const file = { audiences: args.audiences ?? artefact.audiences, from: args.from ?? artefact.from };
+      checkPolicy(target, file);
+      Object.assign(patch, normalise(file));
     }
 
     if (Object.keys(patch).length === 0) return null;

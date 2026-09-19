@@ -511,7 +511,7 @@ export const events = query({
 });
 
 /**
- * `LiveScoreboard` / `live_scoreboard_data`. Ignores `scoreboardVisibility`:
+ * `LiveScoreboard` / `live_scoreboard_data`. Ignores the contest's scoreboard policy:
  * the URL is public the moment the event is configured.
  */
 export const event = query({

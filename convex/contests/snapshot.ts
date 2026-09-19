@@ -102,7 +102,7 @@ export async function snapshotContest(ctx: QueryCtx, contestId: Id<"contests">) 
           performanceCeiling: contest.rating.performanceCeiling ?? null,
         }
       : null,
-    scoreboardVisibility: contest.scoreboardVisibility,
+    scoreboard: contest.scoreboard,
     freeze: contest.freeze ?? null,
     formatName: contest.formatName,
     formatConfig: contest.formatConfig ?? null,
@@ -118,6 +118,8 @@ export async function snapshotContest(ctx: QueryCtx, contestId: Id<"contests">) 
     problemsPublishedAt: contest.problemsPublishedAt ?? null,
     testerSeeScoreboard: contest.testerSeeScoreboard,
     testerSeeSubmissions: contest.testerSeeSubmissions,
+    spectatorSeeScoreboard: contest.spectatorSeeScoreboard,
+    spectatorSeeProblemsEarly: contest.spectatorSeeProblemsEarly,
     authors: await usernames(contest.authorProfileIds),
     curators: await usernames(contest.curatorProfileIds),
     testers: await usernames(contest.testerProfileIds),

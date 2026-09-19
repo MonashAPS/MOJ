@@ -6,7 +6,7 @@
  * `judge/admin/contest.py` gets from django-reversion.
  */
 
-import { contestIsEditableBy, validateContestFormatConfig } from "@moj/core";
+import { AUDIENCES, contestIsEditableBy, validateContestFormatConfig } from "@moj/core";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -27,13 +27,13 @@ import { writeRevision } from "../lib/community";
 import { forbidden, invalid, mojError, notFound } from "../lib/errors";
 import { isJsonObject, type MaybeJson } from "../lib/json";
 import {
+  audiencePolicy,
   contestEntry,
   contestFreeze,
   contestJoinLimit,
   contestLabels,
   contestRating,
   contestSchedule,
-  scoreboardVisibility,
 } from "../schema";
 
 /* -------------------------------------------------------------------------- */
@@ -54,6 +54,8 @@ const plainWritable = {
   spectatorProfileIds: v.optional(v.array(v.id("profiles"))),
   testerSeeScoreboard: v.optional(v.boolean()),
   testerSeeSubmissions: v.optional(v.boolean()),
+  spectatorSeeScoreboard: v.optional(v.boolean()),
+  spectatorSeeProblemsEarly: v.optional(v.boolean()),
   isVisible: v.optional(v.boolean()),
   joinLimit: v.optional(v.union(contestJoinLimit, v.null())),
   freeze: v.optional(v.union(contestFreeze, v.null())),
@@ -61,7 +63,7 @@ const plainWritable = {
   labels: v.optional(contestLabels),
   alwaysAdmitProfileIds: v.optional(v.array(v.id("profiles"))),
   viewContestSubmissionsProfileIds: v.optional(v.array(v.id("profiles"))),
-  scoreboardVisibility: v.optional(scoreboardVisibility),
+  scoreboard: v.optional(audiencePolicy),
   useClarifications: v.optional(v.boolean()),
   hideProblemTags: v.optional(v.boolean()),
   hideProblemAuthors: v.optional(v.boolean()),
@@ -122,6 +124,11 @@ const PLAIN_FIELDS = keysOf(plainWritable);
  */
 const NULL_IS_A_VALUE = new Set<string>(["formatConfig"]);
 
+/** Staff are never listed, and the rest keep one order, so equal policies read equal. */
+function normaliseAudiences(audiences: readonly Doc<"contests">["scoreboard"]["audiences"][number][]) {
+  return AUDIENCES.filter((name) => name !== "staff" && audiences.includes(name));
+}
+
 function copyField<K extends PlainField>(patch: WritablePatch, args: ContestWriteArgs, key: K): void {
   const value = args[key];
 
@@ -139,6 +146,10 @@ function buildPatch(args: ContestWriteArgs): WritablePatch {
   if (args.entry !== undefined) {
     patch.entry = args.entry;
     patch.isOpenEntry = args.entry.kind === "open";
+  }
+
+  if (args.scoreboard !== undefined && args.scoreboard !== null) {
+    patch.scoreboard = { ...args.scoreboard, audiences: normaliseAudiences(args.scoreboard.audiences) };
   }
 
   return patch;
@@ -453,6 +464,8 @@ export const create = mutation({
       spectatorProfileIds: patch.spectatorProfileIds ?? [],
       testerSeeScoreboard: patch.testerSeeScoreboard ?? false,
       testerSeeSubmissions: patch.testerSeeSubmissions ?? false,
+      spectatorSeeScoreboard: patch.spectatorSeeScoreboard ?? true,
+      spectatorSeeProblemsEarly: patch.spectatorSeeProblemsEarly ?? false,
       description: patch.description ?? "",
       startTime: args.startTime,
       endTime: args.endTime,
@@ -466,7 +479,7 @@ export const create = mutation({
       labels: patch.labels ?? { kind: "letters" },
       alwaysAdmitProfileIds: patch.alwaysAdmitProfileIds ?? [],
       viewContestSubmissionsProfileIds: patch.viewContestSubmissionsProfileIds ?? [],
-      scoreboardVisibility: patch.scoreboardVisibility ?? "V",
+      scoreboard: patch.scoreboard ?? { audiences: ["everyone"], from: "start" },
       useClarifications: patch.useClarifications ?? true,
       hideProblemTags: patch.hideProblemTags ?? false,
       hideProblemAuthors: patch.hideProblemAuthors ?? false,

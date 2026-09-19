@@ -54,7 +54,7 @@ async function seed(t: T, endsIn: number) {
         | { kind: "problem"; problemId: typeof problemId },
       name: string,
       audiences: ("staff" | "testers" | "spectators" | "contestants" | "everyone")[],
-      from: "now" | "end" = "now",
+      from: "start" | "end" = "start",
     ) =>
       await ctx.db.insert("artefacts", {
         owner,
@@ -192,7 +192,7 @@ describe("attaching a file", () => {
       name: "notes.txt",
       contentType: "text/plain",
       audiences: [],
-      from: "now",
+      from: "start",
     });
 
     const asReader = async () =>
@@ -232,7 +232,7 @@ describe("attaching a file", () => {
         name: "notes.txt",
         contentType: "text/plain",
         audiences: ["contestants"],
-        from: "now",
+        from: "start",
       }),
     ).rejects.toThrow(/staff, testers or everyone/);
   });

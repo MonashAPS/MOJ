@@ -61,7 +61,7 @@ describe("a contest revision", () => {
     // Fields the patch never mentioned are in the snapshot too, which is what
     // makes two revisions comparable.
     expect(snapshot).toHaveProperty("freeze");
-    expect(snapshot).toHaveProperty("scoreboardVisibility");
+    expect(snapshot).toHaveProperty("scoreboard");
     expect(snapshot).not.toHaveProperty("before");
     expect(snapshot).not.toHaveProperty("after");
   });
