@@ -1,15 +1,17 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { contestWarnings, type DescribeSource, describeContest } from "@moj/core";
+import { blockingWarnings, contestWarnings, type DescribeSource, describeContest } from "@moj/core";
 import { Button, cn, Field, FieldGroup, Input, RadioGroup } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
+import { ContestFreezeFields, SCOREBOARD_OPTIONS } from "@/app/admin/contests/[key]/ContestScoringFields";
 import { ContestSummary } from "@/app/admin/contests/[key]/ContestSummary";
 import { AdminCheckField, AdminFormError, AdminSection, AdminShell, DateTimeField } from "@/components/admin";
 import { useHumanDuration } from "@/components/contests/pieces";
+import { chosenValue } from "@/lib/choices";
 import { formatDateTime } from "@/lib/format";
 
 /**
@@ -42,6 +44,10 @@ interface Draft {
   formatName: string;
   isVisible: boolean;
   isRated: boolean;
+  /** Minutes before the end, or "" for no freeze. */
+  freezeMinutes: string;
+  blind: boolean;
+  scoreboardVisibility: (typeof SCOREBOARD_OPTIONS)[number]["value"];
   publishProblemsAtEnd: boolean;
   useClarifications: boolean;
 }
@@ -56,6 +62,9 @@ function emptyDraft(now: number): Draft {
     formatName: "default",
     isVisible: false,
     isRated: false,
+    freezeMinutes: "",
+    blind: false,
+    scoreboardVisibility: "V",
     publishProblemsAtEnd: false,
     useClarifications: true,
   };
@@ -72,6 +81,8 @@ function keyFromName(name: string): string {
 export function NewContestWizard() {
   const t = useTranslations("admin.contests.new");
   const setup = useTranslations("admin.contests.setup");
+  const general = useTranslations("admin.contests.general");
+  const warn = useTranslations("admin.contests.warnings");
   const formatBlurb = useTranslations("admin.contests.formats");
   const actions = useTranslations("common.actions");
   const router = useRouter();
@@ -97,6 +108,10 @@ export function NewContestWizard() {
 
   const rating = draft.isRated ? { everyone: false, excludeProfileIds: [] } : undefined;
 
+  const freeze = draft.freezeMinutes.trim()
+    ? { minutes: Number(draft.freezeMinutes), blind: draft.blind }
+    : undefined;
+
   const describeSource: DescribeSource = {
     startTime: draft.startTime ?? Date.now(),
     endTime: draft.endTime ?? Date.now() + HOUR,
@@ -104,9 +119,12 @@ export function NewContestWizard() {
     entry: { kind: "open" },
     labels: { kind: "letters" },
     rating,
+    freeze,
     isVisible: draft.isVisible,
     publishProblemsAtEnd: draft.publishProblemsAtEnd,
   };
+
+  const warnings = contestWarnings(describeSource);
 
   async function submit() {
     setError(null);
@@ -129,6 +147,15 @@ export function NewContestWizard() {
       return;
     }
 
+    // The server refuses these too; saying so here keeps the reason in view.
+    const blocked = blockingWarnings(warnings);
+
+    if (blocked[0]) {
+      setError(warn(blocked[0].key, blocked[0].values));
+
+      return;
+    }
+
     setBusy(true);
 
     try {
@@ -141,6 +168,8 @@ export function NewContestWizard() {
         formatName: draft.formatName,
         isVisible: draft.isVisible,
         rating,
+        freeze,
+        scoreboardVisibility: draft.scoreboardVisibility,
         publishProblemsAtEnd: draft.publishProblemsAtEnd,
         useClarifications: draft.useClarifications,
       });
@@ -317,6 +346,25 @@ export function NewContestWizard() {
                 checked={draft.publishProblemsAtEnd}
                 onCheckedChange={(checked) => change({ publishProblemsAtEnd: checked })}
               />
+              <ContestFreezeFields
+                values={draft}
+                scoreboardOptions={SCOREBOARD_OPTIONS.map((option) => ({
+                  value: option.value,
+                  label: general(option.labelKey),
+                }))}
+                onChange={({ scoreboardVisibility, ...patch }) =>
+                  change({
+                    ...patch,
+                    ...(scoreboardVisibility !== undefined && {
+                      scoreboardVisibility: chosenValue(
+                        SCOREBOARD_OPTIONS,
+                        scoreboardVisibility,
+                        draft.scoreboardVisibility,
+                      ),
+                    }),
+                  })
+                }
+              />
               <RadioGroup
                 variant="card"
                 name="rating-mode"
@@ -361,7 +409,7 @@ export function NewContestWizard() {
 
         <ContestSummary
           lines={describeContest(describeSource, { moment: formatDateTime, duration: humanDuration })}
-          warnings={contestWarnings(describeSource)}
+          warnings={warnings}
           dirty={false}
         />
       </div>

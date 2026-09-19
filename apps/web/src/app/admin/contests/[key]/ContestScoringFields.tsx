@@ -15,6 +15,14 @@ import type { ContestGeneralFields } from "./generalFields";
  */
 
 /** The scoreboard choice arrives as the select's string; the tab narrows it. */
+/** Who sees the scoreboard, in the order the editor offers them. */
+export const SCOREBOARD_OPTIONS = [
+  { value: "V", labelKey: "scoreboardEveryone" },
+  { value: "C", labelKey: "scoreboardUntilEnd" },
+  { value: "P", labelKey: "scoreboardParticipants" },
+  { value: "H", labelKey: "scoreboardNobody" },
+] as const;
+
 export type FreezeValues = Pick<ContestGeneralFields, "freezeMinutes" | "blind"> & {
   scoreboardVisibility: string;
 };

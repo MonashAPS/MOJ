@@ -444,13 +444,13 @@
       "step": {
         "what": "What is it",
         "when": "When",
-        "who": "Who for"
+        "who": "Who and scoring"
       },
       "stepWhatTitle": "What is it?",
       "stepWhatHint": "An id for the URL, a name people read, and how it is scored.",
       "stepWhenTitle": "When does it run?",
       "stepWhenHint": "And whose clock it runs on.",
-      "stepWhoTitle": "Who is it for?",
+      "stepWhoTitle": "Who is it for, and how is it scored?",
       "stepWhoHint": "You can restrict entry and add problems once it exists.",
       "back": "Back",
       "continue": "Continue",
