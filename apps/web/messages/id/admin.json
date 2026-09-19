@@ -811,6 +811,14 @@
       "rateEveryoneWithExclusions": "Memberi peringkat kepada semua, dikurangi {count, plural, other {# pengecualian}}.",
       "customLabelsShort": "{labels, plural, other {# label}} untuk {problems} soal; sisanya kembali memakai huruf.",
       "pretestsWithoutPretestedProblems": "Hanya prauji aktif, tetapi tidak ada soal di kontes ini yang ditandai sebagai prauji, jadi tidak berpengaruh."
+    },
+    "formats": {
+      "default": "Skor terbaik per soal; seri diputuskan oleh waktu pengumpulan bernilai terakhir.",
+      "icpc": "Jumlah soal terpecahkan, lalu waktu ditambah penalti untuk setiap percobaan salah sebelum berhasil.",
+      "ioi16": "Skor terbaik per subtugas dari semua pengumpulan, dijumlahkan per soal.",
+      "ioi": "Skor terbaik per soal, diwaktu dari pengumpulan pertama yang mencapainya.",
+      "atcoder": "Skor terbaik per soal; waktunya adalah keberhasilan terakhir ditambah penalti untuk setiap percobaan salah sebelumnya.",
+      "ecoo": "Hanya pengumpulan terakhir tiap soal yang dihitung, dengan bonus untuk berhasil di percobaan pertama dan untuk sisa waktu."
     }
   },
   "submissions": {

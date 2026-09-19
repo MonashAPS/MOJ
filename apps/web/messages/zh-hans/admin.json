@@ -811,6 +811,14 @@
       "rateEveryoneWithExclusions": "为所有人计分，排除 {count, plural, other {# 项}}。",
       "customLabelsShort": "{problems} 道题只有 {labels, plural, other {# 个标签}}；其余回退为字母。",
       "pretestsWithoutPretestedProblems": "已开启仅预测试，但本场比赛没有任何题目标记为预测试，因此不起作用。"
+    },
+    "formats": {
+      "default": "每题取最高分；并列时按最后一次得分提交的时间排序。",
+      "icpc": "按解出的题数计分，其次是用时，每次错误尝试加罚时。",
+      "ioi16": "每个子任务取所有提交中的最高分，按题累加。",
+      "ioi": "每题取最高分，用时按首次达到该分数的提交计算。",
+      "atcoder": "每题取最高分；用时为最后一次解出的时间加上此前每次错误尝试的罚时。",
+      "ecoo": "每题只计最后一次提交，首次即解出和剩余时间均有加分。"
     }
   },
   "submissions": {

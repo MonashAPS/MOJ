@@ -75,6 +75,7 @@ export function ContestGeneralTab({
 
   const t = useTranslations("admin.contests.general");
   const setup = useTranslations("admin.contests.setup");
+  const formatBlurb = useTranslations("admin.contests.formats");
   const scoring = useTranslations("contests.scoring");
   const warn = useTranslations("admin.contests.warnings");
   const humanDuration = useHumanDuration();
@@ -409,7 +410,11 @@ export function ContestGeneralTab({
 
         {on("scoring") ? (
           <AdminSection title={t("sectionFormat")}>
-            <Field label={t("format")} htmlFor={ids.format}>
+            <Field
+              label={t("format")}
+              htmlFor={ids.format}
+              hint={formatBlurb.has(draft.formatName) ? formatBlurb(draft.formatName) : undefined}
+            >
               <Select
                 id={ids.format}
                 value={draft.formatName}

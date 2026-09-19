@@ -811,6 +811,14 @@
       "rateEveryoneWithExclusions": "Se clasifica a todos, menos {count, plural, one {# exclusión} other {# exclusiones}}.",
       "customLabelsShort": "{labels, plural, one {# etiqueta} other {# etiquetas}} para {problems} problemas; el resto vuelve a las letras.",
       "pretestsWithoutPretestedProblems": "Solo pruebas previas está activo, pero ningún problema de este concurso está marcado como de prueba previa, así que no hace nada."
+    },
+    "formats": {
+      "default": "Mejor puntuación por problema; los empates se rompen por la hora del último envío puntuado.",
+      "icpc": "Cuentan los problemas resueltos, luego el tiempo más una penalización por cada intento fallido previo.",
+      "ioi16": "Mejor puntuación por subtarea entre todos los envíos, sumada por problema.",
+      "ioi": "Mejor puntuación por problema, con el tiempo del primer envío que la alcanzó.",
+      "atcoder": "Mejor puntuación por problema; el tiempo es el último acierto más una penalización por cada fallo previo.",
+      "ecoo": "Solo cuenta el último envío de cada problema, con bonificaciones por resolver al primer intento y por tiempo restante."
     }
   },
   "submissions": {

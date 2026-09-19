@@ -811,6 +811,14 @@
       "rateEveryoneWithExclusions": "Rating everyone, minus {count, plural, one {# exclusion} other {# exclusions}}.",
       "customLabelsShort": "{labels, plural, one {# label} other {# labels}} for {problems} problems; the rest fall back to letters.",
       "pretestsWithoutPretestedProblems": "Pretests-only is on, but no problem in this contest is marked as pretested, so it does nothing."
+    },
+    "formats": {
+      "default": "Best score per problem; ties break on the time of the last scoring submission.",
+      "icpc": "Solved problems count, then time plus a penalty for every wrong try before a solve.",
+      "ioi16": "Best score per subtask across all submissions, added up per problem.",
+      "ioi": "Best score per problem, timed from the first submission that reached it.",
+      "atcoder": "Best score per problem; time is the latest solve plus a penalty for every wrong try before it.",
+      "ecoo": "Only the last submission on each problem counts, with bonuses for a first-try solve and for time left."
     }
   },
   "submissions": {
