@@ -22,6 +22,7 @@ import {
   UserPicker,
   useResolvedRefs,
 } from "@/components/admin";
+import { useHumanDuration } from "@/components/contests/pieces";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import { chosenValue } from "@/lib/choices";
 import { formatDateTime } from "@/lib/format";
@@ -64,6 +65,7 @@ export function ContestGeneralTab({
   const t = useTranslations("admin.contests.general");
   const scoring = useTranslations("contests.scoring");
   const warn = useTranslations("admin.contests.warnings");
+  const humanDuration = useHumanDuration();
   const update = useMutation(api.admin.contests.update);
   const formats = useQuery(api.contests.formats.list, {});
 
@@ -352,7 +354,8 @@ export function ContestGeneralTab({
 
   const summaryLines = describeContest(describeSource, {
     moment: formatDateTime,
-    duration: (millis) => t("minutes", { count: Math.round(millis / 60_000) }),
+    // The contest pages already say how long something is, in words, per locale.
+    duration: humanDuration,
   });
 
   const warnings = contestWarnings(describeSource);
