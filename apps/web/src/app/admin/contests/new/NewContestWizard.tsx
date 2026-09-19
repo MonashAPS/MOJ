@@ -54,7 +54,7 @@ interface Draft {
   freezeMinutes: string;
   blind: boolean;
   scoreboard: AudiencePolicy;
-  publishProblemsAtEnd: boolean;
+  publishProblemsAt: "start" | "end" | null;
   useClarifications: boolean;
 }
 
@@ -71,7 +71,7 @@ function emptyDraft(now: number): Draft {
     freezeMinutes: "",
     blind: false,
     scoreboard: { audiences: ["everyone"], from: "start" },
-    publishProblemsAtEnd: false,
+    publishProblemsAt: null,
     useClarifications: true,
   };
 }
@@ -88,6 +88,7 @@ export function NewContestWizard() {
   const t = useTranslations("admin.contests.new");
   const setup = useTranslations("admin.contests.setup");
   const general = useTranslations("admin.contests.general");
+  const problems = useTranslations("admin.contests.problems");
   const warn = useTranslations("admin.contests.warnings");
   const formatBlurb = useTranslations("admin.contests.formats");
   const actions = useTranslations("common.actions");
@@ -129,7 +130,7 @@ export function NewContestWizard() {
     rating,
     freeze,
     isVisible: draft.isVisible,
-    publishProblemsAtEnd: draft.publishProblemsAtEnd,
+    publishProblemsAt: draft.publishProblemsAt ?? undefined,
   };
 
   const warnings = contestWarnings(describeSource);
@@ -178,7 +179,7 @@ export function NewContestWizard() {
         rating,
         freeze,
         scoreboard: { audiences: [...draft.scoreboard.audiences], from: draft.scoreboard.from },
-        publishProblemsAtEnd: draft.publishProblemsAtEnd,
+        publishProblemsAt: draft.publishProblemsAt,
         useClarifications: draft.useClarifications,
       });
 
@@ -349,12 +350,6 @@ export function NewContestWizard() {
                   checked={draft.useClarifications}
                   onCheckedChange={(checked) => change({ useClarifications: checked })}
                 />
-                <AdminCheckField
-                  label={setup("afterEndPublish")}
-                  hint={setup("afterEndPublishHint")}
-                  checked={draft.publishProblemsAtEnd}
-                  onCheckedChange={(checked) => change({ publishProblemsAtEnd: checked })}
-                />
               </AdminSection>
 
               <AdminSection title={t("sectionScoreboard")} columns={1}>
@@ -371,6 +366,31 @@ export function NewContestWizard() {
                   options={[
                     { value: "unrated", label: setup("unrated"), description: setup("unratedHint") },
                     { value: "rated", label: setup("rated"), description: setup("ratedHint") },
+                  ]}
+                />
+              </AdminSection>
+
+              <AdminSection title={problems("publishTitle")} columns={1}>
+                <RadioGroup
+                  variant="card"
+                  name="publish-problems"
+                  ariaLabel={problems("publishTitle")}
+                  value={draft.publishProblemsAt ?? "never"}
+                  onValueChange={(next) =>
+                    change({ publishProblemsAt: next === "start" || next === "end" ? next : null })
+                  }
+                  options={[
+                    {
+                      value: "never",
+                      label: problems("publishNever"),
+                      description: problems("publishNeverHint"),
+                    },
+                    {
+                      value: "start",
+                      label: problems("publishStart"),
+                      description: problems("publishStartHint"),
+                    },
+                    { value: "end", label: problems("publishEnd"), description: problems("publishEndHint") },
                   ]}
                 />
               </AdminSection>

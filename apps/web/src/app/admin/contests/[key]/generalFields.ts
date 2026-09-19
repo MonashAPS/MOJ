@@ -71,7 +71,6 @@ export interface ContestGeneralFields {
   hideProblemAuthors: boolean;
   runPretestsOnly: boolean;
   proctorRequired: boolean;
-  publishProblemsAtEnd: boolean;
   useClarifications: boolean;
   bannedUsers: string[];
 }
@@ -107,7 +106,7 @@ export type ContestFieldSource = Pick<
   | "hideProblemAuthors"
   | "runPretestsOnly"
   | "proctorRequired"
-  | "publishProblemsAtEnd"
+  | "publishProblemsAt"
   | "problemsPublishedAt"
   | "useClarifications"
   | "bannedUsers"
@@ -157,7 +156,6 @@ export function fieldsFromContest(contest: ContestFieldSource): ContestGeneralFi
     hideProblemAuthors: contest.hideProblemAuthors,
     runPretestsOnly: contest.runPretestsOnly,
     proctorRequired: contest.proctorRequired,
-    publishProblemsAtEnd: contest.publishProblemsAtEnd,
     useClarifications: contest.useClarifications,
     bannedUsers: contest.bannedUsers,
   };
@@ -236,12 +234,18 @@ function settingsOf<P extends string, O extends string, C extends string>(
 }
 
 /**
- * The draft as the summary reads it: names stand in for ids, and a date the
- * picker has momentarily emptied reads as the stored one.
+ * The draft as the summary reads it: names stand in for ids, a date the picker
+ * has momentarily emptied reads as the stored one, and publishing is the
+ * Problems tab's, read as saved.
  */
 export function describeSourceOf(
   fields: ContestGeneralFields,
-  saved: { startTime: number; endTime: number; problemsPublishedAt: number | null },
+  saved: {
+    startTime: number;
+    endTime: number;
+    publishProblemsAt: "start" | "end" | null;
+    problemsPublishedAt: number | null;
+  },
 ): DescribeSource {
   const settings = settingsOf(fields, {
     profileIdsFor: (usernames) => [...usernames],
@@ -264,7 +268,7 @@ export function describeSourceOf(
     accessCode: fields.accessCode.trim() || null,
     lockedAfter: fields.lockedAfter,
     runPretestsOnly: fields.runPretestsOnly,
-    publishProblemsAtEnd: fields.publishProblemsAtEnd,
+    publishProblemsAt: saved.publishProblemsAt ?? undefined,
     problemsPublishedAt: saved.problemsPublishedAt ?? undefined,
   };
 }
@@ -298,7 +302,6 @@ export function argsFromFields<P extends string, O extends string, C extends str
     hideProblemAuthors: fields.hideProblemAuthors,
     runPretestsOnly: fields.runPretestsOnly,
     proctorRequired: fields.proctorRequired,
-    publishProblemsAtEnd: fields.publishProblemsAtEnd,
     useClarifications: fields.useClarifications,
     bannedProfileIds: refs.profileIdsFor(fields.bannedUsers),
   };

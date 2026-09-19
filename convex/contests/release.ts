@@ -1,10 +1,10 @@
 /**
- * Publishing a contest's problems once it ends.
+ * Publishing a contest's problems at its start or its end.
  *
  * A contest that asks for it makes every problem it holds public the moment
- * it is over, so the problems go straight into the practice set without
- * somebody remembering to flip each one. A problem still in use by a contest
- * that has not ended stays private, and the revision says so.
+ * it starts, or the moment it is over, so the problems go straight to
+ * everyone without somebody remembering to flip each one. A problem still in
+ * use by a contest that has not ended stays private, and the revision says so.
  */
 
 import type { Doc, Id } from "../_generated/dataModel";
@@ -48,6 +48,7 @@ export async function publishContestProblems(
 ): Promise<{ published: string[]; held: string[] }> {
   const published: string[] = [];
   const held: string[] = [];
+  const moment = contest.publishProblemsAt === "start" ? "started" : "ended";
 
   for (const link of await loadContestProblems(ctx, contest._id)) {
     const problem = await ctx.db.get(link.problemId);
@@ -60,7 +61,12 @@ export async function publishContestProblems(
     }
 
     await ctx.db.patch(problem._id, { isPublic: true });
-    await writeProblemRevision(ctx, problem._id, byProfileId, `Published when contest ${contest.key} ended`);
+    await writeProblemRevision(
+      ctx,
+      problem._id,
+      byProfileId,
+      `Published when contest ${contest.key} ${moment}`,
+    );
     // Points only count for public problems, as when staff flip one by hand.
     await scheduleJob(ctx, "rescore", { problemCode: problem.code }, byProfileId);
     published.push(problem.code);
@@ -70,8 +76,8 @@ export async function publishContestProblems(
 
   const reason =
     held.length === 0
-      ? `Published ${published.length} problems at the end of the contest`
-      : `Published ${published.length} problems at the end of the contest; ${held.join(", ")} still in use by a contest that has not ended`;
+      ? `Published ${published.length} problems when the contest ${moment}`
+      : `Published ${published.length} problems when the contest ${moment}; ${held.join(", ")} still in use by a contest that has not ended`;
 
   await writeRevision(
     ctx,

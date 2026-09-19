@@ -201,24 +201,28 @@ export const sweepContestMode = internalMutation({
 });
 
 /**
- * Publish the problems of every contest that asked for it and has ended since
- * the last sweep. Editing such a contest after it has ended publishes at once;
- * this catches the ones that end on their own.
+ * Publish the problems of every contest whose moment has come since the last
+ * sweep. Editing such a contest past its moment publishes at once; this
+ * catches the ones that reach it on their own.
  */
 export const publishEndedContestProblems = internalMutation({
   args: {},
   handler: async (ctx): Promise<{ contests: number; problems: number }> => {
     const now = Date.now();
 
-    const due = (
-      await ctx.db
-        .query("contests")
-        .withIndex("by_publishProblemsAtEnd_end", (q) =>
-          q.eq("publishProblemsAtEnd", true).lte("endTime", now),
-        )
-        .collect()
-    ).filter((contest) => contest.problemsPublishedAt === undefined);
+    const atStart = await ctx.db
+      .query("contests")
+      .withIndex("by_publishProblemsAt_start", (q) =>
+        q.eq("publishProblemsAt", "start").lte("startTime", now),
+      )
+      .collect();
 
+    const atEnd = await ctx.db
+      .query("contests")
+      .withIndex("by_publishProblemsAt_end", (q) => q.eq("publishProblemsAt", "end").lte("endTime", now))
+      .collect();
+
+    const due = [...atStart, ...atEnd].filter((contest) => contest.problemsPublishedAt === undefined);
     let problems = 0;
 
     for (const contest of due) {

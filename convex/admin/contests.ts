@@ -77,7 +77,7 @@ const plainWritable = {
   lockedAfter: v.optional(v.union(v.number(), v.null())),
   pointsPrecision: v.optional(v.number()),
   proctorRequired: v.optional(v.boolean()),
-  publishProblemsAtEnd: v.optional(v.boolean()),
+  publishProblemsAt: v.optional(v.union(v.literal("start"), v.literal("end"), v.null())),
 };
 
 /** `entry` is apart because writing it also writes the index projection `isOpenEntry`. */
@@ -495,7 +495,7 @@ export const create = mutation({
       lockedAfter: patch.lockedAfter,
       pointsPrecision: patch.pointsPrecision ?? 3,
       proctorRequired: patch.proctorRequired ?? false,
-      publishProblemsAtEnd: patch.publishProblemsAtEnd ?? false,
+      publishProblemsAt: patch.publishProblemsAt,
     });
 
     await writeRevision(
@@ -543,8 +543,8 @@ export const update = mutation({
 });
 
 /**
- * A contest that has already ended when it is told to publish its problems
- * does so now rather than at the next sweep, in the same transaction.
+ * A contest already past the moment it is told to publish its problems at does
+ * so now rather than at the next sweep, in the same transaction.
  */
 async function publishIfDue(
   ctx: MutationCtx,
@@ -553,11 +553,12 @@ async function publishIfDue(
 ): Promise<void> {
   const contest = await ctx.db.get(contestId);
 
-  if (!contest?.publishProblemsAtEnd || contest.problemsPublishedAt !== undefined) return;
+  if (!contest?.publishProblemsAt || contest.problemsPublishedAt !== undefined) return;
 
   const now = Date.now();
+  const due = contest.publishProblemsAt === "start" ? contest.startTime <= now : contest.endTime <= now;
 
-  if (contest.endTime <= now) await publishContestProblems(ctx, contest, now, byProfileId);
+  if (due) await publishContestProblems(ctx, contest, now, byProfileId);
 }
 
 export const setVisibility = mutation({

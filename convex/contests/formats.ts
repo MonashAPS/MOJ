@@ -66,7 +66,7 @@ export function toContestRow(contest: Doc<"contests">): ContestRow {
     pointsPrecision: contest.pointsPrecision,
     runPretestsOnly: contest.runPretestsOnly,
     lockedAfter: contest.lockedAfter ?? null,
-    publishProblemsAtEnd: contest.publishProblemsAtEnd,
+    publishProblemsAt: contest.publishProblemsAt,
     problemsPublishedAt: contest.problemsPublishedAt,
   };
 }

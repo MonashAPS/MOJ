@@ -39,7 +39,7 @@ export type DescribeSource = Pick<
       | "lockedAfter"
       | "runPretestsOnly"
       | "alwaysAdmitProfileIds"
-      | "publishProblemsAtEnd"
+      | "publishProblemsAt"
       | "problemsPublishedAt"
     >
   >;
@@ -105,7 +105,9 @@ export function describeContest(contest: DescribeSource, options: DescribeOption
       key: "problemsPublished",
       values: { at: moment(contest.problemsPublishedAt) },
     });
-  } else if (contest.publishProblemsAtEnd) {
+  } else if (contest.publishProblemsAt === "start") {
+    lines.push({ group: "when", key: "publishAtStart", values: { at: moment(contest.startTime) } });
+  } else if (contest.publishProblemsAt === "end") {
     lines.push({ group: "when", key: "publishAtEnd", values: { at: moment(contest.endTime) } });
   }
 

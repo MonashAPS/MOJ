@@ -666,8 +666,8 @@ export default defineSchema({
     pointsPrecision: v.number(),
     /** Opens its problems only while the viewer is sharing their whole screen. */
     proctorRequired: v.optional(v.boolean()),
-    /** Every problem in the contest is made public the moment it ends. */
-    publishProblemsAtEnd: v.optional(v.boolean()),
+    /** Every problem in the contest is made public the moment it starts, or the moment it ends. */
+    publishProblemsAt: v.optional(v.union(v.literal("start"), v.literal("end"))),
     /** When that happened, once it has. */
     problemsPublishedAt: v.optional(v.number()),
     legacyId: v.optional(v.number()),
@@ -675,7 +675,8 @@ export default defineSchema({
     .index("by_key", ["key"])
     .index("by_visible_start", ["isVisible", "startTime"])
     .index("by_end", ["endTime"])
-    .index("by_publishProblemsAtEnd_end", ["publishProblemsAtEnd", "endTime"])
+    .index("by_publishProblemsAt_start", ["publishProblemsAt", "startTime"])
+    .index("by_publishProblemsAt_end", ["publishProblemsAt", "endTime"])
     .index("by_legacyId", ["legacyId"])
     .searchIndex("search_name", {
       searchField: "name",
