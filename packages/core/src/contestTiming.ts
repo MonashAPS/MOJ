@@ -78,7 +78,12 @@ export function participationEndTime(participation: ContestParticipationRow, con
     return participation.realStart + (contest.endTime - contest.startTime);
   }
 
-  if (contest.timeLimit == null) return contest.endTime;
+  // `hasTimeLimit`, not `!= null`: DMOJ tests the duration for truth and a zero
+  // timedelta is falsy, so zero means the whole window there. Reading it as a
+  // limit here made the live branch `min(realStart + 0, endTime)`, which is
+  // `realStart` — the participation ended the instant anyone joined. The virtual
+  // branch above was always right, which is why only it had a test.
+  if (!hasTimeLimit(contest)) return contest.endTime;
 
   return Math.min(participation.realStart + contest.timeLimit * 1000, contest.endTime);
 }

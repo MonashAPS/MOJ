@@ -78,6 +78,16 @@ describe("participation windows", () => {
     expect(participationEndTime(virtual, zero)).toBe(virtual.realStart + 2 * HOUR);
   });
 
+  it("a zero time limit is no limit for a live participation too", () => {
+    // Reading zero as a limit made this `min(realStart + 0, endTime)`, so the
+    // window closed the moment the competitor joined.
+    const zero = { ...contest, timeLimit: 0 };
+    const live = createParticipation("c", "u", { realStart: NOW, virtual: 0 });
+
+    expect(participationEndTime(live, zero)).toBe(contest.endTime);
+    expect(participationHasEnded(live, zero, NOW)).toBe(false);
+  });
+
   it("reports no remaining time once the window closes", () => {
     const done = createParticipation("c", "u", { realStart: NOW - 45 * MINUTE });
     expect(participationTimeRemaining(done, timed, NOW)).toBeNull();
