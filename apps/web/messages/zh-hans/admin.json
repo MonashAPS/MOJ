@@ -742,7 +742,11 @@
         "ratedEveryone": "计评分，包括没有任何提交的选手。",
         "ratedBand": "只有此前评分在 {floor} 到 {ceiling} 之间的选手会被计入；从未评过分的人按 {newcomer} 计算。",
         "performanceCeiling": "表现分上限为 {at}。"
-      }
+      },
+      "confirmTitle": "仍要保存吗？",
+      "confirmBody": "这些设置可以运行，但它们的实际效果与看起来的不同。",
+      "confirmCancel": "返回",
+      "confirmSave": "仍然保存"
     },
     "warnings": {
       "windowIsWholeContest": "时段等于整场比赛，因此不会给任何人额外时间，却仍会把每位选手的罚时起点移到他们加入的那一刻。除非这正是你想要的，否则请选择「所有人同时进行」。",

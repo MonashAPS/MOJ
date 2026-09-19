@@ -742,7 +742,11 @@
         "ratedEveryone": "Con clasificación, incluidos quienes no hayan enviado nada.",
         "ratedBand": "Solo se clasifica a quienes tengan una puntuación previa entre {floor} y {ceiling}; quien nunca haya sido clasificado cuenta como {newcomer}.",
         "performanceCeiling": "El rendimiento se limita a {at}."
-      }
+      },
+      "confirmTitle": "¿Guardar de todos modos?",
+      "confirmBody": "Estos ajustes funcionan, y hacen algo distinto de lo que parece.",
+      "confirmCancel": "Volver",
+      "confirmSave": "Guardar de todos modos"
     },
     "warnings": {
       "windowIsWholeContest": "La ventana es todo el concurso, así que no da tiempo extra a nadie, pero mueve el reloj de penalización de cada participante al momento en que se unió. Elige «Todos a la vez» salvo que sea lo que quieres.",

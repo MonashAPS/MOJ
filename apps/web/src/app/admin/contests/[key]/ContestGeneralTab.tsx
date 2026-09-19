@@ -1,7 +1,13 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { contestWarnings, describeContest } from "@moj/core";
+import {
+  blockingWarnings,
+  type ContestWarning,
+  contestWarnings,
+  dangerWarnings,
+  describeContest,
+} from "@moj/core";
 import { Field, Input, MultiSelect, Panel, Select, Textarea, toast } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { useTranslations } from "next-intl";
@@ -19,6 +25,7 @@ import {
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import { chosenValue } from "@/lib/choices";
 import { formatDateTime } from "@/lib/format";
+import { acknowledgedReason, ContestDangerDialog } from "./ContestDangerDialog";
 import { ContestScheduleFields } from "./ContestScheduleFields";
 import { ContestSummary } from "./ContestSummary";
 import {
@@ -55,6 +62,7 @@ export function ContestGeneralTab({
 }) {
   const t = useTranslations("admin.contests.general");
   const scoring = useTranslations("contests.scoring");
+  const warn = useTranslations("admin.contests.warnings");
   const update = useMutation(api.admin.contests.update);
   const formats = useQuery(api.contests.formats.list, {});
 
@@ -135,6 +143,7 @@ export function ContestGeneralTab({
 
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const initialConfig = useMemo(() => {
@@ -232,6 +241,11 @@ export function ContestGeneralTab({
 
   const dirty = JSON.stringify(current) !== JSON.stringify(initial);
 
+  /**
+   * Validate, then either save or ask. A blocked warning is refused outright
+   * because the server refuses it too; a danger is asked about once, because it
+   * is legal and sometimes exactly what was wanted.
+   */
   async function save() {
     setError(null);
 
@@ -248,6 +262,28 @@ export function ContestGeneralTab({
 
       return;
     }
+
+    const blocked = blockingWarnings(warnings);
+
+    if (blocked[0]) {
+      setError(warn(blocked[0].key, blocked[0].values));
+
+      return;
+    }
+
+    const dangers = dangerWarnings(warnings);
+
+    if (dangers.length > 0) {
+      setConfirming(true);
+
+      return;
+    }
+
+    await commit([]);
+  }
+
+  async function commit(acknowledged: readonly ContestWarning[]) {
+    setConfirming(false);
 
     // The same refs on both sides, so a list that only changed because the
     // resolver answered does not read as an edit.
@@ -268,7 +304,7 @@ export function ContestGeneralTab({
       await update({
         key: contest.key,
         ...changed,
-        reason: reason.trim(),
+        reason: acknowledgedReason(reason, acknowledged),
       });
       setReason("");
       toast.success(t("saved"));
@@ -721,6 +757,13 @@ export function ContestGeneralTab({
       </AdminForm>
 
       <ContestSummary lines={summaryLines} warnings={warnings} dirty={dirty} />
+
+      <ContestDangerDialog
+        warnings={dangerWarnings(warnings)}
+        open={confirming}
+        onOpenChange={setConfirming}
+        onConfirm={() => void commit(dangerWarnings(warnings))}
+      />
     </div>
   );
 }

@@ -742,7 +742,11 @@
         "ratedEveryone": "Berperingkat, termasuk peserta yang tidak mengirim apa pun.",
         "ratedBand": "Hanya peserta dengan peringkat sebelumnya antara {floor} dan {ceiling} yang diberi peringkat; yang belum pernah dinilai dihitung sebagai {newcomer}.",
         "performanceCeiling": "Performa dibatasi pada {at}."
-      }
+      },
+      "confirmTitle": "Tetap simpan?",
+      "confirmBody": "Pengaturan ini berfungsi, dan melakukan sesuatu yang berbeda dari yang terlihat.",
+      "confirmCancel": "Kembali",
+      "confirmSave": "Tetap simpan"
     },
     "warnings": {
       "windowIsWholeContest": "Jendelanya sepanjang seluruh kontes, jadi tidak memberi waktu tambahan kepada siapa pun — tetapi tetap memindahkan jam penalti setiap peserta ke saat ia bergabung. Pilih \"Semua sekaligus\" kecuali memang itu yang Anda mau.",
