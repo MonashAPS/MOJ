@@ -39,4 +39,4 @@ export { ADMIN_SECTIONS } from "./sections";
 
 export { UserPicker } from "./UserPicker";
 
-export { type ResolvedRefs, useResolvedRefs } from "./useResolvedRefs";
+export { useResolvedRefs } from "./useResolvedRefs";
