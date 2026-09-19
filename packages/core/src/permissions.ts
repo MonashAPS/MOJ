@@ -572,10 +572,15 @@ export function contestIsLiveJoinableBy(
 
   const joinLimit = joinLimitOf(contest);
 
-  // Organisations only: a class that satisfies the entry gate does not satisfy
-  // this one, so a class-gated contest with a join limit is unjoinable by
-  // exactly the people it is for.
-  if (joinLimit) return intersects(joinLimit.organizationIds, viewer.organizationIds);
+  // A class satisfies this the way it satisfies the entry gate. DMOJ intersects
+  // the join list against organisations only, which made a class-gated contest
+  // with a join limit unjoinable by exactly the people it was for.
+  if (joinLimit) {
+    return (
+      intersects(joinLimit.organizationIds, viewer.organizationIds) ||
+      intersects(joinLimit.organizationIds, viewer.classIds)
+    );
+  }
 
   return true;
 }
@@ -586,8 +591,13 @@ export function contestIsSpectatableBy(contest: ContestRow, viewer: Viewer): boo
 
   if (contestIsEditor(contest, viewer.id) || has(contest.testerProfileIds, viewer.id)) return true;
 
-  if (contest.limitJoinOrganizations) {
-    return intersects(contest.joinOrganizationIds, viewer.organizationIds);
+  const joinLimit = joinLimitOf(contest);
+
+  if (joinLimit) {
+    return (
+      intersects(joinLimit.organizationIds, viewer.organizationIds) ||
+      intersects(joinLimit.organizationIds, viewer.classIds)
+    );
   }
 
   return true;

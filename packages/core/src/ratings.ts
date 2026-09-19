@@ -327,18 +327,18 @@ export interface RatingOutputRow {
 }
 
 /** `Contest.performance_ceiling` (judge/models/contest.py:299). */
-export function performanceCeiling(
-  contest: Pick<ContestRow, "performanceCeilingOverride" | "ratingCeiling"> | undefined,
+export /**
+ * The cap on a competitor's computed performance, or null for none.
+ *
+ * Only the setting that says so. DMOJ also derives one from `ratingCeiling` at
+ * `+ CONTEST_PERF_CEILING_INCREMENT`, so a ceiling set to exclude strong
+ * competitors from being rated silently capped everyone else's performance too
+ * — one control doing two unrelated jobs, with nothing saying so.
+ */
+function performanceCeiling(
+  contest: Pick<ContestRow, "performanceCeilingOverride"> | undefined,
 ): number | null {
-  if (!contest) return null;
-
-  if (contest.performanceCeilingOverride !== null && contest.performanceCeilingOverride !== undefined) {
-    return contest.performanceCeilingOverride;
-  }
-
-  if (contest.ratingCeiling) return contest.ratingCeiling + CONTEST_PERF_CEILING_INCREMENT;
-
-  return null;
+  return contest?.performanceCeilingOverride ?? null;
 }
 
 /**
