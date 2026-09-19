@@ -43,6 +43,7 @@ import {
   type MutationCtx,
 } from "../_generated/server";
 import { groupIdByName, typeIdsByName, writeProblemRevision } from "../admin/problems";
+import { profileForUserId as profileByUserId } from "../lib/auth";
 import { sha256Hex } from "../lib/hash";
 import type { JsonValue } from "../lib/json";
 import { PROBLEM_CODE_PATTERN, problemByCode, toCoreProblem } from "../problems";
@@ -154,10 +155,7 @@ async function verifyWithBetterAuth(
 export const profileForUserId = internalQuery({
   args: { userId: v.string() },
   handler: async (ctx, { userId }) => {
-    const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .unique();
+    const profile = await profileByUserId(ctx, userId);
 
     return profile ? { profileId: profile._id, username: profile.username } : null;
   },

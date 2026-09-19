@@ -5,7 +5,7 @@ import { v } from "convex/values";
 import type { Doc, TableNames } from "./_generated/dataModel";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { isJsonNumber, isJsonObject, isJsonString, type JsonObject, type JsonValue } from "./lib/json";
-import { deleteProfileAggregates, insertProfileAggregates } from "./rankings";
+import { deleteProfileAggregates, insertProfileAggregates, patchProfile } from "./rankings";
 import schema from "./schema";
 
 const tableNames = new Set(Object.keys(schema.tables));
@@ -28,17 +28,27 @@ const idResult = v.object({
 });
 
 /**
- * The reference tables `seed.ts` also writes, and the field that identifies a
- * row in each. `npm run setup` seeds them and an import fills them from the
- * dump, so inserting blindly left a seeded site with two rows for every key:
- * the judge handshake then failed because a lookup by key was no longer
- * unique. A row whose key is already there is patched instead, and its id is
- * what the legacy id maps to, so every later table resolves to the same row.
+ * The tables a row can already exist in under a name the dump also carries, and
+ * the field that holds that name.
+ *
+ * Most of them are the reference tables `seed.ts` writes: `npm run setup` seeds
+ * them and an import fills them from the dump, so inserting blindly left a
+ * seeded site with two rows for every key and the judge handshake failed
+ * because a lookup by key was no longer unique. A row whose key is already
+ * there is patched instead, and its id is what the legacy id maps to, so every
+ * later table resolves to the same row.
+ *
+ * `profiles` is here for a different reason: an import into a deployment people
+ * are signed in to races `ProfileBootstrap`, which creates a profile for a
+ * signed-in account the moment the table no longer holds one. Importing the
+ * account's own profile on top of that left two rows for one `userId` and every
+ * page that account loaded answered with a server error.
  *
  * Extending this is one line: add the table, the field that names a row and the
  * index that covers it.
  */
 const NATURAL_KEYS = new Map<TableNames, { field: string; index: string }>([
+  ["profiles", { field: "userId", index: "by_userId" }],
   ["languages", { field: "key", index: "by_key" }],
   ["problemTypes", { field: "name", index: "by_name" }],
   ["problemGroups", { field: "name", index: "by_name" }],
@@ -116,7 +126,20 @@ export const insertBatch = internalMutation({
       let id: string;
 
       if (existingId) {
-        await ctx.db.patch(existingId, doc);
+        const profileId = table === "profiles" ? ctx.db.normalizeId("profiles", existingId) : null;
+
+        // A profile is also three leaderboard aggregates, which are keyed by the
+        // fields an import overwrites, so patching the row alone would leave the
+        // leaderboard ranking the account on the points it had before.
+        if (profileId) {
+          // SAFETY: an importable document for `profiles` is a profile's fields,
+          // which is what a patch of one takes; `doc` is untyped only because
+          // this mutation writes any table.
+          await patchProfile(ctx, profileId, doc as Partial<Doc<"profiles">>);
+        } else {
+          await ctx.db.patch(existingId, doc);
+        }
+
         id = existingId;
       } else {
         id = await db.insert(table, doc);
