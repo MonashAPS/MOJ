@@ -444,13 +444,13 @@
       "step": {
         "what": "Apa ini",
         "when": "Kapan",
-        "who": "Untuk siapa"
+        "who": "Peserta dan penilaian"
       },
       "stepWhatTitle": "Apa ini?",
       "stepWhatHint": "Id untuk URL, nama yang dibaca orang, dan cara penilaiannya.",
       "stepWhenTitle": "Kapan berlangsung?",
       "stepWhenHint": "Dan memakai jam siapa.",
-      "stepWhoTitle": "Untuk siapa?",
+      "stepWhoTitle": "Untuk siapa, dan bagaimana penilaiannya?",
       "stepWhoHint": "Anda bisa membatasi akses dan menambahkan soal setelah kontes dibuat.",
       "back": "Kembali",
       "continue": "Lanjut",

@@ -444,13 +444,13 @@
       "step": {
         "what": "Qué es",
         "when": "Cuándo",
-        "who": "Para quién"
+        "who": "Quién y puntuación"
       },
       "stepWhatTitle": "¿Qué es?",
       "stepWhatHint": "Un id para la URL, un nombre que la gente lee y cómo se puntúa.",
       "stepWhenTitle": "¿Cuándo se celebra?",
       "stepWhenHint": "Y con el reloj de quién.",
-      "stepWhoTitle": "¿Para quién es?",
+      "stepWhoTitle": "¿Para quién es y cómo se puntúa?",
       "stepWhoHint": "Puedes restringir la entrada y añadir problemas cuando exista.",
       "back": "Atrás",
       "continue": "Continuar",

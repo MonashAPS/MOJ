@@ -29,7 +29,7 @@ import { formatDateTime } from "@/lib/format";
 import { acknowledgedReason, ContestDangerDialog } from "./ContestDangerDialog";
 import { ContestEntryFields } from "./ContestEntryFields";
 import { ContestScheduleFields } from "./ContestScheduleFields";
-import { ContestFreezeFields, ContestRatingFields } from "./ContestScoringFields";
+import { ContestFreezeFields, ContestRatingFields, SCOREBOARD_OPTIONS } from "./ContestScoringFields";
 import { ContestSummary } from "./ContestSummary";
 import {
   argsFromFields,
@@ -41,13 +41,6 @@ import {
   toJson,
 } from "./generalFields";
 import type { ContestEdit, ContestOptions } from "./types";
-
-const SCOREBOARD_OPTIONS = [
-  { value: "V", labelKey: "scoreboardEveryone" },
-  { value: "C", labelKey: "scoreboardUntilEnd" },
-  { value: "P", labelKey: "scoreboardParticipants" },
-  { value: "H", labelKey: "scoreboardNobody" },
-] as const;
 
 const LABEL_OPTIONS = [
   { value: "letters", labelKey: "labelSchemeLetters" },
