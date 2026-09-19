@@ -13,6 +13,7 @@ import { makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation, type QueryCtx, query } from "../_generated/server";
+import { artefactSnapshot, artefactsOfProblem } from "../artefacts/names";
 import { labelForProblem } from "../contests/formats";
 import type { JobArgs } from "../jobs";
 import { writeRevision } from "../lib/community";
@@ -211,6 +212,7 @@ export async function snapshotProblem(ctx: QueryCtx, problemId: Id<"problems">) 
     editorial: solution
       ? { content: solution.content, isPublic: solution.isPublic, publishOn: solution.publishOn }
       : null,
+    files: artefactSnapshot(await artefactsOfProblem(ctx, problemId)),
   };
 }
 
@@ -854,11 +856,11 @@ export const deleteEditorial = mutation({
  */
 const jobsRun = makeFunctionReference<"mutation">("jobs:run");
 
-async function scheduleJob(
+export async function scheduleJob(
   ctx: MutationCtx,
   type: string,
   args: JobArgs,
-  createdByProfileId: Id<"profiles">,
+  createdByProfileId: Id<"profiles"> | undefined,
 ): Promise<Id<"jobs">> {
   const jobId = await ctx.db.insert("jobs", {
     type,

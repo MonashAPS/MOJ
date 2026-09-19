@@ -88,6 +88,9 @@ export const contestRating = v.object({
   performanceCeiling: v.optional(v.number()),
 });
 
+/** Who may download a file attached to a contest or a problem. */
+export const artefactVisibility = v.union(v.literal("staff"), v.literal("everyone"), v.literal("afterEnd"));
+
 export const contestLabels = v.union(
   v.object({ kind: v.literal("letters") }),
   v.object({ kind: v.literal("custom"), labels: v.array(v.string()) }),
@@ -648,11 +651,16 @@ export default defineSchema({
     pointsPrecision: v.number(),
     /** Opens its problems only while the viewer is sharing their whole screen. */
     proctorRequired: v.optional(v.boolean()),
+    /** Every problem in the contest is made public the moment it ends. */
+    publishProblemsAtEnd: v.optional(v.boolean()),
+    /** When that happened, once it has. */
+    problemsPublishedAt: v.optional(v.number()),
     legacyId: v.optional(v.number()),
   })
     .index("by_key", ["key"])
     .index("by_visible_start", ["isVisible", "startTime"])
     .index("by_end", ["endTime"])
+    .index("by_publishProblemsAtEnd_end", ["publishProblemsAtEnd", "endTime"])
     .index("by_legacyId", ["legacyId"])
     .searchIndex("search_name", {
       searchField: "name",
@@ -924,6 +932,23 @@ export default defineSchema({
   })
     .index("by_key", ["key"])
     .index("by_legacyId", ["legacyId"]),
+
+  /** A file attached to a contest or a problem, for people to download. */
+  artefacts: defineTable({
+    owner: v.union(
+      v.object({ kind: v.literal("contest"), contestId: v.id("contests") }),
+      v.object({ kind: v.literal("problem"), problemId: v.id("problems") }),
+    ),
+    name: v.string(),
+    storageId: v.id("_storage"),
+    size: v.number(),
+    contentType: v.string(),
+    visibility: artefactVisibility,
+    uploadedByProfileId: v.id("profiles"),
+    uploadedAt: v.number(),
+  })
+    .index("by_contest", ["owner.contestId"])
+    .index("by_problem", ["owner.problemId"]),
 
   uploads: defineTable({
     storageId: v.id("_storage"),

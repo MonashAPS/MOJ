@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as admin_artefacts from "../admin/artefacts.js";
 import type * as admin_blog from "../admin/blog.js";
 import type * as admin_contests from "../admin/contests.js";
 import type * as admin_dedupe from "../admin/dedupe.js";
@@ -24,6 +25,8 @@ import type * as admin_taxonomy from "../admin/taxonomy.js";
 import type * as admin_tickets from "../admin/tickets.js";
 import type * as admin_users from "../admin/users.js";
 import type * as apiV2 from "../apiV2.js";
+import type * as artefacts from "../artefacts.js";
+import type * as artefacts_names from "../artefacts/names.js";
 import type * as blog from "../blog.js";
 import type * as classes from "../classes.js";
 import type * as comments from "../comments.js";
@@ -32,6 +35,8 @@ import type * as contests_clarifications from "../contests/clarifications.js";
 import type * as contests_formats from "../contests/formats.js";
 import type * as contests_participation from "../contests/participation.js";
 import type * as contests_rankings from "../contests/rankings.js";
+import type * as contests_release from "../contests/release.js";
+import type * as contests_snapshot from "../contests/snapshot.js";
 import type * as contests_tools from "../contests/tools.js";
 import type * as crons from "../crons.js";
 import type * as feeds from "../feeds.js";
@@ -104,6 +109,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "admin/artefacts": typeof admin_artefacts;
   "admin/blog": typeof admin_blog;
   "admin/contests": typeof admin_contests;
   "admin/dedupe": typeof admin_dedupe;
@@ -120,6 +126,8 @@ declare const fullApi: ApiFromModules<{
   "admin/tickets": typeof admin_tickets;
   "admin/users": typeof admin_users;
   apiV2: typeof apiV2;
+  artefacts: typeof artefacts;
+  "artefacts/names": typeof artefacts_names;
   blog: typeof blog;
   classes: typeof classes;
   comments: typeof comments;
@@ -128,6 +136,8 @@ declare const fullApi: ApiFromModules<{
   "contests/formats": typeof contests_formats;
   "contests/participation": typeof contests_participation;
   "contests/rankings": typeof contests_rankings;
+  "contests/release": typeof contests_release;
+  "contests/snapshot": typeof contests_snapshot;
   "contests/tools": typeof contests_tools;
   crons: typeof crons;
   feeds: typeof feeds;

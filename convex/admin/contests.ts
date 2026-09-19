@@ -20,6 +20,8 @@ import {
   toContestRow,
   toViewerRowInContest,
 } from "../contests/formats";
+import { publishContestProblems } from "../contests/release";
+import { snapshotContest } from "../contests/snapshot";
 import { hasPerm, optionalViewer, requireViewer } from "../lib/auth";
 import { writeRevision } from "../lib/community";
 import { forbidden, invalid, mojError, notFound } from "../lib/errors";
@@ -73,6 +75,7 @@ const plainWritable = {
   lockedAfter: v.optional(v.union(v.number(), v.null())),
   pointsPrecision: v.optional(v.number()),
   proctorRequired: v.optional(v.boolean()),
+  publishProblemsAtEnd: v.optional(v.boolean()),
 };
 
 /** `entry` is apart because writing it also writes the index projection `isOpenEntry`. */
@@ -479,6 +482,7 @@ export const create = mutation({
       lockedAfter: patch.lockedAfter,
       pointsPrecision: patch.pointsPrecision ?? 3,
       proctorRequired: patch.proctorRequired ?? false,
+      publishProblemsAtEnd: patch.publishProblemsAtEnd ?? false,
     });
 
     await writeRevision(
@@ -489,6 +493,8 @@ export const create = mutation({
       profile._id,
       args.reason ?? "Created contest",
     );
+
+    await publishIfDue(ctx, contestId, profile._id);
 
     return { contestId, key };
   },
@@ -517,128 +523,28 @@ export const update = mutation({
       args.reason ?? "Edited contest",
     );
 
+    await publishIfDue(ctx, contest._id, profile._id);
+
     return null;
   },
 });
 
 /**
- * The whole contest, as a revision records it.
- *
- * `RevisionsPanel` compares any two snapshots field by field, which is the model
- * `snapshotProblem` in admin/problems.ts is written for. Contest revisions used
- * to store nine different shapes instead — `update` stored `{ before, after }`,
- * `setVisibility` stored `{ isVisible }`, `addProblem` stored the code it added
- * — so comparing two of them rendered a pair of raw JSON blobs rather than a
- * diff. Every contest mutation stores this now, so any two are comparable.
- *
- * Ids are resolved to the names they are chosen by, for the same reason: a diff
- * of two lists of document ids tells the reader nothing.
+ * A contest that has already ended when it is told to publish its problems
+ * does so now rather than at the next sweep, in the same transaction.
  */
-async function snapshotContest(ctx: MutationCtx, contestId: Id<"contests">) {
+async function publishIfDue(
+  ctx: MutationCtx,
+  contestId: Id<"contests">,
+  byProfileId: Id<"profiles">,
+): Promise<void> {
   const contest = await ctx.db.get(contestId);
 
-  if (!contest) return null;
+  if (!contest?.publishProblemsAtEnd || contest.problemsPublishedAt !== undefined) return;
 
-  const usernames = async (ids: readonly Id<"profiles">[]) => {
-    const out: string[] = [];
+  const now = Date.now();
 
-    for (const id of ids) {
-      const row = await ctx.db.get(id);
-
-      if (row) out.push(row.username);
-    }
-
-    return out.sort();
-  };
-
-  const namesOf = async <T extends "organizations" | "classes" | "contestTags">(
-    ids: readonly Id<T>[],
-    nameOf: (row: Doc<T>) => string,
-  ) => {
-    const out: string[] = [];
-
-    for (const id of ids) {
-      const row = await ctx.db.get(id);
-
-      if (row) out.push(nameOf(row));
-    }
-
-    return out.sort();
-  };
-
-  const contestProblems = await loadContestProblems(ctx, contestId);
-  const problems: { code: string; points: number; partial: boolean; isPretested: boolean }[] = [];
-
-  for (const contestProblem of contestProblems) {
-    const problem = await ctx.db.get(contestProblem.problemId);
-
-    if (problem) {
-      problems.push({
-        code: problem.code,
-        points: contestProblem.points,
-        partial: contestProblem.partial,
-        isPretested: contestProblem.isPretested,
-      });
-    }
-  }
-
-  return {
-    key: contest.key,
-    name: contest.name,
-    description: contest.description,
-    summary: contest.summary ?? null,
-    startTime: contest.startTime,
-    endTime: contest.endTime,
-    schedule: contest.schedule,
-    lockedAfter: contest.lockedAfter ?? null,
-    isVisible: contest.isVisible,
-    entry:
-      contest.entry.kind === "open"
-        ? { kind: "open" }
-        : {
-            kind: "restricted",
-            match: contest.entry.match,
-            organizations: await namesOf(contest.entry.organizationIds, (row) => row.slug),
-            classes: await namesOf(contest.entry.classIds, (row) => row.name),
-            people: await usernames(contest.entry.profileIds),
-          },
-    accessCode: contest.accessCode ?? null,
-    joinLimit: contest.joinLimit
-      ? { organizations: await namesOf(contest.joinLimit.organizationIds, (row) => row.slug) }
-      : null,
-    rating: contest.rating
-      ? {
-          everyone: contest.rating.everyone,
-          excluded: await usernames(contest.rating.excludeProfileIds),
-          floor: contest.rating.floor ?? null,
-          ceiling: contest.rating.ceiling ?? null,
-          performanceCeiling: contest.rating.performanceCeiling ?? null,
-        }
-      : null,
-    scoreboardVisibility: contest.scoreboardVisibility,
-    freeze: contest.freeze ?? null,
-    formatName: contest.formatName,
-    formatConfig: contest.formatConfig ?? null,
-    labels: contest.labels,
-    pointsPrecision: contest.pointsPrecision,
-    runPretestsOnly: contest.runPretestsOnly,
-    useClarifications: contest.useClarifications,
-    hideProblemTags: contest.hideProblemTags,
-    hideProblemAuthors: contest.hideProblemAuthors,
-    disableLockdown: contest.disableLockdown ?? false,
-    proctorRequired: contest.proctorRequired ?? false,
-    testerSeeScoreboard: contest.testerSeeScoreboard,
-    testerSeeSubmissions: contest.testerSeeSubmissions,
-    authors: await usernames(contest.authorProfileIds),
-    curators: await usernames(contest.curatorProfileIds),
-    testers: await usernames(contest.testerProfileIds),
-    spectators: await usernames(contest.spectatorProfileIds),
-    bannedUsers: await usernames(contest.bannedProfileIds),
-    alwaysAdmit: await usernames(contest.alwaysAdmitProfileIds),
-    viewContestSubmissions: await usernames(contest.viewContestSubmissionsProfileIds),
-    tags: await namesOf(contest.tagIds, (row) => row.name),
-    problems,
-  };
+  if (contest.endTime <= now) await publishContestProblems(ctx, contest, now, byProfileId);
 }
 
 export const setVisibility = mutation({

@@ -11,6 +11,7 @@ import { internal } from "../_generated/api";
 import { internalMutation } from "../_generated/server";
 import { toContestRow, toParticipationRow, toViewerRowInContest } from "../contests/formats";
 import { RESCORE_CHUNK, recompute } from "../contests/rankings";
+import { publishContestProblems } from "../contests/release";
 import { advance, failJob, finishJob, startJob } from "../jobs";
 import { queueSubmission } from "../judging";
 
@@ -196,5 +197,35 @@ export const sweepContestMode = internalMutation({
     }
 
     return { cleared };
+  },
+});
+
+/**
+ * Publish the problems of every contest that asked for it and has ended since
+ * the last sweep. Editing such a contest after it has ended publishes at once;
+ * this catches the ones that end on their own.
+ */
+export const publishEndedContestProblems = internalMutation({
+  args: {},
+  handler: async (ctx): Promise<{ contests: number; problems: number }> => {
+    const now = Date.now();
+
+    const due = (
+      await ctx.db
+        .query("contests")
+        .withIndex("by_publishProblemsAtEnd_end", (q) =>
+          q.eq("publishProblemsAtEnd", true).lte("endTime", now),
+        )
+        .collect()
+    ).filter((contest) => contest.problemsPublishedAt === undefined);
+
+    let problems = 0;
+
+    for (const contest of due) {
+      const result = await publishContestProblems(ctx, contest, now);
+      problems += result.published.length;
+    }
+
+    return { contests: due.length, problems };
   },
 });
