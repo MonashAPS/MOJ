@@ -5,11 +5,10 @@
  * `ContestParticipation.start`, `.end_time`, `.ended`, `.time_remaining`) and
  * `ContestJoin.join_contest` in judge/views/contests.py.
  *
- * `timeLimit` is in seconds (DMOJ stores a `DurationField`); `null` or
- * `undefined` means "the whole contest window".
+ * A `window` schedule gives each competitor their own clock from the moment
+ * they join; `together` means the whole contest window.
  */
 
-import { scheduleOf, windowMillis } from "./contest/settings";
 import {
   contestIsAccessibleBy,
   contestIsLiveJoinableBy,
@@ -42,6 +41,11 @@ export function participationIsVirtual(participation: ContestParticipationRow): 
   return participation.virtual > 0;
 }
 
+/** The window in milliseconds, or null when everyone shares the contest's. */
+export function windowMillis(contest: Pick<ContestRow, "schedule">): number | null {
+  return contest.schedule.kind === "window" ? contest.schedule.seconds * 1000 : null;
+}
+
 /**
  * `ContestParticipation.start` (contest.py:561).
  *
@@ -49,7 +53,7 @@ export function participationIsVirtual(participation: ContestParticipationRow): 
  * contest does; everything else starts when the participation was created.
  */
 export function participationStart(participation: ContestParticipationRow, contest: ContestRow): number {
-  const shared = scheduleOf(contest).kind === "together";
+  const shared = contest.schedule.kind === "together";
 
   if (shared && (participationIsLive(participation) || participationIsSpectating(participation))) {
     return contest.startTime;
@@ -76,9 +80,6 @@ export function participationEndTime(participation: ContestParticipationRow, con
     return participation.realStart + (contest.endTime - contest.startTime);
   }
 
-  // One reading for both branches. The live one used to test `timeLimit == null`
-  // instead, so a stored zero made this `min(realStart + 0, endTime)`, which is
-  // `realStart` — the participation ended the instant anyone joined.
   if (window === null) return contest.endTime;
 
   return Math.min(participation.realStart + window, contest.endTime);

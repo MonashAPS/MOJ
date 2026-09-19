@@ -12,18 +12,11 @@
  * because how long "5 hours" is in words is the web app's business.
  */
 
+import { windowMillis } from "../contestTiming";
 import type { ScoringLine } from "../formats/base";
-import type { Timestamp } from "../types";
-import {
-  type ContestSettingsSource,
-  entryOf,
-  freezeAt,
-  freezeOf,
-  joinLimitOf,
-  labelsOf,
-  ratingOf,
-  windowMillis,
-} from "./settings";
+import { freezeTime } from "../scoreboard";
+import type { ContestRow, Timestamp } from "../types";
+import { nameGate, organizationGate } from "./entry";
 
 /** Which part of the summary a line belongs under. */
 export type SummaryGroup = "when" | "who" | "scoring" | "rating";
@@ -32,19 +25,14 @@ export interface SummaryLine extends ScoringLine {
   readonly group: SummaryGroup;
 }
 
-export interface DescribeSource extends ContestSettingsSource {
-  readonly startTime: Timestamp;
-  readonly endTime: Timestamp;
-  readonly isVisible?: boolean;
-  readonly accessCode?: string | null;
-  readonly lockedAfter?: Timestamp | null;
-  readonly runPretestsOnly?: boolean;
-  /**
-   * Named for the scoreboard, but `contestAccessCheck` returns access outright
-   * for anyone on it, so it admits people to the whole contest.
-   */
-  readonly viewContestScoreboardProfileIds?: readonly string[];
-}
+/** What the summary reads. A `ContestRow` satisfies it, and so does an editor's draft. */
+export type DescribeSource = Pick<
+  ContestRow,
+  "startTime" | "endTime" | "schedule" | "entry" | "joinLimit" | "freeze" | "rating" | "labels"
+> &
+  Partial<
+    Pick<ContestRow, "isVisible" | "accessCode" | "lockedAfter" | "runPretestsOnly" | "alwaysAdmitProfileIds">
+  >;
 
 export interface DescribeOptions {
   /** A moment, as the viewer reads it. Defaults to an ISO string for the tests. */
@@ -101,19 +89,19 @@ export function describeContest(contest: DescribeSource, options: DescribeOption
 
   /* ------------------------------------------------------------------ who -- */
 
-  const entry = entryOf(contest);
+  const entry = contest.entry;
 
   if (contest.isVisible === false) lines.push({ group: "who", key: "hidden" });
 
   if (entry.kind === "open") {
     lines.push({ group: "who", key: "open" });
-  } else if (entry.byOrganization && entry.byName) {
+  } else if (organizationGate(entry) && nameGate(entry)) {
     lines.push({
       group: "who",
       key: entry.match === "all" ? "restrictedBoth" : "restrictedEither",
       values: { audience: options.audience ?? "", count: entry.profileIds.length },
     });
-  } else if (entry.byOrganization) {
+  } else if (organizationGate(entry)) {
     lines.push({
       group: "who",
       key: "restrictedOrganizations",
@@ -125,12 +113,12 @@ export function describeContest(contest: DescribeSource, options: DescribeOption
 
   if (contest.accessCode) lines.push({ group: "who", key: "accessCode" });
 
-  if (joinLimitOf(contest)) lines.push({ group: "who", key: "joinLimit" });
+  if (contest.joinLimit) lines.push({ group: "who", key: "joinLimit" });
 
   /* -------------------------------------------------------------- scoring -- */
 
-  const freeze = freezeOf(contest);
-  const frozenAt = freezeAt(contest);
+  const freeze = contest.freeze;
+  const frozenAt = freezeTime(contest);
 
   if (freeze && frozenAt !== null) {
     lines.push({
@@ -146,7 +134,7 @@ export function describeContest(contest: DescribeSource, options: DescribeOption
     lines.push({ group: "scoring", key: "noFreeze" });
   }
 
-  const labels = labelsOf(contest);
+  const labels = contest.labels;
 
   if (labels.kind === "custom") {
     lines.push({ group: "scoring", key: "labelsCustom", values: { count: labels.labels.length } });
@@ -156,7 +144,7 @@ export function describeContest(contest: DescribeSource, options: DescribeOption
 
   /* --------------------------------------------------------------- rating -- */
 
-  const rating = ratingOf(contest);
+  const rating = contest.rating;
 
   if (!rating) {
     lines.push({ group: "rating", key: "unrated" });
@@ -166,7 +154,7 @@ export function describeContest(contest: DescribeSource, options: DescribeOption
 
   lines.push({ group: "rating", key: rating.everyone ? "ratedEveryone" : "ratedScorers" });
 
-  if (rating.floor !== null || rating.ceiling !== null) {
+  if (rating.floor !== undefined || rating.ceiling !== undefined) {
     lines.push({
       group: "rating",
       key: "ratedBand",
@@ -178,7 +166,7 @@ export function describeContest(contest: DescribeSource, options: DescribeOption
     });
   }
 
-  if (rating.performanceCeiling !== null) {
+  if (rating.performanceCeiling !== undefined) {
     lines.push({ group: "rating", key: "performanceCeiling", values: { at: rating.performanceCeiling } });
   }
 

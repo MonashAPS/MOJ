@@ -24,7 +24,6 @@ import {
   buildProblemCell,
   cumtimeSeconds,
   groupByProblem,
-  letterLabel,
   numberConfig,
   pointsPrecision,
   secondsSince,
@@ -97,7 +96,6 @@ export const icpcFormat: ContestFormat = {
   name: "icpc",
   displayName: "ICPC",
   configDefaults: ICPC_DEFAULTS,
-  defaultLabelScheme: "letters",
 
   validate: validateIcpcConfig,
   resolveConfig: (config) => resolveIcpcConfig(config),
@@ -117,7 +115,6 @@ export const icpcFormat: ContestFormat = {
   },
 
   getProblemBreakdown: breakdown,
-  getLabelForProblem: letterLabel,
 
   getShortFormDisplay(config) {
     const { penalty } = resolveIcpcConfig(config);

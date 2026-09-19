@@ -27,7 +27,6 @@ import {
   cumtimeSeconds,
   groupByProblem,
   numberConfig,
-  numberLabel,
   orderedProblemGroups,
   pointsPrecision,
   secondsSince,
@@ -125,7 +124,6 @@ export const ecooFormat: ContestFormat = {
   name: "ecoo",
   displayName: "ECOO",
   configDefaults: ECOO_DEFAULTS,
-  defaultLabelScheme: "numbers",
 
   validate: validateEcooConfig,
   resolveConfig: (config) => resolveEcooConfig(config),
@@ -147,7 +145,6 @@ export const ecooFormat: ContestFormat = {
   },
 
   getProblemBreakdown: breakdown,
-  getLabelForProblem: numberLabel,
 
   getShortFormDisplay(config) {
     const resolved = resolveEcooConfig(config);

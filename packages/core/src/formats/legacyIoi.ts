@@ -23,7 +23,6 @@ import {
   buildProblemCell,
   cumtimeSeconds,
   groupByProblem,
-  numberLabel,
   orderedProblemGroups,
   pointsPrecision,
   secondsSince,
@@ -88,7 +87,6 @@ export const legacyIoiFormat: ContestFormat = {
   name: "ioi",
   displayName: "IOI (pre-2016)",
   configDefaults: LEGACY_IOI_DEFAULTS,
-  defaultLabelScheme: "numbers",
 
   validate: validateLegacyIoiConfig,
   resolveConfig: (config) => resolveLegacyIoiConfig(config),
@@ -111,7 +109,6 @@ export const legacyIoiFormat: ContestFormat = {
   },
 
   getProblemBreakdown: breakdown,
-  getLabelForProblem: numberLabel,
 
   getShortFormDisplay(config) {
     const resolved = resolveLegacyIoiConfig(config);

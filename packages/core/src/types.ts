@@ -42,7 +42,58 @@ export type ScoreboardVisibility = "V" | "C" | "P" | "H";
 
 export type DisplayRank = "user" | "setter" | "admin" | (string & {});
 
-export type LabelScheme = "letters" | "numbers" | "custom";
+/**
+ * A contest's settings, each as one shape, so that a window of zero, a blind
+ * over no freeze, a rating floor on an unrated contest or a join limit naming
+ * nobody has no spelling at all.
+ */
+
+/** How the clock runs. `window` starts each competitor's clock, and their penalty time, when they join. */
+export type ContestSchedule =
+  | { readonly kind: "together" }
+  | { readonly kind: "window"; readonly seconds: number };
+
+/**
+ * Who may enter. A restricted contest gates on the organisations and classes
+ * it names, and on the people it names; `match` says whether somebody must
+ * clear every gate that names anyone, or any one of them.
+ */
+export type ContestEntry =
+  | { readonly kind: "open" }
+  | {
+      readonly kind: "restricted";
+      readonly match: "all" | "any";
+      readonly organizationIds: readonly Id[];
+      readonly classIds: readonly Id[];
+      readonly profileIds: readonly Id[];
+    };
+
+/** Which organisations may join, once entry is allowed. Absent means anyone who can enter. */
+export interface ContestJoinLimit {
+  readonly organizationIds: readonly Id[];
+}
+
+/** Absent means the board never freezes. */
+export interface ContestFreeze {
+  readonly minutes: number;
+  /** Contestants see their own verdicts as pending, until the contest ends. */
+  readonly blind: boolean;
+}
+
+/** Absent means unrated. */
+export interface ContestRating {
+  /** Rate competitors who submitted nothing too. */
+  readonly everyone: boolean;
+  readonly excludeProfileIds: readonly Id[];
+  /** On the competitor's previous rating; a newcomer counts as 1200. */
+  readonly floor?: number;
+  readonly ceiling?: number;
+  readonly performanceCeiling?: number;
+}
+
+export type ContestLabels =
+  | { readonly kind: "letters" }
+  | { readonly kind: "custom"; readonly labels: readonly string[] };
 
 /**
  * A viewer. `null` (or `undefined`) is Django's `AnonymousUser`: every rule
@@ -126,43 +177,29 @@ export interface ContestRow {
   readonly name?: string;
   readonly startTime: Timestamp;
   readonly endTime: Timestamp;
-  /** Contest window length in seconds, or null/undefined for "the whole window". */
-  readonly timeLimit?: number | null;
+  readonly schedule: ContestSchedule;
   readonly isVisible: boolean;
-  readonly isPrivate: boolean;
-  readonly isOrganizationPrivate: boolean;
+  readonly entry: ContestEntry;
+  readonly joinLimit?: ContestJoinLimit;
+  readonly freeze?: ContestFreeze;
+  readonly rating?: ContestRating;
+  readonly labels: ContestLabels;
   readonly authorProfileIds?: readonly Id[];
   readonly curatorProfileIds?: readonly Id[];
   readonly testerProfileIds?: readonly Id[];
   readonly spectatorProfileIds?: readonly Id[];
   readonly testerSeeScoreboard?: boolean;
   readonly testerSeeSubmissions?: boolean;
-  readonly viewContestScoreboardProfileIds?: readonly Id[];
+  /** Admitted to the whole contest, whatever `entry` says, and to its scoreboard. */
+  readonly alwaysAdmitProfileIds?: readonly Id[];
   readonly viewContestSubmissionsProfileIds?: readonly Id[];
-  readonly privateContestantProfileIds?: readonly Id[];
-  readonly organizationIds?: readonly Id[];
-  readonly classIds?: readonly Id[];
-  readonly limitJoinOrganizations?: boolean;
-  readonly joinOrganizationIds?: readonly Id[];
   readonly bannedProfileIds?: readonly Id[];
   readonly accessCode?: string | null;
   readonly scoreboardVisibility: ScoreboardVisibility;
   readonly formatName?: string;
   readonly formatConfig?: JsonValue;
-  readonly labelScheme?: LabelScheme;
-  readonly customLabels?: readonly string[];
   readonly pointsPrecision?: number;
   readonly runPretestsOnly?: boolean;
-  readonly isRated?: boolean;
-  readonly rateAll?: boolean;
-  readonly ratingFloor?: number | null;
-  readonly ratingCeiling?: number | null;
-  readonly performanceCeilingOverride?: number | null;
-  readonly rateExcludeProfileIds?: readonly Id[];
-  /** Minutes of freeze before `endTime`; 0 (or absent) means no freeze. */
-  readonly freezeMinutes?: number;
-  /** Contestants see "pending" instead of their own verdicts after the freeze. */
-  readonly blindDuringFreeze?: boolean;
   readonly lockedAfter?: Timestamp | null;
 }
 

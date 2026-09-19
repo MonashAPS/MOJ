@@ -64,7 +64,7 @@ const FREEZE_OFFSET = 4 * 3600; // seconds; a one hour freeze on a five hour con
 const contest = createContest("hall", {
   startTime: START,
   endTime: END,
-  freezeMinutes: 60,
+  freeze: { minutes: 60, blind: false },
   formatName: "icpc",
 });
 
@@ -381,14 +381,15 @@ describe("freeze configuration", () => {
     expect(freezeOffsetFor(contest)).toBe(FREEZE_OFFSET);
     expect(freezeTime(contest)).toBe(END - HOUR);
 
-    const unfrozen = { ...contest, freezeMinutes: 0 };
+    const unfrozen = { ...contest, freeze: undefined };
     // No freeze pushes the cutoff past the end of the contest.
     expect(freezeOffsetFor(unfrozen)).toBe(5 * 3600 + 1);
     expect(freezeTime(unfrozen)).toBeNull();
 
     // A freeze longer than the contest clamps to the start.
-    expect(freezeOffsetFor({ ...contest, freezeMinutes: 600 })).toBe(0);
-    expect(freezeTime({ ...contest, freezeMinutes: 600 })).toBe(START);
+    const long = { ...contest, freeze: { minutes: 600, blind: false } };
+    expect(freezeOffsetFor(long)).toBe(0);
+    expect(freezeTime(long)).toBe(START);
   });
 
   it("takes the penalty from the contest format", () => {
@@ -495,14 +496,12 @@ describe("applyFreeze", () => {
   it("reports who sees through the freeze", () => {
     expect(isFrozenFor(contest, users.normal, { now })).toBe(true);
     expect(isFrozenFor(contest, users.superuser, { now })).toBe(false);
-    expect(isFrozenFor({ ...contest, freezeMinutes: 0 }, users.normal, { now })).toBe(false);
+    expect(isFrozenFor({ ...contest, freeze: undefined }, users.normal, { now })).toBe(false);
 
     expect(canSeeThroughFreeze(contest, users.superuser)).toBe(true);
     expect(canSeeThroughFreeze(contest, users.normal)).toBe(false);
     expect(canSeeThroughFreeze(contest, null)).toBe(false);
-    expect(
-      canSeeThroughFreeze({ ...contest, viewContestScoreboardProfileIds: ["normal"] }, users.normal),
-    ).toBe(true);
+    expect(canSeeThroughFreeze({ ...contest, alwaysAdmitProfileIds: ["normal"] }, users.normal)).toBe(true);
     expect(canSeeThroughFreeze(contest, createUser("staff", { permissions: ["see_private_contest"] }))).toBe(
       true,
     );
@@ -510,7 +509,7 @@ describe("applyFreeze", () => {
 });
 
 describe("blindDuringFreeze", () => {
-  const blindContest = { ...contest, blindDuringFreeze: true };
+  const blindContest = { ...contest, freeze: { minutes: 60, blind: true } };
   const users = commonUsers();
   const contestant = createUser("alice");
   const own = { id: "s", profileId: "alice", date: START + 4.5 * HOUR, result: "AC" as const };

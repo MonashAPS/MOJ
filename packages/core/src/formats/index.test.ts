@@ -18,7 +18,6 @@ import {
   getFormatOrDefault,
   getLabelForProblem,
   letterLabel,
-  numberLabel,
   UnknownContestFormatError,
   updateParticipation,
   validateContestFormatConfig,
@@ -31,7 +30,6 @@ const HOURS = 3_600_000;
 const contest = createContest("c", {
   startTime: START,
   endTime: START + 5 * HOURS,
-  timeLimit: null,
 });
 
 const p1 = createContestProblem("c", "one", { points: 100, order: 1 });
@@ -341,9 +339,8 @@ describe("icpc format", () => {
     expect(update.tiebreaker).toBe(40 * 60);
   });
 
-  it("defaults to a twenty minute penalty and letters its problems", () => {
+  it("defaults to a twenty minute penalty", () => {
     expect(getFormat("icpc").configDefaults).toEqual({ penalty: 20 });
-    expect(getFormat("icpc").getLabelForProblem(0)).toBe("A");
   });
 });
 
@@ -431,7 +428,6 @@ describe("disqualification", () => {
 
 describe("labels", () => {
   it("numbers, letters and custom labels", () => {
-    expect(numberLabel(0)).toBe("1");
     expect(letterLabel(0)).toBe("A");
     expect(letterLabel(25)).toBe("Z");
     expect(letterLabel(26)).toBe("AA");
@@ -439,12 +435,10 @@ describe("labels", () => {
     expect(letterLabel(51)).toBe("AZ");
     expect(letterLabel(52)).toBe("BA");
 
-    // Numbers are a stored value nothing renders: every contest is lettered.
-    expect(getLabelForProblem(0, { scheme: "numbers" })).toBe("A");
-    expect(getLabelForProblem(0, { scheme: "letters" })).toBe("A");
-    expect(getLabelForProblem(1, { scheme: "custom", customLabels: ["P1", "P2"] })).toBe("P2");
-    // Past the end of a custom list, fall back to letters.
-    expect(getLabelForProblem(2, { scheme: "custom", customLabels: ["P1"] })).toBe("C");
+    expect(getLabelForProblem(0, { kind: "letters" })).toBe("A");
+    expect(getLabelForProblem(1, { kind: "custom", labels: ["P1", "P2"] })).toBe("P2");
+    // Past the end of a custom list, letters.
+    expect(getLabelForProblem(2, { kind: "custom", labels: ["P1"] })).toBe("C");
   });
 
   it("letters a contest's problems whatever format it runs", () => {

@@ -393,12 +393,12 @@ export function isFirstBlood(rows: readonly ScoreboardRow[], row: ScoreboardRow,
 
 /** `build_contest_payload`: the freeze cutoff as seconds from the contest start. */
 export function freezeOffsetFor(
-  contest: Pick<ContestRow, "startTime" | "endTime" | "freezeMinutes">,
-  freezeMinutes = contest.freezeMinutes,
+  contest: Pick<ContestRow, "startTime" | "endTime" | "freeze">,
+  freezeMinutes: number | null = contest.freeze?.minutes ?? null,
 ): number {
   const duration = (contest.endTime - contest.startTime) / 1000;
 
-  if (freezeMinutes && freezeMinutes > 0) {
+  if (freezeMinutes !== null && freezeMinutes > 0) {
     return Math.max(0, duration - freezeMinutes * 60);
   }
 
@@ -406,13 +406,16 @@ export function freezeOffsetFor(
   return duration + 1;
 }
 
-/** The wall-clock instant the board freezes, or null when there is no freeze. */
-export function freezeTime(
-  contest: Pick<ContestRow, "startTime" | "endTime" | "freezeMinutes">,
-): number | null {
-  if (!contest.freezeMinutes || contest.freezeMinutes <= 0) return null;
+/**
+ * The wall-clock instant the board freezes, or null when there is no freeze.
+ *
+ * A freeze at least as long as the contest clamps to the start; the admin
+ * mutation refuses to store one.
+ */
+export function freezeTime(contest: Pick<ContestRow, "startTime" | "endTime" | "freeze">): number | null {
+  if (!contest.freeze) return null;
 
-  return Math.max(contest.startTime, contest.endTime - contest.freezeMinutes * 60_000);
+  return Math.max(contest.startTime, contest.endTime - contest.freeze.minutes * 60_000);
 }
 
 /** `_penalty_minutes(contest)`: the contest's own ICPC penalty when it has one. */
@@ -563,9 +566,8 @@ export function revealAll(state: RevealState): RevealState {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Whether this viewer sees through the freeze: contest editors, users listed in
- * `viewContestScoreboardProfileIds`, and anyone with `see_private_contest` or
- * `edit_all_contest`.
+ * Whether this viewer sees through the freeze: contest editors, anyone always
+ * admitted, and anyone with `see_private_contest` or `edit_all_contest`.
  */
 export function canSeeThroughFreeze(contest: ContestRow, viewer: Viewer): boolean {
   if (!isAuthenticated(viewer)) return false;
@@ -578,7 +580,7 @@ export function canSeeThroughFreeze(contest: ContestRow, viewer: Viewer): boolea
 
   if (contestIsEditableBy(contest, viewer)) return true;
 
-  return (contest.viewContestScoreboardProfileIds ?? []).includes(viewer.id);
+  return (contest.alwaysAdmitProfileIds ?? []).includes(viewer.id);
 }
 
 export interface FreezeStatusOptions {
@@ -688,7 +690,7 @@ export interface BlindOptions extends FreezeStatusOptions {
 }
 
 /**
- * `contests.blindDuringFreeze`: a contestant's own verdicts read as pending
+ * `contests.freeze.blind`: a contestant's own verdicts read as pending
  * from the freeze point until the contest ends.
  *
  * Staff (anyone who can see through the freeze) always see the real verdict, as
@@ -701,7 +703,7 @@ export function blindDuringFreeze<T extends { readonly profileId: Id; readonly d
   viewer: Viewer,
   options: BlindOptions = {},
 ): T | (T & MaskedSubmission) {
-  if (!contest.blindDuringFreeze) return submission;
+  if (!contest.freeze?.blind) return submission;
 
   const cutoff = freezeTime(contest);
 

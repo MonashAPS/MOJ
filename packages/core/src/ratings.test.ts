@@ -218,7 +218,7 @@ describe("rateContest", () => {
           submissionCount: 0,
         },
       ],
-      { contest: { rateExcludeProfileIds: ["excluded"] } },
+      { rating: { everyone: false, excludeProfileIds: ["excluded"] } },
     );
 
     expect(result.map((row) => row.profileId)).toEqual(["a", "b", "c", "d"]);
@@ -236,7 +236,7 @@ describe("rateContest", () => {
           submissionCount: 0,
         },
       ],
-      { contest: { rateAll: true } },
+      { rating: { everyone: true, excludeProfileIds: [] } },
     );
 
     expect(result).toHaveLength(1);
@@ -273,19 +273,21 @@ describe("rateContest", () => {
       },
     ];
 
-    expect(rateContest(field, { contest: { ratingFloor: 1000 } }).map((row) => row.profileId)).toEqual([
-      "mid",
-      "high",
-    ]);
-    expect(rateContest(field, { contest: { ratingCeiling: 2000 } }).map((row) => row.profileId)).toEqual([
-      "low",
-      "mid",
-    ]);
+    expect(
+      rateContest(field, { rating: { everyone: false, excludeProfileIds: [], floor: 1000 } }).map(
+        (row) => row.profileId,
+      ),
+    ).toEqual(["mid", "high"]);
+    expect(
+      rateContest(field, { rating: { everyone: false, excludeProfileIds: [], ceiling: 2000 } }).map(
+        (row) => row.profileId,
+      ),
+    ).toEqual(["low", "mid"]);
     // A competitor with no history is treated as RATING_INIT.
     expect(
       rateContest(
         [{ participationId: "p", profileId: "new", score: 1, cumtime: 0, tiebreaker: 0, submissionCount: 1 }],
-        { contest: { ratingFloor: 1300 } },
+        { rating: { everyone: false, excludeProfileIds: [], floor: 1300 } },
       ),
     ).toHaveLength(0);
   });
@@ -325,7 +327,7 @@ describe("rateContest", () => {
         },
       ],
       {
-        contest: { performanceCeilingOverride: 2000 },
+        rating: { everyone: false, excludeProfileIds: [], performanceCeiling: 2000 },
         priorHistory: { a: [1750, 1600, 1500], b: [1450], c: [] },
       },
     );
@@ -335,16 +337,16 @@ describe("rateContest", () => {
 
   it("caps performance only where a cap was asked for", () => {
     expect(performanceCeiling(undefined)).toBeNull();
-    expect(performanceCeiling({ performanceCeilingOverride: null })).toBeNull();
-    expect(performanceCeiling({ performanceCeilingOverride: 1234 })).toBe(1234);
+    expect(performanceCeiling({ everyone: false, excludeProfileIds: [] })).toBeNull();
+    expect(performanceCeiling({ everyone: false, excludeProfileIds: [], performanceCeiling: 1234 })).toBe(
+      1234,
+    );
   });
 
   it("does not let the eligibility ceiling cap performance", () => {
-    // DMOJ derives a cap of ratingCeiling + 400, so a ceiling set to keep strong
-    // competitors out of the rating silently capped everyone else's performance.
-    const rated = { performanceCeilingOverride: null, ratingCeiling: 1600 };
-
-    expect(performanceCeiling(rated)).toBeNull();
+    // DMOJ derives a cap of the rating ceiling + 400, so a ceiling set to keep
+    // strong competitors out of the rating silently capped everyone else's performance.
+    expect(performanceCeiling({ everyone: false, excludeProfileIds: [], ceiling: 1600 })).toBeNull();
   });
 });
 

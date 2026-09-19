@@ -19,7 +19,6 @@ import {
   FormatConfigError,
   groupByProblem,
   isJsonObject,
-  numberLabel,
   orderedProblemGroups,
   pointsPrecision,
   secondsSince,
@@ -75,7 +74,6 @@ export const defaultFormat: ContestFormat = {
   name: "default",
   displayName: "Default",
   configDefaults: {},
-  defaultLabelScheme: "numbers",
 
   validate: validateDefaultConfig,
   resolveConfig(config) {
@@ -99,7 +97,6 @@ export const defaultFormat: ContestFormat = {
   },
 
   getProblemBreakdown: breakdown,
-  getLabelForProblem: numberLabel,
 
   getShortFormDisplay() {
     return [{ key: "maxScoreSubmission" }, { key: "tiesByLastSubmission" }];
