@@ -3,7 +3,13 @@
  * where to fetch one. Staff manage them in admin/artefacts.ts.
  */
 
-import { artefactIsVisible, contestAccessCheck, contestIsEditableBy, problemIsEditableBy } from "@moj/core";
+import {
+  type AudienceMembership,
+  artefactIsVisible,
+  contestAccessCheck,
+  contestIsEditableBy,
+  problemIsEditableBy,
+} from "@moj/core";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { type QueryCtx, query } from "./_generated/server";
@@ -17,46 +23,67 @@ export type ArtefactRow = {
   name: string;
   size: number;
   contentType: string;
-  visibility: Doc<"artefacts">["visibility"];
+  audiences: Doc<"artefacts">["audiences"];
+  from: Doc<"artefacts">["from"];
   uploadedAt: number;
 };
 
-/** Who the viewer is to the thing a file is attached to. */
-type Audience = { canEdit: boolean; canView: boolean; ended: boolean };
+/** Which audiences the viewer is in, and whether the owner's clock has run out. */
+type Standing = { membership: AudienceMembership; ended: boolean };
 
-async function contestAudience(ctx: QueryCtx, contest: Doc<"contests">): Promise<Audience> {
+/** The viewer's standing on a contest, from its people lists, their participation and its access rules. */
+export async function contestStanding(ctx: QueryCtx, contest: Doc<"contests">): Promise<Standing> {
   const profile = await optionalViewer(ctx);
   const viewer = await toViewerRowInContest(ctx, profile);
   const row = toContestRow(contest);
 
+  const participation = profile
+    ? await ctx.db
+        .query("contestParticipations")
+        .withIndex("by_contest_profile", (q) => q.eq("contestId", contest._id).eq("profileId", profile._id))
+        .first()
+    : null;
+
   return {
-    canEdit: contestIsEditableBy(row, viewer),
-    canView: contestAccessCheck(row, viewer).kind === "ok",
+    membership: {
+      staff: contestIsEditableBy(row, viewer),
+      testers: profile !== null && contest.testerProfileIds.includes(profile._id),
+      spectators: profile !== null && contest.spectatorProfileIds.includes(profile._id),
+      contestants: participation !== null,
+      everyone: contestAccessCheck(row, viewer).kind === "ok",
+    },
     ended: contest.endTime <= Date.now(),
   };
 }
 
-async function problemAudience(ctx: QueryCtx, problem: Doc<"problems">): Promise<Audience> {
+/** The viewer's standing on a problem. It has no contest to join or watch. */
+export async function problemStanding(ctx: QueryCtx, problem: Doc<"problems">): Promise<Standing> {
   const viewer = await loadViewerContext(ctx);
+  const profileId = viewer.profile?._id;
 
   return {
-    canEdit: problemIsEditableBy(toCoreProblem(problem), viewer.core),
-    canView: await canAccessProblem(ctx, problem, viewer),
+    membership: {
+      staff: problemIsEditableBy(toCoreProblem(problem), viewer.core),
+      testers: profileId !== undefined && problem.testerProfileIds.includes(profileId),
+      spectators: false,
+      contestants: false,
+      everyone: await canAccessProblem(ctx, problem, viewer),
+    },
     ended: false,
   };
 }
 
-/** The audience for whatever a file is attached to, or null when that is gone. */
-async function audienceOf(ctx: QueryCtx, artefact: Doc<"artefacts">): Promise<Audience | null> {
+/** The standing for whatever a file is attached to, or null when that is gone. */
+async function standingOf(ctx: QueryCtx, artefact: Doc<"artefacts">): Promise<Standing | null> {
   if (artefact.owner.kind === "contest") {
     const contest = await ctx.db.get(artefact.owner.contestId);
 
-    return contest ? await contestAudience(ctx, contest) : null;
+    return contest ? await contestStanding(ctx, contest) : null;
   }
 
   const problem = await ctx.db.get(artefact.owner.problemId);
 
-  return problem ? await problemAudience(ctx, problem) : null;
+  return problem ? await problemStanding(ctx, problem) : null;
 }
 
 function toRow(artefact: Doc<"artefacts">): ArtefactRow {
@@ -65,14 +92,15 @@ function toRow(artefact: Doc<"artefacts">): ArtefactRow {
     name: artefact.name,
     size: artefact.size,
     contentType: artefact.contentType,
-    visibility: artefact.visibility,
+    audiences: artefact.audiences,
+    from: artefact.from,
     uploadedAt: artefact.uploadedAt,
   };
 }
 
-function visibleRows(rows: readonly Doc<"artefacts">[], audience: Audience): ArtefactRow[] {
+function visibleRows(rows: readonly Doc<"artefacts">[], standing: Standing): ArtefactRow[] {
   return rows
-    .filter((row) => artefactIsVisible(row.visibility, audience))
+    .filter((row) => artefactIsVisible(row, standing.membership, standing.ended))
     .sort((a, b) => a.name.localeCompare(b.name))
     .map(toRow);
 }
@@ -85,7 +113,7 @@ export const forContest = query({
 
     if (!contest) return [];
 
-    return visibleRows(await artefactsOfContest(ctx, contest._id), await contestAudience(ctx, contest));
+    return visibleRows(await artefactsOfContest(ctx, contest._id), await contestStanding(ctx, contest));
   },
 });
 
@@ -97,7 +125,7 @@ export const forProblem = query({
 
     if (!problem) return [];
 
-    return visibleRows(await artefactsOfProblem(ctx, problem._id), await problemAudience(ctx, problem));
+    return visibleRows(await artefactsOfProblem(ctx, problem._id), await problemStanding(ctx, problem));
   },
 });
 
@@ -111,9 +139,9 @@ export const download = query({
     const artefact = await ctx.db.get(id);
 
     if (!artefact) return null;
-    const audience = await audienceOf(ctx, artefact);
+    const standing = await standingOf(ctx, artefact);
 
-    if (!audience || !artefactIsVisible(artefact.visibility, audience)) return null;
+    if (!standing || !artefactIsVisible(artefact, standing.membership, standing.ended)) return null;
     const url = await ctx.storage.getUrl(artefact.storageId);
 
     if (!url) return null;

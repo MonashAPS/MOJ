@@ -88,8 +88,14 @@ export const contestRating = v.object({
   performanceCeiling: v.optional(v.number()),
 });
 
-/** Who may download a file attached to a contest or a problem. */
-export const artefactVisibility = v.union(v.literal("staff"), v.literal("everyone"), v.literal("afterEnd"));
+/** The fixed vocabulary for "who" on a contest or a problem; see `@moj/core`'s `Audience`. */
+export const audience = v.union(
+  v.literal("staff"),
+  v.literal("testers"),
+  v.literal("spectators"),
+  v.literal("contestants"),
+  v.literal("everyone"),
+);
 
 export const contestLabels = v.union(
   v.object({ kind: v.literal("letters") }),
@@ -943,7 +949,10 @@ export default defineSchema({
     storageId: v.id("_storage"),
     size: v.number(),
     contentType: v.string(),
-    visibility: artefactVisibility,
+    /** Who may download it; staff always may. */
+    audiences: v.array(audience),
+    /** `end` holds it until the contest is over. */
+    from: v.union(v.literal("now"), v.literal("end")),
     uploadedByProfileId: v.id("profiles"),
     uploadedAt: v.number(),
   })

@@ -1,6 +1,6 @@
 /**
  * The files attached to a contest or a problem, as a revision snapshot lists
- * them: name and audience, so a diff says which file came or went.
+ * them: name and audiences, so a diff says which file came or went.
  */
 
 import type { Doc, Id } from "../_generated/dataModel";
@@ -26,8 +26,10 @@ export async function artefactsOfProblem(
     .collect();
 }
 
-export function artefactSnapshot(rows: readonly Doc<"artefacts">[]): { name: string; visibility: string }[] {
+export function artefactSnapshot(
+  rows: readonly Doc<"artefacts">[],
+): { name: string; audiences: string[]; from: string }[] {
   return rows
-    .map((row) => ({ name: row.name, visibility: row.visibility }))
+    .map((row) => ({ name: row.name, audiences: [...row.audiences], from: row.from }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }

@@ -517,10 +517,10 @@
       "pretestsOnly": "Solo pretests",
       "pretestsOnlyHint": "Calificar contra los pretests durante el concurso.",
       "scoreboardVisibility": "Visibilidad del marcador",
-      "scoreboardEveryone": "Visible para todos",
-      "scoreboardUntilEnd": "Oculto hasta que termine el concurso",
-      "scoreboardParticipants": "Visible solo para los participantes",
-      "scoreboardNobody": "Oculto para todos",
+      "scoreboardEveryone": "Todos",
+      "scoreboardUntilEnd": "Todos, una vez terminado el concurso",
+      "scoreboardParticipants": "Todos, una vez terminada su propia ventana",
+      "scoreboardNobody": "Solo personal",
       "pointsPrecision": "Precisión de los puntos",
       "pointsPrecisionHint": "Cifras decimales en el marcador.",
       "sectionFreeze": "Congelamiento",
@@ -599,6 +599,8 @@
       "saved": "Personas guardadas.",
       "refused": "El cambio fue rechazado.",
       "sectionStaff": "Personal",
+      "sectionAudiences": "Audiencias",
+      "audiencesHint": "Cada elección de quién puede ver algo en este concurso se hace entre estas. El personal siempre está incluido.",
       "authors": "Autores",
       "authorsHint": "Pueden editar el concurso y ver todo.",
       "curators": "Curadores",
@@ -2223,16 +2225,28 @@
       "listTitle": "{count, plural, one {# archivo} other {# archivos}}",
       "columnName": "Archivo",
       "columnSize": "Tamaño",
-      "columnVisibility": "Quién puede descargarlo",
+      "columnAudience": "Quién puede descargarlo",
       "columnUploaded": "Subido",
       "remove": "Eliminar",
       "removeTitle": "¿Eliminar {name}?",
       "removeDescription": "El archivo se borra. Nadie podrá descargarlo más.",
-      "visibility": {
-        "staff": "Solo personal",
-        "everyone": "Todos los que puedan verlo",
-        "afterEnd": "Todos, una vez terminado"
-      }
+      "change": "Cambiar",
+      "changeTitle": "Quién puede descargar {name}"
+    },
+    "audiences": {
+      "staff": "Personal",
+      "staffAlways": "Autores y curadores. Siempre incluidos.",
+      "testers": "Probadores",
+      "testersHint": "Las personas listadas como probadores.",
+      "spectators": "Espectadores",
+      "spectatorsHint": "Las personas listadas como espectadores.",
+      "contestants": "Concursantes",
+      "contestantsHint": "Cualquiera que se haya unido al concurso.",
+      "everyone": "Todos",
+      "everyoneHint": "Cualquiera que pueda verlo.",
+      "from": "Disponible",
+      "fromNow": "En cuanto se añade",
+      "fromEnd": "Una vez terminado el concurso"
     }
   },
   "proctor": {
