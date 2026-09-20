@@ -154,7 +154,7 @@ export function AdminCheckField({
   const id = useId();
 
   return (
-    <div className="grid gap-1" title={disabled ? disabledReason : undefined}>
+    <div className="grid content-start gap-1" title={disabled ? disabledReason : undefined}>
       <Checkbox
         id={id}
         label={label}
