@@ -38,7 +38,7 @@
     "@biomejs/biome": "^2.5.13",
     "@types/node": "^26.5.1",
     "concurrently": "^10.0.5",
-    "convex": "^1.45.0",
+    "convex": "^1.46.0",
     "knip": "^6.35.1",
     "lefthook": "^2.1.14",
     "oxlint": "1.83.0",
