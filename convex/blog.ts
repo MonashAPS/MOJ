@@ -34,6 +34,8 @@ export type BlogListItem = {
   contentPreset: typeof BLOG_PRESET;
   publishOn: number;
   sticky: boolean;
+  /** The home page shows the whole post, not the summary. */
+  expanded: boolean;
   visible: boolean;
   ogImage?: string;
   authors: Array<{ username: string; rating?: number; displayRank: string }>;
@@ -108,6 +110,7 @@ async function decorate(
     contentPreset: BLOG_PRESET,
     publishOn: row.publishOn,
     sticky: row.sticky,
+    expanded: row.expanded,
     visible: row.visible,
     ogImage: row.ogImage,
     authors: authors.map((author) => ({
@@ -206,6 +209,7 @@ export const published = query({
       contentPreset: BLOG_PRESET,
       publishOn: row.publishOn,
       sticky: row.sticky,
+      expanded: row.expanded,
       href: blogPostHref(row),
     }));
   },

@@ -67,6 +67,7 @@ const blogPostsStep: Step = {
         slug: row.s("slug"),
         visible: row.b("visible"),
         sticky: row.b("sticky"),
+        expanded: false,
         publishOn: row.t("publish_on"),
         content: row.s("content"),
         summary: row.s("summary"),

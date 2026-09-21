@@ -35,6 +35,7 @@ const ANNOUNCEMENTS: Array<{
   summary: string;
   content: string;
   sticky: boolean;
+  expanded: boolean;
   daysAgo: number;
 }> = [
   {
@@ -56,6 +57,7 @@ Open a ticket on a problem if the statement or the test data looks wrong.
 
 _Replace this post from the staff console under Blog._`,
     sticky: true,
+    expanded: true,
     daysAgo: 7,
   },
   {
@@ -67,6 +69,7 @@ contest you take part in, and each has an editorial published once the contest e
 
 Missed one? Join it virtually from the [contest list](/contests/) and the clock starts when you do.`,
     sticky: false,
+    expanded: false,
     daysAgo: 2,
   },
 ];
@@ -284,6 +287,7 @@ export const run = internalMutation({
         slug: announcement.slug,
         visible: true,
         sticky: announcement.sticky,
+        expanded: announcement.expanded,
         publishOn: Date.now() - announcement.daysAgo * 24 * 60 * 60 * 1000,
         content: announcement.content,
         summary: announcement.summary,
