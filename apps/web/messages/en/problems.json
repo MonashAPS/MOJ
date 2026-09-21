@@ -259,7 +259,6 @@
   },
   "testData": {
     "titleFor": "Editing data for {name}",
-    "repositoryOwned": "This problem is graded from data held on the judge, published from a problem repository.",
     "saveFailed": "That change was not saved.",
     "archivePublished": "{file} published — {count} files, {hash}.",
     "archiveUnchanged": "{file} is the archive already published, so nothing changed.",
@@ -315,7 +314,6 @@
       "batchStart": "Batch start",
       "batchEnd": "Batch end"
     },
-    "emptyJudgeOwned": "No test data has been uploaded here. This problem is graded from data held on the judge, published from a problem repository.",
     "emptyNoCases": "This problem has no test cases yet.",
     "moveUp": "Move up",
     "moveDown": "Move down",
@@ -337,7 +335,6 @@
     "casesSaved": "Test cases saved.",
     "submitCases": "Submit!",
     "addCase": "Add new case",
-    "yamlJudgeOwned": "# Nothing is generated here: the judge grades this problem from the\n# init.yml published beside its test data.",
     "yamlNone": "# This problem has no generated configuration yet."
   },
   "tickets": {

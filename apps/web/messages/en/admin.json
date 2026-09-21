@@ -1547,7 +1547,6 @@
     "columnTier": "Tier",
     "columnPing": "Ping",
     "columnLoad": "Load",
-    "columnProblems": "Problems",
     "columnRuntimes": "Runtimes",
     "columnLastSeen": "Last seen",
     "columnAddress": "Address",

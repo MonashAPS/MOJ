@@ -259,7 +259,6 @@
   },
   "testData": {
     "titleFor": "编辑 {name} 的测试数据",
-    "repositoryOwned": "该题目使用评测机上的数据进行评测，这些数据由题目仓库发布。",
     "saveFailed": "该更改未能保存。",
     "archivePublished": "{file} 已发布——{count} 个文件，{hash}。",
     "archiveUnchanged": "{file} 与已发布的压缩包相同，未作任何更改。",
@@ -315,7 +314,6 @@
       "batchStart": "批次开始",
       "batchEnd": "批次结束"
     },
-    "emptyJudgeOwned": "此处尚未上传测试数据。该题目使用评测机上的数据进行评测，这些数据由题目仓库发布。",
     "emptyNoCases": "该题目尚无测试点。",
     "moveUp": "上移",
     "moveDown": "下移",
@@ -337,7 +335,6 @@
     "casesSaved": "测试点已保存。",
     "submitCases": "提交！",
     "addCase": "添加新测试点",
-    "yamlJudgeOwned": "# 此处不会生成任何内容：评测机会使用与测试数据一同发布的\n# init.yml 对该题目进行评测。",
     "yamlNone": "# 该题目尚未生成任何配置。"
   },
   "tickets": {

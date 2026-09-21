@@ -259,7 +259,6 @@
   },
   "testData": {
     "titleFor": "Mengedit data untuk {name}",
-    "repositoryOwned": "Soal ini dinilai dari data yang disimpan di judge, dipublikasikan dari repositori soal.",
     "saveFailed": "Perubahan tersebut tidak tersimpan.",
     "archivePublished": "{file} dipublikasikan — {count} berkas, {hash}.",
     "archiveUnchanged": "{file} adalah arsip yang sudah dipublikasikan, sehingga tidak ada perubahan.",
@@ -315,7 +314,6 @@
       "batchStart": "Awal batch",
       "batchEnd": "Akhir batch"
     },
-    "emptyJudgeOwned": "Belum ada data uji yang diunggah di sini. Soal ini dinilai dari data yang disimpan di judge, dipublikasikan dari repositori soal.",
     "emptyNoCases": "Soal ini belum memiliki kasus uji.",
     "moveUp": "Naikkan",
     "moveDown": "Turunkan",
@@ -337,7 +335,6 @@
     "casesSaved": "Kasus uji tersimpan.",
     "submitCases": "Kirim!",
     "addCase": "Tambahkan kasus baru",
-    "yamlJudgeOwned": "# Tidak ada yang dihasilkan di sini: judge menilai soal ini dari\n# init.yml yang dipublikasikan bersama data ujinya.",
     "yamlNone": "# Soal ini belum memiliki konfigurasi yang dihasilkan."
   },
   "tickets": {

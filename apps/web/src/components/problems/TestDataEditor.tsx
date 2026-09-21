@@ -101,9 +101,6 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
   const publishArchive = useAction(api.problems.data.publishArchive);
 
   const published = data.published;
-  // Nothing of this problem's data lives here: a judge reports it and the site
-  // holds no archive, so the editor is a read-only explanation of that.
-  const readOnly = published === null && data.judgesWithProblem > 0 && data.cases.length === 0;
 
   const [rows, setRows] = useState<CaseRow[]>(() =>
     data.cases.map((row, index) => ({ ...row, key: `${row.id ?? "new"}-${index}` })),
@@ -227,12 +224,6 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
           <AlertTitle>{status}</AlertTitle>
         </Alert>
       ) : null}
-      {readOnly ? (
-        <Alert variant="info">
-          <AlertTitle>{t("repositoryOwned")}</AlertTitle>
-        </Alert>
-      ) : null}
-
       {published ? (
         <Panel title={t("publishedTitle")} bodyClassName="p-3">
           <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[auto_1fr]">
@@ -259,22 +250,20 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
         </Panel>
       ) : null}
 
-      <fieldset disabled={readOnly} className="contents">
+      <fieldset className="contents">
         <Panel title={t("problemDataTitle")} bodyClassName="grid gap-4 p-3">
           <Field
             label={t("zipLabel")}
             htmlFor="zipfile"
             hint={
-              readOnly
-                ? t("repositoryOwned")
-                : published
-                  ? t("zipHolding", {
-                      count: published.fileCount,
-                      hash: published.hash.slice(0, 12),
-                    })
-                  : data.data?.zipfile
-                    ? t("zipCurrent", { file: data.data.zipfile })
-                    : t("zipNone")
+              published
+                ? t("zipHolding", {
+                    count: published.fileCount,
+                    hash: published.hash.slice(0, 12),
+                  })
+                : data.data?.zipfile
+                  ? t("zipCurrent", { file: data.data.zipfile })
+                  : t("zipNone")
             }
           >
             <div className="flex items-center gap-2">
@@ -444,7 +433,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
               {rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={12} className="py-8 text-center text-sm text-muted-foreground">
-                    {data.judgesWithProblem > 0 ? t("emptyJudgeOwned") : t("emptyNoCases")}
+                    {t("emptyNoCases")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -716,7 +705,7 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
               </p>
             ) : null}
             <pre className="overflow-x-auto bg-code p-3 font-mono text-mono text-foreground">
-              {preview.yaml || (data.judgesWithProblem > 0 ? t("yamlJudgeOwned") : t("yamlNone"))}
+              {preview.yaml || t("yamlNone")}
             </pre>
           </>
         )}
