@@ -167,6 +167,31 @@ export async function setAccountActiveAction(
   }
 }
 
+/**
+ * Staff flags and permission codes live on the Convex profile, but Better
+ * Auth's admin plugin gates impersonation and session revocation on its own
+ * `role`, so a superuser change is written to both in one go.
+ */
+export async function setPermissionsAction(
+  username: string,
+  flags: { isStaff: boolean; isSuperuser: boolean; permissions: string[] },
+  reason: string,
+): Promise<ActionResult<undefined>> {
+  try {
+    await requireSuperuser();
+    const result = await mutateAsViewer(api.admin.users.edit, { username, ...flags, reason });
+    await auth.api.setRole({
+      body: { userId: result.userId, role: result.isSuperuser ? "admin" : "user" },
+      headers: await authHeaders(),
+    });
+    revalidatePath(`/admin/users/${username}`);
+
+    return { ok: true, data: undefined };
+  } catch (error) {
+    return failed(error);
+  }
+}
+
 /** Better Auth's admin plugin mints an impersonation session for one hour. */
 export async function impersonateAction(userId: string): Promise<ActionResult<undefined>> {
   try {

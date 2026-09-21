@@ -276,7 +276,9 @@ export const edit = mutation({
     const updated = await patchProfile(ctx, target._id, patch);
     await writeRevision(ctx, "profiles", updated._id, updated, staff._id, args.reason ?? "Edited from admin");
 
-    return updated._id;
+    // The console mirrors the superuser flag into Better Auth's role, so the
+    // caller needs the account it belongs to and the flag as it now stands.
+    return { id: updated._id, userId: updated.userId, isSuperuser: updated.isSuperuser };
   },
 });
 
