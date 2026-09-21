@@ -1953,6 +1953,7 @@
     "stateVisible": "Terlihat",
     "stateDraft": "Draf",
     "stateSticky": "Disematkan",
+    "stateExpanded": "Penuh",
     "stateScheduled": "Terjadwal",
     "deleteTitle": "Hapus {title}?",
     "deleteDescription": "Postingan beserta semua komentarnya akan dihapus.",
@@ -1981,7 +1982,8 @@
     "content": "Konten",
     "contentHint": "Markdown, dirender dengan preset blog.",
     "visible": "Terlihat — anggota dapat membacanya setelah dipublikasikan",
-    "sticky": "Disematkan — ditempatkan di bagian atas blog"
+    "sticky": "Disematkan — ditempatkan di bagian atas blog",
+    "expanded": "Ditampilkan penuh di halaman beranda"
   },
   "licenses": {
     "metaTitle": "Lisensi",

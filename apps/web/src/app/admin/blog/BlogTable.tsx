@@ -37,6 +37,7 @@ type Draft = {
   content: string;
   visible: boolean;
   sticky: boolean;
+  expanded: boolean;
   publishOn: string;
   authorProfileIds: Id<"profiles">[];
 };
@@ -49,6 +50,7 @@ const EMPTY: Draft = {
   content: "",
   visible: false,
   sticky: false,
+  expanded: false,
   publishOn: "",
   authorProfileIds: [],
 };
@@ -102,6 +104,7 @@ export function BlogTable({ authorOptions }: { authorOptions: AuthorOption[] | n
       content: full.content,
       visible: full.visible,
       sticky: full.sticky,
+      expanded: full.expanded,
       publishOn: toLocalInput(full.publishOn),
       authorProfileIds: full.authorProfileIds,
     });
@@ -128,6 +131,7 @@ export function BlogTable({ authorOptions }: { authorOptions: AuthorOption[] | n
         content: draft.content,
         visible: draft.visible,
         sticky: draft.sticky,
+        expanded: draft.expanded,
         publishOn,
         authorProfileIds: draft.authorProfileIds,
         reason,
@@ -180,6 +184,7 @@ export function BlogTable({ authorOptions }: { authorOptions: AuthorOption[] | n
             { on: row.visible, label: t("stateVisible"), tone: "good" },
             { on: !row.visible, label: t("stateDraft"), tone: "warn" },
             { on: row.sticky, label: t("stateSticky"), tone: "accent" },
+            { on: row.expanded, label: t("stateExpanded"), tone: "accent" },
             { on: row.publishOn > Date.now(), label: t("stateScheduled"), tone: "accent" },
           ]}
         />
@@ -381,6 +386,13 @@ export function BlogTable({ authorOptions }: { authorOptions: AuthorOption[] | n
               setDraft((current) => (current ? { ...current, sticky: value } : current))
             }
             label={t("sticky")}
+          />
+          <Checkbox
+            checked={draft?.expanded ?? false}
+            onCheckedChange={(value) =>
+              setDraft((current) => (current ? { ...current, expanded: value } : current))
+            }
+            label={t("expanded")}
           />
         </FieldGroup>
       </RecordDialog>

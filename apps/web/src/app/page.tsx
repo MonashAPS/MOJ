@@ -33,8 +33,14 @@ export default async function HomePage() {
     ? await renderContent(misc.home_page_top, "flatpage").catch(() => "")
     : "";
 
-  const summaries = await Promise.all(
-    posts.map((post) => renderContent(post.summary || firstParagraph(post.content), "blog").catch(() => "")),
+  // An expanded post is read on the home page itself; the rest show their summary.
+  const bodies = await Promise.all(
+    posts.map((post) =>
+      renderContent(
+        post.expanded ? post.content : post.summary || firstParagraph(post.content),
+        "blog",
+      ).catch(() => ""),
+    ),
   );
 
   return (
@@ -121,35 +127,39 @@ export default async function HomePage() {
                   <span>{t("comments", { count: post.commentCount })}</span>
                 </p>
 
-                {summaries[index] ? (
+                {bodies[index] ? (
                   <div
                     // `--content-ink` is @moj/content's own knob for the prose colour;
-                    // a summary is secondary text, not body copy.
+                    // a summary is secondary text, while an expanded post is body copy.
                     // SAFETY: `CSSProperties` carries no index signature for custom properties,
                     // and the browser applies every `--*` entry of a style object as one.
-                    style={{ "--content-ink": "var(--ink-2)" } as React.CSSProperties}
+                    style={
+                      post.expanded ? undefined : ({ "--content-ink": "var(--ink-2)" } as React.CSSProperties)
+                    }
                     className="content-description mt-3 max-w-[68ch] text-base"
                     // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitised by @moj/content
-                    dangerouslySetInnerHTML={{ __html: summaries[index] }}
+                    dangerouslySetInnerHTML={{ __html: bodies[index] }}
                   />
                 ) : null}
 
                 <div className="mt-4 flex items-center gap-4">
-                  <Link
-                    href={post.href}
-                    className={cn(
-                      "inline-flex h-(--control-h-sm) items-center gap-2 rounded-full border border-primary-line px-4",
-                      "text-sm text-primary transition-colors hover:bg-primary-soft",
-                      "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-royal/45",
-                    )}
-                  >
-                    {t("readMore")}
-                    <ArrowRight
-                      size={14}
-                      aria-hidden
-                      className="transition-transform duration-(--dur) group-hover:translate-x-0.5"
-                    />
-                  </Link>
+                  {post.expanded ? null : (
+                    <Link
+                      href={post.href}
+                      className={cn(
+                        "inline-flex h-(--control-h-sm) items-center gap-2 rounded-full border border-primary-line px-4",
+                        "text-sm text-primary transition-colors hover:bg-primary-soft",
+                        "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-royal/45",
+                      )}
+                    >
+                      {t("readMore")}
+                      <ArrowRight
+                        size={14}
+                        aria-hidden
+                        className="transition-transform duration-(--dur) group-hover:translate-x-0.5"
+                      />
+                    </Link>
+                  )}
                   <Link
                     href={`${post.href}#comments`}
                     className="ml-auto inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-subtle"
