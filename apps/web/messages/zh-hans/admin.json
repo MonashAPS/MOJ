@@ -1953,6 +1953,7 @@
     "stateVisible": "可见",
     "stateDraft": "草稿",
     "stateSticky": "置顶",
+    "stateExpanded": "完整",
     "stateScheduled": "定时发布",
     "deleteTitle": "删除 {title}？",
     "deleteDescription": "该文章及其所有评论都将被删除。",
@@ -1981,7 +1982,8 @@
     "content": "内容",
     "contentHint": "支持 Markdown，使用博客的渲染预设。",
     "visible": "可见——发布后成员即可阅读",
-    "sticky": "置顶——固定显示在博客最上方"
+    "sticky": "置顶——固定显示在博客最上方",
+    "expanded": "在首页完整显示"
   },
   "licenses": {
     "metaTitle": "许可证",

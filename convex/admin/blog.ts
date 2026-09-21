@@ -47,6 +47,7 @@ export const list = query({
         slug: row.slug,
         visible: row.visible,
         sticky: row.sticky,
+        expanded: row.expanded,
         publishOn: row.publishOn,
         authors: await authorSummaries(ctx, row.authorProfileIds),
       })),
@@ -77,6 +78,7 @@ export const create = mutation({
     summary: v.optional(v.string()),
     visible: v.optional(v.boolean()),
     sticky: v.optional(v.boolean()),
+    expanded: v.optional(v.boolean()),
     publishOn: v.optional(v.number()),
     authorProfileIds: v.optional(v.array(v.id("profiles"))),
     ogImage: v.optional(v.string()),
@@ -109,6 +111,7 @@ export const create = mutation({
       summary: args.summary ?? "",
       visible: args.visible ?? false,
       sticky: args.sticky ?? false,
+      expanded: args.expanded ?? false,
       publishOn: args.publishOn ?? Date.now(),
       authorProfileIds: authors,
       ogImage: args.ogImage,
@@ -129,6 +132,7 @@ export const update = mutation({
     summary: v.optional(v.string()),
     visible: v.optional(v.boolean()),
     sticky: v.optional(v.boolean()),
+    expanded: v.optional(v.boolean()),
     publishOn: v.optional(v.number()),
     authorProfileIds: v.optional(v.array(v.id("profiles"))),
     ogImage: v.optional(v.string()),
@@ -173,6 +177,8 @@ export const update = mutation({
     if (args.visible !== undefined) patch.visible = args.visible;
 
     if (args.sticky !== undefined) patch.sticky = args.sticky;
+
+    if (args.expanded !== undefined) patch.expanded = args.expanded;
 
     if (args.publishOn !== undefined) patch.publishOn = args.publishOn;
 

@@ -306,6 +306,7 @@ export function blogPostRow(overrides: Overrides<"blogPosts"> = {}): Row<"blogPo
     slug: title.toLowerCase().replace(/\s+/g, "-"),
     visible: true,
     sticky: false,
+    expanded: false,
     publishOn: Date.now() - 1000,
     content: `Body of ${title}.`,
     summary: "",

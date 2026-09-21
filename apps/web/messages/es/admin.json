@@ -1953,6 +1953,7 @@
     "stateVisible": "Visible",
     "stateDraft": "Borrador",
     "stateSticky": "Fijado",
+    "stateExpanded": "Completa",
     "stateScheduled": "Programado",
     "deleteTitle": "¿Eliminar {title}?",
     "deleteDescription": "La publicación y todos sus comentarios se eliminan.",
@@ -1981,7 +1982,8 @@
     "content": "Contenido",
     "contentHint": "Markdown, renderizado con el preset del blog.",
     "visible": "Visible — los miembros pueden leerla una vez publicada",
-    "sticky": "Fijado — anclado en la parte superior del blog"
+    "sticky": "Fijado — anclado en la parte superior del blog",
+    "expanded": "Se muestra completa en la página de inicio"
   },
   "licenses": {
     "metaTitle": "Licencias",

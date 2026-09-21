@@ -790,6 +790,8 @@ export default defineSchema({
     slug: v.string(),
     visible: v.boolean(),
     sticky: v.boolean(),
+    /** Shown in full on the home page rather than as its summary. */
+    expanded: v.boolean(),
     publishOn: v.number(),
     content: v.string(),
     summary: v.string(),
