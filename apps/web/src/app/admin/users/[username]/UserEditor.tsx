@@ -33,6 +33,7 @@ import {
   resetTwoFactorAction,
   revokeSessionsAction,
   setAccountActiveAction,
+  setPermissionsAction,
 } from "../actions";
 
 type UserRow = {
@@ -459,7 +460,6 @@ function PermissionsForm({
   viewerIsSuperuser: boolean;
 }) {
   const t = useTranslations("admin.users.permissions");
-  const edit = useMutation(api.admin.users.edit);
   const router = useRouter();
 
   const initial = useMemo(
@@ -514,13 +514,17 @@ function PermissionsForm({
     setBusy(true);
 
     try {
-      await edit({
-        username: user.username,
-        isStaff: form.isStaff || form.isSuperuser,
-        isSuperuser: form.isSuperuser,
-        permissions: form.permissions,
+      const result = await setPermissionsAction(
+        user.username,
+        {
+          isStaff: form.isStaff || form.isSuperuser,
+          isSuperuser: form.isSuperuser,
+          permissions: form.permissions,
+        },
         reason,
-      });
+      );
+
+      if (!result.ok) throw new Error(result.error);
       setStatus({ saved: t("saved", { username: user.username }) });
       setReason("");
       router.refresh();
