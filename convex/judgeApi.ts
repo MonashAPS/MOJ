@@ -16,16 +16,16 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { mojError } from "./lib/errors";
-import { isJsonString, isNonEmptyString, type JsonValue } from "./lib/json";
+import { isJsonString, type JsonValue } from "./lib/json";
 
 /** No heartbeat for this long and the judge is treated as gone. */
 export const JUDGE_HEARTBEAT_TIMEOUT_MS = 60_000;
 
-/** `on_supported_problems`: `[problem code, time limit]`, as the wire sends it. */
-export type JudgeProblemEntry = readonly JsonValue[];
+/** `_connected`: a `[runtime name, version parts]` row, as the wire sends it. */
+export type JudgeExecutorEntry = readonly JsonValue[];
 
 /** `_connected`: executor key to its `[runtime name, version parts]` rows. */
-export type JudgeExecutorMap = Record<string, readonly JudgeProblemEntry[]>;
+export type JudgeExecutorMap = Record<string, readonly JudgeExecutorEntry[]>;
 
 /** The fields a judge handshake or heartbeat writes back onto its row. */
 type JudgePatch = Partial<WithoutSystemFields<Doc<"judges">>>;
@@ -60,19 +60,6 @@ export async function authenticateJudge(
   if (judge.isBlocked) throw judgeAuthError("This judge is blocked.");
 
   return judge;
-}
-
-function problemCodes(problems: JudgeProblemEntry[] | undefined): string[] | null {
-  if (!problems) return null;
-  const codes = new Set<string>();
-
-  for (const entry of problems) {
-    const code = entry?.[0];
-
-    if (isNonEmptyString(code)) codes.add(code);
-  }
-
-  return [...codes].sort();
 }
 
 function runtimeKeys(executors: JudgeExecutorMap | undefined): string[] | null {
@@ -139,11 +126,11 @@ export async function deleteRuntimeVersions(ctx: MutationCtx, judgeId: Id<"judge
   for (const row of existing) await ctx.db.delete(row._id);
 }
 
-/** `_connected`: the judge is online, and this is what it can grade. */
+/** `_connected`: the judge is online, and these are the executors it runs. */
 export async function applyHandshake(
   ctx: MutationCtx,
   judge: Doc<"judges">,
-  args: { problems: JudgeProblemEntry[]; executors: JudgeExecutorMap; ip?: string },
+  args: { executors: JudgeExecutorMap; ip?: string },
 ): Promise<void> {
   const now = Date.now();
 
@@ -151,7 +138,6 @@ export async function applyHandshake(
     online: true,
     startTime: now,
     lastSeen: now,
-    problemCodes: problemCodes(args.problems) ?? [],
     runtimeKeys: runtimeKeys(args.executors) ?? [],
     // A judge that reconnects mid-grade is not holding anything any more; the
     // recovery cron picks up whatever it dropped.
@@ -164,26 +150,22 @@ export async function applyHandshake(
 }
 
 /**
- * `_update_ping` plus `on_supported_problems`: liveness and load every ten
- * seconds, and the problem or executor list when it changed on disk.
+ * `_update_ping`: liveness and load every ten seconds, and the executor list
+ * when it changed.
  */
 export async function applyHeartbeat(
   ctx: MutationCtx,
   judge: Doc<"judges">,
   args: {
     load?: number | null;
-    problems?: JudgeProblemEntry[];
     executors?: JudgeExecutorMap;
     ip?: string;
   },
 ): Promise<void> {
-  const codes = problemCodes(args.problems);
   const keys = runtimeKeys(args.executors);
   const patch: JudgePatch = { online: true, lastSeen: Date.now() };
 
   if (args.load !== null && args.load !== undefined) patch.load = args.load;
-
-  if (codes) patch.problemCodes = codes;
 
   if (keys) patch.runtimeKeys = keys;
 
@@ -267,7 +249,6 @@ export const prepareEndToEnd = internalMutation({
         tier: 0,
         online: false,
         description: "created by npm run e2e:judge",
-        problemCodes: [],
         runtimeKeys: [],
       });
 

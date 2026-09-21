@@ -226,7 +226,6 @@ async function seed(): Promise<Fixture> {
       ping: 12.5,
       load: 0.25,
       description: "",
-      problemCodes: ["aplusb"],
       runtimeKeys: ["PY3"],
     });
 
@@ -658,7 +657,6 @@ describe("organizations, languages and judges", () => {
         tier: 0,
         online: false,
         description: "",
-        problemCodes: [],
         runtimeKeys: [],
       });
     });

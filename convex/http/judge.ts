@@ -101,7 +101,6 @@ export function registerJudgeRoutes(http: HttpRouter): void {
         const result = await ctx.runMutation(internal.judging.handshake, {
           judgeName: parsed.data.judgeName,
           authKeyHash: await sha256Hex(parsed.data.judgeKey),
-          problems: parsed.data.problems,
           executors: parsed.data.executors,
           ip: clientIp(request),
         });
@@ -126,7 +125,6 @@ export function registerJudgeRoutes(http: HttpRouter): void {
           judgeName: parsed.data.judgeName,
           authKeyHash: await sha256Hex(parsed.data.judgeKey),
           load: parsed.data.load ?? undefined,
-          problems: parsed.data.problems,
           executors: parsed.data.executors,
           ip: clientIp(request),
         });

@@ -175,7 +175,6 @@ function toJudgeRow(judge: Doc<"judges">, now: number): JudgeRow {
     online: judge.online && lastSeen >= now - JUDGE_HEARTBEAT_TIMEOUT_MS,
     isDisabled: judge.isDisabled,
     isBlocked: judge.isBlocked,
-    problemCodes: judge.problemCodes,
     runtimeKeys: judge.runtimeKeys,
     currentSubmissionId: judge.currentSubmissionId ?? null,
   };
@@ -264,11 +263,6 @@ export async function claimNext(
 
   const problems = new Map<Id<"problems">, Doc<"problems"> | null>();
   const languages = new Map<Id<"languages">, Doc<"languages"> | null>();
-  // The hash of the archive the site holds for each problem in the queue, or
-  // null for one it holds nothing for. A problem the site owns may go to a
-  // judge that never reported the code: the claim names the hash and the judge
-  // fetches the archive before it grades.
-  const dataHashes = new Map<Id<"problems">, string | null>();
   const judgeNames = new Map<Id<"judges">, string>(judgeDocs.map((row) => [row._id, row.name]));
 
   const candidates: ClaimableSubmission[] = [];
@@ -281,11 +275,6 @@ export async function claimNext(
 
     if (!languages.has(submission.languageId)) {
       languages.set(submission.languageId, await ctx.db.get(submission.languageId));
-    }
-
-    if (!dataHashes.has(submission.problemId)) {
-      const data = await testDataRow(ctx, submission.problemId);
-      dataHashes.set(submission.problemId, data?.hash ?? null);
     }
 
     const problem = problems.get(submission.problemId);
@@ -302,7 +291,6 @@ export async function claimNext(
       date: submission.date,
       status: submission.status,
       judgePin: submission.judgePin ? (judgeNames.get(submission.judgePin) ?? "\u0000") : null,
-      siteHasData: dataHashes.get(submission.problemId) !== null,
     });
   }
 
@@ -325,6 +313,9 @@ export async function claimNext(
   const profile = await ctx.db.get(submission.profileId);
   const limits = await resolveLimits(ctx, problem, submission.languageId);
   const attemptNo = await attemptNumber(ctx, submission);
+  // The archive the site holds for this problem; the judge fetches it by hash
+  // before it grades, so every judge grades the same bytes.
+  const data = await testDataRow(ctx, submission.problemId);
 
   let inContest: number | null = null;
 
@@ -353,7 +344,7 @@ export async function claimNext(
     timeLimit: limits.timeLimit,
     memoryLimit: limits.memoryLimit,
     shortCircuit: problem.shortCircuit,
-    problemDataHash: dataHashes.get(submission.problemId) ?? null,
+    problemDataHash: data?.hash ?? null,
     meta: {
       pretestsOnly: submission.isPretested,
       inContest,
@@ -918,17 +909,12 @@ export async function queueSubmission(
 export const handshake = internalMutation({
   args: {
     ...judgeAuthArgs,
-    problems: v.array(v.array(v.any())),
     executors: v.record(v.string(), v.array(v.array(v.any()))),
     ip: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const judge = await authenticateJudge(ctx, args.judgeName, args.authKeyHash);
-    await applyHandshake(ctx, judge, {
-      problems: args.problems,
-      executors: args.executors,
-      ip: args.ip,
-    });
+    await applyHandshake(ctx, judge, { executors: args.executors, ip: args.ip });
 
     return { ok: true as const, judgeId: judge._id };
   },
@@ -938,18 +924,12 @@ export const heartbeat = internalMutation({
   args: {
     ...judgeAuthArgs,
     load: v.optional(v.union(v.number(), v.null())),
-    problems: v.optional(v.array(v.array(v.any()))),
     executors: v.optional(v.record(v.string(), v.array(v.array(v.any())))),
     ip: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const judge = await authenticateJudge(ctx, args.judgeName, args.authKeyHash);
-    await applyHeartbeat(ctx, judge, {
-      load: args.load,
-      problems: args.problems,
-      executors: args.executors,
-      ip: args.ip,
-    });
+    await applyHeartbeat(ctx, judge, { load: args.load, executors: args.executors, ip: args.ip });
 
     return { ok: true as const, serverTime: Date.now() };
   },

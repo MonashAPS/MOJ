@@ -972,12 +972,12 @@ export const get = query({
         .unique();
     }
 
-    const onlineJudges = await ctx.db
-      .query("judges")
-      .withIndex("by_online_tier", (q) => q.eq("online", true))
-      .collect();
-
-    const availableJudges = onlineJudges.filter((judge) => judge.problemCodes.includes(problem.code)).length;
+    const availableJudges = (
+      await ctx.db
+        .query("judges")
+        .withIndex("by_online_tier", (q) => q.eq("online", true))
+        .collect()
+    ).length;
 
     const bannedFromSubmitting =
       !!viewer.profile &&

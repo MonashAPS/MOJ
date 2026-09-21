@@ -99,7 +99,7 @@ describe("grading-end bookkeeping", () => {
     const easy = await insertProblem(t, { code: "easy", points: 10, partial: true });
     const hard = await insertProblem(t, { code: "hard", points: 40, partial: true });
     const author = await insertProfile(t);
-    await insertJudge(t, { name: "local", problemCodes: ["easy", "hard"] });
+    await insertJudge(t, { name: "local" });
     const client = judgeClient(t, "local");
 
     await insertSubmission(t, {
@@ -148,7 +148,7 @@ describe("grading-end bookkeeping", () => {
     });
 
     const author = await insertProfile(t);
-    await insertJudge(t, { name: "local", problemCodes: ["secret"] });
+    await insertJudge(t, { name: "local" });
     const client = judgeClient(t, "local");
     await insertSubmission(t, {
       profileId: author,

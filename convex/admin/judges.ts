@@ -39,7 +39,6 @@ export const list = query({
       startTime: row.startTime ?? null,
       ping: row.ping ?? null,
       load: row.load ?? null,
-      problemCount: row.problemCodes.length,
       runtimeCount: row.runtimeKeys.length,
       disconnectRequestedAt: row.disconnectRequestedAt ?? null,
       createdAt: row.createdAt ?? row._creationTime,
@@ -95,7 +94,6 @@ export const create = mutation({
       tier: args.tier ?? 1,
       online: false,
       description: args.description ?? "",
-      problemCodes: [],
       runtimeKeys: [],
       createdAt: Date.now(),
     });

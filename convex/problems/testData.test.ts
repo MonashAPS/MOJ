@@ -436,51 +436,33 @@ describe("claiming with site-owned data", () => {
     return await insertSubmission(t, { profileId, problemId, languageId, status: "QU" });
   }
 
-  it("a judge that never reported the code claims when the site holds data", async () => {
+  it("the claim names the archive the site holds", async () => {
     const { t, languageId, problemId } = await fixture();
-    await insertJudge(t, { name: "local", problemCodes: [], runtimeKeys: ["PY3"] });
+    await insertJudge(t, { name: "local", runtimeKeys: ["PY3"] });
     const submissionId = await queued(t, languageId, problemId);
-
-    const before = await judgeClient(t, "local").claim();
-    expect((await before.json()).submission).toBeNull();
-
     await publish(t, "aplusb", FIRST);
 
-    const after = await judgeClient(t, "local").claim();
-    const body = await claimResponse(after);
+    const body = await claimResponse(await judgeClient(t, "local").claim());
+    expect(body.submission?.problemCode).toBe("aplusb");
     expect(body.submission?.problemDataHash).toBe(await sha256OfBytes(FIRST));
 
     const submission = await t.run(async (ctx) => ctx.db.get(submissionId));
     expect(submission?.status).toBe("P");
   });
 
-  it("a judge that reports the code still claims when the site holds nothing", async () => {
+  it("a problem with nothing published still claims, with no hash", async () => {
     const { t, languageId, problemId } = await fixture();
-    await insertJudge(t, { name: "local", problemCodes: ["aplusb"], runtimeKeys: ["PY3"] });
+    await insertJudge(t, { name: "local", runtimeKeys: ["PY3"] });
     await queued(t, languageId, problemId);
 
-    const response = await judgeClient(t, "local").claim();
-
-    const body = await claimResponse(response);
-
+    const body = await claimResponse(await judgeClient(t, "local").claim());
     expect(body.submission?.problemCode).toBe("aplusb");
     expect(body.submission?.problemDataHash).toBeNull();
   });
 
-  it("the site's copy wins even when the judge holds its own", async () => {
-    const { t, languageId, problemId } = await fixture();
-    await insertJudge(t, { name: "local", problemCodes: ["aplusb"], runtimeKeys: ["PY3"] });
-    await queued(t, languageId, problemId);
-    await publish(t, "aplusb", FIRST);
-
-    const response = await judgeClient(t, "local").claim();
-    const body = await claimResponse(response);
-    expect(body.submission?.problemDataHash).toBe(await sha256OfBytes(FIRST));
-  });
-
   it("the executor must still match", async () => {
     const { t, languageId, problemId } = await fixture();
-    await insertJudge(t, { name: "local", problemCodes: [], runtimeKeys: ["CPP17"] });
+    await insertJudge(t, { name: "local", runtimeKeys: ["CPP17"] });
     await queued(t, languageId, problemId);
     await publish(t, "aplusb", FIRST);
 

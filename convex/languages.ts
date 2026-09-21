@@ -83,12 +83,12 @@ export const usableForProblem = query({
 
     if (!(await canAccessProblem(ctx, problem, viewer))) return null;
 
-    const judges = (
-      await ctx.db
-        .query("judges")
-        .withIndex("by_online_tier", (q) => q.eq("online", true))
-        .collect()
-    ).filter((judge) => judge.problemCodes.includes(problem.code));
+    // Any online judge grades any problem: the site holds the data and the
+    // claim names the archive, so the judge only decides the executors.
+    const judges = await ctx.db
+      .query("judges")
+      .withIndex("by_online_tier", (q) => q.eq("online", true))
+      .collect();
 
     const runtimeKeys = new Set(judges.flatMap((judge) => judge.runtimeKeys));
 
