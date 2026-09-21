@@ -6,7 +6,7 @@ site *pushes* submissions to the judge. MOJ has no bridge; the site is a Convex 
 over HTTPS, so the judge *pulls* work instead. This module is a drop-in replacement exposing the same public
 surface `dmoj.judge.Judge` uses, implemented against the HTTP judge API:
 
-    POST /judge/handshake   announce problems and executors, once at startup
+    POST /judge/handshake   announce the executors, once at startup
     POST /judge/heartbeat   liveness and load, every 10 seconds
     POST /judge/claim       ask for a submission to grade, every 500 ms while idle
     POST /judge/event       report grading progress for the submission being graded
@@ -30,7 +30,7 @@ import urllib.request
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple
 
 from dmoj import moj_data
-from dmoj.judgeenv import get_runtime_versions, get_supported_problems_and_mtimes
+from dmoj.judgeenv import get_runtime_versions
 from dmoj.result import Result
 
 if TYPE_CHECKING:
@@ -157,8 +157,8 @@ class MojPacketManager:
 
     # -- lifecycle -------------------------------------------------------------------------------------------
 
-    def handshake(self, problems, runtimes, id: str, key: str) -> None:
-        payload = dict(self._auth(), problems=problems, executors=runtimes)
+    def handshake(self, runtimes, id: str, key: str) -> None:
+        payload = dict(self._auth(), executors=runtimes)
         response = self._request('/judge/handshake', payload)
         if not isinstance(response, dict) or not response.get('ok'):
             raise JudgeAuthenticationFailed(str(response))
@@ -167,17 +167,16 @@ class MojPacketManager:
     def _handshake_until_accepted(self) -> bool:
         backoff = 4.0
         while not self._shutdown.is_set():
-            problems = get_supported_problems_and_mtimes()
             runtimes = get_runtime_versions()
             try:
-                self.handshake(problems, runtimes, self.name, self.key)
+                self.handshake(runtimes, self.name, self.key)
             except JudgeAuthenticationFailed as e:
                 log.error('Authentication as "%s" failed on %s: %s', self.name, self.url, e)
             except Exception as e:
                 log.warning('Handshake with %s failed: %s', self.url, e)
             else:
                 self.online = True
-                log.info('Judge "%s" online at %s with %d problem(s)', self.name, self.url, len(problems))
+                log.info('Judge "%s" online at %s with %d executor(s)', self.name, self.url, len(runtimes))
                 return True
 
             log.warning('Retrying handshake in %.0fs: %s', backoff, self.url)
@@ -219,10 +218,8 @@ class MojPacketManager:
             self._send_heartbeat()
             self._sleep(HEARTBEAT_INTERVAL)
 
-    def _send_heartbeat(self, problems: Optional[list] = None, executors: Optional[dict] = None) -> None:
+    def _send_heartbeat(self, executors: Optional[dict] = None) -> None:
         payload = dict(self._auth(), load=_load_average())
-        if problems is not None:
-            payload['problems'] = problems
         if executors is not None:
             payload['executors'] = executors
         self._try_request('/judge/heartbeat', payload)
@@ -399,8 +396,9 @@ class MojPacketManager:
     # -- outgoing packets, mirroring dmoj.packet.PacketManager -----------------------------------------------
 
     def supported_problems_packet(self, problems: List[Tuple[str, float]]) -> None:
-        log.debug('Update problems')
-        self._send_heartbeat(problems=problems)
+        # The site owns every problem's data and names the archive in each
+        # claim, so what this judge has on disk is nobody's business but its own.
+        log.debug('Problem directories changed; nothing to announce')
 
     def executors_packet(self, executors: Optional[dict] = None) -> None:
         log.debug('Update executors')

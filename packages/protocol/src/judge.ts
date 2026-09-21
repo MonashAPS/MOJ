@@ -29,14 +29,6 @@ export type JudgeAuth = z.infer<typeof judgeAuthSchema>;
 /* -------------------------------------------------------------------------- */
 
 /**
- * `get_supported_problems_and_mtimes()`: a problem code and the mtime of its
- * directory. The mtime is a float and is only ever compared, never parsed.
- */
-export const problemListSchema = z.array(
-  z.tuple([z.string(), z.number().nullable().optional()]).rest(z.unknown()),
-);
-
-/**
  * `get_runtime_versions()`: `{LANG: [[name, [major, minor, patch]], ...]}`.
  * Version components are integers for every executor DMOJ ships, but a few
  * report a string, so both are accepted.
@@ -47,7 +39,6 @@ export const executorMapSchema = z.record(
 );
 
 export const handshakeRequestSchema = judgeAuthSchema.extend({
-  problems: problemListSchema,
   executors: executorMapSchema,
 });
 
@@ -55,7 +46,6 @@ export type HandshakeRequest = z.infer<typeof handshakeRequestSchema>;
 
 export const heartbeatRequestSchema = judgeAuthSchema.extend({
   load: z.number().nullable().optional(),
-  problems: problemListSchema.optional(),
   executors: executorMapSchema.optional(),
 });
 

@@ -500,7 +500,6 @@ export default defineSchema({
     load: v.optional(v.number()),
     description: v.string(),
     lastIp: v.optional(v.string()),
-    problemCodes: v.array(v.string()),
     runtimeKeys: v.array(v.string()),
     lastSeen: v.optional(v.number()),
     currentSubmissionId: v.optional(v.id("submissions")),

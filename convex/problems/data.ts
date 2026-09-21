@@ -676,22 +676,11 @@ export const get = query({
     const row = await dataRow(ctx, problem._id);
     const cases = await casesFor(ctx, problem._id);
 
-    // Whether any online judge reports holding this problem code. Data published
-    // from a problem repository never reaches these tables, so an empty editor
-    // beside a judge that has the problem is normal rather than a missing upload.
-    const judges = await ctx.db
-      .query("judges")
-      .withIndex("by_online_tier", (q) => q.eq("online", true))
-      .collect();
-
-    const judgesWithProblem = judges.filter((judge) => judge.problemCodes.includes(problem.code)).length;
-
     return {
       problemCode: problem.code,
       problemName: problem.name,
-      judgesWithProblem,
       // The archive the site holds, published here or from a problem
-      // repository. Null means grading data lives on the judge, if anywhere.
+      // repository. Null means nothing has been published yet.
       published: await publishedTestData(ctx, problem._id),
       data: row
         ? {

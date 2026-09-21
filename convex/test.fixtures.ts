@@ -290,7 +290,6 @@ export function judgeRow(overrides: Overrides<"judges"> & { authKeyHash: string 
     tier: 0,
     online: true,
     description: "",
-    problemCodes: ["aplusb"],
     runtimeKeys: ["PY3"],
     lastSeen: Date.now(),
     startTime: Date.now(),

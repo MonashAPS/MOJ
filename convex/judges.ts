@@ -37,7 +37,6 @@ export type JudgeRow = {
   isDisabled: boolean;
   lastSeen: number | null;
   lastIp: string | null;
-  problemCount: number;
   runtimeNames: string[];
   runtimes: JudgeLanguageRuntimes[];
 };
@@ -109,7 +108,6 @@ export async function decorateJudge(ctx: AnyCtx, judge: Doc<"judges">): Promise<
     isDisabled: judge.isDisabled,
     lastSeen: judge.lastSeen ?? null,
     lastIp: judge.lastIp ?? null,
-    problemCount: judge.problemCodes.length,
     runtimeNames: runtimes.map((entry) => entry.name),
     runtimes,
   };

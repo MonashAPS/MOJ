@@ -212,8 +212,6 @@ export interface JudgeRow {
   readonly online: boolean;
   readonly isDisabled?: boolean;
   readonly isBlocked?: boolean;
-  /** Problem codes the judge has data for. */
-  readonly problemCodes: readonly string[];
   /** Executor keys the judge can run. */
   readonly runtimeKeys: readonly string[];
   /** Set while the judge is grading something. */
@@ -229,11 +227,6 @@ export interface ClaimableSubmission {
   readonly status: SubmissionStatus;
   /** Only this judge (by name) may take the submission. */
   readonly judgePin?: string | null;
-  /**
-   * The site holds a test data archive for this problem, so a judge that never
-   * reported the code may grade it anyway: it fetches the archive first.
-   */
-  readonly siteHasData?: boolean;
 }
 
 /** A judge is working when it holds a submission. */
@@ -281,19 +274,11 @@ export function shouldReserveJudge(judges: readonly JudgeRow[], minTier: number 
 
 /**
  * `JudgeHandler.can_judge(problem, executor, judge_id)` (judge_handler.py:181),
- * with one addition: a judge that never reported the problem code still
- * qualifies when the site holds the data, because the claim carries the hash
- * and the judge downloads the archive before grading.
+ * minus the problem: the site owns every problem's data and the claim names
+ * the archive, so the only things a judge brings are its executors and its
+ * availability.
  */
-export function judgeCanJudge(
-  judge: JudgeRow,
-  problemCode: string,
-  languageKey: string,
-  judgePin?: string | null,
-  siteHasData = false,
-): boolean {
-  if (!siteHasData && !judge.problemCodes.includes(problemCode)) return false;
-
+export function judgeCanJudge(judge: JudgeRow, languageKey: string, judgePin?: string | null): boolean {
   if (!judge.runtimeKeys.includes(languageKey)) return false;
 
   if (judgePin) return judge.name === judgePin;
@@ -336,17 +321,7 @@ export function selectClaim(
   for (const submission of candidates) {
     if (submission.priority >= REJUDGE_PRIORITY && reserve) return null;
 
-    if (
-      !judgeCanJudge(
-        judge,
-        submission.problemCode,
-        submission.languageKey,
-        submission.judgePin,
-        submission.siteHasData ?? false,
-      )
-    ) {
-      continue;
-    }
+    if (!judgeCanJudge(judge, submission.languageKey, submission.judgePin)) continue;
 
     return submission;
   }

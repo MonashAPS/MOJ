@@ -197,12 +197,6 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
       numeric: true,
       cell: (row) => (row.load === null ? DASH : row.load.toFixed(2)),
     },
-    {
-      key: "problems",
-      header: t("columnProblems"),
-      numeric: true,
-      cell: (row) => row.problemCount.toLocaleString(),
-    },
     { key: "runtimes", header: t("columnRuntimes"), numeric: true, cell: (row) => row.runtimeCount },
     {
       key: "lastSeen",

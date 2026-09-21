@@ -35,7 +35,6 @@ function offlineJudgeRow() {
     authKeyHash: JUDGE_KEY_HASH,
     tier: 1,
     online: false,
-    problemCodes: [],
     runtimeKeys: [],
   });
 }
@@ -211,7 +210,6 @@ describe("the judge handshake survives duplicate languages", () => {
     const result = await t.mutation(internal.judging.handshake, {
       judgeName: "judge.example.com",
       authKeyHash: JUDGE_KEY_HASH,
-      problems: [["aplusb", 100]],
       executors: { PY3: [["python3", [3, 11, 0]]], CPP17: [["g++", [12, 2, 0]]], NOSUCH: [["x", [1]]] },
     });
 

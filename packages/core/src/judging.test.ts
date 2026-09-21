@@ -202,7 +202,6 @@ describe("claiming", () => {
       online: true,
       isDisabled: false,
       isBlocked: false,
-      problemCodes: ["aplusb"],
       runtimeKeys: ["PY3"],
       currentSubmissionId: null,
       ...spec,
@@ -239,23 +238,12 @@ describe("claiming", () => {
     expect(selectClaim(high, queue, [high])?.id).toBe("s1");
   });
 
-  it("requires the problem data and the runtime", () => {
+  it("requires the runtime, and nothing about the problem", () => {
     const j = judge("j");
-    expect(judgeCanJudge(j, "aplusb", "PY3")).toBe(true);
-    expect(judgeCanJudge(j, "other", "PY3")).toBe(false);
-    expect(judgeCanJudge(j, "aplusb", "CPP17")).toBe(false);
-    expect(selectClaim(j, [queued("s", { problemCode: "other" })], [j])).toBeNull();
+    expect(judgeCanJudge(j, "PY3")).toBe(true);
+    expect(judgeCanJudge(j, "CPP17")).toBe(false);
+    expect(selectClaim(j, [queued("s", { problemCode: "other" })], [j])?.id).toBe("s");
     expect(selectClaim(j, [queued("s", { languageKey: "CPP17" })], [j])).toBeNull();
-  });
-
-  it("takes a problem it never reported when the site holds the data", () => {
-    const j = judge("j");
-    expect(judgeCanJudge(j, "other", "PY3", null, true)).toBe(true);
-    expect(selectClaim(j, [queued("s", { problemCode: "other", siteHasData: true })], [j])?.id).toBe("s");
-    // The executor is still the judge's own business.
-    expect(
-      selectClaim(j, [queued("s", { problemCode: "other", languageKey: "CPP17", siteHasData: true })], [j]),
-    ).toBeNull();
   });
 
   it("honours a judge pin, even for a disabled judge", () => {
@@ -263,7 +251,7 @@ describe("claiming", () => {
     const other = judge("other");
     const submission = queued("s", { judgePin: "pinned" });
     expect(selectClaim(other, [submission], [other, pinned])).toBeNull();
-    expect(judgeCanJudge(pinned, "aplusb", "PY3", "pinned")).toBe(true);
+    expect(judgeCanJudge(pinned, "PY3", "pinned")).toBe(true);
     // A disabled judge is not counted for the tier, so pass it explicitly.
     expect(selectClaim(pinned, [submission], [pinned, other])?.id).toBe("s");
   });

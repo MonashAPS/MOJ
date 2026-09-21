@@ -76,12 +76,10 @@ async function languageKeyMap(ctx: ImportContext): Promise<Map<number, string>> 
 
 const judgesStep: Step = {
   table: "judges",
-  sources: ["judge_judge", "judge_judge_problems", "judge_judge_runtimes"],
+  sources: ["judge_judge", "judge_judge_runtimes"],
   async run(ctx) {
     const emitter = ctx.emitter("judges");
-    const codes = await problemCodeMap(ctx);
     const keys = await languageKeyMap(ctx);
-    const problems = await groupM2M(ctx, "judge_judge_problems", "judge_id", "problem_id");
     const runtimes = await groupM2M(ctx, "judge_judge_runtimes", "judge_id", "language_id");
 
     for await (const row of ctx.rows("judge_judge")) {
@@ -99,11 +97,6 @@ const judgesStep: Step = {
         load: row.nOpt("load"),
         description: row.s("description"),
         lastIp: row.sOpt("last_ip"),
-        problemCodes: (problems.get(id) ?? []).flatMap((problemId) => {
-          const code = codes.get(problemId);
-
-          return code === undefined ? [] : [code];
-        }),
         runtimeKeys: (runtimes.get(id) ?? []).flatMap((languageId) => {
           const key = keys.get(languageId);
 

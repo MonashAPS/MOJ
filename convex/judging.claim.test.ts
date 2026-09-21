@@ -42,9 +42,9 @@ describe("judge authentication", () => {
     expect((await judgeClient(t, "local", "secret").claim()).status).toBe(200);
   });
 
-  it("stores the problem list and the runtimes from the handshake", async () => {
+  it("stores the runtimes from the handshake", async () => {
     const { t } = await fixture();
-    const judgeId = await insertJudge(t, { name: "local", problemCodes: [], runtimeKeys: [] });
+    const judgeId = await insertJudge(t, { name: "local", runtimeKeys: [] });
     const client = judgeClient(t, "local");
 
     const response = await client.handshake(
@@ -60,7 +60,6 @@ describe("judge authentication", () => {
 
     const stored = await t.run(async (ctx) => ctx.db.get(judgeId));
     expect(stored?.online).toBe(true);
-    expect(stored?.problemCodes).toEqual(["aplusb", "other"]);
     expect(stored?.runtimeKeys).toEqual(["CPP17", "PY3"]);
 
     const runtimes = await t.run(async (ctx) =>
@@ -73,12 +72,12 @@ describe("judge authentication", () => {
     expect(runtimes.map((row) => row.version).sort()).toEqual(["11", "3.9.10"]);
   });
 
-  it("takes load and a new problem list on the heartbeat", async () => {
+  it("takes load and new executors on the heartbeat", async () => {
     const { t } = await fixture();
-    const judgeId = await insertJudge(t, { name: "local", problemCodes: ["aplusb"] });
+    const judgeId = await insertJudge(t, { name: "local", runtimeKeys: ["PY3"] });
     const client = judgeClient(t, "local");
 
-    const response = await client.heartbeat({ load: 0.42, problems: [["other", 12345]] });
+    const response = await client.heartbeat({ load: 0.42, executors: { CPP17: [["g++", [11]]] } });
     expect(response.status).toBe(200);
     const body = await heartbeatResponse(response);
     expect(body.ok).toBe(true);
@@ -86,7 +85,7 @@ describe("judge authentication", () => {
 
     const stored = await t.run(async (ctx) => ctx.db.get(judgeId));
     expect(stored?.load).toBe(0.42);
-    expect(stored?.problemCodes).toEqual(["other"]);
+    expect(stored?.runtimeKeys).toEqual(["CPP17"]);
   });
 
   it("marks the judge offline and drops its runtimes on disconnect", async () => {
@@ -143,11 +142,7 @@ describe("claimNext", () => {
       legacyId: 13,
     });
 
-    const judgeId = await insertJudge(t, {
-      name: "local",
-      problemCodes: ["aplusb"],
-      runtimeKeys: ["PY3"],
-    });
+    const judgeId = await insertJudge(t, { name: "local", runtimeKeys: ["PY3"] });
 
     const client = judgeClient(t, "local");
 
@@ -165,7 +160,7 @@ describe("claimNext", () => {
     expect(order).toEqual([13, 12, 10, 11]);
   });
 
-  it("only claims problems and languages the judge has", async () => {
+  it("claims any problem, but only languages the judge has", async () => {
     const { t, languageId, cpp, problemId, other, author } = await fixture();
     await insertSubmission(t, {
       profileId: author,
@@ -192,12 +187,13 @@ describe("claimNext", () => {
       date: 3,
     });
 
-    await insertJudge(t, { name: "local", problemCodes: ["aplusb"], runtimeKeys: ["PY3"] });
+    await insertJudge(t, { name: "local", runtimeKeys: ["PY3"] });
 
     const body = await claimResponse(await judgeClient(t, "local").claim());
 
-    expect(body.submission?.submissionId).toBe(3);
-    expect(body.submission?.problemCode).toBe("aplusb");
+    // The oldest queued submission in a language it runs, whatever the problem.
+    expect(body.submission?.submissionId).toBe(1);
+    expect(body.submission?.problemCode).toBe("other");
     expect(body.submission?.languageKey).toBe("PY3");
   });
 

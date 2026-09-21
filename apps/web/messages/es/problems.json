@@ -259,7 +259,6 @@
   },
   "testData": {
     "titleFor": "Editando datos de {name}",
-    "repositoryOwned": "Este problema se califica con datos almacenados en el juez, publicados desde un repositorio de problemas.",
     "saveFailed": "Ese cambio no se guardó.",
     "archivePublished": "{file} publicado — {count} archivos, {hash}.",
     "archiveUnchanged": "{file} es el archivo ya publicado, así que no hubo cambios.",
@@ -315,7 +314,6 @@
       "batchStart": "Inicio de lote",
       "batchEnd": "Fin de lote"
     },
-    "emptyJudgeOwned": "Aquí no se ha subido ningún dato de prueba. Este problema se califica con datos almacenados en el juez, publicados desde un repositorio de problemas.",
     "emptyNoCases": "Este problema todavía no tiene casos de prueba.",
     "moveUp": "Subir",
     "moveDown": "Bajar",
@@ -337,7 +335,6 @@
     "casesSaved": "Casos de prueba guardados.",
     "submitCases": "¡Enviar!",
     "addCase": "Añadir un caso nuevo",
-    "yamlJudgeOwned": "# Aquí no se genera nada: el juez califica este problema a partir del\n# init.yml publicado junto a sus datos de prueba.",
     "yamlNone": "# Este problema todavía no tiene una configuración generada."
   },
   "tickets": {
