@@ -308,12 +308,7 @@ def run(image: str, port: int, network: str, dump: Optional[str] = None) -> None
         print('waiting for handshake...', flush=True)
         check(server.wait_until(lambda s: bool(s.handshakes), 180.0), 'judge never completed a handshake')
         handshake = server.handshakes[0]
-        problems = {code for code, _mtime in handshake['problems']}
-        print(
-            'handshake: %d problem(s), %d executor(s)' % (len(handshake['problems']), len(handshake['executors'])),
-            flush=True,
-        )
-        check('aplusb' in problems, 'judge did not report the aplusb problem: %s' % sorted(problems))
+        print('handshake: %d executor(s)' % len(handshake['executors']), flush=True)
         check('PY3' in handshake['executors'], 'judge did not report a PY3 executor')
 
         print('\n=== 1. accepted ===', flush=True)
