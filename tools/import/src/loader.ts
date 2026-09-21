@@ -155,7 +155,7 @@ export class ConvexLoader implements Loader {
     for (;;) {
       const result = await this.withRetry(
         `clear ${table}`,
-        async () => await this.client.mutation(clearTableRef, { table, limit: 2000 }),
+        async () => await this.client.mutation(clearTableRef, { table }),
       );
 
       deleted += result.deleted;
