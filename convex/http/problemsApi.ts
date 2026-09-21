@@ -120,7 +120,9 @@ async function verifyWithBetterAuth(
     return "unreachable";
   }
 
-  if (response.status >= 500) return "unreachable";
+  // Better Auth keeps its verify endpoint server-only, so a 404 is the web app
+  // saying it cannot answer over HTTP at all; the mirrored hash decides instead.
+  if (response.status >= 500 || response.status === 404) return "unreachable";
 
   if (!response.ok) return null;
 
