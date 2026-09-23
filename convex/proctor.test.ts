@@ -18,7 +18,6 @@ import {
   insertParticipation,
   insertProblem,
   insertProfile,
-  siteSettingsRow,
 } from "./test.fixtures";
 import { setupTest, type T } from "./test.setup";
 
@@ -58,7 +57,7 @@ function as(f: Fixture) {
 }
 
 function share(f: Fixture, displaySurface = "monitor") {
-  return as(f).mutation(api.proctor.start, { displaySurface, userAgent: "Chrome/test" });
+  return as(f).mutation(api.proctor.start, { displaySurface, userAgent: "Chrome/test", termsVersion: 1 });
 }
 
 function read(f: Fixture, code: string) {
@@ -227,16 +226,15 @@ describe("retention", () => {
     expect(await f.t.run(async (ctx) => ctx.storage.getUrl(removed))).toBeNull();
   });
 
-  it("keeps everything when retention is switched off", async () => {
+  it("keeps a recording younger than four weeks", async () => {
     const f = await fixture();
     const { sessionId } = await share(f);
     await f.t.run(async (ctx) => {
-      await ctx.db.insert("siteSettings", siteSettingsRow({ proctorRetentionDays: 0 }));
       await ctx.db.insert("proctorChunks", {
         sessionId,
         profileId: f.memberId,
         index: 0,
-        startedAt: Date.now() - 400 * 24 * 60 * 60 * 1000,
+        startedAt: Date.now() - 27 * 24 * 60 * 60 * 1000,
         durationMs: 5000,
         bytes: 1,
         mimeType: "video/webm",

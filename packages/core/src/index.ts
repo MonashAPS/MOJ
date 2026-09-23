@@ -22,6 +22,8 @@ export * from "./permissions";
 
 export * from "./points";
 
+export * from "./proctor";
+
 export * from "./ratings";
 
 export * from "./scoreboard";

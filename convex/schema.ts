@@ -329,6 +329,10 @@ export default defineSchema({
     /** What the browser said it was capturing: only "monitor" is accepted. */
     displaySurface: v.string(),
     userAgent: v.string(),
+    /** The proctoring terms the member agreed to when starting, and when.
+     *  Absent only on sessions from before the terms existed. */
+    termsVersion: v.optional(v.number()),
+    termsAcceptedAt: v.optional(v.number()),
     /** Which contest they were in when the session began, if any. Only ever a
      *  starting point: a session outlives any one contest, so what they were
      *  doing at a given moment is recorded on the slice instead. */
@@ -900,9 +904,6 @@ export default defineSchema({
     navColor: v.optional(v.string()),
     customCss: v.optional(v.string()),
     themeDefault: v.optional(themeDefault),
-    /** How long proctoring recordings are kept, in days. Zero keeps them for
-     *  ever, which on a small disk is a decision and not a default. */
-    proctorRetentionDays: v.optional(v.number()),
   }).index("by_singleton", ["singleton"]),
 
   statsSnapshots: defineTable({

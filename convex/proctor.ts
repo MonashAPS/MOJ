@@ -9,6 +9,7 @@
  * does, rather than on anything the page claims once at the start.
  */
 
+import { PROCTOR_TERMS_VERSION } from "@moj/core";
 import type { WithoutSystemFields } from "convex/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -92,9 +93,13 @@ export const gate = query({
  * an error.
  */
 export const start = mutation({
-  args: { displaySurface: v.string(), userAgent: v.string() },
+  args: { displaySurface: v.string(), userAgent: v.string(), termsVersion: v.number() },
   handler: async (ctx, args): Promise<{ sessionId: Id<"proctorSessions"> }> => {
     const profile = await requireViewer(ctx);
+
+    if (args.termsVersion !== PROCTOR_TERMS_VERSION) {
+      throw invalid("Agree to the proctoring terms before sharing your screen.");
+    }
 
     if (args.displaySurface !== PROCTOR_REQUIRED_SURFACE) {
       throw invalid("Share your entire screen, not a window or a tab.");
@@ -120,6 +125,8 @@ export const start = mutation({
       lastSeenAt: now,
       displaySurface: args.displaySurface,
       userAgent: args.userAgent.slice(0, 512),
+      termsVersion: args.termsVersion,
+      termsAcceptedAt: now,
     };
 
     if (viewer.contest) session.contestId = viewer.contest._id;
