@@ -8,11 +8,8 @@
  * footage does not.
  */
 
+import { PROCTOR_RETENTION_DAYS } from "@moj/core";
 import { internalMutation } from "../_generated/server";
-import { siteSettings } from "../lib/community";
-
-/** Default when nobody has chosen. Long enough to settle a dispute. */
-const DEFAULT_RETENTION_DAYS = 30;
 
 /** How many blobs one run deletes, so a backlog never blocks a transaction. */
 const BATCH = 200;
@@ -20,13 +17,8 @@ const BATCH = 200;
 export const sweepRecordings = internalMutation({
   args: {},
   handler: async (ctx): Promise<{ deleted: number }> => {
-    const settings = await siteSettings(ctx);
-    const days = settings?.proctorRetentionDays ?? DEFAULT_RETENTION_DAYS;
-
-    // Zero is "keep for ever", which an operator has to choose deliberately.
-    if (days <= 0) return { deleted: 0 };
-
-    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+    // Fixed rather than configurable: it is what the proctoring terms promise.
+    const cutoff = Date.now() - PROCTOR_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
     const stale = await ctx.db
       .query("proctorChunks")

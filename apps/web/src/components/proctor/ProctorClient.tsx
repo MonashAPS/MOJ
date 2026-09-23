@@ -2,7 +2,8 @@
 
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { Button } from "@moj/ui";
+import { PROCTOR_TERMS_VERSION } from "@moj/core";
+import { Button, Checkbox } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { Check, MonitorPlay, ShieldCheck, TriangleAlert } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -147,6 +148,7 @@ export function ProctorClient() {
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [agreed, setAgreed] = useState(false);
 
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -259,7 +261,11 @@ export function ProctorClient() {
     let sessionId: Id<"proctorSessions">;
 
     try {
-      ({ sessionId } = await start({ displaySurface: surface, userAgent: navigator.userAgent }));
+      ({ sessionId } = await start({
+        displaySurface: surface,
+        userAgent: navigator.userAgent,
+        termsVersion: PROCTOR_TERMS_VERSION,
+      }));
     } catch (caught) {
       for (const each of stream.getTracks()) each.stop();
       setError(caught instanceof Error ? caught.message : t("failed"));
@@ -340,7 +346,7 @@ export function ProctorClient() {
   useEffect(() => teardown, [teardown]);
 
   const live = phase === "sharing" || state?.active === true;
-  const step = !browser ? 0 : !browser.ok ? 1 : 2;
+  const step = !browser ? 0 : !browser.ok ? 1 : !agreed ? 2 : 3;
 
   // Once it is running there is nothing left to do and nothing worth reading.
   // The one thing that matters is not closing the tab, so that is all it says.
@@ -395,7 +401,24 @@ export function ProctorClient() {
         )}
       </Step>
 
-      <Step index={2} current={step} title={t("stepShare")} done={false}>
+      <Step index={2} current={step} title={t("stepTerms")} done={agreed}>
+        <div className="grid gap-3">
+          <p className="text-sm text-muted-foreground">{t("termsIntro")}</p>
+          <ul className="grid list-disc gap-1.5 pl-5 text-sm text-muted-foreground">
+            {TERMS.map((key) => (
+              <li key={key}>{t(key)}</li>
+            ))}
+          </ul>
+          <Checkbox
+            checked={agreed}
+            disabled={!browser?.ok}
+            onCheckedChange={(value) => setAgreed(value === true)}
+            label={t("termsAgree")}
+          />
+        </div>
+      </Step>
+
+      <Step index={3} current={step} title={t("stepShare")} done={false}>
         <div className="grid gap-3">
           <p className="text-sm text-muted-foreground">{t("stepShareBody")}</p>
 
@@ -405,7 +428,11 @@ export function ProctorClient() {
           {error ? <Note tone="danger" text={error} /> : null}
 
           <div>
-            <Button onClick={() => void begin()} busy={phase === "starting"} disabled={!browser?.ok}>
+            <Button
+              onClick={() => void begin()}
+              busy={phase === "starting"}
+              disabled={!browser?.ok || !agreed}
+            >
               <MonitorPlay size={16} aria-hidden />
               {t("share")}
             </Button>
@@ -413,12 +440,15 @@ export function ProctorClient() {
         </div>
       </Step>
 
-      <Step index={3} current={step} title={t("stepKeep")} done={false}>
+      <Step index={4} current={step} title={t("stepKeep")} done={false}>
         <p className="text-sm text-muted-foreground">{t("stepKeepBody")}</p>
       </Step>
     </div>
   );
 }
+
+/** The proctoring terms, one line each, in the order they are read. */
+const TERMS = ["termsRetention", "termsUse", "termsNoSale", "termsNoSharing", "termsScope"] as const;
 
 /** One numbered step, dimmed until it is this one's turn. */
 function Step({
