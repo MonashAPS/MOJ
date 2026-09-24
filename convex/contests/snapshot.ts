@@ -3,6 +3,7 @@
  * the names they are chosen by.
  */
 
+import { problemListReleasePolicy } from "@moj/core";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { artefactSnapshot, artefactsOfContest } from "../artefacts/names";
@@ -114,6 +115,7 @@ export async function snapshotContest(ctx: QueryCtx, contestId: Id<"contests">) 
     hideProblemAuthors: contest.hideProblemAuthors,
     disableLockdown: contest.disableLockdown ?? false,
     proctorRequired: contest.proctorRequired ?? false,
+    problemListReleaseAt: problemListReleasePolicy(contest),
     publishProblemsAt: contest.publishProblemsAt ?? null,
     problemsPublishedAt: contest.problemsPublishedAt ?? null,
     testerSeeScoreboard: contest.testerSeeScoreboard,

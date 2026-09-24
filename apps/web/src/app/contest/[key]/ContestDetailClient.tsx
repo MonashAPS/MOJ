@@ -400,6 +400,7 @@ export function ContestDetailClient({
   const answered = live?.contest ? live : undefined;
   const detail = useViewerLive(answered, initial, initial.viewer.isAuthenticated);
   const contest = detail.contest;
+
   // DOMjudge's team home is the clock, the problem sheet and the clarifications
   // in one column; the panels beside ours are the site talking about itself.
   const asDomjudge = usesDomjudgeStructure(useSkin());
@@ -408,13 +409,7 @@ export function ContestDetailClient({
 
   const joinKind = joinKindFor(detail);
 
-  const showProblems =
-    detail.timing.ended ||
-    detail.viewer.isEditor ||
-    detail.viewer.isTester ||
-    detail.viewer.canEdit ||
-    (detail.viewer.isSpectator && detail.timing.started) ||
-    detail.viewer.inContest;
+  const showProblems = detail.problemsReleased;
 
   const showState = detail.viewer.isAuthenticated;
   const precision = contest.pointsPrecision;
@@ -440,7 +435,7 @@ export function ContestDetailClient({
         {showProblems ? (
           <DomjudgeProblemset detail={detail} defaultLanguageKey={defaultLanguageKey} />
         ) : (
-          <ProblemsNotReleased />
+          <ProblemsNotReleased contestName={contest.name} />
         )}
 
         <ContentDescription html={descriptionHtml} />

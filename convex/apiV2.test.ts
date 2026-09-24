@@ -122,6 +122,7 @@ async function seed(): Promise<Fixture> {
       name: "Spring Contest",
       startTime: Date.UTC(2024, 2, 1),
       endTime: Date.UTC(2024, 2, 2),
+      problemListReleaseAt: "end",
       rating: { everyone: false, excludeProfileIds: [] },
       tagIds: [tag],
       legacyId: 31,

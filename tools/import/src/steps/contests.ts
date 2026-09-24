@@ -372,6 +372,7 @@ const contestsStep: Step = {
         formatConfig: row.json("format_config"),
         lockedAfter: row.tOpt("locked_after"),
         pointsPrecision: row.n("points_precision"),
+        problemListReleaseAt: "start",
         legacyId: id,
       });
     }

@@ -251,6 +251,7 @@ describe("contest problem states", () => {
         key: "past",
         startTime: now - 5 * HOUR,
         endTime: now - 4 * HOUR,
+        problemListReleaseAt: "end",
       });
 
       const cpDuring = await insertContestProblem(ctx, {
@@ -439,6 +440,7 @@ describe("clarifications and statistics", () => {
 
       const contestId = await insertContest(ctx, {
         key: "past",
+        problemListReleaseAt: "end",
         startTime: now - 5 * HOUR,
         endTime: now - 4 * HOUR,
       });

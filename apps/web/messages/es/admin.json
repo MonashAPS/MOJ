@@ -588,15 +588,28 @@
       "rejudgeTitle": "¿Rejuzgar todos los envíos a {code}?",
       "rejudgeDescription": "Solo se afectan los envíos hechos dentro de este concurso. Se ponen en cola detrás del juzgado en vivo, y el marcador sigue a medida que cada uno termina.",
       "rejudgeQueued": "Rejuzgado en cola",
-      "publishTitle": "Publicación",
-      "publishNever": "Dejar los problemas como están",
-      "publishNeverHint": "Los problemas privados siguen privados.",
-      "publishStart": "Publicarlos cuando empiece el concurso",
-      "publishStartHint": "Cada problema pasa a ser público en cuanto empieza, para que cualquiera pueda abrirlo sin unirse.",
-      "publishEnd": "Publicarlos cuando termine",
-      "publishEndHint": "Cada problema pasa a ser público en cuanto termina el concurso, para que cualquiera pueda practicar.",
-      "publishDone": "Publicados el {at}.",
-      "publishSaved": "Publicación guardada."
+      "releaseTitle": "Mostrar la lista de problemas del concurso",
+      "releaseNever": "Nunca",
+      "releaseNeverHint": "No mostrar automáticamente la lista a los visitantes generales.",
+      "releaseStart": "Cuando empiece el concurso",
+      "releaseStartHint": "Mostrar la lista a quienes puedan ver el concurso cuando empiece.",
+      "releaseEnd": "Cuando termine el concurso",
+      "releaseEndHint": "Mostrar la lista a quienes puedan ver el concurso cuando termine.",
+      "listReleasedDone": "Lista de problemas publicada el {at}.",
+      "listReleaseReversible": "Elegir Nunca o mover la hora seleccionada al futuro puede volver a ocultar la lista.",
+      "problemsPublishedDone": "Problemas privados aptos publicados el {at}. Los problemas públicos no volverán a ser privados.",
+      "releaseSaved": "Política de publicación guardada.",
+      "publishTitle": "Publicar problemas en el conjunto general",
+      "publishNeverHint": "No cambiar automáticamente la visibilidad de los problemas.",
+      "publishStartHint": "Hacer públicos los problemas privados aptos cuando empiece el concurso.",
+      "publishEndHint": "Hacer públicos los problemas privados aptos cuando termine el concurso.",
+      "publishIrreversible": "Cambiar esta opción no vuelve privados los problemas que ya son públicos.",
+      "publishSaved": "Política de publicación guardada.",
+      "combinedReleaseTitle": "Publicar los problemas del concurso",
+      "combinedReleaseNeverHint": "No mostrar automáticamente la lista ni publicar problemas privados.",
+      "combinedReleaseStartHint": "Al empezar el concurso, mostrar la lista y publicar los problemas privados aptos en el conjunto general.",
+      "combinedReleaseEndHint": "Al terminar el concurso, mostrar la lista y publicar los problemas privados aptos en el conjunto general.",
+      "combinedReleaseSettingsHint": "Después de crear el concurso, puedes configurar por separado la visibilidad de la lista y la publicación de problemas en los ajustes detallados de la pestaña Problemas."
     },
     "people": {
       "errorNoAuthor": "Un concurso necesita al menos un autor.",
@@ -768,7 +781,9 @@
         "locked": "Los envíos dejan de poder editarse después de <b>{at}</b>.",
         "publishAtStart": "Sus problemas se publican para todos el <b>{at}</b>, al empezar.",
         "publishAtEnd": "Sus problemas se publican para todos el <b>{at}</b>.",
-        "problemsPublished": "Sus problemas se publicaron el <b>{at}</b>."
+        "problemsPublished": "Sus problemas se publicaron el <b>{at}</b>.",
+        "listReleaseAtStart": "La lista se muestra a las <b>{at}</b>, al empezar el concurso.",
+        "listReleaseAtEnd": "La lista se muestra a las <b>{at}</b>, al terminar el concurso."
       },
       "who": {
         "hidden": "Oculto de la lista de concursos.",
@@ -819,7 +834,8 @@
       "ratingFloorExcludesNewcomers": "Un mínimo de {floor} excluye a todo el que nunca haya sido clasificado, porque cuentan como {newcomer}.",
       "rateEveryoneWithExclusions": "Se clasifica a todos, menos {count, plural, one {# exclusión} other {# exclusiones}}.",
       "customLabelsShort": "{labels, plural, one {# etiqueta} other {# etiquetas}} para {problems} problemas; el resto vuelve a las letras.",
-      "pretestsWithoutPretestedProblems": "Solo pruebas previas está activo, pero ningún problema de este concurso está marcado como de prueba previa, así que no hace nada."
+      "pretestsWithoutPretestedProblems": "Solo pruebas previas está activo, pero ningún problema de este concurso está marcado como de prueba previa, así que no hace nada.",
+      "problemReleaseOutOfSync": "La lista y la publicación de problemas tienen momentos distintos. Los visitantes pueden ver entradas restringidas o problemas públicos antes de que se muestre la lista. Iguala las opciones si ambos deben estar disponibles a la vez."
     },
     "formats": {
       "default": "Mejor puntuación por problema; los empates se rompen por la hora del último envío puntuado.",
@@ -2208,6 +2224,7 @@
         "lockedAfter": "Bloqueado después de",
         "memoryLimit": "Límite de memoria",
         "pointsPrecision": "Precisión de los puntos",
+        "problemListReleaseAt": "Publicación de la lista de problemas",
         "problemsPublishedAt": "Problemas publicados",
         "publishProblemsAt": "Publicar problemas",
         "rating": "Clasificación",

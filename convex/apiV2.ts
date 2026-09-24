@@ -14,9 +14,7 @@
 import {
   canSeeSubmissionDetail,
   contestCanSeeFullScoreboard,
-  contestEnded,
   contestIsAccessibleBy,
-  contestIsEditableBy,
   contestIsInContest,
   contestIsVisibleTo,
   getContestFormat,
@@ -46,7 +44,7 @@ import { API_PAGE_SIZE } from "@moj/protocol";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { type QueryCtx, query } from "./_generated/server";
-import { toContestRow } from "./contests/formats";
+import { problemListAccessFor, toContestRow } from "./contests/formats";
 import { optionalViewer } from "./lib/auth";
 import { globalSourceVisibility, siteSettings } from "./lib/community";
 import { forbidden, notFound } from "./lib/errors";
@@ -262,7 +260,7 @@ export const contest = query({
 
     if (!contestDoc) throw notFound("Contest");
 
-    const { row: viewer } = await apiViewer(ctx);
+    const { profile, row: viewer } = await apiViewer(ctx);
     const core = toContestRow(contestDoc);
 
     if (!contestIsAccessibleBy(core, viewer)) throw notFound("Contest");
@@ -270,7 +268,7 @@ export const contest = query({
     const now = Date.now();
     const inContest = contestIsInContest(core, viewer);
     const canSeeRankings = contestCanSeeFullScoreboard(core, viewer, { now });
-    const canSeeProblems = inContest || contestEnded(core, now) || contestIsEditableBy(core, viewer);
+    const canSeeProblems = problemListAccessFor(contestDoc, profile, viewer, inContest, now).released;
 
     const contestProblems = await ctx.db
       .query("contestProblems")

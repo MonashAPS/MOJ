@@ -210,26 +210,33 @@ export const publishEndedContestProblems = internalMutation({
   handler: async (ctx): Promise<{ contests: number; problems: number }> => {
     const now = Date.now();
 
-    const atStart = await ctx.db
+    const publishAtStart = await ctx.db
       .query("contests")
       .withIndex("by_publishProblemsAt_start", (q) =>
         q.eq("publishProblemsAt", "start").lte("startTime", now),
       )
       .collect();
 
-    const atEnd = await ctx.db
+    const publishAtEnd = await ctx.db
       .query("contests")
       .withIndex("by_publishProblemsAt_end", (q) => q.eq("publishProblemsAt", "end").lte("endTime", now))
       .collect();
 
-    const due = [...atStart, ...atEnd].filter((contest) => contest.problemsPublishedAt === undefined);
+    // Publication is a one-time attempt, including when some problems were held.
+    const dueToPublish = [...publishAtStart, ...publishAtEnd].filter(
+      (contest) => contest.problemsPublishedAt === undefined,
+    );
+
     let problems = 0;
 
-    for (const contest of due) {
+    for (const contest of dueToPublish) {
       const result = await publishContestProblems(ctx, contest, now);
       problems += result.published.length;
     }
 
-    return { contests: due.length, problems };
+    return {
+      contests: dueToPublish.length,
+      problems,
+    };
   },
 });

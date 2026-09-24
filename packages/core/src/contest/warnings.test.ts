@@ -20,6 +20,7 @@ const START = Date.UTC(2026, 0, 1, 10);
 const CONTEST = {
   id: "c1",
   key: "weekly",
+  problemListReleaseAt: null,
   startTime: START,
   endTime: START + 3 * HOUR,
   isVisible: true,
@@ -186,6 +187,26 @@ describe("the summary of a contest that publishes its problems", () => {
     );
     expect(keys(CONTEST)).not.toContain("publishAtEnd");
   });
+
+  it("describes list release independently of publication", () => {
+    const keys = (source: Parameters<typeof describeContest>[0]) =>
+      describeContest(source).map((line) => line.key);
+
+    expect(keys({ ...CONTEST, problemListReleaseAt: "start", publishProblemsAt: "start" })).toContain(
+      "listReleaseAtStart",
+    );
+    expect(keys({ ...CONTEST, problemListReleaseAt: "end", publishProblemsAt: "end" })).toContain(
+      "listReleaseAtEnd",
+    );
+    expect(
+      keys({
+        ...CONTEST,
+        problemListReleaseAt: "end",
+        publishProblemsAt: "end",
+        problemsPublishedAt: START + 3 * HOUR,
+      }),
+    ).toContain("listReleaseAtEnd");
+  });
 });
 
 describe("the summary of a windowed contest", () => {
@@ -214,5 +235,48 @@ describe("severity ordering", () => {
     expect(severities[0]).toBe("blocked");
     expect(severities.indexOf("danger")).toBeGreaterThan(-1);
     expect(severities).toEqual([...severities].sort());
+  });
+});
+
+describe("independent list release and publication", () => {
+  const policies = [undefined, null, "start", "end"] as const;
+
+  it("describes an unset list policy as start and keeps Never explicit", () => {
+    expect(describeContest({ ...CONTEST, problemListReleaseAt: undefined })).toContainEqual({
+      group: "when",
+      key: "listReleaseAtStart",
+      values: { at: new Date(START).toISOString() },
+    });
+    expect(describeContest(CONTEST).map((line) => line.key)).not.toContain("listReleaseAtStart");
+  });
+
+  it.each(
+    policies.flatMap((list) => ([undefined, "start", "end"] as const).map((publish) => ({ list, publish }))),
+  )("warns without blocking for list=$list and publication=$publish", ({ list, publish }) => {
+    const warnings = contestWarnings({
+      ...CONTEST,
+      problemListReleaseAt: list,
+      publishProblemsAt: publish,
+    });
+
+    expect(keysOf(warnings).includes("problemReleaseOutOfSync")).toBe(
+      (list === undefined ? "start" : list) !== (publish ?? null),
+    );
+    expect(blockingWarnings(warnings)).toEqual([]);
+    expect(dangerWarnings(warnings)).toEqual([]);
+  });
+
+  it("summarises different list and publication timings separately", () => {
+    const lines = describeContest({ ...CONTEST, problemListReleaseAt: "start", publishProblemsAt: "end" });
+    expect(lines).toContainEqual({
+      group: "when",
+      key: "listReleaseAtStart",
+      values: { at: new Date(START).toISOString() },
+    });
+    expect(lines).toContainEqual({
+      group: "when",
+      key: "publishAtEnd",
+      values: { at: new Date(CONTEST.endTime).toISOString() },
+    });
   });
 });

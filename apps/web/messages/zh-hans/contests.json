@@ -389,7 +389,7 @@
     "metaTitle": "{name} 统计",
     "metaFallback": "统计",
     "notOutTitle": "统计数据尚未公布",
-    "notOutBody": "比赛统计数据将在比赛结束后公布。",
+    "notOutBody": "比赛统计数据尚未公布。",
     "noSubmissionsTitle": "暂无提交",
     "noSubmissionsBody": "此比赛期间没有人提交。",
     "totalSubmissions": "{count, plural, other {此比赛期间共产生 # 条提交。}}",

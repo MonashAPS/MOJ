@@ -12,7 +12,7 @@ crons.interval("judge offline marking", { minutes: 1 }, internal.judgeApi.markOf
 crons.interval("stale contest-mode cleanup", { minutes: 5 }, internal.jobs.contests.sweepContestMode, {});
 
 crons.interval(
-  "publish ended contests' problems",
+  "publish contest problems",
   { minutes: 5 },
   internal.jobs.contests.publishEndedContestProblems,
   {},

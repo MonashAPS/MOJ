@@ -588,15 +588,28 @@
       "rejudgeTitle": "Rejudge every submission to {code}?",
       "rejudgeDescription": "Only submissions made inside this contest are touched.",
       "rejudgeQueued": "Rejudge queued",
-      "publishTitle": "Publishing",
-      "publishNever": "Keep the problems as they are",
-      "publishNeverHint": "Private problems stay private.",
-      "publishStart": "Publish them when the contest starts",
-      "publishStartHint": "Every problem becomes public the moment it starts, so anyone can open it without joining.",
-      "publishEnd": "Publish them when it ends",
-      "publishEndHint": "Every problem becomes public the moment the contest ends, so anyone can practise it.",
-      "publishDone": "Published on {at}.",
-      "publishSaved": "Publishing saved."
+      "releaseTitle": "Show contest problem list",
+      "releaseNever": "Never",
+      "releaseNeverHint": "Do not automatically show the list to general viewers.",
+      "releaseStart": "When the contest starts",
+      "releaseStartHint": "Show the list to everyone who can view the contest when it starts.",
+      "releaseEnd": "When the contest ends",
+      "releaseEndHint": "Show the list to everyone who can view the contest when it ends.",
+      "listReleasedDone": "Problem list released on {at}.",
+      "listReleaseReversible": "Choosing Never or moving the selected contest time into the future can hide the list again.",
+      "problemsPublishedDone": "Eligible private problems published on {at}. Already-public problems will not be made private again.",
+      "releaseSaved": "Release policy saved.",
+      "publishTitle": "Publish problems to the general problem set",
+      "publishNeverHint": "Do not automatically change problem visibility.",
+      "publishStartHint": "Make eligible private problems public when the contest starts.",
+      "publishEndHint": "Make eligible private problems public when the contest ends.",
+      "publishIrreversible": "Changing this setting does not make already-public problems private again.",
+      "publishSaved": "Publication policy saved.",
+      "combinedReleaseTitle": "Release contest problems",
+      "combinedReleaseNeverHint": "Do not automatically show the problem list or publish private problems.",
+      "combinedReleaseStartHint": "When the contest starts, show the problem list and publish eligible private problems to the general problem set.",
+      "combinedReleaseEndHint": "When the contest ends, show the problem list and publish eligible private problems to the general problem set.",
+      "combinedReleaseSettingsHint": "After creating the contest, you can set list visibility and problem publication separately in the detailed settings on the Problems tab."
     },
     "people": {
       "errorNoAuthor": "A contest needs at least one author.",
@@ -768,7 +781,9 @@
         "locked": "Submissions stop being editable after <b>{at}</b>.",
         "publishAtStart": "Its problems are published to everyone at <b>{at}</b>, when it starts.",
         "publishAtEnd": "Its problems are published to everyone at <b>{at}</b>.",
-        "problemsPublished": "Its problems were published on <b>{at}</b>."
+        "problemsPublished": "Its problems were published on <b>{at}</b>.",
+        "listReleaseAtStart": "The problem list is shown at <b>{at}</b>, when the contest starts.",
+        "listReleaseAtEnd": "The problem list is shown at <b>{at}</b>, when the contest ends."
       },
       "who": {
         "hidden": "Hidden from the contest list.",
@@ -819,7 +834,8 @@
       "ratingFloorExcludesNewcomers": "A floor of {floor} excludes everyone who has never been rated, because they count as {newcomer}.",
       "rateEveryoneWithExclusions": "Rating everyone, minus {count, plural, one {# exclusion} other {# exclusions}}.",
       "customLabelsShort": "{labels, plural, one {# label} other {# labels}} for {problems} problems; the rest fall back to letters.",
-      "pretestsWithoutPretestedProblems": "Pretests-only is on, but no problem in this contest is marked as pretested, so it does nothing."
+      "pretestsWithoutPretestedProblems": "Pretests-only is on, but no problem in this contest is marked as pretested, so it does nothing.",
+      "problemReleaseOutOfSync": "The problem list and problem publication have different timings. Viewers may see restricted entries, or public problems before the contest list is shown. Align the settings if both should become available together."
     },
     "formats": {
       "default": "Best score per problem; ties break on the time of the last scoring submission.",
@@ -2208,6 +2224,7 @@
         "lockedAfter": "Locked after",
         "memoryLimit": "Memory limit",
         "pointsPrecision": "Points precision",
+        "problemListReleaseAt": "Problem list release",
         "problemsPublishedAt": "Problems published",
         "publishProblemsAt": "Publish problems",
         "rating": "Rating",

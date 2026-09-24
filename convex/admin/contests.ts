@@ -77,6 +77,7 @@ const plainWritable = {
   lockedAfter: v.optional(v.union(v.number(), v.null())),
   pointsPrecision: v.optional(v.number()),
   proctorRequired: v.optional(v.boolean()),
+  problemListReleaseAt: v.optional(v.union(v.literal("start"), v.literal("end"), v.null())),
   publishProblemsAt: v.optional(v.union(v.literal("start"), v.literal("end"), v.null())),
 };
 
@@ -116,13 +117,13 @@ function keysOf<T extends object>(value: T): (keyof T & string)[] {
 const PLAIN_FIELDS = keysOf(plainWritable);
 
 /**
- * Fields the schema requires to be present, where a null is the value itself.
+ * Fields where null is a stored value rather than a request to unset the field.
  *
  * `formatConfig` is `v.any()` and not optional, and `create` stores null for a
  * format that takes no configuration. Clearing it instead removed the field, so
  * saving any contest on the default format wrote a document the schema refused.
  */
-const NULL_IS_A_VALUE = new Set<string>(["formatConfig"]);
+const NULL_IS_A_VALUE = new Set<string>(["formatConfig", "problemListReleaseAt"]);
 
 /** Staff are never listed, and the rest keep one order, so equal policies read equal. */
 function normaliseAudiences(audiences: readonly Doc<"contests">["scoreboard"]["audiences"][number][]) {
@@ -495,6 +496,7 @@ export const create = mutation({
       lockedAfter: patch.lockedAfter,
       pointsPrecision: patch.pointsPrecision ?? 3,
       proctorRequired: patch.proctorRequired ?? false,
+      problemListReleaseAt: "problemListReleaseAt" in patch ? patch.problemListReleaseAt : "start",
       publishProblemsAt: patch.publishProblemsAt,
     });
 
@@ -553,12 +555,16 @@ async function publishIfDue(
 ): Promise<void> {
   const contest = await ctx.db.get(contestId);
 
-  if (!contest?.publishProblemsAt || contest.problemsPublishedAt !== undefined) return;
+  if (!contest || contest.problemsPublishedAt !== undefined) return;
 
   const now = Date.now();
-  const due = contest.publishProblemsAt === "start" ? contest.startTime <= now : contest.endTime <= now;
 
-  if (due) await publishContestProblems(ctx, contest, now, byProfileId);
+  const due = (policy: "start" | "end" | undefined): boolean =>
+    policy === "start" ? contest.startTime <= now : policy === "end" ? contest.endTime <= now : false;
+
+  if (due(contest.publishProblemsAt)) {
+    await publishContestProblems(ctx, contest, now, byProfileId);
+  }
 }
 
 export const setVisibility = mutation({

@@ -41,6 +41,7 @@ async function fixture() {
     key: "past",
     startTime: now - 7_200_000,
     endTime: now - 3_600_000,
+    problemListReleaseAt: "end",
   });
 
   await insertContestProblem(t, { contestId, problemId: open1, order: 1, points: 1 });
@@ -118,7 +119,11 @@ describe("a contest that has not finished", () => {
     const f = await fixture();
     const now = Date.now();
     await f.t.run(async (ctx) =>
-      ctx.db.patch(f.contestId, { startTime: now - 60_000, endTime: now + 3_600_000 }),
+      ctx.db.patch(f.contestId, {
+        startTime: now - 60_000,
+        endTime: now + 3_600_000,
+        problemListReleaseAt: "end",
+      }),
     );
 
     return f;

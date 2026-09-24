@@ -588,15 +588,28 @@
       "rejudgeTitle": "Judge ulang semua pengiriman ke {code}?",
       "rejudgeDescription": "Hanya pengiriman yang dibuat di dalam kontes ini yang terpengaruh. Pengiriman ini mengantre di belakang penilaian langsung, dan papan skor mengikuti setiap kali satu selesai.",
       "rejudgeQueued": "Judge ulang dimasukkan ke antrean",
-      "publishTitle": "Publikasi",
-      "publishNever": "Biarkan soal apa adanya",
-      "publishNeverHint": "Soal privat tetap privat.",
-      "publishStart": "Publikasikan saat kontes dimulai",
-      "publishStartHint": "Setiap soal menjadi publik begitu kontes dimulai, sehingga siapa pun bisa membukanya tanpa bergabung.",
-      "publishEnd": "Publikasikan saat kontes berakhir",
-      "publishEndHint": "Setiap soal menjadi publik begitu kontes berakhir, sehingga siapa pun bisa berlatih.",
-      "publishDone": "Dipublikasikan pada {at}.",
-      "publishSaved": "Publikasi disimpan."
+      "releaseTitle": "Tampilkan daftar soal kontes",
+      "releaseNever": "Jangan pernah",
+      "releaseNeverHint": "Jangan tampilkan daftar secara otomatis kepada pengunjung umum.",
+      "releaseStart": "Saat kontes dimulai",
+      "releaseStartHint": "Tampilkan daftar kepada semua yang dapat melihat kontes saat dimulai.",
+      "releaseEnd": "Saat kontes berakhir",
+      "releaseEndHint": "Tampilkan daftar kepada semua yang dapat melihat kontes saat berakhir.",
+      "listReleasedDone": "Daftar soal dirilis pada {at}.",
+      "listReleaseReversible": "Memilih Tidak pernah atau memindahkan waktu yang dipilih ke masa depan dapat menyembunyikan daftar kembali.",
+      "problemsPublishedDone": "Soal privat yang memenuhi syarat dipublikasikan pada {at}. Soal publik tidak akan dibuat privat lagi.",
+      "releaseSaved": "Kebijakan rilis disimpan.",
+      "publishTitle": "Publikasikan soal ke kumpulan soal umum",
+      "publishNeverHint": "Jangan ubah visibilitas soal secara otomatis.",
+      "publishStartHint": "Jadikan soal privat yang memenuhi syarat publik saat kontes dimulai.",
+      "publishEndHint": "Jadikan soal privat yang memenuhi syarat publik saat kontes berakhir.",
+      "publishIrreversible": "Mengubah pengaturan ini tidak menjadikan soal yang sudah publik privat kembali.",
+      "publishSaved": "Kebijakan publikasi disimpan.",
+      "combinedReleaseTitle": "Rilis soal kontes",
+      "combinedReleaseNeverHint": "Jangan tampilkan daftar atau publikasikan soal privat secara otomatis.",
+      "combinedReleaseStartHint": "Saat kontes dimulai, tampilkan daftar dan publikasikan soal privat yang memenuhi syarat ke kumpulan soal umum.",
+      "combinedReleaseEndHint": "Saat kontes berakhir, tampilkan daftar dan publikasikan soal privat yang memenuhi syarat ke kumpulan soal umum.",
+      "combinedReleaseSettingsHint": "Setelah membuat kontes, Anda dapat mengatur visibilitas daftar dan publikasi soal secara terpisah di pengaturan terperinci pada tab Soal."
     },
     "people": {
       "errorNoAuthor": "Kontes memerlukan setidaknya satu penulis.",
@@ -768,7 +781,9 @@
         "locked": "Pengiriman berhenti bisa disunting setelah <b>{at}</b>.",
         "publishAtStart": "Soalnya dipublikasikan untuk semua orang pada <b>{at}</b>, saat dimulai.",
         "publishAtEnd": "Soalnya dipublikasikan untuk semua orang pada <b>{at}</b>.",
-        "problemsPublished": "Soalnya dipublikasikan pada <b>{at}</b>."
+        "problemsPublished": "Soalnya dipublikasikan pada <b>{at}</b>.",
+        "listReleaseAtStart": "Daftar soal ditampilkan pada <b>{at}</b>, saat kontes dimulai.",
+        "listReleaseAtEnd": "Daftar soal ditampilkan pada <b>{at}</b>, saat kontes berakhir."
       },
       "who": {
         "hidden": "Disembunyikan dari daftar kontes.",
@@ -819,7 +834,8 @@
       "ratingFloorExcludesNewcomers": "Batas bawah {floor} mengecualikan semua yang belum pernah dinilai, karena mereka dihitung sebagai {newcomer}.",
       "rateEveryoneWithExclusions": "Memberi peringkat kepada semua, dikurangi {count, plural, other {# pengecualian}}.",
       "customLabelsShort": "{labels, plural, other {# label}} untuk {problems} soal; sisanya kembali memakai huruf.",
-      "pretestsWithoutPretestedProblems": "Hanya prauji aktif, tetapi tidak ada soal di kontes ini yang ditandai sebagai prauji, jadi tidak berpengaruh."
+      "pretestsWithoutPretestedProblems": "Hanya prauji aktif, tetapi tidak ada soal di kontes ini yang ditandai sebagai prauji, jadi tidak berpengaruh.",
+      "problemReleaseOutOfSync": "Waktu penampilan daftar dan publikasi soal berbeda. Pengunjung mungkin melihat entri terbatas, atau soal publik sebelum daftar kontes ditampilkan. Samakan pengaturan jika keduanya harus tersedia bersamaan."
     },
     "formats": {
       "default": "Skor terbaik per soal; seri diputuskan oleh waktu pengumpulan bernilai terakhir.",
@@ -2208,6 +2224,7 @@
         "lockedAfter": "Dikunci setelah",
         "memoryLimit": "Batas memori",
         "pointsPrecision": "Presisi poin",
+        "problemListReleaseAt": "Rilis daftar soal",
         "problemsPublishedAt": "Soal dipublikasikan",
         "publishProblemsAt": "Publikasikan soal",
         "rating": "Rating",

@@ -33,6 +33,7 @@ import {
   participationEndTime,
   participationHasEnded,
   participationTimeRemaining,
+  problemListReleasePolicy,
   type ScoringLine,
 } from "@moj/core";
 import { v } from "convex/values";
@@ -43,6 +44,8 @@ import {
   formatFor,
   labelForProblem,
   loadContestProblems,
+  type ProblemListAccess,
+  problemListAccessFor,
   toContestRow,
   toParticipationRow,
   toViewerRowInContest,
@@ -473,7 +476,7 @@ export const navBar = query({
     const viewer = await toViewerRowInContest(ctx, profile);
     const contestRow = toContestRow(contest);
 
-    const contestProblems = problemsReleasedFor(contest, profile, true, Date.now())
+    const contestProblems = problemListAccessFor(contest, profile, viewer, true, Date.now()).released
       ? await loadContestProblems(ctx, contest._id)
       : [];
 
@@ -564,52 +567,15 @@ function compareContests(a: Doc<"contests">, b: Doc<"contests">, sort: Sort, des
  * being answered on the contest list is "have I done these", and a problem
  * solved afterwards is still done.
  */
-/**
- * Whether a contest's problems may be named yet.
- *
- * DMOJ's gate on the problem table (`contest/contest.html`): `contest.ended or
- * is_superuser or is_editor or is_tester or (is_spectator and
- * contest.started)`. Naming a problem before the contest is over hands it to
- * anybody who opens the page. Participants are added, who plainly need to read
- * what they are competing on.
- */
-function problemsReleasedFor(
-  contest: Doc<"contests">,
-  profile: Doc<"profiles"> | null,
-  taking: boolean,
-  now: number,
-): boolean {
-  if (contest.endTime <= now) return true;
-
-  if (!profile) return false;
-
-  if (
-    profile.isSuperuser ||
-    contest.authorProfileIds.includes(profile._id) ||
-    contest.curatorProfileIds.includes(profile._id) ||
-    contest.testerProfileIds.includes(profile._id)
-  ) {
-    return true;
-  }
-
-  const started = contest.startTime <= now;
-
-  const spectator = contest.spectatorProfileIds.includes(profile._id);
-
-  if (spectator && contest.spectatorSeeProblemsEarly) return true;
-
-  return started && (taking || spectator);
-}
-
 async function progressFor(
   ctx: QueryCtx,
   contest: Doc<"contests">,
   solved: Set<string> | null,
-  released: boolean,
+  access: ProblemListAccess,
 ): Promise<ContestProgress | null> {
   if (!solved) return null;
 
-  if (!released) return null;
+  if (!access.released) return null;
 
   const links = await ctx.db
     .query("contestProblems")
@@ -622,6 +588,7 @@ async function progressFor(
     const problem = await ctx.db.get(link.problemId);
 
     if (!problem) continue;
+
     problems.push({
       code: problem.code,
       name: problem.name,
@@ -643,7 +610,7 @@ async function listRow(
   editorOrTester: boolean,
   hasCompleted: boolean,
   solved: Set<string> | null = null,
-  released = false,
+  access: { released: boolean; privileged: boolean } = { released: false, privileged: false },
 ): Promise<ContestListRow> {
   return {
     _id: contest._id,
@@ -663,7 +630,7 @@ async function listRow(
     isEditorOrTester: editorOrTester,
     hasCompleted,
     proctorRequired: contest.proctorRequired ?? false,
-    progress: await progressFor(ctx, contest, solved, released),
+    progress: await progressFor(ctx, contest, solved, access),
   };
 }
 
@@ -728,11 +695,9 @@ export const list = query({
         contest.curatorProfileIds.includes(profile._id) ||
         contest.testerProfileIds.includes(profile._id));
 
-    // One pass over the viewer's submissions for the whole page, rather than
-    // one per contest row, and the contests they took part in, which decides
-    // whether a live contest's problems may be named to them.
+    // One pass over the viewer's submissions for the whole page rather than
+    // one per contest row.
     let solvedIds: Set<string> | null = null;
-    const joinedContests = new Set<string>();
 
     if (profile) {
       const submissions = await ctx.db
@@ -741,17 +706,10 @@ export const list = query({
         .take(MAX_SUBMISSION_SCAN);
 
       solvedIds = new Set(submissions.filter((row) => row.result === "AC").map((row) => row.problemId));
-
-      for (const row of await ctx.db
-        .query("contestParticipations")
-        .withIndex("by_profile_contest", (q) => q.eq("profileId", profile._id))
-        .collect()) {
-        joinedContests.add(row.contestId);
-      }
     }
 
-    const released = (contest: Doc<"contests">): boolean =>
-      problemsReleasedFor(contest, profile, joinedContests.has(contest._id), now);
+    const releaseAccess = (contest: Doc<"contests">) =>
+      problemListAccessFor(contest, profile, viewer, false, now);
 
     const running: Doc<"contests">[] = [];
     const future: Doc<"contests">[] = [];
@@ -812,7 +770,7 @@ export const list = query({
           editorOrTester(heldContest),
           false,
           solvedIds,
-          released(heldContest),
+          problemListAccessFor(heldContest, profile, viewer, true, now),
         ),
         virtual: held.virtual,
         endsAt,
@@ -847,7 +805,14 @@ export const list = query({
     for (const contest of slice) {
       const participation = profile ? await liveParticipationOf(ctx, contest._id, profile._id) : null;
       pastRows.push(
-        await listRow(ctx, contest, editorOrTester(contest), !!participation, solvedIds, released(contest)),
+        await listRow(
+          ctx,
+          contest,
+          editorOrTester(contest),
+          !!participation,
+          solvedIds,
+          releaseAccess(contest),
+        ),
       );
     }
 
@@ -861,7 +826,7 @@ export const list = query({
           editorOrTester(contest),
           finishedKeys.includes(contest.key),
           solvedIds,
-          released(contest),
+          releaseAccess(contest),
         ),
       );
     }
@@ -870,7 +835,7 @@ export const list = query({
 
     for (const contest of future) {
       futureRows.push(
-        await listRow(ctx, contest, editorOrTester(contest), false, solvedIds, released(contest)),
+        await listRow(ctx, contest, editorOrTester(contest), false, solvedIds, releaseAccess(contest)),
       );
     }
 
@@ -1156,6 +1121,7 @@ export type ContestDetail = {
     summary: string | null;
     startTime: number;
     endTime: number;
+    problemListReleaseAt: "start" | "end" | null;
     schedule: ContestSchedule;
     isVisible: boolean;
     isOpenEntry: boolean;
@@ -1308,7 +1274,9 @@ function summarise(
  * state and public solve counts folded in.
  */
 export const get = query({
-  args: { key: v.string() },
+  args: {
+    key: v.string(),
+  },
   handler: async (ctx, { key }): Promise<ContestDetail> => {
     const now = Date.now();
     const contest = await contestByKey(ctx, key);
@@ -1363,7 +1331,8 @@ export const get = query({
      * here — with participants added, who plainly need to read what they are
      * competing on.
      */
-    const problemsReleased = problemsReleasedFor(contest, profile, inThisContest, now);
+    const problemListAccess = problemListAccessFor(contest, profile, viewer, inThisContest, now);
+    const problemsReleased = problemListAccess.released;
 
     // `Problem.is_accessible_by`, not a local guess at it: a problem that is not
     // public is still the viewer's to open while they are inside this contest,
@@ -1514,6 +1483,7 @@ export const get = query({
         summary: contest.summary ?? null,
         startTime: contest.startTime,
         endTime: contest.endTime,
+        problemListReleaseAt: problemListReleasePolicy(contest),
         schedule: contest.schedule,
         isVisible: contest.isVisible,
         isOpenEntry: contest.isOpenEntry,
@@ -1625,6 +1595,18 @@ export const stats = query({
     const canEdit = contestIsEditableBy(contestRow, viewer);
 
     if (!contestEnded(contestRow, now) && !canEdit) return null;
+
+    const problemViewer = await loadViewerContext(ctx);
+
+    const access = problemListAccessFor(
+      contest,
+      profile,
+      viewer,
+      problemViewer.contest?._id === contest._id,
+      now,
+    );
+
+    if (!access.released) return null;
 
     const contestProblems = await loadContestProblems(ctx, contest._id);
     const problemIndex = new Map<string, number>();

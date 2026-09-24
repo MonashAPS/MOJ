@@ -669,7 +669,9 @@ export default defineSchema({
     pointsPrecision: v.number(),
     /** Opens its problems only while the viewer is sharing their whole screen. */
     proctorRequired: v.optional(v.boolean()),
-    /** Every problem in the contest is made public the moment it starts, or the moment it ends. */
+    /** Null means Never; an absent legacy value defaults to start. */
+    problemListReleaseAt: v.optional(v.union(v.literal("start"), v.literal("end"), v.null())),
+    /** Every eligible problem in the contest is made public at the start or end. */
     publishProblemsAt: v.optional(v.union(v.literal("start"), v.literal("end"))),
     /** When that happened, once it has. */
     problemsPublishedAt: v.optional(v.number()),

@@ -30,7 +30,13 @@ async function heldByLiveContest(
     if (link.contestId === except) continue;
     const other = await ctx.db.get(link.contestId);
 
-    if (other && other.endTime > now) return true;
+    if (!other || other.endTime <= now) continue;
+
+    // A contest that has itself opted to publish now no longer protects the
+    // statement. List visibility alone must never grant publication permission.
+    if (other.publishProblemsAt === "start" && other.startTime <= now) continue;
+
+    return true;
   }
 
   return false;
@@ -46,6 +52,9 @@ export async function publishContestProblems(
   now: number,
   byProfileId?: Id<"profiles">,
 ): Promise<{ published: string[]; held: string[] }> {
+  // Later staff visibility changes must survive both sweeps and contest saves.
+  if (contest.problemsPublishedAt !== undefined) return { published: [], held: [] };
+
   const published: string[] = [];
   const held: string[] = [];
   const moment = contest.publishProblemsAt === "start" ? "started" : "ended";

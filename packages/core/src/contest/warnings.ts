@@ -16,6 +16,7 @@ import { windowMillis } from "../contestTiming";
 import type { Timestamp } from "../types";
 import type { DescribeSource } from "./describe";
 import { nameGate, organizationGate } from "./entry";
+import { problemListReleasePolicy } from "./release";
 
 export type WarningSeverity =
   /** The contest cannot work. The server refuses it too. */
@@ -42,7 +43,8 @@ export type WarningField =
   | "rating"
   | "labels"
   | "pretests"
-  | "visibility";
+  | "visibility"
+  | "problemRelease";
 
 export interface WarningContext {
   readonly now?: Timestamp;
@@ -56,8 +58,18 @@ const RATING_INIT = 1200;
 
 const SEVERITY_ORDER: Record<WarningSeverity, number> = { blocked: 0, danger: 1, caution: 2 };
 
+/** Different policies are valid, but can make the list and statements available separately. */
+export function problemReleaseWarnings(contest: {
+  readonly problemListReleaseAt?: "start" | "end" | null;
+  readonly publishProblemsAt?: "start" | "end" | null;
+}): ContestWarning[] {
+  return problemListReleasePolicy(contest) === (contest.publishProblemsAt ?? null)
+    ? []
+    : [{ severity: "caution", key: "problemReleaseOutOfSync", field: "problemRelease" }];
+}
+
 export function contestWarnings(contest: DescribeSource, context: WarningContext = {}): ContestWarning[] {
-  const found: ContestWarning[] = [];
+  const found: ContestWarning[] = problemReleaseWarnings(contest);
   const window = contest.endTime - contest.startTime;
   const now = context.now ?? Date.now();
 

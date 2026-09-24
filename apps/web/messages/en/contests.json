@@ -388,8 +388,8 @@
   "stats": {
     "metaTitle": "{name} statistics",
     "metaFallback": "Statistics",
-    "notOutTitle": "Statistics are not out yet",
-    "notOutBody": "Contest statistics are published when the contest ends.",
+    "notOutTitle": "Statistics have not been released",
+    "notOutBody": "Contest statistics have not been released.",
     "noSubmissionsTitle": "No submissions",
     "noSubmissionsBody": "Nobody submitted anything during this contest.",
     "totalSubmissions": "{count, plural, one {# submission was made during this contest.} other {# submissions were made during this contest.}}",

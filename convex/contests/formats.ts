@@ -11,11 +11,13 @@ import {
   type ContestProblemRow,
   type ContestRow,
   type ContestSubmissionRow,
+  contestIsEditableBy,
   FormatConfigError,
   formatChoices,
   getContestLabelForProblem,
   getFormatOrDefault,
   type ProfileRow,
+  problemListReleasePolicy,
   type ScoringLine,
   type SubmissionTestCaseRow,
   UnknownContestFormatError,
@@ -26,6 +28,47 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { query } from "../_generated/server";
 
 export type AnyCtx = QueryCtx | MutationCtx;
+
+export type ProblemListAccess = Readonly<{ released: boolean; privileged: boolean }>;
+
+/** The public list policy is declarative, so moving its boundary can hide the list again. */
+export function problemListIsReleased(contest: Doc<"contests">, now: number): boolean {
+  const policy = problemListReleasePolicy(contest);
+
+  return policy === "start" ? contest.startTime <= now : policy === "end" ? contest.endTime <= now : false;
+}
+
+/** Whether the list is visible and the viewer has privileged contest access. */
+export function problemListAccessFor(
+  contest: Doc<"contests">,
+  profile: Doc<"profiles"> | null,
+  viewer: Parameters<typeof contestIsEditableBy>[1],
+  taking: boolean,
+  now: number,
+): ProblemListAccess {
+  if (contestIsEditableBy(toContestRow(contest), viewer)) return { released: true, privileged: true };
+
+  if (!profile) {
+    return { released: problemListIsReleased(contest, now), privileged: false };
+  }
+
+  if (
+    profile.isSuperuser ||
+    contest.authorProfileIds.includes(profile._id) ||
+    contest.curatorProfileIds.includes(profile._id) ||
+    contest.testerProfileIds.includes(profile._id)
+  ) {
+    return { released: true, privileged: true };
+  }
+
+  const spectator = contest.spectatorProfileIds.includes(profile._id);
+
+  if (spectator && contest.spectatorSeeProblemsEarly) return { released: true, privileged: false };
+
+  if (contest.startTime <= now && (taking || spectator)) return { released: true, privileged: false };
+
+  return { released: problemListIsReleased(contest, now), privileged: false };
+}
 
 /** `Contest.key`: DMOJ's slug field, lowercase letters and digits. */
 export const CONTEST_KEY_PATTERN = /^[a-z0-9]+$/;
@@ -66,6 +109,7 @@ export function toContestRow(contest: Doc<"contests">): ContestRow {
     pointsPrecision: contest.pointsPrecision,
     runPretestsOnly: contest.runPretestsOnly,
     lockedAfter: contest.lockedAfter ?? null,
+    problemListReleaseAt: problemListReleasePolicy(contest),
     publishProblemsAt: contest.publishProblemsAt,
     problemsPublishedAt: contest.problemsPublishedAt,
   };

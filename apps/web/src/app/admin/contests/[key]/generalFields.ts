@@ -106,6 +106,7 @@ export type ContestFieldSource = Pick<
   | "hideProblemAuthors"
   | "runPretestsOnly"
   | "proctorRequired"
+  | "problemListReleaseAt"
   | "publishProblemsAt"
   | "problemsPublishedAt"
   | "useClarifications"
@@ -243,6 +244,7 @@ export function describeSourceOf(
   saved: {
     startTime: number;
     endTime: number;
+    problemListReleaseAt: "start" | "end" | null;
     publishProblemsAt: "start" | "end" | null;
     problemsPublishedAt: number | null;
   },
@@ -268,6 +270,7 @@ export function describeSourceOf(
     accessCode: fields.accessCode.trim() || null,
     lockedAfter: fields.lockedAfter,
     runPretestsOnly: fields.runPretestsOnly,
+    problemListReleaseAt: saved.problemListReleaseAt,
     publishProblemsAt: saved.publishProblemsAt ?? undefined,
     problemsPublishedAt: saved.problemsPublishedAt ?? undefined,
   };

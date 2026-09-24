@@ -388,8 +388,8 @@
   "stats": {
     "metaTitle": "Statistik {name}",
     "metaFallback": "Statistik",
-    "notOutTitle": "Statistik belum tersedia",
-    "notOutBody": "Statistik kontes dipublikasikan setelah kontes berakhir.",
+    "notOutTitle": "Statistik belum dirilis",
+    "notOutBody": "Statistik kontes belum dirilis.",
     "noSubmissionsTitle": "Tidak ada pengiriman",
     "noSubmissionsBody": "Belum ada yang mengirimkan apa pun selama kontes ini.",
     "totalSubmissions": "{count, plural, other {# pengiriman dibuat selama kontes ini.}}",
