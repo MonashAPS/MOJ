@@ -21,7 +21,7 @@ import {
   TwoColumn,
 } from "@moj/ui";
 import { useQuery } from "convex/react";
-import { BookOpen, CircleHelp, Clock } from "lucide-react";
+import { BookOpen, CircleHelp, Clock, Lock } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ArtefactList } from "@/components/artefacts/ArtefactList";
@@ -123,6 +123,31 @@ function ProblemRow({
   const t = useTranslations("contests.detail");
   const states = useTranslations("contests.problemState");
   const columns = useTranslations("contests.columns");
+
+  if (problem.kind === "restricted") {
+    return (
+      <TableRow className="[&>td]:h-(--row-h-2)">
+        {showState ? <TableCell className="w-7" /> : null}
+        <TableCell>
+          <span className="flex min-w-0 items-center gap-2.5">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-xs border border-border bg-secondary font-mono text-sm font-medium text-muted-foreground">
+              {problem.label}
+            </span>
+            <span aria-hidden className="flex items-center gap-2 font-medium text-muted-foreground">
+              <Lock size={15} aria-hidden />
+              {t("restrictedProblem")}
+            </span>
+            <span className="sr-only">{t("restrictedProblemHelp")}</span>
+          </span>
+        </TableCell>
+        <TableCell numeric>{formatPoints(problem.points, precision)}</TableCell>
+        {showState ? <TableCell numeric>{DASH}</TableCell> : null}
+        <TableCell numeric>{DASH}</TableCell>
+        <TableCell numeric>{DASH}</TableCell>
+        {showEditorials ? <TableCell className="w-20" /> : null}
+      </TableRow>
+    );
+  }
 
   // Losing the problem page is DOMjudge's *structure*, which draws its own list
   // and never reaches this row. Taking the link away here only ever hit the
@@ -444,7 +469,7 @@ export function ContestDetailClient({
           <Clarifications
             contestKey={contestKey}
             canPost={detail.viewer.canEdit}
-            problems={detail.problems}
+            problems={detail.problems.filter((problem) => problem.kind === "problem")}
           />
         ) : null}
       </div>
@@ -528,7 +553,7 @@ export function ContestDetailClient({
             </Table>
             {detail.timing.ended &&
             showState &&
-            detail.problems.some((problem) => problem.state !== "untouched") ? (
+            detail.problems.some((problem) => problem.kind === "problem" && problem.state !== "untouched") ? (
               <p className="text-sm text-muted-foreground">{t("tickNote")}</p>
             ) : null}
           </section>
@@ -541,7 +566,7 @@ export function ContestDetailClient({
           <Clarifications
             contestKey={contestKey}
             canPost={detail.viewer.canEdit}
-            problems={detail.problems}
+            problems={detail.problems.filter((problem) => problem.kind === "problem")}
           />
         ) : null}
       </TwoColumn>

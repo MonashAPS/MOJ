@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import type { ContestProblemEntry } from "@convex/contests";
+import type { AccessibleContestProblemEntry } from "@convex/contests";
 import { Button, Panel, Select, Textarea, toast } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { MessageSquareWarning } from "lucide-react";
@@ -21,7 +21,7 @@ export function Clarifications({
 }: {
   contestKey: string;
   canPost: boolean;
-  problems: ContestProblemEntry[];
+  problems: AccessibleContestProblemEntry[];
 }) {
   const t = useTranslations("contests.clarifications");
   const columns = useTranslations("contests.columns");

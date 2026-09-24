@@ -181,6 +181,8 @@
     "testers": "{count, plural, other {Penguji}}",
     "spectators": "{count, plural, other {Penonton}}",
     "problemsNotReleased": "Soal untuk kontes ini belum dirilis.",
+    "restrictedProblem": "Soal terbatas",
+    "restrictedProblemHelp": "Soal terbatas — Anda tidak memiliki akses.",
     "statement": "Soal",
     "statementHint": "Unduh soal sebagai PDF",
     "samples": "Contoh",

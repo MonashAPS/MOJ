@@ -1,7 +1,10 @@
+import { contestIsVisibleTo, problemIsVisibleTo } from "@moj/core";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { query } from "./_generated/server";
+import { toContestRow } from "./contests/formats";
 import { optionalViewer } from "./lib/auth";
+import { loadViewerContext, toCoreProblem } from "./problems";
 
 export type SearchHit = {
   kind: "problem" | "user" | "contest" | "organization";
@@ -21,6 +24,7 @@ export const global = query({
     if (needle.length === 0) return [];
     const perKind = Math.max(1, Math.min(limit ?? PER_KIND, 20));
     const viewer = await optionalViewer(ctx);
+    const problemViewer = await loadViewerContext(ctx);
     const staff = !!viewer && (viewer.isStaff || viewer.isSuperuser);
 
     const [problems, users, contests, organizations] = await Promise.all([
@@ -41,6 +45,7 @@ export const global = query({
     const hits: SearchHit[] = [];
 
     for (const problem of problems) {
+      if (!problemIsVisibleTo(toCoreProblem(problem), problemViewer.core)) continue;
       hits.push({
         kind: "problem",
         id: problem._id,
@@ -61,6 +66,7 @@ export const global = query({
     }
 
     for (const contest of contests) {
+      if (!contestIsVisibleTo(toContestRow(contest), problemViewer.core)) continue;
       hits.push({
         kind: "contest",
         id: contest._id,

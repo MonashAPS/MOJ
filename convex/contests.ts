@@ -583,12 +583,14 @@ async function progressFor(
     .collect();
 
   const problems: ContestProgress["problems"] = [];
+  const problemViewer = access.privileged ? null : await loadViewerContext(ctx);
 
   for (const [index, link] of links.entries()) {
     const problem = await ctx.db.get(link.problemId);
 
     if (!problem) continue;
 
+    if (problemViewer && !(await canAccessProblem(ctx, problem, problemViewer))) continue;
     problems.push({
       code: problem.code,
       name: problem.name,
@@ -599,7 +601,7 @@ async function progressFor(
 
   return {
     solved: problems.filter((row) => row.solved).length,
-    total: problems.length,
+    total: links.length,
     problems,
   };
 }
@@ -1066,7 +1068,26 @@ export type AccessDecision =
       classes: { _id: Id<"classes">; name: string; slug: string }[];
     };
 
-export type ContestProblemEntry = {
+export type ContestProblemEntry = AccessibleContestProblemEntry | RestrictedContestProblemEntry;
+
+export type RestrictedContestProblemEntry = {
+  kind: "restricted";
+  contestProblemId: Id<"contestProblems">;
+  label: string;
+  order: number;
+  points: number;
+  /** Explicitly absent so consumers cannot accidentally receive an identity. */
+  code?: never;
+  name?: never;
+  problemId?: never;
+  isAccessible?: false;
+  hasSamples?: false;
+  submissionsLeft?: null;
+  state?: never;
+};
+
+export type AccessibleContestProblemEntry = {
+  kind: "problem";
   contestProblemId: Id<"contestProblems">;
   problemId: Id<"problems">;
   code: string;
@@ -1374,6 +1395,19 @@ export const get = query({
 
       if (!problem) continue;
 
+      const isAccessible = await canAccessProblem(ctx, problem, problemViewer);
+
+      if (!problemListAccess.privileged && !isAccessible) {
+        problems.push({
+          kind: "restricted",
+          contestProblemId: contestProblem._id,
+          label: labelForProblem(contest, index),
+          order: contestProblem.order,
+          points: contestProblem.points,
+        });
+        continue;
+      }
+
       const solution = await ctx.db
         .query("solutions")
         .withIndex("by_problem", (q) => q.eq("problemId", problem._id))
@@ -1391,6 +1425,7 @@ export const get = query({
 
       const state = await problemStateFor(ctx, profile?._id ?? null, problem, contest._id);
       problems.push({
+        kind: "problem",
         contestProblemId: contestProblem._id,
         problemId: problem._id,
         code: problem.code,
@@ -1414,7 +1449,7 @@ export const get = query({
         timeLimit: problem.timeLimit,
         memoryLimit: problem.memoryLimit,
         hasPublicEditorial,
-        isAccessible: await canAccessProblem(ctx, problem, problemViewer),
+        isAccessible,
         state: state.state,
         bestScore: state.bestScore,
         contestBestScore: state.contestBestScore,
@@ -1615,7 +1650,8 @@ export const stats = query({
     for (const [index, contestProblem] of contestProblems.entries()) {
       const problem = await ctx.db.get(contestProblem.problemId);
 
-      if (!problem) continue;
+      if (!problem || (!access.privileged && !(await canAccessProblem(ctx, problem, problemViewer))))
+        continue;
       problemIndex.set(problem._id, problems.length);
       problems.push({
         label: labelForProblem(contest, index),

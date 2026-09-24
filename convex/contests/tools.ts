@@ -11,10 +11,12 @@ import type { Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
 import { optionalViewer, requireViewer } from "../lib/auth";
 import { forbidden, invalid, mojError } from "../lib/errors";
+import { canAccessProblem, loadViewerContext } from "../problems";
 import {
   CONTEST_KEY_PATTERN,
   contestByKey,
   loadContestProblems,
+  problemListAccessFor,
   toContestRow,
   toViewerRowInContest,
 } from "./formats";
@@ -32,6 +34,28 @@ export const clone = mutation({
     }
 
     const contest = await requireAccessibleContest(ctx, key, profile);
+
+    const problemViewer = await loadViewerContext(ctx);
+
+    const access = problemListAccessFor(
+      contest,
+      profile,
+      viewer,
+      problemViewer.contest?._id === contest._id,
+      Date.now(),
+    );
+
+    const problems = await loadContestProblems(ctx, contest._id);
+
+    if (!access.released) throw forbidden("The contest problems have not been released.");
+
+    for (const link of problems) {
+      const problem = await ctx.db.get(link.problemId);
+
+      if (!access.privileged && (!problem || !(await canAccessProblem(ctx, problem, problemViewer)))) {
+        throw forbidden("You may not clone restricted contest problems.");
+      }
+    }
 
     const wanted = newKey.trim();
 
@@ -56,7 +80,7 @@ export const clone = mutation({
       reveal: undefined,
     });
 
-    for (const contestProblem of await loadContestProblems(ctx, contest._id)) {
+    for (const contestProblem of problems) {
       const {
         _id: _problemRowId,
         _creationTime: _problemCreated,

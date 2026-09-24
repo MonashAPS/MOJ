@@ -14,7 +14,7 @@ import { query } from "../_generated/server";
 import { matchesFilter, type RejudgeFilter, toIdRange } from "../jobs";
 import { optionalViewer } from "../lib/auth";
 import { forbidden } from "../lib/errors";
-import { loadViewerContext, toCoreProblem } from "../problems";
+import { canSeeContestAssociation, loadViewerContext, toCoreProblem } from "../problems";
 
 /** The same cap `problems.list` scans behind. */
 const MAX_SCAN = 20_000;
@@ -63,7 +63,11 @@ export const filterOptions = query({
     const limit = Math.max(1, Math.min(Math.floor(args.contestLimit ?? 200), 500));
     const visibleIds = new Set(visible.map((row) => row._id));
     const contests: { key: string; name: string; startTime: number; problemCount: number }[] = [];
-    const rows = (await ctx.db.query("contests").collect()).filter((row: Doc<"contests">) => row.isVisible);
+
+    const rows = (await ctx.db.query("contests").collect()).filter((row: Doc<"contests">) =>
+      canSeeContestAssociation(row, viewer),
+    );
+
     rows.sort((a, b) => b.startTime - a.startTime);
 
     for (const contest of rows) {

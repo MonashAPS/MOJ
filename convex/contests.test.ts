@@ -401,7 +401,13 @@ describe("clarifications and statistics", () => {
 
       await insertProfile(ctx, { username: "ada" });
       const problemId = await insertProblem(ctx, { code: "aplus" });
-      const contestId = await insertContest(ctx, { key: "live", authorProfileIds: [authorId] });
+
+      const contestId = await insertContest(ctx, {
+        key: "live",
+        authorProfileIds: [authorId],
+        problemListReleaseAt: "start",
+      });
+
       await insertContestProblem(ctx, { contestId, problemId, order: 0, points: 1 });
     });
 
@@ -507,7 +513,14 @@ describe("cloning", () => {
     await t.run(async (ctx) => {
       await insertProfile(ctx, { username: "cloner", permissions: ["judge.clone_contest"] });
       const problemId = await insertProblem(ctx, { code: "aplus" });
-      const contestId = await insertContest(ctx, { key: "original", userCount: 9 });
+
+      const contestId = await insertContest(ctx, {
+        key: "original",
+        userCount: 9,
+        problemListReleaseAt: "start",
+        startTime: Date.now() - HOUR,
+      });
+
       await insertContestProblem(ctx, { contestId, problemId, order: 0, points: 7 });
     });
 

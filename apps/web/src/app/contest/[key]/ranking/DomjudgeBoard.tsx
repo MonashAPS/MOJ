@@ -33,11 +33,12 @@ const HEAD =
 const MEDALS = ["var(--medal-gold)", "var(--medal-silver)", "var(--medal-bronze)"];
 
 function BalloonHead({ problem }: { problem: RankingProblem }) {
-  const balloon = balloonFor(problem.code);
+  const t = useTranslations("contests.detail");
+  const balloon = balloonFor(problem.code ?? problem.label);
 
   return (
     <span
-      title={problem.name}
+      title={problem.kind === "restricted" ? t("restrictedProblemHelp") : problem.name}
       className="mx-auto flex size-6 items-center justify-center rounded-(--radius-sm) border font-mono text-sm font-bold text-[color:hsl(0_0%_12%)]"
       style={{ backgroundColor: balloon.fill, borderColor: balloon.line }}
     >
@@ -65,18 +66,21 @@ function BoardCellView({
 }) {
   const t = useTranslations("contests.ranking");
 
-  const wrap = (children: React.ReactNode, tooltip?: React.ReactNode) => (
-    <RankingCellSubmissions
-      contestKey={contestKey}
-      username={user.username}
-      displayName={user.displayName || user.username}
-      problem={problem}
-      precision={precision}
-      tooltip={tooltip}
-    >
-      {children}
-    </RankingCellSubmissions>
-  );
+  const wrap = (children: React.ReactNode, tooltip?: React.ReactNode) =>
+    problem.kind === "restricted" ? (
+      children
+    ) : (
+      <RankingCellSubmissions
+        contestKey={contestKey}
+        username={user.username}
+        displayName={user.displayName || user.username}
+        problem={problem}
+        precision={precision}
+        tooltip={tooltip}
+      >
+        {children}
+      </RankingCellSubmissions>
+    );
 
   if (pending > 0) {
     return (

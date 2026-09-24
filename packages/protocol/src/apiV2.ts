@@ -98,15 +98,19 @@ export const apiContestListObject = z.object({
 
 export type ApiContestListObject = z.infer<typeof apiContestListObject>;
 
-export const apiContestProblem = z.object({
+const apiContestProblemBase = z.object({
   points: z.number(),
   partial: z.boolean(),
   is_pretested: z.boolean(),
   max_submissions: z.number().nullable(),
   label: z.string(),
-  name: z.string(),
-  code: z.string(),
 });
+
+/** Restricted columns retain their position without disclosing problem identities. */
+export const apiContestProblem = z.union([
+  apiContestProblemBase.extend({ kind: z.never().optional(), name: z.string(), code: z.string() }),
+  apiContestProblemBase.extend({ kind: z.literal("restricted") }).strict(),
+]);
 
 export type ApiContestProblem = z.infer<typeof apiContestProblem>;
 

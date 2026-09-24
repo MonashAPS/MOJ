@@ -1,7 +1,7 @@
 "use client";
 
 import type { ContestDetail, ContestProblemEntry } from "@convex/contests";
-import { FileArchive, FileText } from "lucide-react";
+import { FileArchive, FileText, Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { QuickSubmit } from "@/components/problems/QuickSubmit";
 
@@ -50,6 +50,24 @@ function ProblemCard({
   defaultLanguageKey: string | null;
 }) {
   const t = useTranslations("contests.detail");
+
+  if (problem.kind === "restricted") {
+    return (
+      <div className={CARD}>
+        <span className="flex size-9 items-center justify-center rounded-(--radius-sm) border border-border-strong bg-card font-mono text-base font-bold">
+          {problem.label}
+        </span>
+        <p
+          aria-hidden
+          className="flex items-center gap-2 text-h3 font-normal leading-tight text-muted-foreground"
+        >
+          <Lock size={16} aria-hidden />
+          {t("restrictedProblem")}
+        </p>
+        <p className="sr-only">{t("restrictedProblemHelp")}</p>
+      </div>
+    );
+  }
 
   return (
     <div className={CARD}>

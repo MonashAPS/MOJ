@@ -30,7 +30,7 @@ import { query } from "../_generated/server";
 import { toContestRow } from "../contests/formats";
 import { resolveSubmission } from "../judging";
 import { globalSourceVisibility, siteSettings } from "../lib/community";
-import { hasSolvedProblem, toCoreProblem } from "../problems";
+import { canSeeContestAssociation, hasSolvedProblem, loadViewerContext, toCoreProblem } from "../problems";
 import { viewerContext } from "../submissions";
 
 /* -------------------------------------------------------------------------- */
@@ -191,6 +191,10 @@ export const listContext = query({
         if (!contest.isVisible || contest.startTime > now) return { ...base, allowed: false };
       }
 
+      if (problem && !canSeeContestAssociation(contest, await loadViewerContext(ctx))) {
+        return { ...base, allowed: false };
+      }
+
       let problemNumber: number | null = null;
 
       if (problem) {
@@ -318,6 +322,8 @@ export const statusExtras = query({
         })
       : false;
 
+    if (!canSeeDetail && !problemIsVisibleTo(toCoreProblem(problem), viewer)) return null;
+
     const problemEditable = problemIsEditableBy(toCoreProblem(problem), viewer);
     const locked = isLocked({ lockedAfter: submission.lockedAfter ?? null }, now);
 
@@ -346,6 +352,9 @@ export const statusExtras = query({
     if (submission.contestProblemId) contestProblem = await ctx.db.get(submission.contestProblemId);
 
     const isOwn = viewerCtx.profile?._id === submission.profileId;
+
+    const associationVisible =
+      !contest || isOwn || canSeeContestAssociation(contest, await loadViewerContext(ctx));
 
     return {
       found: true,
@@ -382,9 +391,9 @@ export const statusExtras = query({
       maxExecutionTime,
       isPretested: submission.isPretested,
       isLocked: locked,
-      outputPrefixOverride: contestProblem?.outputPrefixOverride ?? null,
+      outputPrefixOverride: associationVisible ? (contestProblem?.outputPrefixOverride ?? null) : null,
       contest:
-        contest && contestProblem
+        contest && contestProblem && associationVisible
           ? {
               key: contest.key,
               name: contest.name,

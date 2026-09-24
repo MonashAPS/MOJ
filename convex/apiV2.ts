@@ -48,7 +48,7 @@ import { problemListAccessFor, toContestRow } from "./contests/formats";
 import { optionalViewer } from "./lib/auth";
 import { globalSourceVisibility, siteSettings } from "./lib/community";
 import { forbidden, notFound } from "./lib/errors";
-import { hasSolvedProblem, toCoreProblem } from "./problems";
+import { canSeeContestAssociation, hasSolvedProblem, toCoreProblem } from "./problems";
 
 /**
  * How many rows a list endpoint reads before paginating. DMOJ paginates in SQL;
@@ -268,7 +268,7 @@ export const contest = query({
     const now = Date.now();
     const inContest = contestIsInContest(core, viewer);
     const canSeeRankings = contestCanSeeFullScoreboard(core, viewer, { now });
-    const canSeeProblems = problemListAccessFor(contestDoc, profile, viewer, inContest, now).released;
+    const problemListAccess = problemListAccessFor(contestDoc, profile, viewer, inContest, now);
 
     const contestProblems = await ctx.db
       .query("contestProblems")
@@ -279,23 +279,26 @@ export const contest = query({
 
     const problems: ApiContestDetailObject["problems"] = [];
 
-    if (canSeeProblems) {
-      for (let index = 0; index < contestProblems.length; index++) {
-        const contestProblem = contestProblems[index];
+    for (const [index, contestProblem] of contestProblems.entries()) {
+      const problem = await ctx.db.get(contestProblem.problemId);
 
-        if (!contestProblem) continue;
-        const problem = await ctx.db.get(contestProblem.problemId);
+      const base = {
+        points: Math.trunc(contestProblem.points),
+        partial: contestProblem.partial,
+        is_pretested: contestProblem.isPretested && contestDoc.runPretestsOnly,
+        max_submissions: contestProblem.maxSubmissions ?? null,
+        label: getContestLabelForProblem(core, index),
+      };
 
-        if (!problem) continue;
-        problems.push({
-          points: Math.trunc(contestProblem.points),
-          partial: contestProblem.partial,
-          is_pretested: contestProblem.isPretested && contestDoc.runPretestsOnly,
-          max_submissions: contestProblem.maxSubmissions ?? null,
-          label: getContestLabelForProblem(core, index),
-          name: problem.name,
-          code: problem.code,
-        });
+      if (
+        !problem ||
+        !problemListAccess.released ||
+        (!problemListAccess.privileged &&
+          !problemIsAccessibleBy(toCoreProblem(problem), viewer, { inCurrentContest: inContest }))
+      ) {
+        problems.push({ ...base, kind: "restricted" });
+      } else {
+        problems.push({ ...base, name: problem.name, code: problem.code });
       }
     }
 
@@ -888,7 +891,7 @@ export const submissions = query({
     args,
   ): Promise<ApiListData<ApiSubmissionListObject> & { used_basic_filters: boolean }> => {
     const page = Math.max(1, Math.floor(args.page ?? 1));
-    const { row: viewer } = await apiViewer(ctx);
+    const { profile, row: viewer } = await apiViewer(ctx);
 
     const usedBasicFilters =
       args.user !== undefined || args.problem !== undefined || args.contest !== undefined;
@@ -1016,6 +1019,14 @@ export const submissions = query({
 
       if (submission.contestId) {
         const contestDoc = await ctx.db.get(submission.contestId);
+
+        if (
+          contestDoc &&
+          submission.profileId !== profile?._id &&
+          (!contestIsVisibleTo(toContestRow(contestDoc), viewer) ||
+            !canSeeContestAssociation(contestDoc, { profile, core: viewer }))
+        )
+          continue;
 
         const participation = submission.participationId
           ? await ctx.db.get(submission.participationId)

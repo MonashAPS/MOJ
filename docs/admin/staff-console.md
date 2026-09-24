@@ -69,7 +69,7 @@ for the list; an explicit `null` means **Never**. Participant and privileged acc
 List release is evaluated against the current policy and contest times. Choosing **Never** or moving the
 selected boundary into the future hides it again from general viewers. In contrast, changing publication
 settings never makes public problems private again. If the two controls have different timings, the console
-warns that viewers may see private problems in the list, or public problems before the contest list is shown.
+warns that viewers may see restricted entries, or public problems before the contest list is shown.
 
 Publication runs on a five-minute sweep, or when a contest is saved after its selected boundary. A private
 problem is held back if another future or running contest uses it, unless that contest has already started

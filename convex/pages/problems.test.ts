@@ -58,8 +58,21 @@ describe("pages/problems.filterOptions", () => {
     const t = setupTest();
     await t.run(async (ctx) => {
       const { groupId } = await insertTaxonomy(ctx);
-      const older = await insertContest(ctx, { key: "week1", name: "Week 1", startTime: 1_000 });
-      const newer = await insertContest(ctx, { key: "week2", name: "Week 2", startTime: 2_000 });
+
+      const older = await insertContest(ctx, {
+        key: "week1",
+        name: "Week 1",
+        startTime: 1_000,
+        problemListReleaseAt: "start",
+      });
+
+      const newer = await insertContest(ctx, {
+        key: "week2",
+        name: "Week 2",
+        startTime: 2_000,
+        problemListReleaseAt: "start",
+      });
+
       await insertContest(ctx, { key: "empty", name: "Empty", startTime: 3_000 });
       const problem = await insertProblem(ctx, { code: "aplusb", groupId });
       await insertContestProblem(ctx, { contestId: older, problemId: problem, order: 0 });

@@ -60,6 +60,7 @@ async function event(t: T, isPublic = true) {
       name: "Division A",
       startTime: start,
       endTime: end,
+      problemListReleaseAt: "end",
       formatName: "icpc",
       formatConfig: { penalty: 20 },
     });
@@ -69,6 +70,7 @@ async function event(t: T, isPublic = true) {
       name: "Division B",
       startTime: start,
       endTime: end,
+      problemListReleaseAt: "end",
       formatName: "icpc",
       formatConfig: { penalty: 20 },
     });

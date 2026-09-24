@@ -38,7 +38,7 @@ export function problemListIsReleased(contest: Doc<"contests">, now: number): bo
   return policy === "start" ? contest.startTime <= now : policy === "end" ? contest.endTime <= now : false;
 }
 
-/** Whether the list is visible and the viewer has privileged contest access. */
+/** Whether the list is visible, and whether inaccessible identities may still be named. */
 export function problemListAccessFor(
   contest: Doc<"contests">,
   profile: Doc<"profiles"> | null,

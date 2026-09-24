@@ -119,18 +119,21 @@ function ProblemCell({
 
   // Every cell that stands for an attempt opens the attempts behind it, the
   // frozen one included: a '?' is the cell a reader most wants unfolded.
-  const attempts = (children: ReactNode, tooltip?: ReactNode) => (
-    <RankingCellSubmissions
-      contestKey={contestKey}
-      username={user.username}
-      displayName={user.displayName || user.username}
-      problem={problem}
-      precision={precision}
-      tooltip={tooltip}
-    >
-      {children}
-    </RankingCellSubmissions>
-  );
+  const attempts = (children: ReactNode, tooltip?: ReactNode) =>
+    problem.kind === "restricted" ? (
+      children
+    ) : (
+      <RankingCellSubmissions
+        contestKey={contestKey}
+        username={user.username}
+        displayName={user.displayName || user.username}
+        problem={problem}
+        precision={precision}
+        tooltip={tooltip}
+      >
+        {children}
+      </RankingCellSubmissions>
+    );
 
   if (pending > 0) {
     return (
@@ -363,6 +366,7 @@ export function RankingClient({
   initialFrozenCells: FrozenCells;
 }) {
   const t = useTranslations("contests.ranking");
+  const detailLabels = useTranslations("contests.detail");
   const columns = useTranslations("contests.columns");
   const tabLabels = useTranslations("contests.tabs");
   const [includeVirtual, setIncludeVirtual] = useState(false);
@@ -601,16 +605,25 @@ export function RankingClient({
                         key={problem.contestProblemId}
                         className="h-8 w-11 min-w-11 bg-titlebar px-1 text-center align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink"
                       >
-                        <Link
-                          href={`/contest/${contestKey}/rank/${problem.code}/`}
-                          title={problem.name}
-                          className="block text-titlebar-ink hover:text-white"
-                        >
-                          <span className="block font-mono text-sm">{problem.label}</span>
-                          <span className="block font-mono text-xs font-normal normal-case tracking-normal text-titlebar-ink-2">
-                            {formatPoints(problem.points, precision)}
+                        {problem.kind === "restricted" ? (
+                          <span title={detailLabels("restrictedProblemHelp")}>
+                            <span className="block font-mono text-sm">{problem.label}</span>
+                            <span className="block font-mono text-xs">
+                              {formatPoints(problem.points, precision)}
+                            </span>
                           </span>
-                        </Link>
+                        ) : (
+                          <Link
+                            href={`/contest/${contestKey}/rank/${problem.code}/`}
+                            title={problem.name}
+                            className="block text-titlebar-ink hover:text-white"
+                          >
+                            <span className="block font-mono text-sm">{problem.label}</span>
+                            <span className="block font-mono text-xs font-normal normal-case tracking-normal text-titlebar-ink-2">
+                              {formatPoints(problem.points, precision)}
+                            </span>
+                          </Link>
+                        )}
                       </th>
                     ))}
                     <th className="h-8 whitespace-nowrap bg-titlebar px-3 text-right align-middle font-sans text-xs font-semibold uppercase leading-none tracking-label text-titlebar-ink">

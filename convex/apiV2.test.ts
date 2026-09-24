@@ -324,6 +324,86 @@ describe("contests", () => {
     });
   });
 
+  test("an ended contest with no list release does not expose its problem association", async () => {
+    await fixture.t.run(async (ctx) => {
+      await ctx.db.patch(fixture.ids.contest, { problemListReleaseAt: null });
+    });
+
+    const object = await fixture.t.query(api.apiV2.contest, { key: "spring" });
+
+    expect(object.problems).toEqual([
+      {
+        kind: "restricted",
+        points: 100,
+        partial: false,
+        is_pretested: false,
+        max_submissions: 5,
+        label: "A",
+      },
+    ]);
+    expect(apiContestDetailObject.parse(object)).toEqual(object);
+    expect(object.rankings[0]?.solutions).toEqual([{ points: 100, time: 600 }]);
+  });
+
+  test.each(["private", "missing"])(
+    "%s problem A retains its score slot before accessible B",
+    async (state) => {
+      await fixture.t.run(async (ctx) => {
+        if (state === "private") {
+          await ctx.db.patch(fixture.ids.problem, { isPublic: false });
+        } else {
+          await ctx.db.delete(fixture.ids.problem);
+        }
+
+        const problemId = await insertProblem(ctx, { code: "second" });
+
+        const linkId = await insertContestProblem(ctx, {
+          contestId: fixture.ids.contest,
+          problemId,
+          order: 1,
+        });
+
+        const participation = await ctx.db
+          .query("contestParticipations")
+          .withIndex("by_profile_contest", (q) =>
+            q.eq("profileId", fixture.ids.alice).eq("contestId", fixture.ids.contest),
+          )
+          .first();
+
+        if (!participation) throw new Error("Missing participation fixture");
+        await ctx.db.patch(participation._id, {
+          formatData: { ...participation.formatData, [linkId]: { points: 25, time: 900 } },
+        });
+      });
+
+      const object = await fixture.t.query(api.apiV2.contest, { key: "spring" });
+      expect(apiContestDetailObject.parse(object)).toEqual(object);
+      expect(object.problems).toEqual([
+        {
+          kind: "restricted",
+          label: "A",
+          points: 100,
+          partial: false,
+          is_pretested: false,
+          max_submissions: 5,
+        },
+        {
+          label: "B",
+          points: 100,
+          partial: false,
+          is_pretested: false,
+          max_submissions: null,
+          name: "SECOND",
+          code: "second",
+        },
+      ]);
+      expect(object.rankings[0]?.solutions).toEqual([
+        { points: 100, time: 600 },
+        { points: 25, time: 900 },
+      ]);
+    },
+  );
+
   test("an unknown contest is a not-found error", async () => {
     await expect(fixture.t.query(api.apiV2.contest, { key: "nope" })).rejects.toThrow(/not found/);
   });

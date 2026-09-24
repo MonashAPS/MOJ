@@ -16,8 +16,14 @@ import { type Attempt, classifyEvent, freezeOffsetFor, PARTICIPATION_LIVE } from
 import { v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
-import { labelForProblem, loadContestProblems } from "../contests/formats";
+import { labelForProblem, loadContestProblems, problemListAccessFor } from "../contests/formats";
 import { isStaff, optionalViewer } from "../lib/auth";
+import {
+  canAccessProblem,
+  canSeeContestAssociation,
+  loadViewerContext,
+  type ViewerContext,
+} from "../problems";
 import { eventByKey } from "../scoreboard";
 
 const DEFAULT_LIMIT = 60;
@@ -50,18 +56,36 @@ async function divisionFeed(
   contest: Doc<"contests">,
   eventFreezeMinutes: number,
   limit: number,
+  viewer: ViewerContext,
 ): Promise<FeedItem[]> {
   const freezeMinutes = contest.reveal?.lifted ? 0 : eventFreezeMinutes;
   const freezeOffset = freezeOffsetFor(contest, freezeMinutes);
 
   const contestProblems = await loadContestProblems(ctx, contest._id);
+
+  const access = problemListAccessFor(
+    contest,
+    viewer.profile,
+    viewer.core,
+    viewer.contest?._id === contest._id,
+    Date.now(),
+  );
+
+  const associationVisible = canSeeContestAssociation(contest, viewer);
   const labels = new Map<string, { label: string; name: string }>();
 
   for (const [index, contestProblem] of contestProblems.entries()) {
     const problem = await ctx.db.get(contestProblem.problemId);
+
+    if (
+      !associationVisible ||
+      !problem ||
+      (!access.privileged && !(await canAccessProblem(ctx, problem, viewer)))
+    )
+      continue;
     labels.set(contestProblem._id, {
       label: labelForProblem(contest, index),
-      name: problem?.name ?? "",
+      name: problem.name,
     });
   }
 
@@ -164,12 +188,13 @@ export const feed = query({
     const cap = Math.max(1, Math.min(MAX_LIMIT, Math.trunc(limit ?? DEFAULT_LIMIT)));
 
     const items: FeedItem[] = [];
+    const viewer = await loadViewerContext(ctx);
 
     for (const id of row.contestIds) {
       const contest = await ctx.db.get(id);
 
       if (!contest) continue;
-      items.push(...(await divisionFeed(ctx, contest, row.freezeMinutes, cap)));
+      items.push(...(await divisionFeed(ctx, contest, row.freezeMinutes, cap, viewer)));
     }
 
     // Ties break on the submission id, so the order is stable between updates.

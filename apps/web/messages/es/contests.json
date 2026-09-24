@@ -181,6 +181,8 @@
     "testers": "{count, plural, one {Tester} other {Testers}}",
     "spectators": "{count, plural, one {Espectador} other {Espectadores}}",
     "problemsNotReleased": "Los problemas de este concurso aún no se han publicado.",
+    "restrictedProblem": "Problema restringido",
+    "restrictedProblemHelp": "Problema restringido — no tienes acceso.",
     "statement": "Enunciado",
     "statementHint": "Descargar el enunciado en PDF",
     "samples": "Ejemplos",

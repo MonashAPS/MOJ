@@ -66,7 +66,7 @@ describe("a contest the viewer never joined", () => {
     const f = await fixture();
     const progress = await progressFor(f);
 
-    expect(progress?.problems.map((row) => row.code)).toEqual(["open1", "open2", "secret"]);
+    expect(progress?.problems.map((row) => row.code)).toEqual(["open1", "open2"]);
     expect(progress?.total).toBe(3);
   });
 
@@ -96,7 +96,7 @@ describe("a contest the viewer took part in", () => {
     await insertParticipation(f.t, { contestId: f.contestId, profileId: f.memberId });
 
     const progress = await progressFor(f);
-    expect(progress?.problems.map((row) => row.code)).toEqual(["open1", "open2", "secret"]);
+    expect(progress?.problems.map((row) => row.code)).toEqual(["open1", "open2"]);
     expect(progress?.total).toBe(3);
   });
 });

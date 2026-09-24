@@ -181,6 +181,8 @@
     "testers": "{count, plural, one {Tester} other {Testers}}",
     "spectators": "{count, plural, one {Spectator} other {Spectators}}",
     "problemsNotReleased": "The problems for this contest have not been released yet.",
+    "restrictedProblem": "Restricted problem",
+    "restrictedProblemHelp": "Restricted problem — you do not have access.",
     "statement": "Statement",
     "statementHint": "Download the statement as a PDF",
     "samples": "Samples",

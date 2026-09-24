@@ -255,7 +255,12 @@ describe("problems.list", () => {
       const beta = await insertProblem(ctx, { code: "beta", groupId });
       await insertProblem(ctx, { code: "loner", groupId });
 
-      const contest = await insertContest(ctx, { key: "winter25", name: "Winter Cup 2025" });
+      const contest = await insertContest(ctx, {
+        key: "winter25",
+        name: "Winter Cup 2025",
+        problemListReleaseAt: "start",
+      });
+
       await insertContestProblem(ctx, { contestId: contest, problemId: alpha, order: 0 });
       await insertContestProblem(ctx, { contestId: contest, problemId: beta, order: 1 });
     });
@@ -369,7 +374,12 @@ describe("problems.get", () => {
         time: 0.2,
       });
 
-      const contest = await insertContest(ctx, { key: "winter24", name: "Winter Cup 2024" });
+      const contest = await insertContest(ctx, {
+        key: "winter24",
+        name: "Winter Cup 2024",
+        problemListReleaseAt: "start",
+      });
+
       await insertContestProblem(ctx, { contestId: contest, problemId, order: 2 });
     });
 
