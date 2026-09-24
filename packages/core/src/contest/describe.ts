@@ -17,6 +17,7 @@ import type { ScoringLine } from "../formats/base";
 import { freezeTime } from "../scoreboard";
 import type { Audience, ContestRow, Timestamp } from "../types";
 import { nameGate, organizationGate } from "./entry";
+import { problemListReleasePolicy } from "./release";
 
 /** Which part of the summary a line belongs under. */
 export type SummaryGroup = "when" | "who" | "scoring" | "rating";
@@ -39,6 +40,7 @@ export type DescribeSource = Pick<
       | "lockedAfter"
       | "runPretestsOnly"
       | "alwaysAdmitProfileIds"
+      | "problemListReleaseAt"
       | "publishProblemsAt"
       | "problemsPublishedAt"
     >
@@ -97,6 +99,14 @@ export function describeContest(contest: DescribeSource, options: DescribeOption
 
   if (contest.lockedAfter != null) {
     lines.push({ group: "when", key: "locked", values: { at: moment(contest.lockedAfter) } });
+  }
+
+  const listRelease = problemListReleasePolicy(contest);
+
+  if (listRelease === "start") {
+    lines.push({ group: "when", key: "listReleaseAtStart", values: { at: moment(contest.startTime) } });
+  } else if (listRelease === "end") {
+    lines.push({ group: "when", key: "listReleaseAtEnd", values: { at: moment(contest.endTime) } });
   }
 
   if (contest.problemsPublishedAt !== undefined) {

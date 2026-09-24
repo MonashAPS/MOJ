@@ -228,6 +228,7 @@ describe("contest mode", () => {
 
     const hidden = await insertContest(t, {
       key: "hidden",
+      problemListReleaseAt: "start",
       startTime: now - 3600_000,
       endTime: now + 3600_000,
       scoreboard: { audiences: [], from: "start" },
@@ -235,6 +236,7 @@ describe("contest mode", () => {
 
     const open = await insertContest(t, {
       key: "open",
+      problemListReleaseAt: "start",
       startTime: now - 3600_000,
       endTime: now + 3600_000,
       scoreboard: { audiences: ["everyone"], from: "start" },

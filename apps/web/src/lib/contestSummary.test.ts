@@ -57,6 +57,14 @@ const CORPUS: DescribeSource[] = [
     entry: { kind: "restricted", match: "all", organizationIds: [], classIds: [], profileIds: [] },
   },
   // Publishes its problems when it starts, when it ends, and one where that has happened.
+  { ...PLAIN, problemListReleaseAt: "start", publishProblemsAt: "start" },
+  { ...PLAIN, problemListReleaseAt: "end", publishProblemsAt: "end" },
+  {
+    ...PLAIN,
+    problemListReleaseAt: "end",
+    publishProblemsAt: "end",
+    problemsPublishedAt: START + 3 * HOUR,
+  },
   { ...PLAIN, publishProblemsAt: "start" },
   { ...PLAIN, publishProblemsAt: "end" },
   { ...PLAIN, publishProblemsAt: "end", problemsPublishedAt: START + 3 * HOUR },

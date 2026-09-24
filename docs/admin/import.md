@@ -55,6 +55,10 @@ npm run import -w tools/import -- \
 
 Read the report, then run the same command without `--dry-run`.
 
+Imported contests show their problem list from the contest start (`problemListReleaseAt: "start"`). This does
+not make private statements public. Review the [contest release settings](/admin/staff-console#contest-release-settings)
+if a contest's list should remain hidden until the end or never be released to general viewers.
+
 | Option | Meaning |
 | --- | --- |
 | `--dump <file>` | The dump, `.sql` or `.sql.gz`. Required. |

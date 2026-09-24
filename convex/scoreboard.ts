@@ -35,11 +35,13 @@ import {
   contestByKey,
   labelForProblem,
   loadContestProblems,
+  problemListAccessFor,
   toContestRow,
   toViewerRowInContest,
 } from "./contests/formats";
 import { isStaff, optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, invalid, notFound } from "./lib/errors";
+import { canAccessProblem, canSeeContestAssociation, loadViewerContext } from "./problems";
 
 /* -------------------------------------------------------------------------- */
 /* Shapes                                                                     */
@@ -533,9 +535,33 @@ export const event = query({
     const badgeSlugs = badges.map((badge) => badge.key);
 
     const divisions: Division[] = [];
+    const problemViewer = await loadViewerContext(ctx);
 
     for (const contest of contests) {
       const built = await buildDivision(ctx, contest, row, badgeSlugs, inPersonKey);
+
+      const access = problemListAccessFor(
+        contest,
+        profile,
+        viewer,
+        problemViewer.contest?._id === contest._id,
+        now,
+      );
+
+      for (const [index, link] of built.contestProblems.entries()) {
+        const problem = await ctx.db.get(link.problemId);
+
+        if (
+          !canSeeContestAssociation(contest, problemViewer) ||
+          !problem ||
+          (!access.privileged && !(await canAccessProblem(ctx, problem, problemViewer)))
+        ) {
+          const entry = built.problems[index];
+
+          if (entry) built.problems[index] = { ...entry, code: "", name: "" };
+        }
+      }
+
       divisions.push(serialiseDivision(built, canReveal, now));
     }
 

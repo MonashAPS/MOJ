@@ -105,10 +105,11 @@ npm run setup
    deployment;
 6. pushes the backend functions;
 7. seeds languages, navigation, misc config, problem groups and types, and the sample problem `aplusb`;
-8. creates the development superuser and prints its credentials.
+8. creates the development superuser and a non-admin development user, then prints their credentials.
 
 `infra/.env.example` documents every variable. Set `MOJ_ADMIN_USERNAME`, `MOJ_ADMIN_PASSWORD`,
-`MOJ_ADMIN_EMAIL`, `MOJ_SITE_NAME` or `MOJ_SITE_LONG_NAME` before running setup to override the defaults.
+`MOJ_ADMIN_EMAIL`, `MOJ_USER_USERNAME`, `MOJ_USER_PASSWORD`, `MOJ_USER_EMAIL`, `MOJ_SITE_NAME` or
+`MOJ_SITE_LONG_NAME` before running setup to override the defaults.
 
 ## Starting the site
 
@@ -168,25 +169,9 @@ To pin the judge to a subset of the host's cores, copy `infra/compose.override.l
 
 ## First admin login
 
-Setup prints these when it finishes.
-
-| Field | Default |
-| --- | --- |
-| Username | `admin` |
-| Password | `moj-admin-local` |
-| Email | `admin@example.com` |
-| TOTP secret | `MOJ_DEV_TOTP_SECRET`, default `mojdevtotpsecretdonotuseinprod01` |
-| Scratch codes | `mojde-vcode1` to `mojde-vcode5`, one use each |
-
-Staff must hold a second factor, so the account is enrolled in two-factor authentication against that fixed
-secret. Answer the challenge with a code generated from the `otpauth://` URI setup prints, or with a scratch
-code. The account is a superuser, so **Admin** appears in the user dropdown.
-
-::: danger
-Never set `MOJ_DEV_TOTP_SECRET` on a deployment. Without it, no enrolment happens and accounts enrol themselves.
-:::
-
-The password is not `admin` because the site refuses passwords that have appeared in a breach, and that one has.
+Setup prints the local account credentials when it finishes. See
+[test user credentials](/reference/development#test-user-credentials) for the defaults and administrator
+two-factor login instructions.
 
 ## Updating
 

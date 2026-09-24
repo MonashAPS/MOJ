@@ -48,6 +48,7 @@ function contestEdit(overrides: Partial<ContestFieldSource> = {}): ContestFieldS
     hideProblemAuthors: false,
     runPretestsOnly: false,
     proctorRequired: false,
+    problemListReleaseAt: null,
     publishProblemsAt: null,
     problemsPublishedAt: null,
     useClarifications: true,

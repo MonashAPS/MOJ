@@ -98,7 +98,13 @@ export function ContestSummary({
   );
 }
 
-function WarningLine({ severity, text }: { severity: ContestWarning["severity"]; text: string }): ReactNode {
+export function WarningLine({
+  severity,
+  text,
+}: {
+  severity: ContestWarning["severity"];
+  text: string;
+}): ReactNode {
   const Icon = SEVERITY_ICON[severity];
 
   return (

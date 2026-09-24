@@ -41,6 +41,7 @@ async function fixture() {
     key: "past",
     startTime: now - 7_200_000,
     endTime: now - 3_600_000,
+    problemListReleaseAt: "end",
   });
 
   await insertContestProblem(t, { contestId, problemId: open1, order: 1, points: 1 });
@@ -65,7 +66,7 @@ describe("a contest the viewer never joined", () => {
     const f = await fixture();
     const progress = await progressFor(f);
 
-    expect(progress?.problems.map((row) => row.code)).toEqual(["open1", "open2", "secret"]);
+    expect(progress?.problems.map((row) => row.code)).toEqual(["open1", "open2"]);
     expect(progress?.total).toBe(3);
   });
 
@@ -95,7 +96,7 @@ describe("a contest the viewer took part in", () => {
     await insertParticipation(f.t, { contestId: f.contestId, profileId: f.memberId });
 
     const progress = await progressFor(f);
-    expect(progress?.problems.map((row) => row.code)).toEqual(["open1", "open2", "secret"]);
+    expect(progress?.problems.map((row) => row.code)).toEqual(["open1", "open2"]);
     expect(progress?.total).toBe(3);
   });
 });
@@ -118,7 +119,11 @@ describe("a contest that has not finished", () => {
     const f = await fixture();
     const now = Date.now();
     await f.t.run(async (ctx) =>
-      ctx.db.patch(f.contestId, { startTime: now - 60_000, endTime: now + 3_600_000 }),
+      ctx.db.patch(f.contestId, {
+        startTime: now - 60_000,
+        endTime: now + 3_600_000,
+        problemListReleaseAt: "end",
+      }),
     );
 
     return f;

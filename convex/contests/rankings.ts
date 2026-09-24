@@ -35,6 +35,7 @@ import {
   formatFor,
   labelForProblem,
   loadContestProblems,
+  problemListAccessFor,
   toContestProblemRow,
   toContestRow,
   toParticipationRow,
@@ -42,6 +43,7 @@ import {
 } from "../contests/formats";
 import { optionalViewer, requireViewer } from "../lib/auth";
 import { forbidden, notFound } from "../lib/errors";
+import { canAccessProblem, loadViewerContext } from "../problems";
 import type { ParticipationCell } from "./participation";
 import { safeDisplay } from "./participation";
 
@@ -49,15 +51,28 @@ import { safeDisplay } from "./participation";
 /* Shapes                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export type RankingProblem = {
+type RankingProblemBase = {
   contestProblemId: Id<"contestProblems">;
-  problemId: Id<"problems">;
   label: string;
-  code: string;
-  name: string;
   points: number;
   isPretested: boolean;
 };
+
+export type AccessibleRankingProblem = RankingProblemBase & {
+  kind: "problem";
+  problemId: Id<"problems">;
+  code: string;
+  name: string;
+};
+
+export type RankingProblem =
+  | AccessibleRankingProblem
+  | (RankingProblemBase & {
+      kind: "restricted";
+      problemId?: never;
+      code?: never;
+      name?: never;
+    });
 
 export type RankingRow = {
   participationId: Id<"contestParticipations">;
@@ -188,19 +203,35 @@ export const ranking = query({
     const contestProblems = await loadContestProblems(ctx, contest._id);
     const problemRows: ContestProblemRow[] = contestProblems.map((row) => toContestProblemRow(row));
 
+    const problemListAccess = problemListAccessFor(contest, profile, viewer, inThisContest, now);
+    const problemViewer = await loadViewerContext(ctx);
     const problems: RankingProblem[] = [];
 
     for (const [index, contestProblem] of contestProblems.entries()) {
       const problem = await ctx.db.get(contestProblem.problemId);
-      problems.push({
+
+      const base = {
         contestProblemId: contestProblem._id,
-        problemId: contestProblem.problemId,
         label: labelForProblem(contest, index),
-        code: problem?.code ?? "",
-        name: problem?.name ?? "",
         points: contestProblem.points,
         isPretested: contestProblem.isPretested,
-      });
+      };
+
+      if (
+        !problem ||
+        !problemListAccess.released ||
+        (!problemListAccess.privileged && !(await canAccessProblem(ctx, problem, problemViewer)))
+      ) {
+        problems.push({ ...base, kind: "restricted" });
+      } else {
+        problems.push({
+          ...base,
+          kind: "problem",
+          problemId: problem._id,
+          code: problem.code,
+          name: problem.name,
+        });
+      }
     }
 
     // Which participations are in the table.
@@ -477,6 +508,17 @@ export const rankByProblem = query({
     if (contestAccessCheck(contestRow, viewer).kind !== "ok") return null;
 
     const now = Date.now();
+    const current = profile?.currentParticipationId ? await ctx.db.get(profile.currentParticipationId) : null;
+
+    const problemListAccess = problemListAccessFor(
+      contest,
+      profile,
+      viewer,
+      current?.contestId === contest._id,
+      now,
+    );
+
+    if (!problemListAccess.released) return null;
 
     const liveParticipation = profile
       ? ((
@@ -502,6 +544,13 @@ export const rankByProblem = query({
       .unique();
 
     if (!problem) return null;
+
+    if (
+      !problemListAccess.privileged &&
+      !(await canAccessProblem(ctx, problem, await loadViewerContext(ctx)))
+    ) {
+      return null;
+    }
 
     const contestProblems = await loadContestProblems(ctx, contest._id);
     const index = contestProblems.findIndex((row) => row.problemId === problem._id);

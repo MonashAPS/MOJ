@@ -14,15 +14,21 @@ const ROWS = ["w-[42%]", "w-[56%]", "w-[35%]", "w-[61%]", "w-[48%]", "w-[39%]"];
  * saves somebody wondering whether the page is broken. Nothing real is sent to
  * the browser, so there is nothing to read out of the markup.
  */
-export function ProblemsNotReleased() {
+export function ProblemsNotReleased({ contestName }: { contestName?: string }) {
   const t = useTranslations("contests.detail");
 
   return (
-    <section className="grid gap-2">
-      <h2 className="flex items-center gap-2 font-display text-h2 font-semibold">
-        <CircleHelp size={18} className="text-muted-foreground" aria-hidden />
-        {t("problems")}
-      </h2>
+    <section className={contestName !== undefined ? "grid gap-5" : "grid gap-2"}>
+      {contestName !== undefined ? (
+        <h1 className="text-center font-display text-h1 font-medium">
+          {t("domjudgeProblemsTitle", { name: contestName })}
+        </h1>
+      ) : (
+        <h2 className="flex items-center gap-2 font-display text-h2 font-semibold">
+          <CircleHelp size={18} className="text-muted-foreground" aria-hidden />
+          {t("problems")}
+        </h2>
+      )}
 
       <div className="relative">
         <div

@@ -10,6 +10,8 @@
  */
 
 import {
+  contestIsInContest,
+  contestIsVisibleTo,
   hasPerm as coreHasPerm,
   DEFAULT_SUBMISSION_SOURCE_VISIBILITY,
   isFullSolve,
@@ -25,7 +27,7 @@ import type { ProblemRow, ProfileRow } from "@moj/core/types";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { type MutationCtx, type QueryCtx, query } from "./_generated/server";
-import { labelForProblem } from "./contests/formats";
+import { labelForProblem, problemListAccessFor, toContestRow } from "./contests/formats";
 import { optionalViewer } from "./lib/auth";
 import { notFound } from "./lib/errors";
 import { proctorBlocksContestProblems } from "./lib/proctor";
@@ -52,6 +54,20 @@ export type ViewerContext = {
   contest: Doc<"contests"> | null;
   inContest: boolean;
 };
+
+/** A public problem does not make its unreleased contest associations public. */
+export function canSeeContestAssociation(
+  contest: Doc<"contests">,
+  viewer: { profile: Doc<"profiles"> | null; core: Parameters<typeof contestIsVisibleTo>[1] },
+  now = Date.now(),
+): boolean {
+  const taking = contestIsInContest(toContestRow(contest), viewer.core);
+
+  return (
+    (taking || contestIsVisibleTo(toContestRow(contest), viewer.core)) &&
+    problemListAccessFor(contest, viewer.profile, viewer.core, taking, now).released
+  );
+}
 
 /* -------------------------------------------------------------------------- */
 /* Viewer                                                                     */
@@ -643,7 +659,7 @@ export const list = query({
           .withIndex("by_key", (q) => q.eq("key", key))
           .unique();
 
-        if (!contest) continue;
+        if (!contest || !canSeeContestAssociation(contest, viewer)) continue;
 
         const links = await ctx.db
           .query("contestProblems")
@@ -886,7 +902,7 @@ export const get = query({
     for (const link of links) {
       const contest = await ctx.db.get(link.contestId);
 
-      if (!contest?.isVisible) continue;
+      if (!contest || !canSeeContestAssociation(contest, viewer)) continue;
 
       const siblings = await ctx.db
         .query("contestProblems")

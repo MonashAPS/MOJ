@@ -148,5 +148,28 @@ describe("creating a contest", () => {
 
     expect(created?.disableLockdown).toBe(true);
     expect(created?.proctorRequired).toBe(true);
+    expect(created?.problemListReleaseAt).toBe("start");
+  });
+
+  test("stores an explicit Never policy as null", async () => {
+    const t = await seed();
+
+    await asUser(t, "root").mutation(api.admin.contests.create, {
+      key: "never",
+      name: "Never",
+      startTime: Date.now(),
+      endTime: Date.now() + HOUR,
+      problemListReleaseAt: null,
+    });
+
+    const created = await t.run(
+      async (ctx) =>
+        await ctx.db
+          .query("contests")
+          .withIndex("by_key", (q) => q.eq("key", "never"))
+          .unique(),
+    );
+
+    expect(created?.problemListReleaseAt).toBeNull();
   });
 });

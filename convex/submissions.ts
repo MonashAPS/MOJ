@@ -13,6 +13,7 @@ import {
   type ContestParticipationRow,
   type Viewer as CoreViewer,
   canSeeSubmissionDetail,
+  contestIsVisibleTo,
   contestScoreboardIsPublic,
   hasPerm as coreHasPerm,
   isSuperuser as coreIsSuperuser,
@@ -35,7 +36,7 @@ import { globalSourceVisibility, siteSettings } from "./lib/community";
 import { forbidden, invalid, mojError, notFound } from "./lib/errors";
 import { proctorBlocksContestProblems, requireProctored } from "./lib/proctor";
 import { rateLimiter } from "./lib/rateLimiter";
-import { hasSolvedProblem, toCoreProblem } from "./problems";
+import { canSeeContestAssociation, hasSolvedProblem, toCoreProblem } from "./problems";
 
 /* -------------------------------------------------------------------------- */
 /* DMOJ settings                                                              */
@@ -332,6 +333,12 @@ async function buildRow(
     }
   }
 
+  const associationVisible =
+    !contest ||
+    submission.profileId === viewerProfile?._id ||
+    (contestIsVisibleTo(toContestRow(contest), viewer) &&
+      canSeeContestAssociation(contest, { profile: viewerProfile, core: viewer }, now));
+
   return {
     _id: submission._id,
     id: submission.legacyId ?? submission._id,
@@ -349,9 +356,10 @@ async function buildRow(
     masked,
     canSeeDetail: canSee,
     language: language ? { key: language.key, name: language.name, shortName: language.shortName } : null,
-    problem: problem
-      ? { _id: problem._id, code: problem.code, name: problem.name, points: problem.points }
-      : null,
+    problem:
+      problem && (canSee || problemIsVisibleTo(toCoreProblem(problem), viewer))
+        ? { _id: problem._id, code: problem.code, name: problem.name, points: problem.points }
+        : null,
     user: author
       ? {
           _id: author._id,
@@ -360,8 +368,9 @@ async function buildRow(
           rating: author.rating ?? null,
         }
       : null,
-    contest: contest ? { _id: contest._id, key: contest.key, name: contest.name } : null,
-    contestPoints: masked ? null : (submission.contestPoints ?? null),
+    contest:
+      contest && associationVisible ? { _id: contest._id, key: contest.key, name: contest.name } : null,
+    contestPoints: masked || !associationVisible ? null : (submission.contestPoints ?? null),
   };
 }
 
@@ -541,10 +550,15 @@ async function isListable(
 
   if (own) return true;
 
-  if (coreHasPerm(viewer, "judge.see_private_contest")) return true;
   const contest = await cachedGet(ctx, caches.contests, submission.contestId);
 
   if (!contest) return true;
+
+  if (!canSeeContestAssociation(contest, { profile: viewerCtx.profile, core: viewer }, now)) return false;
+
+  if (!contestIsVisibleTo(toContestRow(contest), viewer)) return false;
+
+  if (coreHasPerm(viewer, "judge.see_private_contest")) return true;
 
   return contestSubmissionsVisible(contest, viewer, now);
 }

@@ -51,15 +51,79 @@ async function detailFor(t: T, username?: string) {
   return await caller.query(api.contests.get, { key: "gated" });
 }
 
-describe("a contest that has finished", () => {
-  it("sends its problems to anyone", async () => {
+describe("an unset list release policy", () => {
+  it.each([
+    { window: upcoming, released: false },
+    { window: running, released: true },
+    { window: ended, released: true },
+  ])("defaults to start for $window", async ({ window, released }) => {
     const t = setupTest();
-    await contestWith(t, ended);
+    const contestId = await contestWith(t, window);
+    await insertProfile(t, { username: "admin", isStaff: true, isSuperuser: true });
+
+    const detail = await detailFor(t);
+    expect(detail.problemsReleased).toBe(released);
+    expect(detail.contest?.problemListReleaseAt).toBe("start");
+    expect(detail.problems).toHaveLength(released ? 1 : 0);
+    const admin = await asUser(t, "admin").query(api.pages.admin.contests.edit, { key: "gated" });
+    expect(admin?.problemListReleaseAt).toBe("start");
+
+    await t.run(async (ctx) => {
+      const stored = await ctx.db.get(contestId);
+      expect(stored?.problemListReleaseAt).toBeUndefined();
+      expect(stored?.publishProblemsAt).toBeUndefined();
+      expect(stored?.problemsPublishedAt).toBeUndefined();
+    });
+  });
+});
+
+describe("a contest that has finished", () => {
+  it("does not release its problems merely because it ended", async () => {
+    const t = setupTest();
+    await contestWith(t, ended, { problemListReleaseAt: null });
+
+    const detail = await detailFor(t);
+
+    expect(detail.problemsReleased).toBe(false);
+    expect(detail.problems).toEqual([]);
+  });
+
+  it("sends its problems to anyone once the selected boundary has passed", async () => {
+    const t = setupTest();
+    await contestWith(t, ended, { problemListReleaseAt: "end" });
 
     const detail = await detailFor(t);
 
     expect(detail.problemsReleased).toBe(true);
     expect(detail.problems.map((row) => row.code)).toEqual(["alpha"]);
+  });
+
+  it("reveals immediately after crossing the boundary without running a cron", async () => {
+    const t = setupTest();
+    const contestId = await contestWith(t, upcoming, { problemListReleaseAt: "start" });
+
+    expect((await detailFor(t)).problemsReleased).toBe(false);
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch(contestId, { startTime: Date.now() - 1 });
+    });
+
+    const detail = await detailFor(t);
+    expect(detail.problemsReleased).toBe(true);
+    expect(detail.problems.map((row) => row.code)).toEqual(["alpha"]);
+  });
+
+  it("can hide the list again when the boundary moves into the future", async () => {
+    const t = setupTest();
+    const contestId = await contestWith(t, ended, { problemListReleaseAt: "end" });
+
+    expect((await detailFor(t)).problemsReleased).toBe(true);
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch(contestId, { endTime: Date.now() + HOUR });
+    });
+
+    expect((await detailFor(t)).problemsReleased).toBe(false);
   });
 });
 
@@ -106,12 +170,27 @@ describe("a contest that has not started", () => {
 
     expect(detail.problemsReleased).toBe(true);
   });
+
+  it("sends them to staff who may edit every contest without making them join", async () => {
+    const t = setupTest();
+    await contestWith(t, upcoming);
+    await insertProfile(t, {
+      username: "staff",
+      isStaff: true,
+      permissions: ["judge.edit_all_contest"],
+    });
+
+    const detail = await detailFor(t, "staff");
+
+    expect(detail.problemsReleased).toBe(true);
+    expect(detail.problems.map((row) => row.code)).toEqual(["alpha"]);
+  });
 });
 
 describe("a contest in progress", () => {
   it("withholds them from somebody who joined but has since left contest mode", async () => {
     const t = setupTest();
-    const contestId = await contestWith(t, running);
+    const contestId = await contestWith(t, running, { problemListReleaseAt: null });
     const playerId = await insertProfile(t, { username: "player" });
     await insertParticipation(t, { contestId, profileId: playerId });
 
@@ -122,7 +201,7 @@ describe("a contest in progress", () => {
 
   it("withholds them from somebody watching from outside", async () => {
     const t = setupTest();
-    await contestWith(t, running);
+    await contestWith(t, running, { problemListReleaseAt: null });
     await insertProfile(t, { username: "onlooker" });
 
     const detail = await detailFor(t, "onlooker");
@@ -133,7 +212,7 @@ describe("a contest in progress", () => {
 
   it("sends them to somebody who is competing in it", async () => {
     const t = setupTest();
-    const contestId = await contestWith(t, running);
+    const contestId = await contestWith(t, running, { problemListReleaseAt: null });
     const playerId = await insertProfile(t, { username: "player" });
     await t.run(async (ctx) => {
       const participationId = await insertParticipation(ctx, { contestId, profileId: playerId });

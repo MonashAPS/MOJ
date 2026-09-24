@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import type { RankingProblem } from "@convex/contests/rankings";
+import type { AccessibleRankingProblem } from "@convex/contests/rankings";
 import type { SubmissionListRow } from "@convex/submissions";
 import {
   Button,
@@ -51,7 +51,7 @@ export function RankingCellSubmissions({
   contestKey: string;
   username: string;
   displayName: string;
-  problem: RankingProblem;
+  problem: AccessibleRankingProblem;
   precision: number;
   /** The frozen cell's existing hover copy, kept on the trigger it became. */
   tooltip?: ReactNode;
@@ -104,7 +104,7 @@ function CellSubmissions({
   contestKey: string;
   username: string;
   displayName: string;
-  problem: RankingProblem;
+  problem: AccessibleRankingProblem;
   precision: number;
 }) {
   const t = useTranslations("contests.ranking.cell");

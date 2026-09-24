@@ -92,9 +92,10 @@ statement.
   and `organizations`, the last empty unless the problem is organisation-private.
 - **`/api/v2/contest/<key>`** adds `has_rating`, `rating_floor`, `rating_ceiling`, `performance_ceiling`,
   `hidden_scoreboard`, `scoreboard_visibility` (`V`, `C`, `P`, `H`), `is_organization_private`, `organizations`,
-  `is_private`, a `format` object, `problems` and `rankings`. `problems` is empty unless the caller is in the
-  contest, it has ended, or they can edit it. `rankings` is the full board or an empty array, never a frozen one,
-  and lists live participations only.
+  `is_private`, a `format` object, `problems` and `rankings`. `problems` retains one entry per contest problem,
+  in contest order. An unreleased list or an inaccessible problem produces a restricted entry, as below.
+  [List release rules](/using/contests#problem-list-release) apply to the token's owner or signed-out visitor.
+  `rankings` is the full board or an empty array, never a frozen one, and lists live participations only.
 - **`/api/v2/contests`** carries `time_limit`, the per-participant window in seconds, or `null`.
 - **`/api/v2/participations`** has `virtual_participation_number` 0 for a live participation. Spectating
   participations are not listed.
@@ -102,7 +103,9 @@ statement.
   Unlisted and deactivated accounts are absent. The detail form adds `about`, `solved_problems`, `organizations`
   and `contests`, each with `key`, `score`, `cumulative_time`, `rating`, `raw_rating` and `performance`, for
   ended contests the caller may see.
-- **`/api/v2/submissions`** follows the problem's visibility. For a contest submission, `contest` is an object
+- **`/api/v2/submissions`** follows the problem's visibility. Other users' contest submissions are also omitted
+  if the caller cannot see the contest or its released problem-list association, even for a public problem.
+  For a contest submission, `contest` is an object
   with `key`, `points`, `virtual_participation_number` and `time_since_start_of_participation`.
 - **`/api/v2/submission/<id>`** adds `status`, `case_points`, `case_total` and `cases`, and applies the source
   visibility setting. It answers `403 login required` with no `Authorization` header at all. The id may be an
@@ -112,6 +115,20 @@ statement.
   `code_template`. The last two are fed from the editor mode and the highlighting language, and keep their names
   because scripts read them.
 - **`/api/v2/judges`** lists online judges only: `name`, `start_time`, `ping`, `load`, `languages`.
+
+Contest problem entries always carry `points`, `partial`, `is_pretested`, `max_submissions` and `label`.
+Accessible entries add `name` and `code`, with no `kind` field. Restricted entries add `"kind": "restricted"`
+and omit both `name` and `code`; clients must check before displaying a name or building a problem link.
+Their positions still correspond to the ranking's problem breakdown.
+
+```json
+{
+  "kind": "restricted", "label": "A", "points": 100,
+  "partial": false, "is_pretested": false, "max_submissions": null
+}
+```
+
+A submission list entry:
 
 ```json
 {

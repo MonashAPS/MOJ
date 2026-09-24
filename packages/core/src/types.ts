@@ -225,7 +225,9 @@ export interface ContestRow {
   readonly pointsPrecision?: number;
   readonly runPretestsOnly?: boolean;
   readonly lockedAfter?: Timestamp | null;
-  /** Every problem in the contest is made public the moment it starts, or the moment it ends. */
+  /** The ordered list is revealed at start (also when unset) or end; null means Never. */
+  readonly problemListReleaseAt?: "start" | "end" | null;
+  /** Every eligible problem in the contest is made public at the start or end. */
   readonly publishProblemsAt?: "start" | "end";
   /** When that happened, once it has. */
   readonly problemsPublishedAt?: Timestamp;

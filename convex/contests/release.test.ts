@@ -62,6 +62,99 @@ async function isPublic(t: T, code: string): Promise<boolean | undefined> {
 }
 
 describe("the sweep", () => {
+  it.each(["start", "end"] as const)(
+    "preserves staff privacy changes after %s publication",
+    async (policy) => {
+      const t = setupTest();
+      const { contestId } = await seed(t, HOUR, policy);
+      await insertProfile(t, { username: "root", isStaff: true, isSuperuser: true });
+      const staff = t.withIdentity(identityOf("root"));
+      await t.mutation(internal.jobs.contests.publishEndedContestProblems, {});
+      const publishedAt = await t.run(async (ctx) => (await ctx.db.get(contestId))?.problemsPublishedAt);
+      await staff.mutation(api.admin.problems.setVisibility, { codes: ["alpha"], isPublic: false });
+
+      expect(await t.mutation(internal.jobs.contests.publishEndedContestProblems, {})).toEqual({
+        contests: 0,
+        problems: 0,
+      });
+      expect(await isPublic(t, "alpha")).toBe(false);
+      await staff.mutation(api.admin.contests.update, { key: "weekly", name: "Renamed contest" });
+      expect(await isPublic(t, "alpha")).toBe(false);
+      expect(await isPublic(t, "beta")).toBe(true);
+      expect(await t.run(async (ctx) => (await ctx.db.get(contestId))?.problemsPublishedAt)).toBe(
+        publishedAt,
+      );
+    },
+  );
+
+  it("does not retry completed start-publication attempts", async () => {
+    const t = setupTest();
+    const { contestId, beta } = await seed(t, -HOUR, "start");
+
+    const later = await t.run(async (ctx) => {
+      const id = await insertContest(ctx, {
+        key: "later",
+        startTime: Date.now() + HOUR,
+        endTime: Date.now() + 2 * HOUR,
+        publishProblemsAt: "start",
+      });
+
+      await insertContestProblem(ctx, { contestId: id, problemId: beta });
+
+      return id;
+    });
+
+    expect(await t.mutation(internal.jobs.contests.publishEndedContestProblems, {})).toEqual({
+      contests: 1,
+      problems: 1,
+    });
+    expect(await isPublic(t, "beta")).toBe(false);
+    await t.run(async (ctx) => {
+      // Reproduce existing rows where both attempts were marked complete.
+      await ctx.db.patch(later, { startTime: Date.now() - 1, problemsPublishedAt: Date.now() - 1 });
+      expect((await ctx.db.get(contestId))?.problemsPublishedAt).toBeDefined();
+    });
+    expect(await t.mutation(internal.jobs.contests.publishEndedContestProblems, {})).toEqual({
+      contests: 0,
+      problems: 0,
+    });
+    expect(await isPublic(t, "beta")).toBe(false);
+    const revisions = await t.run(async (ctx) => (await ctx.db.query("revisions").collect()).length);
+    expect(await t.mutation(internal.jobs.contests.publishEndedContestProblems, {})).toEqual({
+      contests: 0,
+      problems: 0,
+    });
+    expect(await t.run(async (ctx) => (await ctx.db.query("revisions").collect()).length)).toBe(revisions);
+  });
+
+  it("leaves held problems private after a protecting contest ends", async () => {
+    const t = setupTest();
+    const { beta } = await seed(t, HOUR);
+
+    const later = await t.run(async (ctx) => {
+      const id = await insertContest(ctx, {
+        key: "later",
+        startTime: Date.now() - HOUR,
+        endTime: Date.now() + HOUR,
+        problemListReleaseAt: "start",
+      });
+
+      await insertContestProblem(ctx, { contestId: id, problemId: beta });
+
+      return id;
+    });
+
+    await t.mutation(internal.jobs.contests.publishEndedContestProblems, {});
+    await t.mutation(internal.jobs.contests.publishEndedContestProblems, {});
+    expect(await isPublic(t, "beta")).toBe(false);
+    await t.run(async (ctx) => ctx.db.patch(later, { endTime: Date.now() - 1 }));
+    expect(await t.mutation(internal.jobs.contests.publishEndedContestProblems, {})).toEqual({
+      contests: 0,
+      problems: 0,
+    });
+    expect(await isPublic(t, "beta")).toBe(false);
+  });
+
   it("publishes the problems of a contest that has ended and asked for it", async () => {
     const t = setupTest();
     const { contestId } = await seed(t, HOUR);
@@ -102,6 +195,22 @@ describe("the sweep", () => {
     });
     expect(await isPublic(t, "alpha")).toBe(false);
     expect(await isPublic(t, "gamma")).toBe(false);
+  });
+
+  it("does not process list-only policies", async () => {
+    const t = setupTest();
+    const { contestId } = await seed(t, HOUR, undefined);
+    await t.run(async (ctx) => {
+      await ctx.db.patch(contestId, { problemListReleaseAt: "end", publishProblemsAt: undefined });
+    });
+
+    expect(await t.mutation(internal.jobs.contests.publishEndedContestProblems, {})).toEqual({
+      contests: 0,
+      problems: 0,
+    });
+    expect(await isPublic(t, "alpha")).toBe(false);
+    const contest = await t.run(async (ctx) => await ctx.db.get(contestId));
+    expect(contest?.problemsPublishedAt).toBeUndefined();
   });
 
   it("holds back a problem another contest is still going to use", async () => {
@@ -167,18 +276,58 @@ describe("publishing at the start", () => {
 });
 
 describe("turning the setting on after the end", () => {
-  it("publishes in the same save", async () => {
+  it("does not publish newly added problems from a stale completion timestamp after choosing Never", async () => {
+    const t = setupTest();
+    const { contestId } = await seed(t, HOUR);
+    await t.mutation(internal.jobs.contests.publishEndedContestProblems, {});
+    await t.run(async (ctx) => {
+      await insertProfile(ctx, { username: "root", isStaff: true, isSuperuser: true });
+      await ctx.db.patch(contestId, { publishProblemsAt: undefined });
+      await insertProblem(ctx, { code: "gamma", isPublic: false });
+    });
+    await t.withIdentity(identityOf("root")).mutation(api.admin.contests.addProblem, {
+      key: "weekly",
+      problemCode: "gamma",
+      points: 1,
+    });
+    expect(await isPublic(t, "gamma")).toBe(false);
+    await t.mutation(internal.jobs.contests.publishEndedContestProblems, {});
+    expect(await isPublic(t, "gamma")).toBe(false);
+  });
+
+  it("publishes existing problems in the same save but leaves later additions private", async () => {
     const t = setupTest();
     await seed(t, HOUR, undefined);
     await t.run(async (ctx) => {
       await insertProfile(ctx, { username: "root", isStaff: true, isSuperuser: true });
     });
 
-    await t
-      .withIdentity(identityOf("root"))
-      .mutation(api.admin.contests.update, { key: "weekly", publishProblemsAt: "end" });
+    await t.withIdentity(identityOf("root")).mutation(api.admin.contests.update, {
+      key: "weekly",
+      problemListReleaseAt: "end",
+      publishProblemsAt: "end",
+    });
 
     expect(await isPublic(t, "alpha")).toBe(true);
     expect(await isPublic(t, "beta")).toBe(true);
+
+    const contest = await t.run(async (ctx) =>
+      ctx.db
+        .query("contests")
+        .withIndex("by_key", (q) => q.eq("key", "weekly"))
+        .unique(),
+    );
+
+    expect(contest?.problemsPublishedAt).toBeTypeOf("number");
+
+    await t.run(async (ctx) => {
+      await insertProblem(ctx, { code: "gamma", isPublic: false });
+    });
+    await t.withIdentity(identityOf("root")).mutation(api.admin.contests.addProblem, {
+      key: "weekly",
+      problemCode: "gamma",
+      points: 1,
+    });
+    expect(await isPublic(t, "gamma")).toBe(false);
   });
 });

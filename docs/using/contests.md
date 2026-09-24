@@ -36,6 +36,24 @@ An aborted submission adds a penalty on the ranking page but not on the hall sco
 by one penalty.
 :::
 
+## Problem list release
+
+A contest's problem list is shown to general viewers at its start by default. Organisers can instead release
+it at the end, or choose **Never** to keep it hidden from general viewers. You must still be allowed to view
+the contest. Moving the selected time into the future or choosing **Never** can hide the list again.
+
+Contest editors, authors, curators, testers and superusers can see the list early. Current participants and
+designated spectators can see it once the contest starts; designated spectators with `spectatorSeeProblemsEarly`
+can also see it before then. A past participation alone does not bypass the release policy.
+
+Releasing the list does not publish the statements. A problem you cannot access appears as **Restricted
+problem**, without its name, code or link. Standings retain its label and score column even when its identity
+is hidden. Clarifications, solve progress and statistics also withhold inaccessible problem identities.
+Cloning a contest requires access to its list and every problem in it, unless you have privileged contest access.
+
+Organisers separately choose whether to publish eligible private problems to the general problem set at the
+start or end. See [contest release settings](/admin/staff-console#contest-release-settings).
+
 ## Freeze and blind mode
 
 `freezeMinutes` stops the public board updating that many minutes before the end; `0` disables it. A frozen cell
@@ -50,7 +68,8 @@ back, or run the reveal ceremony from the hall scoreboard.
 
 `/scoreboard/<event>` is a projector board for a live event, configured as a scoreboard event in the staff
 console; `/scoreboard/` lists them. It always applies ICPC scoring whatever the contests use, and it ignores each
-contest's scoreboard visibility, so treat the URL as public.
+contest's scoreboard visibility, so treat the URL as public. Problem names and codes still follow contest list
+release and problem access rules; the event feed omits entries whose problem identity cannot be shown.
 
 ![The hall scoreboard during a freeze](/screenshots/hall-scoreboard.png)
 
@@ -85,8 +104,8 @@ problems, submission lists are filtered to it, editorials are hidden and problem
 renders under the navigation with one chip per problem coloured by your state on it, links to Standings, your
 Submissions and Clarifications, and a countdown that turns amber under five minutes and red under one.
 
-With `useClarifications` on, staff post clarifications against a contest problem and they appear for everyone in
-the contest at once.
+With `useClarifications` on, staff post clarifications against a contest problem and they appear for viewers
+who can see the released list and access that problem.
 
 ## Access control
 

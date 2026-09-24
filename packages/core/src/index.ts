@@ -10,6 +10,8 @@ export * from "./audiences";
 
 export * from "./contest/describe";
 
+export * from "./contest/release";
+
 export * from "./contest/warnings";
 
 export * from "./contestTiming";

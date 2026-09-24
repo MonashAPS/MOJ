@@ -3,7 +3,7 @@
  * profile id already resolved to a name, and the option lists its pickers offer.
  */
 
-import { contestIsEditableBy } from "@moj/core";
+import { contestIsEditableBy, problemListReleasePolicy } from "@moj/core";
 import { v } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
 import { query } from "../../_generated/server";
@@ -143,6 +143,7 @@ export const edit = query({
       lockedAfter: contest.lockedAfter ?? null,
       pointsPrecision: contest.pointsPrecision,
       proctorRequired: contest.proctorRequired ?? false,
+      problemListReleaseAt: problemListReleasePolicy(contest),
       publishProblemsAt: contest.publishProblemsAt ?? null,
       problemsPublishedAt: contest.problemsPublishedAt ?? null,
       hideProblemTags: contest.hideProblemTags,

@@ -54,7 +54,7 @@ interface Draft {
   freezeMinutes: string;
   blind: boolean;
   scoreboard: AudiencePolicy;
-  publishProblemsAt: "start" | "end" | null;
+  releaseProblemsAt: "start" | "end" | null;
   useClarifications: boolean;
 }
 
@@ -71,7 +71,7 @@ function emptyDraft(now: number): Draft {
     freezeMinutes: "",
     blind: false,
     scoreboard: { audiences: ["everyone"], from: "start" },
-    publishProblemsAt: null,
+    releaseProblemsAt: "start",
     useClarifications: true,
   };
 }
@@ -130,7 +130,8 @@ export function NewContestWizard() {
     rating,
     freeze,
     isVisible: draft.isVisible,
-    publishProblemsAt: draft.publishProblemsAt ?? undefined,
+    problemListReleaseAt: draft.releaseProblemsAt,
+    publishProblemsAt: draft.releaseProblemsAt ?? undefined,
   };
 
   const warnings = contestWarnings(describeSource);
@@ -179,7 +180,8 @@ export function NewContestWizard() {
         rating,
         freeze,
         scoreboard: { audiences: [...draft.scoreboard.audiences], from: draft.scoreboard.from },
-        publishProblemsAt: draft.publishProblemsAt,
+        problemListReleaseAt: draft.releaseProblemsAt,
+        publishProblemsAt: draft.releaseProblemsAt,
         useClarifications: draft.useClarifications,
       });
 
@@ -370,29 +372,34 @@ export function NewContestWizard() {
                 />
               </AdminSection>
 
-              <AdminSection title={problems("publishTitle")} columns={1}>
+              <AdminSection title={problems("combinedReleaseTitle")} columns={1}>
                 <RadioGroup
                   variant="card"
-                  name="publish-problems"
-                  ariaLabel={problems("publishTitle")}
-                  value={draft.publishProblemsAt ?? "never"}
+                  name="release-contest-problems"
+                  ariaLabel={problems("combinedReleaseTitle")}
+                  value={draft.releaseProblemsAt ?? "never"}
                   onValueChange={(next) =>
-                    change({ publishProblemsAt: next === "start" || next === "end" ? next : null })
+                    change({ releaseProblemsAt: next === "start" || next === "end" ? next : null })
                   }
                   options={[
                     {
                       value: "never",
-                      label: problems("publishNever"),
-                      description: problems("publishNeverHint"),
+                      label: problems("releaseNever"),
+                      description: problems("combinedReleaseNeverHint"),
                     },
                     {
                       value: "start",
-                      label: problems("publishStart"),
-                      description: problems("publishStartHint"),
+                      label: problems("releaseStart"),
+                      description: problems("combinedReleaseStartHint"),
                     },
-                    { value: "end", label: problems("publishEnd"), description: problems("publishEndHint") },
+                    {
+                      value: "end",
+                      label: problems("releaseEnd"),
+                      description: problems("combinedReleaseEndHint"),
+                    },
                   ]}
                 />
+                <p className="text-sm text-muted-foreground">{problems("combinedReleaseSettingsHint")}</p>
               </AdminSection>
             </>
           ) : null}

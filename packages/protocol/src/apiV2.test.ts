@@ -13,6 +13,7 @@ import {
   API_PAGE_SIZE,
   API_VERSION,
   apiContestListObject,
+  apiContestProblem,
   apiErrorResponse,
   apiUserListObject,
   detailResponse,
@@ -20,6 +21,22 @@ import {
   parseApiBoolean,
   parsePageNumber,
 } from "./apiV2.js";
+
+test("restricted contest columns cannot carry problem identities", () => {
+  const restricted = {
+    kind: "restricted",
+    label: "A",
+    points: 100,
+    partial: false,
+    is_pretested: false,
+    max_submissions: null,
+  };
+
+  expect(apiContestProblem.parse(restricted)).toEqual(restricted);
+  expect(apiContestProblem.safeParse({ ...restricted, name: "Secret problem", code: "secret" }).success).toBe(
+    false,
+  );
+});
 
 describe("the envelope", () => {
   test("a list response is DMOJ's `get_base_response` plus `get_api_data`", () => {

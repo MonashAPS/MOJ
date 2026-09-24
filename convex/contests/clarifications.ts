@@ -10,10 +10,12 @@ import type { Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
 import { optionalViewer, requireViewer } from "../lib/auth";
 import { forbidden, invalid, notFound } from "../lib/errors";
+import { canAccessProblem, loadViewerContext } from "../problems";
 import {
   contestByKey,
   labelForProblem,
   loadContestProblems,
+  problemListAccessFor,
   toContestRow,
   toViewerRowInContest,
 } from "./formats";
@@ -48,13 +50,20 @@ export const list = query({
       return null;
     }
 
+    const problemListAccess = problemListAccessFor(contest, profile, viewer, inThisContest, Date.now());
+
+    if (!problemListAccess.released) return [];
+
     const contestProblems = await loadContestProblems(ctx, contest._id);
+    const problemViewer = await loadViewerContext(ctx);
     const out: Clarification[] = [];
 
     for (const [index, contestProblem] of contestProblems.entries()) {
       const problem = await ctx.db.get(contestProblem.problemId);
 
       if (!problem) continue;
+
+      if (!problemListAccess.privileged && !(await canAccessProblem(ctx, problem, problemViewer))) continue;
 
       const rows = await ctx.db
         .query("problemClarifications")

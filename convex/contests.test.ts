@@ -251,6 +251,7 @@ describe("contest problem states", () => {
         key: "past",
         startTime: now - 5 * HOUR,
         endTime: now - 4 * HOUR,
+        problemListReleaseAt: "end",
       });
 
       const cpDuring = await insertContestProblem(ctx, {
@@ -400,7 +401,13 @@ describe("clarifications and statistics", () => {
 
       await insertProfile(ctx, { username: "ada" });
       const problemId = await insertProblem(ctx, { code: "aplus" });
-      const contestId = await insertContest(ctx, { key: "live", authorProfileIds: [authorId] });
+
+      const contestId = await insertContest(ctx, {
+        key: "live",
+        authorProfileIds: [authorId],
+        problemListReleaseAt: "start",
+      });
+
       await insertContestProblem(ctx, { contestId, problemId, order: 0, points: 1 });
     });
 
@@ -439,6 +446,7 @@ describe("clarifications and statistics", () => {
 
       const contestId = await insertContest(ctx, {
         key: "past",
+        problemListReleaseAt: "end",
         startTime: now - 5 * HOUR,
         endTime: now - 4 * HOUR,
       });
@@ -505,7 +513,14 @@ describe("cloning", () => {
     await t.run(async (ctx) => {
       await insertProfile(ctx, { username: "cloner", permissions: ["judge.clone_contest"] });
       const problemId = await insertProblem(ctx, { code: "aplus" });
-      const contestId = await insertContest(ctx, { key: "original", userCount: 9 });
+
+      const contestId = await insertContest(ctx, {
+        key: "original",
+        userCount: 9,
+        problemListReleaseAt: "start",
+        startTime: Date.now() - HOUR,
+      });
+
       await insertContestProblem(ctx, { contestId, problemId, order: 0, points: 7 });
     });
 

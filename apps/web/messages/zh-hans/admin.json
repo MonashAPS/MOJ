@@ -588,15 +588,28 @@
       "rejudgeTitle": "重新评测 {code} 的所有提交？",
       "rejudgeDescription": "只会处理此比赛内的提交，它们会排在实时评测之后，排行榜将随每条完成而更新。",
       "rejudgeQueued": "重新评测已加入队列",
-      "publishTitle": "公开",
-      "publishNever": "题目保持原样",
-      "publishNeverHint": "私有题目仍然私有。",
-      "publishStart": "比赛开始时公开",
-      "publishStartHint": "比赛一开始，每道题目即成为公开题目，任何人无需加入即可打开。",
-      "publishEnd": "比赛结束时公开",
-      "publishEndHint": "比赛一结束，每道题目即成为公开题目，任何人都可以练习。",
-      "publishDone": "已于 {at} 公开。",
-      "publishSaved": "公开设置已保存。"
+      "releaseTitle": "显示比赛题目列表",
+      "releaseNever": "永不",
+      "releaseNeverHint": "不自动显示题目列表。",
+      "releaseStart": "比赛开始时",
+      "releaseStartHint": "比赛开始时显示题目列表。",
+      "releaseEnd": "比赛结束时",
+      "releaseEndHint": "比赛结束时显示题目列表。",
+      "listReleasedDone": "题目列表已于 {at} 发布。",
+      "listReleaseReversible": "选择“从不”或将所选比赛时间移至未来，可以再次隐藏列表。",
+      "problemsPublishedDone": "题目已于 {at} 发布。",
+      "releaseSaved": "设置已保存。",
+      "publishTitle": "将题目发布到公共题库",
+      "publishNeverHint": "不自动发布题目。",
+      "publishStartHint": "比赛开始时发布题目。",
+      "publishEndHint": "比赛结束时发布题目。",
+      "publishIrreversible": "更改此设置不会将已公开的题目重新设为私有。",
+      "publishSaved": "设置已保存。",
+      "combinedReleaseTitle": "开放比赛题目",
+      "combinedReleaseNeverHint": "不自动显示题目列表或发布题目。",
+      "combinedReleaseStartHint": "比赛开始时显示题目列表并发布题目。",
+      "combinedReleaseEndHint": "比赛结束时显示题目列表并发布题目。",
+      "combinedReleaseSettingsHint": "创建比赛后，您可以在“题目”选项卡中分别调整这些设置。"
     },
     "people": {
       "errorNoAuthor": "比赛至少需要一名作者。",
@@ -768,7 +781,9 @@
         "locked": "提交在 <b>{at}</b> 之后无法再编辑。",
         "publishAtStart": "其题目将于 <b>{at}</b> 比赛开始时对所有人公开。",
         "publishAtEnd": "其题目将于 <b>{at}</b> 对所有人公开。",
-        "problemsPublished": "其题目已于 <b>{at}</b> 公开。"
+        "problemsPublished": "其题目已于 <b>{at}</b> 公开。",
+        "listReleaseAtStart": "比赛开始时（<b>{at}</b>）显示题目列表。",
+        "listReleaseAtEnd": "比赛结束时（<b>{at}</b>）显示题目列表。"
       },
       "who": {
         "hidden": "已从比赛列表中隐藏。",
@@ -819,7 +834,8 @@
       "ratingFloorExcludesNewcomers": "{floor} 的下限会排除所有从未评过分的人，因为他们按 {newcomer} 计算。",
       "rateEveryoneWithExclusions": "为所有人计分，排除 {count, plural, other {# 项}}。",
       "customLabelsShort": "{problems} 道题只有 {labels, plural, other {# 个标签}}；其余回退为字母。",
-      "pretestsWithoutPretestedProblems": "已开启仅预测试，但本场比赛没有任何题目标记为预测试，因此不起作用。"
+      "pretestsWithoutPretestedProblems": "已开启仅预测试，但本场比赛没有任何题目标记为预测试，因此不起作用。",
+      "problemReleaseOutOfSync": "题目列表显示与题目发布的时间不同。访客可能看到受限条目，或在比赛列表显示之前看到公开题目。如果希望两者同时开放，请将设置保持一致。"
     },
     "formats": {
       "default": "每题取最高分；并列时按最后一次得分提交的时间排序。",
@@ -2208,6 +2224,7 @@
         "lockedAfter": "锁定时间",
         "memoryLimit": "内存限制",
         "pointsPrecision": "分值精度",
+        "problemListReleaseAt": "题目列表发布时间",
         "problemsPublishedAt": "题目公开时间",
         "publishProblemsAt": "公开题目",
         "rating": "评分",

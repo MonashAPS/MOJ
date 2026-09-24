@@ -2,6 +2,7 @@
 
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
+import { problemReleaseWarnings } from "@moj/core";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +42,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { AdminFormError, JobProgress } from "@/components/admin";
 import { formatDateTime } from "@/lib/format";
+import { WarningLine } from "./ContestSummary";
 import type { ContestEdit } from "./types";
 
 type ContestProblem = ContestEdit["problems"][number];
@@ -49,6 +51,7 @@ type ContestProblem = ContestEdit["problems"][number];
  *  puts at the end of each row. */
 export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
   const t = useTranslations("admin.contests.problems");
+  const warn = useTranslations("admin.contests.warnings");
   const actions = useTranslations("common.actions");
   const addProblem = useMutation(api.admin.contests.addProblem);
   const updateProblem = useMutation(api.admin.contests.updateProblem);
@@ -70,6 +73,13 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
   const candidates = (matches ?? []).filter(
     (row) => !contest.problems.some((problem) => problem.code === row.code),
   );
+
+  const listReleaseBoundary =
+    contest.problemListReleaseAt === "start"
+      ? contest.startTime
+      : contest.problemListReleaseAt === "end"
+        ? contest.endTime
+        : null;
 
   async function guard<T>(work: () => Promise<T>) {
     setError(null);
@@ -120,15 +130,14 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
     );
   }
 
-  async function setPublishing(next: string) {
-    const publishProblemsAt = next === "start" || next === "end" ? next : null;
-
-    try {
-      await updateContest({ key: contest.key, publishProblemsAt });
-      toast.success(t("publishSaved"));
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : t("refused"));
-    }
+  async function setPolicy(field: "problemListReleaseAt" | "publishProblemsAt", next: string) {
+    await guard(async () => {
+      await updateContest({
+        key: contest.key,
+        [field]: next === "start" || next === "end" ? next : null,
+      });
+      toast.success(t(field === "problemListReleaseAt" ? "releaseSaved" : "publishSaved"));
+    });
   }
 
   return (
@@ -136,35 +145,59 @@ export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
       <AdminFormError message={error} />
       {jobId ? <JobProgress jobId={jobId} title={contest.key} onDismiss={() => setJobId(null)} /> : null}
 
-      <Panel title={t("publishTitle")} bodyClassName="grid gap-3 p-4">
+      <Panel title={t("releaseTitle")} bodyClassName="grid gap-3 p-4">
         <RadioGroup
           variant="card"
-          name="publish-problems"
-          ariaLabel={t("publishTitle")}
-          value={contest.publishProblemsAt ?? "never"}
-          onValueChange={(next) => void setPublishing(next)}
+          name="release-contest-problems"
+          ariaLabel={t("releaseTitle")}
+          value={contest.problemListReleaseAt ?? "never"}
+          onValueChange={(next) => void setPolicy("problemListReleaseAt", next)}
           options={[
-            { value: "never", label: t("publishNever"), description: t("publishNeverHint") },
+            { value: "never", label: t("releaseNever"), description: t("releaseNeverHint") },
             {
               value: "start",
-              label: t("publishStart"),
-              description: t("publishStartHint"),
-              disabled: contest.problemsPublishedAt !== null,
+              label: t("releaseStart"),
+              description: t("releaseStartHint"),
             },
             {
               value: "end",
-              label: t("publishEnd"),
-              description: t("publishEndHint"),
-              disabled: contest.problemsPublishedAt !== null,
+              label: t("releaseEnd"),
+              description: t("releaseEndHint"),
             },
           ]}
         />
+        {listReleaseBoundary !== null && listReleaseBoundary <= Date.now() ? (
+          <p className="text-sm text-muted-foreground">
+            {t("listReleasedDone", { at: formatDateTime(listReleaseBoundary) })}
+          </p>
+        ) : null}
+        <p className="text-sm text-muted-foreground">{t("listReleaseReversible")}</p>
+      </Panel>
+
+      <Panel title={t("publishTitle")} bodyClassName="grid gap-3 p-4">
+        <RadioGroup
+          variant="card"
+          name="publish-contest-problems"
+          ariaLabel={t("publishTitle")}
+          value={contest.publishProblemsAt ?? "never"}
+          onValueChange={(next) => void setPolicy("publishProblemsAt", next)}
+          options={[
+            { value: "never", label: t("releaseNever"), description: t("publishNeverHint") },
+            { value: "start", label: t("releaseStart"), description: t("publishStartHint") },
+            { value: "end", label: t("releaseEnd"), description: t("publishEndHint") },
+          ]}
+        />
+        <p className="text-sm text-muted-foreground">{t("publishIrreversible")}</p>
         {contest.problemsPublishedAt !== null ? (
           <p className="text-sm text-muted-foreground">
-            {t("publishDone", { at: formatDateTime(contest.problemsPublishedAt) })}
+            {t("problemsPublishedDone", { at: formatDateTime(contest.problemsPublishedAt) })}
           </p>
         ) : null}
       </Panel>
+
+      {problemReleaseWarnings(contest).map((warning) => (
+        <WarningLine key={warning.key} severity={warning.severity} text={warn(warning.key)} />
+      ))}
 
       <Panel title={t("panelTitle", { count: contest.problems.length })} bodyClassName="grid gap-0 p-0">
         <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">

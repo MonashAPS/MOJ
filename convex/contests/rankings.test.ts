@@ -893,3 +893,67 @@ describe("contest formats", () => {
     expect(invalidConfig.ok).toBe(false);
   });
 });
+
+describe("scoreboard problem identities", () => {
+  test.each([null, "end"] as const)(
+    "withholds unreleased %s identities while keeping scores",
+    async (policy) => {
+      const t = setupTest();
+      const overrides: Overrides<"contests"> = { problemListReleaseAt: policy };
+
+      if (policy === "end") overrides.endTime = Date.now() + HOUR;
+
+      await frozenContest(t, overrides);
+
+      const board = await t.query(api.contests.rankings.ranking, { key: "icpc" });
+
+      expect(board?.problems).toHaveLength(1);
+      expect(board?.problems[0]).toMatchObject({ kind: "restricted", label: "A", points: 1 });
+      expect(board?.problems[0]).not.toHaveProperty("name");
+      expect(board?.problems[0]).not.toHaveProperty("code");
+      expect(board?.problems[0]).not.toHaveProperty("problemId");
+      expect(board?.rows.find((row) => row.user.username === "ada")?.points).toBe(1);
+    },
+  );
+
+  test("keeps restricted columns aligned and reveals identities when access is granted", async () => {
+    const t = setupTest();
+    const { contestId, problemId } = await frozenContest(t, { problemListReleaseAt: "end" });
+    await t.run(async (ctx) => {
+      await ctx.db.patch(problemId, { isPublic: false });
+      const publicId = await insertProblem(ctx, { code: "publicsecond" });
+      await insertContestProblem(ctx, { contestId, problemId: publicId, order: 1, points: 1 });
+    });
+    const board = await t.query(api.contests.rankings.ranking, { key: "icpc" });
+    expect(board?.problems[0]).toMatchObject({ kind: "restricted", label: "A" });
+
+    for (const field of ["name", "code", "problemId"]) expect(board?.problems[0]).not.toHaveProperty(field);
+    expect(board?.problems[1]).toMatchObject({ kind: "problem", code: "publicsecond", label: "B" });
+    expect(board?.rows.every((row) => row.problems.length === 2)).toBe(true);
+    await t.run(async (ctx) => ctx.db.patch(problemId, { isPublic: true }));
+    const released = await t.query(api.contests.rankings.ranking, { key: "icpc" });
+    expect(released?.problems[0]).toMatchObject({ kind: "problem", code: "aplus", problemId });
+  });
+
+  test("preserves identity access for editors and active competitors", async () => {
+    const t = setupTest();
+    const { problemId, adaId, adaParticipation } = await frozenContest(t, { endTime: Date.now() + HOUR });
+    await t.run(async (ctx) => {
+      await ctx.db.patch(problemId, { isPublic: false });
+      await ctx.db.patch(adaId, { currentParticipationId: adaParticipation });
+      await insertProfile(ctx, {
+        username: "globaleditor",
+        isStaff: true,
+        permissions: ["judge.edit_all_contest"],
+      });
+    });
+
+    for (const username of ["editor", "globaleditor", "ada"]) {
+      const board = await t
+        .withIdentity(identityOf(username))
+        .query(api.contests.rankings.ranking, { key: "icpc" });
+
+      expect(board?.problems[0]).toMatchObject({ kind: "problem", code: "aplus", problemId });
+    }
+  });
+});
