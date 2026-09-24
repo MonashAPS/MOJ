@@ -16,7 +16,7 @@
 
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -285,6 +285,7 @@ async function main() {
   };
 
   const rendered = renderEnvFile(env);
+  mkdirSync(env.CONVEX_TMPDIR, { recursive: true });
   writeFileSync(ENV_LOCAL, rendered);
   rmSync(WEB_ENV_LOCAL, { force: true });
   symlinkSync(join("..", "..", ".env.local"), WEB_ENV_LOCAL);
@@ -308,7 +309,12 @@ async function main() {
   } else {
     // Convex also accepts the key set inline as a data URI. Re-run setup after
     // rotating the signing keys so the deployment picks up the new set.
-    const printed = pinned("npx", ["tsx", "apps/web/scripts/print-jwks.ts"], { env, capture: true });
+    const printed = pinned(
+      "npx",
+      ["tsx", "--tsconfig", "apps/web/tsconfig.json", "apps/web/scripts/print-jwks.ts"],
+      { env, capture: true },
+    );
+
     const jwks = (printed.stdout ?? "").trim().split("\n").at(-1);
 
     if (!jwks?.startsWith("{")) {
@@ -372,7 +378,15 @@ async function main() {
 
   const created = pinned(
     "npx",
-    ["tsx", "apps/web/scripts/create-admin.ts", ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL],
+    [
+      "tsx",
+      "--tsconfig",
+      "apps/web/tsconfig.json",
+      "apps/web/scripts/create-admin.ts",
+      ADMIN_USERNAME,
+      ADMIN_PASSWORD,
+      ADMIN_EMAIL,
+    ],
     { env, capture: true },
   );
 
