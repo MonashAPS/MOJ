@@ -36,6 +36,21 @@ An aborted submission adds a penalty on the ranking page but not on the hall sco
 by one penalty.
 :::
 
+## Problem list release
+
+A contest's problem list is shown to general viewers at its start by default. Organisers can instead release
+it at the end, or choose **Never** to keep it hidden from general viewers. You must still be allowed to view
+the contest. Moving the selected time into the future or choosing **Never** can hide the list again.
+
+Contest editors, authors, curators, testers and superusers can see the list early. Current participants and
+designated spectators can see it once the contest starts; designated spectators with `spectatorSeeProblemsEarly`
+can also see it before then. A past participation alone does not bypass the release policy.
+
+Releasing the list does not publish the statements.
+
+Organisers separately choose whether to publish eligible private problems to the general problem set at the
+start or end. See [contest release settings](/admin/staff-console#contest-release-settings).
+
 ## Freeze and blind mode
 
 `freezeMinutes` stops the public board updating that many minutes before the end; `0` disables it. A frozen cell

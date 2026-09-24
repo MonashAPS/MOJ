@@ -92,8 +92,9 @@ statement.
   and `organizations`, the last empty unless the problem is organisation-private.
 - **`/api/v2/contest/<key>`** adds `has_rating`, `rating_floor`, `rating_ceiling`, `performance_ceiling`,
   `hidden_scoreboard`, `scoreboard_visibility` (`V`, `C`, `P`, `H`), `is_organization_private`, `organizations`,
-  `is_private`, a `format` object, `problems` and `rankings`. `problems` is empty unless the caller is in the
-  contest, it has ended, or they can edit it. `rankings` is the full board or an empty array, never a frozen one,
+  `is_private`, a `format` object, `problems` and `rankings`. `problems` is empty until the caller can see the
+  [released problem list](/using/contests#problem-list-release). List release rules apply to the token's owner
+  or signed-out visitor. `rankings` is the full board or an empty array, never a frozen one,
   and lists live participations only.
 - **`/api/v2/contests`** carries `time_limit`, the per-participant window in seconds, or `null`.
 - **`/api/v2/participations`** has `virtual_participation_number` 0 for a live participation. Spectating

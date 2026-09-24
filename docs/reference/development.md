@@ -60,6 +60,14 @@ Open `/accounts/login/`.
 | Regular user | `dev` | `moj-user-local` |
 | Administrator | `admin` | `moj-admin-local` |
 
+Setup creates both accounts. Use the regular account to check participant access; the administrator bypasses
+contest list restrictions. Override the defaults with
+`MOJ_USER_USERNAME`, `MOJ_USER_PASSWORD`, `MOJ_USER_EMAIL` and the corresponding `MOJ_ADMIN_*` variables before
+running `npm run setup`.
+
+Rerunning setup repairs the credentials and restores the regular account to a non-staff, non-superuser account
+with no permissions or two-factor enrolment.
+
 For admin 2FA, use scratch code `mojde-vcode1`. Each code works once; the remaining codes are
 `mojde-vcode2`, `mojde-vcode3`, `mojde-vcode4`, and `mojde-vcode5`.
 

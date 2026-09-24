@@ -13,7 +13,8 @@ problems; controls they cannot use are not rendered.
   rescore, visibility and clone.
 - **Contests**, `/admin/contests/` — tabs for General, Problems, People, Proctoring, Actions and Revisions. The
   Problems tab sets contest points, partial scoring, pretested flags, output prefix overrides, per-problem
-  submission caps and the label scheme; reordering changes the labels.
+  submission caps, the label scheme, and separate list release and problem publication policies; reordering
+  changes the labels.
 - **Submissions**, `/admin/submissions/` — filter by user, problem, contest, judge, status, result, language and
   id range, then **Batch rejudge** the filter as one job. One problem at a time.
 - **Scoreboards**, `/admin/scoreboards/` — hall scoreboard events: key, name, the contests that become
@@ -49,6 +50,35 @@ problems; controls they cannot use are not rendered.
 
 A language existing here does not make it submittable: the submit page offers a language only when an online
 judge reports a runtime for it.
+
+## Contest release settings
+
+The contest's **Problems** tab has two independent controls:
+
+| Control | Choices | Effect |
+| --- | --- | --- |
+| **Show contest problem list** (`problemListReleaseAt`) | Start, end, never | Releases the list to viewers who can view the contest. Does not change problem visibility. |
+| **Publish problems to the general problem set** (`publishProblemsAt`) | Start, end, never | Makes eligible private problems public. Does not release the contest list. |
+
+The new-contest wizard combines these under **Release contest problems**, defaulting both to the start.
+Its start, end or never choice sets both policies; after creation, use the **Problems** tab to change them
+independently. Existing rows without `problemListReleaseAt` and imported DMOJ contests use the start policy
+for the list; an explicit `null` means **Never**. Participant and privileged access are described in
+[problem list release](/using/contests#problem-list-release).
+
+List release is evaluated against the current policy and contest times. Choosing **Never** or moving the
+selected boundary into the future hides it again from general viewers. In contrast, changing publication
+settings never makes public problems private again. If the two controls have different timings, the console
+warns that viewers may see private problems in the list, or public problems before the contest list is shown.
+
+Publication runs on a five-minute sweep, or when a contest is saved after its selected boundary. A private
+problem is held back if another future or running contest uses it, unless that contest has already started
+and also publishes problems at its start. Showing another contest's list does not permit publication.
+
+Publication records revisions and queues rescoring for newly public problems. It is a one-time attempt,
+recorded in `problemsPublishedAt`, even if some problems were held back. Later saves and sweeps do not retry
+those problems or override staff visibility changes. Review the contest revision for held problems and
+publish them separately when appropriate.
 
 ## Revisions
 
