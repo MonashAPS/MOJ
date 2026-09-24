@@ -33,7 +33,7 @@ then rebuild the image and run the judge end-to-end test.
 
 | Command | What it does |
 | --- | --- |
-| `npm run setup` | Compose up, admin key, `.env.local`, migrations, seed, dev superuser. |
+| `npm run setup` | Compose up, admin key, `.env.local`, migrations, seed, development admin and regular user. |
 | `npm run dev` | `convex dev` and `next dev` together. |
 | `npm run build` | Every workspace with a build script. |
 | `npm test`, `npm run test:watch` | Vitest across the workspaces. |
@@ -50,6 +50,18 @@ then rebuild the image and run the judge end-to-end test.
 On NixOS the Biome binary will not start on its own. Run it through `steam-run`, or set
 `BIOME="steam-run npx biome"`, which lefthook honours.
 :::
+
+## Test user credentials
+
+Open `/accounts/login/`.
+
+| Account | Username | Password |
+| --- | --- | --- |
+| Regular user | `dev` | `moj-user-local` |
+| Administrator | `admin` | `moj-admin-local` |
+
+For admin 2FA, use scratch code `mojde-vcode1`. Each code works once; the remaining codes are
+`mojde-vcode2`, `mojde-vcode3`, `mojde-vcode4`, and `mojde-vcode5`.
 
 ## Tests
 

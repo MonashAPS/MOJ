@@ -11,7 +11,7 @@
  *   5. drizzle migrations for the Better Auth database
  *   6. push the Convex functions and set the deployment's env vars
  *   7. seed languages, nav bar, misc config, groups/types and the sample problem
- *   8. create the dev superuser and print its credentials
+ *   8. create the dev superuser and ordinary user, then print their credentials
  */
 
 import { spawnSync } from "node:child_process";
@@ -58,6 +58,12 @@ const ADMIN_USERNAME = process.env.MOJ_ADMIN_USERNAME ?? "admin";
 const ADMIN_PASSWORD = process.env.MOJ_ADMIN_PASSWORD ?? "moj-admin-local";
 
 const ADMIN_EMAIL = process.env.MOJ_ADMIN_EMAIL ?? "admin@example.com";
+
+const USER_USERNAME = process.env.MOJ_USER_USERNAME ?? "dev";
+
+const USER_PASSWORD = process.env.MOJ_USER_PASSWORD ?? "moj-user-local";
+
+const USER_EMAIL = process.env.MOJ_USER_EMAIL ?? "dev@example.com";
 
 // DMOJ's permission codes, from spec section 3.
 const ADMIN_PERMISSIONS = [
@@ -427,6 +433,56 @@ async function main() {
   );
   info("convex profile created");
 
+  step(`Creating the non-admin development user ${USER_USERNAME}`);
+
+  const userCreated = pinned(
+    "npx",
+    [
+      "tsx",
+      "--tsconfig",
+      "apps/web/tsconfig.json",
+      "apps/web/scripts/create-user.ts",
+      USER_USERNAME,
+      USER_PASSWORD,
+      USER_EMAIL,
+    ],
+    { env, capture: true },
+  );
+
+  const userLastLine = (userCreated.stdout ?? "").trim().split("\n").at(-1) ?? "";
+  let ordinaryUserId;
+
+  try {
+    ({ userId: ordinaryUserId } = JSON.parse(userLastLine));
+  } catch {
+    process.stderr.write(userCreated.stdout ?? "");
+    process.stderr.write(userCreated.stderr ?? "");
+    throw new Error("could not read the non-admin user id from create-user.ts");
+  }
+
+  info(`better auth user ${ordinaryUserId}`);
+
+  pinned(
+    "npx",
+    [
+      "convex",
+      "run",
+      "profiles:ensureProfileForUser",
+      JSON.stringify({
+        userId: ordinaryUserId,
+        username: USER_USERNAME,
+        timezone: "Australia/Melbourne",
+        languageKey: "PY3",
+        isStaff: false,
+        isSuperuser: false,
+        permissions: [],
+        displayRank: "user",
+      }),
+    ],
+    { env, capture: true },
+  );
+  info("convex profile created without staff or superuser privileges");
+
   step("Done");
   process.stdout.write(
     [
@@ -442,12 +498,18 @@ async function main() {
       `    totp secret:         ${env.MOJ_DEV_TOTP_SECRET}`,
       ...(totpUri ? [`    totp uri:            ${totpUri}`] : []),
       "",
+      "  Non-admin development user",
+      `    username:            ${USER_USERNAME}`,
+      `    password:            ${USER_PASSWORD}`,
+      `    email:               ${USER_EMAIL}`,
+      "",
       "  Staff must hold a second factor, so the account is enrolled in TOTP",
       "  against that fixed secret. Generate a code from the URI with any",
       "  authenticator, or with otpauth: URI.parse(uri).generate().",
       "",
       "  Override the credentials with MOJ_ADMIN_USERNAME, MOJ_ADMIN_PASSWORD",
-      "  and MOJ_ADMIN_EMAIL before running setup.",
+      "  and MOJ_ADMIN_EMAIL, or MOJ_USER_USERNAME, MOJ_USER_PASSWORD and",
+      "  MOJ_USER_EMAIL before running setup.",
       "",
       "  Mail is written to the server console (MAIL_MODE=console); activation",
       "  links also appear on /accounts/register/complete/ outside production.",

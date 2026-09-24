@@ -112,6 +112,9 @@ Tiers can be mixed across judges. [`apps/judge/README.md`](apps/judge/README.md)
 
 ## Contributing
 
+Local test account credentials and administrator two-factor login instructions are in the
+[development guide](docs/reference/development.md#test-user-credentials).
+
 ```bash
 npm run lint            # biome, then oxlint with the anti-slop rules
 npm run typecheck       # every workspace

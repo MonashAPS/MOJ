@@ -15,10 +15,11 @@
 
 import { randomBytes } from "node:crypto";
 import { createOTP } from "@better-auth/utils/otp";
-import { hashPassword, symmetricEncrypt } from "better-auth/crypto";
-import { and, eq } from "drizzle-orm";
+import { symmetricEncrypt } from "better-auth/crypto";
+import { eq } from "drizzle-orm";
 import { db, schema } from "../src/auth/db";
 import { auth } from "../src/auth/server";
+import { ensureDevAccount } from "./dev-account";
 
 const username = process.argv[2] ?? "admin";
 
@@ -64,53 +65,11 @@ async function enrolTotp(userId: string, secret: string): Promise<string> {
 }
 
 async function main() {
-  const existing = await db.select().from(schema.user).where(eq(schema.user.email, email)).limit(1);
-  let userId = existing[0]?.id;
-
-  if (!userId) {
-    // Sign up with a throwaway strong password so Better Auth builds the user
-    // and account rows exactly as the form would, then set the real password
-    // below. Sign-up is the only endpoint that enforces minPasswordLength and
-    // the breach check, and a fixed development password should not have to
-    // satisfy either.
-    const result = await auth.api.signUpEmail({
-      body: {
-        email,
-        password: randomBytes(24).toString("base64url"),
-        name: username,
-        username,
-        timezone: "Australia/Melbourne",
-        preferredLanguage: "PY3",
-      },
-    });
-
-    userId = result.user.id;
-
-    if (!userId) {
-      const created = await db.select().from(schema.user).where(eq(schema.user.email, email)).limit(1);
-      userId = created[0]?.id;
-    }
-  }
-
-  if (!userId) throw new Error(`could not create or find the ${username} user`);
-
+  const userId = await ensureDevAccount(username, password, email);
   await db
     .update(schema.user)
-    .set({
-      emailVerified: true,
-      isStaff: true,
-      isSuperuser: true,
-      role: "admin",
-      username,
-      displayUsername: username,
-      name: username,
-    })
+    .set({ isStaff: true, isSuperuser: true, role: "admin" })
     .where(eq(schema.user.id, userId));
-
-  await db
-    .update(schema.account)
-    .set({ password: await hashPassword(password) })
-    .where(and(eq(schema.account.userId, userId), eq(schema.account.providerId, "credential")));
 
   const devTotpSecret = process.env.MOJ_DEV_TOTP_SECRET?.trim();
   const totpUri = devTotpSecret ? await enrolTotp(userId, devTotpSecret) : undefined;
