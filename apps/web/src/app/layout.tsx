@@ -11,6 +11,7 @@ import { SiteShell } from "@/components/shell/SiteShell";
 import { SkinProvider } from "@/components/shell/SkinProvider";
 import { ThemeScript } from "@/components/shell/ThemeScript";
 import { UiText } from "@/components/shell/UiText";
+import { CountdownProvider } from "@/lib/CountdownProvider";
 import { isInsideContest, PATHNAME_HEADER } from "@/lib/contest-lockdown";
 import { query, queryAsViewer } from "@/lib/convex-server";
 import { gravatarUrl } from "@/lib/gravatar";
@@ -91,6 +92,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // is told the same fallback so it does not undo what the markup carries.
   const profileSkin = profile?.siteSkin;
   const skin = resolveSkin(jar.get(SKIN_COOKIE)?.value ?? profileSkin);
+  const countdownNow = Date.now();
 
   const viewer = profile
     ? {
@@ -126,20 +128,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <UiText>
             <PublicConfigProvider config={config}>
               <ConvexClientProvider>
-                <SkinProvider initial={skin}>
-                  <SiteShell
-                    nav={shell?.nav ?? []}
-                    misc={shell?.misc ?? {}}
-                    viewer={viewer}
-                    registrationOpen={shell?.settings?.registrationOpen ?? true}
-                    language={language}
-                    logoUrl={branding?.logoUrl ?? null}
-                    siteName={branding?.siteLongName ?? "MAPS Online Judge"}
-                    initialContest={joined}
-                  >
-                    {children}
-                  </SiteShell>
-                </SkinProvider>
+                <CountdownProvider initialNow={countdownNow}>
+                  <SkinProvider initial={skin}>
+                    <SiteShell
+                      nav={shell?.nav ?? []}
+                      misc={shell?.misc ?? {}}
+                      viewer={viewer}
+                      registrationOpen={shell?.settings?.registrationOpen ?? true}
+                      language={language}
+                      logoUrl={branding?.logoUrl ?? null}
+                      siteName={branding?.siteLongName ?? "MAPS Online Judge"}
+                      initialContest={joined}
+                    >
+                      {children}
+                    </SiteShell>
+                  </SkinProvider>
+                </CountdownProvider>
               </ConvexClientProvider>
             </PublicConfigProvider>
           </UiText>
