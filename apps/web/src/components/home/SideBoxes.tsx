@@ -106,7 +106,7 @@ type SidebarContest = {
 function OngoingRow({ contest }: { contest: SidebarContest }) {
   const remaining = useCountdown(contest.endTime);
   const total = Math.max(1, contest.endTime - contest.startTime);
-  const elapsed = Math.min(100, Math.max(0, ((Date.now() - contest.startTime) / total) * 100));
+  const elapsed = remaining === null ? 0 : Math.min(100, Math.max(0, ((total - remaining) / total) * 100));
   const urgent = remaining !== null && remaining < 60_000;
   const soon = remaining !== null && remaining < 300_000;
   const openEnded = remaining !== null && remaining > COUNTDOWN_HORIZON;
