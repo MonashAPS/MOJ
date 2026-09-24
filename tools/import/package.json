@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@noble/ciphers": "^2.4.0",
-    "convex": "^1.45.0",
+    "convex": "^1.46.0",
     "pg": "^8.23.0"
   },
   "devDependencies": {
