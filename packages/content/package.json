@@ -46,12 +46,12 @@
   "devDependencies": {
     "@types/hast": "^3.0.4",
     "@types/mdast": "^4.0.4",
-    "@types/node": "^26.5.1",
+    "@types/node": "^26.6.1",
     "hast-util-sanitize": "^5.0.2",
     "mdast-util-from-markdown": "^2.0.3",
     "micromark-util-types": "^2.0.2",
     "pdf-parse": "^2.4.5",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.1"
   }
 }
