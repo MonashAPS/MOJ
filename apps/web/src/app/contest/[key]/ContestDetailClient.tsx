@@ -35,6 +35,7 @@ import { usesDomjudgeStructure } from "@/lib/skin";
 import { useViewerLive } from "@/lib/useViewerLive";
 import { Clarifications } from "./Clarifications";
 import { DomjudgeProblemset } from "./DomjudgeProblemset";
+import { ProblemsJoinCover } from "./ProblemsJoinCover";
 import { ProblemsNotReleased } from "./ProblemsNotReleased";
 import { contestTabs, joinKindFor } from "./tabs";
 
@@ -436,6 +437,11 @@ export function ContestDetailClient({
 
   const showProblems = detail.problemsReleased;
 
+  const coverJoinKind =
+    detail.timing.started && !detail.timing.ended && (joinKind === "join" || joinKind === "login")
+      ? joinKind
+      : null;
+
   const showState = detail.viewer.isAuthenticated;
   const precision = contest.pointsPrecision;
 
@@ -458,7 +464,9 @@ export function ContestDetailClient({
         ) : null}
 
         {showProblems ? (
-          <DomjudgeProblemset detail={detail} defaultLanguageKey={defaultLanguageKey} />
+          <ProblemsJoinCover key={contestKey} contestKey={contestKey} joinKind={coverJoinKind}>
+            <DomjudgeProblemset detail={detail} defaultLanguageKey={defaultLanguageKey} />
+          </ProblemsJoinCover>
         ) : (
           <ProblemsNotReleased contestName={contest.name} />
         )}
@@ -517,40 +525,42 @@ export function ContestDetailClient({
               <CircleHelp size={18} className="text-muted-foreground" aria-hidden />
               {t("problems")}
             </h2>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {showState ? <TableHead className="w-7" /> : null}
-                  <TableHead className="w-full">{columns("problem")}</TableHead>
-                  <TableHead numeric>{columns("points")}</TableHead>
-                  {showState ? <TableHead numeric>{columns("yourScore")}</TableHead> : null}
-                  <TableHead numeric>{columns("acRate")}</TableHead>
-                  <TableHead numeric>{columns("users")}</TableHead>
-                  {detail.metadata.hasPublicEditorials ? (
-                    <TableHead numeric className="w-20">
-                      {columns("editorial")}
-                    </TableHead>
-                  ) : null}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {detail.problems.length === 0 ? (
-                  <EmptyRow colSpan={7}>{t("noProblems")}</EmptyRow>
-                ) : (
-                  detail.problems.map((problem) => (
-                    <ProblemRow
-                      key={problem.contestProblemId}
-                      problem={problem}
-                      contestKey={contestKey}
-                      showEditorials={detail.metadata.hasPublicEditorials}
-                      showState={showState}
-                      ended={detail.timing.ended}
-                      precision={precision}
-                    />
-                  ))
-                )}
-              </TableBody>
-            </Table>
+            <ProblemsJoinCover key={contestKey} contestKey={contestKey} joinKind={coverJoinKind}>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {showState ? <TableHead className="w-7" /> : null}
+                    <TableHead className="w-full">{columns("problem")}</TableHead>
+                    <TableHead numeric>{columns("points")}</TableHead>
+                    {showState ? <TableHead numeric>{columns("yourScore")}</TableHead> : null}
+                    <TableHead numeric>{columns("acRate")}</TableHead>
+                    <TableHead numeric>{columns("users")}</TableHead>
+                    {detail.metadata.hasPublicEditorials ? (
+                      <TableHead numeric className="w-20">
+                        {columns("editorial")}
+                      </TableHead>
+                    ) : null}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {detail.problems.length === 0 ? (
+                    <EmptyRow colSpan={7}>{t("noProblems")}</EmptyRow>
+                  ) : (
+                    detail.problems.map((problem) => (
+                      <ProblemRow
+                        key={problem.contestProblemId}
+                        problem={problem}
+                        contestKey={contestKey}
+                        showEditorials={detail.metadata.hasPublicEditorials}
+                        showState={showState}
+                        ended={detail.timing.ended}
+                        precision={precision}
+                      />
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </ProblemsJoinCover>
             {detail.timing.ended &&
             showState &&
             detail.problems.some((problem) => problem.kind === "problem" && problem.state !== "untouched") ? (

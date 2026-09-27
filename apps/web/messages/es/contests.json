@@ -135,6 +135,10 @@
     "emptyBody": "Ningún concurso tiene la etiqueta «{name}»."
   },
   "detail": {
+    "joinBeforeSubmittingTitle": "Únete al concurso antes de enviar",
+    "loginToJoin": "Inicia sesión para unirte",
+    "joinBeforeSubmitting": "Los envíos realizados antes de unirte no contarán para tu puntuación del concurso.",
+    "viewProblems": "Ver problemas",
     "metaFallback": "Concurso",
     "spectatingEndsIn": "Espectando. El concurso termina en {time}.",
     "spectating": "Espectando.",
