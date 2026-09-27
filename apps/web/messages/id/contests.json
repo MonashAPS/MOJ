@@ -135,6 +135,10 @@
     "emptyBody": "Tidak ada kontes dengan tag \"{name}\"."
   },
   "detail": {
+    "joinBeforeSubmittingTitle": "Bergabunglah dengan kontes sebelum mengirim",
+    "loginToJoin": "Masuk untuk bergabung",
+    "joinBeforeSubmitting": "Pengiriman yang dilakukan sebelum bergabung tidak akan dihitung dalam skor kontes Anda.",
+    "viewProblems": "Lihat soal",
     "metaFallback": "Kontes",
     "spectatingEndsIn": "Menonton, kontes berakhir dalam {time}.",
     "spectating": "Menonton.",

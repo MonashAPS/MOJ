@@ -135,6 +135,10 @@
     "emptyBody": "没有比赛带有「{name}」标签。"
   },
   "detail": {
+    "joinBeforeSubmittingTitle": "提交前请先加入比赛",
+    "loginToJoin": "登录以加入比赛",
+    "joinBeforeSubmitting": "加入比赛前的提交不会计入你的比赛成绩。",
+    "viewProblems": "查看题目",
     "metaFallback": "比赛",
     "spectatingEndsIn": "观赛中，比赛将在 {time} 后结束。",
     "spectating": "观赛中。",

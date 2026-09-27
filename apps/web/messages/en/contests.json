@@ -135,6 +135,10 @@
     "emptyBody": "No contests carry the \"{name}\" tag."
   },
   "detail": {
+    "joinBeforeSubmittingTitle": "Join the contest before submitting",
+    "loginToJoin": "Log in to join",
+    "joinBeforeSubmitting": "Submissions made before joining will not count toward your contest score.",
+    "viewProblems": "View problems",
     "metaFallback": "Contest",
     "spectatingEndsIn": "Spectating, contest ends in {time}.",
     "spectating": "Spectating.",
