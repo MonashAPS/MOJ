@@ -22,8 +22,8 @@ import {
   SearchBox,
   StatusLine,
 } from "@/components/admin";
+import { LocalTime } from "@/components/time/LocalTime";
 import { chosenIds } from "@/lib/choices";
-import { formatDateTime } from "@/lib/format";
 
 type PostRow = FunctionReturnType<typeof api.admin.blog.list>[number];
 
@@ -194,7 +194,7 @@ export function BlogTable({ authorOptions }: { authorOptions: AuthorOption[] | n
       key: "publishOn",
       header: t("columnPublishOn"),
       numeric: true,
-      cell: (row) => formatDateTime(row.publishOn),
+      cell: (row) => <LocalTime value={row.publishOn} />,
     },
     {
       key: "actions",

@@ -39,7 +39,8 @@ import {
   UserPicker,
 } from "@/components/admin";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
-import { formatDateTime } from "@/lib/format";
+import { LocalTime } from "@/components/time/LocalTime";
+import { useRelativeReferenceTime } from "@/lib/date-format";
 import type { ProblemEdit, ProblemOptions } from "./types";
 
 /* -------------------------------------------------------------------------- */
@@ -57,7 +58,8 @@ export function ProblemEditorialTab({ problem }: { problem: ProblemEdit }) {
   const ids = { authors: useId(), publishOn: useId() };
   const [content, setContent] = useState(editorial?.content ?? "");
   const [isPublic, setIsPublic] = useState(editorial?.isPublic ?? true);
-  const [publishOn, setPublishOn] = useState<number | null>(editorial?.publishOn ?? Date.now());
+  const now = useRelativeReferenceTime();
+  const [publishOn, setPublishOn] = useState<number | null>(editorial?.publishOn ?? now);
   const [authors, setAuthors] = useState<string[]>(editorial?.authors ?? []);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -505,12 +507,10 @@ export function ProblemClarificationsTab({ problem }: { problem: ProblemEdit }) 
                     <Trash2 aria-hidden />
                   </Button>
                 </div>
-                <time
-                  dateTime={new Date(row.date).toISOString()}
+                <LocalTime
+                  value={row.date}
                   className="font-mono text-sm tabular-nums text-muted-foreground"
-                >
-                  {formatDateTime(row.date)}
-                </time>
+                />
               </li>
             ))}
           </ul>

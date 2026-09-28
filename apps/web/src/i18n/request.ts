@@ -1,4 +1,5 @@
 import { getRequestConfig } from "next-intl/server";
+import { viewerDateSettings } from "@/lib/date-format.server";
 import { intlLocale } from "@/lib/language";
 import { viewerLanguage } from "@/lib/language.server";
 import { loadMessages } from "./messages";
@@ -12,12 +13,15 @@ import { loadMessages } from "./messages";
  */
 export default getRequestConfig(async () => {
   const language = await viewerLanguage();
+  const dateSettings = await viewerDateSettings();
 
   return {
     locale: language,
     // `Intl` does the formatting and does not know DMOJ's spelling of Chinese.
     formats: { dateTime: {}, number: {}, list: {} },
-    timeZone: "UTC",
+    // The browser's reported zone, or the club's until it has reported one.
+    timeZone: dateSettings.timeZone,
+    now: new Date(dateSettings.now),
     messages: await loadMessages(language),
     getMessageFallback({ namespace, key }) {
       // A missing message shows its key rather than an empty space, so a gap in

@@ -63,7 +63,6 @@ describe("SQL building", () => {
       ban_expires: null,
       is_staff: false,
       is_superuser: false,
-      timezone: "UTC",
       preferred_language: "PY3",
       organization_slugs: null,
     });
@@ -74,7 +73,7 @@ describe("SQL building", () => {
     expect(statement.text).toContain('"organization_slugs"');
     expect(statement.text).toContain("ON CONFLICT (id) DO UPDATE SET");
     expect(statement.text).not.toContain('"id" = EXCLUDED."id"');
-    expect(statement.values).toHaveLength(19);
+    expect(statement.values).toHaveLength(18);
   });
 
   it("skips columns with no value", () => {
@@ -113,7 +112,6 @@ describe("writeBetterAuthRows", () => {
         ban_expires: null,
         is_staff: true,
         is_superuser: true,
-        timezone: "Australia/Melbourne",
         preferred_language: "PY3",
         organization_slugs: "maps",
       },
@@ -213,7 +211,6 @@ describe("buildAuthRows", () => {
       display_username: "root",
       is_staff: true,
       is_superuser: true,
-      timezone: "Australia/Melbourne",
       preferred_language: "PY3",
       organization_slugs: "maps",
     });

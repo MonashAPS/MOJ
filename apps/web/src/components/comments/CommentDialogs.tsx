@@ -22,7 +22,7 @@ import { useQuery } from "convex/react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { renderUserMarkdown } from "@/components/markdown/actions";
-import { formatDateTime } from "@/lib/format";
+import { LocalTime } from "@/components/time/LocalTime";
 
 const DASH = "—";
 
@@ -104,7 +104,12 @@ export function CommentHistoryDialog({
               ) : (
                 DASH
               )}
-              {current ? ` · ${formatDateTime(current.createdAt)}` : null}
+              {current ? (
+                <>
+                  {" "}
+                  · <LocalTime value={current.createdAt} />
+                </>
+              ) : null}
               {current?.reason ? ` · ${current.reason}` : null}
             </p>
             <div className="max-h-[50vh] overflow-y-auto rounded-md border border-border bg-card p-3">

@@ -89,10 +89,7 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
     { enabled: boolean; totpKey: Buffer | null; scratchCodes: Buffer | null }
   >();
 
-  const profileByUser = new Map<
-    number,
-    { timezone: string; languageKey: string | null; slugs: string | null }
-  >();
+  const profileByUser = new Map<number, { languageKey: string | null; slugs: string | null }>();
 
   for await (const row of ctx.rows("judge_profile")) {
     const legacyUserId = row.n("user_id");
@@ -108,7 +105,6 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
       .map((entry) => entry.slug);
 
     profileByUser.set(legacyUserId, {
-      timezone: row.s("timezone"),
       languageKey: languageKeys.get(row.n("language_id")) ?? null,
       // The registration form stores this as a comma separated list of slugs.
       slugs: slugs.length > 0 ? slugs.join(",") : null,
@@ -155,7 +151,6 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
       ban_expires: null,
       is_staff: row.b("is_staff"),
       is_superuser: row.b("is_superuser"),
-      timezone: profile?.timezone || null,
       preferred_language: profile?.languageKey ?? null,
       organization_slugs: profile?.slugs ?? null,
     });

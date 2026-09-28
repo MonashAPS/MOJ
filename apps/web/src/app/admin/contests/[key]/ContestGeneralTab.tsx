@@ -26,7 +26,8 @@ import { useAudienceNames } from "@/components/audiences/AudienceSelect";
 import { useHumanDuration } from "@/components/contests/pieces";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import { chosenValue } from "@/lib/choices";
-import { formatDateTime } from "@/lib/format";
+import { useDateFormatters } from "@/lib/date-format";
+
 import { acknowledgedReason, ContestDangerDialog } from "./ContestDangerDialog";
 import { ContestEntryFields } from "./ContestEntryFields";
 import { ContestScheduleFields } from "./ContestScheduleFields";
@@ -65,6 +66,7 @@ export function ContestGeneralTab({
   options: ContestOptions | undefined;
   tab: SettingsTab;
 }) {
+  const { formatDateTime } = useDateFormatters();
   const on = (which: SettingsTab) => which === tab;
 
   const t = useTranslations("admin.contests.general");

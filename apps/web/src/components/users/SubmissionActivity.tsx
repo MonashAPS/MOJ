@@ -4,6 +4,8 @@ import { Button, cn, MicroLabel } from "@moj/ui";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { type SyntheticEvent, useMemo, useState } from "react";
+import { useRelativeReferenceTime, useViewerTimeZone } from "@/lib/date-format";
+import { zonedDate } from "@/lib/zoned-date";
 
 /** The grid's rows and columns are named in the catalogue, so the keys rather
  *  than the names are what the layout is indexed by. */
@@ -46,37 +48,43 @@ const MONTH_LABEL_COLUMNS = 2;
 type Day = { key: string; date: Date; weekday: number; activity: number };
 
 function isoDate(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
+  const year = date.getUTCFullYear();
+  const month = `${date.getUTCMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getUTCDate()}`.padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
 
-const LABEL_DATE = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", year: "numeric" });
+// Activity keys are calendar dates (the API has already bucketed the counts), not instants.
+const LABEL_DATE = new Intl.DateTimeFormat("en-AU", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
 
 /** `init_submission_table`: the current year is the *past* year, ending today;
  *  any other year is that whole calendar year. */
-function buildDays(year: number, currentYear: number, counts: Record<string, number>): Day[] {
+function buildDays(year: number, currentYear: number, counts: Record<string, number>, today: number): Day[] {
   let start: Date;
   let end: Date;
 
   if (year === currentYear) {
-    end = new Date();
-    start = new Date(end.getFullYear() - 1, end.getMonth(), end.getDate() + 1);
+    end = new Date(today);
+    start = new Date(Date.UTC(end.getUTCFullYear() - 1, end.getUTCMonth(), end.getUTCDate() + 1));
   } else {
-    start = new Date(year, 0, 1);
-    end = new Date(year + 1, 0, 0);
+    start = new Date(Date.UTC(year, 0, 1));
+    end = new Date(Date.UTC(year + 1, 0, 0));
   }
 
   const days: Day[] = [];
 
-  for (const cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+  for (const cursor = new Date(start); cursor <= end; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
     const key = isoDate(cursor);
     days.push({
       key,
       date: new Date(cursor),
-      weekday: cursor.getDay(),
+      weekday: cursor.getUTCDay(),
       activity: counts[key] ?? 0,
     });
   }
@@ -117,7 +125,7 @@ function buildMonths(weeks: (Day | null)[][], names: string[]) {
     const day = week.find((slot): slot is Day => slot !== null);
 
     if (!day) continue;
-    const month = day.date.getMonth();
+    const month = day.date.getUTCMonth();
 
     if (month === previousMonth) continue;
     previousMonth = month;
@@ -127,7 +135,7 @@ function buildMonths(weeks: (Day | null)[][], names: string[]) {
     const label = names[month];
 
     if (label === undefined) continue;
-    labels.push({ key: `${day.date.getFullYear()}-${month}`, column, label });
+    labels.push({ key: `${day.date.getUTCFullYear()}-${month}`, column, label });
   }
 
   const spans: { key: string; span: number; label: string }[] = [];
@@ -156,19 +164,32 @@ function buildMonths(weeks: (Day | null)[][], names: string[]) {
  * all 365 cells; the cells carry their own labels so the information is not
  * hover-only.
  */
-export function SubmissionActivity({
+export function SubmissionActivity(props: { counts: Record<string, number>; minYear: number | null }) {
+  const timeZone = useViewerTimeZone();
+  const now = useRelativeReferenceTime();
+
+  if (!timeZone) return <span aria-busy="true">—</span>;
+  const day = zonedDate(now, timeZone);
+  const today = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate());
+
+  return <ActivityGrid {...props} today={today} />;
+}
+
+function ActivityGrid({
   counts,
   minYear,
+  today,
 }: {
   counts: Record<string, number>;
   minYear: number | null;
+  today: number;
 }) {
   const t = useTranslations("users.activity");
-  const currentYear = new Date().getFullYear();
+  const currentYear = new Date(today).getUTCFullYear();
   const [year, setYear] = useState(currentYear);
   const [hint, setHint] = useState<{ text: string; x: number; y: number } | null>(null);
 
-  const days = useMemo(() => buildDays(year, currentYear, counts), [year, currentYear, counts]);
+  const days = useMemo(() => buildDays(year, currentYear, counts, today), [year, currentYear, counts, today]);
   const weeks = useMemo(() => buildWeeks(days), [days]);
   const monthNames = useMemo(() => MONTHS.map((month) => t(`months.${month}`)), [t]);
   const months = useMemo(() => buildMonths(weeks, monthNames), [weeks, monthNames]);

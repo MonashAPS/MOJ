@@ -7,7 +7,7 @@ import { useMutation, useQuery } from "convex/react";
 import { MessageSquareWarning } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { formatDateTime } from "@/lib/format";
+import { LocalTime } from "@/components/time/LocalTime";
 
 /**
  * DMOJ shows a contest's clarifications as `ProblemClarification` rows on its
@@ -75,7 +75,7 @@ export function Clarifications({
                   <span className="font-mono text-sm font-medium text-muted-foreground">{row.label}</span>
                   <span className="font-medium">{row.problemName}</span>
                   <span className="ml-auto font-mono text-sm tabular-nums text-muted-foreground">
-                    {formatDateTime(row.date)}
+                    <LocalTime value={row.date} />
                   </span>
                 </div>
                 <p className="mt-1 whitespace-pre-wrap text-base">{row.description}</p>

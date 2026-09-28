@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCountdownNow } from "./CountdownProvider";
 
 /** `HH:MM:SS` under a day, `Nd HH:MM` above it, so only the seconds digit
  *  repaints on a tick and the width stays put. */
@@ -22,18 +22,14 @@ export function formatDuration(ms: number): string {
  *  contests run to the year 9999, and "2911825d" is not a deadline. */
 export const COUNTDOWN_HORIZON = 100 * 24 * 3600_000;
 
-/** Ticks once a second and returns the milliseconds left until `endsAt`. */
+/** Returns the milliseconds left until `endsAt`, using the shared live clock. */
 export function useCountdown(endsAt: number | null | undefined): number | null {
-  const [now, setNow] = useState(() => Date.now());
+  const now = useCountdownNow();
 
-  useEffect(() => {
-    if (!endsAt) return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
-
-    return () => clearInterval(id);
-  }, [endsAt]);
-
-  if (!endsAt) return null;
+  // Outside the root provider (for example, an isolated component render), use
+  // a deterministic empty state until a provider is supplied rather than
+  // consulting the server and browser clocks independently.
+  if (!endsAt || now === null) return null;
 
   return Math.max(0, endsAt - now);
 }

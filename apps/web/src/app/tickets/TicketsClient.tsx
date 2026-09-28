@@ -25,7 +25,8 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
-import { formatDateTime, formatRelative } from "@/lib/format";
+import { RelativeTime } from "@/components/time/LocalTime";
+
 import { PER_PAGE, scopeFromParams, type TicketPage, type TicketSummary, ticketQueryArgs } from "./filters";
 
 export function TicketsClient({
@@ -208,9 +209,7 @@ function TicketRow({ ticket }: { ticket: TicketSummary }) {
               {" · "}
             </>
           ) : null}
-          <time dateTime={new Date(ticket.time).toISOString()} title={formatDateTime(ticket.time)}>
-            {formatRelative(ticket.time)}
-          </time>
+          <RelativeTime value={ticket.time} />
         </div>
       </TableCell>
       <TableCell>

@@ -4,7 +4,8 @@ import { cn, EmptyState, Panel, Select } from "@moj/ui";
 import { History } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
-import { formatDateTime, formatRelative } from "@/lib/format";
+import { RelativeTime } from "@/components/time/LocalTime";
+import { useDateFormatters } from "@/lib/date-format";
 
 type Revision = {
   id: string;
@@ -143,6 +144,7 @@ export function RevisionsPanel({
   emptyDescription?: string;
   className?: string;
 }) {
+  const { formatDateTime } = useDateFormatters();
   const t = useTranslations("admin.components.revisions");
   const pending = loading || (revisions === undefined && rawRows == null);
 
@@ -215,13 +217,7 @@ export function RevisionsPanel({
               >
                 <span className="truncate text-base text-foreground">{row.reason}</span>
                 <span className="font-mono text-sm tabular-nums text-muted-foreground">
-                  {row.author ?? t("systemAuthor")} ·{" "}
-                  <time
-                    dateTime={new Date(row.createdAt).toISOString()}
-                    title={formatDateTime(row.createdAt)}
-                  >
-                    {formatRelative(row.createdAt)}
-                  </time>
+                  {row.author ?? t("systemAuthor")} · <RelativeTime value={row.createdAt} />
                 </span>
               </div>
             </li>

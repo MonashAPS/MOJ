@@ -5,17 +5,8 @@ import { cn, focusRingInset, RatingName, Tooltip, VerdictPill } from "@moj/ui";
 import { Eye, Loader2, RefreshCw, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
-import {
-  absoluteTime,
-  DASH,
-  formatMemory,
-  formatScore,
-  formatTime,
-  isGrading,
-  relativeTime,
-  verdictCode,
-} from "@/lib/submissionFormat";
+import { RelativeTime } from "@/components/time/LocalTime";
+import { DASH, formatMemory, formatScore, formatTime, isGrading, verdictCode } from "@/lib/submissionFormat";
 
 /** `--v-<verdict>` for the 3px rail, through the one tone resolver's families. */
 const RAIL = new Map<string, string>([
@@ -49,7 +40,6 @@ export function SubmissionRow({
   tone,
   showProblem,
   permissions,
-  now,
   isNew,
   onRejudge,
   onAbort,
@@ -58,7 +48,6 @@ export function SubmissionRow({
   tone: string;
   showProblem: boolean;
   permissions: RowPermissions;
-  now: number;
   isNew: boolean;
   onRejudge: (id: number | string) => void;
   onAbort: (id: number | string) => void;
@@ -160,7 +149,7 @@ export function SubmissionRow({
             />
           ) : null}
           <span aria-hidden>·</span>
-          <RelativeStamp date={row.date} now={now} />
+          <RelativeTime value={row.date} className="whitespace-nowrap" />
           {row.contest ? (
             <>
               <span aria-hidden>·</span>
@@ -258,29 +247,5 @@ export function SubmissionRow({
         <span className="sr-only">{t("row.openAria", { id: row.id })}</span>
       </Link>
     </li>
-  );
-}
-
-/** The relative stamp is computed on the client from a server-supplied `now`, so
- *  the first paint matches the server's and never hydrates differently. */
-function RelativeStamp({ date, now }: { date: number; now: number }) {
-  const [reference, setReference] = useState(now);
-  const mounted = useRef(false);
-
-  useEffect(() => {
-    if (!mounted.current) {
-      mounted.current = true;
-      setReference(Date.now());
-    }
-
-    const timer = setInterval(() => setReference(Date.now()), 60_000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  return (
-    <time dateTime={new Date(date).toISOString()} title={absoluteTime(date)} className="whitespace-nowrap">
-      {relativeTime(date, reference)}
-    </time>
   );
 }

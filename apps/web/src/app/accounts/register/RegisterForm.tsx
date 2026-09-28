@@ -16,14 +16,10 @@ const MAX_ORGANIZATIONS = 3;
 type FieldErrors = Partial<Record<"username" | "email" | "password1" | "password2" | "form", string>>;
 
 export function RegisterForm({
-  timezones,
-  defaultTimezone,
   defaultLanguageKey,
   languages,
   organizations,
 }: {
-  timezones: string[];
-  defaultTimezone: string;
   defaultLanguageKey: string;
   languages: Array<{ key: string; name: string }>;
   organizations: Array<{ slug: string; name: string }>;
@@ -36,22 +32,11 @@ export function RegisterForm({
   const [email, setEmail] = useState("");
   const [password1, setPassword1] = useState("");
   const [password2, setPassword2] = useState("");
-  const [timezone, setTimezone] = useState(defaultTimezone);
   const [language, setLanguage] = useState(defaultLanguageKey);
   const [selectedOrganizations, setSelectedOrganizations] = useState<string[]>([]);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [available, setAvailable] = useState<"unknown" | "checking" | "free" | "taken">("unknown");
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    try {
-      const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-      if (detected && timezones.includes(detected)) setTimezone(detected);
-    } catch {
-      // keep the default
-    }
-  }, [timezones]);
 
   // DMOJ only tells you a username is taken after a round trip. Better Auth has
   // an availability endpoint, so the answer arrives while you are still typing.
@@ -111,7 +96,6 @@ export function RegisterForm({
         password: password1,
         name: username,
         username,
-        timezone,
         preferredLanguage: language,
         organizationSlugs: selectedOrganizations.join(","),
       });
@@ -242,16 +226,6 @@ export function RegisterForm({
           </Field>
 
           <PasswordStrength password={password1} className="sm:col-span-2" />
-
-          <Field label={t("timezoneLabel")} htmlFor="register-timezone" hint={t("timezoneHint")}>
-            <Select
-              id="register-timezone"
-              ariaLabel={t("timezoneLabel")}
-              value={timezone}
-              onValueChange={setTimezone}
-              options={timezones.map((zone) => ({ value: zone, label: zone }))}
-            />
-          </Field>
 
           <Field label={t("languageLabel")} htmlFor="register-language">
             <Select

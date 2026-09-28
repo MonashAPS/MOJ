@@ -5,7 +5,7 @@ two-factor secret, its passkeys and its API token.
 
 | Page | What it does |
 | --- | --- |
-| `/accounts/register/` | Username (letters, digits and underscores, 30 characters), email, password, timezone, preferred language and up to three open organisations. |
+| `/accounts/register/` | Username (letters, digits and underscores, 30 characters), email, password, preferred language and up to three open organisations. |
 | `/accounts/activate/<key>/` | The activation link, good for seven days. Until it is used the account cannot sign in. |
 | `/accounts/login/` | Username or email with a password, or the **Passkey** button, which signs you in outright. |
 | `/accounts/login/2fa/` | The second factor: a six-digit code, a scratch code, or a passkey. |
@@ -65,3 +65,5 @@ A token authenticates a script as you against [the API](/reference/api). Tokens 
 The token is shown once; only its hash is stored, and revoking one takes effect immediately. A token never has
 more access than its owner, so a staff member's token is a staff credential. A token imported from DMOJ keeps
 working while the site carries the old site's `LEGACY_SECRET_KEY`.
+
+Dates and times follow the timezone configured on your device. There is no account timezone setting to update when travelling. Scheduling fields show the timezone used for entering dates.

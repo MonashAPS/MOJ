@@ -44,42 +44,6 @@ export function formatPoints(points: number | null | undefined): string {
   return floatformat(points, -3);
 }
 
-const ABSOLUTE = new Intl.DateTimeFormat("en-AU", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-  second: "2-digit",
-});
-
-/** The `title` behind every relative time, and the status page's date line. */
-export function absoluteTime(ms: number): string {
-  return ABSOLUTE.format(new Date(ms));
-}
-
-const RELATIVE = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-
-const STEPS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
-  ["year", 365 * 24 * 3600_000],
-  ["month", 30 * 24 * 3600_000],
-  ["week", 7 * 24 * 3600_000],
-  ["day", 24 * 3600_000],
-  ["hour", 3600_000],
-  ["minute", 60_000],
-];
-
-/** DMOJ's `relative_time`, with an absolute `title` alongside it. */
-export function relativeTime(ms: number, now: number): string {
-  const delta = ms - now;
-
-  for (const [unit, size] of STEPS) {
-    if (Math.abs(delta) >= size) return RELATIVE.format(Math.round(delta / size), unit);
-  }
-
-  return RELATIVE.format(Math.round(delta / 1000), "second");
-}
-
 /**
  * `Submission.result_class` (judge/models/submission.py): the code a verdict pill
  * is drawn from. `_AC` is a partial accept, which is a different colour family

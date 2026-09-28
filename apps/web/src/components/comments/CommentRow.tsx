@@ -30,7 +30,8 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { identiconUrl, initials } from "@/lib/avatar";
 import { mutationError } from "@/lib/convex-error";
-import { formatDateTime, formatRelative } from "@/lib/format";
+import { useDateFormatters, useRelativeTimeFormatter } from "@/lib/date-format";
+
 import { CommentHistoryDialog, CommentVotesDialog } from "./CommentDialogs";
 import { CommentForm } from "./CommentForm";
 import { type CommentNode, commentAnchor } from "./shared";
@@ -56,6 +57,8 @@ export function CommentRow<TAnswer>({
   maxLength: number;
   onReply: (parentId: Id<"comments">, body: string) => Promise<TAnswer>;
 }) {
+  const { formatDateTime } = useDateFormatters();
+  const formatRelative = useRelativeTimeFormatter();
   const t = useTranslations("blog.comments");
   const common = useTranslations("common.actions");
   const vote = useMutation(api.comments.vote);

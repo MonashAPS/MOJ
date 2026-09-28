@@ -5,7 +5,6 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { TitleRow } from "@/components/shell/PageTabs";
 import { queryAsViewer } from "@/lib/convex-server";
-import { timezoneList } from "@/lib/timezones";
 import { ConfigTabs } from "./ConfigTabs";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -35,7 +34,6 @@ export default async function AdminConfigPage() {
       <ConfigTabs
         settings={settings}
         languages={languages.map((language) => ({ key: language.key, name: language.name }))}
-        timezones={timezoneList()}
       />
     </>
   );

@@ -164,8 +164,6 @@
     "aboutDisabled": "解出一道题目后才能填写。",
     "aboutPlaceholder": "简单介绍一下自己。",
     "preferences": "偏好设置",
-    "timezone": "时区",
-    "timezoneHint": "网站上的所有时间都会使用该时区。",
     "language": "首选语言",
     "languageHint": "将在提交页面中预先选中。",
     "siteTheme": "网站主题",

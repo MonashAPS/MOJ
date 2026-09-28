@@ -63,8 +63,6 @@ export type SubmissionListProps = {
   /** `_get_result_data` for the statistics box, or `null` where the deployed
    *  query cannot answer for this list's queryset (see the note below). */
   results: ResultData | null;
-  /** The server's clock, so relative times match before hydration. */
-  now: number;
   /** Where the "my submissions" quick link points. */
   myHref: string | null;
   /** An empty list says what would fill it. */
@@ -87,7 +85,6 @@ export function SubmissionList({
   initialFilters,
   context,
   results,
-  now,
   myHref,
   emptyTitle,
   emptyDescription,
@@ -253,7 +250,6 @@ export function SubmissionList({
                 tone={verdictTone(verdictCode(row))}
                 showProblem={showProblem}
                 permissions={permissions}
-                now={now}
                 isNew={settled.current && !seen.current.has(String(row._id))}
                 onRejudge={(id) => setConfirm({ kind: "rejudge", id })}
                 onAbort={(id) => setConfirm({ kind: "abort", id })}

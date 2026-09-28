@@ -5,7 +5,8 @@ import { notFound } from "next/navigation";
 import { TitleRow } from "@/components/shell/PageTabs";
 import { SourceWindow } from "@/components/submissions/SourceWindow";
 import { titlebarAction } from "@/components/submissions/titlebar";
-import { absoluteTime, isGrading, verdictCode } from "@/lib/submissionFormat";
+import { LocalTime } from "@/components/time/LocalTime";
+import { isGrading, verdictCode } from "@/lib/submissionFormat";
 import { loadSourceView } from "@/lib/submissionsData";
 
 export const dynamic = "force-dynamic";
@@ -65,9 +66,7 @@ export default async function SubmissionSourcePage({ params }: { params: Promise
             </span>
           )}
           <span className="font-mono">{view.language?.name ?? "Unknown language"}</span>
-          <time dateTime={new Date(view.date).toISOString()} className="font-mono tabular-nums">
-            {absoluteTime(view.date)}
-          </time>
+          <LocalTime value={view.date} format="absolute" className="font-mono tabular-nums" />
           {view.judge ? <span className="font-mono">on {view.judge}</span> : null}
         </div>
 

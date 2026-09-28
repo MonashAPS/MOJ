@@ -3,7 +3,8 @@
 import { cn, ratingClass } from "@moj/ui";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
-import { formatDate } from "@/lib/format";
+import { useDateFormatters } from "@/lib/date-format";
+
 import {
   buildRatingChart,
   CHART_HEIGHT,
@@ -41,6 +42,7 @@ function RatingValue({ rating }: { rating: number }) {
 }
 
 function Tooltip({ dot, width }: { dot: ChartDot; width: number }) {
+  const { formatDate } = useDateFormatters();
   const t = useTranslations("users.ratingChart");
   // A point near the top has no room for a card above it, and one near an edge
   // would hang out of the panel, so both are nudged back inside.
@@ -79,6 +81,7 @@ function Tooltip({ dot, width }: { dot: ChartDot; width: number }) {
  * history — bands, axis and an empty state — so the About tab keeps its shape.
  */
 export function RatingChart({ points }: { points: RatingPoint[] }) {
+  const { formatDate } = useDateFormatters();
   const t = useTranslations("users.ratingChart");
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(CHART_WIDTH);

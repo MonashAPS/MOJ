@@ -7,7 +7,6 @@ import { consoleViewer } from "@/auth/console";
 import { Crumbs } from "@/components/admin";
 import { TitleRow } from "@/components/shell/PageTabs";
 import { queryAsViewer } from "@/lib/convex-server";
-import { timezoneList } from "@/lib/timezones";
 import { accountForUserAction } from "../actions";
 import { UserEditor } from "./UserEditor";
 
@@ -70,7 +69,6 @@ export default async function AdminUserPage({ params }: { params: Promise<{ user
           slug: organization.slug,
           name: organization.name,
         }))}
-        timezones={timezoneList()}
         account={account.ok ? account.data : { account: null, passkeys: [], sessions: 0 }}
         viewerIsSuperuser={viewer.isSuperuser}
         viewerUsername={viewer.username}

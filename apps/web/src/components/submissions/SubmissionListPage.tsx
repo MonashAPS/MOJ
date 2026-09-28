@@ -146,7 +146,6 @@ export async function SubmissionListPage({
           initialFilters={{ status, language }}
           context={context}
           results={results}
-          now={Date.now()}
           myHref={myHref}
           {...(await emptyCopy(context, isOwn))}
         />

@@ -20,8 +20,9 @@ import { Check, ChevronRight, Clock, HardDrive, Server, X } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { LocalTime } from "@/components/time/LocalTime";
+import { useDateFormatters } from "@/lib/date-format";
 import {
-  absoluteTime,
   DASH,
   formatMemory,
   formatPoints,
@@ -142,6 +143,7 @@ export function StatusView({
   extras: StatusExtras;
   serverNow: number;
 }) {
+  const { absoluteTime } = useDateFormatters();
   const t = useTranslations("submissions.status");
   const live = useQuery(api.submissions.detail, { submissionId: String(extras.id) });
   const detail = live ?? initial;
@@ -194,9 +196,7 @@ export function StatusView({
             <span className="font-mono">{extras.language?.name ?? DASH}</span>
           </Meta>
           <Meta label={t("metaSubmitted")}>
-            <time dateTime={new Date(extras.date).toISOString()} className="font-mono tabular-nums">
-              {absoluteTime(extras.date)}
-            </time>
+            <LocalTime value={extras.date} format="absolute" className="font-mono tabular-nums" />
           </Meta>
           <Meta label={t("metaPoints")}>
             <span className="font-mono tabular-nums">

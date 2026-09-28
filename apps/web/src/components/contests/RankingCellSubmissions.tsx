@@ -19,8 +19,9 @@ import { usePaginatedQuery } from "convex/react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
+import { LocalTime } from "@/components/time/LocalTime";
 import { formatPoints } from "@/lib/format";
-import { absoluteTime, DASH, formatMemory, formatTime, isGrading, verdictCode } from "@/lib/submissionFormat";
+import { DASH, formatMemory, formatTime, isGrading, verdictCode } from "@/lib/submissionFormat";
 
 /** A cell holds a handful of attempts, not a contest's worth; DMOJ's 50 is a page. */
 const PAGE_SIZE = 20;
@@ -205,7 +206,7 @@ function Attempt({ row, total, precision }: { row: SubmissionListRow; total: str
           <span aria-hidden>·</span>
           <span>{numbers ? formatMemory(row.memory) : DASH}</span>
           <span aria-hidden>·</span>
-          <time dateTime={new Date(row.date).toISOString()}>{absoluteTime(row.date)}</time>
+          <LocalTime value={row.date} format="absolute" />
         </span>
       </Link>
     </li>

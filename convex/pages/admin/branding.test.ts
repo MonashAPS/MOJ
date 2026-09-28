@@ -45,7 +45,6 @@ describe("branding", () => {
         siteLongName: "MAPS Online Judge",
         siteAdminEmail: "admin@example.com",
         registrationOpen: true,
-        defaultUserTimezone: "Australia/Melbourne",
         defaultUserLanguageKey: "PY3",
         problemsPerPage: 50,
         commentsPerPage: 50,

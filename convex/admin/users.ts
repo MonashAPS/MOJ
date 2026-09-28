@@ -57,7 +57,6 @@ export type AdminUserRow = {
   isBannedFromProblemVoting: boolean;
   permissions: string[];
   notes: string;
-  timezone: string;
   joinDate: number;
   lastAccess?: number;
   organizationSlugs: string[];
@@ -95,7 +94,6 @@ async function toRow(ctx: QueryCtx, profile: Doc<"profiles">): Promise<AdminUser
     isBannedFromProblemVoting: profile.isBannedFromProblemVoting,
     permissions: profile.permissions,
     notes: profile.notes,
-    timezone: profile.timezone,
     joinDate: profile.joinDate,
     lastAccess: profile.lastAccess,
     organizationSlugs,
@@ -213,7 +211,6 @@ export const edit = mutation({
   args: {
     username: v.string(),
     about: v.optional(v.string()),
-    timezone: v.optional(v.string()),
     displayRank: v.optional(displayRank),
     usernameDisplayOverride: v.optional(v.string()),
     notes: v.optional(v.string()),
@@ -246,8 +243,6 @@ export const edit = mutation({
     const patch: Partial<Doc<"profiles">> = {};
 
     if (args.about !== undefined) patch.about = args.about;
-
-    if (args.timezone !== undefined) patch.timezone = args.timezone;
 
     if (args.displayRank !== undefined) patch.displayRank = args.displayRank;
 

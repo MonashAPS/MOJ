@@ -4,8 +4,8 @@ import { Code2 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { LanguageCharts } from "@/components/charts/LanguageCharts";
 import { TitleRow } from "@/components/shell/PageTabs";
+import { LocalTime } from "@/components/time/LocalTime";
 import { queryAsViewer } from "@/lib/convex-server";
-import { absoluteTime } from "@/lib/submissionFormat";
 
 export async function generateMetadata() {
   const t = await getTranslations("status.languageStats");
@@ -30,12 +30,10 @@ export default async function LanguageStatsPage() {
         <p className="text-center text-sm text-muted-foreground">
           {t.rich(initial.truncated ? "countedCapped" : "counted", {
             scanned: initial.scanned,
-            updated: absoluteTime(initial.computedAt),
+            updated: "",
             count: (chunks) => <span className="font-mono tabular-nums">{chunks}</span>,
-            when: (chunks) => (
-              <time dateTime={new Date(initial.computedAt).toISOString()} className="font-mono tabular-nums">
-                {chunks}
-              </time>
+            when: () => (
+              <LocalTime value={initial.computedAt} format="absolute" className="font-mono tabular-nums" />
             ),
           })}
         </p>

@@ -164,8 +164,6 @@
     "aboutDisabled": "Solve a problem first, then you can write one.",
     "aboutPlaceholder": "A line or two about you.",
     "preferences": "Preferences",
-    "timezone": "Timezone",
-    "timezoneHint": "Every date on the site uses it.",
     "language": "Preferred language",
     "languageHint": "Preselected on the submit page.",
     "siteTheme": "Site theme",

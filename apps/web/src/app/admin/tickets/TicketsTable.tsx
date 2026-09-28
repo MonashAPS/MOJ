@@ -18,8 +18,9 @@ import {
   SearchBox,
   StatusLine,
 } from "@/components/admin";
+import { LocalTime } from "@/components/time/LocalTime";
 import { chosenIds } from "@/lib/choices";
-import { formatDateTime } from "@/lib/format";
+import { useDateFormatters } from "@/lib/date-format";
 
 type TicketRow = FunctionReturnType<typeof api.admin.tickets.list>["page"][number];
 
@@ -109,7 +110,7 @@ export function TicketsTable() {
         </Badge>
       ),
     },
-    { key: "time", header: t("columnOpened"), numeric: true, cell: (row) => formatDateTime(row.time) },
+    { key: "time", header: t("columnOpened"), numeric: true, cell: (row) => <LocalTime value={row.time} /> },
     {
       key: "actions",
       header: <span className="sr-only">{t("columnActions")}</span>,
@@ -255,6 +256,7 @@ function AssignDialog({
   onClose: () => void;
   onDone: (message: string) => void;
 }) {
+  const { formatDateTime } = useDateFormatters();
   const t = useTranslations("admin.tickets");
   const options = useQuery(api.admin.tickets.assigneeOptions, { ticketId: ticket._id });
   const setAssignees = useMutation(api.admin.tickets.setAssignees);

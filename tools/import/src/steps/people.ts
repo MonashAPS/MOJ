@@ -129,7 +129,6 @@ const profilesStep: Step = {
         username: user.s("username"),
         legacyUserId,
         about: row.s("about"),
-        timezone: row.s("timezone"),
         languageId: ctx.ref("languages", row.nOpt("language_id"), "judge_profile", "language_id", row.id()),
         points: row.n("points"),
         performancePoints: row.n("performance_points"),

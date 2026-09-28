@@ -2,7 +2,6 @@ import { api } from "@convex/_generated/api";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { query } from "@/lib/convex-server";
-import { timezoneList } from "@/lib/timezones";
 import { RegisterForm } from "./RegisterForm";
 
 export async function generateMetadata() {
@@ -24,8 +23,6 @@ export default async function RegisterPage() {
 
   return (
     <RegisterForm
-      timezones={timezoneList()}
-      defaultTimezone={settings?.defaultUserTimezone ?? "Australia/Melbourne"}
       defaultLanguageKey={settings?.defaultUserLanguageKey ?? "PY3"}
       languages={languages.map((language) => ({ key: language.key, name: language.name }))}
       organizations={organizations.map((organization) => ({

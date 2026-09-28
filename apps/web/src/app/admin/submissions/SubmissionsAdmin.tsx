@@ -40,7 +40,7 @@ import {
   AdminToolbar,
   JobProgress,
 } from "@/components/admin";
-import { formatDateTime, formatRelative } from "@/lib/format";
+import { LocalTime, RelativeTime } from "@/components/time/LocalTime";
 
 const RESULTS = ["AC", "WA", "TLE", "MLE", "OLE", "IR", "RTE", "CE", "IE", "SC", "AB"];
 
@@ -266,11 +266,7 @@ export function SubmissionsAdmin() {
       key: "date",
       header: t("columns.when"),
       numeric: true,
-      cell: (row) => (
-        <time dateTime={new Date(row.date).toISOString()} title={formatDateTime(row.date)}>
-          {formatRelative(row.date)}
-        </time>
-      ),
+      cell: (row) => <RelativeTime value={row.date} />,
     },
     {
       key: "open",
@@ -524,7 +520,9 @@ export function SubmissionsAdmin() {
                 <dt className="text-subtle">{t("detail.contest")}</dt>
                 <dd className="font-mono text-mono">{open.contestKey ?? "—"}</dd>
                 <dt className="text-subtle">{t("detail.submitted")}</dt>
-                <dd className="font-mono text-mono tabular-nums">{formatDateTime(open.date)}</dd>
+                <dd className="font-mono text-mono tabular-nums">
+                  <LocalTime value={open.date} />
+                </dd>
               </dl>
 
               {open.isLocked ? <p className="text-sm text-warn">{t("detail.locked")}</p> : null}

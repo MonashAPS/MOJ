@@ -8,7 +8,6 @@ import { requireAccount } from "@/auth/account-state";
 import { accountTabs } from "@/components/accounts/AccountTabs";
 import { TitleRow } from "@/components/shell/PageTabs";
 import { query, queryAsViewer } from "@/lib/convex-server";
-import { timezoneList } from "@/lib/timezones";
 import { AccountSideBoxes } from "./AccountSideBoxes";
 import { EditProfileForm } from "./EditProfileForm";
 
@@ -61,14 +60,12 @@ export default async function EditProfilePage() {
         >
           <EditProfileForm
             about={userPage?.about ?? profile?.about ?? ""}
-            timezone={profile?.timezone ?? "Australia/Melbourne"}
             languageKey={languages.find((language) => language._id === profile?.languageId)?.key ?? "PY3"}
             siteTheme={profile?.siteTheme ?? "auto"}
             editorTheme={profile?.editorTheme ?? "github"}
             organizationSlugs={(userPage?.organizations ?? [])
               .filter((organization) => openOrganizations.some((open) => open.slug === organization.slug))
               .map((organization) => organization.slug)}
-            timezones={timezoneList()}
             languages={languages.map((language) => ({ key: language.key, name: language.name }))}
             organizations={openOrganizations.map((organization) => ({
               slug: organization.slug,

@@ -33,7 +33,6 @@ const EDITOR_THEMES = [
 
 type FormState = {
   about: string;
-  timezone: string;
   languageKey: string;
   siteTheme: ThemeChoice;
   editorTheme: string;
@@ -42,23 +41,19 @@ type FormState = {
 
 export function EditProfileForm({
   about,
-  timezone,
   languageKey,
   siteTheme,
   editorTheme,
   organizationSlugs,
-  timezones,
   languages,
   organizations,
   canEditAbout,
 }: {
   about: string;
-  timezone: string;
   languageKey: string;
   siteTheme: ThemeChoice;
   editorTheme: string;
   organizationSlugs: string[];
-  timezones: string[];
   languages: Array<{ key: string; name: string }>;
   organizations: Array<{ slug: string; name: string }>;
   /** DMOJ makes the self-description wait until a first solve. */
@@ -72,7 +67,6 @@ export function EditProfileForm({
 
   const [baseline, setBaseline] = useState<FormState>({
     about,
-    timezone,
     languageKey,
     siteTheme,
     editorTheme,
@@ -91,7 +85,6 @@ export function EditProfileForm({
 
   const dirty =
     form.about !== baseline.about ||
-    form.timezone !== baseline.timezone ||
     form.languageKey !== baseline.languageKey ||
     form.siteTheme !== baseline.siteTheme ||
     form.editorTheme !== baseline.editorTheme ||
@@ -128,7 +121,6 @@ export function EditProfileForm({
     try {
       await update({
         about: canEditAbout ? form.about : undefined,
-        timezone: form.timezone,
         languageKey: form.languageKey,
         siteTheme: form.siteTheme,
         editorTheme: form.editorTheme,
@@ -181,16 +173,6 @@ export function EditProfileForm({
 
       <Panel title={t("preferences")}>
         <FieldGroup columns={2}>
-          <Field label={t("timezone")} htmlFor="profile-timezone" hint={t("timezoneHint")}>
-            <Select
-              id="profile-timezone"
-              ariaLabel={t("timezone")}
-              value={form.timezone}
-              onValueChange={(value) => change("timezone", value)}
-              options={timezones.map((zone) => ({ value: zone, label: zone }))}
-            />
-          </Field>
-
           <Field label={t("language")} htmlFor="profile-language" hint={t("languageHint")}>
             <Select
               id="profile-language"

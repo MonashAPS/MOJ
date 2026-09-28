@@ -7,7 +7,8 @@ import { useQuery } from "convex/react";
 import { Radio, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
-import { formatDateTime } from "@/lib/format";
+import { LocalTime } from "@/components/time/LocalTime";
+import { useDateFormatters } from "@/lib/date-format";
 
 /** A slice boundary wider than this is a gap rather than the usual few frames. */
 const GAP_MS = 8_000;
@@ -29,6 +30,7 @@ export function ProctorPlayer({
   startAt?: number;
   onClose?: () => void;
 }) {
+  const { formatDateTime } = useDateFormatters();
   const t = useTranslations("admin.proctor");
   const data = useQuery(api.proctor.replay, { sessionId });
 
@@ -131,7 +133,7 @@ export function ProctorPlayer({
                 {watchingLive ? t("followingNow") : t("follow")}
               </Button>
               <span className="text-sm text-muted-foreground tabular-nums">
-                {current ? formatDateTime(current.startedAt) : ""}
+                {current ? <LocalTime value={current.startedAt} /> : ""}
                 {chunks.length > 0 ? ` · ${at + 1}/${chunks.length}` : ""}
               </span>
             </div>

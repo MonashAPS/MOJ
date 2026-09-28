@@ -33,7 +33,8 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import type { PasskeySummary } from "@/auth/account-state";
 import { authClient } from "@/auth/client";
-import { formatDateTime } from "@/lib/format";
+import { LocalTime } from "@/components/time/LocalTime";
+
 import { readErrorMessage } from "@/lib/json-body";
 
 /** DMOJ's `WebAuthnAttestationView` plus the credential list from its edit
@@ -183,7 +184,7 @@ export function PasskeyManager({
                   <TableRow key={passkey.id}>
                     <TableCell className="font-medium text-foreground">{passkey.name}</TableCell>
                     <TableCell className="font-mono text-mono tabular-nums text-subtle">
-                      {passkey.createdAt ? formatDateTime(passkey.createdAt) : "—"}
+                      {passkey.createdAt ? <LocalTime value={passkey.createdAt} /> : "—"}
                     </TableCell>
                     <TableCell>
                       <Button

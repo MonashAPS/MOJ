@@ -31,8 +31,9 @@ import {
   SearchBox,
   StatusLine,
 } from "@/components/admin";
+import { LocalTime } from "@/components/time/LocalTime";
 import { chosenValue } from "@/lib/choices";
-import { formatDate } from "@/lib/format";
+
 import { type AccountRow, searchAccountsAction } from "./actions";
 
 const PER_PAGE = 50;
@@ -195,7 +196,7 @@ export function UsersTable() {
       key: "lastAccess",
       header: t("columnLastSeen"),
       numeric: true,
-      cell: (row) => (row.lastAccess ? formatDate(row.lastAccess) : DASH),
+      cell: (row) => (row.lastAccess ? <LocalTime value={row.lastAccess} format="date" /> : DASH),
     },
     {
       key: "actions",

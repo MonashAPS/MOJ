@@ -1,3 +1,5 @@
+"use client";
+
 import type { api } from "@convex/_generated/api";
 import { cn, RatingName } from "@moj/ui";
 import type { FunctionReturnType } from "convex/server";
@@ -5,7 +7,7 @@ import { MessageSquare, Pin } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
-import { formatDate, formatDateTime } from "@/lib/format";
+import { LocalTime } from "@/components/time/LocalTime";
 
 export type BlogListItem = FunctionReturnType<typeof api.blog.list>[number];
 
@@ -23,11 +25,7 @@ export function PostCard({
   const t = useTranslations("blog.post");
   const comments = post.commentCount;
 
-  const time = () => (
-    <time dateTime={new Date(post.publishOn).toISOString()} title={formatDateTime(post.publishOn)}>
-      {formatDate(post.publishOn)}
-    </time>
-  );
+  const time = () => <LocalTime value={post.publishOn} format="date" />;
 
   const authors = () => (
     <>
