@@ -6,6 +6,7 @@ import { ChevronDown, GripHorizontal, X } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { contestHref } from "@/lib/contest-context";
 import { formatDuration, useCountdown } from "@/lib/countdown";
 
 const STORAGE_KEY = "contest_timer_pos";
@@ -13,7 +14,7 @@ const STORAGE_KEY = "contest_timer_pos";
 const DISMISS_KEY = "contest_timer_hidden";
 
 /** DMOJ's draggable contest box, with its position remembered in localStorage.
- *  Rendered only when the ContestBar is not on screen. */
+ *  Rendered whenever the current context is outside the joined contest. */
 export function ContestFloater({
   contestKey,
   contestName,
@@ -172,7 +173,7 @@ export function ContestFloater({
           {problems.map((problem) => (
             <li key={problem.code} className="border-b border-border last:border-b-0">
               <Link
-                href={`/problem/${problem.code}/`}
+                href={contestHref(`/problem/${problem.code}/`, contestKey)}
                 className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-secondary"
               >
                 <span

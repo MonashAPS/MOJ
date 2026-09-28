@@ -2,10 +2,10 @@ import { api } from "@convex/_generated/api";
 import { RatingName, type TabItem, TitleRow } from "@moj/ui";
 import type { FunctionArgs } from "convex/server";
 import { BarChart3, List, User } from "lucide-react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { ContestLink } from "@/components/ContestLink";
 import { ErrorScreen } from "@/components/shell/ErrorScreen";
 import { queryAsViewer } from "@/lib/convex-server";
 import { loadListContext } from "@/lib/submissionsData";
@@ -133,6 +133,7 @@ export async function SubmissionListPage({
           title={await contentTitle(context, filters, isOwn)}
           breadcrumb={breadcrumb}
           tabs={tabs}
+          linkAs={ContestLink}
           active={tab === "user" ? "user" : tab === "mine" ? "mine" : "all"}
         />
       )}
@@ -179,17 +180,17 @@ async function contentTitle(
 
   const problem = viewedProblem
     ? () => (
-        <Link href={`/problem/${viewedProblem.code}`} className="text-link hover:text-link-hover">
+        <ContestLink href={`/problem/${viewedProblem.code}`} className="text-link hover:text-link-hover">
           {viewedProblem.name}
-        </Link>
+        </ContestLink>
       )
     : null;
 
   const contest = viewedContest
     ? () => (
-        <Link href={`/contest/${viewedContest.key}`} className="text-link hover:text-link-hover">
+        <ContestLink href={`/contest/${viewedContest.key}`} className="text-link hover:text-link-hover">
           {viewedContest.name}
-        </Link>
+        </ContestLink>
       )
     : null;
 

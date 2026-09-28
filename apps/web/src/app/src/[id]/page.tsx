@@ -1,7 +1,7 @@
 import { Alert, AlertDescription, AlertTitle, Button, type TabItem, TitleRow, VerdictPill } from "@moj/ui";
 import { Code2, FileText, ListChecks } from "lucide-react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ContestLink } from "@/components/ContestLink";
 import { SourceWindow } from "@/components/submissions/SourceWindow";
 import { titlebarAction } from "@/components/submissions/titlebar";
 import { absoluteTime, isGrading, verdictCode } from "@/lib/submissionFormat";
@@ -36,21 +36,22 @@ export default async function SubmissionSourcePage({ params }: { params: Promise
         title={
           <>
             Submission of{" "}
-            <Link href={`/problem/${view.problem.code}`} className="text-link hover:text-link-hover">
+            <ContestLink href={`/problem/${view.problem.code}`} className="text-link hover:text-link-hover">
               {view.problem.name}
-            </Link>{" "}
+            </ContestLink>{" "}
             by{" "}
-            <Link href={`/user/${view.user.username}`} className="text-link hover:text-link-hover">
+            <ContestLink href={`/user/${view.user.username}`} className="text-link hover:text-link-hover">
               {view.user.username}
-            </Link>
+            </ContestLink>
           </>
         }
         tabs={tabs}
+        linkAs={ContestLink}
         active="source"
         action={
           view.canResubmit ? (
             <Button variant="secondary" size="sm" asChild>
-              <Link href={`/problem/${view.problem.code}/resubmit/${id}/`}>Resubmit</Link>
+              <ContestLink href={`/problem/${view.problem.code}/resubmit/${id}/`}>Resubmit</ContestLink>
             </Button>
           ) : undefined
         }

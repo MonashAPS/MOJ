@@ -10,10 +10,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@moj/ui";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useId, useState } from "react";
+import { ContestLink, useContestHref } from "@/components/ContestLink";
 
 /** The viewer's "don't ask me again" choice. localStorage only: there is no
  *  profile field for it, and it is a per-browser convenience, not a setting. */
@@ -53,13 +53,14 @@ function EditorialLink({
   const t = useTranslations("problems.editorial");
   const actions = useTranslations("common.actions");
   const router = useRouter();
+  const withContest = useContestHref();
   const [open, setOpen] = useState(false);
   const [remember, setRemember] = useState(false);
   const checkboxId = useId();
 
   return (
     <>
-      <Link
+      <ContestLink
         href={href}
         className={className}
         onClick={(event) => {
@@ -72,7 +73,7 @@ function EditorialLink({
         }}
       >
         {children}
-      </Link>
+      </ContestLink>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent width={420}>
@@ -96,7 +97,7 @@ function EditorialLink({
               onClick={() => {
                 if (remember) rememberSkip();
                 setOpen(false);
-                router.push(href);
+                router.push(withContest(href));
               }}
             >
               {t("confirmYes")}
@@ -128,8 +129,8 @@ export function ProblemTabLink({
   }
 
   return (
-    <Link href={href} className={className}>
+    <ContestLink href={href} className={className}>
       {children}
-    </Link>
+    </ContestLink>
   );
 }

@@ -135,3 +135,33 @@ describe("the contest bar after leaving", () => {
     expect(onTheOtherPage).toBeNull();
   });
 });
+
+describe("browsing a contest without joining", () => {
+  it("provides released problems for upsolving without participation or lockdown", async () => {
+    const t = setupTest();
+    const contestId = await runningContest(t, "past");
+    await t.run(async (ctx) => {
+      await ctx.db.patch(contestId, { startTime: Date.now() - 3 * HOUR, endTime: Date.now() - HOUR });
+    });
+    const bar = await t.query(api.contests.navBar, { key: "past", browsing: true });
+    expect(bar?.contest.key).toBe("past");
+    expect(bar?.contest.isLockedDown).toBe(false);
+    expect(bar?.participationId).toBeNull();
+    expect(bar?.problems.map((p) => p.code)).toEqual(["past-alpha"]);
+    expect(bar?.timeRemaining).toBeNull();
+    expect(await t.query(api.contests.navBar, {})).toBeNull();
+  });
+
+  it("does not expose hidden contests or unreleased problem lists", async () => {
+    const t = setupTest();
+    const contestId = await runningContest(t, "future");
+    await t.run(async (ctx) => {
+      await ctx.db.patch(contestId, { startTime: Date.now() + HOUR, endTime: Date.now() + 2 * HOUR });
+    });
+    expect((await t.query(api.contests.navBar, { key: "future", browsing: true }))?.problems).toEqual([]);
+    await t.run(async (ctx) => {
+      await ctx.db.patch(contestId, { isVisible: false });
+    });
+    expect(await t.query(api.contests.navBar, { key: "future", browsing: true })).toBeNull();
+  });
+});

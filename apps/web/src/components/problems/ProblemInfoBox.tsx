@@ -24,9 +24,9 @@ import {
   PencilLine,
   Trophy,
 } from "lucide-react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import { ContestLink } from "@/components/ContestLink";
 import { formatDate } from "@/lib/format";
 import { formatPoints, formatTime } from "@/lib/units";
 
@@ -159,7 +159,7 @@ function TicketLink({ problem }: { problem: ProblemDetail }) {
   const open = tickets.page.filter((ticket) => ticket.isOpen).length;
 
   return (
-    <Link
+    <ContestLink
       href={`/problem/${problem.code}/tickets/`}
       className="flex items-center gap-2 text-subtle hover:text-link"
     >
@@ -170,7 +170,7 @@ function TicketLink({ problem }: { problem: ProblemDetail }) {
           {open}
         </Badge>
       ) : null}
-    </Link>
+    </ContestLink>
   );
 }
 
@@ -200,7 +200,7 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
       <div>
         {problem.canSubmit && !exhausted ? (
           <Button asChild full>
-            <Link href={`/problem/${problem.code}/submit`}>{t("submitSolution")}</Link>
+            <ContestLink href={`/problem/${problem.code}/submit`}>{t("submitSolution")}</ContestLink>
           </Button>
         ) : (
           <Button full disabled title={exhausted ? t("noSubmissionsLeft") : t("logInToSubmit")}>
@@ -221,16 +221,16 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
 
       <div className="grid gap-1 border-t border-border pt-2 text-sm">
         {problem.viewer.hasSubmissions ? (
-          <Link href={`/problem/${problem.code}/submissions/`} className="text-subtle hover:text-link">
+          <ContestLink href={`/problem/${problem.code}/submissions/`} className="text-subtle hover:text-link">
             {t("mySubmissions")}
-          </Link>
+          </ContestLink>
         ) : null}
-        <Link href={`/problem/${problem.code}/submissions/`} className="text-subtle hover:text-link">
+        <ContestLink href={`/problem/${problem.code}/submissions/`} className="text-subtle hover:text-link">
           {t("allSubmissions")}
-        </Link>
-        <Link href={`/problem/${problem.code}/rank/`} className="text-subtle hover:text-link">
+        </ContestLink>
+        <ContestLink href={`/problem/${problem.code}/rank/`} className="text-subtle hover:text-link">
           {t("bestSubmissions")}
-        </Link>
+        </ContestLink>
         <TicketLink problem={problem} />
       </div>
 
@@ -368,12 +368,12 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
                     {/* The contest itself, not its standings: somebody reading a
                         problem wants the contest's problems, and getting back
                         to them from the ranking is two more clicks. */}
-                    <Link
+                    <ContestLink
                       href={`/contest/${contest.contestKey}/`}
                       className="min-w-0 flex-1 truncate text-subtle hover:text-link"
                     >
                       {contest.contestName}
-                    </Link>
+                    </ContestLink>
                     <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
                       {formatDate(contest.startTime)}
                     </span>

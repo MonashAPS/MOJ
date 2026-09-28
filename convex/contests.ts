@@ -447,24 +447,28 @@ export const chrome = query({
 });
 
 export const navBar = query({
-  args: { key: v.optional(v.string()) },
-  handler: async (ctx, { key }): Promise<ContestBarData> => {
+  args: { key: v.optional(v.string()), browsing: v.optional(v.boolean()) },
+  handler: async (ctx, { key, browsing }): Promise<ContestBarData> => {
     const profile = await optionalViewer(ctx);
     const now = Date.now();
 
     let participation: Doc<"contestParticipations"> | null = null;
     let contest: Doc<"contests"> | null = null;
 
-    // The bar says one thing: you are in this contest now. It used to fall back
-    // to any participation row the viewer had ever had here, so leaving a contest
-    // left the bar up and its clock running on a contest they were no longer in.
+    // Participation queries only describe the contest the viewer is in now.
+    // The shell explicitly opts into browsing data for its navigation context;
+    // historical participation must never restart a personal contest clock.
     if (key) {
       contest = await contestByKey(ctx, key);
 
-      if (!contest || !profile?.currentParticipationId) return null;
-      participation = await ctx.db.get(profile.currentParticipationId);
+      if (!contest) return null;
+      participation = profile?.currentParticipationId
+        ? await ctx.db.get(profile.currentParticipationId)
+        : null;
 
-      if (!participation || participation.contestId !== contest._id) return null;
+      if (participation?.contestId !== contest._id) participation = null;
+
+      if (!participation && !browsing) return null;
     } else if (profile?.currentParticipationId) {
       participation = await ctx.db.get(profile.currentParticipationId);
 
@@ -476,9 +480,11 @@ export const navBar = query({
     const viewer = await toViewerRowInContest(ctx, profile);
     const contestRow = toContestRow(contest);
 
-    const contestProblems = problemListAccessFor(contest, profile, viewer, true, Date.now()).released
-      ? await loadContestProblems(ctx, contest._id)
-      : [];
+    // Browsing a contest does not grant participation or reveal its private problems.
+    if (!participation && contestAccessCheck(contestRow, viewer).kind !== "ok") return null;
+    const access = problemListAccessFor(contest, profile, viewer, !!participation, now);
+    const contestProblems = access.released ? await loadContestProblems(ctx, contest._id) : [];
+    const problemViewer = !participation && !access.privileged ? await loadViewerContext(ctx) : null;
 
     const problems: ContestBarProblem[] = [];
 
@@ -486,6 +492,8 @@ export const navBar = query({
       const problem = await ctx.db.get(contestProblem.problemId);
 
       if (!problem) continue;
+
+      if (problemViewer && !(await canAccessProblem(ctx, problem, problemViewer))) continue;
       const state = await problemStateFor(ctx, profile?._id ?? null, problem, contest._id);
       problems.push({
         contestProblemId: contestProblem._id,
@@ -516,7 +524,7 @@ export const navBar = query({
         endTime: contest.endTime,
         useClarifications: contest.useClarifications,
         freeze: contest.freeze ? { minutes: contest.freeze.minutes } : null,
-        isLockedDown: contest.disableLockdown !== true,
+        isLockedDown: !!participation && contest.disableLockdown !== true,
       },
       problems,
       participationId: participation?._id ?? null,

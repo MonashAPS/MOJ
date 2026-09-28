@@ -2,6 +2,7 @@ import { api } from "@convex/_generated/api";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { type SearchParams, SubmissionListPage } from "@/components/submissions/SubmissionListPage";
+import { contestHref } from "@/lib/contest-context";
 import { queryAsViewer } from "@/lib/convex-server";
 
 export const dynamic = "force-dynamic";
@@ -21,11 +22,13 @@ export default async function UserProblemSubmissionsPage({
   searchParams: Promise<SearchParams>;
 }) {
   const { code, user } = await params;
+  const query = await searchParams;
+  const contestKey = Array.isArray(query.contest) ? null : (query.contest ?? null);
   const viewer = await queryAsViewer(api.viewer.current, {});
 
   if (user === "me") {
     if (!viewer.profile) redirect(`/accounts/login/?next=/problem/${code}/submissions/`);
-    redirect(`/problem/${code}/submissions/${viewer.profile.username}/`);
+    redirect(contestHref(`/problem/${code}/submissions/${viewer.profile.username}/`, contestKey));
   }
 
   return (
@@ -34,7 +37,7 @@ export default async function UserProblemSubmissionsPage({
       showProblem={false}
       tab={viewer.profile?.username === user ? "mine" : "user"}
       bestSubmissionsHref={`/problem/${code}/rank/`}
-      searchParams={await searchParams}
+      searchParams={query}
     />
   );
 }

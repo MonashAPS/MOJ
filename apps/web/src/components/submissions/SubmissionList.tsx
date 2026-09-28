@@ -143,7 +143,9 @@ export function SubmissionList({
 
   const setFilters = useCallback(
     (next: { status?: string[]; language?: string[] }) => {
-      const params = new URLSearchParams();
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("status");
+      params.delete("language");
 
       for (const value of next.status ?? selectedStatuses) params.append("status", value);
 
@@ -151,7 +153,7 @@ export function SubmissionList({
       const query = params.toString();
       router.replace(query ? `?${query}` : "?", { scroll: false });
     },
-    [router, selectedStatuses, selectedLanguages],
+    [router, searchParams, selectedStatuses, selectedLanguages],
   );
 
   const permissions = useMemo(

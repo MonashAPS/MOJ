@@ -15,8 +15,8 @@ import {
 } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { Trophy } from "lucide-react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { ContestLink } from "@/components/ContestLink";
 import { formatDate } from "@/lib/format";
 import { formatMemory, formatPoints, formatTime } from "@/lib/units";
 
@@ -96,9 +96,9 @@ export function RankTable({ code, initial }: { code: string; initial: Ranks }) {
                     {formatMemory(row.memory)}
                   </TableCell>
                   <TableCell numeric className="text-muted-foreground">
-                    <Link href={`/submission/${row.submissionId}`} className="hover:text-link">
+                    <ContestLink href={`/submission/${row.submissionId}`} className="hover:text-link">
                       {formatDate(row.date)}
-                    </Link>
+                    </ContestLink>
                   </TableCell>
                 </TableRow>
               ))}

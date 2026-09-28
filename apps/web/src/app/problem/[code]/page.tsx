@@ -3,13 +3,14 @@ import { renderMarkdown } from "@moj/content";
 import { Button, TitleRow } from "@moj/ui";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ContestLink } from "@/components/ContestLink";
 import { Comments } from "@/components/comments/Comments";
 import { ProblemPage } from "@/components/problems/ProblemHeader";
 import { ProctorRequired } from "@/components/problems/ProctorRequired";
 import { Statement } from "@/components/problems/Statement";
+import { contestContextKey } from "@/lib/contest-context";
 import { queryAsViewer } from "@/lib/convex-server";
 import { formatRelative } from "@/lib/format";
 import { viewerLanguage } from "@/lib/language.server";
@@ -33,7 +34,13 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
   };
 }
 
-export default async function ProblemStatementPage({ params }: { params: Promise<{ code: string }> }) {
+export default async function ProblemStatementPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ code: string }>;
+  searchParams: Promise<{ contest?: string | string[] }>;
+}) {
   const t = await getTranslations("problems.detail");
   const { code } = await params;
   const language = await viewerLanguage();
@@ -57,20 +64,33 @@ export default async function ProblemStatementPage({ params }: { params: Promise
     notFound();
   }
 
-  const [{ html }, bar] = await Promise.all([
+  const query = await searchParams;
+
+  const contextKey = contestContextKey(
+    `/problem/${code}/`,
+    Array.isArray(query.contest) ? null : (query.contest ?? null),
+  );
+
+  const [{ html }, bar, joined] = await Promise.all([
     renderMarkdown(problem.statement.source, problem.statement.preset),
+    contextKey
+      ? queryAsViewer(api.contests.navBar, { key: contextKey, browsing: true }).catch(() => null)
+      : Promise.resolve(null),
     problem.contestProblem ? queryAsViewer(api.contests.navBar, {}).catch(() => null) : Promise.resolve(null),
   ]);
 
   const statement = decorateStatement(html);
 
-  const siblings = bar?.problems ?? [];
+  const browsingProblem = bar?.problems.find((p) => p.code === problem.code);
+  const siblings = browsingProblem ? (bar?.problems ?? []) : [];
   const here = siblings.findIndex((row) => row.code === problem.code);
 
   // Nothing clarified is nothing to say: a heading over a line explaining its
   // own emptiness sat above the statement on every contest problem.
   const showClarifications =
-    !!problem.contestProblem && bar?.contest.useClarifications === true && problem.clarifications.length > 0;
+    !!problem.contestProblem &&
+    joined?.contest.useClarifications === true &&
+    problem.clarifications.length > 0;
 
   const previous = here > 0 ? siblings[here - 1] : undefined;
   const next = here >= 0 && here < siblings.length - 1 ? siblings[here + 1] : undefined;
@@ -80,14 +100,14 @@ export default async function ProblemStatementPage({ params }: { params: Promise
       problem={problem}
       active="statement"
       breadcrumb={
-        bar && problem.contestProblem ? (
+        bar && browsingProblem ? (
           <span className="flex items-center gap-1.5">
-            <Link href={`/contest/${bar.contest.key}`} className="hover:text-link">
+            <ContestLink href={`/contest/${bar.contest.key}`} className="hover:text-link">
               {bar.contest.name}
-            </Link>
+            </ContestLink>
             <span aria-hidden>/</span>
             <span className="text-foreground">
-              {problem.contestProblem.label}. {problem.name}
+              {browsingProblem.label}. {problem.name}
             </span>
           </span>
         ) : undefined
@@ -130,19 +150,19 @@ export default async function ProblemStatementPage({ params }: { params: Promise
         >
           {previous ? (
             <Button asChild variant="secondary" icon={<ArrowLeft size={14} />}>
-              <Link href={`/problem/${previous.code}`}>
+              <ContestLink href={`/problem/${previous.code}`}>
                 {previous.label}. {previous.name}
-              </Link>
+              </ContestLink>
             </Button>
           ) : (
             <span />
           )}
           {next ? (
             <Button asChild variant="secondary">
-              <Link href={`/problem/${next.code}`}>
+              <ContestLink href={`/problem/${next.code}`}>
                 {next.label}. {next.name}
                 <ArrowRight size={14} aria-hidden />
-              </Link>
+              </ContestLink>
             </Button>
           ) : (
             <span />
@@ -152,9 +172,9 @@ export default async function ProblemStatementPage({ params }: { params: Promise
 
       <div className="mt-6 flex justify-end border-t border-border pt-4">
         <Button asChild variant="secondary">
-          <Link href={`/problem/${problem.code}/tickets/new`}>
+          <ContestLink href={`/problem/${problem.code}/tickets/new`}>
             {problem.contestProblem ? t("requestClarification") : t("reportIssue")}
-          </Link>
+          </ContestLink>
         </Button>
       </div>
 

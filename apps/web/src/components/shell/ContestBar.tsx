@@ -17,6 +17,7 @@ import { ChevronDown, Clock, LogOut, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useRef } from "react";
+import { contestHref } from "@/lib/contest-context";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { ThemeMenu } from "./ThemeMenu";
 import type { ViewerSummary } from "./UserBlock";
@@ -87,7 +88,7 @@ function BarAccount({ viewer }: { viewer: ViewerSummary }) {
 }
 
 /** SPEC section 20. Sticky directly under the nav on any page that belongs to
- *  the contest; the DMOJ floater covers everywhere else, and never both. */
+ *  the contest; the DMOJ floater tracks a joined contest outside its context. */
 export function ContestBar({
   data,
   currentCode,
@@ -155,7 +156,7 @@ export function ContestBar({
               <Link
                 key={problem.contestProblemId}
                 data-chip
-                href={`/problem/${problem.code}`}
+                href={contestHref(`/problem/${problem.code}`, data.contest.key)}
                 aria-current={isCurrent ? "page" : undefined}
                 title={t("problem", { label: problem.label, name: problem.name, state: problem.state })}
                 // Arrow keys move a roving cursor along the chips.

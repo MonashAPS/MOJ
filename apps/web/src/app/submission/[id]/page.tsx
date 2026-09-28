@@ -1,9 +1,9 @@
 import { api } from "@convex/_generated/api";
 import { Button, type TabItem, TitleRow } from "@moj/ui";
 import { Code2, FileText, ListChecks } from "lucide-react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ContestLink } from "@/components/ContestLink";
 import { SourceWindow } from "@/components/submissions/SourceWindow";
 import { StatusView } from "@/components/submissions/StatusView";
 import { SubmissionActions } from "@/components/submissions/SubmissionActions";
@@ -50,23 +50,26 @@ export default async function SubmissionStatusPage({ params }: { params: Promise
       <TitleRow
         title={t.rich("title", {
           problem: () => (
-            <Link href={`/problem/${extras.problem.code}`} className="text-link hover:text-link-hover">
+            <ContestLink href={`/problem/${extras.problem.code}`} className="text-link hover:text-link-hover">
               {extras.problem.name}
-            </Link>
+            </ContestLink>
           ),
           user: () => (
-            <Link href={`/user/${extras.user.username}`} className="text-link hover:text-link-hover">
+            <ContestLink href={`/user/${extras.user.username}`} className="text-link hover:text-link-hover">
               {extras.user.username}
-            </Link>
+            </ContestLink>
           ),
         })}
         tabs={tabs}
+        linkAs={ContestLink}
         active="status"
         action={
           <>
             {extras.canResubmit ? (
               <Button variant="secondary" size="sm" asChild>
-                <Link href={`/problem/${extras.problem.code}/resubmit/${id}/`}>{t("resubmit")}</Link>
+                <ContestLink href={`/problem/${extras.problem.code}/resubmit/${id}/`}>
+                  {t("resubmit")}
+                </ContestLink>
               </Button>
             ) : null}
             <SubmissionActions
@@ -94,7 +97,9 @@ export default async function SubmissionStatusPage({ params }: { params: Promise
                 </Button>
                 {extras.canResubmit ? (
                   <Button variant="ghost" size="sm" className={titlebarAction} asChild>
-                    <Link href={`/problem/${extras.problem.code}/resubmit/${id}/`}>{t("resubmit")}</Link>
+                    <ContestLink href={`/problem/${extras.problem.code}/resubmit/${id}/`}>
+                      {t("resubmit")}
+                    </ContestLink>
                   </Button>
                 ) : null}
               </>

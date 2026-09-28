@@ -2,10 +2,10 @@
 
 import { Button, Input, MicroLabel, MultiSelect, Panel } from "@moj/ui";
 import { Filter, Search, User } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { ContestLink, useContestHref } from "@/components/ContestLink";
 
 export type FilterOption = { value: string; label: string };
 
@@ -38,6 +38,7 @@ export function SubmissionFilters({
 }) {
   const t = useTranslations("submissions.filters");
   const router = useRouter();
+  const withContest = useContestHref();
   const [term, setTerm] = useState("");
   const active = selectedStatuses.length + selectedLanguages.length;
 
@@ -82,7 +83,7 @@ export function SubmissionFilters({
             event.preventDefault();
             const username = term.trim();
 
-            if (username) router.push(userSearchHref(username));
+            if (username) router.push(withContest(userSearchHref(username)));
           }}
         >
           <Input
@@ -97,13 +98,13 @@ export function SubmissionFilters({
           />
         </form>
         {myHref && myUsername ? (
-          <Link
+          <ContestLink
             href={myHref}
             className="mt-1 inline-flex items-center gap-1.5 text-sm text-link hover:text-link-hover"
           >
             <User aria-hidden className="size-3.5" />
             {t("mySubmissions")}
-          </Link>
+          </ContestLink>
         ) : null}
       </div>
 

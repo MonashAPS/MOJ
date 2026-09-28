@@ -1,8 +1,8 @@
 import { api } from "@convex/_generated/api";
 import { TitleRow } from "@moj/ui";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ContestLink } from "@/components/ContestLink";
 import { NewTicketForm } from "@/components/tickets/NewTicketForm";
 import { queryAsViewer } from "@/lib/convex-server";
 import { viewerLanguage } from "@/lib/language.server";
@@ -50,9 +50,9 @@ export default async function NewProblemTicketPage({ params }: Props) {
         title={t.rich("newTitle", {
           name: problem.name,
           link: (chunks) => (
-            <Link href={`/problem/${problem.code}/`} className="text-link">
+            <ContestLink href={`/problem/${problem.code}/`} className="text-link">
               {chunks}
-            </Link>
+            </ContestLink>
           ),
         })}
       />

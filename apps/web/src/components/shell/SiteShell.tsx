@@ -4,11 +4,12 @@ import { api } from "@convex/_generated/api";
 import type { ContestBarData } from "@convex/contests";
 import { cn, Toaster, TooltipProvider } from "@moj/ui";
 import { useQuery } from "convex/react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect, useLayoutEffect, useRef } from "react";
 import { ProfileBootstrap } from "@/components/auth/ProfileBootstrap";
 import { CommandPalette, useCommandPalette } from "@/components/shell/CommandPalette";
+import { contestContainsProblem, contestContextKey } from "@/lib/contest-context";
 import { isInsideContest } from "@/lib/contest-lockdown";
 import type { NavNode } from "@/lib/nav";
 import { usesDomjudgeStructure } from "@/lib/skin";
@@ -80,10 +81,10 @@ export function SiteShell({
    * query on the route meant every page change re-subscribed, and for the moment
    * that took, a locked-down contestant got the nav back.
    *
-   * SPEC section 20: on a contest route the bar is the contest in the URL, not
-   * whichever contest the viewer happens to be inside — that is `routed`.
+   * `routed` supplies browsing data when the URL names a different contest.
+   * Browsing follows the URL; participation independently governs lockdown.
    */
-  const routeKey = /^\/contest\/([a-z0-9._-]+)/i.exec(pathname)?.[1];
+  const routeKey = /^\/contest\/([a-z0-9._-]+)(?:\/|$)/i.exec(pathname)?.[1];
   const liveJoined = useQuery(api.contests.navBar, {});
   // The server already knew the answer when it rendered this page. Waiting for
   // the socket instead meant the markup went out with a nav on it, and a
@@ -93,14 +94,32 @@ export function SiteShell({
   // the identity it answers as nobody, which for this query is null — the nav
   // coming back for a beat in the middle of a contest.
   const joined = useViewerLive(liveJoined, initialContest, !!viewer);
-  const routed = useQuery(api.contests.navBar, routeKey ? { key: routeKey } : "skip");
-  const contest = routeKey ? routed : joined;
-  const problemCode = /^\/problem\/([a-z0-9._-]+)/.exec(pathname)?.[1];
 
-  const onContestPage =
-    !!contest &&
-    (pathname.startsWith(`/contest/${contest.contest.key}`) ||
-      (!!problemCode && contest.problems.some((problem) => problem.code === problemCode)));
+  const searchParams = useSearchParams();
+  const contextKey = contestContextKey(pathname, searchParams.get("contest"));
+  const joinedMatches = !!joined && joined.contest.key === contextKey;
+
+  const liveRouted = useQuery(
+    api.contests.navBar,
+    contextKey && !joinedMatches ? { key: contextKey, browsing: true } : "skip",
+  );
+
+  const routed = useViewerLive(liveRouted, undefined, !!viewer);
+  const candidate = contextKey ? (joinedMatches ? joined : routed) : null;
+
+  // navBar checks contest access; a query parameter cannot associate an
+  // unrelated problem with that contest's navigation.
+  const contest =
+    candidate &&
+    !contestContainsProblem(
+      pathname,
+      candidate.problems.map((p) => p.code),
+    )
+      ? null
+      : candidate;
+
+  const problemCode = /^\/problem\/([a-z0-9._-]+)(?:\/|$)/i.exec(pathname)?.[1];
+  const onContestPage = !!contest && !!contextKey;
 
   /**
    * A locked-down contest takes the nav's place for as long as the viewer is
@@ -117,27 +136,39 @@ export function SiteShell({
    * it while you are in one.
    */
   const asDomjudge = usesDomjudgeStructure(useSkin());
+  const showContestPlaceholder = !asDomjudge && !!contextKey && contest === undefined;
+  const showContestBar = !asDomjudge && (onContestPage || showContestPlaceholder);
+
+  const headerHeight = asDomjudge
+    ? "var(--nav-height)"
+    : lockedDown
+      ? showContestBar
+        ? "calc(3px + var(--contest-bar-height))"
+        : "3px"
+      : showContestBar
+        ? "calc(var(--nav-height) + 3px + var(--contest-bar-height))"
+        : "calc(var(--nav-height) + 3px)";
 
   /**
-   * The contest the DOMjudge bar stands over. `navBar` only answers for a
-   * contest the viewer is inside, and DOMjudge carries the contest for a visitor
-   * reading its public pages too, so a contest route falls back to the chrome.
+   * DOMjudge can show the contest title while its full browsing bar loads.
    */
   const chrome = useQuery(
     api.contests.chrome,
     asDomjudge && routeKey && !contest ? { key: routeKey } : "skip",
   );
 
-  const navContest = contest
+  const displayedContest = contest;
+
+  const navContest = displayedContest
     ? {
-        key: contest.contest.key,
-        name: contest.contest.name,
-        startTime: contest.contest.startTime,
-        endTime: contest.contest.endTime,
-        useClarifications: contest.contest.useClarifications,
-        endsAt: contest.endsAt,
-        ownSubmissions: contest.links.submissions && !!viewer,
-        problems: contest.problems.map((problem) => ({
+        key: displayedContest.contest.key,
+        name: displayedContest.contest.name,
+        startTime: displayedContest.contest.startTime,
+        endTime: displayedContest.contest.endTime,
+        useClarifications: displayedContest.contest.useClarifications,
+        endsAt: displayedContest.endsAt,
+        ownSubmissions: displayedContest.links.submissions && !!viewer,
+        problems: displayedContest.problems.map((problem) => ({
           code: problem.code,
           name: problem.name,
           label: problem.label,
@@ -240,19 +271,16 @@ export function SiteShell({
         {/* The royal, carried across the top of every page — and one of the
             things DOMjudge's chrome does not have. */}
         {asDomjudge ? null : <div aria-hidden className="h-[3px] bg-royal" />}
-        {asDomjudge ? null : lockedDown && joined ? (
+        {asDomjudge ? null : onContestPage && contest ? (
           <ContestBar
-            data={joined}
+            data={contest}
             currentCode={problemCode}
             viewerUsername={viewer?.username ?? null}
-            account={viewer}
+            account={lockedDown ? viewer : null}
           />
-        ) : onContestPage && contest ? (
-          <ContestBar data={contest} currentCode={problemCode} viewerUsername={viewer?.username ?? null} />
-        ) : routeKey && contest === undefined ? (
-          // The bar arrives a moment after the page and used to push everything
-          // below it down when it did. On a contest route its height is claimed
-          // while the query is in flight, so nothing moves when it lands.
+        ) : showContestPlaceholder ? (
+          // Claim the bar's height on the first render and keep it while its
+          // contents load, so the page stays put when the answer arrives.
           <div aria-hidden className="h-(--contest-bar-height) border-b border-white/10 bg-contest-bar" />
         ) : null}
         {viewer?.isImpersonating ? <ImpersonationBar username={viewer.displayName} /> : null}
@@ -266,17 +294,11 @@ export function SiteShell({
         </>
       ) : null}
 
-      {/* The fallback has to describe the header that will actually be there.
-          `--header-height` is measured after mount, and until it lands this
-          padding is all that holds the content down; a contest route grows a
-          bar, so a fallback that ignores it starts the page too high and drops
-          it the moment the observer reports. That drop was the jitter. */}
+      {/* Until the header is measured, reserve only the chrome being rendered. */}
       <div
         className="flex min-h-dvh flex-col"
         style={{
-          paddingTop: routeKey
-            ? "var(--header-height, calc(var(--nav-height) + 3px + var(--contest-bar-height)))"
-            : "var(--header-height, calc(var(--nav-height) + 3px))",
+          paddingTop: `var(--header-height, ${headerHeight})`,
         }}
       >
         {/* `overflow-x: clip` (not hidden, which would make this a scroll
@@ -303,13 +325,13 @@ export function SiteShell({
         <Footer footerHtml={misc.footer} language={language} />
       </div>
 
-      {contest && !onContestPage && !lockedDown ? (
+      {joined && displayedContest?.contest.key !== joined.contest.key ? (
         <ContestFloater
-          contestKey={contest.contest.key}
-          contestName={contest.contest.name}
-          endsAt={contest.isSpectating ? null : contest.endsAt}
-          mode={contest.isSpectating ? "spectating" : contest.isVirtual ? "virtual" : "live"}
-          problems={contest.problems}
+          contestKey={joined.contest.key}
+          contestName={joined.contest.name}
+          endsAt={joined.isSpectating ? null : joined.endsAt}
+          mode={joined.isSpectating ? "spectating" : joined.isVirtual ? "virtual" : "live"}
+          problems={joined.problems}
         />
       ) : null}
 

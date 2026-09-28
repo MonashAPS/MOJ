@@ -1,8 +1,8 @@
 import { api } from "@convex/_generated/api";
 import { Button, TitleRow } from "@moj/ui";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ContestLink } from "@/components/ContestLink";
 import { queryAsViewer } from "@/lib/convex-server";
 import { viewerLanguage } from "@/lib/language.server";
 import { scopeFromParams, ticketQueryArgs } from "../../../tickets/filters";
@@ -71,14 +71,14 @@ export default async function ProblemTicketsPage({ params, searchParams }: Props
         title={t.rich("listTitle", {
           name: problem.name,
           link: (chunks) => (
-            <Link href={`/problem/${problem.code}/`} className="text-link">
+            <ContestLink href={`/problem/${problem.code}/`} className="text-link">
               {chunks}
-            </Link>
+            </ContestLink>
           ),
         })}
         action={
           <Button asChild>
-            <Link href={`/problem/${problem.code}/tickets/new/`}>{detail("reportIssue")}</Link>
+            <ContestLink href={`/problem/${problem.code}/tickets/new/`}>{detail("reportIssue")}</ContestLink>
           </Button>
         }
       />

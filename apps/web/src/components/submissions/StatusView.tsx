@@ -17,9 +17,9 @@ import {
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Check, ChevronRight, Clock, HardDrive, Server, X } from "lucide-react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { ContestLink } from "@/components/ContestLink";
 import {
   absoluteTime,
   DASH,
@@ -177,9 +177,9 @@ export function StatusView({
 
         <dl className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
           <Meta label={t("metaProblem")} first>
-            <Link href={`/problem/${extras.problem.code}`} className="text-link hover:text-link-hover">
+            <ContestLink href={`/problem/${extras.problem.code}`} className="text-link hover:text-link-hover">
               {extras.problem.name}
-            </Link>
+            </ContestLink>
           </Meta>
           <Meta label={t("metaUser")}>
             <RatingName

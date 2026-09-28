@@ -19,6 +19,7 @@ import { usePaginatedQuery } from "convex/react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
+import { ContestLink } from "@/components/ContestLink";
 import { formatPoints } from "@/lib/format";
 import { absoluteTime, DASH, formatMemory, formatTime, isGrading, verdictCode } from "@/lib/submissionFormat";
 
@@ -178,7 +179,7 @@ function Attempt({ row, total, precision }: { row: SubmissionListRow; total: str
 
   return (
     <li className="border-b border-border last:border-b-0">
-      <Link
+      <ContestLink
         href={`/submission/${row.id}/`}
         aria-label={t("attempt", { id: row.id })}
         className={cn(
@@ -207,7 +208,7 @@ function Attempt({ row, total, precision }: { row: SubmissionListRow; total: str
           <span aria-hidden>·</span>
           <time dateTime={new Date(row.date).toISOString()}>{absoluteTime(row.date)}</time>
         </span>
-      </Link>
+      </ContestLink>
     </li>
   );
 }
