@@ -19,8 +19,8 @@ export default getRequestConfig(async () => {
     locale: language,
     // `Intl` does the formatting and does not know DMOJ's spelling of Chinese.
     formats: { dateTime: {}, number: {}, list: {} },
-    // Dates with an unknown browser timezone are rendered as placeholders.
-    timeZone: dateSettings.timeZone ?? "UTC",
+    // The browser's reported zone, or the club's until it has reported one.
+    timeZone: dateSettings.timeZone,
     now: new Date(dateSettings.now),
     messages: await loadMessages(language),
     getMessageFallback({ namespace, key }) {

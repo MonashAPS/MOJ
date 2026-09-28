@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
-import { createDateFormatters, validTimeZone } from "./date-formatters";
+import { createDateFormatters, renderTimeZone, validTimeZone } from "./date-formatters";
 
 const now = Date.parse("2026-01-01T00:00:00Z");
 
@@ -47,5 +47,19 @@ describe("viewer date formatting", () => {
 
     expect(render("America/Los_Angeles")).toBe(render("UTC"));
     expect(render("Australia/Melbourne")).toBe(render("UTC"));
+  });
+});
+
+describe("renderTimeZone", () => {
+  it("renders a first visit in the club's timezone", () => {
+    expect(renderTimeZone(undefined)).toBe("Australia/Melbourne");
+  });
+
+  it("uses the timezone the browser reported", () => {
+    expect(renderTimeZone("America/Los_Angeles")).toBe("America/Los_Angeles");
+  });
+
+  it("ignores a cookie that is not a timezone", () => {
+    expect(renderTimeZone("Not/AZone")).toBe("Australia/Melbourne");
   });
 });
