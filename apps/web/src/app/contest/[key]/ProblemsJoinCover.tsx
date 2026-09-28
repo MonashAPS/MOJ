@@ -2,32 +2,27 @@
 
 import { Button } from "@moj/ui";
 import { useTranslations } from "next-intl";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useState, useTransition } from "react";
 import { JoinControl } from "@/components/contests/JoinControls";
+import { dismissProblemsJoinCover } from "./actions";
 
 /** A per-contest reminder, remembered on this browser once acknowledged. */
 export function ProblemsJoinCover({
   contestKey,
   joinKind,
+  initiallyDismissed,
   children,
 }: {
   contestKey: string;
   joinKind: "join" | "login" | null;
+  initiallyDismissed: boolean;
   children: ReactNode;
 }) {
   const t = useTranslations("contests.detail");
-  const storageKey = `moj-contest-problems-viewed:${contestKey}`;
   const [dismissed, setDismissed] = useState(false);
+  const [, startTransition] = useTransition();
 
-  useEffect(() => {
-    try {
-      setDismissed(localStorage.getItem(storageKey) === "1");
-    } catch {
-      // Storage may be disabled; the choice still lasts for this visit.
-    }
-  }, [storageKey]);
-
-  if (!joinKind || dismissed) return children;
+  if (!joinKind || initiallyDismissed || dismissed) return children;
 
   return (
     <div className="relative isolate grid min-h-48 overflow-hidden rounded-md">
@@ -57,11 +52,13 @@ export function ProblemsJoinCover({
               onClick={() => {
                 setDismissed(true);
 
-                try {
-                  localStorage.setItem(storageKey, "1");
-                } catch {
-                  // Keep the list usable even when storage is unavailable.
-                }
+                startTransition(async () => {
+                  try {
+                    await dismissProblemsJoinCover(contestKey);
+                  } catch {
+                    // If persistence fails, keep the list usable for this visit.
+                  }
+                });
               }}
             >
               {t("viewProblems")}

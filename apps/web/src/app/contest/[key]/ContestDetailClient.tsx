@@ -415,12 +415,14 @@ export function ContestDetailClient({
   initial,
   descriptionHtml,
   defaultLanguageKey,
+  problemsCoverDismissed,
 }: {
   contestKey: string;
   initial: ContestDetail;
   descriptionHtml: string;
   /** The submit dialog opens on the member's own language, as the page does. */
   defaultLanguageKey: string | null;
+  problemsCoverDismissed: boolean;
 }) {
   const t = useTranslations("contests.detail");
   const columns = useTranslations("contests.columns");
@@ -469,7 +471,12 @@ export function ContestDetailClient({
         ) : null}
 
         {showProblems ? (
-          <ProblemsJoinCover key={contestKey} contestKey={contestKey} joinKind={coverJoinKind}>
+          <ProblemsJoinCover
+            key={contestKey}
+            contestKey={contestKey}
+            joinKind={coverJoinKind}
+            initiallyDismissed={problemsCoverDismissed}
+          >
             <DomjudgeProblemset detail={detail} defaultLanguageKey={defaultLanguageKey} />
           </ProblemsJoinCover>
         ) : (
@@ -530,7 +537,12 @@ export function ContestDetailClient({
               <CircleHelp size={18} className="text-muted-foreground" aria-hidden />
               {t("problems")}
             </h2>
-            <ProblemsJoinCover key={contestKey} contestKey={contestKey} joinKind={coverJoinKind}>
+            <ProblemsJoinCover
+              key={contestKey}
+              contestKey={contestKey}
+              joinKind={coverJoinKind}
+              initiallyDismissed={problemsCoverDismissed}
+            >
               <Table>
                 <TableHeader>
                   <TableRow>

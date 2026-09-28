@@ -4,6 +4,7 @@ import { defineConfig } from "vitest/config";
 // The TypeScript `paths` in tsconfig.json are compile-time only; vitest needs
 // the same two aliases to resolve `@/...` and `@convex/...` at run time.
 export default defineConfig({
+  oxc: { jsx: { runtime: "automatic" } },
   resolve: {
     alias: {
       "@convex": path.join(import.meta.dirname, "../../convex"),
