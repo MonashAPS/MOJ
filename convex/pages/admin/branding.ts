@@ -34,6 +34,7 @@ export const update = mutation({
     siteName: v.optional(v.string()),
     siteLongName: v.optional(v.string()),
     logoStorageId: v.optional(v.union(v.id("_storage"), v.null())),
+    logoDimensions: v.optional(v.object({ width: v.number(), height: v.number() })),
     faviconStorageId: v.optional(v.union(v.id("_storage"), v.null())),
     accentColor: v.optional(v.string()),
     navColor: v.optional(v.string()),
@@ -92,6 +93,16 @@ export const update = mutation({
 
     if (args.themeDefault !== undefined) patch.themeDefault = args.themeDefault;
 
+    if (args.logoDimensions !== undefined) {
+      if (!args.logoStorageId) throw invalid("Logo dimensions must accompany a logo upload.");
+
+      const { width, height } = args.logoDimensions;
+
+      if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+        throw invalid("Logo dimensions must be positive finite numbers.");
+      }
+    }
+
     // A replaced upload is deleted, so the storage does not fill with old logos.
     if (args.logoStorageId !== undefined) {
       if (existing.logoStorageId && existing.logoStorageId !== args.logoStorageId) {
@@ -99,6 +110,8 @@ export const update = mutation({
       }
 
       patch.logoStorageId = args.logoStorageId ?? undefined;
+      // Clearing or replacing an image must not retain the previous aspect ratio.
+      patch.logoDimensions = args.logoStorageId ? args.logoDimensions : undefined;
     }
 
     if (args.faviconStorageId !== undefined) {

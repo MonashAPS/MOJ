@@ -88,6 +88,7 @@ export type Branding = {
   siteName: string;
   siteLongName: string;
   logoUrl: string | null;
+  logoDimensions: { width: number; height: number } | null;
   faviconUrl: string | null;
   accentColor: string;
   accentColorDark: string;
@@ -348,6 +349,7 @@ export const branding = query({
       siteName: settings?.siteName ?? "MOJ",
       siteLongName: settings?.siteLongName ?? "MAPS Online Judge",
       logoUrl: settings?.logoStorageId ? await ctx.storage.getUrl(settings.logoStorageId) : null,
+      logoDimensions: settings?.logoStorageId ? (settings.logoDimensions ?? null) : null,
       faviconUrl: settings?.faviconStorageId ? await ctx.storage.getUrl(settings.faviconStorageId) : null,
       accentColor: palette.accent,
       accentColorDark: palette.accentDark,

@@ -48,6 +48,7 @@ export function SiteShell({
   registrationOpen,
   language,
   logoUrl = null,
+  logoDimensions = null,
   siteName = "MAPS Online Judge",
   initialContest = null,
   children,
@@ -58,6 +59,7 @@ export function SiteShell({
   registrationOpen: boolean;
   /** SPEC section 24: the operator's wordmark, when one is uploaded. */
   logoUrl?: string | null;
+  logoDimensions?: { width: number; height: number } | null;
   siteName?: string;
   /** The contest the viewer is in, as the server knew it when it rendered. */
   initialContest?: ContestBarData;
@@ -234,6 +236,7 @@ export function SiteShell({
             registrationOpen={registrationOpen}
             onOpenSearch={() => setPaletteOpen(true)}
             logoUrl={logoUrl}
+            logoDimensions={logoDimensions}
             siteName={siteName}
           />
         )}

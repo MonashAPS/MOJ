@@ -903,6 +903,7 @@ export default defineSchema({
     // Branding (SPEC section 24). All optional: an unset field falls back to
     // the token file, which stays the single source of the defaults.
     logoStorageId: v.optional(v.id("_storage")),
+    logoDimensions: v.optional(v.object({ width: v.number(), height: v.number() })),
     faviconStorageId: v.optional(v.id("_storage")),
     accentColor: v.optional(v.string()),
     navColor: v.optional(v.string()),

@@ -42,6 +42,9 @@ problems; controls they cannot use are not rendered.
   ratings and page sizes; **Misc config** for DMOJ's key and value store.
 - **Branding**, `/admin/config/branding/` — site name, wordmark, favicon, accent and nav colours, default theme
   and custom CSS, with a contrast-checked preview. Superusers only; an empty field restores the default.
+  Logo uploads save their dimensions so the header reserves the correct width before the image loads.
+  After upgrading an existing deployment, re-upload its custom logo and save once to capture these dimensions.
+  Until then, the logo fits the default wordmark's proportions. The bundled logo needs no migration.
 - **Flat pages**, `/admin/flatpages/` — static pages such as `/about/`.
 - **Blog**, `/admin/blog/` — posts with authors, publish time, visibility, sticky flag, summary and body. A
   future publish time schedules the post.

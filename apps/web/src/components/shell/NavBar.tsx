@@ -38,6 +38,7 @@ export function NavBar({
   registrationOpen = true,
   onOpenSearch,
   logoUrl = null,
+  logoDimensions = null,
   siteName = "MAPS Online Judge",
 }: {
   nav: NavNode[];
@@ -46,8 +47,10 @@ export function NavBar({
   onOpenSearch?: () => void;
   /** SPEC section 24: an uploaded wordmark replaces the bundled one. */
   logoUrl?: string | null;
+  logoDimensions?: { width: number; height: number } | null;
   siteName?: string;
 }) {
+  const logoSize = logoUrl && logoDimensions ? logoDimensions : { width: 679.88, height: 200 };
   const t = useTranslations("common.nav");
   const actions = useTranslations("common.actions");
   const pathname = usePathname() ?? "/";
@@ -155,13 +158,21 @@ export function NavBar({
 
       {/* The logo cell is the full height of the bar: the wordmark sits at 30px
           (about 100px wide on its 679.88x200 viewBox), 26px under the mobile
-          breakpoint, vertically centred, with 12px either side and no plate. */}
+          breakpoint, vertically centred, with 12px either side and no plate.
+          Reserve its width before loading using the uploaded dimensions. */}
       <Link
         href="/"
         aria-label={t("homeLink", { siteName })}
         className="flex h-full shrink-0 items-center px-3 transition-opacity hover:opacity-90"
       >
-        <img src={logoUrl ?? "/logo.svg"} alt={siteName} className="h-[26px] w-auto min-[760px]:h-[30px]" />
+        <img
+          src={logoUrl ?? "/logo.svg"}
+          alt={siteName}
+          width={Math.round(logoSize.width)}
+          height={Math.round(logoSize.height)}
+          style={{ aspectRatio: `${logoSize.width} / ${logoSize.height}` }}
+          className="h-[26px] w-auto object-contain min-[760px]:h-[30px]"
+        />
       </Link>
       <span aria-hidden className="my-2 w-px shrink-0 bg-white/20" />
 

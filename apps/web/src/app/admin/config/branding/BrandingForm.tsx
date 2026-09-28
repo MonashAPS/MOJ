@@ -22,6 +22,7 @@ import { useMemo, useRef, useState } from "react";
 import { AdminForm, StatusLine } from "@/components/admin";
 import { chosenValue } from "@/lib/choices";
 import { readStorageId } from "@/lib/convex-upload";
+import { readImageDimensions } from "@/lib/image-dimensions";
 
 type Branding = {
   siteName: string;
@@ -45,7 +46,11 @@ const THEME_OPTIONS = [
 
 type BrandingUpdate = FunctionArgs<typeof api.pages.admin.branding.update>;
 
-type StoredUpload = { url: string; storageId: Id<"_storage"> };
+type StoredUpload = {
+  url: string;
+  storageId: Id<"_storage">;
+  dimensions?: { width: number; height: number };
+};
 
 const DEFAULT_ACCENT = "#2941a5";
 
@@ -136,7 +141,10 @@ export function BrandingForm({ branding }: { branding: Branding }) {
   async function upload(file: File, kind: "logo" | "favicon") {
     setUploadError(null);
 
+    const objectUrl = URL.createObjectURL(file);
+
     try {
+      const dimensions = kind === "logo" ? await readImageDimensions(objectUrl) : undefined;
       const url = await uploadUrl({});
 
       const response = await fetch(url, {
@@ -149,11 +157,11 @@ export function BrandingForm({ branding }: { branding: Branding }) {
       const storageId = await readStorageId(response);
 
       if (!storageId) throw new Error(t("uploadFailed"));
-      const objectUrl = URL.createObjectURL(file);
 
-      if (kind === "logo") setLogo({ url: objectUrl, storageId });
+      if (kind === "logo") setLogo({ url: objectUrl, storageId, dimensions });
       else setFavicon({ url: objectUrl, storageId });
     } catch (error) {
+      URL.revokeObjectURL(objectUrl);
       setUploadError(error instanceof Error ? error.message : t("uploadFailed"));
     }
   }
@@ -178,7 +186,10 @@ export function BrandingForm({ branding }: { branding: Branding }) {
         reason,
       };
 
-      if (logo) fields.logoStorageId = logo.storageId;
+      if (logo) {
+        fields.logoStorageId = logo.storageId;
+        fields.logoDimensions = logo.dimensions;
+      }
 
       if (favicon) fields.faviconStorageId = favicon.storageId;
 
