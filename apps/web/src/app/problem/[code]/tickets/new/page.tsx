@@ -1,8 +1,9 @@
 import { api } from "@convex/_generated/api";
-import { TitleRow } from "@moj/ui";
+
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { NewTicketForm } from "@/components/tickets/NewTicketForm";
 import { queryAsViewer } from "@/lib/convex-server";
 import { viewerLanguage } from "@/lib/language.server";

@@ -1,8 +1,9 @@
 import { api } from "@convex/_generated/api";
-import { Pagination, TitleRow } from "@moj/ui";
+import { Pagination } from "@moj/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { LeaderboardTable } from "@/components/users/LeaderboardTable";
 import { pageHref, parseUserOrder } from "@/components/users/leaderboard";
 import { queryAsViewer } from "@/lib/convex-server";

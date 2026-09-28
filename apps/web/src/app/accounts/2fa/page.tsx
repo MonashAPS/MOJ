@@ -1,9 +1,10 @@
-import { Alert, AlertDescription, AlertTitle, Badge, Button, Panel, TitleRow } from "@moj/ui";
+import { Alert, AlertDescription, AlertTitle, Badge, Button, Panel } from "@moj/ui";
 import { AlertCircle, Fingerprint, KeyRound, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { requireAccount } from "@/auth/account-state";
 import { accountTabs } from "@/components/accounts/AccountTabs";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { safeNext } from "@/lib/next-path";
 
 export async function generateMetadata() {

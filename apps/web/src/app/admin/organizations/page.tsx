@@ -1,6 +1,6 @@
-import { TitleRow } from "@moj/ui";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { OrganizationsTable } from "./OrganizationsTable";
 
 export async function generateMetadata(): Promise<Metadata> {

@@ -1,10 +1,11 @@
 import { api } from "@convex/_generated/api";
-import { MicroLabel, type TabItem, TitleRow } from "@moj/ui";
+import { MicroLabel, type TabItem } from "@moj/ui";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getServerSession } from "@/auth/session";
 import { ErrorScreen } from "@/components/shell/ErrorScreen";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { queryAsViewer } from "@/lib/convex-server";
 import { organizationHref, slugFromHandle } from "@/lib/organizations";
 import { RequestsTable } from "./RequestsTable";

@@ -1,11 +1,12 @@
 import { api } from "@convex/_generated/api";
-import { Button, cn, EmptyState, RatingName, TitleRow, TwoColumn } from "@moj/ui";
+import { Button, cn, EmptyState, RatingName, TwoColumn } from "@moj/ui";
 import { ArrowRight, MessageSquare, Newspaper, Pin, Rss } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { getServerSession } from "@/auth/session";
 import { HomeTopSlot } from "@/components/home/HomeTopSlot";
 import { ContestsBox, NewProblemsBox, RecentCommentsBox, TopUsersBox } from "@/components/home/SideBoxes";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { query, queryAsViewer } from "@/lib/convex-server";
 import { formatDate, formatRelative } from "@/lib/format";
 import { renderContent } from "@/lib/markdown";

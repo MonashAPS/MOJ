@@ -1,9 +1,10 @@
 import { api } from "@convex/_generated/api";
-import { Button, type TabItem, TitleRow } from "@moj/ui";
+import { Button, type TabItem } from "@moj/ui";
 import { Code2, FileText, ListChecks } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { SourceWindow } from "@/components/submissions/SourceWindow";
 import { StatusView } from "@/components/submissions/StatusView";
 import { SubmissionActions } from "@/components/submissions/SubmissionActions";

@@ -1,12 +1,13 @@
 "use client";
 
 import type { ContestSchedule } from "@moj/core";
-import { Button, Field, FormFooter, Input, Panel, TitleRow } from "@moj/ui";
+import { Button, Field, FormFooter, Input, Panel } from "@moj/ui";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { joinContest } from "@/app/contest/actions";
 import { useHumanDuration } from "@/components/contests/pieces";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { joinErrorOf } from "@/lib/join-result";
 
 /** `contest/access_code.html`, plus the confirmation DMOJ raises in JavaScript

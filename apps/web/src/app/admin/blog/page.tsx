@@ -1,7 +1,8 @@
 import { api } from "@convex/_generated/api";
-import { TitleRow } from "@moj/ui";
+
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { queryAsViewer } from "@/lib/convex-server";
 import { BlogTable } from "./BlogTable";
 

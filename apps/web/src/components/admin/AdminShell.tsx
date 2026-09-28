@@ -1,8 +1,9 @@
 "use client";
 
-import { Breadcrumb, cn, PageTabs, type TabItem } from "@moj/ui";
+import { Breadcrumb, cn, type TabItem } from "@moj/ui";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
+import { PageTabs } from "@/components/shell/PageTabs";
 
 type AdminBreadcrumbItem = { label: string; href?: string };
 

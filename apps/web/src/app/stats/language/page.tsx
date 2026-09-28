@@ -1,8 +1,9 @@
 import { api } from "@convex/_generated/api";
-import { type TabItem, TitleRow } from "@moj/ui";
+import type { TabItem } from "@moj/ui";
 import { Code2 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { LanguageCharts } from "@/components/charts/LanguageCharts";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { queryAsViewer } from "@/lib/convex-server";
 import { absoluteTime } from "@/lib/submissionFormat";
 

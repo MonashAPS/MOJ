@@ -1,10 +1,11 @@
 "use client";
 
-import { Button, FormFooter, Panel, TitleRow } from "@moj/ui";
+import { Button, FormFooter, Panel } from "@moj/ui";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { leaveContest } from "@/app/contest/actions";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { joinErrorOf } from "@/lib/join-result";
 
 export function LeavePanel({

@@ -1,7 +1,8 @@
-import { Alert, AlertDescription, AlertTitle, Button, type TabItem, TitleRow, VerdictPill } from "@moj/ui";
+import { Alert, AlertDescription, AlertTitle, Button, type TabItem, VerdictPill } from "@moj/ui";
 import { Code2, FileText, ListChecks } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { SourceWindow } from "@/components/submissions/SourceWindow";
 import { titlebarAction } from "@/components/submissions/titlebar";
 import { absoluteTime, isGrading, verdictCode } from "@/lib/submissionFormat";

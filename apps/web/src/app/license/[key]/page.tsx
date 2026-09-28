@@ -1,8 +1,9 @@
 import { api } from "@convex/_generated/api";
-import { Button, ContentDescription, Panel, TitleRow, TwoColumn } from "@moj/ui";
+import { Button, ContentDescription, Panel, TwoColumn } from "@moj/ui";
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { query, queryAsViewer } from "@/lib/convex-server";
 import { renderContent } from "@/lib/markdown";
 

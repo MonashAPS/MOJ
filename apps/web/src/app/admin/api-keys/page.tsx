@@ -1,7 +1,7 @@
-import { TitleRow } from "@moj/ui";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { consoleViewer } from "@/auth/console";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { appUrl } from "@/lib/public-config.server";
 import { ApiKeysPanel } from "./ApiKeysPanel";
 

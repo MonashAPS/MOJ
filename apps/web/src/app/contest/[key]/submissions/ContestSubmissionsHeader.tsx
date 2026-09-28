@@ -1,11 +1,12 @@
 "use client";
 
 import type { ContestDetail } from "@convex/contests";
-import { cn, TitleRow } from "@moj/ui";
+import { cn } from "@moj/ui";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips } from "@/components/contests/pieces";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { contestTabs, joinKindFor } from "../tabs";
 
 /**

@@ -18,7 +18,6 @@ import {
   Panel,
   RatingName,
   Textarea,
-  TitleRow,
   Tooltip,
   TwoColumn,
 } from "@moj/ui";
@@ -30,6 +29,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { CommentForm } from "@/components/comments/CommentForm";
 import { renderUserMarkdownBatch } from "@/components/markdown/actions";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { identiconUrl, initials } from "@/lib/avatar";
 import { chosenIds } from "@/lib/choices";
 import { mutationError } from "@/lib/convex-error";

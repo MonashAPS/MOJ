@@ -2,12 +2,13 @@
 
 import { api } from "@convex/_generated/api";
 import type { ContestDetail, ContestStats } from "@convex/contests";
-import { cn, EmptyState, Panel, TitleRow, Tooltip, type VerdictTone, verdictTone } from "@moj/ui";
+import { cn, EmptyState, Panel, Tooltip, type VerdictTone, verdictTone } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { PieChart } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips } from "@/components/contests/pieces";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { contestTabs, joinKindFor } from "../tabs";
 
 /** The verdict families are the product's reserved status palette; a stacked bar
