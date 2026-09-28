@@ -25,10 +25,14 @@ const DAY = 24 * 3600_000;
 export default async function HomePage() {
   const t = await getTranslations("common.home");
 
-  const [misc, posts, session] = await Promise.all([
+  const [misc, posts, session, contests, comments, problems, users] = await Promise.all([
     query(api.site.miscConfig, {}).catch((): Record<string, string> => ({})),
     queryAsViewer(api.blog.list, { limit: 10 }).catch(() => []),
     getServerSession().catch(() => null),
+    query(api.contests.homeSidebar, { limit: 8 }).catch(() => []),
+    queryAsViewer(api.comments.recent, { limit: 10 }).catch(() => []),
+    query(api.problems.recent, { limit: 7 }).catch(() => []),
+    query(api.rankings.top, { limit: 10 }).catch(() => []),
   ]);
 
   const topSlot = misc.home_page_top?.trim()
@@ -64,10 +68,10 @@ export default async function HomePage() {
       <TwoColumn
         side={
           <>
-            <ContestsBox />
-            <RecentCommentsBox />
-            <NewProblemsBox />
-            <TopUsersBox viewerUsername={session?.user.name} />
+            <ContestsBox initial={contests} />
+            <RecentCommentsBox initial={comments} serverHadViewer={!!session} />
+            <NewProblemsBox initial={problems} />
+            <TopUsersBox initial={users} viewerUsername={session?.user.name} />
           </>
         }
       >

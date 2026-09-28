@@ -23,8 +23,6 @@ import { UserBlock, type ViewerSummary } from "./UserBlock";
 
 const MOBILE_BREAKPOINT = 760;
 
-const WIDE_SEARCH_BREAKPOINT = 1100;
-
 /** Reserved for the More trigger while measuring, so the last item never lands
  *  on top of it. */
 const MORE_WIDTH = 84;
@@ -59,7 +57,6 @@ export function NavBar({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(nav.length);
   const [isMobile, setIsMobile] = useState(false);
-  const [wideSearch, setWideSearch] = useState(false);
 
   const listRef = useRef<HTMLUListElement | null>(null);
   const measureRef = useRef<HTMLUListElement | null>(null);
@@ -74,8 +71,6 @@ export function NavBar({
       const measure = measureRef.current;
 
       if (!list || !measure) return;
-
-      setWideSearch(window.innerWidth >= WIDE_SEARCH_BREAKPOINT);
 
       if (window.innerWidth <= MOBILE_BREAKPOINT) {
         setIsMobile(true);
@@ -235,12 +230,13 @@ export function NavBar({
       </ul>
 
       {onOpenSearch ? (
-        wideSearch ? (
+        // CSS selects the search size before hydration, avoiding an icon-to-bar flash.
+        <>
           <button
             type="button"
             onClick={onOpenSearch}
             className={cn(
-              "my-2 mr-2 flex w-[220px] shrink-0 items-center gap-2 rounded-full border border-white/15 bg-white/8 px-3",
+              "my-2 mr-2 hidden w-[220px] shrink-0 items-center gap-2 rounded-full border border-white/15 bg-white/8 px-3 min-[1100px]:flex",
               "text-left text-sm text-nav-ink-2 transition-colors hover:border-white/25 hover:bg-white/12",
               "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-royal/60",
             )}
@@ -249,18 +245,20 @@ export function NavBar({
             <span className="flex-1 truncate">{actions("search")}</span>
             <Kbd className="border-white/20 bg-white/10 text-nav-ink-2 shadow-none">Ctrl K</Kbd>
           </button>
-        ) : (
           <Tooltip content={t("searchTooltip")}>
             <button
               type="button"
               onClick={onOpenSearch}
               aria-label={actions("search")}
-              className={cn(itemBase, "px-3 text-nav-ink/90 hover:bg-nav-hover hover:text-nav-ink")}
+              className={cn(
+                itemBase,
+                "px-3 text-nav-ink/90 hover:bg-nav-hover hover:text-nav-ink min-[1100px]:hidden",
+              )}
             >
               <Search size={20} aria-hidden />
             </button>
           </Tooltip>
-        )
+        </>
       ) : null}
 
       <UserBlock viewer={viewer} registrationOpen={registrationOpen} />

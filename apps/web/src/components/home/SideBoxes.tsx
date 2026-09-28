@@ -3,6 +3,7 @@
 import { api } from "@convex/_generated/api";
 import { Button, cn, Panel, Progress, RatingName } from "@moj/ui";
 import { useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import {
   CalendarClock,
   CheckCircle2,
@@ -17,6 +18,7 @@ import Link from "next/link";
 import { LocalTime } from "@/components/time/LocalTime";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
 import { useDateFormatters } from "@/lib/date-format";
+import { useViewerLive } from "@/lib/useViewerLive";
 
 /** A box's footer links sit on one right-aligned row above a thin rule. */
 function BoxFooter({ children }: { children: React.ReactNode }) {
@@ -40,8 +42,8 @@ function FeedLinks({ base }: { base: string }) {
   );
 }
 
-export function ContestsBox() {
-  const contests = useQuery(api.contests.homeSidebar, { limit: 8 });
+export function ContestsBox({ initial }: { initial?: FunctionReturnType<typeof api.contests.homeSidebar> }) {
+  const contests = useQuery(api.contests.homeSidebar, { limit: 8 }) ?? initial;
 
   if (contests === undefined)
     return (
@@ -166,8 +168,15 @@ function UpcomingRow({ contest }: { contest: SidebarContest }) {
   );
 }
 
-export function RecentCommentsBox() {
-  const comments = useQuery(api.comments.recent, { limit: 10 });
+export function RecentCommentsBox({
+  initial,
+  serverHadViewer = false,
+}: {
+  initial?: FunctionReturnType<typeof api.comments.recent>;
+  serverHadViewer?: boolean;
+}) {
+  const live = useQuery(api.comments.recent, { limit: 10 });
+  const comments = useViewerLive(live, initial, serverHadViewer);
 
   if (comments === undefined || comments.length === 0) return null;
 
@@ -191,8 +200,14 @@ export function RecentCommentsBox() {
   );
 }
 
-export function NewProblemsBox({ states }: { states?: Record<string, "solved" | "partial" | "attempted"> }) {
-  const problems = useQuery(api.problems.recent, { limit: 7 });
+export function NewProblemsBox({
+  initial,
+  states,
+}: {
+  initial?: FunctionReturnType<typeof api.problems.recent>;
+  states?: Record<string, "solved" | "partial" | "attempted">;
+}) {
+  const problems = useQuery(api.problems.recent, { limit: 7 }) ?? initial;
 
   if (problems === undefined || problems.length === 0) return null;
 
@@ -226,8 +241,14 @@ export function NewProblemsBox({ states }: { states?: Record<string, "solved" | 
   );
 }
 
-export function TopUsersBox({ viewerUsername }: { viewerUsername?: string }) {
-  const users = useQuery(api.rankings.top, { limit: 10 });
+export function TopUsersBox({
+  initial,
+  viewerUsername,
+}: {
+  initial?: FunctionReturnType<typeof api.rankings.top>;
+  viewerUsername?: string;
+}) {
+  const users = useQuery(api.rankings.top, { limit: 10 }) ?? initial;
 
   if (users === undefined || users.length === 0) return null;
 
