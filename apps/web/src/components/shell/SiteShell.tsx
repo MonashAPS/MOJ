@@ -74,17 +74,9 @@ export function SiteShell({
   const [paletteOpen, setPaletteOpen] = useCommandPalette();
   const headerRef = useRef<HTMLElement | null>(null);
 
-  /**
-   * Two subscriptions, because they answer different questions.
-   *
-   * `joined` asks which contest the viewer is inside. Its arguments never change,
-   * so it survives a navigation and the chrome does not blink: keying the only
-   * query on the route meant every page change re-subscribed, and for the moment
-   * that took, a locked-down contestant got the nav back.
-   *
-   * SPEC section 20: on a contest route the bar is the contest in the URL, not
-   * whichever contest the viewer happens to be inside — that is `routed`.
-   */
+  // Keep one subscription across navigation. The server seeds it with the
+  // viewer's current participation, which also tells us whether a contest
+  // route should have a bar before the browser connects.
   const routeKey = /^\/contest\/([a-z0-9._-]+)/i.exec(pathname)?.[1];
   const liveJoined = useQuery(api.contests.navBar, {});
   // The server already knew the answer when it rendered this page. Waiting for
@@ -95,8 +87,9 @@ export function SiteShell({
   // the identity it answers as nobody, which for this query is null — the nav
   // coming back for a beat in the middle of a contest.
   const joined = useViewerLive(liveJoined, initialContest, !!viewer);
-  const routed = useQuery(api.contests.navBar, routeKey ? { key: routeKey } : "skip");
-  const contest = routeKey ? routed : joined;
+  // A contest route only carries the bar when it is the viewer's joined
+  // contest. The keyed navBar query applies this same participation check.
+  const contest = routeKey && routeKey !== joined?.contest.key ? null : joined;
   const problemCode = /^\/problem\/([a-z0-9._-]+)/.exec(pathname)?.[1];
 
   const onContestPage =
@@ -252,11 +245,6 @@ export function SiteShell({
           />
         ) : onContestPage && contest ? (
           <ContestBar data={contest} currentCode={problemCode} viewerUsername={viewer?.username ?? null} />
-        ) : routeKey && contest === undefined ? (
-          // The bar arrives a moment after the page and used to push everything
-          // below it down when it did. On a contest route its height is claimed
-          // while the query is in flight, so nothing moves when it lands.
-          <div aria-hidden className="h-(--contest-bar-height) border-b border-white/10 bg-contest-bar" />
         ) : null}
         {viewer?.isImpersonating ? <ImpersonationBar username={viewer.displayName} /> : null}
       </header>
@@ -269,17 +257,11 @@ export function SiteShell({
         </>
       ) : null}
 
-      {/* The fallback has to describe the header that will actually be there.
-          `--header-height` is measured after mount, and until it lands this
-          padding is all that holds the content down; a contest route grows a
-          bar, so a fallback that ignores it starts the page too high and drops
-          it the moment the observer reports. That drop was the jitter. */}
+      {/* Match the rendered chrome until ResizeObserver publishes its height. */}
       <div
         className="flex min-h-dvh flex-col"
         style={{
-          paddingTop: routeKey
-            ? "var(--header-height, calc(var(--nav-height) + 3px + var(--contest-bar-height)))"
-            : "var(--header-height, calc(var(--nav-height) + 3px))",
+          paddingTop: `var(--header-height, calc(${asDomjudge || !lockedDown ? "var(--nav-height)" : "0px"} + ${asDomjudge ? "0px" : "3px"} + ${!asDomjudge && (lockedDown || onContestPage) ? "var(--contest-bar-height)" : "0px"} + ${viewer?.isImpersonating ? "var(--contest-bar-height)" : "0px"}))`,
         }}
       >
         {/* `overflow-x: clip` (not hidden, which would make this a scroll
