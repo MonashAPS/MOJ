@@ -19,8 +19,8 @@ import {
   UserPicker,
 } from "@/components/admin";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
-import { useCountdownNow } from "@/lib/CountdownProvider";
 import { chosenValue } from "@/lib/choices";
+import { useRelativeReferenceTime } from "@/lib/date-format";
 
 const SOURCE_VISIBILITY_OPTIONS = [
   { value: "F", labelKey: "field.sourceVisibilityFollow" },
@@ -79,7 +79,7 @@ export function NewProblemForm() {
   const [curators, setCurators] = useState<string[]>([]);
   const [testers, setTesters] = useState<string[]>([]);
   const [sourceVisibility, setSourceVisibility] = useState<SourceVisibility>("F");
-  const now = useCountdownNow() ?? 0;
+  const now = useRelativeReferenceTime();
   const [date, setDate] = useState<number | null>(now);
   const [reason, _setReason] = useState("");
   const [busy, setBusy] = useState(false);

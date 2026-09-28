@@ -4,8 +4,7 @@ import { Button, cn, MicroLabel } from "@moj/ui";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { type SyntheticEvent, useMemo, useState } from "react";
-import { useCountdownNow } from "@/lib/CountdownProvider";
-import { useViewerTimeZone } from "@/lib/date-format";
+import { useRelativeReferenceTime, useViewerTimeZone } from "@/lib/date-format";
 import { zonedDate } from "@/lib/zoned-date";
 
 /** The grid's rows and columns are named in the catalogue, so the keys rather
@@ -167,7 +166,7 @@ function buildMonths(weeks: (Day | null)[][], names: string[]) {
  */
 export function SubmissionActivity(props: { counts: Record<string, number>; minYear: number | null }) {
   const timeZone = useViewerTimeZone();
-  const now = useCountdownNow() ?? 0;
+  const now = useRelativeReferenceTime();
 
   if (!timeZone) return <span aria-busy="true">—</span>;
   const day = zonedDate(now, timeZone);

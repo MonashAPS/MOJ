@@ -4,8 +4,7 @@ import { Button, cn, Input, Popover, PopoverContent, PopoverTrigger } from "@moj
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useId, useMemo, useState } from "react";
-import { useCountdownNow } from "@/lib/CountdownProvider";
-import { useViewerTimeZone } from "@/lib/date-format";
+import { useRelativeReferenceTime, useViewerTimeZone } from "@/lib/date-format";
 import { utcOffset, zonedDate, zonedTimestamp } from "@/lib/zoned-date";
 
 /** The catalogue keys the picker reads its month and weekday names by. The
@@ -83,7 +82,7 @@ export function DateTimeField({
   const fieldId = id ?? generatedId;
   const [open, setOpen] = useState(false);
   const timeZone = useViewerTimeZone();
-  const now = useCountdownNow() ?? 0;
+  const now = useRelativeReferenceTime();
   const today = timeZone ? zonedDate(now, timeZone) : new Date(0);
   const selected = value === null || !timeZone ? null : zonedDate(value, timeZone);
   const [month, setMonth] = useState<Date>(startOfMonth(selected ?? today));

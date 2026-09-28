@@ -40,8 +40,7 @@ import {
 } from "@/components/admin";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import { LocalTime } from "@/components/time/LocalTime";
-import { useCountdownNow } from "@/lib/CountdownProvider";
-
+import { useRelativeReferenceTime } from "@/lib/date-format";
 import type { ProblemEdit, ProblemOptions } from "./types";
 
 /* -------------------------------------------------------------------------- */
@@ -59,7 +58,7 @@ export function ProblemEditorialTab({ problem }: { problem: ProblemEdit }) {
   const ids = { authors: useId(), publishOn: useId() };
   const [content, setContent] = useState(editorial?.content ?? "");
   const [isPublic, setIsPublic] = useState(editorial?.isPublic ?? true);
-  const now = useCountdownNow() ?? 0;
+  const now = useRelativeReferenceTime();
   const [publishOn, setPublishOn] = useState<number | null>(editorial?.publishOn ?? now);
   const [authors, setAuthors] = useState<string[]>(editorial?.authors ?? []);
   const [reason, setReason] = useState("");

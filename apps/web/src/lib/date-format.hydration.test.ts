@@ -154,6 +154,26 @@ describe("timestamp hydration and browser updates", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it("runs the second clock only while a countdown is mounted", async () => {
+    function Countdown() {
+      return createElement("span", null, useCountdownNow());
+    }
+
+    const idle = providers(createElement("span", null, "no countdown"));
+    container.innerHTML = renderToString(idle);
+    await hydrate(idle);
+    // The minute clock behind relative labels is the only timer.
+    expect(vi.getTimerCount()).toBe(1);
+
+    await act(async () => root?.render(providers(createElement(Countdown))));
+    expect(vi.getTimerCount()).toBe(2);
+    await act(async () => vi.advanceTimersByTime(3000));
+    expect(container.textContent).toBe("63000");
+
+    await act(async () => root?.render(idle));
+    expect(vi.getTimerCount()).toBe(1);
+  });
+
   it("switches to an absolute date when a tick reaches the relative cutoff", async () => {
     const tree = providers(createElement(RelativeTime, { value: 0, relativeWithin: 120_000 }));
     container.innerHTML = renderToString(tree);
