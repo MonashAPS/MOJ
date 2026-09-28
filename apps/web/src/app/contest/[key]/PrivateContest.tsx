@@ -1,8 +1,9 @@
 import type { AccessDecision } from "@convex/contests";
-import { Alert, AlertDescription, AlertTitle, Panel, TitleRow } from "@moj/ui";
+import { Alert, AlertDescription, AlertTitle, Panel } from "@moj/ui";
 import { Lock } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { TitleRow } from "@/components/shell/PageTabs";
 
 type PrivateAccess = Extract<AccessDecision, { kind: "privateContest" }>;
 

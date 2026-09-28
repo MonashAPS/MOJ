@@ -1,8 +1,9 @@
 import { api } from "@convex/_generated/api";
-import { EmptyState, TitleRow } from "@moj/ui";
+import { EmptyState } from "@moj/ui";
 import { GraduationCap } from "lucide-react";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { queryAsViewer } from "@/lib/convex-server";
 import { ClassesBrowser } from "./ClassesBrowser";
 

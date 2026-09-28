@@ -1,6 +1,7 @@
 import { api } from "@convex/_generated/api";
-import { TitleRow } from "@moj/ui";
+
 import { getTranslations } from "next-intl/server";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { userListTabs } from "@/components/users/tabs";
 import { queryAsViewer } from "@/lib/convex-server";
 import { OrganizationsTable } from "./OrganizationsTable";

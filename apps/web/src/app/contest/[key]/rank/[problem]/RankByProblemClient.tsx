@@ -14,7 +14,6 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  TitleRow,
   VerdictPill,
 } from "@moj/ui";
 import { useQuery } from "convex/react";
@@ -24,6 +23,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { JoinControl } from "@/components/contests/JoinControls";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { LocalTime } from "@/components/time/LocalTime";
 import { formatPoints } from "@/lib/format";
 import { contestTabs, joinKindFor } from "../../tabs";

@@ -1,19 +1,10 @@
 import { api } from "@convex/_generated/api";
-import {
-  Badge,
-  EmptyState,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TitleRow,
-} from "@moj/ui";
+import { Badge, EmptyState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@moj/ui";
 import { MonitorPlay } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { queryAsViewer } from "@/lib/convex-server";
 
 export async function generateMetadata(): Promise<Metadata> {

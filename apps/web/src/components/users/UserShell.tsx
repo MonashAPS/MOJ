@@ -1,10 +1,11 @@
 "use client";
 
-import { cn, MicroLabel, Panel, ratingClass, type TabItem, TitleRow } from "@moj/ui";
+import { cn, MicroLabel, Panel, ratingClass, type TabItem } from "@moj/ui";
 import { Info, List, Puzzle, UserCog } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { LocalTime } from "@/components/time/LocalTime";
 
 import { ratingTitleKey } from "./rating-title";

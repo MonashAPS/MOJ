@@ -1,9 +1,10 @@
 import { api } from "@convex/_generated/api";
-import { TitleRow } from "@moj/ui";
+
 import { Edit3, List, Shuffle } from "lucide-react";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { ProblemsView } from "@/components/problems/ProblemsView";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { queryAsViewer } from "@/lib/convex-server";
 import { parseProblemQuery, problemListArgs, type RawSearchParams } from "@/lib/problem-query";
 

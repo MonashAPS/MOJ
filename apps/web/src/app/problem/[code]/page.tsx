@@ -1,6 +1,6 @@
 import { api } from "@convex/_generated/api";
 import { renderMarkdown } from "@moj/content";
-import { Button, TitleRow } from "@moj/ui";
+import { Button } from "@moj/ui";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -10,6 +10,7 @@ import { Comments } from "@/components/comments/Comments";
 import { ProblemPage } from "@/components/problems/ProblemHeader";
 import { ProctorRequired } from "@/components/problems/ProctorRequired";
 import { Statement } from "@/components/problems/Statement";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { RelativeTime } from "@/components/time/LocalTime";
 import { queryAsViewer } from "@/lib/convex-server";
 

@@ -16,7 +16,6 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  TitleRow,
   Tooltip,
   TwoColumn,
 } from "@moj/ui";
@@ -28,6 +27,7 @@ import { ArtefactList } from "@/components/artefacts/ArtefactList";
 import { AudienceLine } from "@/components/audiences/AudienceSelect";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips, OPEN_ENDED, ProblemStateIcon, useHumanDuration } from "@/components/contests/pieces";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { useSkin } from "@/components/shell/SkinProvider";
 import { LocalTime } from "@/components/time/LocalTime";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";

@@ -12,7 +12,6 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  TitleRow,
   TwoColumn,
 } from "@moj/ui";
 import Link from "next/link";
@@ -20,6 +19,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getServerSession } from "@/auth/session";
 import { MembershipActions } from "@/components/organizations/MembershipActions";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { UserLink } from "@/components/users/UserLink";
 import { queryAsViewer } from "@/lib/convex-server";
 import { classHref, organizationHref, slugFromHandle } from "@/lib/organizations";

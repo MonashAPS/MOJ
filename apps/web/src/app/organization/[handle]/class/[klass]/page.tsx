@@ -1,8 +1,9 @@
 import { api } from "@convex/_generated/api";
-import { Badge, Button, MicroLabel, Panel, TitleRow, TwoColumn } from "@moj/ui";
+import { Badge, Button, MicroLabel, Panel, TwoColumn } from "@moj/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { LeaderboardTable } from "@/components/users/LeaderboardTable";
 import { parseUserOrder } from "@/components/users/leaderboard";
 import { UserLink } from "@/components/users/UserLink";

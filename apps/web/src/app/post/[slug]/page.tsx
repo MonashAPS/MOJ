@@ -1,10 +1,11 @@
 import { api } from "@convex/_generated/api";
-import { Button, ContentDescription, RatingName, TitleRow } from "@moj/ui";
+import { Button, ContentDescription, RatingName } from "@moj/ui";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Comments } from "@/components/comments/Comments";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { LocalTime } from "@/components/time/LocalTime";
 import { queryAsViewer } from "@/lib/convex-server";
 

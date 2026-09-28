@@ -1,5 +1,5 @@
 import { api } from "@convex/_generated/api";
-import { RatingName, type TabItem, TitleRow } from "@moj/ui";
+import { RatingName, type TabItem } from "@moj/ui";
 import type { FunctionArgs } from "convex/server";
 import { BarChart3, List, User } from "lucide-react";
 import Link from "next/link";
@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { ErrorScreen } from "@/components/shell/ErrorScreen";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { queryAsViewer } from "@/lib/convex-server";
 import { loadListContext } from "@/lib/submissionsData";
 import { SubmissionList, type SubmissionListFilters } from "./SubmissionList";

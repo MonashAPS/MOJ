@@ -1,17 +1,9 @@
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  TitleRow,
-} from "@moj/ui";
+import { Alert, AlertDescription, AlertTitle, Card, CardContent, CardHeader, CardTitle } from "@moj/ui";
 import { Info, MailCheck } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { recallLink } from "@/auth/mail";
+import { TitleRow } from "@/components/shell/PageTabs";
 
 export async function generateMetadata() {
   const t = await getTranslations("auth.registerComplete");

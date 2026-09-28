@@ -1,7 +1,8 @@
 import { api } from "@convex/_generated/api";
-import { Button, ContentDescription, TitleRow } from "@moj/ui";
+import { Button, ContentDescription } from "@moj/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { query, queryAsViewer } from "@/lib/convex-server";
 import { renderContent } from "@/lib/markdown";
 

@@ -1,5 +1,5 @@
-import { TitleRow } from "@moj/ui";
 import { getTranslations } from "next-intl/server";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { ActivateClient } from "./ActivateClient";
 
 export async function generateMetadata() {

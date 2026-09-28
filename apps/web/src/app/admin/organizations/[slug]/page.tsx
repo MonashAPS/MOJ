@@ -1,8 +1,9 @@
 import { api } from "@convex/_generated/api";
-import { EmptyState, TitleRow } from "@moj/ui";
+import { EmptyState } from "@moj/ui";
 import { Building2 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { Crumbs } from "@/components/admin";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { queryAsViewer } from "@/lib/convex-server";
 import { OrganizationEditor } from "./OrganizationEditor";
 

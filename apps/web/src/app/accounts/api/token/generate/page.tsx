@@ -1,9 +1,10 @@
 import { api } from "@convex/_generated/api";
-import { Alert, AlertDescription, AlertTitle, TitleRow } from "@moj/ui";
+import { Alert, AlertDescription, AlertTitle } from "@moj/ui";
 import { Info } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { requireAccount } from "@/auth/account-state";
 import { accountTabs } from "@/components/accounts/AccountTabs";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { queryAsViewer } from "@/lib/convex-server";
 import { ApiTokenPanel } from "./ApiTokenPanel";
 import { listApiTokens } from "./actions";
