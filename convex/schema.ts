@@ -135,7 +135,8 @@ export default defineSchema({
     username: v.string(),
     legacyUserId: v.optional(v.number()),
     about: v.string(),
-    timezone: v.string(),
+    // Migration only; remove after maintenance:removeTimezonePreferences completes.
+    timezone: v.optional(v.string()),
     languageId: v.optional(v.id("languages")),
     points: v.number(),
     performancePoints: v.number(),
@@ -874,7 +875,8 @@ export default defineSchema({
     siteLongName: v.string(),
     siteAdminEmail: v.string(),
     registrationOpen: v.boolean(),
-    defaultUserTimezone: v.string(),
+    // Migration only; remove after maintenance:removeTimezonePreferences completes.
+    defaultUserTimezone: v.optional(v.string()),
     defaultUserLanguageKey: v.string(),
     problemsPerPage: v.number(),
     commentsPerPage: v.number(),

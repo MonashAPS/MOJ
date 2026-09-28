@@ -33,7 +33,7 @@ import { renderUserMarkdownBatch } from "@/components/markdown/actions";
 import { identiconUrl, initials } from "@/lib/avatar";
 import { chosenIds } from "@/lib/choices";
 import { mutationError } from "@/lib/convex-error";
-import { formatDateTime, formatRelative } from "@/lib/format";
+import { useDateFormatters, useRelativeTimeFormatter } from "@/lib/date-format";
 
 export type TicketDetail = NonNullable<FunctionReturnType<typeof api.tickets.get>>;
 
@@ -171,6 +171,8 @@ export function TicketClient({
 }
 
 function Message({ message, html }: { message: TicketMessage; html: string }) {
+  const { formatDateTime } = useDateFormatters();
+  const formatRelative = useRelativeTimeFormatter();
   const t = useTranslations("blog.ticket");
   const author = message.author;
 

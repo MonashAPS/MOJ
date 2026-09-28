@@ -6,7 +6,7 @@ import { useQuery } from "convex/react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { formatDateTime, formatRelative } from "@/lib/format";
+import { RelativeTime } from "@/components/time/LocalTime";
 
 export type PPEntry = {
   points: number;
@@ -79,12 +79,10 @@ export function PPBreakdown({
                 <Link href={`/problem/${entry.problemCode}/`} className="font-medium hover:text-link">
                   {entry.problemName}
                 </Link>
-                <span
+                <RelativeTime
+                  value={entry.submissionDate}
                   className="ml-2 font-mono text-sm text-muted-foreground"
-                  title={formatDateTime(entry.submissionDate)}
-                >
-                  {formatRelative(entry.submissionDate)}
-                </span>
+                />
               </TableCell>
               <TableCell className="whitespace-nowrap">
                 <span className="flex items-center gap-2">

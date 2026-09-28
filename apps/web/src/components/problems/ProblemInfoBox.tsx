@@ -27,7 +27,8 @@ import {
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { formatDate } from "@/lib/format";
+import { LocalTime } from "@/components/time/LocalTime";
+
 import { formatPoints, formatTime } from "@/lib/units";
 
 export type ProblemDetail = NonNullable<(typeof api.problems.get)["_returnType"]>;
@@ -375,7 +376,7 @@ export function ProblemInfoBox({ problem }: { problem: ProblemDetail }) {
                       {contest.contestName}
                     </Link>
                     <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
-                      {formatDate(contest.startTime)}
+                      <LocalTime value={contest.startTime} format="date" />
                     </span>
                   </li>
                 ))}

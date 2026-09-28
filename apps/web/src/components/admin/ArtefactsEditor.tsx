@@ -21,7 +21,8 @@ import { Paperclip, Trash2, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { AudienceSelect } from "@/components/audiences/AudienceSelect";
-import { formatBytes, formatDateTime } from "@/lib/format";
+import { LocalTime } from "@/components/time/LocalTime";
+import { formatBytes } from "@/lib/format";
 import { AdminFormError } from "./AdminForm";
 import { ConfirmAction } from "./console";
 
@@ -177,7 +178,7 @@ export function ArtefactsEditor({ owner }: { owner: ArtefactOwner }) {
                   </TableCell>
                   <TableCell>
                     <span className="font-mono text-sm tabular-nums text-muted-foreground">
-                      {formatDateTime(file.uploadedAt)}
+                      <LocalTime value={file.uploadedAt} />
                       {file.uploadedBy ? ` · ${file.uploadedBy}` : ""}
                     </span>
                   </TableCell>

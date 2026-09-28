@@ -18,7 +18,8 @@ import { ContestSummary } from "@/app/admin/contests/[key]/ContestSummary";
 import { AdminCheckField, AdminFormError, AdminSection, AdminShell, DateTimeField } from "@/components/admin";
 import { useAudienceNames } from "@/components/audiences/AudienceSelect";
 import { useHumanDuration } from "@/components/contests/pieces";
-import { formatDateTime } from "@/lib/format";
+import { useCountdownNow } from "@/lib/CountdownProvider";
+import { useDateFormatters } from "@/lib/date-format";
 
 /**
  * Creating a contest, as three questions rather than one form.
@@ -85,6 +86,7 @@ function keyFromName(name: string): string {
 }
 
 export function NewContestWizard() {
+  const { formatDateTime } = useDateFormatters();
   const t = useTranslations("admin.contests.new");
   const setup = useTranslations("admin.contests.setup");
   const general = useTranslations("admin.contests.general");
@@ -100,7 +102,8 @@ export function NewContestWizard() {
 
   const ids = { key: useId(), name: useId(), start: useId(), end: useId(), window: useId() };
   const [step, setStep] = useState<Step>("what");
-  const [draft, setDraft] = useState(() => emptyDraft(Date.now()));
+  const now = useCountdownNow() ?? 0;
+  const [draft, setDraft] = useState(() => emptyDraft(now));
   const [keyEdited, setKeyEdited] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

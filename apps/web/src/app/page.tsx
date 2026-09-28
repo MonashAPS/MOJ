@@ -6,8 +6,9 @@ import { getTranslations } from "next-intl/server";
 import { getServerSession } from "@/auth/session";
 import { HomeTopSlot } from "@/components/home/HomeTopSlot";
 import { ContestsBox, NewProblemsBox, RecentCommentsBox, TopUsersBox } from "@/components/home/SideBoxes";
+import { RelativeTime } from "@/components/time/LocalTime";
 import { query, queryAsViewer } from "@/lib/convex-server";
-import { formatDate, formatRelative } from "@/lib/format";
+
 import { renderContent } from "@/lib/markdown";
 
 export async function generateMetadata() {
@@ -114,15 +115,11 @@ export default async function HomePage() {
                     </span>
                   ))}
                   {post.authors.length > 0 ? <span aria-hidden>·</span> : null}
-                  <time
-                    dateTime={new Date(post.publishOn).toISOString()}
-                    title={new Date(post.publishOn).toString()}
+                  <RelativeTime
+                    value={post.publishOn}
+                    relativeWithin={DAY}
                     className="font-mono tabular-nums"
-                  >
-                    {Date.now() - post.publishOn < DAY
-                      ? formatRelative(post.publishOn)
-                      : formatDate(post.publishOn)}
-                  </time>
+                  />
                   <span aria-hidden>·</span>
                   <span>{t("comments", { count: post.commentCount })}</span>
                 </p>

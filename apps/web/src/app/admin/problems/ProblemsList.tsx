@@ -31,7 +31,7 @@ import {
   AdminTable,
   AdminToolbar,
 } from "@/components/admin";
-import { formatDate } from "@/lib/format";
+import { LocalTime } from "@/components/time/LocalTime";
 
 type Row = {
   code: string;
@@ -182,7 +182,7 @@ export function ProblemsList() {
       key: "date",
       header: t("column.published"),
       numeric: true,
-      cell: (row) => formatDate(row.date),
+      cell: (row) => <LocalTime value={row.date} format="date" />,
     },
   ];
 

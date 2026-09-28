@@ -24,7 +24,8 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { JoinControl } from "@/components/contests/JoinControls";
-import { formatDateTime, formatPoints } from "@/lib/format";
+import { LocalTime } from "@/components/time/LocalTime";
+import { formatPoints } from "@/lib/format";
 import { contestTabs, joinKindFor } from "../../tabs";
 
 const DASH = "—";
@@ -152,7 +153,7 @@ export function RankByProblemClient({
                     </TableCell>
                     <TableCell numeric className="text-muted-foreground">
                       <Link href={`/submission/${row.submissionId}/`} className="relative z-1">
-                        {formatDateTime(row.date)}
+                        <LocalTime value={row.date} />
                       </Link>
                     </TableCell>
                   </TableRow>

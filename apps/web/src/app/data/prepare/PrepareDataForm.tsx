@@ -22,7 +22,7 @@ import {
 import { useMutation, useQuery } from "convex/react";
 import { Download } from "lucide-react";
 import { useState } from "react";
-import { formatDateTime } from "@/lib/format";
+import { LocalTime } from "@/components/time/LocalTime";
 
 /** `Submission.RESULT`, sorted, as `DownloadDataForm.submission_results` offers. */
 const RESULTS = ["AB", "AC", "CE", "IE", "IR", "MLE", "OLE", "RTE", "TLE", "WA"].map((code) => ({
@@ -113,7 +113,7 @@ export function PrepareDataForm() {
         <Alert variant="success">
           <AlertTitle>Your data is ready.</AlertTitle>
           <AlertDescription>
-            Prepared {formatDateTime(status.download.createdAt)}.
+            Prepared <LocalTime value={status.download.createdAt} />.
             {status.msUntilCanPrepare > 0
               ? ` You will be able to prepare a new download in ${duration(status.msUntilCanPrepare)}.`
               : null}

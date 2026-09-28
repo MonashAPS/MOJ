@@ -421,7 +421,6 @@ async function main() {
       JSON.stringify({
         userId,
         username: ADMIN_USERNAME,
-        timezone: "Australia/Melbourne",
         languageKey: "PY3",
         isStaff: true,
         isSuperuser: true,
@@ -471,7 +470,6 @@ async function main() {
       JSON.stringify({
         userId: ordinaryUserId,
         username: USER_USERNAME,
-        timezone: "Australia/Melbourne",
         languageKey: "PY3",
         isStaff: false,
         isSuperuser: false,

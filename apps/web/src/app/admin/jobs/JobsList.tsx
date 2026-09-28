@@ -14,7 +14,7 @@ import {
   AdminToolbar,
   JobStatusBadge,
 } from "@/components/admin";
-import { formatDateTime, formatRelative } from "@/lib/format";
+import { RelativeTime } from "@/components/time/LocalTime";
 
 type Row = FunctionReturnType<typeof api.pages.admin.jobs.list>[number];
 
@@ -159,11 +159,7 @@ export function JobsList() {
       key: "created",
       header: t("columns.created"),
       numeric: true,
-      cell: (row) => (
-        <time dateTime={new Date(row.createdAt).toISOString()} title={formatDateTime(row.createdAt)}>
-          {formatRelative(row.createdAt)}
-        </time>
-      ),
+      cell: (row) => <RelativeTime value={row.createdAt} />,
     },
     {
       key: "outcome",

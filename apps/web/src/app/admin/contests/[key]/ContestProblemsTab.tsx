@@ -41,7 +41,8 @@ import { ChevronDown, ChevronUp, GripVertical, ListChecks, Plus, Trash2 } from "
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { AdminFormError, JobProgress } from "@/components/admin";
-import { formatDateTime } from "@/lib/format";
+import { useDateFormatters } from "@/lib/date-format";
+
 import { WarningLine } from "./ContestSummary";
 import type { ContestEdit } from "./types";
 
@@ -50,6 +51,7 @@ type ContestProblem = ContestEdit["problems"][number];
 /** `ContestProblemInline`: the sortable inline, with the rejudge column DMOJ
  *  puts at the end of each row. */
 export function ContestProblemsTab({ contest }: { contest: ContestEdit }) {
+  const { formatDateTime } = useDateFormatters();
   const t = useTranslations("admin.contests.problems");
   const warn = useTranslations("admin.contests.warnings");
   const actions = useTranslations("common.actions");

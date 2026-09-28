@@ -30,8 +30,6 @@ import { isNonEmptyString } from "./lib/json";
 import { insertProfileAggregates, patchProfile } from "./rankings";
 import { siteSkin, siteTheme } from "./schema";
 
-export const DEFAULT_TIMEZONE = "Australia/Melbourne";
-
 /** `settings.DMOJ_USER_MAX_ORGANIZATION_COUNT`. */
 export const MAX_OPEN_ORGANIZATIONS = 3;
 
@@ -117,7 +115,6 @@ export const byUserId = query({
 export const ensureProfile = mutation({
   args: {
     username: v.string(),
-    timezone: v.optional(v.string()),
     languageKey: v.optional(v.string()),
     about: v.optional(v.string()),
   },
@@ -139,7 +136,6 @@ export const ensureProfileForUser = internalMutation({
   args: {
     userId: v.string(),
     username: v.string(),
-    timezone: v.optional(v.string()),
     languageKey: v.optional(v.string()),
     about: v.optional(v.string()),
     isStaff: v.optional(v.boolean()),
@@ -155,7 +151,6 @@ async function upsertProfile(
   args: {
     userId: string;
     username: string;
-    timezone?: string;
     languageKey?: string;
     about?: string;
     isStaff?: boolean;
@@ -170,8 +165,6 @@ async function upsertProfile(
 
   if (existing) {
     const patch: Partial<Doc<"profiles">> = { username: args.username };
-
-    if (args.timezone) patch.timezone = args.timezone;
 
     if (languageId) patch.languageId = languageId;
 
@@ -193,7 +186,6 @@ async function upsertProfile(
     ...profileDefaults,
     userId: args.userId,
     username: args.username,
-    timezone: args.timezone ?? DEFAULT_TIMEZONE,
     languageId,
     about: args.about ?? "",
     isStaff: args.isStaff ?? false,
@@ -273,7 +265,6 @@ export type UserPageData = {
     mute: boolean;
     joinDate: number;
     lastAccess?: number;
-    timezone: string;
   };
   /** `about` as markdown; render with the preset named beside it. */
   about: string;
@@ -624,7 +615,6 @@ export const userPage = query({
         mute: profile.mute,
         joinDate: profile.joinDate,
         lastAccess: profile.lastAccess,
-        timezone: profile.timezone,
       },
       about: profile.about,
       aboutPreset: "self-description",
@@ -833,7 +823,6 @@ export async function bumpMemberCount(
 export const updateProfile = mutation({
   args: {
     about: v.optional(v.string()),
-    timezone: v.optional(v.string()),
     languageKey: v.optional(v.string()),
     siteTheme: v.optional(siteTheme),
     editorTheme: v.optional(v.string()),
@@ -858,8 +847,6 @@ export const updateProfile = mutation({
 
       patch.about = args.about;
     }
-
-    if (args.timezone !== undefined) patch.timezone = args.timezone;
 
     if (args.siteTheme !== undefined) patch.siteTheme = args.siteTheme;
 

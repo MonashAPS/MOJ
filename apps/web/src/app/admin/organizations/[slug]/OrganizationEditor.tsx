@@ -21,8 +21,9 @@ import {
   RevisionsPanel,
   StatusLine,
 } from "@/components/admin";
+import { LocalTime } from "@/components/time/LocalTime";
 import { chosenValue } from "@/lib/choices";
-import { formatDateTime } from "@/lib/format";
+
 import { type OrganizationDraft, OrganizationFields, parseUsernames } from "../OrganizationFields";
 
 type OrganizationRow = {
@@ -482,7 +483,12 @@ function Requests({ organization }: { organization: OrganizationRow }) {
     { key: "user", header: t("columnMember"), cell: (row) => row.displayName },
     { key: "class", header: t("columnClass"), cell: (row) => row.className ?? DASH },
     { key: "reason", header: t("columnReason"), cell: (row) => row.reason || DASH },
-    { key: "time", header: t("columnRequested"), numeric: true, cell: (row) => formatDateTime(row.time) },
+    {
+      key: "time",
+      header: t("columnRequested"),
+      numeric: true,
+      cell: (row) => <LocalTime value={row.time} />,
+    },
     {
       key: "state",
       header: t("columnState"),

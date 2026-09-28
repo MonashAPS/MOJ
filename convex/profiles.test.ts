@@ -448,7 +448,7 @@ describe("profiles.updateProfile", () => {
 
     await expect(
       asUser(t, "toad").mutation(api.profiles.updateProfile, {
-        timezone: "UTC",
+        editorTheme: "monokai",
       }),
     ).rejects.toThrow(/silent, little toad/);
   });

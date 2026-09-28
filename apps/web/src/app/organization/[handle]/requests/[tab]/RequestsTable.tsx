@@ -18,8 +18,8 @@ import type { FunctionReturnType } from "convex/server";
 import { Check, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { LocalTime } from "@/components/time/LocalTime";
 import { UserLink } from "@/components/users/UserLink";
-import { formatDateTime } from "@/lib/format";
 
 export type RequestRow = FunctionReturnType<typeof api.organizations.reviewRequests>["requests"][number];
 
@@ -75,7 +75,7 @@ export function RequestsTable({ rows, showActions }: { rows: RequestRow[]; showA
                 <UserLink username={row.username} displayName={row.displayName} />
               </TableCell>
               <TableCell className="whitespace-nowrap font-mono text-sm tabular-nums text-subtle">
-                {formatDateTime(row.time)}
+                <LocalTime value={row.time} />
               </TableCell>
               <TableCell className="text-subtle">{row.className ?? "—"}</TableCell>
               <TableCell>

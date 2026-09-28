@@ -26,8 +26,10 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { ChevronDown, ChevronUp, Plus, Trash2, TriangleAlert, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
+import { LocalTime } from "@/components/time/LocalTime";
 import { mutationError } from "@/lib/convex-error";
-import { formatDateTime } from "@/lib/format";
+import { useDateFormatters } from "@/lib/date-format";
+
 import { formatMemory } from "@/lib/submissionFormat";
 
 /** `judge/models/problem_data.py::CHECKERS`, in DMOJ's order. */
@@ -90,6 +92,7 @@ function numberOrNull(value: string): number | null {
 }
 
 export function TestDataEditor({ code, initial }: { code: string; initial: Payload }) {
+  const { formatDateTime } = useDateFormatters();
   const t = useTranslations("problems.testData");
   const actions = useTranslations("common.actions");
   const live = useQuery(api.problems.data.get, { code });
@@ -238,12 +241,14 @@ export function TestDataEditor({ code, initial }: { code: string; initial: Paylo
             </dd>
             <dt className="text-sm text-muted-foreground">{t("published")}</dt>
             <dd className="text-sm">
-              {published.uploadedByUsername
-                ? t("publishedBy", {
-                    when: formatDateTime(published.uploadedAt),
-                    who: published.uploadedByUsername,
-                  })
-                : formatDateTime(published.uploadedAt)}
+              {published.uploadedByUsername ? (
+                t("publishedBy", {
+                  when: formatDateTime(published.uploadedAt),
+                  who: published.uploadedByUsername,
+                })
+              ) : (
+                <LocalTime value={published.uploadedAt} />
+              )}
             </dd>
           </dl>
           <p className="mt-3 text-sm text-muted-foreground">{t("publishedNote")}</p>

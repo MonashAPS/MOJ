@@ -14,8 +14,9 @@ import {
   Trophy,
 } from "lucide-react";
 import Link from "next/link";
+import { LocalTime } from "@/components/time/LocalTime";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
-import { formatDate, formatDateTime } from "@/lib/format";
+import { useDateFormatters } from "@/lib/date-format";
 
 /** A box's footer links sit on one right-aligned row above a thin rule. */
 function BoxFooter({ children }: { children: React.ReactNode }) {
@@ -104,6 +105,7 @@ type SidebarContest = {
 };
 
 function OngoingRow({ contest }: { contest: SidebarContest }) {
+  const { formatDateTime } = useDateFormatters();
   const remaining = useCountdown(contest.endTime);
   const total = Math.max(1, contest.endTime - contest.startTime);
   const elapsed = remaining === null ? 0 : Math.min(100, Math.max(0, ((total - remaining) / total) * 100));
@@ -125,9 +127,15 @@ function OngoingRow({ contest }: { contest: SidebarContest }) {
             "font-mono text-base font-medium tabular-nums",
             urgent ? "text-bad" : soon ? "text-warn" : "text-foreground",
           )}
-          title={new Date(contest.endTime).toString()}
+          title={formatDateTime(contest.endTime)}
         >
-          {remaining === null ? "—" : openEnded ? formatDate(contest.endTime) : formatDuration(remaining)}
+          {remaining === null ? (
+            "—"
+          ) : openEnded ? (
+            <LocalTime value={contest.endTime} format="date" />
+          ) : (
+            formatDuration(remaining)
+          )}
         </span>
       </div>
       {openEnded ? null : <Progress value={elapsed} aria-label="Contest elapsed" />}
@@ -148,9 +156,7 @@ function UpcomingRow({ contest }: { contest: SidebarContest }) {
       <Link href={`/contest/${contest.key}`} className="truncate text-base font-medium text-link">
         {contest.name}
       </Link>
-      <span className="text-sm text-muted-foreground" title={new Date(contest.startTime).toString()}>
-        {formatDateTime(contest.startTime)}
-      </span>
+      <LocalTime value={contest.startTime} className="text-sm text-muted-foreground" />
       <span className="font-mono text-sm tabular-nums text-subtle">
         {remaining !== null && remaining <= COUNTDOWN_HORIZON
           ? `starts in ${formatDuration(remaining)}`

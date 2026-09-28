@@ -47,7 +47,6 @@ export function ProfileBootstrap() {
     attempted.current = key;
     void ensureProfile({
       username: user.username ?? user.name ?? "user",
-      timezone: user.timezone ?? undefined,
       languageKey: user.preferredLanguage ?? undefined,
     }).catch(() => {
       attempted.current = null;

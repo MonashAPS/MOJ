@@ -29,8 +29,10 @@ import { AudienceLine } from "@/components/audiences/AudienceSelect";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips, OPEN_ENDED, ProblemStateIcon, useHumanDuration } from "@/components/contests/pieces";
 import { useSkin } from "@/components/shell/SkinProvider";
+import { LocalTime } from "@/components/time/LocalTime";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
-import { formatDateTime, formatPoints } from "@/lib/format";
+import { useDateFormatters } from "@/lib/date-format";
+import { formatPoints } from "@/lib/format";
 import { usesDomjudgeStructure } from "@/lib/skin";
 import { useViewerLive } from "@/lib/useViewerLive";
 import { Clarifications } from "./Clarifications";
@@ -43,6 +45,7 @@ const DASH = "—";
 
 /** DMOJ's `#banner`: one sentence saying where the viewer stands in the clock. */
 function Banner({ detail }: { detail: ContestDetail }) {
+  const { formatDateTime } = useDateFormatters();
   const t = useTranslations("contests.detail");
   const windowCopy = useTranslations("contests.duration");
   const humanDuration = useHumanDuration();
@@ -322,11 +325,13 @@ function Sidebar({ detail }: { detail: ContestDetail }) {
     <>
       <Panel title={t("panelContest")} bodyClassName="p-0">
         <InfoRow label={t("starts")}>
-          <span className="font-mono text-sm tabular-nums">{formatDateTime(contest.startTime)}</span>
+          <span className="font-mono text-sm tabular-nums">
+            <LocalTime value={contest.startTime} />
+          </span>
         </InfoRow>
         <InfoRow label={t("ends")}>
           <span className="font-mono text-sm tabular-nums">
-            {contest.endTime - contest.startTime > OPEN_ENDED ? DASH : formatDateTime(contest.endTime)}
+            {contest.endTime - contest.startTime > OPEN_ENDED ? DASH : <LocalTime value={contest.endTime} />}
           </span>
         </InfoRow>
         <InfoRow label={contest.schedule.kind === "window" ? t("window") : t("duration")}>

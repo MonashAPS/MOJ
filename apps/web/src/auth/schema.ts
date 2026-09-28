@@ -21,7 +21,6 @@ export const user = pgTable("user", {
   banExpires: timestamp("ban_expires"),
   isStaff: boolean("is_staff").default(false).notNull(),
   isSuperuser: boolean("is_superuser").default(false).notNull(),
-  timezone: text("timezone"),
   preferredLanguage: text("preferred_language"),
   organizationSlugs: text("organization_slugs"),
 });

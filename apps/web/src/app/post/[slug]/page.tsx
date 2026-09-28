@@ -5,8 +5,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Comments } from "@/components/comments/Comments";
+import { LocalTime } from "@/components/time/LocalTime";
 import { queryAsViewer } from "@/lib/convex-server";
-import { formatDateTime } from "@/lib/format";
+
 import { renderContent } from "@/lib/markdown";
 
 export const dynamic = "force-dynamic";
@@ -87,11 +88,7 @@ export default async function BlogPostPage({ params }: Props) {
               </>
             ) : null}
             {t.rich("postedOn", {
-              time: () => (
-                <time dateTime={new Date(post.publishOn).toISOString()}>
-                  {formatDateTime(post.publishOn)}
-                </time>
-              ),
+              time: () => <LocalTime value={post.publishOn} />,
             })}
           </p>
 

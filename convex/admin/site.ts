@@ -405,7 +405,6 @@ export const updateSettings = mutation({
     siteLongName: v.optional(v.string()),
     siteAdminEmail: v.optional(v.string()),
     registrationOpen: v.optional(v.boolean()),
-    defaultUserTimezone: v.optional(v.string()),
     defaultUserLanguageKey: v.optional(v.string()),
     problemsPerPage: v.optional(v.number()),
     commentsPerPage: v.optional(v.number()),

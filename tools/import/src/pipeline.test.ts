@@ -251,7 +251,7 @@ describe("full transform over a fixture dump", () => {
     const report = reportToJson(ctx);
     const profile = report.unmappedColumns.find((entry) => entry.table === "judge_profile");
     expect(profile?.columns).toContain("user_script");
-    expect(profile?.columns).not.toContain("timezone");
+    expect(profile?.columns).toContain("timezone");
   });
 });
 

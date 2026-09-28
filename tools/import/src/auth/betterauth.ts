@@ -29,7 +29,6 @@ export type AuthUserRow = {
   ban_expires: Date | null;
   is_staff: boolean;
   is_superuser: boolean;
-  timezone: string | null;
   preferred_language: string | null;
   organization_slugs: string | null;
 };
@@ -92,7 +91,6 @@ export const USER_COLUMNS = [
   "ban_expires",
   "is_staff",
   "is_superuser",
-  "timezone",
   "preferred_language",
   "organization_slugs",
 ] as const;

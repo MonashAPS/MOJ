@@ -29,7 +29,8 @@ import {
   RecordDialog,
   StatusLine,
 } from "@/components/admin";
-import { formatDateTime } from "@/lib/format";
+import { LocalTime } from "@/components/time/LocalTime";
+
 import { createKeyAction, listKeysAction, revokeKeyAction } from "./actions";
 import { API_KEY_SCOPES, type ConsoleKeyRow } from "./scopes";
 
@@ -127,19 +128,19 @@ export function ApiKeysPanel({ username, apiUrl }: { username: string; apiUrl: s
       key: "created",
       header: t("columnCreated"),
       numeric: true,
-      cell: (row) => formatDateTime(row.createdAt),
+      cell: (row) => <LocalTime value={row.createdAt} />,
     },
     {
       key: "expires",
       header: t("columnExpires"),
       numeric: true,
-      cell: (row) => (row.expiresAt === null ? t("never") : formatDateTime(row.expiresAt)),
+      cell: (row) => (row.expiresAt === null ? t("never") : <LocalTime value={row.expiresAt} />),
     },
     {
       key: "used",
       header: t("columnLastUsed"),
       numeric: true,
-      cell: (row) => (row.lastUsedAt === null ? DASH : formatDateTime(row.lastUsedAt)),
+      cell: (row) => (row.lastUsedAt === null ? DASH : <LocalTime value={row.lastUsedAt} />),
     },
     {
       key: "actions",

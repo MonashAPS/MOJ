@@ -21,7 +21,6 @@ export async function ensureDevAccount(username: string, password: string, email
         password: randomBytes(24).toString("base64url"),
         name: username,
         username,
-        timezone: "Australia/Melbourne",
         preferredLanguage: "PY3",
       },
     });

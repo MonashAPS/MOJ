@@ -10,8 +10,9 @@ import { Comments } from "@/components/comments/Comments";
 import { ProblemPage } from "@/components/problems/ProblemHeader";
 import { ProctorRequired } from "@/components/problems/ProctorRequired";
 import { Statement } from "@/components/problems/Statement";
+import { RelativeTime } from "@/components/time/LocalTime";
 import { queryAsViewer } from "@/lib/convex-server";
-import { formatRelative } from "@/lib/format";
+
 import { viewerLanguage } from "@/lib/language.server";
 import { decorateStatement } from "@/lib/statement";
 
@@ -104,7 +105,7 @@ export default async function ProblemStatementPage({ params }: { params: Promise
             {problem.clarifications.map((clarification) => (
               <li key={clarification.id} className="rounded-md border border-border bg-card p-3">
                 <p className="mb-1 font-mono text-sm tabular-nums text-muted-foreground">
-                  {formatRelative(clarification.date)}
+                  <RelativeTime value={clarification.date} />
                 </p>
                 <p className="whitespace-pre-wrap text-base text-foreground">{clarification.description}</p>
               </li>

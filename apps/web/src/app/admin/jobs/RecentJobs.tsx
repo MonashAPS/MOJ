@@ -7,7 +7,7 @@ import { LayoutList } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { JobStatusBadge } from "@/components/admin";
-import { formatRelative } from "@/lib/format";
+import { RelativeTime } from "@/components/time/LocalTime";
 
 /** The overview's tail: what the console has been asked to do lately. */
 export function RecentJobs({ limit = 5 }: { limit?: number }) {
@@ -53,7 +53,7 @@ export function RecentJobs({ limit = 5 }: { limit?: number }) {
                   </span>
                   <JobStatusBadge status={job.status} />
                   <span className="ml-auto font-mono text-sm tabular-nums text-muted-foreground">
-                    {formatRelative(job.createdAt)}
+                    <RelativeTime value={job.createdAt} />
                   </span>
                 </div>
                 <Progress

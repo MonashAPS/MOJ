@@ -33,7 +33,8 @@ import { RankingCellSubmissions } from "@/components/contests/RankingCellSubmiss
 import { useSkin } from "@/components/shell/SkinProvider";
 import { chosenValue } from "@/lib/choices";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
-import { formatDateTime, formatPoints } from "@/lib/format";
+import { useDateFormatters } from "@/lib/date-format";
+import { formatPoints } from "@/lib/format";
 import { usesDomjudgeStructure } from "@/lib/skin";
 import { useViewerLive } from "@/lib/useViewerLive";
 import { contestTabs, joinKindFor } from "../tabs";
@@ -49,6 +50,7 @@ const ALL = "__all__";
  * end; `contests/rankings.ranking` does not, which is why the page reads both.
  */
 function WindowNote({ detail }: { detail: ContestDetail }) {
+  const { formatDateTime } = useDateFormatters();
   const t = useTranslations("contests.ranking");
   const duration = useTranslations("contests.duration");
   const humanDuration = useHumanDuration();
@@ -365,6 +367,7 @@ export function RankingClient({
   classOptions: { _id: Id<"classes">; name: string }[];
   initialFrozenCells: FrozenCells;
 }) {
+  const { formatDateTime } = useDateFormatters();
   const t = useTranslations("contests.ranking");
   const detailLabels = useTranslations("contests.detail");
   const columns = useTranslations("contests.columns");

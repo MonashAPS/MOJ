@@ -38,7 +38,8 @@ import { useTransition } from "react";
 import { ContestLock } from "@/components/problems/ContestLock";
 import { ActiveFilters, type FilterOptions, FilterPanel } from "@/components/problems/FilterPanel";
 import { HotProblemsBox } from "@/components/problems/HotProblemsBox";
-import { formatDate } from "@/lib/format";
+import { LocalTime } from "@/components/time/LocalTime";
+
 import {
   activeFilterCount,
   EMPTY_QUERY,
@@ -412,7 +413,7 @@ export function ProblemsView({
                               {group.contestName}
                             </Link>
                             <span className="font-mono text-sm tabular-nums text-muted-foreground">
-                              {formatDate(group.startTime)}
+                              <LocalTime value={group.startTime} format="date" />
                             </span>
                           </span>
                         </TableCell>

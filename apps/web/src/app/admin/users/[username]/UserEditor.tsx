@@ -23,10 +23,11 @@ import {
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useMemo, useState, useTransition } from "react";
+import { type ReactNode, useMemo, useState, useTransition } from "react";
 import { AdminForm, ConfirmAction, DASH, Flags, RevisionsPanel, StatusLine } from "@/components/admin";
+import { LocalTime } from "@/components/time/LocalTime";
 import { chosenValue } from "@/lib/choices";
-import { formatDate, formatDateTime } from "@/lib/format";
+
 import {
   impersonateAction,
   removePasskeyAction,
@@ -54,7 +55,6 @@ type UserRow = {
   isBannedFromProblemVoting: boolean;
   permissions: string[];
   notes: string;
-  timezone: string;
   joinDate: number;
   lastAccess?: number;
   organizationSlugs: string[];
@@ -144,7 +144,6 @@ export function UserEditor({
   permissionCodes,
   languages,
   organizations,
-  timezones,
   account,
   viewerIsSuperuser,
   viewerUsername,
@@ -154,7 +153,6 @@ export function UserEditor({
   permissionCodes: string[];
   languages: Array<{ key: string; name: string }>;
   organizations: Array<{ slug: string; name: string }>;
-  timezones: string[];
   account: Account;
   viewerIsSuperuser: boolean;
   viewerUsername: string;
@@ -166,13 +164,7 @@ export function UserEditor({
       key: "profile",
       label: t("tabProfile"),
       content: (
-        <ProfileForm
-          user={user}
-          extras={extras}
-          languages={languages}
-          organizations={organizations}
-          timezones={timezones}
-        />
+        <ProfileForm user={user} extras={extras} languages={languages} organizations={organizations} />
       ),
     },
     {
@@ -232,8 +224,11 @@ function Summary({ user, account }: { user: UserRow; account: Account }) {
       <Stat label={t("performancePoints")} value={user.performancePoints.toFixed(0)} />
       <Stat label={t("problemsSolved")} value={String(user.problemCount)} />
       <Stat label={t("rating")} value={user.rating === undefined ? DASH : String(user.rating)} />
-      <Stat label={t("joined")} value={formatDate(user.joinDate)} />
-      <Stat label={t("lastSeen")} value={user.lastAccess ? formatDate(user.lastAccess) : DASH} />
+      <Stat label={t("joined")} value={<LocalTime value={user.joinDate} format="date" />} />
+      <Stat
+        label={t("lastSeen")}
+        value={user.lastAccess ? <LocalTime value={user.lastAccess} format="date" /> : DASH}
+      />
       <Stat label={t("email")} value={account.account?.email ?? DASH} mono />
       <div className="grid gap-1">
         <span className="font-sans text-xs font-semibold uppercase tracking-label text-muted-foreground">
@@ -254,7 +249,7 @@ function Summary({ user, account }: { user: UserRow; account: Account }) {
   );
 }
 
-function Stat({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+function Stat({ label, value, mono = false }: { label: string; value: ReactNode; mono?: boolean }) {
   return (
     <div className="grid gap-1">
       <span className="font-sans text-xs font-semibold uppercase tracking-label text-muted-foreground">
@@ -274,13 +269,11 @@ function ProfileForm({
   extras,
   languages,
   organizations,
-  timezones,
 }: {
   user: UserRow;
   extras: Extras;
   languages: Array<{ key: string; name: string }>;
   organizations: Array<{ slug: string; name: string }>;
-  timezones: string[];
 }) {
   const t = useTranslations("admin.users.profile");
   const edit = useMutation(api.admin.users.edit);
@@ -291,7 +284,6 @@ function ProfileForm({
     () => ({
       displayRank: chosenValue(RANKS, user.displayRank, "user"),
       usernameDisplayOverride: extras?.usernameDisplayOverride ?? "",
-      timezone: user.timezone,
       languageKey: extras?.languageKey ?? "",
       about: extras?.about ?? "",
       notes: user.notes,
@@ -324,7 +316,6 @@ function ProfileForm({
         username: user.username,
         displayRank: form.displayRank,
         usernameDisplayOverride: form.usernameDisplayOverride,
-        timezone: form.timezone,
         about: form.about,
         notes: form.notes,
         mute: form.mute,
@@ -373,14 +364,6 @@ function ProfileForm({
             value={form.usernameDisplayOverride}
             onChange={(event) => change("usernameDisplayOverride", event.target.value)}
             placeholder={user.username}
-          />
-        </Field>
-        <Field label={t("timezone")}>
-          <Select
-            options={timezones.map((zone) => ({ value: zone, label: zone }))}
-            value={form.timezone}
-            onValueChange={(value) => change("timezone", value)}
-            ariaLabel={t("timezone")}
           />
         </Field>
         <Field label={t("preferredLanguage")} hint={t("preferredLanguageHint")}>
@@ -702,7 +685,9 @@ function AccountPanel({
                   <TableCell>{passkey.name ?? t("passkeyUnnamed")}</TableCell>
                   <TableCell className="font-mono text-mono">{passkey.deviceType}</TableCell>
                   <TableCell>{passkey.backedUp ? common("yes") : common("no")}</TableCell>
-                  <TableCell numeric>{passkey.createdAt ? formatDate(passkey.createdAt) : DASH}</TableCell>
+                  <TableCell numeric>
+                    {passkey.createdAt ? <LocalTime value={passkey.createdAt} format="date" /> : DASH}
+                  </TableCell>
                   <TableCell>
                     <ConfirmAction
                       trigger={
@@ -865,9 +850,13 @@ function KeysPanel({ rows, username }: { rows: KeyRow[] | null; username: string
               <TableCell>{row.name}</TableCell>
               <TableCell className="font-mono text-mono">{row.prefix ?? DASH}</TableCell>
               <TableCell className="font-mono text-mono">{row.scopes.join(", ")}</TableCell>
-              <TableCell numeric>{formatDateTime(row.createdAt)}</TableCell>
-              <TableCell numeric>{row.expiresAt ? formatDateTime(row.expiresAt) : t("never")}</TableCell>
-              <TableCell numeric>{row.lastUsedAt ? formatDateTime(row.lastUsedAt) : DASH}</TableCell>
+              <TableCell numeric>
+                <LocalTime value={row.createdAt} />
+              </TableCell>
+              <TableCell numeric>
+                {row.expiresAt ? <LocalTime value={row.expiresAt} /> : t("never")}
+              </TableCell>
+              <TableCell numeric>{row.lastUsedAt ? <LocalTime value={row.lastUsedAt} /> : DASH}</TableCell>
             </TableRow>
           ))}
         </TableBody>

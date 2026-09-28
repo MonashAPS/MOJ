@@ -16,7 +16,7 @@ import {
   AdminTable,
   AdminToolbar,
 } from "@/components/admin";
-import { formatDateTime } from "@/lib/format";
+import { LocalTime } from "@/components/time/LocalTime";
 
 type Row = {
   key: string;
@@ -77,9 +77,9 @@ export function ContestsList() {
       key: "start",
       header: t("columnStarts"),
       numeric: true,
-      cell: (row) => formatDateTime(row.startTime),
+      cell: (row) => <LocalTime value={row.startTime} />,
     },
-    { key: "end", header: t("columnEnds"), numeric: true, cell: (row) => formatDateTime(row.endTime) },
+    { key: "end", header: t("columnEnds"), numeric: true, cell: (row) => <LocalTime value={row.endTime} /> },
     {
       key: "format",
       header: t("columnFormat"),

@@ -20,7 +20,6 @@ type Settings = {
   siteLongName: string;
   siteAdminEmail: string;
   registrationOpen: boolean;
-  defaultUserTimezone: string;
   defaultUserLanguageKey: string;
   problemsPerPage: number;
   commentsPerPage: number;
@@ -55,11 +54,9 @@ const SOURCE_VISIBILITY = [
 export function ConfigTabs({
   settings,
   languages,
-  timezones,
 }: {
   settings: Settings;
   languages: Array<{ key: string; name: string }>;
-  timezones: string[];
 }) {
   const t = useTranslations("admin.config.tabs");
 
@@ -69,7 +66,7 @@ export function ConfigTabs({
         {
           key: "settings",
           label: t("settings"),
-          content: <SettingsForm settings={settings} languages={languages} timezones={timezones} />,
+          content: <SettingsForm settings={settings} languages={languages} />,
         },
         { key: "misc", label: t("misc"), content: <MiscConfig /> },
       ]}
@@ -84,11 +81,9 @@ function num(value: number | undefined, fallback = ""): string {
 function SettingsForm({
   settings,
   languages,
-  timezones,
 }: {
   settings: Settings;
   languages: Array<{ key: string; name: string }>;
-  timezones: string[];
 }) {
   const t = useTranslations("admin.config.settings");
   const save = useMutation(api.admin.site.updateSettings);
@@ -102,7 +97,6 @@ function SettingsForm({
       requireStaffTwoFactor: settings?.requireStaffTwoFactor ?? true,
       pdfEnabled: settings?.pdfEnabled ?? true,
       enableComments: settings?.enableComments ?? true,
-      defaultUserTimezone: settings?.defaultUserTimezone ?? "Australia/Melbourne",
       defaultUserLanguageKey: settings?.defaultUserLanguageKey ?? "",
       problemsPerPage: num(settings?.problemsPerPage),
       submissionsPerPage: num(settings?.submissionsPerPage),
@@ -160,7 +154,6 @@ function SettingsForm({
         requireStaffTwoFactor: form.requireStaffTwoFactor,
         pdfEnabled: form.pdfEnabled,
         enableComments: form.enableComments,
-        defaultUserTimezone: form.defaultUserTimezone,
         defaultUserLanguageKey: form.defaultUserLanguageKey,
         problemsPerPage: optionalNumber(form.problemsPerPage),
         submissionsPerPage: optionalNumber(form.submissionsPerPage),
@@ -244,14 +237,6 @@ function SettingsForm({
 
       <Panel title={t("accounts")} bodyClassName="grid gap-4 p-3">
         <FieldGroup columns={2}>
-          <Field label={t("defaultTimezone")} hint={t("defaultTimezoneHint")}>
-            <Select
-              options={timezones.map((zone) => ({ value: zone, label: zone }))}
-              value={form.defaultUserTimezone}
-              onValueChange={(value) => change("defaultUserTimezone", value)}
-              ariaLabel={t("defaultTimezone")}
-            />
-          </Field>
           <Field label={t("defaultLanguage")} hint={t("defaultLanguageHint")}>
             <Select
               options={languages.map((language) => ({ value: language.key, label: language.name }))}

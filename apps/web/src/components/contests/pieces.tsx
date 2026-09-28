@@ -1,9 +1,11 @@
+"use client";
+
 import type { ContestSchedule } from "@moj/core";
 import { Badge, cn, Tooltip } from "@moj/ui";
 import { BarChart3, Check, CircleDashed, CircleSlash2, EyeOff, Lock, Users } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { formatDateTime } from "@/lib/format";
+import { LocalTime } from "@/components/time/LocalTime";
 
 export type ProblemState = "solved" | "partial" | "attempted" | "untouched";
 
@@ -142,7 +144,13 @@ export function ContestWindow({
   return (
     <div className={cn("font-mono text-sm tabular-nums text-muted-foreground", className)}>
       <div>
-        {windowed ? `${formatDateTime(startTime)} – ${formatDateTime(endTime)}` : formatDateTime(startTime)}
+        <LocalTime value={startTime} />
+        {windowed ? (
+          <>
+            {" "}
+            – <LocalTime value={endTime} />
+          </>
+        ) : null}
       </div>
       <div>
         {schedule.kind === "window"

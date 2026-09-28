@@ -34,7 +34,8 @@ import { AlertCircle, Check, Copy, KeyRound, Terminal, Trash2 } from "lucide-rea
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { formatDateTime } from "@/lib/format";
+import { LocalTime } from "@/components/time/LocalTime";
+
 import { readErrorMessage } from "@/lib/json-body";
 import { type ApiKeySummary, generateApiToken, type TokenScope } from "./actions";
 
@@ -242,10 +243,10 @@ export function ApiTokenPanel({
                     </span>
                   </TableCell>
                   <TableCell className="font-mono text-mono tabular-nums text-subtle">
-                    {formatDateTime(token.createdAt)}
+                    <LocalTime value={token.createdAt} />
                   </TableCell>
                   <TableCell className="font-mono text-mono tabular-nums text-subtle">
-                    {token.lastRequest ? formatDateTime(token.lastRequest) : "—"}
+                    {token.lastRequest ? <LocalTime value={token.lastRequest} /> : "—"}
                   </TableCell>
                   <TableCell>
                     <Button

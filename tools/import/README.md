@@ -235,14 +235,14 @@ wrote nothing.
 
 ## Better Auth column lists
 
-These match `apps/web/drizzle/0000_aberrant_rage.sql`, the schema Better Auth
+These match the migrations in `apps/web/drizzle/`, the schema Better Auth
 1.7 generates here with the `username`, `twoFactor`, `passkey`, `admin`,
 `apiKey`, `bearer` and `jwt` plugins plus MOJ's extra user fields. Drizzle names
 columns in snake_case.
 
 - `"user"`: `id`, `name`, `email`, `email_verified`, `image`, `created_at`,
   `updated_at`, `username`, `display_username`, `two_factor_enabled`, `role`,
-  `banned`, `ban_reason`, `ban_expires`, `is_staff`, `is_superuser`, `timezone`,
+  `banned`, `ban_reason`, `ban_expires`, `is_staff`, `is_superuser`,
   `preferred_language`, `organization_slugs`.
 - `"account"`: `id`, `account_id`, `provider_id`, `user_id`, `password`,
   `created_at`, `updated_at`.
@@ -252,7 +252,7 @@ columns in snake_case.
   `counter`, `device_type`, `backed_up`, `transports`, `created_at`, `aaguid`.
 
 The MOJ specific user columns come from the dump as well: `is_staff` and
-`is_superuser` from `auth_user`, `timezone` and `preferred_language` (the
+`is_superuser` from `auth_user`, `preferred_language` (the
 language key, for example `PY3`) from `judge_profile`, and `organization_slugs`
 from the user's organisations, written as the comma separated list of slugs the
 registration form uses.

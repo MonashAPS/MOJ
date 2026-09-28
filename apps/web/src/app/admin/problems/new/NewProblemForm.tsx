@@ -19,6 +19,7 @@ import {
   UserPicker,
 } from "@/components/admin";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
+import { useCountdownNow } from "@/lib/CountdownProvider";
 import { chosenValue } from "@/lib/choices";
 
 const SOURCE_VISIBILITY_OPTIONS = [
@@ -78,7 +79,8 @@ export function NewProblemForm() {
   const [curators, setCurators] = useState<string[]>([]);
   const [testers, setTesters] = useState<string[]>([]);
   const [sourceVisibility, setSourceVisibility] = useState<SourceVisibility>("F");
-  const [date, setDate] = useState<number | null>(Date.now());
+  const now = useCountdownNow() ?? 0;
+  const [date, setDate] = useState<number | null>(now);
   const [reason, _setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

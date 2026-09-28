@@ -136,7 +136,6 @@ export const auth = betterAuth({
     additionalFields: {
       isStaff: { type: "boolean", defaultValue: false, input: false, returned: true },
       isSuperuser: { type: "boolean", defaultValue: false, input: false, returned: true },
-      timezone: { type: "string", required: false, input: true, returned: true },
       preferredLanguage: { type: "string", required: false, input: true, returned: true },
       organizationSlugs: { type: "string", required: false, input: true, returned: true },
     },

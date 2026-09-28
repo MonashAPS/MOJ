@@ -6,7 +6,7 @@ import type { Timeline } from "@convex/proctor";
 import { useQuery } from "convex/react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
-import { formatDateTime } from "@/lib/format";
+import { useDateFormatters, useViewerTimeZone } from "@/lib/date-format";
 
 const MINUTE = 60_000;
 
@@ -118,7 +118,12 @@ function pack(segments: Segment[], msPerPixel: number): Segment[][] {
 }
 
 /** Ticks a person can read; the label tightens as the window does. */
-function ticksFor(from: number, to: number, count: number): { at: number; label: string }[] {
+function ticksFor(
+  from: number,
+  to: number,
+  count: number,
+  timeZone: string | null,
+): { at: number; label: string }[] {
   const span = to - from;
   const withDate = span > 12 * HOUR;
   const out: { at: number; label: string }[] = [];
@@ -126,12 +131,17 @@ function ticksFor(from: number, to: number, count: number): { at: number; label:
   for (let i = 0; i <= count; i += 1) {
     const at = from + (span * i) / count;
     const date = new Date(at);
-    const time = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+
+    const time = timeZone
+      ? date.toLocaleTimeString("en-AU", { timeZone, hour: "2-digit", minute: "2-digit" })
+      : "—";
+
     out.push({
       at,
-      label: withDate
-        ? `${date.toLocaleDateString(undefined, { day: "numeric", month: "short" })} ${time}`
-        : time,
+      label:
+        timeZone && withDate
+          ? `${date.toLocaleDateString("en-AU", { timeZone, day: "numeric", month: "short" })} ${time}`
+          : time,
     });
   }
 
@@ -178,6 +188,8 @@ export function ProctorChart({
   onPick: (segment: Segment) => void;
   selected: Segment | null;
 }) {
+  const { formatDateTime } = useDateFormatters();
+  const timeZone = useViewerTimeZone();
   const t = useTranslations("admin.proctor");
   const [hovered, setHovered] = useState<Segment | null>(null);
 
@@ -196,7 +208,7 @@ export function ProctorChart({
 
   const span = Math.max(1, bounds.to - bounds.from);
   const lanes = useMemo(() => pack(segments, span / 900), [segments, span]);
-  const ticks = ticksFor(bounds.from, bounds.to, Math.min(8, Math.max(3, lanes.length + 3)));
+  const ticks = ticksFor(bounds.from, bounds.to, Math.min(8, Math.max(3, lanes.length + 3)), timeZone);
 
   const left = (at: number) => ((at - bounds.from) / span) * 100;
 

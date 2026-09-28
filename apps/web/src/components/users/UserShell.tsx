@@ -1,9 +1,12 @@
+"use client";
+
 import { cn, MicroLabel, Panel, ratingClass, type TabItem, TitleRow } from "@moj/ui";
 import { Info, List, Puzzle, UserCog } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
-import { formatDate } from "@/lib/format";
+import { LocalTime } from "@/components/time/LocalTime";
+
 import { ratingTitleKey } from "./rating-title";
 
 type UserShellProfile = {
@@ -147,7 +150,9 @@ export function UserShell({
                     <span className="text-muted-foreground">{DASH}</span>
                   </Stat>
                 )}
-                <Stat label={t("joined")}>{formatDate(profile.joinDate)}</Stat>
+                <Stat label={t("joined")}>
+                  <LocalTime value={profile.joinDate} format="date" />
+                </Stat>
               </dl>
 
               {data.organizations.length > 0 ? (

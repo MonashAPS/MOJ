@@ -41,7 +41,7 @@ import {
   RecordDialog,
   StatusLine,
 } from "@/components/admin";
-import { formatRelative } from "@/lib/format";
+import { RelativeTime } from "@/components/time/LocalTime";
 
 type JudgeRow = FunctionReturnType<typeof api.admin.judges.list>[number];
 
@@ -202,7 +202,7 @@ export function JudgesTable({ siteUrl }: { siteUrl: string }) {
       key: "lastSeen",
       header: t("columnLastSeen"),
       numeric: true,
-      cell: (row) => (row.lastSeen === null ? DASH : formatRelative(row.lastSeen)),
+      cell: (row) => (row.lastSeen === null ? DASH : <RelativeTime value={row.lastSeen} />),
     },
     {
       key: "ip",

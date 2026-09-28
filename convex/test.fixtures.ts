@@ -81,7 +81,6 @@ export function profileRow(overrides: Overrides<"profiles"> = {}): Row<"profiles
   return {
     userId: identityOf(username).subject,
     about: "",
-    timezone: "Australia/Melbourne",
     points: 0,
     performancePoints: 0,
     problemCount: 0,
@@ -321,7 +320,6 @@ export function siteSettingsRow(overrides: Overrides<"siteSettings"> = {}): Row<
     siteLongName: "MOJ, the MAPS Online Judge",
     siteAdminEmail: "admin@example.com",
     registrationOpen: true,
-    defaultUserTimezone: "Australia/Melbourne",
     defaultUserLanguageKey: "PY3",
     problemsPerPage: 50,
     commentsPerPage: 50,
