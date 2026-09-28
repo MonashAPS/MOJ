@@ -8,7 +8,7 @@ export async function dismissProblemsJoinCover(contestKey: string): Promise<void
   const jar = await cookies();
   jar.set(problemsViewedCookieName(contestKey), "1", {
     path: `/contest/${encodeURIComponent(contestKey)}`,
-    maxAge: 365 * 24 * 60 * 60,
+    maxAge: 14 * 24 * 60 * 60,
     sameSite: "lax",
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

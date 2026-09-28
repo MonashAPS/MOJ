@@ -9,7 +9,7 @@ import { problemsViewedCookieName } from "@/lib/problems-join-cover";
 import { dismissProblemsJoinCover } from "./actions";
 
 describe("dismissProblemsJoinCover", () => {
-  it("persists a server-readable preference scoped to the selected contest", async () => {
+  it("persists a server-readable preference for two weeks scoped to the selected contest", async () => {
     const request = new NextRequest("https://example.com/contest/example/");
 
     const store = createRequestStoreForAPI(
@@ -48,7 +48,7 @@ describe("dismissProblemsJoinCover", () => {
       expect.objectContaining({
         value: "1",
         path: "/contest/example",
-        maxAge: 31_536_000,
+        maxAge: 1_209_600,
         httpOnly: true,
         sameSite: "lax",
       }),
