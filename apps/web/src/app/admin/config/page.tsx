@@ -1,8 +1,9 @@
 import { api } from "@convex/_generated/api";
-import { Button, TitleRow } from "@moj/ui";
+import { Button } from "@moj/ui";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { queryAsViewer } from "@/lib/convex-server";
 import { timezoneList } from "@/lib/timezones";
 import { ConfigTabs } from "./ConfigTabs";

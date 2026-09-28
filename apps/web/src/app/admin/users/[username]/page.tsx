@@ -1,10 +1,11 @@
 import { api } from "@convex/_generated/api";
-import { EmptyState, TitleRow } from "@moj/ui";
+import { EmptyState } from "@moj/ui";
 import { UserX } from "lucide-react";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { consoleViewer } from "@/auth/console";
 import { Crumbs } from "@/components/admin";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { queryAsViewer } from "@/lib/convex-server";
 import { timezoneList } from "@/lib/timezones";
 import { accountForUserAction } from "../actions";

@@ -1,9 +1,10 @@
 import { api } from "@convex/_generated/api";
-import { ContentDescription, Pagination, TitleRow, TwoColumn } from "@moj/ui";
+import { ContentDescription, Pagination, TwoColumn } from "@moj/ui";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { PostCard } from "@/components/blog/PostCard";
 import { ContestsBox, NewProblemsBox, RecentCommentsBox, TopUsersBox } from "@/components/home/SideBoxes";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { queryAsViewer } from "@/lib/convex-server";
 import { renderContent } from "@/lib/markdown";
 

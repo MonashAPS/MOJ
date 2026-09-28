@@ -1,9 +1,10 @@
 import { api } from "@convex/_generated/api";
-import { Alert, AlertTitle, TitleRow } from "@moj/ui";
+import { Alert, AlertTitle } from "@moj/ui";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getServerSession } from "@/auth/session";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { queryAsViewer } from "@/lib/convex-server";
 import { organizationHref, slugFromHandle } from "@/lib/organizations";
 import { RequestJoinForm } from "./RequestJoinForm";

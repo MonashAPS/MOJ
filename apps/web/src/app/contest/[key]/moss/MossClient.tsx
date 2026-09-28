@@ -21,7 +21,6 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  TitleRow,
   toast,
 } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
@@ -32,6 +31,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips } from "@/components/contests/pieces";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { contestTabs, joinKindFor } from "../tabs";
 
 /** `ContestMossView` (contests.py:852). MOSS needs an outbound call with a key

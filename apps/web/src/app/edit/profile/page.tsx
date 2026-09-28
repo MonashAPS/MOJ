@@ -1,11 +1,12 @@
 import { api } from "@convex/_generated/api";
-import { Alert, AlertDescription, AlertTitle, TitleRow, TwoColumn } from "@moj/ui";
+import { Alert, AlertDescription, AlertTitle, TwoColumn } from "@moj/ui";
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { listApiTokens } from "@/app/accounts/api/token/generate/actions";
 import { requireAccount } from "@/auth/account-state";
 import { accountTabs } from "@/components/accounts/AccountTabs";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { query, queryAsViewer } from "@/lib/convex-server";
 import { timezoneList } from "@/lib/timezones";
 import { AccountSideBoxes } from "./AccountSideBoxes";

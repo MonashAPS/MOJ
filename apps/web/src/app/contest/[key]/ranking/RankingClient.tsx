@@ -17,7 +17,6 @@ import {
   RatingName,
   Select,
   Switch,
-  TitleRow,
   Tooltip,
   toast,
 } from "@moj/ui";
@@ -30,6 +29,7 @@ import { type ReactNode, useState } from "react";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips, useHumanDuration } from "@/components/contests/pieces";
 import { RankingCellSubmissions } from "@/components/contests/RankingCellSubmissions";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { useSkin } from "@/components/shell/SkinProvider";
 import { chosenValue } from "@/lib/choices";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";

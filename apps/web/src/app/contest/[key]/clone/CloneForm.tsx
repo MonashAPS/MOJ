@@ -1,11 +1,12 @@
 "use client";
 
 import type { ContestDetail } from "@convex/contests";
-import { Button, Field, FormFooter, Input, Panel, TitleRow } from "@moj/ui";
+import { Button, Field, FormFooter, Input, Panel } from "@moj/ui";
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { cloneContest } from "@/app/contest/actions";
 import { ContestChips } from "@/components/contests/pieces";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { contestTabs } from "../tabs";
 
 /** `contest/clone.html`: one field, one button, and the clone opens hidden with

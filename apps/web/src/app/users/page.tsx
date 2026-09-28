@@ -1,6 +1,7 @@
 import { api } from "@convex/_generated/api";
-import { Alert, AlertTitle, TitleRow } from "@moj/ui";
+import { Alert, AlertTitle } from "@moj/ui";
 import { getTranslations } from "next-intl/server";
+import { TitleRow } from "@/components/shell/PageTabs";
 import type { OrganizationChip } from "@/components/users/LeaderboardTable";
 import { LeaderboardToolbar } from "@/components/users/LeaderboardToolbar";
 import { parseUserOrder } from "@/components/users/leaderboard";

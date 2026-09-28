@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, PageTabs, type TabItem, TitleRow, TwoColumn } from "@moj/ui";
+import { Button, type TabItem, TwoColumn } from "@moj/ui";
 import { CheckCircle2, CircleDashed, CircleSlash2, FileDown } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -8,6 +8,7 @@ import { ArtefactList } from "@/components/artefacts/ArtefactList";
 import { ProblemTabLink } from "@/components/problems/EditorialLink";
 import { type ProblemDetail, ProblemInfoBox } from "@/components/problems/ProblemInfoBox";
 import { type ProblemTabKey, problemTabs } from "@/components/problems/tabs";
+import { PageTabs, TitleRow } from "@/components/shell/PageTabs";
 
 const STATE_ICON = new Map([
   ["solved", { Icon: CheckCircle2, tone: "var(--state-solved)", label: "solved" }],

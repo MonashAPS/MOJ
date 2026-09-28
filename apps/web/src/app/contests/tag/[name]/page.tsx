@@ -1,11 +1,12 @@
 import { api } from "@convex/_generated/api";
-import { EmptyState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TitleRow } from "@moj/ui";
+import { EmptyState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@moj/ui";
 import { Tag } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ContestWindow, UserCount } from "@/components/contests/pieces";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { queryAsViewer } from "@/lib/convex-server";
 import { renderContent } from "@/lib/markdown";
 

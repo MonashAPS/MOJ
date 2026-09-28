@@ -1,7 +1,8 @@
 import { api } from "@convex/_generated/api";
-import { TitleRow } from "@moj/ui";
+
 import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "@/auth/session";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { queryAsViewer } from "@/lib/convex-server";
 import { PrepareDataForm } from "./PrepareDataForm";
 

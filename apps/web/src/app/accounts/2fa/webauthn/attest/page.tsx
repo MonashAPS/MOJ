@@ -1,7 +1,7 @@
-import { TitleRow } from "@moj/ui";
 import { getTranslations } from "next-intl/server";
 import { requireAccount } from "@/auth/account-state";
 import { accountTabs } from "@/components/accounts/AccountTabs";
+import { TitleRow } from "@/components/shell/PageTabs";
 import { PasskeyManager } from "./PasskeyManager";
 
 export async function generateMetadata() {
