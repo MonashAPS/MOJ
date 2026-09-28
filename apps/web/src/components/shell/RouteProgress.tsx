@@ -37,7 +37,9 @@ export function RouteProgress() {
 
       if (url.origin !== window.location.origin) return;
 
-      if (url.pathname === window.location.pathname) return;
+      // Next normalizes trailing slashes. A link back to the current page
+      // cannot change the pathname to clear the loading state below.
+      if (url.pathname.replace(/\/$/, "") === window.location.pathname.replace(/\/$/, "")) return;
       start();
     };
 
