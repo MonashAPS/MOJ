@@ -64,6 +64,7 @@ import type * as lib_proctor from "../lib/proctor.js";
 import type * as lib_rateLimiter from "../lib/rateLimiter.js";
 import type * as lib_seedData from "../lib/seedData.js";
 import type * as lib_testData from "../lib/testData.js";
+import type * as maintenance from "../maintenance.js";
 import type * as organizations from "../organizations.js";
 import type * as pages_admin_apiKeys from "../pages/admin/apiKeys.js";
 import type * as pages_admin_branding from "../pages/admin/branding.js";
@@ -165,6 +166,7 @@ declare const fullApi: ApiFromModules<{
   "lib/rateLimiter": typeof lib_rateLimiter;
   "lib/seedData": typeof lib_seedData;
   "lib/testData": typeof lib_testData;
+  maintenance: typeof maintenance;
   organizations: typeof organizations;
   "pages/admin/apiKeys": typeof pages_admin_apiKeys;
   "pages/admin/branding": typeof pages_admin_branding;
