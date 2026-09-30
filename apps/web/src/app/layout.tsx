@@ -141,6 +141,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                         registrationOpen={shell?.settings?.registrationOpen ?? true}
                         language={language}
                         logoUrl={branding?.logoUrl ?? null}
+                        logoDimensions={branding?.logoDimensions ?? null}
                         siteName={branding?.siteLongName ?? "MAPS Online Judge"}
                         initialContest={joined}
                       >

@@ -364,11 +364,11 @@ async function main() {
   step("Pushing the Convex functions");
   pinned("npx", ["convex", "dev", "--once"], { env });
 
-  step("Seeding languages, navigation, config and the sample problem");
+  step("Seeding languages, navigation, config, the sample problem and development contests");
 
   // SPEC section 24: an operator names the instance from the environment.
   // A name that is not set stays absent, so seed:run keeps its own default.
-  const seedOptions = {};
+  const seedOptions = { devContests: true };
 
   if (process.env.MOJ_SITE_NAME) seedOptions.siteName = process.env.MOJ_SITE_NAME;
 

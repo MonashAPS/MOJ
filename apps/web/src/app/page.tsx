@@ -3,9 +3,8 @@ import { Button, cn, EmptyState, RatingName, TwoColumn } from "@moj/ui";
 import { ArrowRight, MessageSquare, Newspaper, Pin, Rss } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { getServerSession } from "@/auth/session";
+import { HomeSidebar } from "@/components/home/HomeSidebar";
 import { HomeTopSlot } from "@/components/home/HomeTopSlot";
-import { ContestsBox, NewProblemsBox, RecentCommentsBox, TopUsersBox } from "@/components/home/SideBoxes";
 import { TitleRow } from "@/components/shell/PageTabs";
 import { RelativeTime } from "@/components/time/LocalTime";
 import { query, queryAsViewer } from "@/lib/convex-server";
@@ -25,10 +24,9 @@ const DAY = 24 * 3600_000;
 export default async function HomePage() {
   const t = await getTranslations("common.home");
 
-  const [misc, posts, session] = await Promise.all([
+  const [misc, posts] = await Promise.all([
     query(api.site.miscConfig, {}).catch((): Record<string, string> => ({})),
     queryAsViewer(api.blog.list, { limit: 10 }).catch(() => []),
-    getServerSession().catch(() => null),
   ]);
 
   const topSlot = misc.home_page_top?.trim()
@@ -61,16 +59,7 @@ export default async function HomePage() {
         }
       />
 
-      <TwoColumn
-        side={
-          <>
-            <ContestsBox />
-            <RecentCommentsBox />
-            <NewProblemsBox />
-            <TopUsersBox viewerUsername={session?.user.name} />
-          </>
-        }
-      >
+      <TwoColumn side={<HomeSidebar />}>
         {topSlot ? <HomeTopSlot html={topSlot} /> : null}
 
         {posts.length === 0 ? (

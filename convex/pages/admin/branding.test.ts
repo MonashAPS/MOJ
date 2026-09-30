@@ -67,6 +67,7 @@ describe("branding", () => {
     expect(branding.accentColor).toBe("#2941a5");
     expect(branding.navColor).toBe("#101a3d");
     expect(branding.logoUrl).toBeNull();
+    expect(branding.logoDimensions).toBeNull();
     expect(branding.themeDefault).toBe("system");
     expect(branding.isCustomised).toBe(false);
   });
@@ -95,6 +96,63 @@ describe("branding", () => {
     expect(branding.navColorDark).not.toBe(branding.navColor);
     expect(branding.titlebarColorDark).not.toBe(branding.titlebarColor);
     expect(branding.contestBarColorDark).not.toBe(branding.contestBarColor);
+  });
+
+  test("logo dimensions survive other edits and are cleared with the logo", async () => {
+    const { t } = await withSettings();
+    const logoStorageId = await t.run((ctx) => ctx.storage.store(new Blob(["logo"])));
+    const asRoot = asUser(t, "root");
+
+    await asRoot.mutation(api.pages.admin.branding.update, {
+      logoStorageId,
+      logoDimensions: { width: 900, height: 120 },
+    });
+    await asRoot.mutation(api.pages.admin.branding.update, { siteName: "Custom" });
+    expect((await t.query(api.site.branding, {})).logoDimensions).toEqual({ width: 900, height: 120 });
+
+    await asRoot.mutation(api.pages.admin.branding.update, { logoStorageId: null });
+    expect((await t.query(api.site.branding, {})).logoDimensions).toBeNull();
+    expect(await t.run((ctx) => ctx.storage.get(logoStorageId))).toBeNull();
+  });
+
+  test("legacy uploads remain valid and can acquire dimensions on re-upload", async () => {
+    const { t } = await withSettings();
+    const first = await t.run((ctx) => ctx.storage.store(new Blob(["old logo"])));
+    const second = await t.run((ctx) => ctx.storage.store(new Blob(["new logo"])));
+    const asRoot = asUser(t, "root");
+
+    await asRoot.mutation(api.pages.admin.branding.update, { logoStorageId: first });
+    expect((await t.query(api.site.branding, {})).logoDimensions).toBeNull();
+    await asRoot.mutation(api.pages.admin.branding.update, {
+      logoStorageId: second,
+      logoDimensions: { width: 100, height: 200 },
+    });
+    expect((await t.query(api.site.branding, {})).logoDimensions).toEqual({ width: 100, height: 200 });
+    expect(await t.run((ctx) => ctx.storage.get(first))).toBeNull();
+
+    const third = await t.run((ctx) => ctx.storage.store(new Blob(["legacy client logo"])));
+    await asRoot.mutation(api.pages.admin.branding.update, { logoStorageId: third });
+    expect((await t.query(api.site.branding, {})).logoDimensions).toBeNull();
+  });
+
+  test("invalid dimensions cannot replace the existing logo", async () => {
+    const { t } = await withSettings();
+    const logoStorageId = await t.run((ctx) => ctx.storage.store(new Blob(["logo"])));
+    const asRoot = asUser(t, "root");
+
+    for (const width of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      await expect(
+        asRoot.mutation(api.pages.admin.branding.update, {
+          logoStorageId,
+          logoDimensions: { width, height: 100 },
+        }),
+      ).rejects.toThrow(/positive finite/);
+    }
+
+    await expect(
+      asRoot.mutation(api.pages.admin.branding.update, { logoDimensions: { width: 100, height: 100 } }),
+    ).rejects.toThrow(/accompany a logo/);
+    expect((await t.query(api.site.branding, {})).logoUrl).toBeNull();
   });
 
   test("saving the branding form's own defaults is not a customisation", async () => {

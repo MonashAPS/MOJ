@@ -53,6 +53,12 @@ On NixOS the Biome binary will not start on its own. Run it through `steam-run`,
 
 ## Test user credentials
 
+Setup also seeds three public contests containing A Plus B and A Times B: `dev-ended`, which ended a day ago;
+`dev-running`, which started an hour ago and ends in seven days; and `dev-upcoming`, which starts in a day
+and lasts two hours. Rerunning setup refreshes their dates
+without duplicating the contests or their problem entries. To refresh just these fixtures on a running
+development deployment, run `npx convex run seed:run '{"devContests":true}'`.
+
 Open `/accounts/login/`.
 
 | Account | Username | Password |

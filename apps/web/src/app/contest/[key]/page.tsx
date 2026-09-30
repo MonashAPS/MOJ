@@ -2,11 +2,13 @@ import { api } from "@convex/_generated/api";
 import { Alert, AlertDescription, AlertTitle } from "@moj/ui";
 import { MonitorPlay } from "lucide-react";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Comments } from "@/components/comments/Comments";
 import { queryAsViewer } from "@/lib/convex-server";
 import { renderContent } from "@/lib/markdown";
+import { problemsViewedCookieName } from "@/lib/problems-join-cover";
 import { ContestDetailClient } from "./ContestDetailClient";
 import { PrivateContest } from "./PrivateContest";
 
@@ -26,9 +28,10 @@ export async function generateMetadata({ params }: { params: Promise<{ key: stri
 export default async function ContestPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
 
-  const [detail, defaultLanguage] = await Promise.all([
+  const [detail, defaultLanguage, jar] = await Promise.all([
     queryAsViewer(api.contests.get, { key }).catch(() => null),
     queryAsViewer(api.languages.viewerDefault, {}).catch(() => null),
+    cookies(),
   ]);
 
   if (!detail || detail.access.kind === "notFound" || detail.access.kind === "inaccessible") notFound();
@@ -54,6 +57,7 @@ export default async function ContestPage({ params }: { params: Promise<{ key: s
       <ContestDetailClient
         contestKey={key}
         initial={detail}
+        problemsCoverDismissed={jar.get(problemsViewedCookieName(key))?.value === "1"}
         descriptionHtml={descriptionHtml}
         defaultLanguageKey={defaultLanguage?.key ?? null}
       />

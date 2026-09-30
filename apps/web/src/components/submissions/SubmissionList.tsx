@@ -23,6 +23,7 @@ import { Inbox, PlugZap } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { watchDisconnection } from "@/lib/disconnection";
 import { verdictCode } from "@/lib/submissionFormat";
 import type { ListContext } from "@/lib/submissionsData";
 import { type ResultData, ResultsChart } from "./ResultsChart";
@@ -302,21 +303,14 @@ export function SubmissionList({
 
 /**
  * DMOJ's full-width red "You were disconnected" band becomes a warning strip
- * with a Reconnect action, and it does not push the list down.
+ * with a Reconnect action once the connection has stayed down for a while.
  */
 function Disconnected() {
   const t = useTranslations("submissions.list");
   const convex = useConvex();
   const [down, setDown] = useState(false);
 
-  useEffect(() => {
-    const apply = (connected: boolean) =>
-      setDown((previous) => (previous === !connected ? previous : !connected));
-
-    apply(convex.connectionState().isWebSocketConnected);
-
-    return convex.subscribeToConnectionState((state) => apply(state.isWebSocketConnected));
-  }, [convex]);
+  useEffect(() => watchDisconnection(convex, setDown), [convex]);
 
   if (!down) return null;
 

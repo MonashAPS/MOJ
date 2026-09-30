@@ -3,6 +3,7 @@
 import { api } from "@convex/_generated/api";
 import { Button, cn, Panel, Progress, RatingName } from "@moj/ui";
 import { useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import {
   CalendarClock,
   CheckCircle2,
@@ -16,7 +17,8 @@ import {
 import Link from "next/link";
 import { LocalTime } from "@/components/time/LocalTime";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
-import { useDateFormatters } from "@/lib/date-format";
+import { useDateFormatters, useRelativeReferenceTime } from "@/lib/date-format";
+import { useViewerLive } from "@/lib/useViewerLive";
 
 /** A box's footer links sit on one right-aligned row above a thin rule. */
 function BoxFooter({ children }: { children: React.ReactNode }) {
@@ -40,18 +42,24 @@ function FeedLinks({ base }: { base: string }) {
   );
 }
 
-export function ContestsBox() {
-  const contests = useQuery(api.contests.homeSidebar, { limit: 8 });
+/** How many contests the box lists, and how many of those may be upcoming. */
+const CONTESTS_SHOWN = 8;
 
-  if (contests === undefined)
-    return (
-      <Panel title="Contests" icon={<Trophy size={14} />}>
-        {null}
-      </Panel>
-    );
+const UPCOMING_SHOWN = 5;
 
-  const ongoing = contests.filter((contest) => contest.state === "ongoing");
-  const upcoming = contests.filter((contest) => contest.state === "upcoming");
+export function ContestsBox({ contests }: { contests: FunctionReturnType<typeof api.contests.homeSidebar> }) {
+  // The shared minute clock, which starts from the request time, so the split
+  // the server rendered is the split the page hydrates with.
+  const now = useRelativeReferenceTime();
+
+  const ongoing = contests
+    .filter((contest) => contest.startTime <= now && contest.endTime > now)
+    .sort((a, b) => a.endTime - b.endTime)
+    .slice(0, CONTESTS_SHOWN);
+
+  const upcoming = contests
+    .filter((contest) => contest.startTime > now)
+    .slice(0, Math.min(UPCOMING_SHOWN, CONTESTS_SHOWN - ongoing.length));
 
   if (ongoing.length === 0 && upcoming.length === 0) {
     return (
@@ -81,7 +89,7 @@ export function ContestsBox() {
       {upcoming.length > 0 ? (
         <Panel title="Upcoming contests" icon={<CalendarClock size={14} />} bodyClassName="p-0">
           <ul>
-            {upcoming.slice(0, 5).map((contest) => (
+            {upcoming.map((contest) => (
               <UpcomingRow key={contest._id} contest={contest} />
             ))}
           </ul>
@@ -166,8 +174,15 @@ function UpcomingRow({ contest }: { contest: SidebarContest }) {
   );
 }
 
-export function RecentCommentsBox() {
-  const comments = useQuery(api.comments.recent, { limit: 10 });
+export function RecentCommentsBox({
+  initial,
+  serverHadViewer = false,
+}: {
+  initial?: FunctionReturnType<typeof api.comments.recent>;
+  serverHadViewer?: boolean;
+}) {
+  const live = useQuery(api.comments.recent, { limit: 10 });
+  const comments = useViewerLive(live, initial, serverHadViewer);
 
   if (comments === undefined || comments.length === 0) return null;
 
@@ -191,10 +206,14 @@ export function RecentCommentsBox() {
   );
 }
 
-export function NewProblemsBox({ states }: { states?: Record<string, "solved" | "partial" | "attempted"> }) {
-  const problems = useQuery(api.problems.recent, { limit: 7 });
-
-  if (problems === undefined || problems.length === 0) return null;
+export function NewProblemsBox({
+  problems,
+  states,
+}: {
+  problems: FunctionReturnType<typeof api.problems.recent>;
+  states?: Record<string, "solved" | "partial" | "attempted">;
+}) {
+  if (problems.length === 0) return null;
 
   return (
     <Panel title="New problems" icon={<Plus size={14} />}>
@@ -226,10 +245,14 @@ export function NewProblemsBox({ states }: { states?: Record<string, "solved" | 
   );
 }
 
-export function TopUsersBox({ viewerUsername }: { viewerUsername?: string }) {
-  const users = useQuery(api.rankings.top, { limit: 10 });
-
-  if (users === undefined || users.length === 0) return null;
+export function TopUsersBox({
+  users,
+  viewerUsername,
+}: {
+  users: FunctionReturnType<typeof api.rankings.top>;
+  viewerUsername?: string;
+}) {
+  if (users.length === 0) return null;
 
   return (
     <Panel title="Top users" icon={<Trophy size={14} />}>

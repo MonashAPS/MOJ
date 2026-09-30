@@ -137,7 +137,7 @@ export function ContestBar({
       className="flex h-(--contest-bar-height) items-center gap-3 border-b border-white/10 bg-contest-bar px-4 text-contest-bar-ink"
     >
       <Link
-        href={base}
+        href={`${base}/`}
         className="max-w-[24ch] shrink-0 truncate text-sm font-semibold text-nav-ink hover:text-white max-[700px]:max-w-[12ch]"
       >
         {data.contest.name}

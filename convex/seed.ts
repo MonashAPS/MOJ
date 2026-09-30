@@ -102,15 +102,44 @@ Output a single integer, the value of ~A + B~.
     0
 `;
 
+const ATIMESB_STATEMENT = `Given two integers ~A~ and ~B~, compute their product.
+
+## Input Specification
+
+One line containing two space-separated integers ~A~ and ~B~
+(~-10000 \\le A, B \\le 10000~).
+
+## Output Specification
+
+Output a single integer, the value of ~A \\times B~.
+
+## Sample Input 1
+
+    3 4
+
+## Sample Output 1
+
+    12
+
+## Sample Input 2
+
+    -5 0
+
+## Sample Output 2
+
+    0
+`;
+
 export const run = internalMutation({
   args: {
     force: v.optional(v.boolean()),
+    devContests: v.optional(v.boolean()),
     /** `npm run setup` passes MOJ_SITE_NAME / MOJ_SITE_LONG_NAME through so a
      *  fresh instance is named for its club rather than for MOJ. */
     siteName: v.optional(v.string()),
     siteLongName: v.optional(v.string()),
   },
-  handler: async (ctx, { force, siteName, siteLongName }) => {
+  handler: async (ctx, { force, devContests, siteName, siteLongName }) => {
     const report: Record<string, number> = {};
 
     // Languages ------------------------------------------------------------
@@ -296,65 +325,183 @@ export const run = internalMutation({
 
     report.blogPosts = announcementsWritten;
 
-    // Sample problem -------------------------------------------------------
-    const existingProblem = await ctx.db
-      .query("problems")
-      .withIndex("by_code", (q) => q.eq("code", "aplusb"))
-      .unique();
-
-    if (existingProblem) {
-      report.problems = 0;
-    } else {
-      const allLanguages = await ctx.db.query("languages").collect();
-
-      const problemId = await ctx.db.insert("problems", {
+    // Sample problems ------------------------------------------------------
+    const samples = [
+      {
         code: "aplusb",
         name: "A Plus B",
         description: APLUSB_STATEMENT,
-        authorProfileIds: [],
-        curatorProfileIds: [],
-        testerProfileIds: [],
-        typeIds: [uncategorizedTypeId],
-        groupId: uncategorizedGroupId,
-        timeLimit: 1.0,
-        memoryLimit: 262144,
-        shortCircuit: false,
-        points: 100,
-        partial: true,
-        allowedLanguageIds: allLanguages.map((row) => row._id),
-        isPublic: true,
-        isManuallyManaged: false,
-        date: Date.now(),
-        bannedProfileIds: [],
-        userCount: 0,
-        acRate: 0,
-        isFullMarkup: false,
-        submissionSourceVisibility: "F",
-        organizationIds: [],
-        isOrganizationPrivate: false,
         summary: "Add two integers. The traditional first problem.",
+      },
+    ];
+
+    if (devContests) {
+      samples.push({
+        code: "atimesb",
+        name: "A Times B",
+        description: ATIMESB_STATEMENT,
+        summary: "Multiply two integers.",
       });
+    }
 
-      await ctx.db.insert("problemData", {
-        problemId,
-        feedback: "",
-        unicode: false,
-        nobigmath: false,
-      });
+    const sampleProblemIds: Id<"problems">[] = [];
+    report.problems = 0;
 
-      const cases: Array<Omit<Doc<"problemTestCases">, "_id" | "_creationTime">> = [
-        mkCase(problemId, 0, "S", "", "", 0),
-        mkCase(problemId, 1, "C", "00.in", "00.out", 0),
-        mkCase(problemId, 2, "C", "01.in", "01.out", 0),
-        mkCase(problemId, 3, "E", "", "", 0),
-        mkCase(problemId, 4, "S", "", "", 100),
-        mkCase(problemId, 5, "C", "02.in", "02.out", 0),
-        mkCase(problemId, 6, "C", "03.in", "03.out", 0),
-        mkCase(problemId, 7, "E", "", "", 0),
-      ];
+    for (const sample of samples) {
+      const existingProblem = await ctx.db
+        .query("problems")
+        .withIndex("by_code", (q) => q.eq("code", sample.code))
+        .unique();
 
-      for (const row of cases) await ctx.db.insert("problemTestCases", row);
-      report.problems = 1;
+      if (existingProblem) {
+        sampleProblemIds.push(existingProblem._id);
+      } else {
+        const allLanguages = await ctx.db.query("languages").collect();
+
+        const problemId = await ctx.db.insert("problems", {
+          code: sample.code,
+          name: sample.name,
+          description: sample.description,
+          authorProfileIds: [],
+          curatorProfileIds: [],
+          testerProfileIds: [],
+          typeIds: [uncategorizedTypeId],
+          groupId: uncategorizedGroupId,
+          timeLimit: 1.0,
+          memoryLimit: 262144,
+          shortCircuit: false,
+          points: 100,
+          partial: true,
+          allowedLanguageIds: allLanguages.map((row) => row._id),
+          isPublic: true,
+          isManuallyManaged: false,
+          date: Date.now(),
+          bannedProfileIds: [],
+          userCount: 0,
+          acRate: 0,
+          isFullMarkup: false,
+          submissionSourceVisibility: "F",
+          organizationIds: [],
+          isOrganizationPrivate: false,
+          summary: sample.summary,
+        });
+
+        sampleProblemIds.push(problemId);
+
+        await ctx.db.insert("problemData", {
+          problemId,
+          feedback: "",
+          unicode: false,
+          nobigmath: false,
+        });
+
+        const cases: Array<Omit<Doc<"problemTestCases">, "_id" | "_creationTime">> = [
+          mkCase(problemId, 0, "S", "", "", 0),
+          mkCase(problemId, 1, "C", "00.in", "00.out", 0),
+          mkCase(problemId, 2, "C", "01.in", "01.out", 0),
+          mkCase(problemId, 3, "E", "", "", 0),
+          mkCase(problemId, 4, "S", "", "", 100),
+          mkCase(problemId, 5, "C", "02.in", "02.out", 0),
+          mkCase(problemId, 6, "C", "03.in", "03.out", 0),
+          mkCase(problemId, 7, "E", "", "", 0),
+        ];
+
+        for (const row of cases) await ctx.db.insert("problemTestCases", row);
+        report.problems++;
+      }
+    }
+
+    // Development fixtures are opt-in; setup refreshes their dates on every run.
+    if (devContests) {
+      const hour = 60 * 60 * 1000;
+      const now = Date.now();
+      report.contests = 0;
+      report.contestProblems = 0;
+
+      for (const fixture of [
+        {
+          key: "dev-ended",
+          name: "Development contest (ended)",
+          startTime: now - 26 * hour,
+          endTime: now - 24 * hour,
+        },
+        {
+          key: "dev-running",
+          name: "Development contest (running)",
+          startTime: now - hour,
+          endTime: now + 7 * 24 * hour,
+        },
+        {
+          key: "dev-upcoming",
+          name: "Development contest (upcoming)",
+          startTime: now + 24 * hour,
+          endTime: now + 26 * hour,
+        },
+      ]) {
+        const existing = await ctx.db
+          .query("contests")
+          .withIndex("by_key", (q) => q.eq("key", fixture.key))
+          .unique();
+
+        let contestId = existing?._id;
+
+        if (contestId) {
+          await ctx.db.patch(contestId, { startTime: fixture.startTime, endTime: fixture.endTime });
+        } else {
+          contestId = await ctx.db.insert("contests", {
+            ...fixture,
+            description: "A development contest for testing with the A Plus B and A Times B sample problems.",
+            authorProfileIds: [],
+            curatorProfileIds: [],
+            testerProfileIds: [],
+            spectatorProfileIds: [],
+            testerSeeScoreboard: false,
+            testerSeeSubmissions: false,
+            spectatorSeeScoreboard: true,
+            spectatorSeeProblemsEarly: false,
+            schedule: { kind: "together" },
+            isVisible: true,
+            entry: { kind: "open" },
+            isOpenEntry: true,
+            labels: { kind: "letters" },
+            alwaysAdmitProfileIds: [],
+            viewContestSubmissionsProfileIds: [],
+            scoreboard: { audiences: ["everyone"], from: "start" },
+            useClarifications: true,
+            hideProblemTags: false,
+            hideProblemAuthors: false,
+            runPretestsOnly: false,
+            tagIds: [],
+            userCount: 0,
+            bannedProfileIds: [],
+            formatName: "default",
+            formatConfig: null,
+            pointsPrecision: 3,
+          });
+        }
+
+        report.contests++;
+
+        const problems = await ctx.db
+          .query("contestProblems")
+          .withIndex("by_contest_order", (q) => q.eq("contestId", contestId))
+          .collect();
+
+        let order = Math.max(0, ...problems.map((problem) => problem.order));
+
+        for (const problemId of sampleProblemIds) {
+          if (problems.some((problem) => problem.problemId === problemId)) continue;
+          await ctx.db.insert("contestProblems", {
+            contestId,
+            problemId,
+            points: 100,
+            partial: true,
+            isPretested: false,
+            order: ++order,
+          });
+          report.contestProblems++;
+        }
+      }
     }
 
     return report;
