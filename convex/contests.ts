@@ -105,7 +105,6 @@ export type HomeSidebarContest = {
   startTime: number;
   endTime: number;
   userCount: number;
-  state: "ongoing" | "upcoming";
 };
 
 export type UserRef = {
@@ -357,44 +356,41 @@ export async function problemStateFor(
 /* Home page side box                                                         */
 /* -------------------------------------------------------------------------- */
 
-/** Home page side box: contests running now and the next few coming up. */
+/**
+ * The home sidebar's contests: every visible, open contest that has not ended,
+ * earliest start first.
+ *
+ * Whether one is ongoing or upcoming is left to the page, which splits them on
+ * its own clock. Convex caches a query until a row it read changes, not until
+ * time passes, so a query that compared against the current time kept calling a
+ * started contest upcoming. `now` is the caller's time rounded down to the
+ * hour: every visitor in that hour shares one cached answer, and the page drops
+ * a contest that ended since.
+ */
 export const homeSidebar = query({
-  args: { limit: v.optional(v.number()) },
-  handler: async (ctx, { limit }): Promise<HomeSidebarContest[]> => {
-    const take = Math.max(1, Math.min(limit ?? 5, 20));
-    const now = Date.now();
-
+  args: { now: v.number() },
+  handler: async (ctx, { now }): Promise<HomeSidebarContest[]> => {
     const rows = await ctx.db
       .query("contests")
-      .withIndex("by_visible_start", (q) => q.eq("isVisible", true))
-      .collect();
+      .withIndex("by_visible_end", (q) => q.eq("isVisible", true).gt("endTime", now))
+      .take(HOME_SIDEBAR_SCAN);
 
-    const ongoing = rows
-      .filter((row) => row.isOpenEntry && row.startTime <= now && row.endTime > now)
-      .sort((a, b) => a.endTime - b.endTime);
-
-    const upcoming = rows
-      .filter((row) => row.isOpenEntry && row.startTime > now)
-      .sort((a, b) => a.startTime - b.startTime);
-
-    return [
-      ...ongoing.map((row) => sidebarContest(row, "ongoing")),
-      ...upcoming.map((row) => sidebarContest(row, "upcoming")),
-    ].slice(0, take);
+    return rows
+      .filter((row) => row.isOpenEntry)
+      .sort((a, b) => a.startTime - b.startTime)
+      .map((row) => ({
+        _id: row._id,
+        key: row.key,
+        name: row.name,
+        startTime: row.startTime,
+        endTime: row.endTime,
+        userCount: row.userCount,
+      }));
   },
 });
 
-function sidebarContest(row: Doc<"contests">, state: "ongoing" | "upcoming"): HomeSidebarContest {
-  return {
-    _id: row._id,
-    key: row.key,
-    name: row.name,
-    startTime: row.startTime,
-    endTime: row.endTime,
-    userCount: row.userCount,
-    state,
-  };
-}
+/** A bound on unfinished contests read, far above any real calendar. */
+const HOME_SIDEBAR_SCAN = 200;
 
 /* -------------------------------------------------------------------------- */
 /* The contest bar (SPEC section 20)                                          */

@@ -680,6 +680,7 @@ export default defineSchema({
   })
     .index("by_key", ["key"])
     .index("by_visible_start", ["isVisible", "startTime"])
+    .index("by_visible_end", ["isVisible", "endTime"])
     .index("by_end", ["endTime"])
     .index("by_publishProblemsAt_start", ["publishProblemsAt", "startTime"])
     .index("by_publishProblemsAt_end", ["publishProblemsAt", "endTime"])
