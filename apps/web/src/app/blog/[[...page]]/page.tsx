@@ -3,7 +3,7 @@ import { ContentDescription, Pagination, TwoColumn } from "@moj/ui";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { PostCard } from "@/components/blog/PostCard";
-import { ContestsBox, NewProblemsBox, RecentCommentsBox, TopUsersBox } from "@/components/home/SideBoxes";
+import { HomeSidebar } from "@/components/home/HomeSidebar";
 import { TitleRow } from "@/components/shell/PageTabs";
 import { queryAsViewer } from "@/lib/convex-server";
 import { renderContent } from "@/lib/markdown";
@@ -61,16 +61,7 @@ export default async function BlogListPage({ params }: Props) {
     <>
       <TitleRow title={t("title")} />
       <div id="content-body">
-        <TwoColumn
-          side={
-            <>
-              <ContestsBox />
-              <RecentCommentsBox />
-              <NewProblemsBox />
-              <TopUsersBox />
-            </>
-          }
-        >
+        <TwoColumn side={<HomeSidebar />}>
           {posts.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t("empty")}</p>
           ) : (

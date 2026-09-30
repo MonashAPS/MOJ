@@ -17,7 +17,7 @@ import {
 import Link from "next/link";
 import { LocalTime } from "@/components/time/LocalTime";
 import { COUNTDOWN_HORIZON, formatDuration, useCountdown } from "@/lib/countdown";
-import { useDateFormatters } from "@/lib/date-format";
+import { useDateFormatters, useRelativeReferenceTime } from "@/lib/date-format";
 import { useViewerLive } from "@/lib/useViewerLive";
 
 /** A box's footer links sit on one right-aligned row above a thin rule. */
@@ -42,18 +42,24 @@ function FeedLinks({ base }: { base: string }) {
   );
 }
 
-export function ContestsBox({ initial }: { initial?: FunctionReturnType<typeof api.contests.homeSidebar> }) {
-  const contests = useQuery(api.contests.homeSidebar, { limit: 8 }) ?? initial;
+/** How many contests the box lists, and how many of those may be upcoming. */
+const CONTESTS_SHOWN = 8;
 
-  if (contests === undefined)
-    return (
-      <Panel title="Contests" icon={<Trophy size={14} />}>
-        {null}
-      </Panel>
-    );
+const UPCOMING_SHOWN = 5;
 
-  const ongoing = contests.filter((contest) => contest.state === "ongoing");
-  const upcoming = contests.filter((contest) => contest.state === "upcoming");
+export function ContestsBox({ contests }: { contests: FunctionReturnType<typeof api.contests.homeSidebar> }) {
+  // The shared minute clock, which starts from the request time, so the split
+  // the server rendered is the split the page hydrates with.
+  const now = useRelativeReferenceTime();
+
+  const ongoing = contests
+    .filter((contest) => contest.startTime <= now && contest.endTime > now)
+    .sort((a, b) => a.endTime - b.endTime)
+    .slice(0, CONTESTS_SHOWN);
+
+  const upcoming = contests
+    .filter((contest) => contest.startTime > now)
+    .slice(0, Math.min(UPCOMING_SHOWN, CONTESTS_SHOWN - ongoing.length));
 
   if (ongoing.length === 0 && upcoming.length === 0) {
     return (
@@ -83,7 +89,7 @@ export function ContestsBox({ initial }: { initial?: FunctionReturnType<typeof a
       {upcoming.length > 0 ? (
         <Panel title="Upcoming contests" icon={<CalendarClock size={14} />} bodyClassName="p-0">
           <ul>
-            {upcoming.slice(0, 5).map((contest) => (
+            {upcoming.map((contest) => (
               <UpcomingRow key={contest._id} contest={contest} />
             ))}
           </ul>
@@ -201,15 +207,13 @@ export function RecentCommentsBox({
 }
 
 export function NewProblemsBox({
-  initial,
+  problems,
   states,
 }: {
-  initial?: FunctionReturnType<typeof api.problems.recent>;
+  problems: FunctionReturnType<typeof api.problems.recent>;
   states?: Record<string, "solved" | "partial" | "attempted">;
 }) {
-  const problems = useQuery(api.problems.recent, { limit: 7 }) ?? initial;
-
-  if (problems === undefined || problems.length === 0) return null;
+  if (problems.length === 0) return null;
 
   return (
     <Panel title="New problems" icon={<Plus size={14} />}>
@@ -242,15 +246,13 @@ export function NewProblemsBox({
 }
 
 export function TopUsersBox({
-  initial,
+  users,
   viewerUsername,
 }: {
-  initial?: FunctionReturnType<typeof api.rankings.top>;
+  users: FunctionReturnType<typeof api.rankings.top>;
   viewerUsername?: string;
 }) {
-  const users = useQuery(api.rankings.top, { limit: 10 }) ?? initial;
-
-  if (users === undefined || users.length === 0) return null;
+  if (users.length === 0) return null;
 
   return (
     <Panel title="Top users" icon={<Trophy size={14} />}>
