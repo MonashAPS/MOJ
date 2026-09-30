@@ -63,7 +63,9 @@ Prefer setting limits in `config.json`, so everyone can see them on the problem 
 
 ### Cases and batches
 
-A batch awards its points only when every case in it passes. If short circuiting is enabled, failing a test case within a batch will also immediately exit the batch (Note: This is a departure from upstream DMOJ, which skips the batch irrespective of the short circuiting setting).
+A batch awards its points only when every case in it passes. With short circuiting on, grading stops at the
+first failing case. With it off, every case in a failed batch still runs; upstream DMOJ skips the rest of the
+batch either way.
 
 ```yaml
 test_cases:
