@@ -63,8 +63,7 @@ HELD = ('AC', 'RTE', 'IR', 'TLE')
 
 
 def verdict(server: MockJudgeServer, submission_id: int) -> Tuple[str, List[str]]:
-    """The submission's own result: the first case that is not accepted, since a
-    batch short-circuits after one failure and the trailing codes say only that."""
+    """The submission's own result: its first case that is neither accepted nor skipped."""
     types, cases = collect(server, submission_id)
     codes = [code for _number, code in cases]
     if 'internal-error' in types:
