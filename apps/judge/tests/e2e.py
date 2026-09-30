@@ -7,7 +7,7 @@ exact event stream each one produces.
 Four of them grade the `aplusb` problem in infra/problems, which the container has on local disk:
 
   1. an accepted Python solution
-  2. a wrong solution that fails the first case of the scored batch
+  2. a wrong solution that fails the first case of the scored batch and still runs the rest of it
   3. a solution that loops forever and times out
   4. a solution that loops forever and is aborted from the site
 
@@ -319,7 +319,7 @@ def run(image: str, port: int, network: str, dump: Optional[str] = None) -> None
         print('\n=== 2. wrong answer ===', flush=True)
         server.enqueue(2, 'aplusb', 'PY3', WA_SOURCE)
         wait_for_final(server, 2, ('grading-end', 'internal-error', 'compile-error'))
-        expect(server, 2, 'WA', BATCHED, [(1, 'AC'), (2, 'AC'), (3, 'WA'), (4, 'SC'), (5, 'SC'), (6, 'SC')])
+        expect(server, 2, 'WA', BATCHED, [(1, 'AC'), (2, 'AC'), (3, 'WA'), (4, 'AC'), (5, 'AC'), (6, 'AC')])
 
         print('\n=== 3. time limit exceeded ===', flush=True)
         server.enqueue(3, 'aplusb', 'PY3', LOOP_SOURCE)
