@@ -21,6 +21,12 @@ owns and nothing else:
   9. the copy the cache already held survives that failed fetch
  10. a claim with a null hash still grades from local disk
 
+The last two grade a site problem whose second batch depends on its first, with a wrong solution that fails
+the middle case of the first batch:
+
+ 11. with short circuiting off, the rest of the failed batch runs and the dependent batch is skipped
+ 12. with short circuiting on, grading stops at the failed case
+
 Run from the repository root:
 
     python3 apps/judge/tests/e2e.py
@@ -73,6 +79,7 @@ MUL_SOURCE = 'a, b = map(int, input().split())\nprint(a * b)\n'
 # test data the judge fetched. It multiplies rather than adds, so grading it against another problem's data
 # would fail rather than quietly pass.
 SITE_PROBLEM = 'sitemul'
+DEPENDENT_PROBLEM = 'sitedeps'
 
 # Bitmask decode order, from SPEC.md section 6.
 STATUS_BITS: List[Tuple[int, str]] = [
@@ -106,6 +113,28 @@ def site_archive(cases: List[Tuple[str, str]]) -> bytes:
         files['tests/%d.out' % position] = stdout + '\n'
         entries.append('  - {in: tests/%d.in, out: tests/%d.out}' % (position, position))
     files['init.yml'] = 'test_cases:\n- batched:\n%s\n  points: 100\n' % '\n'.join(entries)
+    return build_archive(files)
+
+
+def dependent_archive() -> bytes:
+    """Two batches, the second depending on the first. WA_SOURCE fails only the middle case of the first."""
+    cases = [('1 2', '3'), ('600 600', '1200'), ('3 4', '7'), ('5 6', '11')]
+    files: Dict[str, Union[str, bytes]] = {}
+    for position, (stdin, stdout) in enumerate(cases, start=1):
+        files['tests/%d.in' % position] = stdin + '\n'
+        files['tests/%d.out' % position] = stdout + '\n'
+    files['init.yml'] = (
+        'test_cases:\n'
+        '- batched:\n'
+        '  - {in: tests/1.in, out: tests/1.out}\n'
+        '  - {in: tests/2.in, out: tests/2.out}\n'
+        '  - {in: tests/3.in, out: tests/3.out}\n'
+        '  points: 40\n'
+        '- batched:\n'
+        '  - {in: tests/4.in, out: tests/4.out}\n'
+        '  points: 60\n'
+        '  dependencies: [1]\n'
+    )
     return build_archive(files)
 
 
@@ -408,6 +437,17 @@ def run(image: str, port: int, network: str, dump: Optional[str] = None) -> None
             server.data_requests_for('aplusb') == 0,
             'a claim with no hash asked the site for test data anyway',
         )
+
+        print('\n=== 11. short circuiting off runs the rest of a failed batch ===', flush=True)
+        dependent_hash = server.set_problem_data(DEPENDENT_PROBLEM, dependent_archive())
+        server.enqueue(11, DEPENDENT_PROBLEM, 'PY3', WA_SOURCE, problem_data_hash=dependent_hash)
+        wait_for_final(server, 11, FINALS)
+        expect(server, 11, 'full batch', BATCHED, [(1, 'AC'), (2, 'WA'), (3, 'AC'), (4, 'SC')])
+
+        print('\n=== 12. short circuiting on stops at the failed case ===', flush=True)
+        server.enqueue(12, DEPENDENT_PROBLEM, 'PY3', WA_SOURCE, short_circuit=True, problem_data_hash=dependent_hash)
+        wait_for_final(server, 12, FINALS)
+        expect(server, 12, 'short circuit', BATCHED, [(1, 'AC'), (2, 'WA'), (3, 'SC'), (4, 'SC')])
 
         print('\n=== heartbeats ===', flush=True)
         # Grading four submissions takes under ten seconds, so wait for the cadence rather than assume it.
