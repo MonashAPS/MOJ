@@ -504,6 +504,7 @@ class JudgeWorker:
             if batch_number:
                 yield IPC.BATCH_BEGIN, (batch_number,)
 
+                batch_failed = False
                 dependencies = batch_dependencies[batch_number - 1]  # List is zero-indexed
                 if passed_batches & dependencies != dependencies:
                     is_short_circuiting = True
@@ -528,10 +529,13 @@ class JudgeWorker:
                         # If we failed a 0-point case, we will short-circuit every case after this.
                         is_short_circuiting_enabled |= not case.points
 
-                        # Short-circuit if we just failed a case in a batch, or if short-circuiting is currently enabled
-                        # for all test cases (either this was requested by the site, or we failed a 0-point case in the
-                        # past).
-                        is_short_circuiting |= batch_number is not None or is_short_circuiting_enabled
+                        # MOJ: unlike upstream DMOJ, a failure inside a batch only skips the rest of the batch when
+                        # short-circuiting is enabled (requested by the site, or we failed a 0-point case). With it
+                        # disabled, the rest of the batch still runs so every verdict is reported; the batch scores
+                        # min(points) either way, so the score is unchanged.
+                        is_short_circuiting |= is_short_circuiting_enabled
+                        if batch_number is not None:
+                            batch_failed = True
 
                 # Legacy hack: we need to allow graders to read and write `proc_output` on the `Result` object, but the
                 # judge controller only cares about the trimmed output, and shouldn't waste memory buffering the full
@@ -540,7 +544,7 @@ class JudgeWorker:
                 yield IPC.RESULT, (batch_number, case_number, result)
 
             if batch_number:
-                if not is_short_circuiting:
+                if not is_short_circuiting and not batch_failed:
                     passed_batches.add(batch_number)
 
                 yield IPC.BATCH_END, (batch_number,)
