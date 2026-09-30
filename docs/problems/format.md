@@ -63,7 +63,7 @@ Prefer setting limits in `config.json`, so everyone can see them on the problem 
 
 ### Cases and batches
 
-A batch awards its points only when every case in it passes.
+A batch awards its points only when every case in it passes. If short circuiting is enabled, failing a test case within a batch will also immediately exit the batch (Note: This is a departure from upstream DMOJ, which skips the batch irrespective of the short circuiting setting).
 
 ```yaml
 test_cases:
