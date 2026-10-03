@@ -13,5 +13,5 @@ pre-commit:
 
 commit-msg:
   jobs:
-    - name: conventional commit
-      run: node infra/scripts/check-commit-message.mjs {1}
+    - name: commitlint
+      run: pnpm exec commitlint --edit {1}
