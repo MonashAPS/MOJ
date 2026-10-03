@@ -8,7 +8,7 @@ the repository root, because the compose file's paths are relative to it. The ex
 | Requirement | Value |
 | --- | --- |
 | Docker Engine with the Compose plugin | 24 or later |
-| Node with npm, on the same box | 24 or later |
+| Node and pnpm, on the same box | Node 24 or later, pnpm 12 or later |
 | A checkout of this repository | It carries the compose file, the Caddyfile and the migrations |
 | Web box | 2 cores, 4 GB RAM minimum |
 | Open ports | 80 and 443, TCP and UDP |
@@ -90,13 +90,13 @@ docker compose -f infra/compose.prod.yml --project-directory . \
 export CONVEX_SELF_HOSTED_URL=https://convex.judge.example.org
 export CONVEX_SELF_HOSTED_ADMIN_KEY='moj-prod|01ab...'
 
-npx convex deploy
-npx convex env set AUTH_ISSUER https://judge.example.org
-npx convex env set AUTH_JWKS_URL https://judge.example.org/api/auth/jwks
-npx convex env set AUTH_URL https://judge.example.org
+pnpm exec convex deploy
+pnpm exec convex env set AUTH_ISSUER https://judge.example.org
+pnpm exec convex env set AUTH_JWKS_URL https://judge.example.org/api/auth/jwks
+pnpm exec convex env set AUTH_URL https://judge.example.org
 
-npm run db:migrate -w apps/web
-npx convex run seed:run '{}'
+pnpm --filter @moj/web run db:migrate
+pnpm exec convex run seed:run '{}'
 
 docker compose -f infra/compose.prod.yml --project-directory . --env-file .env.prod up -d
 ```
@@ -114,13 +114,13 @@ migrating an existing site, run [the import](/admin/import) in place of the seed
 ```bash
 git pull
 docker compose -f infra/compose.prod.yml --project-directory . --env-file .env.prod pull
-npx convex deploy
-npm run db:migrate -w apps/web
+pnpm exec convex deploy
+pnpm --filter @moj/web run db:migrate
 docker compose -f infra/compose.prod.yml --project-directory . --env-file .env.prod up -d
 ```
 
 `pull` fetches the release named by `MOJ_IMAGE_TAG`; put `build` in its place to build the checkout instead. The
-checkout is still needed, because `npx convex deploy` and the migrations read it.
+checkout is still needed, because `pnpm exec convex deploy` and the migrations read it.
 
 | Image | Tags |
 | --- | --- |
@@ -143,7 +143,7 @@ STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 
 CONVEX_SELF_HOSTED_URL=https://convex.judge.example.org \
 CONVEX_SELF_HOSTED_ADMIN_KEY=$(cat /etc/moj/convex-admin-key) \
-  npx convex export --path "$BACKUP_DIR/convex-$STAMP.zip"
+  pnpm exec convex export --path "$BACKUP_DIR/convex-$STAMP.zip"
 
 docker compose -f /srv/moj/infra/compose.prod.yml --project-directory /srv/moj exec -T postgres \
   pg_dumpall -U moj | gzip > "$BACKUP_DIR/postgres-$STAMP.sql.gz"
@@ -153,9 +153,9 @@ find "$BACKUP_DIR" -type f -mtime +30 -delete
 ```
 
 Run it nightly from a systemd timer and copy the directory off the box. The export carries every problem's
-published test data, so it grows with the problem set. To restore: `npx convex import --replace <export.zip>`,
+published test data, so it grows with the problem set. To restore: `pnpm exec convex import --replace <export.zip>`,
 pipe the gunzipped dump into `psql -U moj` in the `postgres` service, then
-`npx convex run rankings:rebuildAggregates '{}'` to rebuild the leaderboard totals a bulk load bypasses.
+`pnpm exec convex run rankings:rebuildAggregates '{}'` to rebuild the leaderboard totals a bulk load bypasses.
 
 ## Judges
 

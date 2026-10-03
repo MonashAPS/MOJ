@@ -207,7 +207,7 @@ not exist is a warning, and the reference is left as it is.
 ## Tests
 
 ```sh
-npm test --workspace tools/upload-problem
+pnpm --filter @moj/upload-problem test
 ```
 
 The zip writer is checked against `unzip -t` and Python's `zipfile`, and the

@@ -109,13 +109,13 @@ problems, then one problem per section with a page break and a footer naming the
 points `TYPST_PACKAGE_PATH` at the vendored packages under `typst/packages`, so a compile never
 touches the network. `typstAvailable()` reports whether a binary is reachable.
 
-Refresh the vendored packages with `npm run vendor:typst`.
+Refresh the vendored packages with `pnpm run vendor:typst`.
 
 ## Tests
 
 ```
-npm test --workspace @moj/content
-TYPST_BIN=/path/to/typst npm test --workspace @moj/content
+pnpm --filter @moj/content test
+TYPST_BIN=/path/to/typst pnpm --filter @moj/content test
 ```
 
 Tests that need Typst skip cleanly when the binary is missing. `src/__fixtures__/statements`

@@ -33,22 +33,23 @@ then rebuild the image and run the judge end-to-end test.
 
 | Command | What it does |
 | --- | --- |
-| `npm run setup` | Compose up, admin key, `.env.local`, migrations, seed, development admin and regular user. |
-| `npm run dev` | `convex dev` and `next dev` together. |
-| `npm run build` | Every workspace with a build script. |
-| `npm test`, `npm run test:watch` | Vitest across the workspaces. |
-| `npm run lint`, `npm run lint:fix` | Biome check then oxlint, with the anti-slop rules. |
-| `npm run format`, `npm run typecheck`, `npm run knip` | Formatting, `tsc --noEmit`, unused files and exports. |
-| `npm run seed` | Re-runs the seed against a running deployment. |
-| `npm run convex:codegen`, `npm run convex:deploy` | Regenerate `convex/_generated`; push the functions. |
-| `npm run e2e:judge` | Submits to `aplusb` and waits for Accepted. |
-| `npm run db:migrate -w apps/web` | Migrations for the account database. |
-| `npm run import -w tools/import` | The [DMOJ importer](/admin/import). |
-| `npm run docs:dev -w docs`, `npm run docs:build -w docs` | This site, at `http://localhost:5173/`. |
+| `pnpm run setup` | Compose up, admin key, `.env.local`, migrations, seed, development admin and regular user. |
+| `pnpm run dev` | `convex dev` and `next dev` together. |
+| `pnpm run build` | Every workspace with a build script. |
+| `pnpm test`, `pnpm run test:watch` | Vitest across the workspaces. |
+| `pnpm run lint`, `pnpm run lint:fix` | Biome check then oxlint, with the anti-slop rules. |
+| `pnpm run format`, `pnpm run typecheck`, `pnpm run knip` | Formatting, `tsc --noEmit`, unused files and exports. |
+| `pnpm run seed` | Re-runs the seed against a running deployment. |
+| `pnpm run convex:codegen`, `pnpm run convex:deploy` | Regenerate `convex/_generated`; push the functions. |
+| `pnpm run e2e:judge` | Submits to `aplusb` and waits for Accepted. |
+| `pnpm --filter @moj/web run db:migrate` | Migrations for the account database. |
+| `pnpm --filter @moj/import run import` | The [DMOJ importer](/admin/import). |
+| `pnpm --filter @moj/docs run docs:dev`, `pnpm --filter @moj/docs run docs:build` | This site, at `http://localhost:5173/`. |
 
 ::: tip
-On NixOS the Biome binary will not start on its own. Run it through `steam-run`, or set
-`BIOME="steam-run npx biome"`, which lefthook honours.
+On NixOS the pnpm, Biome and oxlint binaries will not start on their own. Run pnpm through `steam-run`
+(`steam-run pnpm install`), which carries over to everything it starts, and set
+`BIOME="steam-run pnpm exec biome"` and `OXLINT="steam-run pnpm exec oxlint"` for lefthook.
 :::
 
 ## Test user credentials
@@ -57,7 +58,7 @@ Setup also seeds three public contests containing A Plus B and A Times B: `dev-e
 `dev-running`, which started an hour ago and ends in seven days; and `dev-upcoming`, which starts in a day
 and lasts two hours. Rerunning setup refreshes their dates
 without duplicating the contests or their problem entries. To refresh just these fixtures on a running
-development deployment, run `npx convex run seed:run '{"devContests":true}'`.
+development deployment, run `pnpm exec convex run seed:run '{"devContests":true}'`.
 
 Open `/accounts/login/`.
 
@@ -69,7 +70,7 @@ Open `/accounts/login/`.
 Setup creates both accounts. Use the regular account to check participant access and restricted problem
 entries; the administrator bypasses contest list restrictions. Override the defaults with
 `MOJ_USER_USERNAME`, `MOJ_USER_PASSWORD`, `MOJ_USER_EMAIL` and the corresponding `MOJ_ADMIN_*` variables before
-running `npm run setup`.
+running `pnpm run setup`.
 
 Rerunning setup repairs the credentials and restores the regular account to a non-staff, non-superuser account
 with no permissions or two-factor enrolment.
@@ -85,7 +86,7 @@ in-memory database, and those files carry `// @vitest-environment edge-runtime`;
 `setupTest()` and `judgeClient()`, and `convex/test.fixtures.ts` the row builders.
 
 ```bash
-npm test -- packages/core
+pnpm test packages/core
 python3 apps/judge/tests/e2e.py --build
 ```
 

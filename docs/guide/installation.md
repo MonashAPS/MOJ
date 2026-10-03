@@ -9,7 +9,8 @@ container grading a real submission. For a public site behind TLS, read [product
 | --- | --- |
 | Linux, or WSL2 | The judge sandbox needs `ptrace` and `seccomp` |
 | Docker Engine with the Compose plugin | 24 or later |
-| Node with the npm it ships | 24 or later |
+| Node | 24 or later |
+| pnpm | 12 or later |
 | Git | any |
 | RAM | 8 GB |
 | Disk | 20 GB |
@@ -42,6 +43,7 @@ sudo usermod -aG docker "$USER"
 
 curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
 sudo apt-get install -y nodejs
+sudo npm install --global pnpm
 ```
 
 ```bash [Fedora]
@@ -53,10 +55,11 @@ sudo usermod -aG docker "$USER"
 
 curl -fsSL https://rpm.nodesource.com/setup_24.x | sudo -E bash -
 sudo dnf -y install nodejs
+sudo npm install --global pnpm
 ```
 
 ```bash [Arch]
-sudo pacman -Syu --needed docker docker-compose docker-buildx nodejs npm git
+sudo pacman -Syu --needed docker docker-compose docker-buildx nodejs pnpm git
 sudo systemctl enable --now docker
 sudo usermod -aG docker "$USER"
 ```
@@ -67,7 +70,7 @@ sudo usermod -aG docker "$USER"
 #   users.users.YOURNAME.extraGroups = [ "docker" ];
 sudo nixos-rebuild switch
 
-nix-shell -p nodejs_24 git
+nix-shell -p nodejs_24 pnpm steam-run git
 ```
 
 :::
@@ -78,6 +81,7 @@ Group membership applies to new login sessions only. Run `newgrp docker`, then c
 docker --version
 docker compose version
 node --version
+pnpm --version
 ```
 
 ## Download
@@ -85,16 +89,16 @@ node --version
 ```bash
 git clone https://github.com/MonashAPS/MOJ.git
 cd MOJ
-npm ci
+pnpm install --frozen-lockfile
 ```
 
 ## Configuration
 
 ```bash
-npm run setup
+pnpm run setup
 ```
 
-`npm run setup` is idempotent and destroys no data. It:
+`pnpm run setup` is idempotent and destroys no data. It:
 
 1. starts the containers in `infra/compose.dev.yml`;
 2. generates an admin key for the backend;
@@ -114,7 +118,7 @@ npm run setup
 ## Starting the site
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 Leave it running.
@@ -156,7 +160,7 @@ the published ports through `host.docker.internal`.
 Confirm grading end to end:
 
 ```bash
-MOJ_JUDGE_KEY=localjudgekey npm run e2e:judge
+MOJ_JUDGE_KEY=localjudgekey pnpm run e2e:judge
 ```
 
 It submits a reference solution to `aplusb` and waits for an Accepted verdict, creating the judge record if
@@ -177,6 +181,6 @@ two-factor login instructions.
 
 ```bash
 git pull
-npm ci
-npm run setup
+pnpm install --frozen-lockfile
+pnpm run setup
 ```

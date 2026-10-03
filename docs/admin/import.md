@@ -47,7 +47,7 @@ or from `.env.local`. `AUTH_SECRET` must be the value the web app runs with, or 
 afterwards.
 
 ```bash
-npm run import -w tools/import -- \
+pnpm --filter @moj/import run import \
   --dump tools/import/dump-2026-09-10.sql.gz \
   --secret-key-file tools/import/secrets.env \
   --dry-run --report
@@ -79,8 +79,8 @@ It extracts to `<out>/raw/`, transforms and loads in dependency order through `<
 ## Afterwards
 
 ```bash
-npx convex run rankings:rebuildAggregates '{}'
-npx convex env set LEGACY_SECRET_KEY "$SECRET_KEY"
+pnpm exec convex run rankings:rebuildAggregates '{}'
+pnpm exec convex env set LEGACY_SECRET_KEY "$SECRET_KEY"
 ```
 
 The first rebuilds the leaderboard totals, which a bulk load bypasses; it works in pages and returns a cursor, so
@@ -103,8 +103,8 @@ An older importer inserted them blindly, which left two rows per key: the judge 
 HTTP 400 and the header rendered every navigation item twice. Repair a site in that state once, in either order:
 
 ```bash
-npx convex run admin/languages:dedupeByKeyStep '{}'
-npx convex run admin/dedupe:dedupeNaturalKeysStep '{}'
+pnpm exec convex run admin/languages:dedupeByKeyStep '{}'
+pnpm exec convex run admin/dedupe:dedupeNaturalKeysStep '{}'
 ```
 
 Each repoints every reference before deleting anything and schedules itself until finished; `isDone: false`

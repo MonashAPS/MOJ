@@ -5,7 +5,7 @@
 
 ## How it was checked
 
-<!-- What you ran and what it said. "npm test: 1077 passed" beats "tested".
+<!-- What you ran and what it said. "pnpm test: 1077 passed" beats "tested".
      Say if something could not be checked, and why. -->
 
 ## Watch out for
@@ -21,7 +21,7 @@
 
 ---
 
-- [ ] `npm run lint`, `npm run typecheck` and `npm test` pass
+- [ ] `pnpm run lint`, `pnpm run typecheck` and `pnpm test` pass
 - [ ] Routes, field names and behaviour match DMOJ where DMOJ has them
 - [ ] Docs updated if behaviour changed
 - [ ] No secrets, `.env` files, `node_modules` or `package-lock.json` in the diff

@@ -62,7 +62,7 @@ directory:
 ## Running it
 
 ```
-npm run import -w tools/import -- --dump tools/import/dump-2026-09-07.sql.gz \
+pnpm --filter @moj/import run import --dump tools/import/dump-2026-09-07.sql.gz \
   --secret-key-file tools/import/secrets.env --dry-run --report
 ```
 
@@ -133,7 +133,7 @@ their id maps come from whatever is already in Convex. So importing a single
 table later works as long as everything it points at is already loaded.
 
 A run only inserts, it never deletes, so importing a table that is already
-loaded duplicates it. The exception is the reference tables `npm run setup`
+loaded duplicates it. The exception is the reference tables `pnpm run setup`
 also seeds: `languages`, `problemTypes`, `problemGroups`, `licenses`,
 `navigationBar`, `miscConfig` and `flatPages`. `insertBatch` matches those on
 their natural key (`key`, `name`, or `url`) and patches the row that is already
@@ -266,7 +266,7 @@ in the output.
 ## Tests
 
 ```
-npm test -w tools/import
+pnpm --filter @moj/import test
 ```
 
 Covers the parser (quotes, escapes, hex blobs, doubled quotes, huge multi row
