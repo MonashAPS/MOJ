@@ -23,16 +23,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v7
+      - uses: pnpm/setup@v3
         with:
-          node-version: '24'
-          cache: npm
-
-      - name: Install
-        run: npm ci
+          runtime: node@24
+          cache: true
+          require-lockfile: true
 
       - name: Build
-        run: npm run docs:build -w docs
+        run: pnpm --filter @moj/docs docs:build
 
       - uses: actions/configure-pages@v6
 
