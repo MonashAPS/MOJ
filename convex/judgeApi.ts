@@ -248,7 +248,7 @@ export const prepareEndToEnd = internalMutation({
         isDisabled: false,
         tier: 0,
         online: false,
-        description: "created by npm run e2e:judge",
+        description: "created by pnpm run e2e:judge",
         runtimeKeys: [],
       });
 

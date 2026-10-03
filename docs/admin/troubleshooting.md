@@ -24,14 +24,14 @@ Read the judge's log first: `docker logs --tail 100 moj-judge` answers most of t
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| Every page behaves as though signed out, slowly | The backend cannot fetch the keys at `AUTH_JWKS_URL` | `npx convex env get AUTH_JWKS_URL`. In production it must reach `https://<domain>/api/auth/jwks`. |
-| The same, in development | A host firewall filters the Docker bridge | `npm run setup` inlines the key set as a `data:` URI and leaves `AUTH_URL` unset. Rotating the signing keys then needs another `npm run setup`. |
-| `npx convex deploy` cannot authenticate | A missing or unquoted variable | Both `CONVEX_SELF_HOSTED_URL` and `CONVEX_SELF_HOSTED_ADMIN_KEY` are needed, and the key contains a `\|`. Generate another with `exec convex-backend ./generate_admin_key.sh`; old keys stay valid. |
-| `No CONVEX_DEPLOYMENT set` | `.env.local` is missing or names a dead deployment | `npm run setup` |
+| Every page behaves as though signed out, slowly | The backend cannot fetch the keys at `AUTH_JWKS_URL` | `pnpm exec convex env get AUTH_JWKS_URL`. In production it must reach `https://<domain>/api/auth/jwks`. |
+| The same, in development | A host firewall filters the Docker bridge | `pnpm run setup` inlines the key set as a `data:` URI and leaves `AUTH_URL` unset. Rotating the signing keys then needs another `pnpm run setup`. |
+| `pnpm exec convex deploy` cannot authenticate | A missing or unquoted variable | Both `CONVEX_SELF_HOSTED_URL` and `CONVEX_SELF_HOSTED_ADMIN_KEY` are needed, and the key contains a `\|`. Generate another with `exec convex-backend ./generate_admin_key.sh`; old keys stay valid. |
+| `No CONVEX_DEPLOYMENT set` | `.env.local` is missing or names a dead deployment | `pnpm run setup` |
 | `Hex-decoded key was 31 bytes, not 32` | `INSTANCE_SECRET` is not 64 hex characters | `openssl rand -hex 32` |
 | Stored data is suddenly unreadable | `INSTANCE_SECRET` changed | Put the old value back, or restore from an export. |
 | The backend connects to a database and exits | The database does not exist | `infra/scripts/postgres-init/01-databases.sh` only runs on a fresh volume. |
-| Missing table errors | The migrations have not run | `npm run db:migrate -w apps/web` |
+| Missing table errors | The migrations have not run | `pnpm --filter @moj/web run db:migrate` |
 | Port 5433 is in use | Something else holds the published port | `ss -ltnp \| grep 5433` |
 | Read-only with errors in the log | Full disk | `df -h`, always first. |
 | A fallback font | The fonts were not copied into the image | `exec web ls public/fonts` |
@@ -43,7 +43,7 @@ Read the judge's log first: `docker logs --tail 100 moj-judge` answers most of t
 # Create a missing database and migrate
 docker compose -f infra/compose.prod.yml --project-directory . exec postgres \
   psql -U moj -c 'CREATE DATABASE moj_auth OWNER moj'
-npm run db:migrate -w apps/web
+pnpm --filter @moj/web run db:migrate
 ```
 
 ## Resetting a development stack
@@ -52,12 +52,12 @@ npm run db:migrate -w apps/web
 # everything, including both databases
 docker compose -f infra/compose.dev.yml --project-directory . down -v
 rm -f .env.local apps/web/.env.local
-npm run setup
+pnpm run setup
 
 # keep the data: re-push the functions, re-seed, or re-seed over existing rows
-npx convex dev --once
-npx convex run seed:run '{}'
-npx convex run seed:run '{"force": true}'
+pnpm exec convex dev --once
+pnpm exec convex run seed:run '{}'
+pnpm exec convex run seed:run '{"force": true}'
 ```
 
 ## Everything is slow

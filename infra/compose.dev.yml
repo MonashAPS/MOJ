@@ -2,7 +2,7 @@
 #
 # Always run this from the repository root so the relative paths below resolve:
 #   docker compose -f infra/compose.dev.yml --project-directory . up -d
-# `npm run setup` does exactly that.
+# `pnpm run setup` does exactly that.
 
 name: moj
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * One command to get MOJ running locally. Idempotent: safe to re-run at any
- * time, and it never destroys data. `npm run setup`.
+ * time, and it never destroys data. `pnpm run setup`.
  *
  * Steps:
  *   1. docker compose up for postgres, the Convex backend and the dashboard
@@ -182,7 +182,7 @@ function parseEnvFile(path) {
 
 function renderEnvFile(values) {
   return `${[
-    "# Written by npm run setup. Safe to edit; re-running setup keeps AUTH_SECRET",
+    "# Written by pnpm run setup. Safe to edit; re-running setup keeps AUTH_SECRET",
     "# and refreshes the Convex admin key. Never commit this file.",
     "",
     ...Object.entries(values).map(([key, value]) => `${key}=${value}`),
@@ -301,10 +301,10 @@ async function main() {
   Object.assign(process.env, env);
 
   step("Running the Better Auth database migrations");
-  pinned("npm", ["run", "db:migrate", "--workspace", "apps/web"], { env });
+  pinned("pnpm", ["--filter", "@moj/web", "db:migrate"], { env });
 
   step("Setting the Convex deployment environment");
-  pinned("npx", ["convex", "env", "set", "AUTH_ISSUER", env.AUTH_ISSUER], { env, capture: true });
+  pinned("pnpm", ["exec", "convex", "env", "set", "AUTH_ISSUER", env.AUTH_ISSUER], { env, capture: true });
   info(`AUTH_ISSUER=${env.AUTH_ISSUER}`);
 
   let jwksValue = env.AUTH_JWKS_URL;
@@ -316,8 +316,8 @@ async function main() {
     // Convex also accepts the key set inline as a data URI. Re-run setup after
     // rotating the signing keys so the deployment picks up the new set.
     const printed = pinned(
-      "npx",
-      ["tsx", "--tsconfig", "apps/web/tsconfig.json", "apps/web/scripts/print-jwks.ts"],
+      "pnpm",
+      ["exec", "tsx", "--tsconfig", "apps/web/tsconfig.json", "apps/web/scripts/print-jwks.ts"],
       { env, capture: true },
     );
 
@@ -331,20 +331,20 @@ async function main() {
 
     jwksValue = `data:text/plain;charset=utf-8;base64,${Buffer.from(jwks, "utf8").toString("base64")}`;
     info("the convex container cannot reach the host, so the JWKS is inlined as a data URI");
-    info("re-run npm run setup if the Better Auth signing keys are ever rotated");
+    info("re-run pnpm run setup if the Better Auth signing keys are ever rotated");
   }
 
-  pinned("npx", ["convex", "env", "set", "AUTH_JWKS_URL", jwksValue], { env, capture: true });
+  pinned("pnpm", ["exec", "convex", "env", "set", "AUTH_JWKS_URL", jwksValue], { env, capture: true });
 
   // `convex/http/problemsApi.ts` verifies API keys against Better Auth over
   // AUTH_URL and falls back to the `apiKeys` table when it is unset. The same
   // firewall that blocks the JWKS fetch blocks this one, so reuse the probe:
   // an unreachable host means the fallback, not a URL that always times out.
   if (hostReachable) {
-    pinned("npx", ["convex", "env", "set", "AUTH_URL", env.AUTH_URL], { env, capture: true });
+    pinned("pnpm", ["exec", "convex", "env", "set", "AUTH_URL", env.AUTH_URL], { env, capture: true });
     info(`AUTH_URL=${env.AUTH_URL}`);
   } else {
-    pinned("npx", ["convex", "env", "remove", "AUTH_URL"], {
+    pinned("pnpm", ["exec", "convex", "env", "remove", "AUTH_URL"], {
       env,
       capture: true,
       allowFailure: true,
@@ -354,7 +354,7 @@ async function main() {
   }
 
   if (env.LEGACY_SECRET_KEY) {
-    pinned("npx", ["convex", "env", "set", "LEGACY_SECRET_KEY", env.LEGACY_SECRET_KEY], {
+    pinned("pnpm", ["exec", "convex", "env", "set", "LEGACY_SECRET_KEY", env.LEGACY_SECRET_KEY], {
       env,
       capture: true,
     });
@@ -362,7 +362,7 @@ async function main() {
   }
 
   step("Pushing the Convex functions");
-  pinned("npx", ["convex", "dev", "--once"], { env });
+  pinned("pnpm", ["exec", "convex", "dev", "--once"], { env });
 
   step("Seeding languages, navigation, config, the sample problem and development contests");
 
@@ -376,15 +376,16 @@ async function main() {
 
   const seedArgs = JSON.stringify(seedOptions);
 
-  const seed = pinned("npx", ["convex", "run", "seed:run", seedArgs], { env, capture: true });
+  const seed = pinned("pnpm", ["exec", "convex", "run", "seed:run", seedArgs], { env, capture: true });
   info((seed.stdout ?? "").trim().replace(/\n/g, "\n    "));
 
   step(`Creating the development superuser ${ADMIN_USERNAME}`);
   info("enrolling it in two factor authentication against MOJ_DEV_TOTP_SECRET");
 
   const created = pinned(
-    "npx",
+    "pnpm",
     [
+      "exec",
       "tsx",
       "--tsconfig",
       "apps/web/tsconfig.json",
@@ -413,8 +414,9 @@ async function main() {
   if (totpUri) info(`totp ${totpUri}`);
 
   pinned(
-    "npx",
+    "pnpm",
     [
+      "exec",
       "convex",
       "run",
       "profiles:ensureProfileForUser",
@@ -435,8 +437,9 @@ async function main() {
   step(`Creating the non-admin development user ${USER_USERNAME}`);
 
   const userCreated = pinned(
-    "npx",
+    "pnpm",
     [
+      "exec",
       "tsx",
       "--tsconfig",
       "apps/web/tsconfig.json",
@@ -462,8 +465,9 @@ async function main() {
   info(`better auth user ${ordinaryUserId}`);
 
   pinned(
-    "npx",
+    "pnpm",
     [
+      "exec",
       "convex",
       "run",
       "profiles:ensureProfileForUser",
@@ -485,7 +489,7 @@ async function main() {
   process.stdout.write(
     [
       "",
-      "  Start the site with:   npm run dev",
+      "  Start the site with:   pnpm dev",
       `  Web:                   ${APP_URL}`,
       "  Convex dashboard:      http://127.0.0.1:6791",
       "",

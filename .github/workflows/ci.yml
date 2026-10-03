@@ -19,27 +19,26 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
+      # Installs pnpm at the version `packageManager` pins, then the workspace.
       # `prepare` builds packages/content, which everything else typechecks
-      # against, so this has to run with its scripts.
-      - name: Install
-        run: npm ci
+      # against, so the install runs with its scripts.
+      - uses: pnpm/setup@v3
+        with:
+          runtime: node@${{ env.NODE_VERSION }}
+          cache: true
+          require-lockfile: true
 
       - name: Lint
-        run: npm run lint
+        run: pnpm run lint
 
       - name: Typecheck
-        run: npm run typecheck
+        run: pnpm run typecheck
 
       - name: Unused files, dependencies and exports
-        run: npm run knip
+        run: pnpm run knip
 
       - name: Test
-        run: npm test
+        run: pnpm test
 
       - name: Build
         env:
@@ -50,7 +49,7 @@ jobs:
           AUTH_SECRET: ci-build-only-not-a-real-secret
           AUTH_ISSUER: http://localhost:3000
           AUTH_RP_ID: localhost
-        run: npm run build
+        run: pnpm run build
 
   web-image:
     name: Web image

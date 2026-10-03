@@ -134,7 +134,7 @@ export const run = internalMutation({
   args: {
     force: v.optional(v.boolean()),
     devContests: v.optional(v.boolean()),
-    /** `npm run setup` passes MOJ_SITE_NAME / MOJ_SITE_LONG_NAME through so a
+    /** `pnpm run setup` passes MOJ_SITE_NAME / MOJ_SITE_LONG_NAME through so a
      *  fresh instance is named for its club rather than for MOJ. */
     siteName: v.optional(v.string()),
     siteLongName: v.optional(v.string()),

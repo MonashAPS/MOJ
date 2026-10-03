@@ -293,7 +293,7 @@ export const copyLanguage = mutation({
 /* -------------------------------------------------------------------------- */
 
 /**
- * `npm run setup` seeds the language table and an older `npm run import`
+ * `pnpm run setup` seeds the language table and an older `pnpm run import`
  * inserted the dump's languages on top of it, so a deployment that was seeded
  * and then imported holds two rows for every key. A lookup by key stopped being
  * unique, which is what failed the judge handshake with a 400. The importer
@@ -646,7 +646,7 @@ export const dedupeByKey = mutation({
  *
  * Also the way to start the repair from the command line, where there is no
  * signed in superuser for `dedupeByKey` to check: every argument defaults, so
- * `npx convex run admin/languages:dedupeByKeyStep '{}'` runs the whole thing.
+ * `pnpm exec convex run admin/languages:dedupeByKeyStep '{}'` runs the whole thing.
  */
 export const dedupeByKeyStep = internalMutation({
   args: {

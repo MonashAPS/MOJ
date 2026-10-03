@@ -1,0 +1,12 @@
+packages:
+  - convex
+  - apps/*
+  - packages/*
+  - tools/*
+  - docs
+
+allowBuilds:
+  esbuild: true
+  '@parcel/watcher': false
+  '@swc/core': false
+  lefthook: false

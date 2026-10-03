@@ -1,41 +1,37 @@
 {
   "name": "moj",
   "private": true,
-  "version": "1.27.0",
+  "version": "1.28.0",
   "description": "MOJ, the MAPS Online Judge",
   "license": "AGPL-3.0-only",
   "type": "module",
-  "workspaces": [
-    "convex",
-    "apps/*",
-    "packages/*",
-    "tools/*",
-    "docs"
-  ],
   "engines": {
     "node": ">=24"
   },
+  "packageManager": "pnpm@12.8.1",
   "scripts": {
     "setup": "node infra/scripts/setup.mjs",
-    "dev": "concurrently -k -n convex,web -c blue,green \"npm:dev:convex\" \"npm:dev:web\"",
+    "dev": "concurrently -k -n convex,web -c blue,green \"pnpm:dev:convex\" \"pnpm:dev:web\"",
     "dev:convex": "convex dev",
-    "dev:web": "npm run dev --workspace apps/web",
-    "build": "npm run build --workspaces --if-present",
+    "dev:web": "pnpm --filter @moj/web dev",
+    "build": "pnpm --recursive --if-present build",
     "test": "vitest run",
     "e2e:judge": "node infra/scripts/e2e-judge.mjs",
     "test:watch": "vitest",
     "lint": "biome check . && oxlint",
     "format": "biome format --write .",
-    "typecheck": "npm run typecheck --workspaces --if-present",
+    "typecheck": "pnpm --recursive --if-present typecheck",
     "convex:codegen": "convex codegen",
     "convex:deploy": "convex deploy",
     "seed": "convex run seed:run '{}'",
-    "prepare": "npm run build --workspace packages/content && lefthook install",
+    "prepare": "pnpm --filter @moj/content build && lefthook install",
     "knip": "knip",
     "lint:fix": "biome check --write . && oxlint --fix"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
     "@types/node": "^26.6.3",
     "concurrently": "^10.0.5",
     "convex": "^1.46.0",
@@ -45,8 +41,5 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.2"
-  },
-  "allowScripts": {
-    "esbuild": true
   }
 }

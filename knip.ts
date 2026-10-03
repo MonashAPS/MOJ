@@ -19,7 +19,7 @@ export default defineConfig({
     ".": {
       entry: ["infra/scripts/*.mjs", "lefthook.yml"],
       project: ["infra/scripts/**/*.{mjs,css}"],
-      // setup.mjs spawns `npx tsx apps/web/scripts/…` with the arguments in an
+      // setup.mjs spawns `pnpm exec tsx apps/web/scripts/…` with the arguments in an
       // array rather than a command line, which knip has no way to read.
       ignoreDependencies: ["tsx"],
     },

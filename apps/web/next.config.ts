@@ -16,7 +16,7 @@ const config: NextConfig = {
   // The message catalogues are loaded by a path built at run time, which the
   // tracer cannot follow, so the standalone output would ship without them and
   // every page would fall back to its message keys. Naming them here puts them
-  // in the image; `npm run build` alone would not have caught it, since the dev
+  // in the image; `pnpm run build` alone would not have caught it, since the dev
   // server reads them straight off disk.
   outputFileTracingIncludes: { "/**": ["./messages/**/*.json"] },
   typedRoutes: false,

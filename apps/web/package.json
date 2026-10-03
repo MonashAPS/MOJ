@@ -1,6 +1,6 @@
 {
   "name": "@moj/web",
-  "version": "1.27.0",
+  "version": "1.28.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,7 @@
     "start": "next start --port ${PORT:-3000}",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "auth:generate": "npx --yes @better-auth/cli generate --config src/auth/server.ts --output src/auth/schema.ts -y",
+    "auth:generate": "pnpm dlx @better-auth/cli generate --config src/auth/server.ts --output src/auth/schema.ts -y",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },
@@ -29,9 +29,10 @@
     "@codemirror/legacy-modes": "^6.5.4",
     "@codemirror/state": "^6.7.6",
     "@codemirror/view": "^6.43.13",
-    "@moj/content": "*",
-    "@moj/core": "*",
-    "@moj/ui": "*",
+    "@moj/content": "workspace:*",
+    "@moj/core": "workspace:*",
+    "@moj/protocol": "workspace:*",
+    "@moj/ui": "workspace:*",
     "ansi-to-html": "^0.7.2",
     "better-auth": "1.7.6",
     "chart.js": "^4.5.1",
@@ -49,6 +50,7 @@
     "simple-icons": "^16.32.0"
   },
   "devDependencies": {
+    "@better-auth/utils": "0.4.2",
     "@formatjs/icu-messageformat-parser": "^3.5.20",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.6.3",

@@ -15,7 +15,7 @@ function makePool(): Pool {
   const connectionString = process.env.DATABASE_URL;
 
   if (!connectionString) {
-    throw new Error("DATABASE_URL is not set. Run `npm run setup` or copy infra/.env.example.");
+    throw new Error("DATABASE_URL is not set. Run `pnpm run setup` or copy infra/.env.example.");
   }
 
   return new Pool({ connectionString, max: 10 });

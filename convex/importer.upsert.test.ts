@@ -1,7 +1,7 @@
 // @vitest-environment edge-runtime
 
 /**
- * Importing a DMOJ dump into a deployment `npm run setup` has already seeded.
+ * Importing a DMOJ dump into a deployment `pnpm run setup` has already seeded.
  *
  * The seed and the importer both fill the reference tables. The importer used
  * to insert blindly, so a seeded site that was then imported ended up with two

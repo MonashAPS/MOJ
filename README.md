@@ -113,11 +113,11 @@ Tiers can be mixed across judges. [`apps/judge/README.md`](apps/judge/README.md)
 ## Contributing
 
 ```bash
-npm run lint            # biome, then oxlint with the anti-slop rules
-npm run typecheck       # every workspace
-npm test                # vitest
-npm run knip            # unused files, dependencies and exports
-npm run docs:dev -w docs
+pnpm run lint            # biome, then oxlint with the anti-slop rules
+pnpm run typecheck       # every workspace
+pnpm test                # vitest
+pnpm run knip            # unused files, dependencies and exports
+pnpm --filter @moj/docs run docs:dev
 ```
 
 CI runs the same checks on pull requests, plus the web build, the tier 1 judge image and the judge end to end

@@ -5,13 +5,13 @@ pre-commit:
   jobs:
     - name: biome
       glob: "*.{ts,tsx,mts,mjs,js,css,md}"
-      run: ${BIOME:-npx biome} check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      run: ${BIOME:-pnpm exec biome} check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
       stage_fixed: true
     - name: oxlint
       glob: "*.{ts,tsx,mts,mjs,js}"
-      run: ${OXLINT:-npx oxlint} {staged_files}
+      run: ${OXLINT:-pnpm exec oxlint} {staged_files}
 
 commit-msg:
   jobs:
-    - name: conventional commit
-      run: node infra/scripts/check-commit-message.mjs {1}
+    - name: commitlint
+      run: pnpm exec commitlint --edit {1}
