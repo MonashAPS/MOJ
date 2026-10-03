@@ -37,12 +37,22 @@ RUN set -eux; \
     typst --version
 
 # --------------------------------------------------------------------------- #
-# Workspace dependencies. Only the manifests are copied, so this layer is       #
-# reused until a package.json or the lockfile changes.                          #
+# The pnpm the repository pins in `packageManager`.                             #
 # --------------------------------------------------------------------------- #
-FROM node:${NODE_VERSION}-bookworm-slim AS deps
+FROM node:${NODE_VERSION}-bookworm-slim AS pnpm
 WORKDIR /repo
-COPY package.json package-lock.json ./
+COPY package.json ./
+RUN npm install --global "$(node -p 'require("./package.json").packageManager')" \
+    && pnpm --version
+
+# --------------------------------------------------------------------------- #
+# Install, then build @moj/content and the web app. The manifests are copied   #
+# before the sources, so the install layer is reused until a package.json or   #
+# the lockfile changes.                                                          #
+# --------------------------------------------------------------------------- #
+FROM pnpm AS build
+ENV NEXT_TELEMETRY_DISABLED=1
+COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY convex/package.json convex/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY packages/content/package.json packages/content/package.json
@@ -54,18 +64,10 @@ COPY tools/anti-slop/package.json tools/anti-slop/package.json
 COPY tools/upload-problem/package.json tools/upload-problem/package.json
 COPY docs/package.json docs/package.json
 # `--ignore-scripts` because the root `prepare` script builds packages/content,
-# whose sources are not in this layer. The build stage runs it explicitly.
-RUN npm ci --ignore-scripts
+# whose sources are not in this layer. The build steps below run it explicitly.
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile --ignore-scripts --store-dir /pnpm/store
 
-# --------------------------------------------------------------------------- #
-# Build @moj/content and then the web app.                                      #
-# --------------------------------------------------------------------------- #
-FROM node:${NODE_VERSION}-bookworm-slim AS build
-WORKDIR /repo
-ENV NEXT_TELEMETRY_DISABLED=1
-# The whole installed tree, because npm nests a `node_modules` under a
-# workspace whenever a version cannot be hoisted; then the sources on top.
-COPY --from=deps /repo ./
 COPY . .
 
 # Placeholders so `next build` can collect page data without a live database;
@@ -74,25 +76,21 @@ ENV DATABASE_URL=postgres://build:build@127.0.0.1:5432/build \
     AUTH_SECRET=build-time-placeholder-not-used-at-runtime \
     AUTH_ISSUER=http://localhost:3000 \
     AUTH_RP_ID=localhost
-RUN npm run build --workspace packages/content
-RUN npm run build --workspace apps/web
+RUN pnpm --filter @moj/content build
+RUN pnpm --filter @moj/web build
 
 # `@moj/content` is loaded at run time (apps/web/src/app/problem/[code]/pdf), so
 # Next never traces it into the standalone output and the image has to carry it
-# itself. `npm ls` names the exact production closure the lockfile installed, so
-# the versions match what was built against.
-RUN set -eux; \
-    cd /repo; \
-    npm ls --omit=dev --all --parseable --workspace packages/content > /tmp/content-tree.txt; \
-    sed -n 's|^/repo/\(node_modules/.*\)$|\1|p' /tmp/content-tree.txt | sort -u > /tmp/content-files.txt; \
-    test -s /tmp/content-files.txt; \
-    printf '%s\n' \
-      packages/content/package.json \
-      packages/content/dist \
-      packages/content/styles \
-      packages/content/typst >> /tmp/content-files.txt; \
-    mkdir -p /content-runtime; \
-    tar -cf - -T /tmp/content-files.txt | tar -xf - -C /content-runtime
+# itself. `pnpm deploy` copies the package with the production dependencies the
+# lockfile pins, and the link under node_modules is how the server resolves it.
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    set -eux; \
+    pnpm --filter @moj/content --prod deploy --ignore-scripts --store-dir /pnpm/store \
+      /content-runtime/packages/content; \
+    rm /content-runtime/packages/content/pnpm-lock.yaml \
+      /content-runtime/packages/content/pnpm-workspace.yaml; \
+    mkdir -p /content-runtime/node_modules/@moj; \
+    ln -s ../../packages/content /content-runtime/node_modules/@moj/content
 
 # --------------------------------------------------------------------------- #
 # Runtime.                                                                      #
@@ -135,8 +133,8 @@ COPY --from=build --chown=node:node /repo/apps/web/.next/standalone ./
 COPY --from=build --chown=node:node /repo/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build --chown=node:node /repo/apps/web/public ./apps/web/public
 
-# The runtime half of `@moj/content`: the package itself plus the production
-# dependency closure Next left untraced.
+# The runtime half of `@moj/content`: the package with its own production
+# dependencies, and the link the server resolves it through.
 COPY --from=build --chown=node:node /content-runtime/packages ./packages
 COPY --from=build --chown=node:node /content-runtime/node_modules ./node_modules
 
