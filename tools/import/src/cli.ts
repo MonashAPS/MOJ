@@ -28,7 +28,7 @@ interface Options {
   skipConvex: boolean;
 }
 
-const USAGE = `Usage: npm run import -w tools/import -- --dump <file> [options]
+const USAGE = `Usage: pnpm --filter @moj/import run import --dump <file> [options]
 
   --dump <file>              mysqldump output, plain .sql or .sql.gz (required)
   --secret-key-file <file>   file holding SECRET_KEY=<django secret key>

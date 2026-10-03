@@ -21,7 +21,7 @@ import {
 } from "../lib/dedupe";
 
 /**
- * `npm run setup` seeds the reference tables and an older `npm run import`
+ * `pnpm run setup` seeds the reference tables and an older `pnpm run import`
  * inserted the dump's rows on top of them, so a deployment that was seeded and
  * then imported holds two rows for every natural key. The navigation bar is
  * where it shows: the header renders "Problems Problems Submissions
@@ -402,7 +402,7 @@ export const dedupeNaturalKeys = mutation({
  *
  * Also the way to start the repair from the command line, where there is no
  * signed in superuser for `dedupeNaturalKeys` to check: every argument
- * defaults, so `npx convex run admin/dedupe:dedupeNaturalKeysStep '{}'` runs
+ * defaults, so `pnpm exec convex run admin/dedupe:dedupeNaturalKeysStep '{}'` runs
  * the whole thing.
  */
 export const dedupeNaturalKeysStep = internalMutation({

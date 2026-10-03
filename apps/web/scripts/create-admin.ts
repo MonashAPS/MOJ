@@ -6,10 +6,10 @@
  *  so when `MOJ_DEV_TOTP_SECRET` is set the account is also enrolled in TOTP
  *  against that fixed secret. That makes the dev login reproducible: the same
  *  secret always yields the same codes, and a test can generate one. It is a
- *  development affordance and `npm run setup` only writes the variable outside
+ *  development affordance and `pnpm run setup` only writes the variable outside
  *  production.
  *
- *  Usage: npx tsx apps/web/scripts/create-admin.ts [username] [password] [email]
+ *  Usage: pnpm exec tsx apps/web/scripts/create-admin.ts [username] [password] [email]
  *  Prints one line of JSON with the created user's id, and the provisioning URI
  *  and scratch codes when TOTP was enrolled. */
 

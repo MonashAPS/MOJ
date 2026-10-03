@@ -1,7 +1,7 @@
 /** Creates (or repairs) the ordinary local development user through Better
  * Auth's server API. Idempotent: run it as many times as you like.
  *
- * Usage: npx tsx apps/web/scripts/create-user.ts [username] [password] [email]
+ * Usage: pnpm exec tsx apps/web/scripts/create-user.ts [username] [password] [email]
  * Prints one line of JSON with the user's id. */
 
 import { eq } from "drizzle-orm";

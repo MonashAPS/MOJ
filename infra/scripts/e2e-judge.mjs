@@ -4,11 +4,11 @@
  *
  * This is the integration test for the whole grading path — the site, the judge
  * container polling it, and the problem data on the volume between them. It
- * needs a running stack (`npm run setup`, then `npm run dev`) and a judge
+ * needs a running stack (`pnpm run setup`, then `pnpm run dev`) and a judge
  * container started with the same name and key.
  *
- *   npm run e2e:judge
- *   MOJ_JUDGE_NAME=local MOJ_JUDGE_KEY=local npm run e2e:judge
+ *   pnpm run e2e:judge
+ *   MOJ_JUDGE_NAME=local MOJ_JUDGE_KEY=local pnpm run e2e:judge
  *
  * What it does:
  *   1. reads CONVEX_SELF_HOSTED_URL and the admin key from .env.local
@@ -122,7 +122,7 @@ async function main() {
 
   if (!url || !adminKey) {
     throw new Error(
-      "CONVEX_SELF_HOSTED_URL and CONVEX_SELF_HOSTED_ADMIN_KEY are needed; run npm run setup first.",
+      "CONVEX_SELF_HOSTED_URL and CONVEX_SELF_HOSTED_ADMIN_KEY are needed; run pnpm run setup first.",
     );
   }
 
@@ -143,7 +143,7 @@ async function main() {
   });
 
   if (!prepared.userId) {
-    throw new Error(`no profile for "${ADMIN_USERNAME}"; run npm run setup first`);
+    throw new Error(`no profile for "${ADMIN_USERNAME}"; run pnpm run setup first`);
   }
 
   info(prepared.created ? `created judge ${JUDGE_NAME}` : `judge ${JUDGE_NAME} already exists`);

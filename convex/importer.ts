@@ -30,7 +30,7 @@ const idResult = v.object({
  * The tables a row can already exist in under a name the dump also carries, and
  * the field that holds that name.
  *
- * Most of them are the reference tables `seed.ts` writes: `npm run setup` seeds
+ * Most of them are the reference tables `seed.ts` writes: `pnpm run setup` seeds
  * them and an import fills them from the dump, so inserting blindly left a
  * seeded site with two rows for every key and the judge handshake failed
  * because a lookup by key was no longer unique. A row whose key is already
