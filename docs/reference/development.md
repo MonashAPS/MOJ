@@ -34,6 +34,7 @@ then rebuild the image and run the judge end-to-end test.
 | Command | What it does |
 | --- | --- |
 | `npm run setup` | Compose up, admin key, `.env.local`, migrations, seed, development admin and regular user. |
+| `npm run setup:judge` | Register and start a local judge with data for all six development problems. |
 | `npm run dev` | `convex dev` and `next dev` together. |
 | `npm run build` | Every workspace with a build script. |
 | `npm test`, `npm run test:watch` | Vitest across the workspaces. |
@@ -79,6 +80,43 @@ For admin 2FA, use scratch code `mojde-vcode1`. Each code works once; the remain
 `mojde-vcode2`, `mojde-vcode3`, `mojde-vcode4`, and `mojde-vcode5`.
 
 ## Tests
+
+### Local submissions in the browser
+
+With Docker running, use `npm run setup`, then `npm run dev`. In another terminal run:
+
+```bash
+npm run setup:judge
+npm run e2e:judge
+MOJ_E2E_PROBLEM=aminusb npm run e2e:judge
+```
+
+`setup:judge` refreshes the development contests, registers the `local` judge, builds its image and starts
+the appropriate Compose service for Linux or Docker Desktop. It writes test data and Python reference solutions
+for all six problems under `.local/judge-problems/`, which is ignored by Git. It keeps other problem data intact.
+The default judge key is `localjudgekey`, matching Compose; set `MOJ_JUDGE_NAME` and `MOJ_JUDGE_KEY` for an existing
+judge with different credentials. Both end-to-end commands use these same defaults. `MOJ_E2E_SOLUTION` can select
+a different source file. Runtime self-tests finish before the judge starts accepting work.
+
+`setup:judge` uses `CONVEX_SITE_URL` or the site's URL saved in `.env.local`, including a custom port. On Docker
+Desktop it replaces a loopback hostname with `host.docker.internal`. Set `MOJ_JUDGE_URL` to override this endpoint.
+
+Open `http://localhost:3000/`, sign in as `dev`, and check these flows:
+
+- Submit `.local/judge-problems/aplusb/sol.py` from `/problem/aplusb/submit/`; expect Accepted and 100 points.
+- Before joining `dev-running`, open `/contest/dev-running/problem/aminusb/submit/`. Empty source should show
+  a validation error. A valid source should ask for confirmation; Go back keeps the source and Submit anyway
+  creates a practice submission while preserving the contest in the result URL.
+- Join `dev-running`, submit `.local/judge-problems/aminusb/sol.py`, and check the result, source, resubmit,
+  My submissions and standings links. The submission should now contribute to the contest score.
+- Browse `dev-upcoming`; expect a Starts in countdown and unreleased problem links to return 404. Browse
+  `dev-ended`; expect Ended. A problem outside a contest should return 404 under that contest's path.
+- Check the contest bar at a narrow viewport and use arrow keys between its problem chips.
+
+Use `print(0)` for Wrong Answer, `while True: pass` for Time Limit Exceeded, or invalid Python for Compile Error.
+For long-running code, Abort should terminate the submission. These all use the real local sandbox and judge.
+
+### Automated checks
 
 Unit tests live beside the code as `<module>.test.ts`, helpers as `test.*.ts` or `*.fixtures.ts`, fixture data in
 `__fixtures__/` and file snapshots in `__snapshots__/`. Convex functions are tested with `convex-test` against an

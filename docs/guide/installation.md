@@ -137,7 +137,17 @@ is also shown on `/accounts/register/complete/`.
 
 ## Adding a judge
 
-The judge is behind a compose profile, so the stack comes up without it.
+The judge is behind a compose profile, so the stack comes up without it. For development, register and start
+it with grading data for all six sample problems:
+
+```bash
+npm run setup:judge
+npm run e2e:judge
+```
+
+This selects `judge` on Linux and `judge-bridge` on Docker Desktop. See
+[local submission testing](/reference/development#local-submissions-in-the-browser) for the browser checklist.
+To start it manually using the problem data in `infra/problems/`:
 
 ```bash
 docker compose -f infra/compose.dev.yml --project-directory . --profile judge up -d judge
@@ -156,12 +166,12 @@ the published ports through `host.docker.internal`.
 Confirm grading end to end:
 
 ```bash
-MOJ_JUDGE_KEY=localjudgekey npm run e2e:judge
+npm run e2e:judge
 ```
 
 It submits a reference solution to `aplusb` and waits for an Accepted verdict, creating the judge record if
-there is none. The key has to match the container's: the compose default is `localjudgekey`, and the script's
-own default is `local`. `MOJ_JUDGE_NAME` and `MOJ_E2E_TIMEOUT_MS` override the rest. A connected judge is listed
+there is none. The key has to match the container's: both defaults are `localjudgekey`. Use `MOJ_JUDGE_KEY`
+for another key. `MOJ_JUDGE_NAME` and `MOJ_E2E_TIMEOUT_MS` override the rest. A connected judge is listed
 on `/status/`.
 
 To pin the judge to a subset of the host's cores, copy `infra/compose.override.local.example.yml` to

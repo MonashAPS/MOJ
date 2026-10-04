@@ -109,7 +109,7 @@ services:
       JUDGE_NAME: ${JUDGE_NAME:-local}
       JUDGE_KEY: ${JUDGE_KEY:-localjudgekey}
     volumes:
-      - ./infra/problems:/problems
+      - ${MOJ_PROBLEMS_DIR:-./infra/problems}:/problems
 
   # The same judge on the default bridge, for hosts where a container can reach
   # the published ports through `host.docker.internal`:
@@ -129,7 +129,7 @@ services:
       JUDGE_NAME: ${JUDGE_NAME:-local}
       JUDGE_KEY: ${JUDGE_KEY:-localjudgekey}
     volumes:
-      - ./infra/problems:/problems
+      - ${MOJ_PROBLEMS_DIR:-./infra/problems}:/problems
 
 volumes:
   postgres-data:

@@ -8,7 +8,8 @@
  * container started with the same name and key.
  *
  *   npm run e2e:judge
- *   MOJ_JUDGE_NAME=local MOJ_JUDGE_KEY=local npm run e2e:judge
+ *   npm run setup:judge
+ *   MOJ_E2E_PROBLEM=aminusb npm run e2e:judge
  *
  * What it does:
  *   1. reads CONVEX_SELF_HOSTED_URL and the admin key from .env.local
@@ -31,9 +32,11 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 const ENV_LOCAL = join(ROOT, ".env.local");
 
-const SOLUTION = join(ROOT, "infra", "problems", "aplusb", "sol.py");
-
 const PROBLEM_CODE = process.env.MOJ_E2E_PROBLEM ?? "aplusb";
+
+const SOLUTION =
+  process.env.MOJ_E2E_SOLUTION ??
+  join(ROOT, PROBLEM_CODE === "aplusb" ? "infra/problems" : ".local/judge-problems", PROBLEM_CODE, "sol.py");
 
 const LANGUAGE_KEY = process.env.MOJ_E2E_LANGUAGE ?? "PY3";
 
@@ -41,7 +44,7 @@ const ADMIN_USERNAME = process.env.MOJ_ADMIN_USERNAME ?? "admin";
 
 const JUDGE_NAME = process.env.MOJ_JUDGE_NAME ?? process.env.JUDGE_NAME ?? "local";
 
-const JUDGE_KEY = process.env.MOJ_JUDGE_KEY ?? process.env.JUDGE_KEY ?? "local";
+const JUDGE_KEY = process.env.MOJ_JUDGE_KEY ?? process.env.JUDGE_KEY ?? "localjudgekey";
 
 const TIMEOUT_MS = Number(process.env.MOJ_E2E_TIMEOUT_MS ?? 120_000);
 
@@ -149,7 +152,9 @@ async function main() {
   info(prepared.created ? `created judge ${JUDGE_NAME}` : `judge ${JUDGE_NAME} already exists`);
 
   if (!prepared.keyMatches) {
-    info(`${RED}the stored key hash does not match MOJ_JUDGE_KEY${RESET}; the judge will get a 403`);
+    throw new Error(
+      "the stored key hash does not match MOJ_JUDGE_KEY; use the same key as the judge container",
+    );
   }
 
   info(`submitting as ${ADMIN_USERNAME} (${prepared.userId})`);
