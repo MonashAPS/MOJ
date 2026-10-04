@@ -18,6 +18,7 @@
   "scripts": {
     "setup": "node infra/scripts/setup.mjs",
     "setup:judge": "node infra/scripts/setup-dev-judge.mjs",
+    "nuke": "node infra/scripts/nuke.mjs",
     "dev": "concurrently -k -n convex,web -c blue,green \"npm:dev:convex\" \"npm:dev:web\"",
     "dev:convex": "convex dev",
     "dev:web": "npm run dev --workspace apps/web",

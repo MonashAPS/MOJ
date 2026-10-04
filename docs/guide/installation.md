@@ -111,6 +111,8 @@ npm run setup
 `MOJ_ADMIN_EMAIL`, `MOJ_USER_USERNAME`, `MOJ_USER_PASSWORD`, `MOJ_USER_EMAIL`, `MOJ_SITE_NAME` or
 `MOJ_SITE_LONG_NAME` before running setup to override the defaults.
 
+For a fresh database and judge, follow [resetting local development](#resetting-local-development).
+
 ## Starting the site
 
 ```bash
@@ -190,3 +192,38 @@ git pull
 npm ci
 npm run setup
 ```
+
+## Resetting local development
+
+Stop `npm run dev` with Ctrl+C in its terminal, then run the following from the repository root.
+
+::: danger Permanent local data deletion
+This deletes the development project's Postgres and Convex volumes, including all accounts, problems,
+submissions, contests and uploaded files. It also removes the judge and dashboard containers, the project's
+network, and its locally built judge images. Use this when you want to start again with the seeded development
+data.
+:::
+
+```bash
+npm run nuke
+
+# Recreate the databases, backend, dashboard, development accounts and judge.
+npm run setup
+npm run setup:judge
+npm run e2e:judge
+npm run dev
+```
+
+To preview the removal without deleting anything, use `npm run nuke -- --dry-run`.
+The command includes both judge services, so it works with either Linux or Docker Desktop. It also deletes
+`.env.local`, the web app's environment link and build cache, `.convex-tmp`, the generated judge configuration,
+and the sample judge data and browser fixture under `.local`. If Docker cleanup fails, it keeps those files.
+
+The Compose project is `moj` by default. For a custom project or local override files, pass the same Compose
+options used to start that instance, for example
+`npm run nuke -- -p moj-other -f infra/compose.override.local.yml`. Keep the corresponding environment overrides
+when running setup again. Repeat the reset for each development project you want to remove.
+
+Clear this site's cookies and local storage at `http://localhost:3000` before logging in again. This clears old
+sessions, submission drafts and dismissed contest join warnings. Setup prints the new account credentials and
+recreates the sample contests; `setup:judge` regenerates the sample grading data.

@@ -35,6 +35,7 @@ then rebuild the image and run the judge end-to-end test.
 | --- | --- |
 | `npm run setup` | Compose up, admin key, `.env.local`, migrations, seed, development admin and regular user. |
 | `npm run setup:judge` | Register and start a local judge with data for all six development problems. |
+| `npm run nuke` | Permanently delete the local development stack, database volumes and generated instance files. |
 | `npm run dev` | `convex dev` and `next dev` together. |
 | `npm run build` | Every workspace with a build script. |
 | `npm test`, `npm run test:watch` | Vitest across the workspaces. |
@@ -90,6 +91,10 @@ npm run setup:judge
 npm run e2e:judge
 MOJ_E2E_PROBLEM=aminusb npm run e2e:judge
 ```
+
+To discard the existing databases, judge and generated instance files first, follow
+[resetting local development](/guide/installation#resetting-local-development). That reset permanently deletes
+the development data and recreates the seeded accounts and contests.
 
 `setup:judge` refreshes the development contests, registers the `local` judge, builds its image and starts
 the appropriate Compose service for Linux or Docker Desktop. It writes test data and Python reference solutions
