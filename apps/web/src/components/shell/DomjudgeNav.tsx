@@ -39,7 +39,8 @@ type Contest = NonNullable<ContestChrome> & {
   /** When the viewer's own window closes, if they are in it. */
   endsAt: number | null;
   ownSubmissions: boolean;
-  /** Empty unless the viewer is in the contest, which is when they may submit. */
+  showJoinWarning: boolean;
+  /** Released problems the viewer can access, including outside participation. */
   problems: { code: string; name: string; label: string }[];
 };
 
@@ -178,7 +179,7 @@ export function DomjudgeNav({
             </button>
           ) : null}
           {/* DOMjudge submits from the bar rather than from a problem page. */}
-          {contest && viewer ? <DomjudgeSubmit problems={contest.problems} /> : null}
+          {contest && viewer ? <DomjudgeSubmit contest={contest} problems={contest.problems} /> : null}
           <ThemeDropdown />
           {viewer ? (
             <UserBlock viewer={viewer} registrationOpen={registrationOpen} />

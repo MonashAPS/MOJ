@@ -175,7 +175,11 @@
     "chooseFile": "选择文件",
     "dropHere": "拖入源代码文件即可载入",
     "notText": "该文件不是源代码。",
-    "openFullPage": "打开完整提交页面"
+    "openFullPage": "打开完整提交页面",
+    "joinWarningTitle": "提交前请先加入比赛",
+    "joinWarningBody": "你尚未加入 {contestName}。现在提交不会计入本场比赛。",
+    "goBack": "返回",
+    "submitAnyway": "仍然提交"
   },
   "rank": {
     "titleFor": "{name} 的最佳解答",

@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@moj/ui";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { ContestLink } from "@/components/ContestLink";
-import { SubmitForm } from "@/components/problems/SubmitForm";
+import { SubmitForm, type SubmitReminder } from "@/components/problems/SubmitForm";
 
 /**
  * Submitting from the list a contest's problems are named in, the way
@@ -20,6 +20,7 @@ export function QuickSubmit({
   defaultLanguageKey,
   submissionsLeft,
   children,
+  reminder,
 }: {
   problemCode: string;
   problemName: string;
@@ -27,6 +28,7 @@ export function QuickSubmit({
   submissionsLeft: number | null;
   /** The trigger, so the caller styles the button to suit its row. */
   children: React.ReactNode;
+  reminder?: SubmitReminder;
 }) {
   const t = useTranslations("problems.submit");
   const [open, setOpen] = useState(false);
@@ -38,6 +40,7 @@ export function QuickSubmit({
           editors, each with its own language query. */}
       <DialogContent title={t("titleFor", { name: problemName })} width={1000}>
         <SubmitForm
+          reminder={reminder}
           compact
           problemCode={problemCode}
           problemName={problemName}

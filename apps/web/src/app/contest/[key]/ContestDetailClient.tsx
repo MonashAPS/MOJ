@@ -27,6 +27,7 @@ import { AudienceLine } from "@/components/audiences/AudienceSelect";
 import { ContestLink } from "@/components/ContestLink";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips, OPEN_ENDED, ProblemStateIcon, useHumanDuration } from "@/components/contests/pieces";
+import type { SubmitReminder } from "@/components/problems/SubmitForm";
 import { TitleRow } from "@/components/shell/PageTabs";
 import { useSkin } from "@/components/shell/SkinProvider";
 import { LocalTime } from "@/components/time/LocalTime";
@@ -451,6 +452,14 @@ export function ContestDetailClient({
       ? joinKind
       : null;
 
+  const reminder: SubmitReminder = {
+    key: contestKey,
+    name: contest.name,
+    eligible: coverJoinKind !== null,
+    acknowledged: problemsCoverDismissed,
+    serverHadViewer: initial.viewer.isAuthenticated,
+  };
+
   const showState = detail.viewer.isAuthenticated;
   const precision = contest.pointsPrecision;
 
@@ -479,7 +488,7 @@ export function ContestDetailClient({
             joinKind={coverJoinKind}
             initiallyDismissed={problemsCoverDismissed}
           >
-            <DomjudgeProblemset detail={detail} defaultLanguageKey={defaultLanguageKey} />
+            <DomjudgeProblemset detail={detail} defaultLanguageKey={defaultLanguageKey} reminder={reminder} />
           </ProblemsJoinCover>
         ) : (
           <ProblemsNotReleased contestName={contest.name} />

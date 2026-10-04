@@ -175,7 +175,11 @@
     "chooseFile": "Pilih berkas",
     "dropHere": "Lepaskan berkas kode sumber di sini untuk memuatnya",
     "notText": "Berkas itu bukan kode sumber.",
-    "openFullPage": "Buka halaman pengiriman lengkap"
+    "openFullPage": "Buka halaman pengiriman lengkap",
+    "joinWarningTitle": "Bergabung sebelum mengirim",
+    "joinWarningBody": "Anda belum bergabung dengan {contestName}. Pengiriman sekarang tidak akan dihitung untuk kontes ini.",
+    "goBack": "Kembali",
+    "submitAnyway": "Tetap kirim"
   },
   "rank": {
     "titleFor": "Solusi terbaik untuk {name}",

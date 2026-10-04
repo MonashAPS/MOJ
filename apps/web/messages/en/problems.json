@@ -175,7 +175,11 @@
     "chooseFile": "Choose file",
     "dropHere": "Drop a source file to load it",
     "notText": "That file is not source code.",
-    "openFullPage": "Open the full submit page"
+    "openFullPage": "Open the full submit page",
+    "joinWarningTitle": "Join before submitting",
+    "joinWarningBody": "You haven’t joined {contestName}. Submitting now won’t count toward this contest.",
+    "goBack": "Go back",
+    "submitAnyway": "Submit anyway"
   },
   "rank": {
     "titleFor": "Best solutions for {name}",

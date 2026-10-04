@@ -175,7 +175,11 @@
     "chooseFile": "Elegir archivo",
     "dropHere": "Suelta aquí un archivo de código para cargarlo",
     "notText": "Ese archivo no es código fuente.",
-    "openFullPage": "Abrir la página de envío completa"
+    "openFullPage": "Abrir la página de envío completa",
+    "joinWarningTitle": "Únete antes de enviar",
+    "joinWarningBody": "No te has unido a {contestName}. Si envías ahora, no contará para este concurso.",
+    "goBack": "Volver",
+    "submitAnyway": "Enviar de todos modos"
   },
   "rank": {
     "titleFor": "Mejores soluciones para {name}",

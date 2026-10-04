@@ -1,8 +1,20 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
-import { Alert, AlertDescription, AlertTitle, Button, Kbd, KbdGroup, Select } from "@moj/ui";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  Kbd,
+  KbdGroup,
+  Select,
+} from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionArgs } from "convex/server";
 import { Paperclip, TriangleAlert, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -12,6 +24,17 @@ import { CodeEditor } from "@/components/problems/CodeEditor";
 import { LanguagePicker } from "@/components/problems/LanguagePicker";
 import { mutationError } from "@/lib/convex-error";
 import { languageForFile, MAX_SOURCE_LENGTH, readSourceFile } from "@/lib/submit-file";
+import { useViewerLive } from "@/lib/useViewerLive";
+
+export type SubmitReminder = {
+  key: string;
+  name: string;
+  eligible: boolean;
+  acknowledged: boolean;
+  serverHadViewer: boolean;
+};
+
+type SubmissionAttempt = FunctionArgs<typeof api.submissions.submit>;
 
 function draftKey(code: string, languageKey: string): string {
   return `submit:${code}:${languageKey}`;
@@ -30,6 +53,7 @@ export function SubmitForm({
   canPinJudge,
   submissionsLeft,
   compact = false,
+  reminder,
 }: {
   problemCode: string;
   problemName: string;
@@ -39,15 +63,38 @@ export function SubmitForm({
   submissionsLeft: number | null;
   /** Shorter, for the submit dialog the contest's problem list opens. */
   compact?: boolean;
+  reminder?: SubmitReminder;
 }) {
   const t = useTranslations("problems.submit");
   const router = useRouter();
-  const withContest = useContestHref();
+  // Header dialogs also open on account pages, outside the contest pathname.
+  const withContest = useContestHref(reminder?.key);
   const usable = useQuery(api.languages.usableForProblem, { code: problemCode });
   const judges = useQuery(api.judges.list, canPinJudge ? {} : "skip");
   const submit = useMutation(api.submissions.submit);
 
-  const [languageKey, setLanguageKey] = useState(defaultLanguageKey ?? "");
+  const liveContest = useQuery(
+    api.contests.navBar,
+    reminder ? { key: reminder.key, browsing: true } : "skip",
+  );
+
+  const eligible = useViewerLive(
+    liveContest === undefined
+      ? undefined
+      : !!liveContest?.showJoinWarning &&
+          liveContest.problems.some((problem) => problem.code === problemCode),
+    reminder?.eligible ?? false,
+    reminder?.serverHadViewer ?? false,
+  );
+
+  const [pendingAttempt, setPendingAttempt] = useState<SubmissionAttempt | null>(null);
+  // React state alone cannot block two events delivered before the next render.
+  const attemptState = useRef<"idle" | "confirming" | "sending">("idle");
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const submitButton = useRef<HTMLButtonElement>(null);
+
+  // Follow a preference that loads after mount until the viewer makes a choice.
+  const [selectedLanguageKey, setLanguageKey] = useState<string | null>(null);
   const [source, setSource] = useState(initialSource);
   const [judgePin, setJudgePin] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -57,27 +104,13 @@ export function SubmitForm({
   const touched = useRef(initialSource.length > 0);
   const filePicker = useRef<HTMLInputElement>(null);
 
-  const template = useQuery(api.problems.languageTemplate, languageKey ? { languageKey } : "skip");
-
   const languages = usable?.languages ?? [];
-  const language = languages.find((row) => row.key === languageKey) ?? null;
+  // Keep the preferred or explicitly chosen language only while it is usable.
+  const language = languages.find((row) => row.key === (selectedLanguageKey ?? defaultLanguageKey)) ?? null;
+  const languageKey = language?.key ?? "";
+  const template = useQuery(api.problems.languageTemplate, languageKey ? { languageKey } : "skip");
   const noJudges = usable !== undefined && usable !== null && usable.onlineJudges === 0;
   const exhausted = submissionsLeft !== null && submissionsLeft <= 0;
-
-  // The member's default first; then something a judge can actually run; then
-  // the two most common languages, so a fresh account never lands on Ada.
-  useEffect(() => {
-    if (languageKey || languages.length === 0) return;
-
-    const pick =
-      languages.find((row) => row.key === defaultLanguageKey) ??
-      languages.find((row) => row.runnable) ??
-      languages.find((row) => row.commonName === "C++") ??
-      languages.find((row) => row.commonName === "Python") ??
-      languages[0];
-
-    if (pick) setLanguageKey(pick.key);
-  }, [defaultLanguageKey, languageKey, languages]);
 
   // A fresh buffer takes the saved draft, else the language's template.
   useEffect(() => {
@@ -139,8 +172,34 @@ export function SubmitForm({
     [defaultLanguageKey, languageKey, languages, t],
   );
 
-  const send = useCallback(async () => {
-    if (busy) return;
+  const send = useCallback(
+    async (attempt: SubmissionAttempt) => {
+      if (attemptState.current === "sending") return;
+      attemptState.current = "sending";
+      setPendingAttempt(null);
+      setBusy(true);
+
+      try {
+        const created = await submit(attempt);
+
+        try {
+          window.localStorage.removeItem(draftKey(attempt.problemCode, attempt.languageKey));
+        } catch {
+          // Nothing to clean up when storage is unavailable.
+        }
+
+        router.push(withContest(`/submission/${created.id}`));
+      } catch (thrown) {
+        attemptState.current = "idle";
+        setBusy(false);
+        setError(mutationError(thrown, t("failed")));
+      }
+    },
+    [router, submit, t, withContest],
+  );
+
+  const attemptSubmission = useCallback(() => {
+    if (attemptState.current !== "idle" || exhausted || !languageKey || !language) return;
     setError(null);
 
     if (source.trim().length === 0) {
@@ -155,34 +214,59 @@ export function SubmitForm({
       return;
     }
 
-    setBusy(true);
+    const attempt = { problemCode, languageKey, source, judgePin: judgePin || undefined };
 
-    try {
-      const created = await submit({
-        problemCode,
-        languageKey,
-        source,
-        judgePin: judgePin || undefined,
-      });
-
-      try {
-        window.localStorage.removeItem(draftKey(problemCode, languageKey));
-      } catch {
-        // Nothing to clean up when storage is unavailable.
-      }
-
-      router.push(withContest(`/submission/${created.id}`));
-    } catch (thrown) {
-      setBusy(false);
-      setError(mutationError(thrown, t("failed")));
+    if (reminder && eligible && !reminder.acknowledged) {
+      returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      attemptState.current = "confirming";
+      setPendingAttempt(attempt);
+    } else {
+      void send(attempt);
     }
-  }, [busy, judgePin, languageKey, problemCode, router, source, submit, t, withContest]);
+  }, [eligible, exhausted, judgePin, language, languageKey, problemCode, reminder, send, source, t]);
+
+  const cancelAttempt = () => {
+    if (attemptState.current !== "confirming") return;
+    attemptState.current = "idle";
+    setPendingAttempt(null);
+  };
 
   const lines = source.length === 0 ? 0 : source.split("\n").length;
   const onlineJudges = (judges?.judges ?? []).filter((judge) => judge.online);
 
   return (
     <div className="grid gap-4">
+      <Dialog
+        open={pendingAttempt !== null}
+        onOpenChange={(open) => {
+          if (!open) cancelAttempt();
+        }}
+      >
+        <DialogContent
+          title={t("joinWarningTitle")}
+          description={t("joinWarningBody", { contestName: reminder?.name ?? "" })}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            const target = returnFocus.current;
+
+            if (target?.isConnected && target !== document.body) target.focus();
+            else submitButton.current?.focus();
+          }}
+        >
+          <DialogFooter>
+            <Button variant="secondary" onClick={cancelAttempt}>
+              {t("goBack")}
+            </Button>
+            <Button
+              onClick={() => {
+                if (attemptState.current === "confirming" && pendingAttempt) void send(pendingAttempt);
+              }}
+            >
+              {t("submitAnyway")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {noJudges ? (
         <Alert variant="danger">
           <TriangleAlert size={16} aria-hidden />
@@ -276,7 +360,7 @@ export function SubmitForm({
               touched.current = true;
               setSource(next);
             }}
-            onSubmit={() => void send()}
+            onSubmit={attemptSubmission}
             editorMode={language?.editorMode ?? "text"}
             ariaLabel={t("sourceLabel", { name: problemName })}
             className="h-full"
@@ -308,7 +392,12 @@ export function SubmitForm({
               ),
             })}
           </span>
-          <Button onClick={() => void send()} busy={busy} disabled={exhausted || !languageKey}>
+          <Button
+            ref={submitButton}
+            onClick={attemptSubmission}
+            busy={busy}
+            disabled={exhausted || !language || !!pendingAttempt}
+          >
             {t("submit")}
           </Button>
         </div>

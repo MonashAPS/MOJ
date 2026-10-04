@@ -5,8 +5,14 @@ import { Button, Dialog, DialogContent, DialogTrigger, Select } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { readProblemsJoinCoverAcknowledgement } from "@/app/contest/[key]/actions";
 import { SubmitForm } from "@/components/problems/SubmitForm";
+
+type Props = {
+  contest: { key: string; name: string; showJoinWarning: boolean };
+  problems: { code: string; name: string; label: string }[];
+};
 
 /**
  * DOMjudge's Submit button, the one that sits on the bar rather than on a
@@ -17,16 +23,11 @@ import { SubmitForm } from "@/components/problems/SubmitForm";
  * this is — the problem picker, then our submit form, which already takes a file
  * or typed source and reads the language off the extension.
  */
-export function DomjudgeSubmit({ problems }: { problems: { code: string; name: string; label: string }[] }) {
+export function DomjudgeSubmit({ contest, problems }: Props) {
   const t = useTranslations("problems.submit");
   const [open, setOpen] = useState(false);
-  const [code, setCode] = useState(problems[0]?.code ?? "");
-  // Only once the dialog is open: the bar should not ask the server anything on
-  // every page load for a button nobody has pressed.
-  const preferred = useQuery(api.languages.viewerDefault, open ? {} : "skip");
 
   if (problems.length === 0) return null;
-  const chosen = problems.find((problem) => problem.code === code) ?? problems[0];
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -38,30 +39,70 @@ export function DomjudgeSubmit({ problems }: { problems: { code: string; name: s
       </DialogTrigger>
 
       <DialogContent title={t("title")} width={1000}>
-        <Select
-          ariaLabel={t("problem")}
-          value={chosen?.code ?? ""}
-          onValueChange={setCode}
-          options={problems.map((problem) => ({
-            value: problem.code,
-            label: `${problem.label} — ${problem.name}`,
-          }))}
-        />
-
-        {chosen ? (
-          // Keyed on the problem, so switching it starts a clean buffer rather
-          // than carrying the last one's draft across.
-          <SubmitForm
-            key={chosen.code}
-            compact
-            problemCode={chosen.code}
-            problemName={chosen.name}
-            defaultLanguageKey={preferred?.key ?? null}
-            canPinJudge={false}
-            submissionsLeft={null}
-          />
-        ) : null}
+        <DomjudgeSubmitContent key={contest.key} contest={contest} problems={problems} />
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Mounted only while open, so each visit reads the current acknowledgement. */
+function DomjudgeSubmitContent({ contest, problems }: Props) {
+  const t = useTranslations("problems.submit");
+  const common = useTranslations("common.states");
+  const [code, setCode] = useState(problems[0]?.code ?? "");
+  const [acknowledged, setAcknowledged] = useState<boolean | null>(null);
+  const preferred = useQuery(api.languages.viewerDefault, {});
+  const chosen = problems.find((problem) => problem.code === code) ?? problems[0];
+
+  useEffect(() => {
+    let active = true;
+    void readProblemsJoinCoverAcknowledgement(contest.key)
+      .catch(() => false)
+      .then((saved) => {
+        if (active) setAcknowledged(saved);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [contest.key]);
+
+  return (
+    <>
+      <Select
+        ariaLabel={t("problem")}
+        value={chosen?.code ?? ""}
+        onValueChange={setCode}
+        options={problems.map((problem) => ({
+          value: problem.code,
+          label: `${problem.label} — ${problem.name}`,
+        }))}
+      />
+
+      {acknowledged === null ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          {common("loading")}
+        </p>
+      ) : chosen ? (
+        // Keyed on the problem, so switching it starts a clean buffer rather
+        // than carrying the last one's draft across.
+        <SubmitForm
+          reminder={{
+            key: contest.key,
+            name: contest.name,
+            eligible: contest.showJoinWarning,
+            acknowledged,
+            serverHadViewer: true,
+          }}
+          key={chosen.code}
+          compact
+          problemCode={chosen.code}
+          problemName={chosen.name}
+          defaultLanguageKey={preferred?.key ?? null}
+          canPinJudge={false}
+          submissionsLeft={null}
+        />
+      ) : null}
+    </>
   );
 }

@@ -3,6 +3,7 @@
 import { api } from "@convex/_generated/api";
 import { type FunctionReference, getFunctionName } from "convex/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { problemsViewedCookieName } from "./problems-join-cover";
 
 type TestState = {
   contest: {
@@ -54,7 +55,7 @@ vi.mock("./convex-server", () => ({
   },
 }));
 
-import { requireContestProblem } from "./contest-resource.server";
+import { loadSubmitReminder, requireContestProblem } from "./contest-resource.server";
 
 beforeEach(() => {
   state.contest = {
@@ -86,4 +87,16 @@ describe("contextual resource boundary", () => {
       ).rejects.toThrow("NOT_FOUND");
     },
   );
+  it("only reads acknowledgement for this contest and the exact saved value", async () => {
+    state.cookies.set(problemsViewedCookieName("round2"), { value: "1" });
+    expect((await loadSubmitReminder("round1", "alpha"))?.acknowledged).toBe(false);
+    state.cookies.set(problemsViewedCookieName("round1"), { value: "0" });
+    expect((await loadSubmitReminder("round1", "alpha"))?.acknowledged).toBe(false);
+    state.cookies.set(problemsViewedCookieName("round1"), { value: "1" });
+    expect(await loadSubmitReminder("round1", "alpha")).toMatchObject({ acknowledged: true, eligible: true });
+  });
+  it("does not infer contest context for standalone submissions", async () => {
+    expect(await loadSubmitReminder(undefined, "alpha")).toBeUndefined();
+    expect(state.query).not.toHaveBeenCalled();
+  });
 });

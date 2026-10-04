@@ -4,6 +4,7 @@ import type { ContestDetail, ContestProblemEntry } from "@convex/contests";
 import { FileArchive, FileText, Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { QuickSubmit } from "@/components/problems/QuickSubmit";
+import type { SubmitReminder } from "@/components/problems/SubmitForm";
 
 /**
  * The problemset page as DOMjudge draws it.
@@ -44,10 +45,12 @@ function ProblemCard({
   problem,
   canSubmit,
   defaultLanguageKey,
+  reminder,
 }: {
   problem: ContestProblemEntry;
   canSubmit: boolean;
   defaultLanguageKey: string | null;
+  reminder?: SubmitReminder;
 }) {
   const t = useTranslations("contests.detail");
 
@@ -104,6 +107,7 @@ function ProblemCard({
         ) : null}
         {problem.isAccessible && canSubmit ? (
           <QuickSubmit
+            reminder={reminder}
             problemCode={problem.code}
             problemName={problem.name}
             defaultLanguageKey={defaultLanguageKey}
@@ -122,9 +126,11 @@ function ProblemCard({
 export function DomjudgeProblemset({
   detail,
   defaultLanguageKey,
+  reminder,
 }: {
   detail: ContestDetail;
   defaultLanguageKey: string | null;
+  reminder?: SubmitReminder;
 }) {
   const t = useTranslations("contests.detail");
   const problems = detail.problems;
@@ -148,6 +154,7 @@ export function DomjudgeProblemset({
               problem={problem}
               canSubmit={canSubmit}
               defaultLanguageKey={defaultLanguageKey}
+              reminder={reminder}
             />
           ))}
         </div>

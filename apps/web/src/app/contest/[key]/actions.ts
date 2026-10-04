@@ -3,6 +3,13 @@
 import { cookies } from "next/headers";
 import { problemsViewedCookieName } from "@/lib/problems-join-cover";
 
+/** Read the HttpOnly preference when a navigation submit dialog opens. */
+export async function readProblemsJoinCoverAcknowledgement(contestKey: string): Promise<boolean> {
+  const jar = await cookies();
+
+  return jar.get(problemsViewedCookieName(contestKey))?.value === "1";
+}
+
 /** A browser preference, not permission to access unreleased problems. */
 export async function dismissProblemsJoinCover(contestKey: string): Promise<void> {
   const jar = await cookies();
