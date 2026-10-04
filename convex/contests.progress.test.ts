@@ -142,15 +142,27 @@ describe("a contest that has not finished", () => {
     expect(JSON.stringify(payload.current)).not.toContain("secret");
   });
 
-  it("shows it to somebody running the contest", async () => {
-    const f = await ongoing();
-    const authorId = await insertProfile(f.t, { username: "author" });
-    await f.t.run(async (ctx) => ctx.db.patch(f.contestId, { authorProfileIds: [authorId] }));
+  it.each(["authorProfileIds", "curatorProfileIds", "testerProfileIds"] as const)(
+    "shows names to %s and reports whether each problem can be opened",
+    async (role) => {
+      const f = await ongoing();
+      const staffId = await insertProfile(f.t, { username: "staff" });
 
-    const payload = await asUser(f.t, "author").query(api.contests.list, {
-      paginationOpts: { numItems: 20, cursor: null },
-    });
+      await f.t.run(async (ctx) => ctx.db.patch(f.contestId, { [role]: [staffId] }));
 
-    expect(payload.current[0]?.progress?.total).toBe(3);
-  });
+      const staff = asUser(f.t, "staff");
+
+      const payload = await staff.query(api.contests.list, {
+        paginationOpts: { numItems: 20, cursor: null },
+      });
+
+      expect(payload.current[0]?.progress?.total).toBe(3);
+      const problems = payload.current[0]?.progress?.problems;
+      expect(problems?.map((problem) => problem.code)).toEqual(["open1", "open2", "secret"]);
+      expect(problems?.find((problem) => problem.code === "open1")?.isAccessible).toBe(true);
+      const secret = await staff.query(api.problems.get, { code: "secret" });
+      expect(problems?.find((problem) => problem.code === "secret")?.isAccessible).toBe(secret !== null);
+      expect(secret).toBeNull();
+    },
+  );
 });

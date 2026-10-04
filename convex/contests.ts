@@ -51,7 +51,7 @@ import {
   toViewerRowInContest,
 } from "./contests/formats";
 import { optionalViewer } from "./lib/auth";
-import { canAccessProblem, loadViewerContext, statementHasSamples } from "./problems";
+import { canAccessProblem, loadViewerContext, statementHasSamples, type ViewerContext } from "./problems";
 
 /** One person's submission history, capped so a prolific account cannot
  *  turn the contest list into a full scan. */
@@ -88,6 +88,7 @@ export type ContestBarData = {
     isLockedDown: boolean;
   };
   problems: ContestBarProblem[];
+  showJoinWarning: boolean;
   participationId: Id<"contestParticipations"> | null;
   endsAt: number | null;
   isSpectating: boolean;
@@ -155,7 +156,7 @@ export type ContestListRow = {
 export type ContestProgress = {
   solved: number;
   total: number;
-  problems: { code: string; name: string; label: string; solved: boolean }[];
+  problems: { code: string; name: string; label: string; solved: boolean; isAccessible: boolean }[];
 };
 
 export type ActiveParticipation = {
@@ -443,24 +444,28 @@ export const chrome = query({
 });
 
 export const navBar = query({
-  args: { key: v.optional(v.string()) },
-  handler: async (ctx, { key }): Promise<ContestBarData> => {
+  args: { key: v.optional(v.string()), browsing: v.optional(v.boolean()) },
+  handler: async (ctx, { key, browsing }): Promise<ContestBarData> => {
     const profile = await optionalViewer(ctx);
     const now = Date.now();
 
     let participation: Doc<"contestParticipations"> | null = null;
     let contest: Doc<"contests"> | null = null;
 
-    // The bar says one thing: you are in this contest now. It used to fall back
-    // to any participation row the viewer had ever had here, so leaving a contest
-    // left the bar up and its clock running on a contest they were no longer in.
+    // Participation queries only describe the contest the viewer is in now.
+    // The shell explicitly opts into browsing data for its navigation context;
+    // historical participation must never restart a personal contest clock.
     if (key) {
       contest = await contestByKey(ctx, key);
 
-      if (!contest || !profile?.currentParticipationId) return null;
-      participation = await ctx.db.get(profile.currentParticipationId);
+      if (!contest) return null;
+      participation = profile?.currentParticipationId
+        ? await ctx.db.get(profile.currentParticipationId)
+        : null;
 
-      if (!participation || participation.contestId !== contest._id) return null;
+      if (participation?.contestId !== contest._id) participation = null;
+
+      if (!participation && !browsing) return null;
     } else if (profile?.currentParticipationId) {
       participation = await ctx.db.get(profile.currentParticipationId);
 
@@ -472,9 +477,13 @@ export const navBar = query({
     const viewer = await toViewerRowInContest(ctx, profile);
     const contestRow = toContestRow(contest);
 
-    const contestProblems = problemListAccessFor(contest, profile, viewer, true, Date.now()).released
-      ? await loadContestProblems(ctx, contest._id)
-      : [];
+    // Browsing a contest does not grant participation or reveal its private problems.
+    if (!participation && contestAccessCheck(contestRow, viewer).kind !== "ok") return null;
+    const access = problemListAccessFor(contest, profile, viewer, !!participation, now);
+    const contestProblems = access.released ? await loadContestProblems(ctx, contest._id) : [];
+    // Contest roles may reveal problem names without granting problem access.
+    // Every browsing chip is a link, so include only problems the viewer can open.
+    const problemViewer = !participation ? await loadViewerContext(ctx) : null;
 
     const problems: ContestBarProblem[] = [];
 
@@ -482,6 +491,8 @@ export const navBar = query({
       const problem = await ctx.db.get(contestProblem.problemId);
 
       if (!problem) continue;
+
+      if (problemViewer && !(await canAccessProblem(ctx, problem, problemViewer))) continue;
       const state = await problemStateFor(ctx, profile?._id ?? null, problem, contest._id);
       problems.push({
         contestProblemId: contestProblem._id,
@@ -494,7 +505,8 @@ export const navBar = query({
       });
     }
 
-    const liveParticipation = profile ? await liveParticipationOf(ctx, contest._id, profile._id) : null;
+    const history = profile ? await participationsOf(ctx, contest._id, profile._id) : [];
+    const liveParticipation = history.find((row) => row.virtual === PARTICIPATION_LIVE) ?? null;
 
     const context = {
       now,
@@ -512,16 +524,21 @@ export const navBar = query({
         endTime: contest.endTime,
         useClarifications: contest.useClarifications,
         freeze: contest.freeze ? { minutes: contest.freeze.minutes } : null,
-        isLockedDown: contest.disableLockdown !== true,
+        isLockedDown: !!participation && contest.disableLockdown !== true,
       },
       problems,
+      showJoinWarning:
+        contestStarted(contestRow, now) &&
+        !contestEnded(contestRow, now) &&
+        !participation &&
+        (!profile || contestIsLiveJoinableBy(contestRow, viewer, context)),
       participationId: participation?._id ?? null,
       endsAt,
       isSpectating: participation?.virtual === PARTICIPATION_SPECTATE,
       isVirtual: (participation?.virtual ?? 0) > 0,
       links: {
         standings: contestCanSeeOwnScoreboard(contestRow, viewer, context),
-        submissions: !!profile,
+        submissions: history.length > 0,
         clarifications: contest.useClarifications,
       },
       now,
@@ -568,8 +585,9 @@ async function progressFor(
   contest: Doc<"contests">,
   solved: Set<string> | null,
   access: ProblemListAccess,
+  problemViewer: ViewerContext | null,
 ): Promise<ContestProgress | null> {
-  if (!solved) return null;
+  if (!solved || !problemViewer) return null;
 
   if (!access.released) return null;
 
@@ -579,19 +597,21 @@ async function progressFor(
     .collect();
 
   const problems: ContestProgress["problems"] = [];
-  const problemViewer = access.privileged ? null : await loadViewerContext(ctx);
 
   for (const [index, link] of links.entries()) {
     const problem = await ctx.db.get(link.problemId);
 
     if (!problem) continue;
 
-    if (problemViewer && !(await canAccessProblem(ctx, problem, problemViewer))) continue;
+    const isAccessible = await canAccessProblem(ctx, problem, problemViewer);
+
+    if (!access.privileged && !isAccessible) continue;
     problems.push({
       code: problem.code,
       name: problem.name,
       label: labelForProblem(contest, index),
       solved: solved.has(problem._id),
+      isAccessible,
     });
   }
 
@@ -607,8 +627,9 @@ async function listRow(
   contest: Doc<"contests">,
   editorOrTester: boolean,
   hasCompleted: boolean,
-  solved: Set<string> | null = null,
-  access: { released: boolean; privileged: boolean } = { released: false, privileged: false },
+  solved: Set<string> | null,
+  access: ProblemListAccess,
+  problemViewer: ViewerContext | null,
 ): Promise<ContestListRow> {
   return {
     _id: contest._id,
@@ -628,7 +649,7 @@ async function listRow(
     isEditorOrTester: editorOrTester,
     hasCompleted,
     proctorRequired: contest.proctorRequired ?? false,
-    progress: await progressFor(ctx, contest, solved, access),
+    progress: await progressFor(ctx, contest, solved, access, problemViewer),
   };
 }
 
@@ -706,6 +727,9 @@ export const list = query({
       solvedIds = new Set(submissions.filter((row) => row.result === "AC").map((row) => row.problemId));
     }
 
+    // The problem access checks share one viewer context across every contest row.
+    const problemViewer = profile ? await loadViewerContext(ctx) : null;
+
     const releaseAccess = (contest: Doc<"contests">) =>
       problemListAccessFor(contest, profile, viewer, false, now);
 
@@ -769,6 +793,7 @@ export const list = query({
           false,
           solvedIds,
           problemListAccessFor(heldContest, profile, viewer, true, now),
+          problemViewer,
         ),
         virtual: held.virtual,
         endsAt,
@@ -810,6 +835,7 @@ export const list = query({
           !!participation,
           solvedIds,
           releaseAccess(contest),
+          problemViewer,
         ),
       );
     }
@@ -825,6 +851,7 @@ export const list = query({
           finishedKeys.includes(contest.key),
           solvedIds,
           releaseAccess(contest),
+          problemViewer,
         ),
       );
     }
@@ -833,7 +860,15 @@ export const list = query({
 
     for (const contest of future) {
       futureRows.push(
-        await listRow(ctx, contest, editorOrTester(contest), false, solvedIds, releaseAccess(contest)),
+        await listRow(
+          ctx,
+          contest,
+          editorOrTester(contest),
+          false,
+          solvedIds,
+          releaseAccess(contest),
+          problemViewer,
+        ),
       );
     }
 
