@@ -104,8 +104,11 @@ export function ContestBar({
 }) {
   const t = useTranslations("common.contestBar");
   const remaining = useCountdown(data.isSpectating ? null : data.endsAt);
+  const untilStart = useCountdown(data.isSpectating || data.isVirtual ? null : data.contest.startTime);
+  const upcoming = untilStart !== null && untilStart > 0;
   const chipsRef = useRef<HTMLDivElement | null>(null);
   const base = `/contest/${data.contest.key}`;
+  const joined = data.participationId !== null;
 
   const links = [
     ...(data.links.standings ? [{ href: `${base}/ranking/`, label: t("standings") }] : []),
@@ -123,7 +126,7 @@ export function ContestBar({
   const openEnded = !ended && remaining !== null && remaining > COUNTDOWN_HORIZON;
 
   const urgency =
-    ended || openEnded
+    upcoming || ended || openEnded
       ? "text-contest-bar-ink"
       : remaining < 60_000
         ? "text-bad"
@@ -135,48 +138,56 @@ export function ContestBar({
     <nav
       aria-label={t("label")}
       data-chrome="dark"
-      className="flex h-(--contest-bar-height) items-center gap-3 border-b border-white/10 bg-contest-bar px-4 text-contest-bar-ink"
+      className="flex h-(--contest-bar-height) items-center gap-2 border-b border-white/10 bg-contest-bar px-4 text-contest-bar-ink min-[700px]:gap-3"
     >
       <Link
         href={`${base}/`}
-        className="max-w-[24ch] shrink-0 truncate text-sm font-semibold text-nav-ink hover:text-white max-[700px]:max-w-[12ch]"
+        className="min-w-0 max-w-[24ch] truncate text-sm font-semibold text-nav-ink hover:text-white max-[700px]:max-w-[12ch]"
       >
         {data.contest.name}
       </Link>
 
-      {data.problems.length > 0 ? (
-        <div
-          ref={chipsRef}
-          className="scroll-quiet flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scroll-snap-type:x_proximity]"
-        >
-          {data.problems.map((problem) => {
-            const isCurrent = currentCode === problem.code;
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        {data.problems.length > 0 ? (
+          <div
+            ref={chipsRef}
+            className="scroll-quiet flex min-w-0 items-center gap-1 overflow-x-auto [scroll-snap-type:x_proximity]"
+          >
+            {data.problems.map((problem) => {
+              const isCurrent = currentCode === problem.code;
 
-            return (
-              <Link
-                key={problem.contestProblemId}
-                data-chip
-                href={contestHref(`/problem/${problem.code}`, data.contest.key)}
-                aria-current={isCurrent ? "page" : undefined}
-                title={t("problem", { label: problem.label, name: problem.name, state: problem.state })}
-                // Arrow keys move a roving cursor along the chips.
-                onKeyDown={moveBetweenChips(chipsRef)}
-                className={cn(
-                  "flex size-6 shrink-0 items-center justify-center rounded-xs border font-mono text-sm font-medium",
-                  "transition-colors [scroll-snap-align:center]",
-                  "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-royal/60",
-                  CHIP_STATE.get(problem.state),
-                  isCurrent && "shadow-[inset_0_-2px_0_var(--brand-canary)]",
-                )}
-              >
-                {problem.label}
-              </Link>
-            );
-          })}
-        </div>
-      ) : (
-        <span className="flex-1" />
-      )}
+              return (
+                <Link
+                  key={problem.contestProblemId}
+                  data-chip
+                  href={contestHref(`/problem/${problem.code}`, data.contest.key)}
+                  aria-current={isCurrent ? "page" : undefined}
+                  title={t("problem", { label: problem.label, name: problem.name, state: problem.state })}
+                  // Arrow keys move a roving cursor along the chips.
+                  onKeyDown={moveBetweenChips(chipsRef)}
+                  className={cn(
+                    "flex size-6 shrink-0 items-center justify-center rounded-xs border font-mono text-sm font-medium",
+                    "transition-colors [scroll-snap-align:center]",
+                    "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-royal/60",
+                    CHIP_STATE.get(problem.state),
+                    isCurrent && "shadow-[inset_0_-2px_0_var(--brand-canary)]",
+                  )}
+                >
+                  {problem.label}
+                </Link>
+              );
+            })}
+          </div>
+        ) : null}
+        <span
+          className={cn(
+            "shrink-0 whitespace-nowrap rounded-xs px-1.5 py-0.5 text-xs font-medium",
+            joined && !data.isSpectating ? "bg-good/15 text-good" : "bg-white/8 text-contest-bar-ink",
+          )}
+        >
+          {data.isSpectating ? t("spectating") : joined ? t("joined") : t("notJoined")}
+        </span>
+      </div>
 
       <div className="hidden shrink-0 items-center gap-3 min-[700px]:flex">
         {links.map((link) => (
@@ -204,21 +215,23 @@ export function ContestBar({
         </DropdownMenu>
       </div>
 
-      <span
-        className={cn(
-          "flex shrink-0 items-center gap-1.5 font-mono text-sm font-semibold tabular-nums",
-          urgency,
-        )}
-      >
-        <Clock size={14} aria-hidden />
-        {data.isSpectating
-          ? t("spectating")
-          : ended
-            ? t("ended")
-            : openEnded
-              ? t("openEnded")
-              : formatDuration(remaining)}
-      </span>
+      {!data.isSpectating ? (
+        <span
+          className={cn(
+            "flex shrink-0 items-center gap-1.5 font-mono text-sm font-semibold tabular-nums",
+            urgency,
+          )}
+        >
+          <Clock size={14} aria-hidden />
+          {upcoming
+            ? t("startsIn", { time: formatDuration(untilStart) })
+            : ended
+              ? t("ended")
+              : openEnded
+                ? t("openEnded")
+                : formatDuration(remaining)}
+        </span>
+      ) : null}
 
       {account ? <BarAccount viewer={account} /> : null}
     </nav>
