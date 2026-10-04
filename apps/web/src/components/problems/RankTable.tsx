@@ -15,10 +15,9 @@ import {
 } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { Trophy } from "lucide-react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { ContestLink } from "@/components/ContestLink";
 import { LocalTime } from "@/components/time/LocalTime";
-
 import { formatMemory, formatPoints, formatTime } from "@/lib/units";
 
 type Ranks = NonNullable<(typeof api.problems.ranks)["_returnType"]>;
@@ -97,9 +96,9 @@ export function RankTable({ code, initial }: { code: string; initial: Ranks }) {
                     {formatMemory(row.memory)}
                   </TableCell>
                   <TableCell numeric className="text-muted-foreground">
-                    <Link href={`/submission/${row.submissionId}`} className="hover:text-link">
+                    <ContestLink href={`/submission/${row.submissionId}`} className="hover:text-link">
                       <LocalTime value={row.date} format="date" />
-                    </Link>
+                    </ContestLink>
                   </TableCell>
                 </TableRow>
               ))}

@@ -6,6 +6,7 @@ import { useQuery } from "convex/react";
 import { ArrowRight, Lock } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { contestHref } from "@/lib/contest-context";
 
 /**
  * What the problems list says while the viewer is inside a contest that hides
@@ -38,7 +39,7 @@ export function ContestLock({ contestKey, contestName }: { contestKey: string; c
               {problems.map((problem) => (
                 <li key={problem.code} className="border-b border-border last:border-b-0">
                   <Link
-                    href={`/problem/${problem.code}/`}
+                    href={contestHref(`/problem/${problem.code}/`, contestKey)}
                     className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-secondary"
                   >
                     <span

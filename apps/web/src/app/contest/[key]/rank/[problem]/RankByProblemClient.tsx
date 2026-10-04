@@ -19,9 +19,9 @@ import {
 import { useQuery } from "convex/react";
 import type { FunctionArgs } from "convex/server";
 import { Trophy } from "lucide-react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { ContestLink } from "@/components/ContestLink";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { TitleRow } from "@/components/shell/PageTabs";
 import { LocalTime } from "@/components/time/LocalTime";
@@ -69,7 +69,9 @@ export function RankByProblemClient({
   return (
     <>
       <TitleRow
-        breadcrumb={<Link href={`/contest/${contestKey}/`}>{detail.contest?.name ?? contestKey}</Link>}
+        breadcrumb={
+          <ContestLink href={`/contest/${contestKey}/`}>{detail.contest?.name ?? contestKey}</ContestLink>
+        }
         title={
           data
             ? t("title", { label: data.label, name: data.problemName })
@@ -152,9 +154,9 @@ export function RankByProblemClient({
                       {row.memory === null ? DASH : `${(row.memory / 1024).toFixed(1)} MB`}
                     </TableCell>
                     <TableCell numeric className="text-muted-foreground">
-                      <Link href={`/submission/${row.submissionId}/`} className="relative z-1">
+                      <ContestLink href={`/submission/${row.submissionId}/`} className="relative z-1">
                         <LocalTime value={row.date} />
-                      </Link>
+                      </ContestLink>
                     </TableCell>
                   </TableRow>
                 ))}

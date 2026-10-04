@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect, useLayoutEffect, useRef } from "react";
 import { ProfileBootstrap } from "@/components/auth/ProfileBootstrap";
 import { CommandPalette, useCommandPalette } from "@/components/shell/CommandPalette";
+import { contestContainsProblem, contestContextKey, contestProblemCode } from "@/lib/contest-context";
 import { isInsideContest } from "@/lib/contest-lockdown";
 import type { NavNode } from "@/lib/nav";
 import { usesDomjudgeStructure } from "@/lib/skin";
@@ -74,10 +75,18 @@ export function SiteShell({
   const [paletteOpen, setPaletteOpen] = useCommandPalette();
   const headerRef = useRef<HTMLElement | null>(null);
 
-  // Keep one subscription across navigation. The server seeds it with the
-  // viewer's current participation, which also tells us whether a contest
-  // route should have a bar before the browser connects.
-  const routeKey = /^\/contest\/([a-z0-9._-]+)/i.exec(pathname)?.[1];
+  /**
+   * Two subscriptions, because they answer different questions.
+   *
+   * `joined` asks which contest the viewer is inside. Its arguments never change,
+   * so it survives a navigation and the chrome does not blink: keying the only
+   * query on the route meant every page change re-subscribed, and for the moment
+   * that took, a locked-down contestant got the nav back.
+   *
+   * `routed` supplies browsing data when the URL names a different contest.
+   * Browsing follows the URL; participation independently governs lockdown.
+   */
+  const contextKey = contestContextKey(pathname);
   const liveJoined = useQuery(api.contests.navBar, {});
   // The server already knew the answer when it rendered this page. Waiting for
   // the socket instead meant the markup went out with a nav on it, and a
@@ -87,15 +96,29 @@ export function SiteShell({
   // the identity it answers as nobody, which for this query is null — the nav
   // coming back for a beat in the middle of a contest.
   const joined = useViewerLive(liveJoined, initialContest, !!viewer);
-  // A contest route only carries the bar when it is the viewer's joined
-  // contest. The keyed navBar query applies this same participation check.
-  const contest = routeKey && routeKey !== joined?.contest.key ? null : joined;
-  const problemCode = /^\/problem\/([a-z0-9._-]+)/.exec(pathname)?.[1];
 
-  const onContestPage =
-    !!contest &&
-    (pathname.startsWith(`/contest/${contest.contest.key}`) ||
-      (!!problemCode && contest.problems.some((problem) => problem.code === problemCode)));
+  const joinedMatches = !!joined && joined.contest.key === contextKey;
+
+  const liveRouted = useQuery(
+    api.contests.navBar,
+    contextKey && !joinedMatches ? { key: contextKey, browsing: true } : "skip",
+  );
+
+  const routed = useViewerLive(liveRouted, undefined, !!viewer);
+  const candidate = contextKey ? (joinedMatches ? joined : routed) : null;
+
+  // navBar checks contest access; a nested path cannot associate an
+  // unrelated problem with that contest's navigation.
+  const contest =
+    candidate &&
+    !contestContainsProblem(
+      pathname,
+      candidate.problems.map((p) => p.code),
+    )
+      ? null
+      : candidate;
+
+  const problemCode = contestProblemCode(pathname) ?? undefined;
 
   /**
    * A locked-down contest takes the nav's place for as long as the viewer is
@@ -113,33 +136,50 @@ export function SiteShell({
    */
   const asDomjudge = usesDomjudgeStructure(useSkin());
 
+  // Account pages remain reachable during lockdown and retain the joined
+  // contest's navigation and account controls in both shells.
+  const displayedContest = contest ?? (lockedDown && /^\/accounts(\/|$)/.test(pathname) ? joined : null);
+
+  const showContestPlaceholder = !asDomjudge && !!contextKey && contest === undefined;
+
+  const showContestBar = !asDomjudge && (!!displayedContest || showContestPlaceholder);
+
+  const headerHeight = asDomjudge
+    ? "var(--nav-height)"
+    : lockedDown
+      ? showContestBar
+        ? "calc(3px + var(--contest-bar-height))"
+        : "3px"
+      : showContestBar
+        ? "calc(var(--nav-height) + 3px + var(--contest-bar-height))"
+        : "calc(var(--nav-height) + 3px)";
+
   /**
-   * The contest the DOMjudge bar stands over. `navBar` only answers for a
-   * contest the viewer is inside, and DOMjudge carries the contest for a visitor
-   * reading its public pages too, so a contest route falls back to the chrome.
+   * DOMjudge can show the contest title while its full browsing bar loads.
    */
   const chrome = useQuery(
     api.contests.chrome,
-    asDomjudge && routeKey && !contest ? { key: routeKey } : "skip",
+    asDomjudge && contextKey && !contest ? { key: contextKey } : "skip",
   );
 
-  const navContest = contest
+  const navContest = displayedContest
     ? {
-        key: contest.contest.key,
-        name: contest.contest.name,
-        startTime: contest.contest.startTime,
-        endTime: contest.contest.endTime,
-        useClarifications: contest.contest.useClarifications,
-        endsAt: contest.endsAt,
-        ownSubmissions: contest.links.submissions && !!viewer,
-        problems: contest.problems.map((problem) => ({
+        key: displayedContest.contest.key,
+        name: displayedContest.contest.name,
+        startTime: displayedContest.contest.startTime,
+        endTime: displayedContest.contest.endTime,
+        useClarifications: displayedContest.contest.useClarifications,
+        endsAt: displayedContest.endsAt,
+        ownSubmissions: displayedContest.links.submissions && !!viewer,
+        showJoinWarning: displayedContest.showJoinWarning,
+        problems: displayedContest.problems.map((problem) => ({
           code: problem.code,
           name: problem.name,
           label: problem.label,
         })),
       }
     : chrome
-      ? { ...chrome, endsAt: null, ownSubmissions: false, problems: [] }
+      ? { ...chrome, endsAt: null, ownSubmissions: false, showJoinWarning: false, problems: [] }
       : null;
 
   const strayFromContest =
@@ -236,15 +276,17 @@ export function SiteShell({
         {/* The royal, carried across the top of every page — and one of the
             things DOMjudge's chrome does not have. */}
         {asDomjudge ? null : <div aria-hidden className="h-[3px] bg-royal" />}
-        {asDomjudge ? null : lockedDown && joined ? (
+        {asDomjudge ? null : displayedContest ? (
           <ContestBar
-            data={joined}
+            data={displayedContest}
             currentCode={problemCode}
             viewerUsername={viewer?.username ?? null}
-            account={viewer}
+            account={lockedDown ? viewer : null}
           />
-        ) : onContestPage && contest ? (
-          <ContestBar data={contest} currentCode={problemCode} viewerUsername={viewer?.username ?? null} />
+        ) : showContestPlaceholder ? (
+          // Claim the bar's height on the first render and keep it while its
+          // contents load, so the page stays put when the answer arrives.
+          <div aria-hidden className="h-(--contest-bar-height) border-b border-white/10 bg-contest-bar" />
         ) : null}
         {viewer?.isImpersonating ? <ImpersonationBar username={viewer.displayName} /> : null}
       </header>
@@ -257,11 +299,11 @@ export function SiteShell({
         </>
       ) : null}
 
-      {/* Match the rendered chrome until ResizeObserver publishes its height. */}
+      {/* Until the header is measured, reserve only the chrome being rendered. */}
       <div
         className="flex min-h-dvh flex-col"
         style={{
-          paddingTop: `var(--header-height, calc(${asDomjudge || !lockedDown ? "var(--nav-height)" : "0px"} + ${asDomjudge ? "0px" : "3px"} + ${!asDomjudge && (lockedDown || onContestPage) ? "var(--contest-bar-height)" : "0px"} + ${viewer?.isImpersonating ? "var(--contest-bar-height)" : "0px"}))`,
+          paddingTop: `var(--header-height, calc(${headerHeight} + ${viewer?.isImpersonating ? "var(--contest-bar-height)" : "0px"}))`,
         }}
       >
         {/* `overflow-x: clip` (not hidden, which would make this a scroll
@@ -288,13 +330,13 @@ export function SiteShell({
         <Footer footerHtml={misc.footer} language={language} />
       </div>
 
-      {contest && !onContestPage && !lockedDown ? (
+      {joined && displayedContest?.contest.key !== joined.contest.key ? (
         <ContestFloater
-          contestKey={contest.contest.key}
-          contestName={contest.contest.name}
-          endsAt={contest.isSpectating ? null : contest.endsAt}
-          mode={contest.isSpectating ? "spectating" : contest.isVirtual ? "virtual" : "live"}
-          problems={contest.problems}
+          contestKey={joined.contest.key}
+          contestName={joined.contest.name}
+          endsAt={joined.isSpectating ? null : joined.endsAt}
+          mode={joined.isSpectating ? "spectating" : joined.isVirtual ? "virtual" : "live"}
+          problems={joined.problems}
         />
       ) : null}
 

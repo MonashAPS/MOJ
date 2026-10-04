@@ -116,3 +116,52 @@ describe("extractSamples", () => {
     expect(extractSamples("<h3>Input</h3><pre>1</pre>")).toEqual([]);
   });
 });
+
+it("resolves statement images and files against the standalone page while keeping fragments local", () => {
+  const html =
+    '<img src="diagram.png"><a href="file/data.txt?x=1&amp;y=2">File</a><a href="#sample">Sample</a><img src="/media/a.png"><a href="https://example.com">External</a>';
+
+  const rendered = decorateStatement(html, "/problem/alpha/");
+  expect(rendered).toContain('src="/problem/alpha/diagram.png"');
+  expect(rendered).toContain('href="/problem/alpha/file/data.txt?x=1&amp;y=2"');
+  expect(rendered).toContain('href="#sample"');
+  expect(rendered).toContain('src="/media/a.png"');
+  expect(rendered).toContain('href="https://example.com"');
+});
+
+it.each(["/problem/alpha/", "/problem/alpha/editorial/"])(
+  "resolves sanitized media URLs against %s",
+  async (basePath) => {
+    const { html } = await renderMarkdown(
+      '<video controls src="files/1/clip.mp4" poster="files/2/poster.png"></video>' +
+        '<audio controls src="files/3/sample.wav"><source src="files/4/sample.ogg" type="audio/ogg"></audio>' +
+        '<picture><source srcset="files/5/small.webp 1x, files/6/large.webp 2x"><img src="files/7/fallback.png"></picture>',
+      "problem",
+    );
+
+    const rendered = decorateStatement(html, basePath);
+    expect(rendered).toContain(`src="${basePath}files/1/clip.mp4"`);
+    expect(rendered).toContain(`poster="${basePath}files/2/poster.png"`);
+    expect(rendered).toContain(`src="${basePath}files/3/sample.wav"`);
+    expect(rendered).toContain(`src="${basePath}files/4/sample.ogg"`);
+    expect(rendered).toContain(`srcset="${basePath}files/5/small.webp 1x, ${basePath}files/6/large.webp 2x"`);
+    expect(rendered).toContain(`src="${basePath}files/7/fallback.png"`);
+  },
+);
+
+it("preserves absolute media URLs and srcset descriptors while resolving relative candidates", () => {
+  const html =
+    '<video src="https://example.com/clip.mp4" poster="/media/poster.png"></video>' +
+    '<audio src="//example.com/sample.wav"></audio>' +
+    '<source srcset="data:image/png;base64,AAAA 1x, large.png 2x, /media/wide.png 1200w, https://example.com/a,b.png 1600w">' +
+    '<source srcset="small.png, large.png 2x">';
+
+  const rendered = decorateStatement(html, "/problem/alpha/");
+  expect(rendered).toContain('src="https://example.com/clip.mp4"');
+  expect(rendered).toContain('poster="/media/poster.png"');
+  expect(rendered).toContain('src="//example.com/sample.wav"');
+  expect(rendered).toContain(
+    'srcset="data:image/png;base64,AAAA 1x, /problem/alpha/large.png 2x, /media/wide.png 1200w, https://example.com/a,b.png 1600w"',
+  );
+  expect(rendered).toContain('srcset="/problem/alpha/small.png, /problem/alpha/large.png 2x"');
+});

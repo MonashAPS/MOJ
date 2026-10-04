@@ -2,9 +2,9 @@
 
 import { Button, type TabItem, TwoColumn } from "@moj/ui";
 import { CheckCircle2, CircleDashed, CircleSlash2, FileDown } from "lucide-react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ArtefactList } from "@/components/artefacts/ArtefactList";
+import { ContestLink } from "@/components/ContestLink";
 import { ProblemTabLink } from "@/components/problems/EditorialLink";
 import { type ProblemDetail, ProblemInfoBox } from "@/components/problems/ProblemInfoBox";
 import { type ProblemTabKey, problemTabs } from "@/components/problems/tabs";
@@ -53,9 +53,9 @@ export function ProblemPage({
         breadcrumb={
           breadcrumb ??
           (active === "statement" ? undefined : (
-            <Link href={`/problem/${problem.code}`} className="hover:text-link">
+            <ContestLink href={`/problem/${problem.code}`} className="hover:text-link">
               {problem.statement.name}
-            </Link>
+            </ContestLink>
           ))
         }
         title={

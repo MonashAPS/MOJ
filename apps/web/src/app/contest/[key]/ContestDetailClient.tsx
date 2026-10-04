@@ -21,10 +21,10 @@ import {
 } from "@moj/ui";
 import { useQuery } from "convex/react";
 import { BookOpen, CircleHelp, Clock, Lock } from "lucide-react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ArtefactList } from "@/components/artefacts/ArtefactList";
 import { AudienceLine } from "@/components/audiences/AudienceSelect";
+import { ContestLink } from "@/components/ContestLink";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips, OPEN_ENDED, ProblemStateIcon, useHumanDuration } from "@/components/contests/pieces";
 import { TitleRow } from "@/components/shell/PageTabs";
@@ -190,12 +190,12 @@ function ProblemRow({
           <span className="grid min-w-0 gap-0.5">
             <span className="flex flex-wrap items-center gap-x-2">
               {openable ? (
-                <Link
+                <ContestLink
                   href={`/problem/${problem.code}/`}
                   className="font-medium text-foreground before:absolute before:inset-0 hover:text-link"
                 >
                   {problem.name}
-                </Link>
+                </ContestLink>
               ) : (
                 <span className="font-medium text-foreground">{problem.name}</span>
               )}
@@ -241,7 +241,9 @@ function ProblemRow({
       <TableCell numeric>{`${problem.acRate.toFixed(1)}%`}</TableCell>
       <TableCell numeric className="relative z-1">
         {problem.isAccessible ? (
-          <Link href={`/contest/${contestKey}/rank/${problem.code}/`}>{problem.publicSolveCount}</Link>
+          <ContestLink href={`/contest/${contestKey}/rank/${problem.code}/`}>
+            {problem.publicSolveCount}
+          </ContestLink>
         ) : (
           problem.publicSolveCount
         )}
@@ -252,10 +254,10 @@ function ProblemRow({
         <TableCell className="relative z-1 w-20 text-right">
           {problem.isAccessible && problem.hasPublicEditorial ? (
             <Tooltip content={columns("editorial")}>
-              <Link href={`/problem/${problem.code}/editorial/`} className="text-good">
+              <ContestLink href={`/problem/${problem.code}/editorial/`} className="text-good">
                 <BookOpen size={14} aria-hidden />
                 <span className="sr-only">{columns("editorial")}</span>
-              </Link>
+              </ContestLink>
             </Tooltip>
           ) : (
             <BookOpen size={14} className="text-muted-foreground opacity-35" aria-hidden />
@@ -358,9 +360,9 @@ function Sidebar({ detail }: { detail: ContestDetail }) {
           </InfoRow>
         ) : null}
         <InfoRow label={t("users")}>
-          <Link href={`/contest/${contest.key}/ranking/`} className="font-mono text-sm tabular-nums">
+          <ContestLink href={`/contest/${contest.key}/ranking/`} className="font-mono text-sm tabular-nums">
             {contest.userCount}
-          </Link>
+          </ContestLink>
         </InfoRow>
         {detail.viewer.requiresAccessCode ? (
           <InfoRow label={t("access")}>{t("accessCodeRequired")}</InfoRow>

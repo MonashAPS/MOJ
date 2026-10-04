@@ -1,9 +1,9 @@
 "use client";
 
 import { Dialog, DialogContent, DialogTrigger } from "@moj/ui";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { ContestLink } from "@/components/ContestLink";
 import { SubmitForm } from "@/components/problems/SubmitForm";
 
 /**
@@ -45,12 +45,12 @@ export function QuickSubmit({
           canPinJudge={false}
           submissionsLeft={submissionsLeft}
         />
-        <Link
+        <ContestLink
           href={`/problem/${problemCode}/submit/`}
           className="text-sm text-muted-foreground hover:text-link"
         >
           {t("openFullPage")}
-        </Link>
+        </ContestLink>
       </DialogContent>
     </Dialog>
   );

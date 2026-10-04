@@ -3,8 +3,8 @@
 import type { SubmissionListRow } from "@convex/submissions";
 import { cn, focusRingInset, RatingName, Tooltip, VerdictPill } from "@moj/ui";
 import { Eye, Loader2, RefreshCw, XCircle } from "lucide-react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { ContestLink } from "@/components/ContestLink";
 import { RelativeTime } from "@/components/time/LocalTime";
 import { DASH, formatMemory, formatScore, formatTime, isGrading, verdictCode } from "@/lib/submissionFormat";
 
@@ -114,12 +114,12 @@ export function SubmissionRow({
 
           {showProblem ? (
             row.problem ? (
-              <Link
+              <ContestLink
                 href={`/problem/${row.problem.code}`}
                 className="relative z-10 min-w-0 truncate font-medium text-foreground hover:text-link"
               >
                 {row.problem.name}
-              </Link>
+              </ContestLink>
             ) : (
               <span className="min-w-0 truncate text-muted-foreground">{t("row.deletedProblem")}</span>
             )
@@ -153,13 +153,13 @@ export function SubmissionRow({
           {row.contest ? (
             <>
               <span aria-hidden>·</span>
-              <Link
+              <ContestLink
                 href={`/contest/${row.contest.key}`}
                 className="relative z-10 truncate hover:text-link"
                 title={row.contest.name}
               >
                 {row.contest.name}
-              </Link>
+              </ContestLink>
             </>
           ) : null}
           {grading && row.currentTestcase > 0 ? (
@@ -190,13 +190,13 @@ export function SubmissionRow({
         <div className="flex shrink-0 items-center gap-1 pr-3 max-[700px]:order-3 max-[700px]:ml-auto max-[700px]:pb-1">
           {row.canSeeDetail ? (
             <Tooltip content={t("row.view")}>
-              <Link
+              <ContestLink
                 href={`/submission/${row.id}`}
                 aria-label={t("row.viewAria", { id: row.id })}
                 className="relative z-10 inline-flex size-(--control-h-sm) items-center justify-center rounded-md text-subtle hover:bg-row-hover hover:text-foreground max-[700px]:size-11"
               >
                 <Eye aria-hidden className="size-3.5" />
-              </Link>
+              </ContestLink>
             </Tooltip>
           ) : null}
           {canRejudge ? (
@@ -235,7 +235,7 @@ export function SubmissionRow({
       )}
 
       {/* The whole row is the hit area; the links above it stay clickable. */}
-      <Link
+      <ContestLink
         href={href}
         aria-label={
           row.problem
@@ -245,7 +245,7 @@ export function SubmissionRow({
         className={cn("absolute inset-0", focusRingInset)}
       >
         <span className="sr-only">{t("row.openAria", { id: row.id })}</span>
-      </Link>
+      </ContestLink>
     </li>
   );
 }

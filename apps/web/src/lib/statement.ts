@@ -141,7 +141,8 @@ function withoutInputHeading(lead: string): string {
  * deliberately, and leaving it in read as a missing heading rather than a spared
  * one. Neither says anything the titlebars do not.
  */
-export function decorateStatement(html: string): string {
+export function decorateStatement(html: string, resourceBase?: string): string {
+  if (resourceBase) html = resolveStatementResources(html, resourceBase);
   const blocks = findBlocks(html);
 
   if (blocks.length === 0) return html;
@@ -263,4 +264,55 @@ export function extractSamples(html: string): StatementSample[] {
   }
 
   return samples;
+}
+
+/** Preserve the standalone document base when a statement is rendered deeper.
+ * Sanitized links and media keep their resource URLs; in-document anchors stay local. */
+function resolveStatementResources(html: string, basePath: string): string {
+  const resolveUrl = (value: string) => {
+    if (!value || /^(?:[a-z][a-z0-9+.-]*:|[/#?])/i.test(value)) return value;
+    const url = new URL(value, `https://moj.invalid${basePath}`);
+
+    return `${url.pathname}${url.search}${url.hash}`;
+  };
+
+  return html.replace(/<(a|img|audio|video|source)\b[^>]*>/gi, (tag: string) =>
+    tag.replace(
+      /\b(href|src|poster|srcset)="([^"]*)"/gi,
+      (_attribute: string, name: string, value: string) => {
+        const decoded = decodeEntities(value);
+
+        const resolved =
+          name.toLowerCase() === "srcset" ? resolveSrcset(decoded, resolveUrl) : resolveUrl(decoded);
+
+        return `${name}="${escapeAttribute(resolved)}"`;
+      },
+    ),
+  );
+}
+
+/** Srcset URLs can contain commas (including data URLs). Descriptors belong to
+ * each candidate and must remain intact while only its URL is resolved. */
+function resolveSrcset(value: string, resolveUrl: (url: string) => string): string {
+  let index = 0;
+  let written = 0;
+  let result = "";
+
+  while (index < value.length) {
+    while (index < value.length && /[\t\n\f\r ,]/.test(value[index]!)) index++;
+    const start = index;
+
+    while (index < value.length && !/[\t\n\f\r ]/.test(value[index]!)) index++;
+    let end = index;
+
+    while (end > start && value[end - 1] === ",") end--;
+    result += value.slice(written, start) + resolveUrl(value.slice(start, end));
+    written = end;
+
+    if (end < index) continue;
+
+    while (index < value.length && value[index] !== ",") index++;
+  }
+
+  return result + value.slice(written);
 }

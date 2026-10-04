@@ -25,10 +25,10 @@ import {
 } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import { Gavel } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { ContestLink } from "@/components/ContestLink";
 import { JoinControl } from "@/components/contests/JoinControls";
 import { ContestChips } from "@/components/contests/pieces";
 import { TitleRow } from "@/components/shell/PageTabs";
@@ -120,7 +120,7 @@ export function MossClient({
               {[...byProblem.entries()].map(([code, entry]) => (
                 <TableRow key={code}>
                   <TableCell>
-                    <Link href={`/problem/${code}/`}>{entry.name}</Link>
+                    <ContestLink href={`/problem/${code}/`}>{entry.name}</ContestLink>
                   </TableCell>
                   {languages.map((language) => {
                     const cell = entry.cells.get(language);

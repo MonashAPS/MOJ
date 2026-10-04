@@ -7,6 +7,7 @@ import { Paperclip, TriangleAlert, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useContestHref } from "@/components/ContestLink";
 import { CodeEditor } from "@/components/problems/CodeEditor";
 import { LanguagePicker } from "@/components/problems/LanguagePicker";
 import { mutationError } from "@/lib/convex-error";
@@ -41,6 +42,7 @@ export function SubmitForm({
 }) {
   const t = useTranslations("problems.submit");
   const router = useRouter();
+  const withContest = useContestHref();
   const usable = useQuery(api.languages.usableForProblem, { code: problemCode });
   const judges = useQuery(api.judges.list, canPinJudge ? {} : "skip");
   const submit = useMutation(api.submissions.submit);
@@ -169,12 +171,12 @@ export function SubmitForm({
         // Nothing to clean up when storage is unavailable.
       }
 
-      router.push(`/submission/${created.id}`);
+      router.push(withContest(`/submission/${created.id}`));
     } catch (thrown) {
       setBusy(false);
       setError(mutationError(thrown, t("failed")));
     }
-  }, [busy, judgePin, languageKey, problemCode, router, source, submit, t]);
+  }, [busy, judgePin, languageKey, problemCode, router, source, submit, t, withContest]);
 
   const lines = source.length === 0 ? 0 : source.split("\n").length;
   const onlineJudges = (judges?.judges ?? []).filter((judge) => judge.online);

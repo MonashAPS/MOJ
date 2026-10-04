@@ -11,18 +11,32 @@
  * reachable or the lockdown is a trap.
  */
 
-const ALWAYS_OPEN = /^\/(accounts|proctor|submission|src|api|media)(\/|$)/;
+import { contestContainsProblem, contestContextKey, contestProblemCode } from "./contest-context";
+
+const ALWAYS_OPEN = /^\/(accounts|proctor|api|media)(\/|$)/;
+
+const RAW_SOURCE = /^\/src\/[^/]+\/raw\/?$/;
+
+const PROBLEM_DOWNLOAD = /^\/problem\/[^/]+\/(?:pdf|samples|files\/[^/]+\/[^/]+)\/?$/;
 
 export function isInsideContest(
   pathname: string,
   contestKey: string,
   problemCodes: readonly string[],
 ): boolean {
-  if (pathname.startsWith(`/contest/${contestKey}`)) return true;
+  const browsingKey = contestContextKey(pathname);
 
-  if (ALWAYS_OPEN.test(pathname)) return true;
+  if (browsingKey) {
+    return browsingKey === contestKey && contestContainsProblem(pathname, problemCodes);
+  }
 
-  const problemCode = /^\/problem\/([a-z0-9._-]+)/i.exec(pathname)?.[1];
+  if (ALWAYS_OPEN.test(pathname) || RAW_SOURCE.test(pathname)) return true;
+
+  // HTML pages must retain the joined contest's context. These resources have
+  // standalone URLs and enforce their own access checks at the download route.
+  if (!PROBLEM_DOWNLOAD.test(pathname)) return false;
+
+  const problemCode = contestProblemCode(pathname);
 
   return !!problemCode && problemCodes.includes(problemCode);
 }
