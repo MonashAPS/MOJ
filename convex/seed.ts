@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation } from "./_generated/server";
+import { recompute } from "./contests/rankings";
 import { SEED_LANGUAGES, SEED_NAVIGATION } from "./lib/seedData";
 
 const MISC_CONFIG_DEFAULTS = new Map<string, string>([
@@ -129,6 +130,57 @@ Output a single integer, the value of ~A \\times B~.
 
     0
 `;
+
+const DEV_PROBLEMS = [
+  { code: "atimesb", name: "A Times B", description: ATIMESB_STATEMENT, summary: "Multiply two integers." },
+  ...[
+    { code: "aminusb", name: "A Minus B", task: "compute A minus B", output: "A - B", sample: "-1" },
+    {
+      code: "maxab",
+      name: "Maximum of A and B",
+      task: "find the larger value",
+      output: "the maximum of A and B",
+      sample: "4",
+    },
+    {
+      code: "minab",
+      name: "Minimum of A and B",
+      task: "find the smaller value",
+      output: "the minimum of A and B",
+      sample: "3",
+    },
+    {
+      code: "absdiff",
+      name: "Absolute Difference",
+      task: "find their absolute difference",
+      output: "the absolute value of A - B",
+      sample: "1",
+    },
+  ].map(({ code, name, task, output, sample }) => ({
+    code,
+    name,
+    summary: `Given two integers, ${task}.`,
+    description: `Given two integers ~A~ and ~B~, ${task}.
+
+## Input Specification
+
+One line containing two space-separated integers ~A~ and ~B~
+(~-10^9 \\le A, B \\le 10^9~).
+
+## Output Specification
+
+Output a single integer, ${output}.
+
+## Sample Input 1
+
+    3 4
+
+## Sample Output 1
+
+    ${sample}
+`,
+  })),
+];
 
 export const run = internalMutation({
   args: {
@@ -335,16 +387,9 @@ export const run = internalMutation({
       },
     ];
 
-    if (devContests) {
-      samples.push({
-        code: "atimesb",
-        name: "A Times B",
-        description: ATIMESB_STATEMENT,
-        summary: "Multiply two integers.",
-      });
-    }
+    if (devContests) samples.push(...DEV_PROBLEMS);
 
-    const sampleProblemIds: Id<"problems">[] = [];
+    const sampleProblemIds = new Map<string, Id<"problems">>();
     report.problems = 0;
 
     for (const sample of samples) {
@@ -354,7 +399,7 @@ export const run = internalMutation({
         .unique();
 
       if (existingProblem) {
-        sampleProblemIds.push(existingProblem._id);
+        sampleProblemIds.set(sample.code, existingProblem._id);
       } else {
         const allLanguages = await ctx.db.query("languages").collect();
 
@@ -386,7 +431,7 @@ export const run = internalMutation({
           summary: sample.summary,
         });
 
-        sampleProblemIds.push(problemId);
+        sampleProblemIds.set(sample.code, problemId);
 
         await ctx.db.insert("problemData", {
           problemId,
@@ -415,6 +460,7 @@ export const run = internalMutation({
     if (devContests) {
       const hour = 60 * 60 * 1000;
       const now = Date.now();
+      const seededProblemIds = new Set(sampleProblemIds.values());
       report.contests = 0;
       report.contestProblems = 0;
 
@@ -424,18 +470,21 @@ export const run = internalMutation({
           name: "Development contest (ended)",
           startTime: now - 26 * hour,
           endTime: now - 24 * hour,
+          problemCodes: ["aplusb", "atimesb"],
         },
         {
           key: "dev-running",
           name: "Development contest (running)",
           startTime: now - hour,
           endTime: now + 7 * 24 * hour,
+          problemCodes: ["aminusb", "maxab"],
         },
         {
           key: "dev-upcoming",
           name: "Development contest (upcoming)",
           startTime: now + 24 * hour,
           endTime: now + 26 * hour,
+          problemCodes: ["minab", "absdiff"],
         },
       ]) {
         const existing = await ctx.db
@@ -449,8 +498,11 @@ export const run = internalMutation({
           await ctx.db.patch(contestId, { startTime: fixture.startTime, endTime: fixture.endTime });
         } else {
           contestId = await ctx.db.insert("contests", {
-            ...fixture,
-            description: "A development contest for testing with the A Plus B and A Times B sample problems.",
+            key: fixture.key,
+            name: fixture.name,
+            startTime: fixture.startTime,
+            endTime: fixture.endTime,
+            description: "A development contest for testing with its own pair of sample problems.",
             authorProfileIds: [],
             curatorProfileIds: [],
             testerProfileIds: [],
@@ -482,14 +534,59 @@ export const run = internalMutation({
 
         report.contests++;
 
-        const problems = await ctx.db
+        const existingProblems = await ctx.db
           .query("contestProblems")
           .withIndex("by_contest_order", (q) => q.eq("contestId", contestId))
           .collect();
 
+        const fixtureProblemIds = new Set(fixture.problemCodes.map((code) => sampleProblemIds.get(code)!));
+        const problems: Doc<"contestProblems">[] = [];
+        const affectedParticipations = new Set<Id<"contestParticipations">>();
+
+        // Keep legacy attempts as practice submissions, including attempts whose
+        // links were already removed by an earlier seed. Grading data stays intact.
+        const submissions = await ctx.db
+          .query("submissions")
+          .withIndex("by_contest_date", (q) => q.eq("contestId", contestId))
+          .collect();
+
+        for (const submission of submissions) {
+          if (!seededProblemIds.has(submission.problemId) || fixtureProblemIds.has(submission.problemId))
+            continue;
+
+          if (submission.participationId) affectedParticipations.add(submission.participationId);
+          await ctx.db.patch(submission._id, {
+            contestId: undefined,
+            contestProblemId: undefined,
+            participationId: undefined,
+            contestPoints: undefined,
+            isContestPretest: undefined,
+            lockedAfter: undefined,
+          });
+        }
+
+        // Older seeds shared the same pair across all three fixtures. Reconcile
+        // seeded links while preserving any problems added locally by developers.
+        for (const problem of existingProblems) {
+          if (seededProblemIds.has(problem.problemId) && !fixtureProblemIds.has(problem.problemId)) {
+            await ctx.db.delete(problem._id);
+          } else {
+            problems.push(problem);
+          }
+        }
+
+        if (problems.length !== existingProblems.length) {
+          for (const [index, problem] of problems.entries()) {
+            problem.order = index + 1;
+            await ctx.db.patch(problem._id, { order: problem.order });
+          }
+        }
+
         let order = Math.max(0, ...problems.map((problem) => problem.order));
 
-        for (const problemId of sampleProblemIds) {
+        for (const code of fixture.problemCodes) {
+          const problemId = sampleProblemIds.get(code)!;
+
           if (problems.some((problem) => problem.problemId === problemId)) continue;
           await ctx.db.insert("contestProblems", {
             contestId,
@@ -501,6 +598,8 @@ export const run = internalMutation({
           });
           report.contestProblems++;
         }
+
+        for (const participationId of affectedParticipations) await recompute(ctx, participationId);
       }
     }
 

@@ -48,12 +48,22 @@ npm run db:migrate -w apps/web
 
 ## Resetting a development stack
 
+Stop `npm run dev` first, then run these commands from the repository root. This removes all development
+data, including accounts and submissions, and recreates the development users and contest fixtures.
+
 ```bash
 # everything, including both databases
 docker compose -f infra/compose.dev.yml --project-directory . down -v
 rm -f .env.local apps/web/.env.local
 npm run setup
+```
 
+Each development contest starts with its own problems: `dev-ended` has `aplusb` and `atimesb`,
+`dev-running` has `aminusb` and `maxab`, and `dev-upcoming` has `minab` and `absdiff`.
+Reset an older development stack to remove the shared problem assignments from previous seeds;
+reseeding preserves existing contest problems.
+
+```bash
 # keep the data: re-push the functions, re-seed, or re-seed over existing rows
 npx convex dev --once
 npx convex run seed:run '{}'
