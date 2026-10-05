@@ -50,22 +50,22 @@
     "simple-icons": "^16.32.0"
   },
   "devDependencies": {
-    "@better-auth/utils": "0.4.2",
+    "@better-auth/utils": "0.5.0",
     "@formatjs/icu-messageformat-parser": "^3.5.20",
     "@tailwindcss/postcss": "^4.3.3",
-    "@types/node": "^26.6.3",
+    "@types/node": "^26.6.4",
     "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.15.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/smtp-server": "^3.5.13",
     "drizzle-kit": "^0.31.11",
-    "fast-xml-parser": "^5.11.1",
+    "fast-xml-parser": "^5.11.2",
     "jsdom": "^30.1.1",
     "otpauth": "^9.5.2",
-    "smtp-server": "^3.19.13",
+    "smtp-server": "^3.19.16",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.2"
+    "vitest": "^5.0.3"
   }
 }
