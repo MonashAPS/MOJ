@@ -28,7 +28,8 @@ const PROBLEM_STATUSES = ["all", "solved", "attempted", "unsolved"] as const;
 
 export type ProblemStatus = (typeof PROBLEM_STATUSES)[number];
 
-/** DMOJ's `order` is one signed field name, e.g. `-points`. */
+/** DMOJ's `order` is one signed field name, e.g. `-points`. MOJ may follow it
+ *  with the previous sort, `-user_count,-ac_rate`, which breaks its ties. */
 const PARAM_BY_SORT: Record<ProblemSort, string> = {
   code: "code",
   name: "name",
@@ -71,6 +72,8 @@ export type ProblemQuery = {
   pointEnd: number | null;
   sort: ProblemSort;
   descending: boolean;
+  /** The sort before this one, which orders the rows this one ties. */
+  thenSort: { sort: ProblemSort; descending: boolean } | null;
   page: number;
   status: ProblemStatus;
   solvedBy: string[];
@@ -92,6 +95,7 @@ export const EMPTY_QUERY: ProblemQuery = {
   pointEnd: null,
   sort: "code",
   descending: false,
+  thenSort: null,
   page: 1,
   status: "all",
   solvedBy: [],
@@ -135,10 +139,14 @@ export function parseProblemQuery(params: RawSearchParams | URLSearchParams): Pr
   const get = (key: string): string | string[] | undefined =>
     params instanceof URLSearchParams ? params.getAll(key) : params[key];
 
-  const orderRaw = one(get("order")).trim();
+  const [orderRaw = "", thenRaw = ""] = one(get("order"))
+    .split(",")
+    .map((part) => part.trim());
+
   const orderKey = orderRaw.startsWith("-") ? orderRaw.slice(1) : orderRaw;
   const sort = SORT_BY_PARAM.get(orderKey) ?? "code";
   const descending = orderRaw ? orderRaw.startsWith("-") : DEFAULT_DESC.has(sort) && sort !== "code";
+  const thenSort = SORT_BY_PARAM.get(thenRaw.startsWith("-") ? thenRaw.slice(1) : thenRaw);
   const status = parseProblemStatus(one(get("status")));
 
   return {
@@ -153,6 +161,7 @@ export function parseProblemQuery(params: RawSearchParams | URLSearchParams): Pr
     pointEnd: integer(get("point_end")),
     sort,
     descending,
+    thenSort: thenSort && thenSort !== sort ? { sort: thenSort, descending: thenRaw.startsWith("-") } : null,
     page: Math.max(1, integer(get("page")) ?? 1),
     status,
     solvedBy: many(get("solved_by")),
@@ -198,8 +207,12 @@ export function problemQueryString(query: ProblemQuery): string {
 
   if (query.groupByContest) params.set("group_by_contest", "1");
 
-  if (query.sort !== "code" || query.descending) {
-    params.set("order", `${query.descending ? "-" : ""}${PARAM_BY_SORT[query.sort]}`);
+  if (query.sort !== "code" || query.descending || query.thenSort) {
+    const signed = (sort: ProblemSort, descending: boolean) =>
+      `${descending ? "-" : ""}${PARAM_BY_SORT[sort]}`;
+
+    const then = query.thenSort ? `,${signed(query.thenSort.sort, query.thenSort.descending)}` : "";
+    params.set("order", `${signed(query.sort, query.descending)}${then}`);
   }
 
   if (query.page > 1) params.set("page", String(query.page));
@@ -210,33 +223,6 @@ export function problemQueryString(query: ProblemQuery): string {
 
 export function problemHref(query: ProblemQuery, base = "/problems/"): string {
   return `${base}${problemQueryString(query)}`;
-}
-
-/** The args `problems.list` takes. `hide_solved` is DMOJ's spelling of
- *  `status=unsolved`, and it wins when both are set, as DMOJ's form does. */
-export function problemListArgs(query: ProblemQuery, pageSize = 50) {
-  const order: "asc" | "desc" = query.descending ? "desc" : "asc";
-
-  return {
-    search: query.search || undefined,
-    fullText: query.fullText,
-    status: query.hideSolved ? ("unsolved" as const) : query.status,
-    solvedBy: query.solvedBy.length > 0 ? query.solvedBy : undefined,
-    solvedByNotMe: query.notByMe || undefined,
-    types: query.types.length > 0 ? query.types : undefined,
-    group: query.category || undefined,
-    pointStart: query.pointStart ?? undefined,
-    pointEnd: query.pointEnd ?? undefined,
-    author: query.author || undefined,
-    hasEditorial: query.hasEditorial || undefined,
-    contestKeys: query.contests.length > 0 ? query.contests : undefined,
-    groupByContest: query.groupByContest || undefined,
-    showTypes: query.showTypes,
-    sort: query.sort,
-    order,
-    page: query.page,
-    pageSize,
-  };
 }
 
 /** How many filters are on, for the "Filters (3)" button and the group counts. */
@@ -261,10 +247,30 @@ export function activeFilterCount(query: ProblemQuery): number {
   return count;
 }
 
+/**
+ * Sorts by a column. A new column keeps the one before it as the tie-break, the
+ * way a spreadsheet sort is stable: sort by AC rate, then by users, and problems
+ * with as many users stay in AC-rate order. Code breaks whatever is left.
+ */
+export function sortBy(
+  query: ProblemQuery,
+  sort: ProblemSort,
+  descending = DEFAULT_DESC.has(sort),
+): ProblemQuery {
+  if (query.sort === sort) return { ...query, descending, page: 1 };
+  const previousIsDefault = query.sort === "code" && !query.descending;
+
+  return {
+    ...query,
+    sort,
+    descending,
+    thenSort: previousIsDefault ? null : { sort: query.sort, descending: query.descending },
+    page: 1,
+  };
+}
+
 /** DMOJ toggles a header between ascending and descending, defaulting to the
  *  direction that column is usually read in. */
 export function toggleSort(query: ProblemQuery, sort: ProblemSort): ProblemQuery {
-  const descending = query.sort === sort ? !query.descending : DEFAULT_DESC.has(sort);
-
-  return { ...query, sort, descending, page: 1 };
+  return sortBy(query, sort, query.sort === sort ? !query.descending : DEFAULT_DESC.has(sort));
 }

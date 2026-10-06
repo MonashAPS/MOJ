@@ -29,7 +29,7 @@ import {
   type ProblemSort,
   parseProblemSort,
   parseProblemStatus,
-  problemQueryString,
+  sortBy,
 } from "@/lib/problem-query";
 
 export type FilterOptions = {
@@ -123,24 +123,20 @@ export function FilterPanel({
   authenticated,
   pointValues,
   randomHref,
-  busy,
   bare = false,
 }: {
   query: ProblemQuery;
   options: FilterOptions;
-  onApply: (next: ProblemQuery) => void;
+  onApply: (next: ProblemQuery, how?: { replace?: boolean }) => void;
   authenticated: boolean;
   pointValues: { min: number; max: number };
   randomHref: string;
-  busy?: boolean;
   /** Inside the mobile sheet the sheet's own header is the title, so the panel
    *  drops its titlebar rather than repeating the word. */
   bare?: boolean;
 }) {
   const t = useTranslations("problems.filters");
   const ids = useId();
-  const [search, setSearch] = useState(query.search);
-  const [author, setAuthor] = useState(query.author);
 
   const [points, setPoints] = useState<[number, number]>([
     query.pointStart ?? pointValues.min,
@@ -150,8 +146,6 @@ export function FilterPanel({
   const [solvedByDraft, setSolvedByDraft] = useState("");
 
   // The URL is the source of truth: a Back navigation has to reach the fields.
-  useEffect(() => setSearch(query.search), [query.search]);
-  useEffect(() => setAuthor(query.author), [query.author]);
   useEffect(() => {
     setPoints([query.pointStart ?? pointValues.min, query.pointEnd ?? pointValues.max]);
   }, [query.pointStart, query.pointEnd, pointValues.min, pointValues.max]);
@@ -166,16 +160,14 @@ export function FilterPanel({
   ];
 
   const set = (patch: Partial<ProblemQuery>) => onApply({ ...query, ...patch, page: 1 });
+
+  // Typing filters as it goes. The first keystroke of a term is a step Back
+  // returns from; the rest only rewrite it.
+  const type = (field: "search" | "author", value: string) =>
+    onApply({ ...query, [field]: value, page: 1 }, { replace: query[field] !== "" });
+
   const total = activeFilterCount(query);
   const hasPointRange = pointValues.max > pointValues.min;
-
-  const applyText = () =>
-    set({
-      search: search.trim(),
-      author: author.trim(),
-      pointStart: hasPointRange && points[0] > pointValues.min ? points[0] : null,
-      pointEnd: hasPointRange && points[1] < pointValues.max ? points[1] : null,
-    });
 
   const reset =
     total > 0 ? (
@@ -183,7 +175,15 @@ export function FilterPanel({
         variant="ghost"
         size="sm"
         icon={<RotateCcw size={12} />}
-        onClick={() => onApply({ ...EMPTY_QUERY, showTypes: query.showTypes, sort: query.sort })}
+        onClick={() =>
+          onApply({
+            ...EMPTY_QUERY,
+            showTypes: query.showTypes,
+            sort: query.sort,
+            descending: query.descending,
+            thenSort: query.thenSort,
+          })
+        }
       >
         {t("reset")}
       </Button>
@@ -200,16 +200,10 @@ export function FilterPanel({
           <InputGroupInput
             id={`${ids}-search`}
             type="search"
-            value={search}
+            value={query.search}
             placeholder={t("searchPlaceholder")}
             aria-label={t("searchLabel")}
-            onChange={(event) => setSearch(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                applyText();
-              }
-            }}
+            onChange={(event) => type("search", event.target.value)}
           />
         </InputGroup>
         <div className="mt-2">
@@ -366,16 +360,10 @@ export function FilterPanel({
       <Group label={t("groupAuthor")} count={query.author ? 1 : 0} defaultOpen={!!query.author}>
         <Input
           id={`${ids}-author`}
-          value={author}
+          value={query.author}
           placeholder={t("authorPlaceholder")}
           aria-label={t("groupAuthor")}
-          onChange={(event) => setAuthor(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              applyText();
-            }
-          }}
+          onChange={(event) => type("author", event.target.value)}
         />
       </Group>
 
@@ -412,7 +400,7 @@ export function FilterPanel({
         <Select
           ariaLabel={t("groupSort")}
           value={query.sort}
-          onValueChange={(value) => set({ sort: parseProblemSort(value) })}
+          onValueChange={(value) => onApply(sortBy(query, parseProblemSort(value), query.descending))}
           options={sortOptions}
         />
         <Switch
@@ -423,11 +411,8 @@ export function FilterPanel({
         />
       </Group>
 
-      <div className="flex gap-2 border-t border-border pt-3">
-        <Button onClick={applyText} busy={busy} className="flex-1 max-md:h-11">
-          {t("go")}
-        </Button>
-        <Button asChild variant="secondary" icon={<Shuffle size={14} />} className="max-md:h-11">
+      <div className="flex border-t border-border pt-3">
+        <Button asChild variant="secondary" icon={<Shuffle size={14} />} className="flex-1 max-md:h-11">
           <a href={randomHref}>{t("random")}</a>
         </Button>
       </div>
@@ -541,12 +526,13 @@ export function ActiveFilters({
         </li>
       ))}
       <li>
-        <a
-          href={`/problems/${problemQueryString({ ...EMPTY_QUERY, showTypes: query.showTypes })}`}
+        <button
+          type="button"
+          onClick={() => onApply({ ...EMPTY_QUERY, showTypes: query.showTypes })}
           className="px-1 text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
         >
           {t("clear")}
-        </a>
+        </button>
       </li>
     </ul>
   );

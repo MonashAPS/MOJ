@@ -434,39 +434,16 @@ export function statementHasSamples(markdown: string): boolean {
 }
 
 /* -------------------------------------------------------------------------- */
-/* list                                                                       */
+/* catalog                                                                    */
 /* -------------------------------------------------------------------------- */
 
-const sortKey = v.union(
-  v.literal("code"),
-  v.literal("name"),
-  v.literal("points"),
-  v.literal("acRate"),
-  v.literal("userCount"),
-  v.literal("date"),
-  v.literal("group"),
-  v.literal("solved"),
-  v.literal("type"),
-  v.literal("editorial"),
-);
-
-const statusFilter = v.union(
-  v.literal("all"),
-  v.literal("solved"),
-  v.literal("attempted"),
-  v.literal("unsolved"),
-);
-
-/** DMOJ's `default_desc`, extended with the two sorts the staff panel adds. */
-const DEFAULT_DESC = new Set(["points", "acRate", "userCount", "date", "solved"]);
-
-type ListItem = {
+/** One problem as the problem list draws, filters and sorts it. */
+export type CatalogRow = {
   id: Id<"problems">;
   code: string;
   name: string;
-  i18nName: string;
   group: { name: string; fullName: string } | null;
-  types: { id: Id<"problemTypes">; name: string; fullName: string }[] | null;
+  types: { id: Id<"problemTypes">; name: string; fullName: string }[];
   points: number;
   partial: boolean;
   acRate: number;
@@ -475,327 +452,124 @@ type ListItem = {
   hasPublicEditorial: boolean;
   state: ProblemState;
   bestPoints: number | null;
-  contestLabel: string | null;
+  /** Authors and curators, for the author filter. */
+  authors: string[];
+  /** The contests it appeared in that the viewer may know about, with its label in each. */
+  contests: { key: string; label: string }[];
 };
 
-export const list = query({
-  args: {
-    search: v.optional(v.string()),
-    fullText: v.optional(v.boolean()),
-    status: v.optional(statusFilter),
-    solvedBy: v.optional(v.array(v.string())),
-    solvedByNotMe: v.optional(v.boolean()),
-    types: v.optional(v.array(v.string())),
-    group: v.optional(v.string()),
-    pointStart: v.optional(v.number()),
-    pointEnd: v.optional(v.number()),
-    author: v.optional(v.string()),
-    hasEditorial: v.optional(v.boolean()),
-    contestKeys: v.optional(v.array(v.string())),
-    groupByContest: v.optional(v.boolean()),
-    showTypes: v.optional(v.boolean()),
-    sort: v.optional(sortKey),
-    order: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
-    page: v.optional(v.number()),
-    pageSize: v.optional(v.number()),
-    language: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
+export type CatalogContest = { key: string; name: string; startTime: number };
+
+/**
+ * Every problem the viewer may see, as small rows the browser filters, sorts
+ * and pages itself.
+ *
+ * There are a few hundred problems, so sending them all once is cheaper than a
+ * server round trip per filter: a click re-sorts in place, and this query's
+ * arguments never change, so its cached answer is shared across every filter.
+ * The two filters that need the server, statement search and "solved by",
+ * answer with ids from `searchIds` and `solvedByIds`.
+ */
+export const catalog = query({
+  args: {},
+  handler: async (ctx) => {
     const viewer = await loadViewerContext(ctx);
     const sets = await solveSetsFor(ctx, viewer);
-    const language = args.language ?? "";
-    const page = Math.max(1, Math.floor(args.page ?? 1));
-    const pageSize = Math.max(1, Math.min(Math.floor(args.pageSize ?? DEFAULT_PAGE_SIZE), 200));
-
-    // --- Candidate set ----------------------------------------------------
-    const search = (args.search ?? "").trim();
-    let candidates: Doc<"problems">[];
-
-    if (search && args.fullText !== false) {
-      // The search index answers the name and statement sides; a code match is
-      // DMOJ's `code__icontains`, which no search index can express.
-      const byName = await ctx.db
-        .query("problems")
-        .withSearchIndex("search_name_desc", (q) => q.search("name", search))
-        .take(500);
-
-      const byDescription = await ctx.db
-        .query("problems")
-        .withSearchIndex("search_description", (q) => q.search("description", search))
-        .take(500);
-
-      const seen = new Map<string, Doc<"problems">>();
-
-      for (const row of [...byName, ...byDescription]) seen.set(row._id, row);
-
-      const lowered = search.toLowerCase();
-
-      for (const row of await ctx.db.query("problems").take(MAX_SCAN)) {
-        if (row.code.includes(lowered)) seen.set(row._id, row);
-      }
-
-      candidates = [...seen.values()];
-    } else {
-      candidates = await ctx.db.query("problems").take(MAX_SCAN);
-
-      if (search) {
-        const lowered = search.toLowerCase();
-        candidates = candidates.filter(
-          (row) => row.code.includes(lowered) || row.name.toLowerCase().includes(lowered),
-        );
-      }
-    }
-
-    // --- Visibility -------------------------------------------------------
-    candidates = candidates.filter((row) => problemIsVisibleTo(toCoreProblem(row), viewer.core));
-
-    // --- Filters ----------------------------------------------------------
-    if (args.group) {
-      const groupName = args.group;
-
-      const group = await ctx.db
-        .query("problemGroups")
-        .withIndex("by_name", (q) => q.eq("name", groupName))
-        .first();
-
-      candidates = group ? candidates.filter((row) => row.groupId === group._id) : [];
-    }
-
-    if (args.types && args.types.length > 0) {
-      const wanted = new Set<string>();
-
-      for (const name of args.types) {
-        const row = await ctx.db
-          .query("problemTypes")
-          .withIndex("by_name", (q) => q.eq("name", name))
-          .first();
-
-        if (row) wanted.add(row._id);
-      }
-
-      candidates = candidates.filter((row) => row.typeIds.some((id) => wanted.has(id)));
-    }
-
-    if (args.author) {
-      const profile = await profileByUsername(ctx, args.author);
-      candidates = profile
-        ? candidates.filter(
-            (row) =>
-              row.authorProfileIds.includes(profile._id) || row.curatorProfileIds.includes(profile._id),
-          )
-        : [];
-    }
-
-    // `has_public_editorial`, annotated by DMOJ onto the queryset.
     const now = Date.now();
-    const editorialByProblem = new Map<string, boolean>();
 
-    for (const row of candidates) {
-      const solution = await solutionFor(ctx, row._id);
-      editorialByProblem.set(row._id, !!solution && solution.isPublic && solution.publishOn <= now);
+    const problems = (await ctx.db.query("problems").take(MAX_SCAN)).filter((row) =>
+      problemIsVisibleTo(toCoreProblem(row), viewer.core),
+    );
+
+    // Each lookup table is read once rather than once per problem.
+    const editorial = new Set<string>();
+
+    for (const solution of await ctx.db.query("solutions").take(MAX_SCAN)) {
+      if (solution.isPublic && solution.publishOn <= now) editorial.add(solution.problemId);
     }
 
-    if (args.hasEditorial) {
-      candidates = candidates.filter((row) => editorialByProblem.get(row._id) === true);
+    const groups = new Map<string, { name: string; fullName: string } | null>();
+    const types = new Map<string, CatalogRow["types"][number] | null>();
+    const usernames = new Map<string, string | null>();
+
+    // Contest labels follow each contest's own order, and only contests whose
+    // problem list the viewer may know about are mentioned at all.
+    const linksByContest = new Map<Id<"contests">, Doc<"contestProblems">[]>();
+
+    for (const link of await ctx.db.query("contestProblems").take(MAX_SCAN)) {
+      const bucket = linksByContest.get(link.contestId) ?? [];
+      bucket.push(link);
+      linksByContest.set(link.contestId, bucket);
     }
 
-    // Status, relative to the viewer.
-    const status = args.status ?? "all";
+    const contests: CatalogContest[] = [];
+    const contestsByProblem = new Map<string, CatalogRow["contests"]>();
 
-    if (status !== "all" && viewer.profile) {
-      candidates = candidates.filter((row) => {
-        const solved = sets.solved.has(row._id);
-        const attempted = sets.attempted.has(row._id);
+    for (const [contestId, links] of linksByContest) {
+      const contest = await ctx.db.get(contestId);
 
-        if (status === "solved") return solved;
+      if (!contest || !canSeeContestAssociation(contest, viewer, now)) continue;
+      contests.push({ key: contest.key, name: contest.name, startTime: contest.startTime });
+      links.sort((a, b) => a.order - b.order);
 
-        if (status === "attempted") return attempted && !solved;
-
-        return !solved;
-      });
-    }
-
-    // "Solved by <user>", with the "and not by me" modifier the fork added.
-    if (args.solvedBy && args.solvedBy.length > 0) {
-      for (const username of args.solvedBy) {
-        const profile = await profileByUsername(ctx, username);
-
-        if (!profile) {
-          candidates = [];
-          break;
-        }
-
-        const theirs = await solvedIdsForProfile(ctx, profile._id);
-        candidates = candidates.filter((row) => theirs.has(row._id));
-      }
-
-      if (args.solvedByNotMe && viewer.profile) {
-        candidates = candidates.filter((row) => !sets.solved.has(row._id));
+      for (const [index, link] of links.entries()) {
+        const bucket = contestsByProblem.get(link.problemId) ?? [];
+        bucket.push({ key: contest.key, label: labelForProblem(contest, index) });
+        contestsByProblem.set(link.problemId, bucket);
       }
     }
 
-    // The point slider is built before the point filter, as DMOJ does.
-    const prepoint = candidates;
+    const rows: CatalogRow[] = [];
 
-    if (args.pointStart !== undefined) {
-      const start = args.pointStart;
-      candidates = candidates.filter((row) => row.points >= start);
-    }
-
-    if (args.pointEnd !== undefined) {
-      const end = args.pointEnd;
-      candidates = candidates.filter((row) => row.points <= end);
-    }
-
-    // Contest filter: keep only problems used by the named contests.
-    const labelsByProblem = new Map<string, { contest: Doc<"contests">; label: string }[]>();
-
-    if (args.contestKeys && args.contestKeys.length > 0) {
-      const allowed = new Set<string>();
-
-      for (const key of args.contestKeys) {
-        const contest = await ctx.db
-          .query("contests")
-          .withIndex("by_key", (q) => q.eq("key", key))
-          .unique();
-
-        if (!contest || !canSeeContestAssociation(contest, viewer)) continue;
-
-        const links = await ctx.db
-          .query("contestProblems")
-          .withIndex("by_contest_order", (q) => q.eq("contestId", contest._id))
-          .collect();
-
-        links.sort((a, b) => a.order - b.order);
-
-        for (const [index, link] of links.entries()) {
-          allowed.add(link.problemId);
-          const bucket = labelsByProblem.get(link.problemId) ?? [];
-          bucket.push({ contest, label: labelForProblem(contest, index) });
-          labelsByProblem.set(link.problemId, bucket);
-        }
+    for (const row of problems) {
+      if (!groups.has(row.groupId)) {
+        const group = await ctx.db.get(row.groupId);
+        groups.set(row.groupId, group ? { name: group.name, fullName: group.fullName } : null);
       }
 
-      candidates = candidates.filter((row) => allowed.has(row._id));
-    }
-
-    // --- Sort --------------------------------------------------------------
-    const sort = args.sort ?? "code";
-    const descending = args.order ? args.order === "desc" : DEFAULT_DESC.has(sort);
-
-    const names = new Map<string, string>();
-    const groups = new Map<string, Doc<"problemGroups"> | null>();
-    const typeNames = new Map<string, string[]>();
-
-    for (const row of candidates) {
-      const translation = await translationFor(ctx, row._id, language);
-      names.set(row._id, translation?.name ?? row.name);
-      groups.set(row._id, await ctx.db.get(row.groupId));
-
-      if (args.showTypes) {
-        typeNames.set(
-          row._id,
-          (await typesFor(ctx, row)).map((type) => type.fullName),
-        );
+      for (const typeId of row.typeIds) {
+        if (types.has(typeId)) continue;
+        const type = await ctx.db.get(typeId);
+        types.set(typeId, type ? { id: type._id, name: type.name, fullName: type.fullName } : null);
       }
-    }
 
-    const compare = (a: Doc<"problems">, b: Doc<"problems">): number => {
-      switch (sort) {
-        case "name":
-          return (names.get(a._id) ?? "").localeCompare(names.get(b._id) ?? "");
-        case "points":
-          return a.points - b.points;
-        case "acRate":
-          return a.acRate - b.acRate;
-        case "userCount":
-          return a.userCount - b.userCount;
-        case "date":
-          return a.date - b.date;
-        case "group":
-          return (groups.get(a._id)?.name ?? "").localeCompare(groups.get(b._id)?.name ?? "");
-        case "editorial":
-          return Number(editorialByProblem.get(a._id)) - Number(editorialByProblem.get(b._id));
-        case "type":
-          return (typeNames.get(a._id)?.[0] ?? "").localeCompare(typeNames.get(b._id)?.[0] ?? "");
-        case "solved": {
-          const rank = (row: Doc<"problems">) =>
-            sets.solved.has(row._id) ? 1 : sets.attempted.has(row._id) ? 0 : -1;
-
-          return rank(a) - rank(b);
-        }
-
-        default:
-          return a.code.localeCompare(b.code);
+      for (const profileId of [...row.authorProfileIds, ...row.curatorProfileIds]) {
+        if (usernames.has(profileId)) continue;
+        usernames.set(profileId, (await ctx.db.get(profileId))?.username ?? null);
       }
-    };
 
-    candidates.sort((a, b) => {
-      const primary = compare(a, b);
-
-      if (primary !== 0) return descending ? -primary : primary;
-
-      // DMOJ breaks every tie on the primary key.
-      return a._creationTime - b._creationTime;
-    });
-
-    const total = candidates.length;
-    const totalPages = Math.max(1, Math.ceil(total / pageSize));
-    const start = (page - 1) * pageSize;
-    const pageRows = candidates.slice(start, start + pageSize);
-
-    const items: ListItem[] = [];
-
-    for (const row of pageRows) {
-      const group = groups.get(row._id) ?? null;
       const { state, bestPoints } = stateFor(row._id, row.points, sets);
-      items.push({
+      rows.push({
         id: row._id,
         code: row.code,
         name: row.name,
-        i18nName: names.get(row._id) ?? row.name,
-        group: group ? { name: group.name, fullName: group.fullName } : null,
-        types: args.showTypes ? await typesFor(ctx, row) : null,
+        group: groups.get(row.groupId) ?? null,
+        types: row.typeIds.flatMap((id) => {
+          const type = types.get(id);
+
+          return type ? [type] : [];
+        }),
         points: row.points,
         partial: row.partial,
         acRate: row.acRate,
         userCount: row.userCount,
         date: row.date,
-        hasPublicEditorial: editorialByProblem.get(row._id) === true,
+        hasPublicEditorial: editorial.has(row._id),
         state,
         bestPoints,
-        contestLabel: labelsByProblem.get(row._id)?.[0]?.label ?? null,
+        authors: [...row.authorProfileIds, ...row.curatorProfileIds].flatMap((id) => {
+          const username = usernames.get(id);
+
+          return username ? [username] : [];
+        }),
+        contests: contestsByProblem.get(row._id) ?? [],
       });
     }
 
-    // Group-by-contest output for the contest filter and the view toggle.
-    let grouped: { contestKey: string; contestName: string; startTime: number; items: ListItem[] }[] | null =
-      null;
-
-    if ((args.groupByContest ?? false) || (args.contestKeys?.length ?? 0) > 0) {
-      const buckets = new Map<string, { contest: Doc<"contests">; items: ListItem[] }>();
-
-      for (const item of items) {
-        for (const { contest, label } of labelsByProblem.get(item.id) ?? []) {
-          const bucket = buckets.get(contest._id) ?? { contest, items: [] };
-          bucket.items.push({ ...item, contestLabel: label });
-          buckets.set(contest._id, bucket);
-        }
-      }
-
-      grouped = [...buckets.values()]
-        .map((bucket) => ({
-          contestKey: bucket.contest.key,
-          contestName: bucket.contest.name,
-          startTime: bucket.contest.startTime,
-          items: bucket.items,
-        }))
-        .sort((a, b) => b.startTime - a.startTime);
-    }
-
-    const pointValues = [...new Set(prepoint.map((row) => row.points))].sort((a, b) => a - b);
-
     return {
+      /** Who this was answered for, so the page can refuse an answer that came
+       *  back for nobody while the browser was re-authenticating. */
+      viewer: viewer.profile?.username ?? null,
       /** Set while the viewer is inside a locked-down contest: the page draws
        *  the list blurred behind a way back in. Contests lock down unless they
        *  opted out. */
@@ -803,19 +577,61 @@ export const list = query({
         viewer.inContest && viewer.contest && viewer.contest.disableLockdown !== true
           ? { key: viewer.contest.key, name: viewer.contest.name }
           : null,
-      items,
-      groups: grouped,
-      total,
-      page,
-      pageSize,
-      totalPages,
-      hasMore: start + pageRows.length < total,
-      pointValues: {
-        min: pointValues[0] ?? 0,
-        max: pointValues[pointValues.length - 1] ?? 0,
-        values: pointValues,
-      },
+      rows,
+      contests,
     };
+  },
+});
+
+/**
+ * The visible problems whose name or statement matches, through the search
+ * indexes. The browser matches codes and names itself; this adds the
+ * statement text it does not have.
+ */
+export const searchIds = query({
+  args: { search: v.string() },
+  handler: async (ctx, { search }): Promise<Id<"problems">[]> => {
+    const term = search.trim();
+
+    if (!term) return [];
+    const viewer = await loadViewerContext(ctx);
+
+    const byName = await ctx.db
+      .query("problems")
+      .withSearchIndex("search_name_desc", (q) => q.search("name", term))
+      .take(500);
+
+    const byDescription = await ctx.db
+      .query("problems")
+      .withSearchIndex("search_description", (q) => q.search("description", term))
+      .take(500);
+
+    const ids = new Set<Id<"problems">>();
+
+    for (const row of [...byName, ...byDescription]) {
+      if (problemIsVisibleTo(toCoreProblem(row), viewer.core)) ids.add(row._id);
+    }
+
+    return [...ids];
+  },
+});
+
+/** The problems every one of these users has fully solved: the "Solved by" filter. */
+export const solvedByIds = query({
+  args: { usernames: v.array(v.string()) },
+  handler: async (ctx, { usernames }): Promise<string[]> => {
+    let solved: string[] | null = null;
+
+    for (const username of usernames.slice(0, 10)) {
+      const profile = await profileByUsername(ctx, username);
+
+      // An unknown user has solved nothing, so nothing is solved by all of them.
+      if (!profile) return [];
+      const theirs = await solvedIdsForProfile(ctx, profile._id);
+      solved = solved === null ? [...theirs] : solved.filter((id) => theirs.has(id));
+    }
+
+    return solved ?? [];
   },
 });
 
@@ -1119,6 +935,13 @@ export const get = query({
     };
   },
 });
+
+const statusFilter = v.union(
+  v.literal("all"),
+  v.literal("solved"),
+  v.literal("attempted"),
+  v.literal("unsolved"),
+);
 
 /* -------------------------------------------------------------------------- */
 /* random                                                                     */
