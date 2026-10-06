@@ -140,6 +140,21 @@ export const MOJ_EXTRA_ATTRS = {
   span: ["data-line", "tabindex"],
 } satisfies AttributeAllowlist;
 
+/**
+ * The SVG KaTeX draws stretchy symbols with: the brace of `cases`, tall delimiters, long
+ * square roots and `\cancel`. DMOJ rendered maths after bleach, so its list never needed
+ * these; here KaTeX runs first, and without them the brace is escaped into visible markup.
+ * Only these three elements and their geometry are allowed, so an author's SVG still cannot
+ * reach script, links or another document.
+ */
+export const KATEX_SVG_TAGS: readonly string[] = ["svg", "path", "line"];
+
+const KATEX_SVG_ATTRS = {
+  svg: ["xmlns", "width", "height", "viewBox", "preserveAspectRatio"],
+  path: ["d"],
+  line: ["x1", "y1", "x2", "y2", "stroke-width"],
+} satisfies AttributeAllowlist;
+
 const PROPERTY_NAMES = new Map<string, string>([
   ["class", "className"],
   ["for", "htmlFor"],
@@ -199,8 +214,8 @@ function mergeAttributeMaps(...maps: readonly AttributeAllowlist[]): Record<stri
  */
 export function userSafeSchema(): Schema {
   return {
-    tagNames: [...USER_SAFE_TAGS, ...MATHML_TAGS],
-    attributes: mergeAttributeMaps(USER_SAFE_ATTRS, MOJ_EXTRA_ATTRS, MATHML_ATTRS),
+    tagNames: [...USER_SAFE_TAGS, ...MATHML_TAGS, ...KATEX_SVG_TAGS],
+    attributes: mergeAttributeMaps(USER_SAFE_ATTRS, MOJ_EXTRA_ATTRS, MATHML_ATTRS, KATEX_SVG_ATTRS),
     protocols: {
       // bleach's ALLOWED_PROTOCOLS, which DMOJ does not override.
       href: ["http", "https", "mailto"],

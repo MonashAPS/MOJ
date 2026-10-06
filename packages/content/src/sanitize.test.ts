@@ -96,6 +96,29 @@ describe("comment preset", () => {
   });
 });
 
+describe("KaTeX's own SVG", () => {
+  // Three rows: KaTeX draws a brace that tall as SVG rather than a font glyph.
+  const CASES = "$$\n\\begin{cases}\n  a & b \\\\\n  c & d \\\\\n  e & f\n\\end{cases}\n$$";
+
+  it.each(["problem", "comment"] as const)("keeps the stretchy brace of cases in %s", async (preset) => {
+    const { html } = await renderMarkdown(CASES, preset);
+    expect(html).toContain("<svg");
+    expect(html).toContain("<path");
+    expect(html).not.toContain("&#x3C;svg");
+  });
+
+  it("lets an author's SVG through only as drawing, never as script or a link", async () => {
+    const { html } = await renderMarkdown(
+      '<svg onload="alert(1)"><use href="#x"></use><path d="M0 0" onclick="alert(1)"></path></svg>',
+      "problem",
+    );
+
+    expect(html).not.toMatch(EVENT_ATTRIBUTE);
+    expect(html).not.toContain("<use");
+    expect(html).toContain('<path d="M0 0"');
+  });
+});
+
 describe("no script survives any user preset", () => {
   const userPresets = PRESET_NAMES.filter((preset) => preset !== "problem-full" && preset !== "flatpage");
 
