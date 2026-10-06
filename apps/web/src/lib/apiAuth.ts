@@ -105,6 +105,7 @@ async function verifyApiKeyToken(token: string): Promise<ApiIdentity | null> {
     const rows = await db
       .select({
         username: schema.user.username,
+        displayUsername: schema.user.displayUsername,
         name: schema.user.name,
         isStaff: schema.user.isStaff,
         isSuperuser: schema.user.isSuperuser,
@@ -121,7 +122,8 @@ async function verifyApiKeyToken(token: string): Promise<ApiIdentity | null> {
     return {
       kind: "api-key",
       userId,
-      username: record.username ?? record.name,
+      // `username` is the lowercased lookup key; the display form keeps the spelling.
+      username: record.displayUsername ?? record.username ?? record.name,
       isStaff: Boolean(record.isStaff || record.isSuperuser),
       // The plugin decodes the stored scope column before it answers.
       permissions: result.key.permissions ?? {},

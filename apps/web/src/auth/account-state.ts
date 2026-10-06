@@ -55,7 +55,7 @@ async function readAccountSecurity(): Promise<AccountSecurity | null> {
 
   return {
     userId: user.id,
-    username: user.username || user.name,
+    username: user.displayUsername || user.username || user.name,
     email: user.email,
     isStaff,
     totpEnabled,

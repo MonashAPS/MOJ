@@ -73,9 +73,9 @@ CREATE TABLE \`auth_user\` (
   PRIMARY KEY (\`id\`)
 ) ENGINE=InnoDB;
 INSERT INTO \`auth_user\` VALUES
- (1,'pbkdf2_sha256$260000$salt$hash',NULL,1,'root','','','root@example.test',1,1,'2020-01-01 00:00:00.000000'),
+ (1,'pbkdf2_sha256$260000$salt$hash',NULL,1,'root','','','Root@Example.test',1,1,'2020-01-01 00:00:00.000000'),
  (2,'!unusable',NULL,0,'ghost','','','',0,0,'2021-02-03 04:05:06.000000'),
- (3,'pbkdf2_sha256$260000$salt2$hash2',NULL,0,'dup','','','root@example.test',0,1,'2022-01-01 00:00:00.000000');
+ (3,'pbkdf2_sha256$260000$salt2$hash2',NULL,0,'Dup','','','root@example.test',0,1,'2022-01-01 00:00:00.000000');
 
 CREATE TABLE \`judge_language\` (
   \`id\` int(11) NOT NULL AUTO_INCREMENT,

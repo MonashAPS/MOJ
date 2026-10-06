@@ -137,12 +137,14 @@ export async function buildAuthRows(ctx: ImportContext, options: AuthBuildOption
     users.push({
       id,
       name: username,
-      email,
+      // Better Auth lowercases an email or username before looking it up, so a
+      // stored capital would make the account impossible to sign in to.
+      email: email.toLowerCase(),
       email_verified: row.b("is_active"),
       image: null,
       created_at: new Date(joined),
       updated_at: new Date(joined),
-      username,
+      username: username.toLowerCase(),
       display_username: username,
       two_factor_enabled: totp?.enabled === true && totp.totpKey !== null,
       role: row.b("is_superuser") ? "admin" : "user",
