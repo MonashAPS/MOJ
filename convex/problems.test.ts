@@ -6,14 +6,15 @@ import {
   insertContestProblem,
   insertParticipation,
   insertProblem,
-  insertProblemGroup,
   insertProfile,
   insertSubmission,
   insertTaxonomy,
 } from "./test.fixtures";
 import { setupTest } from "./test.setup";
 
-describe("problems.list", () => {
+describe("problems.catalog", () => {
+  const codes = (result: { rows: { code: string }[] }) => result.rows.map((row) => row.code).sort();
+
   test("shows public problems to anonymous viewers and hides private ones", async () => {
     const t = setupTest();
     await t.run(async (ctx) => {
@@ -22,18 +23,18 @@ describe("problems.list", () => {
       await insertProblem(ctx, { code: "secret", groupId, isPublic: false });
     });
 
-    const result = await t.query(api.problems.list, {});
-    expect(result.items.map((item) => item.code)).toEqual(["aplusb"]);
-    expect(result.total).toBe(1);
+    const result = await t.query(api.problems.catalog, {});
+    expect(codes(result)).toEqual(["aplusb"]);
+    expect(result.viewer).toBeNull();
   });
 
   test("authors and testers see their own private problems", async () => {
     const t = setupTest();
-
-    const { authorId, testerId } = await t.run(async (ctx) => {
+    await t.run(async (ctx) => {
       const { groupId } = await insertTaxonomy(ctx);
       const author = await insertProfile(ctx, { username: "author" });
       const tester = await insertProfile(ctx, { username: "tester" });
+      await insertProfile(ctx, { username: "nobody" });
       await insertProblem(ctx, {
         code: "hidden",
         groupId,
@@ -41,27 +42,15 @@ describe("problems.list", () => {
         authorProfileIds: [author],
         testerProfileIds: [tester],
       });
-
-      return { authorId: author, testerId: tester };
     });
 
-    expect(authorId).toBeDefined();
-    expect(testerId).toBeDefined();
-
-    const anonymous = await t.query(api.problems.list, {});
-    expect(anonymous.items).toHaveLength(0);
-
-    const asAuthor = await asUser(t, "author").query(api.problems.list, {});
-    expect(asAuthor.items.map((item) => item.code)).toEqual(["hidden"]);
-
-    const asTester = await asUser(t, "tester").query(api.problems.list, {});
-    expect(asTester.items.map((item) => item.code)).toEqual(["hidden"]);
-
-    const asStranger = await asUser(t, "nobody").query(api.problems.list, {});
-    expect(asStranger.items).toHaveLength(0);
+    expect(codes(await t.query(api.problems.catalog, {}))).toEqual([]);
+    expect(codes(await asUser(t, "author").query(api.problems.catalog, {}))).toEqual(["hidden"]);
+    expect(codes(await asUser(t, "tester").query(api.problems.catalog, {}))).toEqual(["hidden"]);
+    expect(codes(await asUser(t, "nobody").query(api.problems.catalog, {}))).toEqual([]);
   });
 
-  test("status filters against the viewer's own submissions", async () => {
+  test("marks each problem with the viewer's own state, and says who it answered for", async () => {
     const t = setupTest();
     await t.run(async (ctx) => {
       const { groupId, languageId } = await insertTaxonomy(ctx);
@@ -86,80 +75,26 @@ describe("problems.list", () => {
       });
     });
 
-    const asViewer = asUser(t, "viewer");
-
-    const solved = await asViewer.query(api.problems.list, { status: "solved" });
-    expect(solved.items.map((item) => item.code)).toEqual(["solved"]);
-
-    const attempted = await asViewer.query(api.problems.list, { status: "attempted" });
-    expect(attempted.items.map((item) => item.code)).toEqual(["tried"]);
-
-    const unsolved = await asViewer.query(api.problems.list, { status: "unsolved" });
-    expect(unsolved.items.map((item) => item.code).sort()).toEqual(["tried", "untouched"]);
-
-    const all = await asViewer.query(api.problems.list, {});
-    const states = Object.fromEntries(all.items.map((item) => [item.code, item.state]));
+    const result = await asUser(t, "viewer").query(api.problems.catalog, {});
+    const states = Object.fromEntries(result.rows.map((row) => [row.code, row.state]));
     expect(states).toEqual({ solved: "solved", tried: "attempted", untouched: "none" });
+    expect(result.viewer).toBe("viewer");
   });
 
-  test("solved by a user, and not by me", async () => {
+  test("carries the group, types, authors and a published editorial", async () => {
     const t = setupTest();
     await t.run(async (ctx) => {
-      const { groupId, languageId } = await insertTaxonomy(ctx);
-      const me = await insertProfile(ctx, { username: "me" });
-      const them = await insertProfile(ctx, { username: "them" });
-
-      const both = await insertProblem(ctx, { code: "both", groupId });
-      const theirs = await insertProblem(ctx, { code: "theirs", groupId });
-      await insertProblem(ctx, { code: "neither", groupId });
-
-      for (const problemId of [both, theirs]) {
-        await insertSubmission(ctx, {
-          profileId: them,
-          problemId,
-          languageId,
-          result: "AC",
-          casePoints: 1,
-          points: 100,
-        });
-      }
-
-      await insertSubmission(ctx, {
-        profileId: me,
-        problemId: both,
-        languageId,
-        result: "AC",
-        casePoints: 1,
-        points: 100,
-      });
-    });
-
-    const asMe = asUser(t, "me");
-
-    const solvedByThem = await asMe.query(api.problems.list, { solvedBy: ["them"] });
-    expect(solvedByThem.items.map((item) => item.code).sort()).toEqual(["both", "theirs"]);
-
-    const gap = await asMe.query(api.problems.list, { solvedBy: ["them"], solvedByNotMe: true });
-    expect(gap.items.map((item) => item.code)).toEqual(["theirs"]);
-  });
-
-  test("filters by type, group, author, points range and editorial", async () => {
-    const t = setupTest();
-    await t.run(async (ctx) => {
-      const { groupId, typeId, graphsTypeId } = await insertTaxonomy(ctx);
-      const otherGroup = await insertProblemGroup(ctx, { name: "olympiad" });
+      const { groupId, graphsTypeId } = await insertTaxonomy(ctx);
       const author = await insertProfile(ctx, { username: "setter" });
 
       const graphs = await insertProblem(ctx, {
         code: "graphs",
         groupId,
         typeIds: [graphsTypeId],
-        points: 10,
         authorProfileIds: [author],
       });
 
-      await insertProblem(ctx, { code: "plain", groupId, typeIds: [typeId], points: 50 });
-      await insertProblem(ctx, { code: "olympiad", groupId: otherGroup, points: 100 });
+      const later = await insertProblem(ctx, { code: "later", groupId });
 
       await ctx.db.insert("solutions", {
         problemId: graphs,
@@ -168,86 +103,25 @@ describe("problems.list", () => {
         authorProfileIds: [],
         content: "Use a BFS.",
       });
-    });
-
-    const byType = await t.query(api.problems.list, { types: ["graphs"] });
-    expect(byType.items.map((item) => item.code)).toEqual(["graphs"]);
-
-    const byGroup = await t.query(api.problems.list, { group: "olympiad" });
-    expect(byGroup.items.map((item) => item.code)).toEqual(["olympiad"]);
-
-    const byAuthor = await t.query(api.problems.list, { author: "setter" });
-    expect(byAuthor.items.map((item) => item.code)).toEqual(["graphs"]);
-
-    const byPoints = await t.query(api.problems.list, { pointStart: 40, pointEnd: 60 });
-    expect(byPoints.items.map((item) => item.code)).toEqual(["plain"]);
-
-    const withEditorial = await t.query(api.problems.list, { hasEditorial: true });
-    expect(withEditorial.items.map((item) => item.code)).toEqual(["graphs"]);
-
-    // The point slider is built before the point filter is applied.
-    expect(byPoints.pointValues.values).toEqual([10, 50, 100]);
-  });
-
-  test("an unpublished editorial does not count as one", async () => {
-    const t = setupTest();
-    await t.run(async (ctx) => {
-      const { groupId } = await insertTaxonomy(ctx);
-      const future = await insertProblem(ctx, { code: "future", groupId });
       await ctx.db.insert("solutions", {
-        problemId: future,
+        problemId: later,
         isPublic: true,
         publishOn: Date.now() + 86_400_000,
         authorProfileIds: [],
         content: "Not yet.",
       });
     });
-    const result = await t.query(api.problems.list, { hasEditorial: true });
-    expect(result.items).toHaveLength(0);
+
+    const { rows } = await t.query(api.problems.catalog, {});
+    const graphs = rows.find((row) => row.code === "graphs");
+    expect(graphs?.types.map((type) => type.name)).toEqual(["graphs"]);
+    expect(graphs?.group?.name).toBeTruthy();
+    expect(graphs?.authors).toEqual(["setter"]);
+    expect(graphs?.hasPublicEditorial).toBe(true);
+    expect(rows.find((row) => row.code === "later")?.hasPublicEditorial).toBe(false);
   });
 
-  test("search matches the code as well as the name", async () => {
-    const t = setupTest();
-    await t.run(async (ctx) => {
-      const { groupId } = await insertTaxonomy(ctx);
-      await insertProblem(ctx, { code: "aplusb", name: "A plus B", groupId });
-      await insertProblem(ctx, { code: "zzz", name: "Unrelated", groupId });
-    });
-
-    const byName = await t.query(api.problems.list, { search: "plus", fullText: false });
-    expect(byName.items.map((item) => item.code)).toEqual(["aplusb"]);
-
-    const byCode = await t.query(api.problems.list, { search: "aplus", fullText: false });
-    expect(byCode.items.map((item) => item.code)).toEqual(["aplusb"]);
-  });
-
-  test("sorts and paginates", async () => {
-    const t = setupTest();
-    await t.run(async (ctx) => {
-      const { groupId } = await insertTaxonomy(ctx);
-      await insertProblem(ctx, { code: "a", groupId, points: 30 });
-      await insertProblem(ctx, { code: "b", groupId, points: 10 });
-      await insertProblem(ctx, { code: "c", groupId, points: 20 });
-    });
-
-    const byPoints = await t.query(api.problems.list, { sort: "points" });
-    // `points` is in DMOJ's default_desc set.
-    expect(byPoints.items.map((item) => item.code)).toEqual(["a", "c", "b"]);
-
-    const ascending = await t.query(api.problems.list, { sort: "points", order: "asc" });
-    expect(ascending.items.map((item) => item.code)).toEqual(["b", "c", "a"]);
-
-    const firstPage = await t.query(api.problems.list, { pageSize: 2 });
-    expect(firstPage.items.map((item) => item.code)).toEqual(["a", "b"]);
-    expect(firstPage.hasMore).toBe(true);
-    expect(firstPage.totalPages).toBe(2);
-
-    const secondPage = await t.query(api.problems.list, { pageSize: 2, page: 2 });
-    expect(secondPage.items.map((item) => item.code)).toEqual(["c"]);
-    expect(secondPage.hasMore).toBe(false);
-  });
-
-  test("groups by contest when a contest filter is applied", async () => {
+  test("labels each problem in the contests it appeared in", async () => {
     const t = setupTest();
     await t.run(async (ctx) => {
       const { groupId } = await insertTaxonomy(ctx);
@@ -261,18 +135,18 @@ describe("problems.list", () => {
         problemListReleaseAt: "start",
       });
 
-      await insertContestProblem(ctx, { contestId: contest, problemId: alpha, order: 0 });
       await insertContestProblem(ctx, { contestId: contest, problemId: beta, order: 1 });
+      await insertContestProblem(ctx, { contestId: contest, problemId: alpha, order: 0 });
     });
 
-    const result = await t.query(api.problems.list, { contestKeys: ["winter25"] });
-    expect(result.items.map((item) => item.code).sort()).toEqual(["alpha", "beta"]);
-    expect(result.groups).toHaveLength(1);
-    expect(result.groups?.[0]?.contestName).toBe("Winter Cup 2025");
-    expect(result.groups?.[0]?.items.map((item) => [item.code, item.contestLabel])).toEqual([
-      ["alpha", "A"],
-      ["beta", "B"],
-    ]);
+    const result = await t.query(api.problems.catalog, {});
+    const contests = Object.fromEntries(result.rows.map((row) => [row.code, row.contests]));
+    expect(contests).toEqual({
+      alpha: [{ key: "winter25", label: "A" }],
+      beta: [{ key: "winter25", label: "B" }],
+      loner: [],
+    });
+    expect(result.contests.map((contest) => contest.name)).toEqual(["Winter Cup 2025"]);
   });
 
   /** Being in a contest no longer rewrites this list. The contest's own page is
@@ -291,7 +165,7 @@ describe("problems.list", () => {
       await ctx.db.patch(viewer, { currentParticipationId: participation });
     });
 
-    return await asUser(t, "player").query(api.problems.list, { showTypes: true });
+    return await asUser(t, "player").query(api.problems.catalog, {});
   }
 
   test("leaves the catalogue alone for a contest that opted out of the lockdown", async () => {
@@ -299,7 +173,7 @@ describe("problems.list", () => {
 
     const result = await inContest(t, true);
 
-    expect(result.items.map((row) => row.code).sort()).toEqual(["inside", "outside"]);
+    expect(codes(result)).toEqual(["inside", "outside"]);
     expect(result.contestLock).toBeNull();
   });
 
@@ -308,8 +182,55 @@ describe("problems.list", () => {
 
     const result = await inContest(t, false);
 
-    expect(result.items.map((row) => row.code).sort()).toEqual(["inside", "outside"]);
+    expect(codes(result)).toEqual(["inside", "outside"]);
     expect(result.contestLock).toEqual({ key: "live", name: "LIVE" });
+  });
+});
+
+describe("problems.searchIds", () => {
+  test("finds a problem by its statement, and never a hidden one", async () => {
+    const t = setupTest();
+
+    const ids = await t.run(async (ctx) => {
+      const { groupId } = await insertTaxonomy(ctx);
+      const swing = await insertProblem(ctx, { code: "swing", groupId });
+      await ctx.db.patch(swing, { description: "A pendulum swings back and forth." });
+      const secret = await insertProblem(ctx, { code: "secret", groupId, isPublic: false });
+      await ctx.db.patch(secret, { description: "Another pendulum, kept private." });
+
+      return { swing, secret };
+    });
+
+    expect(await t.query(api.problems.searchIds, { search: "pendulum" })).toEqual([ids.swing]);
+    expect(await t.query(api.problems.searchIds, { search: "  " })).toEqual([]);
+  });
+});
+
+describe("problems.solvedByIds", () => {
+  test("keeps only what every named user has fully solved", async () => {
+    const t = setupTest();
+
+    const ids = await t.run(async (ctx) => {
+      const { groupId, languageId } = await insertTaxonomy(ctx);
+      const first = await insertProfile(ctx, { username: "first" });
+      const second = await insertProfile(ctx, { username: "second" });
+      const both = await insertProblem(ctx, { code: "both", groupId });
+      const firstOnly = await insertProblem(ctx, { code: "firstonly", groupId });
+
+      const solve = (profileId: typeof first, problemId: typeof both) =>
+        insertSubmission(ctx, { profileId, problemId, languageId, result: "AC", casePoints: 1, points: 100 });
+
+      await solve(first, both);
+      await solve(first, firstOnly);
+      await solve(second, both);
+
+      return { both, firstOnly };
+    });
+
+    const byFirst = await t.query(api.problems.solvedByIds, { usernames: ["first"] });
+    expect([...byFirst].sort()).toEqual([ids.both, ids.firstOnly].sort());
+    expect(await t.query(api.problems.solvedByIds, { usernames: ["first", "second"] })).toEqual([ids.both]);
+    expect(await t.query(api.problems.solvedByIds, { usernames: ["first", "ghost"] })).toEqual([]);
   });
 });
 

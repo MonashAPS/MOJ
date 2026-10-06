@@ -6,6 +6,9 @@ import { mutateAsViewer, queryAsViewer } from "@/lib/convex-server";
 import { readStorageId } from "@/lib/convex-upload";
 import { normaliseLanguage } from "@/lib/language";
 import { viewerLanguage } from "@/lib/language.server";
+import { mediaRoot } from "@/lib/media";
+import { appUrl } from "@/lib/public-config.server";
+import { loadStatementImages, statementImagePath, statementImages } from "@/lib/statement-images";
 
 /**
  * `/problem/[code]/pdf` (SPEC section 8), DMOJ's `ProblemPdfView`.
@@ -66,12 +69,25 @@ export async function GET(
 
   // The template's own text is part of the cache key: a template change has to
   // invalidate every cached PDF.
-  const { markdownToTypst, renderPdf } = await content();
+  const { markdownToTypst, normaliseForCmarker, renderPdf } = await content();
 
-  const typstSource = markdownToTypst(source.statement, {
-    ...source.meta,
-    pythonTimeLimit: source.meta.pythonTimeLimit ?? undefined,
+  const meta = { ...source.meta, pythonTimeLimit: source.meta.pythonTimeLimit ?? undefined };
+
+  // Typst has no network and reads only its compile root, so every image the
+  // statement draws is gathered up front and named after its source.
+  const sources = new Set<string>();
+  normaliseForCmarker(source.statement, {
+    resolveImage: () => null,
+    onImage: ({ original }) => sources.add(original),
   });
+  const images = statementImages(sources, { mediaRoot: await mediaRoot(), siteUrl: appUrl() });
+
+  const typstWith = (kept: ReadonlySet<string>) =>
+    markdownToTypst(source.statement, meta, {
+      resolveImage: (src) => (kept.has(src) ? `/${statementImagePath(src)}` : null),
+    });
+
+  const typstSource = typstWith(new Set(images.keys()));
 
   const sourceHash = createHash("sha256").update(typstSource).digest("hex");
 
@@ -86,10 +102,18 @@ export async function GET(
     // The stored blob went away; fall through and render it again.
   }
 
+  // An image that cannot be read is left out rather than failing the PDF.
+  const { assets, missing } = await loadStatementImages(images);
+
+  const rendered =
+    missing.size === 0
+      ? typstSource
+      : typstWith(new Set([...images.keys()].filter((src) => !missing.has(src))));
+
   let pdf: Buffer;
 
   try {
-    pdf = await renderPdf(typstSource, { bin: process.env.TYPST_BIN });
+    pdf = await renderPdf(rendered, { bin: process.env.TYPST_BIN, assets });
   } catch (error) {
     console.error(`Failed to render the PDF for ${code}:`, error);
     const t = await getTranslations("problems.pdf");
@@ -100,7 +124,17 @@ export async function GET(
     });
   }
 
-  // Cache it for the next reader. A failure here must not fail the download.
+  // An image that failed may have been a passing failure, so a PDF missing one
+  // is not cached and the next reader gets another try.
+  if (missing.size === 0) await cachePdf(code, source.language, sourceHash, pdf);
+
+  const bytes = new Uint8Array(pdf);
+
+  return new Response(bytes, { status: 200, headers: pdfHeaders(code, bytes.byteLength) });
+}
+
+/** Stores the PDF for the next reader. A failure here must not fail the download. */
+async function cachePdf(code: string, language: string, sourceHash: string, pdf: Buffer): Promise<void> {
   try {
     const uploadUrl = await mutateAsViewer(api.problems.pdf.uploadUrl, { code });
 
@@ -112,19 +146,8 @@ export async function GET(
 
     const storageId = stored.ok ? await readStorageId(stored) : null;
 
-    if (storageId) {
-      await mutateAsViewer(api.problems.pdf.save, {
-        code,
-        language: source.language,
-        sourceHash,
-        storageId,
-      });
-    }
+    if (storageId) await mutateAsViewer(api.problems.pdf.save, { code, language, sourceHash, storageId });
   } catch (error) {
     console.error(`Failed to cache the PDF for ${code}:`, error);
   }
-
-  const bytes = new Uint8Array(pdf);
-
-  return new Response(bytes, { status: 200, headers: pdfHeaders(code, bytes.byteLength) });
 }

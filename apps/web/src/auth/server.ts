@@ -84,7 +84,14 @@ function hasUsername(user: AuthUser): user is AuthUser & { username: string } {
   return "username" in user && typeof user.username === "string";
 }
 
+function hasDisplayUsername(user: AuthUser): user is AuthUser & { displayUsername: string } {
+  return "displayUsername" in user && typeof user.displayUsername === "string" && user.displayUsername !== "";
+}
+
+/** The username as its owner spells it. `username` itself is the lowercased lookup key. */
 function pluginUsername(user: AuthUser): string | null {
+  if (hasDisplayUsername(user)) return user.displayUsername;
+
   return hasUsername(user) ? user.username : null;
 }
 

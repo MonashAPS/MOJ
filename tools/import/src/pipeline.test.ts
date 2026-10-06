@@ -101,7 +101,7 @@ describe("full transform over a fixture dump", () => {
   });
 
   it("falls back to the user display rank when the stored one is unknown", () => {
-    const wizard = docs(dir, "profiles").find((p) => p.username === "dup");
+    const wizard = docs(dir, "profiles").find((p) => p.username === "Dup");
     expect(wizard?.displayRank).toBe("user");
     const report = reportToJson(ctx);
     expect(report.warnings.some((w) => w.reason.includes("unknown display_rank wizard"))).toBe(true);

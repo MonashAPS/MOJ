@@ -64,7 +64,7 @@ import remarkSpoiler from "./plugins/remark-spoiler.js";
 import remarkTildeMath from "./plugins/remark-tilde-math.js";
 import { type Preset, presetConfig } from "./presets.js";
 import { MATHML_TAGS } from "./sanitize/bleach-whitelist.js";
-import { USER_SAFE_TAGS, userSafeSchema } from "./sanitize/schema.js";
+import { KATEX_SVG_TAGS, USER_SAFE_TAGS, userSafeSchema } from "./sanitize/schema.js";
 
 export interface ShikiThemes {
   readonly light: string;
@@ -264,7 +264,10 @@ export async function renderMarkdown(
   if (options.baseUrl) toHtml.push([rehypeAbsolutify, { base: options.baseUrl }]);
 
   if (config.sanitise === "user-safe") {
-    toHtml.push([rehypeEscapeDisallowed, { tagNames: [...USER_SAFE_TAGS, ...MATHML_TAGS] }]);
+    toHtml.push([
+      rehypeEscapeDisallowed,
+      { tagNames: [...USER_SAFE_TAGS, ...MATHML_TAGS, ...KATEX_SVG_TAGS] },
+    ]);
     toHtml.push(rehypeStyleAllowlist);
     toHtml.push([rehypeSanitize, userSafeSchema()]);
   }

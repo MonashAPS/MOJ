@@ -32,29 +32,26 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ContestLock } from "@/components/problems/ContestLock";
 import { ActiveFilters, type FilterOptions, FilterPanel } from "@/components/problems/FilterPanel";
 import { HotProblemsBox } from "@/components/problems/HotProblemsBox";
 import { LocalTime } from "@/components/time/LocalTime";
-
+import { type Catalog, type CatalogItem, type CatalogRow, viewCatalog } from "@/lib/problem-catalog";
 import {
   activeFilterCount,
   EMPTY_QUERY,
   type ProblemQuery,
   type ProblemSort,
+  parseProblemQuery,
   problemHref,
   problemQueryString,
   toggleSort,
 } from "@/lib/problem-query";
 import { formatPoints } from "@/lib/units";
-import { useViewerLive } from "@/lib/useViewerLive";
 
-type ListPayload = NonNullable<(typeof api.problems.list)["_returnType"]>;
-
-type ListItem = ListPayload["items"][number];
+type ListItem = CatalogItem;
 
 const STATE_META = new Map([
   ["solved", { Icon: CheckCircle2, tone: "var(--state-solved)", label: "solved" }],
@@ -140,7 +137,7 @@ function EditorialCell({ item }: { item: ListItem }) {
       <Link
         href={`/problem/${item.code}/editorial`}
         className="relative z-1 inline-flex"
-        aria-label={t("editorialFor", { name: item.i18nName })}
+        aria-label={t("editorialFor", { name: item.name })}
       >
         <BookOpen size={14} aria-hidden style={{ color: "var(--v-good)" }} />
       </Link>
@@ -170,14 +167,14 @@ function Row({ item, query, username }: { item: ListItem; query: ProblemQuery; u
           href={`/problem/${item.code}`}
           className="font-medium text-foreground after:absolute after:inset-0 group-hover:text-link"
         >
-          {item.i18nName}
+          {item.name}
         </Link>
         <span className="ml-2 font-mono text-sm text-muted-foreground">{item.code}</span>
       </TableCell>
       <TableCell className="text-subtle">{item.group?.fullName ?? "—"}</TableCell>
       {query.showTypes ? (
         <TableCell className="text-subtle">
-          {item.types && item.types.length > 0 ? (
+          {item.types.length > 0 ? (
             <span className="flex flex-wrap gap-1">
               {item.types.map((type) => (
                 <Badge key={type.id} variant="neutral" rounding="square">
@@ -237,7 +234,7 @@ function StackedRow({ item, username }: { item: ListItem; username: string | nul
           className="font-medium text-foreground after:absolute after:inset-0"
         >
           {item.contestLabel ? `${item.contestLabel}. ` : ""}
-          {item.i18nName}
+          {item.name}
         </Link>
         <p className="mt-1 font-mono text-sm tabular-nums text-muted-foreground">
           {formatPoints(item.points)}
@@ -253,71 +250,126 @@ function StackedRow({ item, username }: { item: ListItem; username: string | nul
   );
 }
 
+/** Waits a moment after the last change, so a search is not sent per keystroke. */
+function useSettled<T>(value: T, ms: number): T {
+  const [settled, setSettled] = useState(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(value), ms);
+
+    return () => clearTimeout(timer);
+  }, [value, ms]);
+
+  return settled;
+}
+
+/** Ids the server answered for one key, held until the answer for the next key arrives. */
+type IdAnswer = { key: string; ids: readonly string[] };
+
+function useHeldIds(live: readonly string[] | undefined, key: string, seed: IdAnswer | null) {
+  const [held, setHeld] = useState<IdAnswer | null>(seed);
+
+  if (key && live !== undefined && (held?.key !== key || held.ids !== live)) setHeld({ key, ids: live });
+  const ids = useMemo(() => (held ? new Set(held.ids) : null), [held]);
+
+  return { ids, current: held?.key === key };
+}
+
+export type ProblemsSeeds = { searchIds: IdAnswer | null; solvedByIds: IdAnswer | null };
+
 export function ProblemsView({
   initial,
+  initialQuery,
+  seeds,
   initialOptions,
-  query,
   username,
   randomSeed,
 }: {
-  initial: ListPayload;
+  initial: Catalog;
+  initialQuery: ProblemQuery;
+  seeds: ProblemsSeeds;
   initialOptions: FilterOptions | null;
-  query: ProblemQuery;
   username: string | null;
   randomSeed: number;
 }) {
   const t = useTranslations("problems.list");
   const filters = useTranslations("problems.filters");
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
 
-  const live = useQuery(api.problems.list, {
-    search: query.search || undefined,
-    fullText: query.fullText,
-    status: query.hideSolved ? "unsolved" : query.status,
-    solvedBy: query.solvedBy.length > 0 ? query.solvedBy : undefined,
-    solvedByNotMe: query.notByMe || undefined,
-    types: query.types.length > 0 ? query.types : undefined,
-    group: query.category || undefined,
-    pointStart: query.pointStart ?? undefined,
-    pointEnd: query.pointEnd ?? undefined,
-    author: query.author || undefined,
-    hasEditorial: query.hasEditorial || undefined,
-    contestKeys: query.contests.length > 0 ? query.contests : undefined,
-    groupByContest: query.groupByContest || undefined,
-    showTypes: query.showTypes,
-    sort: query.sort,
-    order: query.descending ? "desc" : "asc",
-    page: query.page,
-    pageSize: 50,
-  });
+  // The query lives in the address so a filtered list is still a link, but the
+  // list is filtered here: a change rewrites the address without navigating,
+  // so nothing is fetched and the server renders nothing. Back and Forward
+  // read the address again.
+  const [query, setQuery] = useState(initialQuery);
 
-  // `username` is what the server rendered with, so it says whether there is an
-  // identity the browser still has to catch up to.
-  //
-  // There is no loading state to go with this. `initial` was fetched for the
-  // same query the page is showing, so the list is already right before the
-  // subscription answers; a skeleton here replaced every row with a placeholder
-  // for the moment after hydration and jumped the page out from under anyone
-  // reading the bottom of it. A filter change goes through `startTransition`,
-  // which holds the rendered list until the next server answer arrives.
-  const data = useViewerLive(live, initial, username !== null);
+  useEffect(() => {
+    const restore = () => setQuery(parseProblemQuery(new URLSearchParams(window.location.search)));
+    window.addEventListener("popstate", restore);
+
+    return () => window.removeEventListener("popstate", restore);
+  }, []);
+
+  const apply = (next: ProblemQuery, { replace = false }: { replace?: boolean } = {}) => {
+    setQuery(next);
+
+    if (replace) window.history.replaceState(null, "", problemHref(next));
+    else window.history.pushState(null, "", problemHref(next));
+  };
+
+  const goToPage = (page: number) => {
+    apply({ ...query, page });
+    window.scrollTo({ top: 0 });
+  };
+
+  // One subscription whatever the filters, so its arguments never change.
+  const live = useQuery(api.problems.catalog, {});
+  const [catalog, setCatalog] = useState(initial);
+
+  // An answer replaces the list only when it was answered for the viewer the
+  // page was rendered for. While the browser authenticates, or re-authenticates
+  // when the session is refreshed on returning to the tab, answers come back
+  // for nobody: without the viewer's solves, so drawing one dropped every
+  // status filter and tick until the next answer put them back.
+  if (live && live !== catalog && live.viewer === username) setCatalog(live);
+
+  const searchKey = useSettled(query.fullText ? query.search.trim() : "", 250);
+  const searchLive = useQuery(api.problems.searchIds, searchKey ? { search: searchKey } : "skip");
+  const search = useHeldIds(searchLive, searchKey, seeds.searchIds);
+  const solvedByKey = query.solvedBy.join("\n");
+
+  const solvedByLive = useQuery(
+    api.problems.solvedByIds,
+    query.solvedBy.length > 0 ? { usernames: query.solvedBy } : "skip",
+  );
+
+  const solvedBy = useHeldIds(solvedByLive, solvedByKey, seeds.solvedByIds);
+
+  // A statement match is added once the server has one for this very term; the
+  // names and codes it would also have matched are already showing.
+  const data = useMemo(
+    () =>
+      viewCatalog(catalog, query, {
+        authenticated: username !== null,
+        searchIds: search.current ? search.ids : null,
+        solvedByIds: solvedBy.ids,
+      }),
+    [catalog, query, username, search, solvedBy.ids],
+  );
+
+  // A new "solved by" user is the one change the browser cannot answer alone;
+  // the list it had stays up, dimmed, until the server's answer arrives.
+  const waiting = query.solvedBy.length > 0 && !solvedBy.current;
 
   // `pages/problems:filterOptions` answers for the site; in contest mode the
   // list is the contest's own problems, so the panel offers what they carry.
   const options: FilterOptions = initialOptions ?? {
-    types: dedupeTypes(data.items),
-    groups: dedupeGroups(data.items),
+    types: dedupeTypes(catalog.rows),
+    groups: dedupeGroups(catalog.rows),
     contests: [],
-  };
-
-  const apply = (next: ProblemQuery) => {
-    startTransition(() => router.push(problemHref(next), { scroll: false }));
   };
 
   const columns = (username ? 1 : 0) + 5 + (query.showTypes ? 1 : 0);
 
-  const lock = data.contestLock;
+  const lock = catalog.contestLock;
 
   const renderPanel = (bare: boolean) => (
     <FilterPanel
@@ -330,7 +382,6 @@ export function ProblemsView({
       randomHref={`/problems/random/${problemQueryString({ ...query, page: 1 })}${
         problemQueryString({ ...query, page: 1 }) ? "&" : "?"
       }seed=${randomSeed}`}
-      busy={pending}
     />
   );
 
@@ -342,6 +393,7 @@ export function ProblemsView({
         page={data.page}
         totalPages={data.totalPages}
         hrefFor={(page) => problemHref({ ...query, page })}
+        onNavigate={goToPage}
         label={t("paginationLabel")}
       />
     ) : null;
@@ -369,7 +421,7 @@ export function ProblemsView({
       ) : (
         <>
           <div className="max-md:hidden">
-            <Table aria-label={t("title")}>
+            <Table aria-label={t("title")} aria-busy={waiting || undefined}>
               <TableHeader>
                 <TableRow>
                   {username ? (
@@ -401,7 +453,7 @@ export function ProblemsView({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.groups && (query.groupByContest || query.contests.length > 0)
+                {data.groups
                   ? data.groups.flatMap((group) => [
                       <TableRow key={`g-${group.contestKey}`} className="bg-secondary hover:bg-secondary">
                         <TableCell colSpan={columns} className="h-(--row-h-dense) py-0">
@@ -427,9 +479,10 @@ export function ProblemsView({
                         />
                       )),
                     ])
-                  : data.items.map((item) => (
-                      <Row key={item.id} item={item} query={query} username={username} />
-                    ))}
+                  : null}
+                {(data.groups ? data.ungrouped : data.items).map((item) => (
+                  <Row key={item.id} item={item} query={query} username={username} />
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -477,7 +530,10 @@ export function ProblemsView({
           {/* The list is still sent — it is public either way — so this is a
               guard against wandering off mid-contest, not a secret. */}
           <div
-            className={lock ? "pointer-events-none select-none blur-[5px]" : undefined}
+            className={cn(
+              lock && "pointer-events-none select-none blur-[5px]",
+              waiting && "opacity-60 transition-opacity",
+            )}
             aria-hidden={lock ? true : undefined}
             inert={lock ? true : undefined}
           >
@@ -497,11 +553,11 @@ export function ProblemsView({
   );
 }
 
-function dedupeTypes(items: ListItem[]): FilterOptions["types"] {
+function dedupeTypes(items: readonly CatalogRow[]): FilterOptions["types"] {
   const seen = new Map<string, { name: string; fullName: string; count: number }>();
 
   for (const item of items) {
-    for (const type of item.types ?? []) {
+    for (const type of item.types) {
       const existing = seen.get(type.name);
 
       if (existing) existing.count += 1;
@@ -512,7 +568,7 @@ function dedupeTypes(items: ListItem[]): FilterOptions["types"] {
   return [...seen.values()].sort((a, b) => a.fullName.localeCompare(b.fullName));
 }
 
-function dedupeGroups(items: ListItem[]): FilterOptions["groups"] {
+function dedupeGroups(items: readonly CatalogRow[]): FilterOptions["groups"] {
   const seen = new Map<string, { name: string; fullName: string; count: number }>();
 
   for (const item of items) {

@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
-import type { ComponentProps } from "react";
+import type { ComponentProps, MouseEvent } from "react";
 import { cn } from "../cn";
 import { focusRing } from "../styles";
 import { buttonVariants } from "./button";
@@ -111,17 +111,30 @@ export function Pagination({
   page,
   totalPages,
   hrefFor,
+  onNavigate,
   className,
   label = "Pagination",
 }: {
   page: number;
   totalPages: number;
   hrefFor: (page: number) => string;
+  /** Turns a plain click into a page change the caller makes in place. The
+   *  links keep their hrefs, so opening one in a new tab still works. */
+  onNavigate?: (page: number) => void;
   className?: string;
   label?: string;
 }) {
   if (totalPages <= 1) return null;
   const items = paginationRange(page, totalPages);
+
+  const follow = (target: number) =>
+    onNavigate
+      ? (event: MouseEvent<HTMLAnchorElement>) => {
+          if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          event.preventDefault();
+          onNavigate(target);
+        }
+      : undefined;
 
   return (
     <PaginationRoot aria-label={label} className={className}>
@@ -133,7 +146,7 @@ export function Pagination({
               <span className="max-sm:sr-only ml-1">Prev</span>
             </span>
           ) : (
-            <PaginationPrevious href={hrefFor(page - 1)} />
+            <PaginationPrevious href={hrefFor(page - 1)} onClick={follow(page - 1)} />
           )}
         </PaginationItem>
         {items.map((item, index) =>
@@ -144,7 +157,7 @@ export function Pagination({
             </PaginationItem>
           ) : (
             <PaginationItem key={item}>
-              <PaginationLink href={hrefFor(item)} isActive={item === page}>
+              <PaginationLink href={hrefFor(item)} isActive={item === page} onClick={follow(item)}>
                 {item}
               </PaginationLink>
             </PaginationItem>
@@ -157,7 +170,7 @@ export function Pagination({
               <ChevronRight className="size-3.5" aria-hidden />
             </span>
           ) : (
-            <PaginationNext href={hrefFor(page + 1)} />
+            <PaginationNext href={hrefFor(page + 1)} onClick={follow(page + 1)} />
           )}
         </PaginationItem>
       </PaginationContent>

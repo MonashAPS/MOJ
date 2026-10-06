@@ -3,6 +3,13 @@ import { api } from "./_generated/api";
 import { asUser, insertContest, insertContestProblem, insertProblem, insertProfile } from "./test.fixtures";
 import { setupTest } from "./test.setup";
 
+/** The contests the problem list says the problem appeared in. */
+async function catalogContests(t: ReturnType<typeof setupTest>) {
+  const { rows } = await t.query(api.problems.catalog, {});
+
+  return rows.find((row) => row.code === "aplusb")?.contests ?? [];
+}
+
 describe("public problem contest associations", () => {
   it.each([undefined, null, "start", "end"] as const)(
     "protects unreleased %s lists on every problem surface",
@@ -30,7 +37,7 @@ describe("public problem contest associations", () => {
       });
 
       expect((await t.query(api.problems.get, { code: "aplusb" }))?.appearedIn).toEqual([]);
-      expect((await t.query(api.problems.list, { contestKeys: ["unreleased"] })).items).toEqual([]);
+      expect(await catalogContests(t)).toEqual([]);
       expect((await t.query(api.pages.problems.filterOptions, {})).contests).toEqual([]);
       expect(
         (await asUser(t, "editor").query(api.problems.get, { code: "aplusb" }))?.appearedIn,
@@ -41,14 +48,12 @@ describe("public problem contest associations", () => {
       );
       const expected = policy === null ? 0 : 1;
       expect((await t.query(api.problems.get, { code: "aplusb" }))?.appearedIn).toHaveLength(expected);
-      expect((await t.query(api.problems.list, { contestKeys: ["unreleased"] })).items).toHaveLength(
-        expected,
-      );
+      expect(await catalogContests(t)).toHaveLength(expected);
       expect((await t.query(api.pages.problems.filterOptions, {})).contests).toHaveLength(expected);
 
       await t.run(async (ctx) => ctx.db.patch(contestId, { isVisible: false }));
       expect((await t.query(api.problems.get, { code: "aplusb" }))?.appearedIn).toEqual([]);
-      expect((await t.query(api.problems.list, { contestKeys: ["unreleased"] })).items).toEqual([]);
+      expect(await catalogContests(t)).toEqual([]);
       expect((await t.query(api.pages.problems.filterOptions, {})).contests).toEqual([]);
     },
   );

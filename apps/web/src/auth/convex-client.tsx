@@ -37,23 +37,28 @@ async function fetchToken(): Promise<string | null> {
 
 function useBetterAuthForConvex() {
   const { data: session, isPending } = authClient.useSession();
+  const userId = session?.user.id ?? null;
 
+  // Keyed on who is signed in rather than on the session object. Convex tears
+  // its authentication down and rebuilds it whenever this function changes,
+  // which drops every live page back to the server's answer for a moment; a
+  // session refresh that only moves the expiry must not do that.
   const fetchAccessToken = useCallback(
     async (_options: { forceRefreshToken: boolean }): Promise<string | null> => {
-      if (!session) return null;
+      if (!userId) return null;
 
       return await fetchToken();
     },
-    [session],
+    [userId],
   );
 
   return useMemo(
     () => ({
       isLoading: isPending,
-      isAuthenticated: session !== null && session !== undefined,
+      isAuthenticated: userId !== null,
       fetchAccessToken,
     }),
-    [isPending, session, fetchAccessToken],
+    [isPending, userId, fetchAccessToken],
   );
 }
 

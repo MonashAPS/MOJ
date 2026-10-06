@@ -225,6 +225,10 @@ describe("buildAuthRows", () => {
     const dup = result.users.find((user) => user.username === "dup");
     expect(dup?.email).toBe("dup.3@imported.invalid");
 
+    // Better Auth lowercases what is typed before it looks an account up, so the
+    // lookup columns are stored lowercase and the spelling lives on for display.
+    expect(dup).toMatchObject({ name: "Dup", display_username: "Dup" });
+
     // The unusable "!" password produces no credential account.
     expect(result.accounts.map((account) => account.user_id)).toEqual(["u1", "u3"]);
     expect(result.accounts[0]).toMatchObject({
