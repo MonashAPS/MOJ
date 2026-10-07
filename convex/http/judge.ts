@@ -212,8 +212,9 @@ export function registerJudgeRoutes(http: HttpRouter): void {
 
   /**
    * The test data archive for one problem, for a judge whose claim carried a
-   * `problemDataHash`. The judge verifies the bytes against `X-Moj-Data-Hash`
-   * before it extracts them, so a truncated download fails loudly.
+   * `problemDataHash`. The judge follows the redirect to the stored file and
+   * verifies the bytes against that hash before it extracts them, so a
+   * truncated download fails loudly.
    */
   http.route({
     path: "/judge/data",
@@ -244,16 +245,18 @@ export function registerJudgeRoutes(http: HttpRouter): void {
         return json({ ok: false, error: "hash mismatch" }, 409);
       }
 
-      const blob = await ctx.storage.get(archive.storageId);
+      const location = await ctx.storage.getUrl(archive.storageId);
 
-      if (!blob) return json({ ok: false, error: "no data" }, 404);
+      if (!location) return json({ ok: false, error: "no data" }, 404);
 
-      // Streamed rather than handed over as a Blob: an archive is megabytes,
-      // and the response should not be buffered again on its way out.
-      return new Response(blob.stream(), {
-        status: 200,
+      // A redirect rather than the bytes: the backend cuts an HTTP action's
+      // response off at a fixed size (20 MiB, 100 MiB in newer releases), and
+      // an archive can be larger. File storage serves it whole, as it took it
+      // in on upload.
+      return new Response(null, {
+        status: 302,
         headers: {
-          "content-type": "application/zip",
+          location,
           [DATA_HASH_HEADER]: archive.hash,
           [DATA_SIZE_HEADER]: String(archive.size),
           "cache-control": "no-store",

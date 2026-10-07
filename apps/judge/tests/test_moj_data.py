@@ -16,8 +16,11 @@ import shutil
 import stat
 import sys
 import tempfile
+import threading
 import unittest
+import urllib.parse
 import zipfile
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Dict, List, Optional, Tuple, Union
 from unittest import mock
 
@@ -263,6 +266,48 @@ class MojDataTestCase(unittest.TestCase):
     def test_a_nonsense_ceiling_falls_back_to_the_default(self) -> None:
         os.environ['MOJ_DATA_MAX_GB'] = 'twenty'
         self.assertEqual(moj_data.max_cache_bytes(), int(moj_data.DEFAULT_MAX_GB * moj_data.GIGABYTE))
+
+
+class FetchArchiveTestCase(unittest.TestCase):
+    """The real download, against a site that redirects to file storage as MOJ does."""
+
+    def setUp(self) -> None:
+        self.body = problem(cases=2, padding=65536)
+        self.requests: List[str] = []
+        outer = self
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, fmt, *args) -> None:
+                pass
+
+            def do_GET(self) -> None:
+                path = urllib.parse.urlparse(self.path).path
+                outer.requests.append(path)
+                if path == '/judge/data':
+                    self.send_response(302)
+                    self.send_header('Location', '/api/storage/archive')
+                    self.send_header('X-Moj-Data-Hash', hashlib.sha256(outer.body).hexdigest())
+                    self.send_header('Content-Length', '0')
+                    self.end_headers()
+                    return
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/zip')
+                self.send_header('Content-Length', str(len(outer.body)))
+                self.end_headers()
+                self.wfile.write(outer.body)
+
+        self.server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        self.addCleanup(self.server.server_close)
+        self.addCleanup(self.server.shutdown)
+        self.url = 'http://127.0.0.1:%d' % self.server.server_address[1]
+
+    def test_follows_the_redirect_to_the_stored_archive(self) -> None:
+        digest = hashlib.sha256(self.body).hexdigest()
+        downloaded = moj_data._fetch_archive(self.url, 'aplusb', digest, JUDGE_NAME, JUDGE_KEY)
+
+        self.assertEqual(downloaded, self.body)
+        self.assertEqual(self.requests, ['/judge/data', '/api/storage/archive'])
 
 
 if __name__ == '__main__':
