@@ -342,23 +342,40 @@ describe("GET /judge/data", () => {
     return `/judge/data?${query.toString()}`;
   }
 
-  it("streams the archive back with its hash and size", async () => {
+  /** Where the route sent the judge, and the bytes stored there. */
+  async function followed(t: T, response: Response) {
+    const location = response.headers.get("location");
+
+    const bytes = await t.run(async (ctx) => {
+      const rows = await ctx.db.query("problemTestData").collect();
+
+      for (const row of rows) {
+        if ((await ctx.storage.getUrl(row.storageId)) !== location) continue;
+
+        return (await ctx.storage.get(row.storageId))?.arrayBuffer() ?? null;
+      }
+
+      return null;
+    });
+
+    return bytes ? new Uint8Array(bytes) : null;
+  }
+
+  it("redirects to the stored archive, naming its hash and size", async () => {
     const { t } = await fixture();
     await insertJudge(t, LOCAL);
     await publish(t, "aplusb", FIRST);
 
     const response = await t.fetch(dataUrl(LOCAL, "aplusb"), { method: "GET" });
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toBe("application/zip");
+    expect(response.status).toBe(302);
     expect(response.headers.get("x-moj-data-hash")).toBe(await sha256OfBytes(FIRST));
     expect(response.headers.get("x-moj-data-size")).toBe(String(FIRST.byteLength));
 
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    expect(bytes.byteLength).toBe(FIRST.byteLength);
-    expect(await sha256OfBytes(bytes)).toBe(await sha256OfBytes(FIRST));
+    const bytes = await followed(t, response);
+    expect(bytes && (await sha256OfBytes(bytes))).toBe(await sha256OfBytes(FIRST));
   });
 
-  it("survives an archive far larger than a request body may be", async () => {
+  it("never carries the archive in its own response, however large", async () => {
     const { t } = await fixture();
     await insertJudge(t, LOCAL);
 
@@ -382,10 +399,13 @@ describe("GET /judge/data", () => {
     expect(recorded.status).toBe(200);
 
     const response = await t.fetch(dataUrl(LOCAL, "aplusb"), { method: "GET" });
-    expect(response.status).toBe(200);
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    expect(bytes.byteLength).toBe(big.byteLength);
-    expect(await sha256OfBytes(bytes)).toBe(await sha256OfBytes(big));
+    expect(response.status).toBe(302);
+    expect((await response.arrayBuffer()).byteLength).toBe(0);
+    expect(response.headers.get("x-moj-data-size")).toBe(String(big.byteLength));
+
+    const bytes = await followed(t, response);
+    expect(bytes?.byteLength).toBe(big.byteLength);
+    expect(bytes && (await sha256OfBytes(bytes))).toBe(await sha256OfBytes(big));
   });
 
   it("answers 404 when the site holds nothing and 409 on a stale hash", async () => {
@@ -404,7 +424,7 @@ describe("GET /judge/data", () => {
     const stale = await sha256OfBytes(SECOND);
 
     const matched = await t.fetch(dataUrl(LOCAL, "aplusb", current), { method: "GET" });
-    expect(matched.status).toBe(200);
+    expect(matched.status).toBe(302);
 
     const mismatched = await t.fetch(dataUrl(LOCAL, "aplusb", stale), { method: "GET" });
     expect(mismatched.status).toBe(409);

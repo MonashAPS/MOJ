@@ -70,7 +70,7 @@ Every call carries `{judgeName, judgeKey}`; the server compares `sha256(key)` ag
 | `POST /judge/handshake` | once, retried with backoff to 60 s | Reports problem codes and executors; marks the judge online. |
 | `POST /judge/heartbeat` | 10 s | Current load. |
 | `POST /judge/claim` | 500 ms while idle | Asks for one submission; `null` when there is none. |
-| `GET /judge/data` | on demand | The archive, with `X-Moj-Data-Hash` and `X-Moj-Data-Size`. 404 for nothing stored, 409 for a stale hash. |
+| `GET /judge/data` | on demand | A redirect to the archive in file storage, with `X-Moj-Data-Hash` and `X-Moj-Data-Size`. 404 for nothing stored, 409 for a stale hash. |
 | `POST /judge/event` | per packet | `grading-begin`, `batch-begin`, `test-case-status`, `batch-end`, `grading-end`, `compile-error`, `compile-message`, `internal-error`, `submission-terminated`. |
 | `GET /judge/abort` | 1 s while grading | Whether the submission was aborted. |
 | `POST /judge/disconnect` | on shutdown | Clean shutdown. |
