@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 import type { SubmissionResult } from "../types";
 import {
   bestOf,
+  type GolfMeasure,
   holdsBest,
   improveBest,
   isScoringKind,
   measureSubmission,
   type ProblemScoring,
-  type ScoringMeasure,
   sameScoring,
   scoringPoints,
   sourceBytes,
@@ -19,7 +19,7 @@ function graded(source: string, result: SubmissionResult | null = "AC") {
   return { result, source, testCases: [] };
 }
 
-function bytes(count: number): ScoringMeasure {
+function bytes(count: number): GolfMeasure {
   return { kind: "golf", bytes: count };
 }
 
@@ -165,7 +165,7 @@ describe("isScoringKind", () => {
   it("knows golf and nothing else", () => {
     expect(isScoringKind("golf")).toBe(true);
     expect(isScoringKind("standard")).toBe(false);
-    expect(isScoringKind("relative")).toBe(false);
+    expect(isScoringKind("fastest")).toBe(false);
   });
 });
 
