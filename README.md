@@ -14,6 +14,7 @@ MOJ is an online judge and contest platform written in TypeScript, compatible wi
 * **Screen proctoring**, built in: a proctored contest opens its problems only while the competitor is sharing
   their whole screen, with live monitoring and replay in the staff console
 * **Problem statements** in markdown, with maths, images, PDF export and per-language limits
+* **Code golf problems**, scored against the shortest accepted source in the contest or on the site
 * **Editorials and clarifications**, organisations, classes, comments, tickets and a blog
 * A **staff console** with revision history and impersonation
 * **Two-factor authentication** with TOTP and passkeys

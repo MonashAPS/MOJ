@@ -205,13 +205,29 @@ staff and to users who have solved the problem.
 | `partial` | boolean | false | Whether a submission keeps less than full marks. |
 | `summary` | string | none | Used where the statement is too long. |
 | `public` | boolean | false | Needs the permission to publish problems. |
+| `scoring` | `{"kind": "golf"}` or `"standard"` | `"standard"` | How submissions score; see [Scoring](#scoring). |
+| `languages` | language keys | every language | The languages a submission may use, such as `["PY3", "CPP20"]`. |
 
 Nothing else in the file is read. On update an absent field is left alone, and `authors: []` means unchanged
-rather than cleared, so the author list is cleared in the staff console. Group, types, publish date and allowed
-languages are set on create only.
+rather than cleared, so the author list is cleared in the staff console. Group, types and publish date are set
+on create only. `languages` replaces the whole allowed list when present; the keys are the ones on `/languages/`,
+and an unknown key fails the upload without changing anything.
 
 ::: danger
 Whenever `timeLimit`, `pythonTimeLimit` or `memoryLimit` is present, the Python 3 and PyPy 3 limits are
 rewritten. Dropping `pythonTimeLimit` while keeping either of the others returns Python to `timeLimit`, or to 1
 second when that is absent too.
 :::
+
+## Scoring
+
+`"standard"` scores a submission on its own cases, as DMOJ does. `{"kind": "golf"}` makes the problem code
+golf: only a fully accepted submission scores, and it scores `points × shortest / bytes`, where `bytes` is the
+UTF-8 length of its source with trailing whitespace ignored and `shortest` is the shortest accepted source in any
+language. Inside a contest `shortest` is the contest's own shortest and `points` the contest problem's; outside
+one it is the shortest among every submission to the problem. A shorter solution lowers everyone else's points
+the moment it is graded, contest scoreboard included.
+
+Golf counts every allowed language on the same scale, so pair it with `languages` when the field should be
+narrower. Changing a problem's kind applies to submissions graded from then on; rejudge the problem to rescore
+the ones before.

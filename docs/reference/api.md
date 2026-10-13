@@ -167,6 +167,8 @@ Creates the problem when the code is new, updates it otherwise. Unknown keys are
 | `authors`, `curators`, `testers` | string arrays | Usernames. An empty array means unchanged. |
 | `summary` | string | |
 | `languageLimits` | object | `{"python3": {"timeLimit": 3, "memoryLimit": 256000}}`. Both keys required per language. |
+| `languages` | string array | Language keys; replaces the allowed languages. An unknown key fails the whole call. |
+| `scoring` | object | `{"kind": "golf"}` or `{"kind": "standard"}`; see [Scoring](/problems/format#scoring). |
 | `group`, `types`, `publishOn`, `checkAll` | | Create only. |
 
 ```bash
