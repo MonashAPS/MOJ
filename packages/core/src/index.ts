@@ -30,6 +30,8 @@ export * from "./ratings";
 
 export * from "./scoreboard";
 
+export * from "./scoring/index";
+
 export * from "./types";
 
 export { floatformat, niceRepr, pyRound, roundHalfUp } from "./util/number";
