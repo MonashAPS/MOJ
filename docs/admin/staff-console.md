@@ -18,7 +18,8 @@ problems; controls they cannot use are not rendered.
 - **Submissions**, `/admin/submissions/` — filter by user, problem, contest, judge, status, result, language and
   id range, then **Batch rejudge** the filter as one job. One problem at a time.
 - **Scoreboards**, `/admin/scoreboards/` — hall scoreboard events: key, name, the contests that become
-  divisions, theme, flag URL template, badge organisations, which means in person, freeze minutes, public or not.
+  divisions, theme, flag URL template, badge organisations, which means in person, freeze minutes, public or not,
+  and [organisation standings](/using/contests#organisation-standings) with their decay and organisations.
 - **Jobs**, `/admin/jobs/` — every background job with a live progress bar, the stage it reached, who started it
   and any error. The first place to look when a rejudge seems stuck.
 - **Proctoring**, `/admin/proctor/` — live and finished sessions. See [proctoring](/admin/proctoring).
