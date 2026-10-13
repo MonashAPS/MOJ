@@ -329,6 +329,48 @@ describe("buildRequest", () => {
     });
   });
 
+  test("sends the scoring kind, in either spelling", async () => {
+    const golf = await writeProblem("golf", {
+      "statement.md": "x",
+      "config.json": JSON.stringify({ title: "Golf", scoring: { kind: "golf" } }),
+    });
+
+    const standard = await writeProblem("standard", {
+      "statement.md": "x",
+      "config.json": JSON.stringify({ title: "Standard", scoring: "standard" }),
+    });
+
+    expect((await buildRequest(golf)).body.scoring).toEqual({ kind: "golf" });
+    expect((await buildRequest(standard)).body.scoring).toEqual({ kind: "standard" });
+  });
+
+  test("refuses a scoring kind it does not know", async () => {
+    const dir = await writeProblem("fastest", {
+      "statement.md": "x",
+      "config.json": JSON.stringify({ title: "Fastest", scoring: { kind: "fastest" } }),
+    });
+
+    await expect(buildRequest(dir)).rejects.toThrow('Unknown config.scoring kind "fastest"');
+  });
+
+  test("sends the allowed languages as keys", async () => {
+    const dir = await writeProblem("pyonly", {
+      "statement.md": "x",
+      "config.json": JSON.stringify({ title: "Python only", languages: ["PY3", " PYPY3 "] }),
+    });
+
+    expect((await buildRequest(dir)).body.languages).toEqual(["PY3", "PYPY3"]);
+  });
+
+  test("refuses an empty languages list", async () => {
+    const dir = await writeProblem("nolangs", {
+      "statement.md": "x",
+      "config.json": JSON.stringify({ title: "Nothing", languages: [] }),
+    });
+
+    await expect(buildRequest(dir)).rejects.toThrow("Invalid config.languages");
+  });
+
   test("a non-empty authors list is sent through", async () => {
     const dir = await writeProblem("owned", {
       "statement.md": "x",

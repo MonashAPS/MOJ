@@ -8,6 +8,7 @@ import {
   measureSubmission,
   type ProblemScoring,
   type ScoringMeasure,
+  sameScoring,
   scoringPoints,
   sourceBytes,
 } from "./index";
@@ -165,5 +166,13 @@ describe("isScoringKind", () => {
     expect(isScoringKind("golf")).toBe(true);
     expect(isScoringKind("standard")).toBe(false);
     expect(isScoringKind("relative")).toBe(false);
+  });
+});
+
+describe("sameScoring", () => {
+  it("treats absent as standard and compares kinds", () => {
+    expect(sameScoring(undefined, null)).toBe(true);
+    expect(sameScoring(golf, { kind: "golf" })).toBe(true);
+    expect(sameScoring(golf, undefined)).toBe(false);
   });
 });

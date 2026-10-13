@@ -40,6 +40,15 @@ export const languageLimitInput = z.object({
  */
 export const languageLimitsInput = z.record(z.string(), languageLimitInput);
 
+/**
+ * How the problem scores (`@moj/core`'s scoring kinds). `standard` is DMOJ's
+ * own case points and clears any other kind.
+ */
+export const problemScoringInput = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("standard") }).strict(),
+  z.object({ kind: z.literal("golf") }).strict(),
+]);
+
 export const problemUpsertInput = z
   .object({
     name: z.string().min(1).optional(),
@@ -55,6 +64,9 @@ export const problemUpsertInput = z
     testers: z.array(z.string()).optional(),
     curators: z.array(z.string()).optional(),
     summary: z.string().optional(),
+    scoring: problemScoringInput.optional(),
+    /** Language keys a submission may use; replaces the whole allowed list. */
+    languages: z.array(z.string().min(1)).min(1).optional(),
     // Create-only below this line.
     group: z.string().optional(),
     types: z.array(z.string()).optional(),
@@ -69,6 +81,8 @@ export type ProblemUpsertInput = z.infer<typeof problemUpsertInput>;
 export type EditorialInput = z.infer<typeof editorialInput>;
 
 export type LanguageLimitInput = z.infer<typeof languageLimitInput>;
+
+export type ProblemScoringInput = z.infer<typeof problemScoringInput>;
 
 /** Keys the endpoint honours only when it is creating the problem. */
 export const CREATE_ONLY_FIELDS = ["group", "types", "publishOn", "checkAll"] as const;
@@ -100,6 +114,7 @@ export const problemSummary = z.object({
   hasEditorial: z.boolean(),
   languageLimits: z.record(z.string(), languageLimitInput),
   allowedLanguages: z.array(z.string()),
+  scoring: problemScoringInput,
 });
 
 export type ProblemSummary = z.infer<typeof problemSummary>;

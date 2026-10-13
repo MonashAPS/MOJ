@@ -205,6 +205,21 @@ describe("PUT /api/problems/:code create", () => {
     expect(body.problem.date).toBe(publishOn);
   });
 
+  test("creates with a scoring kind and only the languages it names", async () => {
+    const { t } = await setup();
+
+    const response = await put(t, "golfy", {
+      name: "Golfy",
+      statement: "Short.",
+      scoring: { kind: "golf" },
+      languages: ["PY3"],
+    });
+
+    const body = await response.json();
+    expect(body.problem.scoring).toEqual({ kind: "golf" });
+    expect(body.problem.allowedLanguages).toEqual(["PY3"]);
+  });
+
   test("writes the python language limits it is given", async () => {
     const { t } = await setup();
 
@@ -367,6 +382,59 @@ describe("PUT /api/problems/:code partial update", () => {
     const response = await put(harness.t, "aplusb", { isPublic: true });
     expect(response.status).toBe(403);
     expect((await response.json()).error.message).toContain("change_public_visibility");
+  });
+
+  test("sets and clears a scoring kind, dropping the bests on a change", async () => {
+    const golf = await put(harness.t, "aplusb", { scoring: { kind: "golf" } });
+    expect((await golf.json()).problem.scoring).toEqual({ kind: "golf" });
+
+    await harness.t.run(async (ctx) => {
+      const problem = await ctx.db
+        .query("problems")
+        .withIndex("by_code", (q) => q.eq("code", "aplusb"))
+        .unique();
+
+      if (problem) {
+        await ctx.db.insert("scoringBests", { problemId: problem._id, best: { kind: "golf", bytes: 9 } });
+      }
+    });
+
+    const unchanged = await put(harness.t, "aplusb", { scoring: { kind: "golf" } });
+    expect((await unchanged.json()).problem.scoring).toEqual({ kind: "golf" });
+    expect(await harness.t.run(async (ctx) => ctx.db.query("scoringBests").collect())).toHaveLength(1);
+
+    const standard = await put(harness.t, "aplusb", { scoring: { kind: "standard" } });
+    expect((await standard.json()).problem.scoring).toEqual({ kind: "standard" });
+    expect(await harness.t.run(async (ctx) => ctx.db.query("scoringBests").collect())).toEqual([]);
+  });
+
+  test("rejects a scoring kind it does not know", async () => {
+    const response = await put(harness.t, "aplusb", { scoring: { kind: "fastest" } });
+    expect(response.status).toBe(422);
+  });
+
+  test("replaces the allowed languages by key, alias or name", async () => {
+    const response = await put(harness.t, "aplusb", { languages: ["python3", "CPP20", "PY3"] });
+    expect((await response.json()).problem.allowedLanguages).toEqual(["PY3", "CPP20"]);
+  });
+
+  test("an unknown language fails the whole write", async () => {
+    const response = await put(harness.t, "aplusb", {
+      statement: "Should not land.",
+      languages: ["PY3", "COBOL"],
+    });
+
+    expect(response.status).toBe(422);
+    expect((await response.json()).error.message).toBe("No such language: COBOL");
+
+    await harness.t.run(async (ctx) => {
+      const problem = await ctx.db
+        .query("problems")
+        .withIndex("by_code", (q) => q.eq("code", "aplusb"))
+        .unique();
+
+      expect(problem?.description).toBe("Original statement.");
+    });
   });
 
   test("DELETE is not supported", async () => {

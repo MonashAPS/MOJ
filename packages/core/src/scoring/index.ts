@@ -19,6 +19,7 @@ import type {
   BestOf,
   GradedSubmission,
   MeasureOf,
+  ProblemScoring,
   ScoringBest,
   ScoringKind,
   ScoringMeasure,
@@ -38,6 +39,21 @@ export const SCORING_RULES: ScoringRules = {
 /** Whether a name is a kind the registry knows. */
 export function isScoringKind(kind: string): kind is ScoringKind {
   return kind in SCORING_RULES;
+}
+
+/** A `problems.scoring` value with its settings in a fixed order; absent is standard. */
+function canonical(scoring: ProblemScoring | null | undefined): string {
+  if (!scoring) return "standard";
+
+  return JSON.stringify(Object.entries(scoring).sort(([a], [b]) => a.localeCompare(b)));
+}
+
+/** Whether two `problems.scoring` values score the same way. */
+export function sameScoring(
+  a: ProblemScoring | null | undefined,
+  b: ProblemScoring | null | undefined,
+): boolean {
+  return canonical(a) === canonical(b);
 }
 
 /**

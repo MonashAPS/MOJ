@@ -187,3 +187,16 @@ export async function contestScoring(
 
   return scored;
 }
+
+/**
+ * A problem changing kind drops its bests: a new kind starts from nothing, and
+ * a rejudge measures the submissions that were graded under the old one.
+ */
+export async function resetBests(ctx: MutationCtx, problemId: Id<"problems">): Promise<void> {
+  const rows = await ctx.db
+    .query("scoringBests")
+    .withIndex("by_problem_contestProblem", (q) => q.eq("problemId", problemId))
+    .collect();
+
+  for (const row of rows) await ctx.db.delete(row._id);
+}
