@@ -11,7 +11,7 @@
  * `rescore_problem`, `apply_submission_filter`).
  */
 
-import { pyRound } from "@moj/core";
+import { pyRound, scoringPoints } from "@moj/core";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -20,6 +20,7 @@ import { queueSubmission, recomputeParticipation, recomputeProfilePoints } from 
 import { optionalViewer } from "./lib/auth";
 import { forbidden } from "./lib/errors";
 import { isJsonArray, isJsonNumber, isJsonObject, isJsonString, type JsonValue } from "./lib/json";
+import { scopeBest } from "./lib/scoring";
 
 /** How many submissions one scheduled step touches, per SPEC section 6. */
 export const JOB_CHUNK_SIZE = 100;
@@ -409,6 +410,7 @@ export const rescoreChunk = internalMutation({
     let done = args.done;
     const profileIds = new Set<Id<"profiles">>(args.profileIds);
     const participationIds = new Set<Id<"contestParticipations">>();
+    const best = problem.scoring ? await scopeBest(ctx, problem._id) : null;
 
     for (const submission of page.page) {
       let points = pyRound(
@@ -417,6 +419,10 @@ export const rescoreChunk = internalMutation({
       );
 
       if (!problem.partial && points < problem.points) points = 0;
+
+      // A scored problem's points come from the best so far, not the cases.
+      if (problem.scoring)
+        points = scoringPoints(problem.scoring, submission.scoringMeasure, best, problem.points);
 
       if (submission.points !== points) await ctx.db.patch(submission._id, { points });
 

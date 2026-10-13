@@ -26,6 +26,7 @@ import {
   REJUDGE_PRIORITY,
   type SubmissionResult,
   type SubmissionTestCaseRow,
+  scoringPoints,
   selectClaim,
   updateParticipation,
 } from "@moj/core";
@@ -43,6 +44,7 @@ import {
 } from "./judgeApi";
 import { invalid } from "./lib/errors";
 import { isJsonNumber } from "./lib/json";
+import { contestScoring, scoreGraded, withdrawMeasure } from "./lib/scoring";
 import { testDataRow } from "./lib/testData";
 import { patchProfile } from "./rankings";
 
@@ -462,6 +464,7 @@ export async function recomputeParticipation(
     .collect();
 
   const contestProblemById = new Map(contestProblems.map((row) => [row._id, row]));
+  const scored = await contestScoring(ctx, contestProblems);
 
   const submissions = await ctx.db
     .query("submissions")
@@ -476,8 +479,13 @@ export async function recomputeParticipation(
 
     if (!contestProblem) continue;
 
-    // `Submission.update_contest()` recomputes the stored contest points.
-    const points = computeContestSubmissionPoints(submission, contestProblem);
+    // `Submission.update_contest()` recomputes the stored contest points; a
+    // scored problem's are against the best in this contest instead.
+    const scope = scored.get(contestProblem._id);
+
+    const points = scope
+      ? scoringPoints(scope.scoring, submission.scoringMeasure, scope.best, contestProblem.points)
+      : computeContestSubmissionPoints(submission, contestProblem);
 
     if (submission.contestPoints !== points) {
       await ctx.db.patch(submission._id, { contestPoints: points });
@@ -704,16 +712,24 @@ export async function finishGrading(ctx: MutationCtx, submissionId: Id<"submissi
     partial: problem.partial,
   });
 
+  // A scored problem's points are against the best so far, which this
+  // submission may have just moved.
+  const scored = await scoreGraded(ctx, submission, problem, {
+    result: graded.result,
+    testCases: testCases.map((row) => ({ ...toCoreTestCase(row), feedback: row.feedback })),
+  });
+
   await ctx.db.patch(submissionId, {
     status: graded.status,
     result: graded.result,
     time: graded.time,
     memory: graded.memory,
-    points: graded.points,
+    points: scored?.points ?? graded.points,
     casePoints: graded.casePoints,
     caseTotal: graded.caseTotal,
     currentBatch: undefined,
     inBatch: false,
+    scoringMeasure: scored?.measure ?? undefined,
   });
   await releaseSubmission(ctx, submission);
 
@@ -893,9 +909,11 @@ export async function queueSubmission(
     abortRequested: undefined,
     currentBatch: undefined,
     inBatch: false,
+    scoringMeasure: undefined,
   };
 
   if (options.judgePin !== undefined) patch.judgePin = options.judgePin ?? undefined;
+  await withdrawMeasure(ctx, submission);
   await ctx.db.patch(submissionId, patch);
   await deleteTestCases(ctx, submissionId);
 
