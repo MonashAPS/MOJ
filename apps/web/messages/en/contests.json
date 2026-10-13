@@ -514,7 +514,28 @@
       "noBadges": "This event has no badge organisations, so there is nothing to edit. Add one to the scoreboard in the staff console.",
       "attendance": "Attendance",
       "saveFailed": "The badges could not be saved."
-    }
+    },
+    "organizations": "Organisations",
+    "organizationsHint": "Open the organisation standings"
+  },
+  "organizationStandings": {
+    "metaTitle": "{event}: organisations",
+    "metaFallback": "Organisation standings",
+    "heading": "Organisations",
+    "frozenChip": "Frozen",
+    "freezeBanner": "The board is frozen: scores stop at the freeze until the results are revealed.",
+    "decay": "Decay {decay}",
+    "decayHint": "Each further entrant's score on a problem counts {decay} times the one before.",
+    "hallBoard": "Hall board",
+    "columnOrganization": "Organisation",
+    "columnTotal": "Total",
+    "problemTitle": "{contest} · {problem}",
+    "showEntrants": "Show {name}'s entrants",
+    "hideEntrants": "Hide {name}'s entrants",
+    "noEntrants": "No entrants yet.",
+    "empty": "No organisations to rank yet.",
+    "gone": "These standings are no longer available.",
+    "organizations": "{count, plural, one {# organisation} other {# organisations}}"
   },
   "scoring": {
     "maxScoreSubmission": "The maximum score submission for each problem will be used.",

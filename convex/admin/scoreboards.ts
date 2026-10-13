@@ -6,6 +6,7 @@
  * `judge.edit_all_contest` or superuser, the same bar as the reveal.
  */
 
+import { isValidDecay } from "@moj/core";
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation, query } from "../_generated/server";
@@ -46,6 +47,28 @@ async function resolveContests(ctx: MutationCtx, keys: readonly string[]): Promi
   if (ids.length === 0) throw invalid("A scoreboard needs at least one contest.");
 
   return ids;
+}
+
+const organizationStandingsArg = v.optional(
+  v.union(v.object({ decay: v.number(), organizationIds: v.array(v.id("organizations")) }), v.null()),
+);
+
+/** Check a standings setting: a decay from 0 to 1, and organisations that exist, each once. */
+async function resolveStandings(
+  ctx: MutationCtx,
+  standings: { decay: number; organizationIds: Id<"organizations">[] } | null,
+): Promise<Doc<"scoreboardEvents">["organizationStandings"]> {
+  if (!standings) return undefined;
+
+  if (!isValidDecay(standings.decay)) throw invalid("The decay must be between 0 and 1.");
+
+  const organizationIds = [...new Set(standings.organizationIds)];
+
+  for (const id of organizationIds) {
+    if (!(await ctx.db.get(id))) throw notFound(`Organisation "${id}"`);
+  }
+
+  return { decay: standings.decay, organizationIds };
 }
 
 export type AdminScoreboardRow = Doc<"scoreboardEvents"> & { contestKeys: string[] };
@@ -111,6 +134,7 @@ export const create = mutation({
     inPersonOrganizationSlug: v.optional(v.union(v.string(), v.null())),
     freezeMinutes: v.optional(v.number()),
     isPublic: v.optional(v.boolean()),
+    organizationStandings: organizationStandingsArg,
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<Id<"scoreboardEvents">> => {
@@ -150,6 +174,7 @@ export const create = mutation({
       inPersonOrganizationSlug: args.inPersonOrganizationSlug ?? undefined,
       freezeMinutes,
       isPublic: args.isPublic ?? true,
+      organizationStandings: await resolveStandings(ctx, args.organizationStandings ?? null),
     });
 
     await writeRevision(
@@ -176,6 +201,7 @@ export const update = mutation({
     inPersonOrganizationSlug: v.optional(v.union(v.string(), v.null())),
     freezeMinutes: v.optional(v.number()),
     isPublic: v.optional(v.boolean()),
+    organizationStandings: organizationStandingsArg,
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<null> => {
@@ -223,6 +249,10 @@ export const update = mutation({
     }
 
     if (args.isPublic !== undefined) patch.isPublic = args.isPublic;
+
+    if (args.organizationStandings !== undefined) {
+      patch.organizationStandings = await resolveStandings(ctx, args.organizationStandings);
+    }
 
     if (Object.keys(patch).length === 0) return null;
 

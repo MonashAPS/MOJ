@@ -87,6 +87,42 @@ before resolving it. Space, Right or Enter steps forward, Left or Backspace undo
 state, so every screen turns the same cell over at once. **Reveal all** finishes in one step, and undo then
 unwinds it cell by cell; **Unfreeze** clears the recorded reveals and cannot be undone.
 
+## Organisation standings
+
+A scoreboard event can also rank organisations by pooling their members' scores across all of its contests, at
+`/scoreboard/<event>/organizations/`, linked from the hall scoreboard. Staff turn it on in the event's
+**Organisation standings** section of the staff console with a decay between 0 and 1 and the organisations that
+take part, in order. An empty list means every organisation an entrant belongs to.
+
+An entrant counts for its first membership, by membership order, among the listed organisations, and not at all
+if it is in none of them. Only live participations count, never virtual, spectating or disqualified ones. A
+problem's score is the one the contest's format gives it on the ranking page, bonuses included.
+
+On each problem, an organisation's scores above zero are sorted best first, and each one after the best is
+weighted by one more power of the decay:
+
+```
+s0 + s1 * decay + s2 * decay^2 + ...
+```
+
+The total adds that up over every problem of every contest in the event. Equal totals share a rank and keep the
+configured order, or alphabetical order when no organisations are listed. A decay of 1 adds every score in full; a
+decay of 0 keeps only the best score on each problem.
+
+With a decay of 0.5, three entrants from one university score 100, 80 and 60 on problem A of the first contest,
+and only one of them scores, 70, on problem A of the second:
+
+| Problem | Scores, best first | Organisation score |
+| --- | --- | --- |
+| First contest, A | 100, 80, 60 | 100 + 80 × 0.5 + 60 × 0.25 = 155 |
+| Second contest, A | 70 | 70 |
+| Total | | 225 |
+
+Each row shows the organisation's logo, total and score per problem, and expands to list its entrants with their
+own totals. The page follows the hall scoreboard's visibility, problem identities and freeze: while a division is
+frozen, anyone who cannot run the reveal sees each entrant's scores from before the freeze, and a cell the reveal
+has turned over counts in full again.
+
 ## Joining
 
 | Kind | Clock | Rated | On the scoreboard |

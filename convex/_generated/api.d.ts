@@ -94,6 +94,7 @@ import type * as profiles_dedupe from "../profiles/dedupe.js";
 import type * as rankings from "../rankings.js";
 import type * as ratings from "../ratings.js";
 import type * as scoreboard from "../scoreboard.js";
+import type * as scoreboard_organizations from "../scoreboard/organizations.js";
 import type * as search from "../search.js";
 import type * as seed from "../seed.js";
 import type * as site from "../site.js";
@@ -196,6 +197,7 @@ declare const fullApi: ApiFromModules<{
   rankings: typeof rankings;
   ratings: typeof ratings;
   scoreboard: typeof scoreboard;
+  "scoreboard/organizations": typeof scoreboard_organizations;
   search: typeof search;
   seed: typeof seed;
   site: typeof site;

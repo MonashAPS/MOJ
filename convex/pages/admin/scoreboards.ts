@@ -17,7 +17,7 @@ export const options = query({
       .map((row) => ({ key: row.key, name: row.name, startTime: row.startTime }));
 
     const organizations = (await ctx.db.query("organizations").collect())
-      .map((row) => ({ slug: row.slug, name: row.name }))
+      .map((row) => ({ id: row._id, slug: row.slug, name: row.name }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
     return { contests, organizations };
