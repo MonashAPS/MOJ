@@ -20,6 +20,8 @@ export * from "./formats/index";
 
 export * from "./judging";
 
+export * from "./organizationStandings";
+
 export * from "./permissions";
 
 export * from "./points";

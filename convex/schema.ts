@@ -952,6 +952,14 @@ export default defineSchema({
     inPersonOrganizationSlug: v.optional(v.string()),
     freezeMinutes: v.number(),
     isPublic: v.boolean(),
+    /**
+     * Rank organisations by their entrants' pooled scores, each further score on
+     * a problem weighted by one more power of `decay`. `organizationIds` empty
+     * means every organisation an entrant belongs to. Absent means off.
+     */
+    organizationStandings: v.optional(
+      v.object({ decay: v.number(), organizationIds: v.array(v.id("organizations")) }),
+    ),
     legacyId: v.optional(v.number()),
   })
     .index("by_key", ["key"])
