@@ -666,15 +666,19 @@
   box-shadow: inset 1px 0 0 var(--titlebar-line);
 }
 
+/* Logos are drawn for a light page, so each sits on its own white tile on the
+   dark board rather than vanishing into it. */
 .hall-org-logo {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.6rem;
+  width: 2.6rem;
   height: 1.6rem;
   margin-right: 0.6rem;
+  padding: 0.15rem;
   vertical-align: middle;
   object-fit: contain;
+  background: #fff;
   border-radius: var(--radius-sm);
 }
 
