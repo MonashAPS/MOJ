@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +20,7 @@ import {
   toast,
 } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
-import { ExternalLink, FileQuestion } from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink, FileQuestion } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -31,7 +32,65 @@ import {
   AdminFormFooter,
   AdminSection,
   AdminShell,
+  AdminWideField,
 } from "@/components/admin";
+
+type OrganizationOption = { id: Id<"organizations">; slug: string; name: string };
+
+/** The chosen organisations in standings order, each movable one place at a time. */
+function StandingsOrder({
+  ids,
+  organizations,
+  onChange,
+}: {
+  ids: Id<"organizations">[];
+  organizations: ReadonlyMap<string, OrganizationOption>;
+  onChange: (ids: Id<"organizations">[]) => void;
+}) {
+  const t = useTranslations("admin.scoreboards.form");
+
+  function move(index: number, direction: -1 | 1) {
+    const next = [...ids];
+    const [moved] = next.splice(index, 1);
+
+    if (moved === undefined) return;
+    next.splice(index + direction, 0, moved);
+    onChange(next);
+  }
+
+  return (
+    <ol className="grid gap-1" aria-label={t("standingsOrder")}>
+      {ids.map((id, index) => {
+        const label = organizations.get(id)?.name ?? id;
+
+        return (
+          <li key={id} className="flex items-center gap-2 rounded-md border border-border px-2 py-1 text-sm">
+            <span className="w-6 text-right font-mono text-mono text-subtle">{index + 1}</span>
+            <span className="min-w-0 flex-1 truncate">{label}</span>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t("moveUpLabel", { label })}
+              disabled={index === 0}
+              onClick={() => move(index, -1)}
+            >
+              <ChevronUp aria-hidden />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t("moveDownLabel", { label })}
+              disabled={index === ids.length - 1}
+              onClick={() => move(index, 1)}
+            >
+              <ChevronDown aria-hidden />
+            </Button>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 /** `scoreboardEvents`: the rows that replaced the fork's hard-coded scoreboard setting. */
 export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
@@ -55,6 +114,8 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
     badges: useId(),
     inPerson: useId(),
     freeze: useId(),
+    decay: useId(),
+    standings: useId(),
   };
 
   const loaded = !eventKey || existing !== undefined;
@@ -67,6 +128,9 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
   const [inPersonSlug, setInPersonSlug] = useState("");
   const [freezeMinutes, setFreezeMinutes] = useState("60");
   const [isPublic, setIsPublic] = useState(true);
+  const [standingsOn, setStandingsOn] = useState(false);
+  const [decay, setDecay] = useState("0.5");
+  const [standingIds, setStandingIds] = useState<Id<"organizations">[]>([]);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +148,14 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
     setInPersonSlug(existing.inPersonOrganizationSlug ?? "");
     setFreezeMinutes(String(existing.freezeMinutes));
     setIsPublic(existing.isPublic);
+    setStandingsOn(!!existing.organizationStandings);
+    setDecay(String(existing.organizationStandings?.decay ?? 0.5));
+    setStandingIds(existing.organizationStandings?.organizationIds ?? []);
   }
+
+  const organizationById = new Map<string, OrganizationOption>(
+    (options?.organizations ?? []).map((row) => [row.id, row]),
+  );
 
   async function save() {
     setError(null);
@@ -101,6 +172,14 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
       return;
     }
 
+    const decayValue = Number(decay);
+
+    if (standingsOn && (decay.trim() === "" || !(decayValue >= 0 && decayValue <= 1))) {
+      setError(t("decayInvalid"));
+
+      return;
+    }
+
     setBusy(true);
 
     try {
@@ -113,6 +192,7 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
         inPersonOrganizationSlug: inPersonSlug || null,
         freezeMinutes: Number(freezeMinutes) || 0,
         isPublic,
+        organizationStandings: standingsOn ? { decay: decayValue, organizationIds: standingIds } : null,
         reason: reason.trim() || undefined,
       };
 
@@ -272,6 +352,59 @@ export function ScoreboardForm({ eventKey }: { eventKey?: string }) {
             checked={isPublic}
             onCheckedChange={setIsPublic}
           />
+        </AdminSection>
+
+        <AdminSection title={t("standings")} description={t("standingsDescription")}>
+          <AdminWideField>
+            <AdminCheckField
+              label={t("standingsOn")}
+              hint={t("standingsOnHint")}
+              checked={standingsOn}
+              onCheckedChange={setStandingsOn}
+            />
+          </AdminWideField>
+          {standingsOn ? (
+            <>
+              <Field label={t("decay")} htmlFor={ids.decay} hint={t("decayHint")}>
+                <Input
+                  id={ids.decay}
+                  mono
+                  inputMode="decimal"
+                  value={decay}
+                  onChange={(event) => setDecay(event.target.value)}
+                />
+              </Field>
+              <Field
+                label={t("standingsOrganizations")}
+                htmlFor={ids.standings}
+                optional={t("optional")}
+                hint={t("standingsOrganizationsHint")}
+                className="sm:col-span-2"
+              >
+                <div className="grid gap-2">
+                  <MultiSelect
+                    id={ids.standings}
+                    values={standingIds}
+                    onChange={(values) =>
+                      setStandingIds(values.flatMap((value) => organizationById.get(value)?.id ?? []))
+                    }
+                    options={(options?.organizations ?? []).map((row) => ({
+                      value: row.id,
+                      label: row.name,
+                    }))}
+                    placeholder={t("standingsOrganizationsPlaceholder")}
+                  />
+                  {standingIds.length > 1 ? (
+                    <StandingsOrder
+                      ids={standingIds}
+                      organizations={organizationById}
+                      onChange={setStandingIds}
+                    />
+                  ) : null}
+                </div>
+              </Field>
+            </>
+          ) : null}
         </AdminSection>
         <AdminFormFooter
           busy={busy}
