@@ -649,6 +649,120 @@
 }
 
 /* ---------------------------------------------------------------------- */
+/* Organisation standings                                                  */
+/* ---------------------------------------------------------------------- */
+
+/* The organisations board borrows the grid above; these are only the parts the
+   division grid has no use for: a logo, a total, and the entrants underneath. */
+.hall-org-decay {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-sm);
+  color: var(--titlebar-ink-2);
+  white-space: nowrap;
+}
+
+.hall-orgs th.hall-prob[data-contest-start="true"] {
+  box-shadow: inset 1px 0 0 var(--titlebar-line);
+}
+
+/* Logos are drawn for a light page, so each sits on its own white tile on the
+   dark board rather than vanishing into it. */
+.hall-org-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 1.6rem;
+  margin-right: 0.6rem;
+  padding: 0.15rem;
+  vertical-align: middle;
+  object-fit: contain;
+  background: #fff;
+  border-radius: var(--radius-sm);
+}
+
+.hall-org-logo[data-fallback="true"] {
+  background: var(--line);
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.hall-org-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  margin-right: 0.3rem;
+  vertical-align: middle;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.hall-org-toggle:hover {
+  color: var(--ink);
+}
+
+.hall-org-toggle:focus-visible {
+  outline: 2px solid var(--brand-royal);
+  outline-offset: 2px;
+}
+
+.hall-org-toggle[aria-expanded="true"] {
+  transform: rotate(90deg);
+}
+
+.hall-table tbody td.hall-org-total {
+  font-weight: 700;
+  border-right: 1px solid var(--line);
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+}
+
+.hall-table tbody tr.hall-org-entrants {
+  background: transparent;
+}
+
+.hall-table tbody tr.hall-org-entrants td {
+  height: auto;
+  padding: 0.2rem 0.4rem 0.6rem;
+  border: 0;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+.hall-org-entrants ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.2rem;
+}
+
+.hall-org-entrants li {
+  display: inline-flex;
+  gap: 0.45rem;
+  white-space: nowrap;
+}
+
+.hall-org-entrants a {
+  color: var(--ink-2);
+}
+
+.hall-org-entrants a:hover {
+  color: var(--ink);
+}
+
+.hall-org-number {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------- */
 /* Tag editing                                                             */
 /* ---------------------------------------------------------------------- */
 

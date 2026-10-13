@@ -35,13 +35,19 @@ import {
   contestByKey,
   labelForProblem,
   loadContestProblems,
+  type ProblemListAccess,
   problemListAccessFor,
   toContestRow,
   toViewerRowInContest,
 } from "./contests/formats";
 import { isStaff, optionalViewer, requireViewer } from "./lib/auth";
 import { forbidden, invalid, notFound } from "./lib/errors";
-import { canAccessProblem, canSeeContestAssociation, loadViewerContext } from "./problems";
+import {
+  canAccessProblem,
+  canSeeContestAssociation,
+  loadViewerContext,
+  type ViewerContext,
+} from "./problems";
 
 /* -------------------------------------------------------------------------- */
 /* Shapes                                                                     */
@@ -113,6 +119,8 @@ export type ScoreboardEventPayload = {
   badges: ScoreboardBadge[];
   inPersonBadge: string | null;
   hasRoster: boolean;
+  /** The event ranks organisations too, at `/scoreboard/[event]/organizations`. */
+  hasOrganizationStandings: boolean;
   canReveal: boolean;
   canEditTags: boolean;
   warnings: string[];
@@ -133,7 +141,7 @@ export async function eventByKey(
     .unique();
 }
 
-async function eventContests(
+export async function eventContests(
   ctx: QueryCtx | MutationCtx,
   event: Doc<"scoreboardEvents">,
 ): Promise<Doc<"contests">[]> {
@@ -207,6 +215,19 @@ async function resolveBadges(
   return { badges, organizations, inPersonKey, warnings };
 }
 
+/** Whether the board may name a division's problem; otherwise it shows its label only. */
+export async function canNameProblem(
+  ctx: QueryCtx,
+  contest: Doc<"contests">,
+  problem: Doc<"problems"> | null,
+  access: ProblemListAccess,
+  viewer: ViewerContext,
+): Promise<boolean> {
+  if (!problem || !canSeeContestAssociation(contest, viewer)) return false;
+
+  return access.privileged || (await canAccessProblem(ctx, problem, viewer));
+}
+
 function flagUrl(pattern: string | null | undefined, username: string): string | null {
   if (!pattern) return null;
 
@@ -217,7 +238,7 @@ function flagUrl(pattern: string | null | undefined, username: string): string |
 export type PersistedReveal = NonNullable<Doc<"contests">["reveal"]>["cells"][number];
 
 /** The reveals staff have already performed, as a list of their own. */
-function persistedReveals(contest: Doc<"contests">): PersistedReveal[] {
+export function persistedReveals(contest: Doc<"contests">): PersistedReveal[] {
   return [...(contest.reveal?.cells ?? [])];
 }
 
@@ -551,11 +572,7 @@ export const event = query({
       for (const [index, link] of built.contestProblems.entries()) {
         const problem = await ctx.db.get(link.problemId);
 
-        if (
-          !canSeeContestAssociation(contest, problemViewer) ||
-          !problem ||
-          (!access.privileged && !(await canAccessProblem(ctx, problem, problemViewer)))
-        ) {
+        if (!(await canNameProblem(ctx, contest, problem, access, problemViewer))) {
           const entry = built.problems[index];
 
           if (entry) built.problems[index] = { ...entry, code: "", name: "" };
@@ -579,6 +596,7 @@ export const event = query({
       badges,
       inPersonBadge: inPersonKey,
       hasRoster: !!inPersonKey,
+      hasOrganizationStandings: !!row.organizationStandings,
       canReveal,
       canEditTags: canReveal,
       warnings: canReveal ? warnings : [],

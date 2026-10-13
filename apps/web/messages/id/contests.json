@@ -514,7 +514,28 @@
       "noBadges": "Event ini tidak memiliki organisasi badge, sehingga tidak ada yang bisa diedit. Tambahkan satu di papan skor melalui konsol staf.",
       "attendance": "Kehadiran",
       "saveFailed": "Badge tidak dapat disimpan."
-    }
+    },
+    "organizations": "Organisasi",
+    "organizationsHint": "Buka klasemen organisasi"
+  },
+  "organizationStandings": {
+    "metaTitle": "{event}: organisasi",
+    "metaFallback": "Klasemen organisasi",
+    "heading": "Organisasi",
+    "frozenChip": "Dibekukan",
+    "freezeBanner": "Papan dibekukan: skor berhenti pada saat pembekuan sampai hasilnya diungkap.",
+    "decay": "Peluruhan {decay}",
+    "decayHint": "Skor setiap peserta berikutnya pada satu soal dihitung {decay} kali skor sebelumnya.",
+    "hallBoard": "Papan aula",
+    "columnOrganization": "Organisasi",
+    "columnTotal": "Total",
+    "problemTitle": "{contest} · {problem}",
+    "showEntrants": "Tampilkan peserta {name}",
+    "hideEntrants": "Sembunyikan peserta {name}",
+    "noEntrants": "Belum ada peserta.",
+    "empty": "Belum ada organisasi untuk diperingkat.",
+    "gone": "Klasemen ini tidak lagi tersedia.",
+    "organizations": "{count, plural, other {# organisasi}}"
   },
   "scoring": {
     "maxScoreSubmission": "Pengiriman dengan skor tertinggi untuk setiap soal akan digunakan.",

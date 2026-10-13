@@ -514,7 +514,28 @@
       "noBadges": "此赛事没有可用作徽章的组织，因此无内容可编辑。请在工作人员后台的排行榜设置中添加一个。",
       "attendance": "出席",
       "saveFailed": "徽章未能保存。"
-    }
+    },
+    "organizations": "组织",
+    "organizationsHint": "打开组织排名"
+  },
+  "organizationStandings": {
+    "metaTitle": "{event}：组织",
+    "metaFallback": "组织排名",
+    "heading": "组织",
+    "frozenChip": "已封榜",
+    "freezeBanner": "榜单已封榜：在公布结果之前，得分停留在封榜时刻。",
+    "decay": "衰减 {decay}",
+    "decayHint": "同一题目上每多一位参赛者，其得分按前一位的 {decay} 倍计入。",
+    "hallBoard": "大厅榜单",
+    "columnOrganization": "组织",
+    "columnTotal": "总分",
+    "problemTitle": "{contest} · {problem}",
+    "showEntrants": "显示 {name} 的参赛者",
+    "hideEntrants": "隐藏 {name} 的参赛者",
+    "noEntrants": "暂无参赛者。",
+    "empty": "暂无可排名的组织。",
+    "gone": "此排名已不可用。",
+    "organizations": "{count, plural, other {# 个组织}}"
   },
   "scoring": {
     "maxScoreSubmission": "每道题目将采用得分最高的那次提交。",

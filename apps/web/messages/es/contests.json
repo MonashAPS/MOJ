@@ -514,7 +514,28 @@
       "noBadges": "Este evento no tiene organizaciones con insignia, así que no hay nada que editar. Añade una al marcador desde la consola de personal.",
       "attendance": "Asistencia",
       "saveFailed": "Las insignias no se pudieron guardar."
-    }
+    },
+    "organizations": "Organizaciones",
+    "organizationsHint": "Abrir la clasificación por organizaciones"
+  },
+  "organizationStandings": {
+    "metaTitle": "{event}: organizaciones",
+    "metaFallback": "Clasificación por organizaciones",
+    "heading": "Organizaciones",
+    "frozenChip": "Congelado",
+    "freezeBanner": "El marcador está congelado: las puntuaciones se detienen en el congelamiento hasta que se revelen los resultados.",
+    "decay": "Decaimiento {decay}",
+    "decayHint": "La puntuación de cada participante adicional en un problema cuenta {decay} veces la anterior.",
+    "hallBoard": "Marcador de sala",
+    "columnOrganization": "Organización",
+    "columnTotal": "Total",
+    "problemTitle": "{contest} · {problem}",
+    "showEntrants": "Mostrar los participantes de {name}",
+    "hideEntrants": "Ocultar los participantes de {name}",
+    "noEntrants": "Aún no hay participantes.",
+    "empty": "Aún no hay organizaciones que clasificar.",
+    "gone": "Esta clasificación ya no está disponible.",
+    "organizations": "{count, plural, one {# organización} other {# organizaciones}}"
   },
   "scoring": {
     "maxScoreSubmission": "Se usará el envío con la puntuación máxima de cada problema.",
