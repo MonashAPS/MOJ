@@ -224,9 +224,10 @@ second when that is absent too.
 `"standard"` scores a submission on its own cases, as DMOJ does. `{"kind": "golf"}` makes the problem code
 golf: only a fully accepted submission scores, and it scores `points × shortest / bytes`, where `bytes` is the
 UTF-8 length of its source with trailing whitespace ignored and `shortest` is the shortest accepted source in any
-language. Inside a contest `shortest` is the contest's own shortest and `points` the contest problem's; outside
-one it is the shortest among every submission to the problem. A shorter solution lowers everyone else's points
-the moment it is graded, contest scoreboard included.
+language. Inside a contest `shortest` is the shortest among the contest's live participants and `points` the
+contest problem's; a virtual participant is scored against that shortest but never moves it. Outside a contest
+it is the shortest among every submission to the problem. A shorter solution lowers everyone else's points the
+moment it is graded, contest scoreboard included.
 
 Golf counts every allowed language on the same scale, so pair it with `languages` when the field should be
 narrower. Changing a problem's kind applies to submissions graded from then on; rejudge the problem to rescore

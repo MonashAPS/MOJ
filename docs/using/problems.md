@@ -41,7 +41,7 @@ direct link to `/problem/<code>/editorial` is not intercepted.
 accepted count, AC rate and best time.
 
 A code golf problem says so above its statement, with the shortest accepted length so far: inside a contest the
-contest's shortest, otherwise the shortest of any submission. The shortest accepted solution scores full points
+shortest among its live participants, otherwise the shortest of any submission. The shortest accepted solution scores full points
 and a longer one scores in proportion, so your points drop when someone submits something shorter. Golf
 submissions show their length in bytes in the submission list. See [Scoring](/problems/format#scoring).
 

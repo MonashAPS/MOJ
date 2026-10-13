@@ -142,6 +142,87 @@ describe("code golf scoring", () => {
     expect(b?.points).toBe(100);
   });
 
+  it("scores a virtual entrant against the live best without moving it", async () => {
+    const { t, languageId, problemId } = await golfSetup();
+    const { contestId, contestProblemId } = await makeContest(t, problemId);
+    const first = await insertProfile(t);
+    const second = await insertProfile(t);
+    const late = await insertProfile(t);
+    const realStart = Date.now() - 600_000;
+    const firstParticipation = await insertParticipation(t, { contestId, profileId: first, realStart });
+    const secondParticipation = await insertParticipation(t, { contestId, profileId: second, realStart });
+
+    const virtualParticipation = await insertParticipation(t, {
+      contestId,
+      profileId: late,
+      realStart: Date.now(),
+      virtual: 1,
+    });
+
+    const contest = { contestId, contestProblemId };
+    let legacyId = 0;
+
+    async function submit(
+      profileId: Id<"profiles">,
+      participationId: Id<"contestParticipations">,
+      bytes: number,
+    ) {
+      legacyId += 1;
+
+      const submissionId = await insertSubmission(t, {
+        profileId,
+        problemId,
+        languageId,
+        status: "QU",
+        legacyId,
+        date: legacyId,
+        source: sourceOf(bytes),
+        participationId,
+        ...contest,
+      });
+
+      await grade(t);
+      await t.finishAllScheduledFunctions(() => {});
+
+      return submissionId;
+    }
+
+    const longer = await submit(first, firstParticipation, 100);
+    const shorter = await submit(second, secondParticipation, 50);
+
+    // Against the live best of 50: half of the contest problem's 50 points.
+    const virtualLonger = await submit(late, virtualParticipation, 100);
+    expect((await t.run(async (ctx) => ctx.db.get(virtualLonger)))?.contestPoints).toBe(25);
+
+    const virtualShortest = await submit(late, virtualParticipation, 10);
+
+    const [a, b, aEntry, bEntry, mine, mineEntry, best] = await t.run(async (ctx) =>
+      Promise.all([
+        ctx.db.get(longer),
+        ctx.db.get(shorter),
+        ctx.db.get(firstParticipation),
+        ctx.db.get(secondParticipation),
+        ctx.db.get(virtualShortest),
+        ctx.db.get(virtualParticipation),
+        ctx.db
+          .query("scoringBests")
+          .withIndex("by_problem_contestProblem", (q) =>
+            q.eq("problemId", problemId).eq("contestProblemId", contestProblemId),
+          )
+          .unique(),
+      ]),
+    );
+
+    expect(best?.best).toEqual({ kind: "golf", bytes: 50 });
+    expect(a?.contestPoints).toBe(25);
+    expect(b?.contestPoints).toBe(50);
+    expect(aEntry?.score).toBe(25);
+    expect(bEntry?.score).toBe(50);
+    // Shorter than anything live is full marks, never more.
+    expect(mine?.contestPoints).toBe(50);
+    expect(mineEntry?.score).toBe(50);
+  });
+
   it("rescores practice submissions and their authors' profile points", async () => {
     const { t, languageId, problemId } = await golfSetup();
     const first = await insertProfile(t);

@@ -15,6 +15,7 @@ import {
   holdsBest,
   improveBest,
   measureSubmission,
+  PARTICIPATION_LIVE,
   type ProblemScoring,
   type ScoringBest,
   type ScoringMeasure,
@@ -123,9 +124,25 @@ async function foldIntoScope(
 }
 
 /**
+ * The contest problem whose best a submission counts towards, if any. Only a
+ * live participation's do: a virtual or spectating entrant is scored against
+ * the live best but never moves it, so nobody who sat the contest loses
+ * points to someone who took it afterwards.
+ */
+async function liveContestProblem(
+  ctx: QueryCtx,
+  submission: Doc<"submissions">,
+): Promise<Id<"contestProblems"> | undefined> {
+  if (!submission.contestProblemId || !submission.participationId) return undefined;
+  const participation = await ctx.db.get(submission.participationId);
+
+  return participation?.virtual === PARTICIPATION_LIVE ? submission.contestProblemId : undefined;
+}
+
+/**
  * Grading end on a scored problem: measure the submission, fold it into its
- * practice scope and its contest problem's, and return its measure and
- * practice points. Null for a problem with standard scoring.
+ * practice scope and, from a live participation, its contest problem's, and
+ * return its measure and practice points. Null for standard scoring.
  */
 export async function scoreGraded(
   ctx: MutationCtx,
@@ -144,10 +161,9 @@ export async function scoreGraded(
 
   const measure = measureSubmission(scoring, { ...graded, source: source?.source ?? "" });
   const best = await foldIntoScope(ctx, scoring, problem._id, undefined, measure);
+  const contestProblemId = await liveContestProblem(ctx, submission);
 
-  if (submission.contestProblemId) {
-    await foldIntoScope(ctx, scoring, problem._id, submission.contestProblemId, measure);
-  }
+  if (contestProblemId) await foldIntoScope(ctx, scoring, problem._id, contestProblemId, measure);
 
   return { measure, points: scoringPoints(scoring, measure, best, problem.points) };
 }
@@ -164,20 +180,24 @@ export async function withdrawMeasure(ctx: MutationCtx, submission: Doc<"submiss
 
   if (!problem?.scoring) return;
 
-  const scopes = submission.contestProblemId ? [undefined, submission.contestProblemId] : [undefined];
+  const contestProblemId = await liveContestProblem(ctx, submission);
+  const scopes = contestProblemId ? [undefined, contestProblemId] : [undefined];
 
-  for (const contestProblemId of scopes) {
-    const best = await scopeBest(ctx, problem._id, contestProblemId);
+  for (const scope of scopes) {
+    const best = await scopeBest(ctx, problem._id, scope);
 
     if (!holdsBest(problem.scoring, best, measure)) continue;
     await ctx.scheduler.runAfter(0, internal.scoring.rebuildBest, {
       problemId: problem._id,
-      contestProblemId,
+      contestProblemId: scope,
     });
   }
 }
 
-/** Each scored problem in a contest, keyed by contest problem, with its best in this contest. */
+/**
+ * Each scored problem in a contest, keyed by contest problem, with its live
+ * best: what a live and a virtual participation alike are scored against.
+ */
 export async function contestScoring(
   ctx: QueryCtx,
   contestProblems: readonly Doc<"contestProblems">[],

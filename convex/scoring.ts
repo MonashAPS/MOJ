@@ -5,11 +5,12 @@
  * points change needs their profile walked again, so the work is a chain of
  * scheduled mutations as the rescore job's is: submissions a page at a time,
  * then profiles a few at a time. A contest scope recomputes each participation
- * with a submission to the contest problem, which rescores those submissions'
- * contest points on the way.
+ * with a submission to the contest problem, virtual ones included, which
+ * rescores those submissions' contest points on the way. Only live
+ * participations make a contest's best.
  */
 
-import { bestOf, scoringPoints } from "@moj/core";
+import { bestOf, PARTICIPATION_LIVE, scoringPoints } from "@moj/core";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -47,12 +48,25 @@ export const rebuildBest = internalMutation({
 
       if (!contestProblem) return null;
 
-      submissions = (
-        await ctx.db
-          .query("submissions")
-          .withIndex("by_contest_date", (q) => q.eq("contestId", contestProblem.contestId))
-          .collect()
-      ).filter((row) => row.contestProblemId === contestProblemId);
+      const rows = await ctx.db
+        .query("submissions")
+        .withIndex("by_contest_date", (q) => q.eq("contestId", contestProblem.contestId))
+        .collect();
+
+      // Only live participations make the contest's best.
+      const live = new Map<Id<"contestParticipations">, boolean>();
+      submissions = [];
+
+      for (const row of rows) {
+        if (row.contestProblemId !== contestProblemId || !row.participationId) continue;
+
+        if (!live.has(row.participationId)) {
+          const participation = await ctx.db.get(row.participationId);
+          live.set(row.participationId, participation?.virtual === PARTICIPATION_LIVE);
+        }
+
+        if (live.get(row.participationId)) submissions.push(row);
+      }
     } else {
       submissions = await ctx.db
         .query("submissions")
