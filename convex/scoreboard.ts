@@ -119,6 +119,8 @@ export type ScoreboardEventPayload = {
   badges: ScoreboardBadge[];
   inPersonBadge: string | null;
   hasRoster: boolean;
+  /** The event ranks organisations too, at `/scoreboard/[event]/organizations`. */
+  hasOrganizationStandings: boolean;
   canReveal: boolean;
   canEditTags: boolean;
   warnings: string[];
@@ -594,6 +596,7 @@ export const event = query({
       badges,
       inPersonBadge: inPersonKey,
       hasRoster: !!inPersonKey,
+      hasOrganizationStandings: !!row.organizationStandings,
       canReveal,
       canEditTags: canReveal,
       warnings: canReveal ? warnings : [],

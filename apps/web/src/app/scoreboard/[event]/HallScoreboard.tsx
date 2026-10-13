@@ -5,6 +5,7 @@ import type { ScoreboardEventPayload } from "@convex/scoreboard";
 import { Button } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
 import {
+  Building2,
   ChevronLeft,
   ChevronRight,
   Keyboard,
@@ -15,6 +16,7 @@ import {
   Snowflake,
   Users,
 } from "lucide-react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DivisionPanel } from "@/components/scoreboard/DivisionPanel";
@@ -337,6 +339,18 @@ export function HallScoreboard({ eventKey, initial }: { eventKey: string; initia
             onClick={() => chooseAttendance(attendance === "all" ? "in-person" : "all")}
           >
             {attendance === "in-person" ? t("inPerson", { count: shown }) : t("all", { count: shown })}
+          </Button>
+        ) : null}
+
+        {payload.hasOrganizationStandings ? (
+          <Button
+            asChild
+            variant="secondary"
+            size="sm"
+            icon={<Building2 aria-hidden />}
+            title={t("organizationsHint")}
+          >
+            <Link href={`/scoreboard/${eventKey}/organizations/`}>{t("organizations")}</Link>
           </Button>
         ) : null}
 
