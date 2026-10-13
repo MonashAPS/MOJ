@@ -46,11 +46,10 @@ import { groupIdByName, typeIdsByName, writeProblemRevision } from "../admin/pro
 import { profileForUserId as profileByUserId } from "../lib/auth";
 import { sha256Hex } from "../lib/hash";
 import type { JsonValue } from "../lib/json";
-import { resetBests } from "../lib/scoring";
+import { resetBests, scoringChoice, scoringFromChoice } from "../lib/scoring";
 import { PROBLEM_CODE_PATTERN, problemByCode, toCoreProblem } from "../problems";
 import { inspectArchive } from "../problems/data";
 import { MAX_VALIDATED_ARCHIVE_BYTES } from "../problems/testData";
-import { problemScoring } from "../schema";
 
 /* -------------------------------------------------------------------------- */
 /* Responses                                                                  */
@@ -266,7 +265,7 @@ export const upsertProblem = internalMutation({
       publishOn: v.optional(v.number()),
       checkAll: v.optional(v.boolean()),
       languageLimits: v.optional(v.record(v.string(), languageLimitValidator)),
-      scoring: v.optional(v.union(v.object({ kind: v.literal("standard") }), ...problemScoring.members)),
+      scoring: v.optional(scoringChoice),
       languages: v.optional(v.array(v.string())),
     }),
   },
@@ -331,8 +330,7 @@ export const upsertProblem = internalMutation({
       }
     }
 
-    // `standard` is the absence of a kind.
-    const scoring = body.scoring?.kind === "standard" ? undefined : body.scoring;
+    const scoring = body.scoring ? scoringFromChoice(body.scoring) : undefined;
 
     const resolveProfiles = async (usernames: readonly string[]) => {
       const ids: Id<"profiles">[] = [];

@@ -25,6 +25,11 @@ const SOURCE_VISIBILITY_OPTIONS = [
   { value: "O", labelKey: "field.sourceVisibilityStaff" },
 ] as const;
 
+const SCORING_OPTIONS = [
+  { value: "standard", labelKey: "field.scoringStandard" },
+  { value: "golf", labelKey: "field.scoringGolf" },
+] as const;
+
 function same(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((value, index) => value === b[index]);
 }
@@ -46,6 +51,7 @@ export function ProblemGeneralTab({
   const ids = {
     name: useId(),
     points: useId(),
+    scoring: useId(),
     timeLimit: useId(),
     memoryLimit: useId(),
     group: useId(),
@@ -66,6 +72,7 @@ export function ProblemGeneralTab({
   const [name, setName] = useState(problem.name);
   const [points, setPoints] = useState(String(problem.points));
   const [partial, setPartial] = useState(problem.partial);
+  const [scoring, setScoring] = useState(problem.scoring);
   const [timeLimit, setTimeLimit] = useState(String(problem.timeLimit));
   const [memoryLimit, setMemoryLimit] = useState(String(problem.memoryLimit));
   const [shortCircuit, setShortCircuit] = useState(problem.shortCircuit);
@@ -105,6 +112,7 @@ export function ProblemGeneralTab({
     name !== problem.name ||
     Number(points) !== problem.points ||
     partial !== problem.partial ||
+    scoring !== problem.scoring ||
     Number(timeLimit) !== problem.timeLimit ||
     Number(memoryLimit) !== problem.memoryLimit ||
     shortCircuit !== problem.shortCircuit ||
@@ -131,6 +139,7 @@ export function ProblemGeneralTab({
         name,
         points: Number(points) || 0,
         partial,
+        scoring: { kind: scoring },
         timeLimit: Number(timeLimit) || 1,
         memoryLimit: Number(memoryLimit) || 1,
         shortCircuit,
@@ -184,6 +193,17 @@ export function ProblemGeneralTab({
             inputMode="decimal"
             value={points}
             onChange={(event) => setPoints(event.target.value)}
+          />
+        </Field>
+        <Field label={shared("field.scoring")} htmlFor={ids.scoring} hint={shared("field.scoringHint")}>
+          <Select
+            id={ids.scoring}
+            value={scoring}
+            onValueChange={(value) => setScoring(chosenValue(SCORING_OPTIONS, value, scoring))}
+            options={SCORING_OPTIONS.map((option) => ({
+              value: option.value,
+              label: shared(option.labelKey),
+            }))}
           />
         </Field>
         <Field label={shared("field.publishOn")} htmlFor={ids.date}>

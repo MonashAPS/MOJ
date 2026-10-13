@@ -20,9 +20,18 @@ import {
   type ScoringMeasure,
   scoringPoints,
 } from "@moj/core";
+import { type Infer, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { problemScoring } from "../schema";
+
+/** What the staff console and the problems API send: a kind, or `standard` for none. */
+export const scoringChoice = v.union(v.object({ kind: v.literal("standard") }), ...problemScoring.members);
+
+export function scoringFromChoice(choice: Infer<typeof scoringChoice>): ProblemScoring | undefined {
+  return choice.kind === "standard" ? undefined : choice;
+}
 
 /** A scored problem's kind, with one scope's best. */
 export type ScopeScoring = {
