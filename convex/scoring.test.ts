@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import {
+  asUser,
   insertContest,
   insertContestProblem,
   insertJudge,
@@ -386,6 +387,53 @@ describe("code golf scoring", () => {
 
     const rows = await t.query(api.submissions.list, { paginationOpts: { numItems: 10, cursor: null } });
     expect(rows.page[0]?.bytes).toBe(33);
+  });
+
+  it("lets the staff console set golf and switch back to standard, dropping the bests", async () => {
+    const { t, languageId, problemId } = await golfSetup();
+    const author = await insertProfile(t);
+
+    await insertProfile(t, {
+      username: "root",
+      isStaff: true,
+      isSuperuser: true,
+      permissions: ["judge.edit_all_problem"],
+    });
+
+    await t.run(async (ctx) => ctx.db.patch(problemId, { scoring: undefined }));
+    const staff = asUser(t, "root");
+
+    const golf = await staff.mutation(api.admin.problems.update, {
+      code: "aplusb",
+      scoring: { kind: "golf" },
+    });
+
+    expect(golf.rescoreScheduled).toBe(false);
+    expect((await t.run(async (ctx) => ctx.db.get(problemId)))?.scoring).toEqual({ kind: "golf" });
+
+    await insertSubmission(t, {
+      profileId: author,
+      problemId,
+      languageId,
+      status: "QU",
+      legacyId: 1,
+      source: sourceOf(12),
+    });
+    await grade(t);
+    expect(await t.run(async (ctx) => ctx.db.query("scoringBests").collect())).toHaveLength(1);
+
+    // Saving the form without touching the kind keeps the bests.
+    await staff.mutation(api.admin.problems.update, { code: "aplusb", name: "Renamed" });
+    expect(await t.run(async (ctx) => ctx.db.query("scoringBests").collect())).toHaveLength(1);
+
+    await staff.mutation(api.admin.problems.update, { code: "aplusb", scoring: { kind: "standard" } });
+
+    const [problem, bests] = await t.run(async (ctx) =>
+      Promise.all([ctx.db.get(problemId), ctx.db.query("scoringBests").collect()]),
+    );
+
+    expect(problem?.scoring).toBeUndefined();
+    expect(bests).toEqual([]);
   });
 
   it("leaves a problem without a scoring kind on its case points", async () => {
