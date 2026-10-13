@@ -210,6 +210,8 @@ export interface SubmissionListRow {
   caseTotal: number;
   time: number | null;
   memory: number | null;
+  /** A code golf submission's length, the measure its points are scored on. */
+  bytes: number | null;
   currentTestcase: number;
   isPretested: boolean;
   isLocked: boolean;
@@ -350,6 +352,7 @@ async function buildRow(
     caseTotal: view.caseTotal,
     time: masked ? null : (submission.time ?? null),
     memory: masked ? null : (submission.memory ?? null),
+    bytes: !masked && submission.scoringMeasure?.kind === "golf" ? submission.scoringMeasure.bytes : null,
     currentTestcase: masked ? 0 : submission.currentTestcase,
     isPretested: submission.isPretested,
     isLocked: isLocked({ lockedAfter: submission.lockedAfter ?? null }, now),

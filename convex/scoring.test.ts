@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import {
   insertContest,
@@ -276,6 +277,34 @@ describe("code golf scoring", () => {
 
     expect(rejudged?.points).toBe(0);
     expect(kept?.points).toBe(100);
+  });
+
+  it("shows the problem page the kind and the shortest so far, and lists the byte count", async () => {
+    const { t, languageId, problemId } = await golfSetup();
+    const author = await insertProfile(t);
+
+    expect((await t.query(api.problems.get, { code: "aplusb" }))?.scoring).toEqual({
+      kind: "golf",
+      best: null,
+    });
+
+    await insertSubmission(t, {
+      profileId: author,
+      problemId,
+      languageId,
+      status: "QU",
+      legacyId: 1,
+      source: sourceOf(33),
+    });
+    await grade(t);
+
+    expect((await t.query(api.problems.get, { code: "aplusb" }))?.scoring).toEqual({
+      kind: "golf",
+      best: { kind: "golf", bytes: 33 },
+    });
+
+    const rows = await t.query(api.submissions.list, { paginationOpts: { numItems: 10, cursor: null } });
+    expect(rows.page[0]?.bytes).toBe(33);
   });
 
   it("leaves a problem without a scoring kind on its case points", async () => {

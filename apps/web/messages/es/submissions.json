@@ -70,6 +70,7 @@
     "counted": "Se contabilizaron {count, plural, one {# envío} other {# envíos}}"
   },
   "row": {
+    "bytes": "{count, plural, one {# byte} other {# bytes}}",
     "deletedProblem": "Problema eliminado",
     "judging": "Juzgando",
     "view": "Ver este envío",
