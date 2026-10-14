@@ -14,8 +14,19 @@ x-host-gateway: &host-gateway
   extra_hosts:
     - "host.docker.internal:host-gateway"
 
+# Docker keeps a container's log forever unless it is capped, and the Convex
+# backend logs every request: uncapped, its log filled the disk and took
+# Postgres down with it.
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: "50m"
+      max-file: "3"
+
 services:
   caddy:
+    <<: *logging
     image: caddy:2-alpine
     restart: unless-stopped
     ports:
@@ -34,6 +45,7 @@ services:
       - convex-backend
 
   postgres:
+    <<: *logging
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
@@ -52,6 +64,7 @@ services:
       retries: 30
 
   convex-backend:
+    <<: *logging
     image: ghcr.io/get-convex/convex-backend:${CONVEX_IMAGE_TAG:-latest}
     restart: unless-stopped
     stop_grace_period: 10s
@@ -78,6 +91,7 @@ services:
       retries: 30
 
   convex-dashboard:
+    <<: *logging
     image: ghcr.io/get-convex/convex-dashboard:${CONVEX_IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
@@ -94,7 +108,7 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
     restart: unless-stopped
-    <<: *host-gateway
+    <<: [*host-gateway, *logging]
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AUTH_DATABASE:-moj_auth}
@@ -135,6 +149,7 @@ services:
   # infra/compose.override.local.example.yml to infra/compose.override.local.yml
   # and layer it in with a second `-f`. Nothing here assumes a core count.
   judge:
+    <<: *logging
     profiles: ["judge"]
     image: ghcr.io/monashaps/moj-judge:${MOJ_IMAGE_TAG:-latest}-${JUDGE_TIER:-tier1}
     build:
