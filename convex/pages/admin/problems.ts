@@ -331,6 +331,7 @@ export const edit = query({
       timeLimit: problem.timeLimit,
       memoryLimit: problem.memoryLimit,
       shortCircuit: problem.shortCircuit,
+      scoring: problem.scoring?.kind ?? ("standard" as const),
       isPublic: problem.isPublic,
       isManuallyManaged: problem.isManuallyManaged,
       isFullMarkup: problem.isFullMarkup,

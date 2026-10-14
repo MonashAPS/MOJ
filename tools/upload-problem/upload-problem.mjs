@@ -335,6 +335,32 @@ function boolean(raw, field) {
   throw new UploadError(`Invalid ${field}: ${JSON.stringify(raw)}`);
 }
 
+/** `problems.scoring` kinds the site knows; `standard` is DMOJ's own case points. */
+export const SCORING_KINDS = ["standard", "golf"];
+
+/** `"golf"` and `{"kind": "golf"}` are the same thing; the site checks any other settings. */
+function scoringConfig(raw) {
+  if (Array.isArray(raw)) throw new UploadError(`Invalid config.scoring: ${JSON.stringify(raw)}`);
+  const scoring = raw instanceof Object ? { ...raw } : { kind: raw };
+
+  if (!SCORING_KINDS.includes(scoring.kind)) {
+    throw new UploadError(
+      `Unknown config.scoring kind ${JSON.stringify(scoring.kind)}; expected one of ${SCORING_KINDS.join(", ")}`,
+    );
+  }
+
+  return scoring;
+}
+
+/** Language keys, as the site's languages page lists them. The site rejects one it does not know. */
+function languageList(raw) {
+  const keys = nameList(raw);
+
+  if (keys.length === 0) throw new UploadError(`Invalid config.languages: ${JSON.stringify(raw)}`);
+
+  return keys;
+}
+
 function nameList(raw) {
   if (Array.isArray(raw)) return raw.map((entry) => String(entry).trim()).filter(Boolean);
 
@@ -442,6 +468,10 @@ export async function buildRequest(problemDir, { statementOnly = false } = {}) {
   if (has("public")) body.isPublic = boolean(config.public, "config.public");
 
   if (has("summary")) body.summary = String(config.summary);
+
+  if (has("scoring")) body.scoring = scoringConfig(config.scoring);
+
+  if (has("languages")) body.languages = languageList(config.languages);
 
   // create-problem.mjs wrote the python3 and pypy3 rows whenever a time limit
   // was being applied, with pythonTimeLimit falling back to the global one.

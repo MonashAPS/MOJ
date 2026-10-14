@@ -70,6 +70,7 @@
     "counted": "{count, plural, other {# pengiriman}} dihitung"
   },
   "row": {
+    "bytes": "{count, plural, other {# byte}}",
     "deletedProblem": "Soal terhapus",
     "judging": "Dinilai",
     "view": "Lihat pengiriman ini",

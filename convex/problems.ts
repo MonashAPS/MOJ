@@ -31,6 +31,7 @@ import { labelForProblem, problemListAccessFor, toContestRow } from "./contests/
 import { optionalViewer } from "./lib/auth";
 import { notFound } from "./lib/errors";
 import { proctorBlocksContestProblems } from "./lib/proctor";
+import { scopeBest } from "./lib/scoring";
 import { profileByUsername } from "./profiles";
 
 export const HOT_PROBLEM_COUNT = 7;
@@ -843,6 +844,12 @@ export const get = query({
         ).sort((a, b) => b.date - a.date)
       : [];
 
+    // A scored problem shows its best in the viewer's scope: the contest's
+    // while they are in one, the problem's own otherwise.
+    const scoring = problem.scoring
+      ? { ...problem.scoring, best: await scopeBest(ctx, problem._id, contestProblem?._id) }
+      : null;
+
     return {
       id: problem._id,
       code: problem.code,
@@ -850,6 +857,7 @@ export const get = query({
       statement,
       points: problem.points,
       partial: problem.partial,
+      scoring,
       timeLimit: problem.timeLimit,
       memoryLimit: problem.memoryLimit,
       shortCircuit: problem.shortCircuit,

@@ -184,6 +184,9 @@ export function SubmissionRow({
           {noUsage || row.result === "TLE" ? DASH : formatTime(row.time)}
         </span>
         <span className="text-muted-foreground">{noUsage ? DASH : formatMemory(row.memory)}</span>
+        {row.bytes !== null ? (
+          <span className="text-muted-foreground">{t("row.bytes", { count: row.bytes })}</span>
+        ) : null}
       </div>
 
       {(row.canSeeDetail || canRejudge || canAbort) && (

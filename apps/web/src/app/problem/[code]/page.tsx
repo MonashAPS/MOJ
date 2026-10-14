@@ -115,6 +115,18 @@ export default async function ProblemStatementPage({ params }: { params: Promise
         </section>
       ) : null}
 
+      {problem.scoring?.kind === "golf" ? (
+        <aside className="mb-6 rounded-md border border-border bg-card p-3 text-base">
+          <p className="font-medium text-foreground">{t("golfBadge")}</p>
+          <p className="text-muted-foreground">{t("golfNotice")}</p>
+          <p className="mt-1 font-mono text-sm tabular-nums text-muted-foreground">
+            {problem.scoring.best?.kind === "golf"
+              ? t("golfShortest", { bytes: problem.scoring.best.bytes })
+              : t("golfNoShortest")}
+          </p>
+        </aside>
+      ) : null}
+
       <Statement html={statement} />
 
       {problem.license ? (

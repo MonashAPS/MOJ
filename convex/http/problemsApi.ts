@@ -20,7 +20,7 @@
  * is set, and against the `apiKeys` table otherwise.
  */
 
-import { hasPerm, problemIsEditableBy } from "@moj/core";
+import { hasPerm, problemIsEditableBy, sameScoring } from "@moj/core";
 import {
   API_ERROR_STATUS,
   type ApiErrorCode,
@@ -46,6 +46,7 @@ import { groupIdByName, typeIdsByName, writeProblemRevision } from "../admin/pro
 import { profileForUserId as profileByUserId } from "../lib/auth";
 import { sha256Hex } from "../lib/hash";
 import type { JsonValue } from "../lib/json";
+import { resetBests, scoringChoice, scoringFromChoice } from "../lib/scoring";
 import { PROBLEM_CODE_PATTERN, problemByCode, toCoreProblem } from "../problems";
 import { inspectArchive } from "../problems/data";
 import { MAX_VALIDATED_ARCHIVE_BYTES } from "../problems/testData";
@@ -264,6 +265,8 @@ export const upsertProblem = internalMutation({
       publishOn: v.optional(v.number()),
       checkAll: v.optional(v.boolean()),
       languageLimits: v.optional(v.record(v.string(), languageLimitValidator)),
+      scoring: v.optional(scoringChoice),
+      languages: v.optional(v.array(v.string())),
     }),
   },
   handler: async (ctx, { code, actorProfileId, body }) => {
@@ -311,6 +314,23 @@ export const upsertProblem = internalMutation({
         message: "Missing permission judge.change_public_visibility.",
       };
     }
+
+    // Resolved before anything is written, so an unknown key changes nothing.
+    let allowedLanguageIds: Id<"languages">[] | undefined;
+
+    if (body.languages) {
+      allowedLanguageIds = [];
+
+      for (const key of body.languages) {
+        const language = await languageForKey(ctx, key);
+
+        if (!language) return { status: "invalid" as const, message: `No such language: ${key}` };
+
+        if (!allowedLanguageIds.includes(language._id)) allowedLanguageIds.push(language._id);
+      }
+    }
+
+    const scoring = body.scoring ? scoringFromChoice(body.scoring) : undefined;
 
     const resolveProfiles = async (usernames: readonly string[]) => {
       const ids: Id<"profiles">[] = [];
@@ -361,7 +381,7 @@ export const upsertProblem = internalMutation({
         shortCircuit: body.shortCircuit ?? true,
         points: body.points ?? 100,
         partial: body.partial ?? false,
-        allowedLanguageIds: allLanguages.map((row) => row._id),
+        allowedLanguageIds: allowedLanguageIds ?? allLanguages.map((row) => row._id),
         isPublic: body.isPublic ?? false,
         isManuallyManaged: false,
         date: body.publishOn ?? Date.now(),
@@ -373,6 +393,7 @@ export const upsertProblem = internalMutation({
         submissionSourceVisibility: "F",
         organizationIds: [],
         isOrganizationPrivate: false,
+        scoring,
       });
     } else {
       problemId = existing._id;
@@ -396,6 +417,13 @@ export const upsertProblem = internalMutation({
       if (body.isPublic !== undefined) patch.isPublic = body.isPublic;
 
       if (body.summary !== undefined) patch.summary = body.summary;
+
+      if (allowedLanguageIds) patch.allowedLanguageIds = allowedLanguageIds;
+
+      if (body.scoring && !sameScoring(existing.scoring, scoring)) {
+        patch.scoring = scoring;
+        await resetBests(ctx, problemId);
+      }
 
       if (wantsPeople(body.authors)) {
         patch.authorProfileIds = await resolveProfiles(body.authors ?? []);
@@ -552,6 +580,7 @@ export const upsertProblem = internalMutation({
         hasEditorial: solution !== null,
         languageLimits,
         allowedLanguages: languageKeys,
+        scoring: problem.scoring ?? { kind: "standard" as const },
       },
     };
   },

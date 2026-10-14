@@ -8,7 +8,7 @@
  * console can diff any two of them client side.
  */
 
-import { hasPerm, problemIsEditableBy, problemIsInEditableSet } from "@moj/core";
+import { hasPerm, problemIsEditableBy, problemIsInEditableSet, sameScoring } from "@moj/core";
 import { makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -18,6 +18,7 @@ import { labelForProblem } from "../contests/formats";
 import type { JobArgs } from "../jobs";
 import { writeRevision } from "../lib/community";
 import { forbidden, invalid, notFound } from "../lib/errors";
+import { resetBests, scoringChoice, scoringFromChoice } from "../lib/scoring";
 import {
   loadViewerContext,
   PROBLEM_CODE_PATTERN,
@@ -464,6 +465,7 @@ export const update = mutation({
     submissionSourceVisibility: v.optional(
       v.union(v.literal("A"), v.literal("S"), v.literal("O"), v.literal("F")),
     ),
+    scoring: v.optional(scoringChoice),
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -553,6 +555,14 @@ export const update = mutation({
 
     if (args.allowedLanguages !== undefined) {
       patch.allowedLanguageIds = await languageIdsByKey(ctx, args.allowedLanguages);
+    }
+
+    // A new kind starts from no best; a rejudge measures what came before.
+    const scoring = args.scoring ? scoringFromChoice(args.scoring) : problem.scoring;
+
+    if (!sameScoring(problem.scoring, scoring)) {
+      patch.scoring = scoring;
+      await resetBests(ctx, problem._id);
     }
 
     await ctx.db.patch(problem._id, patch);

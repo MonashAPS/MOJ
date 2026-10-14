@@ -36,6 +36,18 @@ export const submissionResult = v.union(
   v.literal("AB"),
 );
 
+/**
+ * A problem's scoring kind (`@moj/core`'s scoring module). Absent means
+ * standard DMOJ scoring; a fork adds kinds by widening the three unions below.
+ */
+export const problemScoring = v.union(v.object({ kind: v.literal("golf") }));
+
+/** What one graded submission contributes to its scopes' best, tagged with its kind. */
+export const scoringMeasure = v.union(v.object({ kind: v.literal("golf"), bytes: v.number() }));
+
+/** The best so far over one scope, tagged with its kind. */
+export const scoringBest = v.union(v.object({ kind: v.literal("golf"), bytes: v.number() }));
+
 export const testCaseType = v.union(v.literal("C"), v.literal("S"), v.literal("E"));
 
 export const sourceVisibility = v.union(v.literal("A"), v.literal("S"), v.literal("O"), v.literal("F"));
@@ -294,6 +306,7 @@ export default defineSchema({
     submissionSourceVisibility: sourceVisibility,
     organizationIds: v.array(v.id("organizations")),
     isOrganizationPrivate: v.boolean(),
+    scoring: v.optional(problemScoring),
     legacyId: v.optional(v.number()),
   })
     .index("by_code", ["code"])
@@ -567,6 +580,8 @@ export default defineSchema({
     // is stateless: batch-begin increments it and batch-end leaves the batch.
     currentBatch: v.optional(v.number()),
     inBatch: v.optional(v.boolean()),
+    // Set at grading end on a problem with a scoring kind, cleared on requeue.
+    scoringMeasure: v.optional(scoringMeasure),
     legacyId: v.optional(v.number()),
   })
     .index("by_date", ["date"])
@@ -581,6 +596,17 @@ export default defineSchema({
     .index("by_profile_status", ["profileId", "status"])
     .index("by_language_date", ["languageId", "date"])
     .index("by_legacyId", ["legacyId"]),
+
+  /**
+   * The best so far on a problem with a scoring kind, one row per scope: the
+   * practice scope (every submission of the problem, no `contestProblemId`)
+   * and each contest problem's. No row means nothing has measured yet.
+   */
+  scoringBests: defineTable({
+    problemId: v.id("problems"),
+    contestProblemId: v.optional(v.id("contestProblems")),
+    best: scoringBest,
+  }).index("by_problem_contestProblem", ["problemId", "contestProblemId"]),
 
   submissionSources: defineTable({
     submissionId: v.id("submissions"),

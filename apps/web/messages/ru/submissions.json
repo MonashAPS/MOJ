@@ -70,6 +70,7 @@
     "counted": "{count, plural, one {Учтено # посылка} few {Учтено # посылки} many {Учтено # посылок} other {Учтено # посылки}}"
   },
   "row": {
+    "bytes": "{count, plural, one {# байт} few {# байта} many {# байт} other {# байта}}",
     "deletedProblem": "Удалённая задача",
     "judging": "Проверка",
     "view": "Просмотреть эту посылку",

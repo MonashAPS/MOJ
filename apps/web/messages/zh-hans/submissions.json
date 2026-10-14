@@ -70,6 +70,7 @@
     "counted": "已统计 {count, plural, other {# 条提交}}"
   },
   "row": {
+    "bytes": "{count} 字节",
     "deletedProblem": "已删除的题目",
     "judging": "评测中",
     "view": "查看此提交",

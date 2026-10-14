@@ -114,12 +114,15 @@ A directory counts as a problem when it holds a `config.json` or a
   "pythonTimeLimit": 3,
   "memoryLimit": 512000,
   "shortCircuit": true,
-  "public": true
+  "public": true,
+  "scoring": { "kind": "golf" },
+  "languages": ["PY3", "CPP20"]
 }
 ```
 
 Every key is optional except `title`, which is required the first time a problem
-is uploaded. An absent key leaves that field as it is on the site, so a
+is uploaded. `scoring` is `"standard"` or `{"kind": "golf"}`, and `languages`
+replaces the problem's allowed languages with the keys listed. An absent key leaves that field as it is on the site, so a
 statement-only change never disturbs the points or the limits, and `"authors":
 []` means "leave the authors alone" rather than "remove every author".
 

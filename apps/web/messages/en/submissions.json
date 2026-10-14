@@ -70,6 +70,7 @@
     "counted": "{count, plural, one {# submission} other {# submissions}} counted"
   },
   "row": {
+    "bytes": "{count, plural, one {# byte} other {# bytes}}",
     "deletedProblem": "Deleted problem",
     "judging": "Judging",
     "view": "View this submission",
