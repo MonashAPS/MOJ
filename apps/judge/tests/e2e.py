@@ -27,6 +27,11 @@ the middle case of the first batch:
  11. with short circuiting off, the rest of the failed batch runs and the dependent batch is skipped
  12. with short circuiting on, grading stops at the failed case
 
+The last two are C++ against `aplusb`, for the GCC 16 header shim:
+
+ 13. `assert` through <bits/stdc++.h> alone compiles and is accepted
+ 14. an NDEBUG defined above that include still switches asserts off
+
 Run from the repository root:
 
     python3 apps/judge/tests/e2e.py
@@ -74,6 +79,18 @@ AC_SOURCE = 'a, b = map(int, input().split())\nprint(a + b)\n'
 WA_SOURCE = 'a, b = map(int, input().split())\nprint(a + b + (1 if a + b > 1000 else 0))\n'
 LOOP_SOURCE = 'while True:\n    pass\n'
 MUL_SOURCE = 'a, b = map(int, input().split())\nprint(a * b)\n'
+CPP_ASSERT_SOURCE = (
+    '#include <bits/stdc++.h>\n'
+    'int main() {\n'
+    '    long long a, b;\n'
+    '    std::cin >> a >> b;\n'
+    '    assert(a + b == b + a);\n'
+    '    std::cout << a + b << std::endl;\n'
+    '}\n'
+)
+# Accepted only if the assert is compiled out: with it live, every case aborts.
+CPP_NDEBUG_SOURCE = '#define NDEBUG\n' + CPP_ASSERT_SOURCE.replace('a + b == b + a', 'false')
+CPP_EXECUTOR = 'CPP17'
 
 # Nothing under infra/problems provides this code, so every case below that grades it can only be grading
 # test data the judge fetched. It multiplies rather than adds, so grading it against another problem's data
@@ -339,6 +356,7 @@ def run(image: str, port: int, network: str, dump: Optional[str] = None) -> None
         handshake = server.handshakes[0]
         print('handshake: %d executor(s)' % len(handshake['executors']), flush=True)
         check('PY3' in handshake['executors'], 'judge did not report a PY3 executor')
+        check(CPP_EXECUTOR in handshake['executors'], 'judge did not report a %s executor' % CPP_EXECUTOR)
 
         print('\n=== 1. accepted ===', flush=True)
         server.enqueue(1, 'aplusb', 'PY3', AC_SOURCE)
@@ -448,6 +466,18 @@ def run(image: str, port: int, network: str, dump: Optional[str] = None) -> None
         server.enqueue(12, DEPENDENT_PROBLEM, 'PY3', WA_SOURCE, short_circuit=True, problem_data_hash=dependent_hash)
         wait_for_final(server, 12, FINALS)
         expect(server, 12, 'short circuit', BATCHED, [(1, 'AC'), (2, 'WA'), (3, 'SC'), (4, 'SC')])
+
+        all_ac = [(1, 'AC'), (2, 'AC'), (3, 'AC'), (4, 'AC'), (5, 'AC'), (6, 'AC')]
+
+        print('\n=== 13. assert through <bits/stdc++.h> ===', flush=True)
+        server.enqueue(13, 'aplusb', CPP_EXECUTOR, CPP_ASSERT_SOURCE)
+        wait_for_final(server, 13, FINALS)
+        expect(server, 13, 'cassert', BATCHED, all_ac)
+
+        print('\n=== 14. NDEBUG above <bits/stdc++.h> ===', flush=True)
+        server.enqueue(14, 'aplusb', CPP_EXECUTOR, CPP_NDEBUG_SOURCE)
+        wait_for_final(server, 14, FINALS)
+        expect(server, 14, 'NDEBUG', BATCHED, all_ac)
 
         print('\n=== heartbeats ===', flush=True)
         # Grading four submissions takes under ten seconds, so wait for the cadence rather than assume it.
