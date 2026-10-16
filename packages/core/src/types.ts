@@ -286,6 +286,11 @@ export interface ContestSubmissionRow {
   readonly isPretest?: boolean;
   /** Per-case rows, needed by the `ioi16` format only. */
   readonly testCases?: readonly SubmissionTestCaseRow[];
+  /**
+   * The problem has a scoring kind: `contestPoints` is already the submission's
+   * score against its scope's best, and its cases are only the judge's checks.
+   */
+  readonly scored?: boolean;
 }
 
 export interface SubmissionTestCaseRow {

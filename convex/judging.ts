@@ -513,6 +513,7 @@ export async function recomputeParticipation(
       date: submission.date,
       isPretest: submission.isContestPretest ?? false,
       testCases,
+      scored: scope !== undefined,
     });
   }
 
