@@ -22,7 +22,15 @@ function isMethodList(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(isMethodName);
 }
 
-export function LoginForm({ next, initialError }: { next: string; initialError?: string }) {
+export function LoginForm({
+  next,
+  initialError,
+  siteName,
+}: {
+  next: string;
+  initialError?: string;
+  siteName: string;
+}) {
   const t = useTranslations("auth.login");
   const tError = useTranslations("auth.errors");
   const router = useRouter();
@@ -108,7 +116,7 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
   return (
     <AuthCard
       title={t("title")}
-      subtitle={t("subtitle")}
+      subtitle={t("subtitle", { site: siteName })}
       footer={
         <span>
           {t.rich("footer", {
