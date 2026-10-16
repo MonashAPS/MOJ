@@ -83,6 +83,15 @@
     "rowAria": "Посылка {id}",
     "rowAriaForProblem": "Посылка {id} к задаче {problem}"
   },
+  "scored": {
+    "kind": "{kind, select, golf {Код-гольф} other {Со счётом}}",
+    "rowTooltip": "Баллы ({kind}). Проверки судьи: {earned} / {total}.",
+    "golfMeasured": "{bytes, plural, one {# байт} few {# байта} many {# байт} other {# байта}}; самое короткое принятое решение {scope, select, contest {в этом соревновании} other {этой задачи}} на данный момент — {shortest, plural, one {# байт} few {# байта} many {# байт} other {# байта}}.",
+    "golfRejected": "Баллы получает только принятая посылка; самое короткое принятое решение {scope, select, contest {в этом соревновании} other {этой задачи}} на данный момент — {shortest, plural, one {# байт} few {# байта} many {# байт} other {# байта}}.",
+    "golfNoneAccepted": "Баллы получает только принятая посылка, а {scope, select, contest {в этом соревновании} other {по этой задаче}} принятых решений пока нет.",
+    "checksNote": "Тесты ниже — это проверки судьи. Они решают, принята ли посылка, а не сколько баллов она получает.",
+    "judgeChecks": "Проверки судьи"
+  },
   "status": {
     "panelTitle": "Посылка {id}",
     "maskedBadge": "Скрыто до конца соревнования",

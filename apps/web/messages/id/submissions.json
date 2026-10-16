@@ -83,6 +83,15 @@
     "rowAria": "Pengiriman {id}",
     "rowAriaForProblem": "Pengiriman {id} untuk {problem}"
   },
+  "scored": {
+    "kind": "{kind, select, golf {Code golf} other {Berskor}}",
+    "rowTooltip": "Poin {kind}. Pemeriksaan judge: {earned} / {total}.",
+    "golfMeasured": "{bytes, plural, other {# byte}}; solusi diterima yang terpendek {scope, select, contest {di kontes ini} other {untuk soal ini}} sejauh ini {shortest, plural, other {# byte}}.",
+    "golfRejected": "Hanya kiriman yang diterima yang mendapat skor; solusi diterima yang terpendek {scope, select, contest {di kontes ini} other {untuk soal ini}} sejauh ini {shortest, plural, other {# byte}}.",
+    "golfNoneAccepted": "Hanya kiriman yang diterima yang mendapat skor, dan belum ada yang diterima {scope, select, contest {di kontes ini} other {untuk soal ini}}.",
+    "checksNote": "Kasus di bawah adalah pemeriksaan judge. Kasus itu menentukan apakah kiriman diterima, bukan berapa skornya.",
+    "judgeChecks": "Pemeriksaan judge"
+  },
   "status": {
     "panelTitle": "Pengiriman {id}",
     "maskedBadge": "Disembunyikan hingga kontes berakhir",

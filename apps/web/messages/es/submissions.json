@@ -83,6 +83,15 @@
     "rowAria": "Envío {id}",
     "rowAriaForProblem": "Envío {id} de {problem}"
   },
+  "scored": {
+    "kind": "{kind, select, golf {Code golf} other {Puntuado}}",
+    "rowTooltip": "Puntos de {kind}. Comprobaciones del juez: {earned} / {total}.",
+    "golfMeasured": "{bytes, plural, one {# byte} other {# bytes}}; la solución aceptada más corta {scope, select, contest {en este concurso} other {de este problema}} hasta ahora tiene {shortest, plural, one {# byte} other {# bytes}}.",
+    "golfRejected": "Solo puntúa un envío aceptado; la solución aceptada más corta {scope, select, contest {en este concurso} other {de este problema}} hasta ahora tiene {shortest, plural, one {# byte} other {# bytes}}.",
+    "golfNoneAccepted": "Solo puntúa un envío aceptado, y todavía no se ha aceptado nada {scope, select, contest {en este concurso} other {en este problema}}.",
+    "checksNote": "Los casos de abajo son las comprobaciones del juez. Deciden si el envío es aceptado, no cuánto puntúa.",
+    "judgeChecks": "Comprobaciones del juez"
+  },
   "status": {
     "panelTitle": "Envío {id}",
     "maskedBadge": "Oculto hasta que termine el concurso",

@@ -83,6 +83,15 @@
     "rowAria": "提交 {id}",
     "rowAriaForProblem": "{problem} 的提交 {id}"
   },
+  "scored": {
+    "kind": "{kind, select, golf {代码高尔夫} other {计分题}}",
+    "rowTooltip": "{kind}得分。评测检查：{earned} / {total}。",
+    "golfMeasured": "{bytes} 字节；{scope, select, contest {本比赛中} other {本题}}目前最短的通过解为 {shortest} 字节。",
+    "golfRejected": "只有通过的提交才得分；{scope, select, contest {本比赛中} other {本题}}目前最短的通过解为 {shortest} 字节。",
+    "golfNoneAccepted": "只有通过的提交才得分，而{scope, select, contest {本比赛中} other {本题}}还没有通过的提交。",
+    "checksNote": "下面的测试点是评测检查，它们决定提交是否通过，而不决定得分。",
+    "judgeChecks": "评测检查"
+  },
   "status": {
     "panelTitle": "提交 {id}",
     "maskedBadge": "比赛结束前隐藏",

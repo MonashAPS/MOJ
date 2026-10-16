@@ -11,6 +11,7 @@
  */
 
 import {
+  blindDuringFreeze,
   canSeeSubmissionDetail,
   contestCanSeeFullScoreboard,
   hasPerm as coreHasPerm,
@@ -356,6 +357,26 @@ export const statusExtras = query({
     const associationVisible =
       !contest || isOwn || canSeeContestAssociation(contest, await loadViewerContext(ctx));
 
+    // The live payload hides a contestant's own verdicts behind a blind freeze;
+    // the contest points here are the same score and are hidden the same way.
+    const blinded =
+      !!contest &&
+      "masked" in
+        blindDuringFreeze(
+          {
+            profileId: submission.profileId,
+            date: submission.date,
+            status: submission.status,
+            result: submission.result ?? null,
+            points: submission.points ?? null,
+            casePoints: submission.casePoints,
+            caseTotal: submission.caseTotal,
+          },
+          toContestRow(contest),
+          viewer,
+          { now },
+        );
+
     return {
       found: true,
       canSeeDetail,
@@ -397,7 +418,7 @@ export const statusExtras = query({
           ? {
               key: contest.key,
               name: contest.name,
-              points: submission.contestPoints ?? null,
+              points: blinded ? null : (submission.contestPoints ?? null),
               total: contestProblem.points,
             }
           : null,
