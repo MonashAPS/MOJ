@@ -196,12 +196,22 @@ describe("scored submissions", () => {
     expect(detail?.submission.scored).toBeNull();
     expect(detail?.scoring).toBeNull();
 
+    // The status page's extras carry the same score as the contest's points.
+    const extras = await as.query(api.pages.submissions.statusExtras, { submissionId });
+
+    expect(extras?.contest?.total).toBe(300);
+    expect(extras?.contest?.points).toBeNull();
+
     // Staff see straight through it.
     await insertProfile(t, { username: "staff", permissions: ["judge.see_private_contest"] });
 
     const staffView = await asUser(t, "staff").query(api.submissions.detail, { submissionId });
 
     expect(staffView?.submission.scored).toEqual({ kind: "golf", points: 150, outOf: 300 });
+
+    const staffExtras = await asUser(t, "staff").query(api.pages.submissions.statusExtras, { submissionId });
+
+    expect(staffExtras?.contest?.points).toBe(150);
   });
 
   it("leaves a standard problem on its case score", async () => {
