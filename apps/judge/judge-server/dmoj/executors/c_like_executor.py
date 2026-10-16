@@ -20,6 +20,14 @@ CLANG_VERSIONS: List[str] = ['3.9', '3.8', '3.7', '3.6', '3.5']
 
 recppexc = re.compile(br"terminate called after throwing an instance of \'([A-Za-z0-9_:]+)\'\r?$", re.M)
 
+STDCXX_SHIM_DIR = '.stdcxx'
+STDCXX_SHIM = b"""\
+#include_next <bits/stdc++.h>
+#ifndef _GLIBCXX_NO_ASSERT
+#include <cassert>
+#endif
+"""
+
 
 class CLikeExecutor(SingleDigitVersionMixin, CompiledExecutor):
     defines: List[str] = []
@@ -179,6 +187,18 @@ class CExecutor(CLikeExecutor):
 class CPPExecutor(CLikeExecutor):
     ext: str = 'cpp'
     is_signature_gradable = True
+
+    def create_files(self, problem_id: str, source_code: bytes, *args, **kwargs) -> None:
+        super().create_files(problem_id, source_code, *args, **kwargs)
+        # GCC 16 stopped including <cassert> from <bits/stdc++.h>, so a submission that leans on it for
+        # `assert` no longer compiles. This header shadows the real one and includes <cassert> after it, where
+        # GCC 15 and earlier did, so an NDEBUG defined above the include still switches asserts off.
+        os.makedirs(self._file(STDCXX_SHIM_DIR, 'bits'), exist_ok=True)
+        with open(self._file(STDCXX_SHIM_DIR, 'bits', 'stdc++.h'), 'wb') as fo:
+            fo.write(STDCXX_SHIM)
+
+    def get_flags(self) -> List[str]:
+        return super().get_flags() + ['-isystem', STDCXX_SHIM_DIR]
 
     @classmethod
     def get_valid_exts(cls) -> Sequence[str]:
