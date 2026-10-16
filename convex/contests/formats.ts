@@ -156,6 +156,7 @@ export function toContestSubmissionRow(
   submission: Doc<"submissions">,
   contestProblemId: Id<"contestProblems">,
   testCases?: readonly SubmissionTestCaseRow[],
+  scored = false,
 ): ContestSubmissionRow {
   return {
     id: submission._id,
@@ -169,6 +170,7 @@ export function toContestSubmissionRow(
     date: submission.date,
     isPretest: submission.isContestPretest ?? false,
     testCases,
+    scored,
   };
 }
 
@@ -284,11 +286,19 @@ export async function contestSubmissionRows(
 ): Promise<ContestSubmissionRow[]> {
   const submissions = await loadParticipationSubmissions(ctx, participationId);
   const rows: ContestSubmissionRow[] = [];
+  const scoredByContestProblem = new Map<Id<"contestProblems">, boolean>();
 
   for (const submission of submissions) {
     const contestProblemId = submission.contestProblemId;
 
     if (!contestProblemId) continue;
+
+    if (!scoredByContestProblem.has(contestProblemId)) {
+      const contestProblem = await ctx.db.get(contestProblemId);
+      const problem = contestProblem ? await ctx.db.get(contestProblem.problemId) : null;
+      scoredByContestProblem.set(contestProblemId, !!problem?.scoring);
+    }
+
     // Only ioi16 reads per-case rows, so nothing else pays for the query.
     let testCases: SubmissionTestCaseRow[] | undefined;
 
@@ -311,7 +321,14 @@ export async function contestSubmissionRows(
       }));
     }
 
-    rows.push(toContestSubmissionRow(submission, contestProblemId, testCases));
+    rows.push(
+      toContestSubmissionRow(
+        submission,
+        contestProblemId,
+        testCases,
+        scoredByContestProblem.get(contestProblemId) ?? false,
+      ),
+    );
   }
 
   return rows;

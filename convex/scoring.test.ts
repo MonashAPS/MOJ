@@ -45,7 +45,7 @@ async function golfSetup() {
   return { t, languageId, problemId };
 }
 
-async function makeContest(t: T, problemId: Id<"problems">) {
+async function makeContest(t: T, problemId: Id<"problems">, formatName = "default") {
   const now = Date.now();
 
   const contestId = await insertContest(t, {
@@ -53,7 +53,7 @@ async function makeContest(t: T, problemId: Id<"problems">) {
     name: "Golf contest",
     startTime: now - 3600_000,
     endTime: now + 3600_000,
-    formatName: "default",
+    formatName,
   });
 
   const contestProblemId = await insertContestProblem(t, {
@@ -141,6 +141,57 @@ describe("code golf scoring", () => {
     // Practice points are against the problem's own best, out of its points.
     expect(a?.points).toBe(40);
     expect(b?.points).toBe(100);
+  });
+
+  it("scores a golf problem by its scored points in a batch format", async () => {
+    const { t, languageId, problemId } = await golfSetup();
+    const { contestId, contestProblemId } = await makeContest(t, problemId, "ioi16");
+    const first = await insertProfile(t);
+    const second = await insertProfile(t);
+    const realStart = Date.now() - 600_000;
+    const firstParticipation = await insertParticipation(t, { contestId, profileId: first, realStart });
+    const secondParticipation = await insertParticipation(t, { contestId, profileId: second, realStart });
+    const contest = { contestId, contestProblemId };
+
+    await insertSubmission(t, {
+      profileId: first,
+      problemId,
+      languageId,
+      status: "QU",
+      legacyId: 1,
+      date: 1,
+      source: sourceOf(100),
+      participationId: firstParticipation,
+      ...contest,
+    });
+
+    await grade(t);
+    await t.finishAllScheduledFunctions(() => {});
+
+    expect((await t.run(async (ctx) => ctx.db.get(firstParticipation)))?.score).toBe(50);
+
+    await insertSubmission(t, {
+      profileId: second,
+      problemId,
+      languageId,
+      status: "QU",
+      legacyId: 2,
+      date: 2,
+      source: sourceOf(40),
+      participationId: secondParticipation,
+      ...contest,
+    });
+
+    await grade(t);
+    await t.finishAllScheduledFunctions(() => {});
+
+    const [aEntry, bEntry] = await t.run(async (ctx) =>
+      Promise.all([ctx.db.get(firstParticipation), ctx.db.get(secondParticipation)]),
+    );
+
+    // The judge's case points say 100 for both; the format scores what golf says.
+    expect(aEntry?.score).toBe(20);
+    expect(bEntry?.score).toBe(50);
   });
 
   it("scores a virtual entrant against the live best without moving it", async () => {

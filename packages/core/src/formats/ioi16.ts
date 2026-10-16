@@ -46,8 +46,15 @@ interface BestBatch {
   date: number;
 }
 
-/** `MIN(tc.points)` per batch for one submission, as the inner `GROUP BY` does. */
+/**
+ * `MIN(tc.points)` per batch for one submission, as the inner `GROUP BY` does.
+ *
+ * A scored problem's case points are the judge's checks, not its score, so the
+ * submission counts as one batch worth its scored points instead.
+ */
 function batchPointsOf(submission: ContestSubmissionRow): Map<string, number> {
+  if (submission.scored) return new Map([[NO_BATCH, submission.contestPoints]]);
+
   const perBatch = new Map<string, number>();
 
   for (const testCase of submission.testCases ?? []) {
