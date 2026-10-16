@@ -23,6 +23,9 @@ import {
   problemIsAccessibleBy,
   problemIsEditableBy,
   problemIsVisibleTo,
+  type ScoringBest,
+  type ScoringKind,
+  type ScoringMeasure,
   type SubmissionResult,
 } from "@moj/core";
 import { paginationOptsValidator, type WithoutSystemFields } from "convex/server";
@@ -36,6 +39,7 @@ import { globalSourceVisibility, siteSettings } from "./lib/community";
 import { forbidden, invalid, mojError, notFound } from "./lib/errors";
 import { proctorBlocksContestProblems, requireProctored } from "./lib/proctor";
 import { rateLimiter } from "./lib/rateLimiter";
+import { scopeBest } from "./lib/scoring";
 import { canSeeContestAssociation, hasSolvedProblem, toCoreProblem } from "./problems";
 
 /* -------------------------------------------------------------------------- */
@@ -199,6 +203,13 @@ function contestSubmissionsVisible(contest: Doc<"contests">, viewer: CoreViewer,
 /* List rows                                                                  */
 /* -------------------------------------------------------------------------- */
 
+/** What a submission to a scored problem is worth in its scope, out of the most it could be. */
+export interface SubmissionScored {
+  kind: ScoringKind;
+  points: number;
+  outOf: number;
+}
+
 export interface SubmissionListRow {
   _id: Id<"submissions">;
   id: number | string;
@@ -227,10 +238,17 @@ export interface SubmissionListRow {
   } | null;
   contest: { _id: Id<"contests">; key: string; name: string } | null;
   contestPoints: number | null;
+  /**
+   * On a scored problem, the points the case score does not show: a contest
+   * submission's contest points out of its contest problem's, anyone else's
+   * points out of the problem's. Null wherever those points are hidden.
+   */
+  scored: SubmissionScored | null;
 }
 
 interface RowCaches {
   problems: Map<Id<"problems">, Doc<"problems"> | null>;
+  contestProblems: Map<Id<"contestProblems">, Doc<"contestProblems"> | null>;
   languages: Map<Id<"languages">, Doc<"languages"> | null>;
   profiles: Map<Id<"profiles">, Doc<"profiles"> | null>;
   contests: Map<Id<"contests">, Doc<"contests"> | null>;
@@ -240,6 +258,7 @@ interface RowCaches {
 function newCaches(): RowCaches {
   return {
     problems: new Map(),
+    contestProblems: new Map(),
     languages: new Map(),
     profiles: new Map(),
     contests: new Map(),
@@ -247,7 +266,7 @@ function newCaches(): RowCaches {
   };
 }
 
-async function cachedGet<T extends "problems" | "languages" | "profiles" | "contests">(
+async function cachedGet<T extends "problems" | "contestProblems" | "languages" | "profiles" | "contests">(
   ctx: QueryCtx,
   cache: Map<Id<T>, Doc<T> | null>,
   id: Id<T>,
@@ -341,6 +360,11 @@ async function buildRow(
     (contestIsVisibleTo(toContestRow(contest), viewer) &&
       canSeeContestAssociation(contest, { profile: viewerProfile, core: viewer }, now));
 
+  const shownProblem =
+    problem && (canSee || problemIsVisibleTo(toCoreProblem(problem), viewer)) ? problem : null;
+
+  const contestPoints = masked || !associationVisible ? null : (submission.contestPoints ?? null);
+
   return {
     _id: submission._id,
     id: submission.legacyId ?? submission._id,
@@ -359,10 +383,14 @@ async function buildRow(
     masked,
     canSeeDetail: canSee,
     language: language ? { key: language.key, name: language.name, shortName: language.shortName } : null,
-    problem:
-      problem && (canSee || problemIsVisibleTo(toCoreProblem(problem), viewer))
-        ? { _id: problem._id, code: problem.code, name: problem.name, points: problem.points }
-        : null,
+    problem: shownProblem
+      ? {
+          _id: shownProblem._id,
+          code: shownProblem.code,
+          name: shownProblem.name,
+          points: shownProblem.points,
+        }
+      : null,
     user: author
       ? {
           _id: author._id,
@@ -373,8 +401,49 @@ async function buildRow(
       : null,
     contest:
       contest && associationVisible ? { _id: contest._id, key: contest.key, name: contest.name } : null,
-    contestPoints: masked || !associationVisible ? null : (submission.contestPoints ?? null),
+    contestPoints,
+    scored: await scoredPoints(ctx, caches, submission, shownProblem, {
+      contestShown: !!contest && associationVisible,
+      points: view.points,
+      contestPoints,
+    }),
   };
+}
+
+/** The contest problem a scored row is scored in, or none for the problem's own scope. */
+function scoredContestProblem(
+  submission: Doc<"submissions">,
+  contestShown: boolean,
+): Id<"contestProblems"> | undefined {
+  return contestShown ? submission.contestProblemId : undefined;
+}
+
+/**
+ * `SubmissionListRow.scored`, from the points the row already shows: a
+ * submission listed with its contest is scored in its contest problem, any
+ * other in the problem itself.
+ */
+async function scoredPoints(
+  ctx: QueryCtx,
+  caches: RowCaches,
+  submission: Doc<"submissions">,
+  problem: Doc<"problems"> | null,
+  shown: { contestShown: boolean; points: number | null; contestPoints: number | null },
+): Promise<SubmissionScored | null> {
+  if (!problem?.scoring) return null;
+  const contestProblemId = scoredContestProblem(submission, shown.contestShown);
+
+  if (!contestProblemId) {
+    return shown.points === null
+      ? null
+      : { kind: problem.scoring.kind, points: shown.points, outOf: problem.points };
+  }
+
+  const contestProblem = await cachedGet(ctx, caches.contestProblems, contestProblemId);
+
+  if (!contestProblem || shown.contestPoints === null) return null;
+
+  return { kind: problem.scoring.kind, points: shown.contestPoints, outOf: contestProblem.points };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -570,6 +639,38 @@ async function isListable(
 /* Detail                                                                     */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * What a scored row's points rest on, for a viewer who may read its detail:
+ * the scope it is scored in, its own measure and the scope's best so far. Both
+ * values are tagged with their kind, so each kind draws its own.
+ */
+export interface SubmissionScoring {
+  kind: ScoringKind;
+  scope: "contest" | "practice";
+  measure: ScoringMeasure | null;
+  best: ScoringBest | null;
+}
+
+async function scoringOf(
+  ctx: QueryCtx,
+  submission: Doc<"submissions">,
+  row: SubmissionListRow,
+): Promise<SubmissionScoring | null> {
+  if (!row.scored) return null;
+  const kind = row.scored.kind;
+  const contestProblemId = scoredContestProblem(submission, row.contest !== null);
+  const best = await scopeBest(ctx, submission.problemId, contestProblemId);
+  const measure = submission.scoringMeasure ?? null;
+
+  return {
+    kind,
+    scope: contestProblemId ? "contest" : "practice",
+    // A value of another kind was written before the problem changed kind.
+    measure: measure?.kind === kind ? measure : null,
+    best: best?.kind === kind ? best : null,
+  };
+}
+
 export const detail = query({
   args: { submissionId: v.union(v.string(), v.number()) },
   handler: async (ctx, args) => {
@@ -583,7 +684,7 @@ export const detail = query({
     const row = await buildRow(ctx, caches, submission, viewerCtx, now);
 
     if (!row.canSeeDetail) {
-      return { submission: row, cases: [], batches: [], error: null, canSeeDetail: false };
+      return { submission: row, cases: [], batches: [], error: null, canSeeDetail: false, scoring: null };
     }
 
     const cases = row.masked
@@ -599,6 +700,7 @@ export const detail = query({
       submission: row,
       canSeeDetail: true,
       error: row.masked ? null : (submission.error ?? null),
+      scoring: await scoringOf(ctx, submission, row),
       cases: cases.map((testCase) => ({
         case: testCase.case,
         status: testCase.status,
