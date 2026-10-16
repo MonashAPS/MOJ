@@ -457,8 +457,6 @@ export const sourceView = query({
 
     if (!problem || !author) return null;
 
-    if (!problemIsVisibleTo(toCoreProblem(problem), viewer)) return null;
-
     const contest = submission.contestId ? await ctx.db.get(submission.contestId) : null;
     const solved = await hasSolvedProblem(ctx, viewerCtx.profile?._id, problem._id);
 
@@ -470,6 +468,11 @@ export const sourceView = query({
           globalSubmissionSourceVisibility: globalSourceVisibility(await siteSettings(ctx)),
         })
       : false;
+
+    // A contest problem is private until the contest publishes it, and its
+    // entrants still read their own sources: the detail rule decides first, as
+    // on the status page, and the problem's visibility only gates everyone else.
+    if (!canSee && !problemIsVisibleTo(toCoreProblem(problem), viewer)) return null;
 
     const problemEditable = problemIsEditableBy(toCoreProblem(problem), viewer);
     const locked = isLocked({ lockedAfter: submission.lockedAfter ?? null }, now);

@@ -297,6 +297,42 @@ describe("statusExtras", () => {
 });
 
 describe("sourceView", () => {
+  it("shows an entrant their own source on a private contest problem", async () => {
+    const { t, languageId } = await fixture();
+
+    const problemId = await insertProblem(t, {
+      code: "hidden",
+      isPublic: false,
+      allowedLanguageIds: [languageId],
+    });
+
+    const owner = await insertProfile(t, { username: "owner" });
+    await insertSubmission(t, {
+      profileId: owner,
+      problemId,
+      languageId,
+      status: "D",
+      result: "AC",
+      legacyId: 41,
+      source: "print(2)\n",
+    });
+
+    const asOwner = await asUser(t, "owner").query(api.pages.submissions.sourceView, {
+      submissionId: 41,
+    });
+
+    expect(asOwner?.canSeeSource).toBe(true);
+    expect(asOwner?.source).toBe("print(2)");
+
+    await insertProfile(t, { username: "stranger" });
+
+    const asStranger = await asUser(t, "stranger").query(api.pages.submissions.sourceView, {
+      submissionId: 41,
+    });
+
+    expect(asStranger).toBeNull();
+  });
+
   it("withholds the source from someone who may not read it", async () => {
     const { t, languageId } = await fixture();
 
