@@ -43,7 +43,10 @@ accepted count, AC rate and best time.
 A code golf problem says so above its statement, with the shortest accepted length so far: inside a contest the
 shortest among its live participants, otherwise the shortest of any submission. The shortest accepted solution scores full points
 and a longer one scores in proportion, so your points drop when someone submits something shorter. Golf
-submissions show their length in bytes in the submission list. See [Scoring](/problems/format#scoring).
+submissions show their length in bytes in the submission list, and their points where other problems show the
+case score; the case score is in the tooltip. A golf submission's status page leads with its points, its length and
+the shortest it was scored against, and its cases are the judge's checks of whether it is accepted. See
+[Scoring](/problems/format#scoring).
 
 ## Getting around
 

@@ -83,6 +83,15 @@
     "rowAria": "Submission {id}",
     "rowAriaForProblem": "Submission {id} for {problem}"
   },
+  "scored": {
+    "kind": "{kind, select, golf {Code golf} other {Scored}}",
+    "rowTooltip": "{kind} points. The judge's checks: {earned} / {total}.",
+    "golfMeasured": "{bytes, plural, one {# byte} other {# bytes}}; the shortest accepted solution {scope, select, contest {in this contest} other {to this problem}} so far is {shortest, plural, one {# byte} other {# bytes}}.",
+    "golfRejected": "Only an accepted submission scores; the shortest accepted solution {scope, select, contest {in this contest} other {to this problem}} so far is {shortest, plural, one {# byte} other {# bytes}}.",
+    "golfNoneAccepted": "Only an accepted submission scores, and nothing has been accepted {scope, select, contest {in this contest} other {for this problem}} yet.",
+    "checksNote": "The cases below are the judge's checks. They decide whether the submission is accepted, not what it scores.",
+    "judgeChecks": "Judge's checks"
+  },
   "status": {
     "panelTitle": "Submission {id}",
     "maskedBadge": "Hidden until the contest ends",

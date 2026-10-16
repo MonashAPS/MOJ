@@ -6,7 +6,15 @@ import { Eye, Loader2, RefreshCw, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { RelativeTime } from "@/components/time/LocalTime";
-import { DASH, formatMemory, formatScore, formatTime, isGrading, verdictCode } from "@/lib/submissionFormat";
+import {
+  DASH,
+  formatMemory,
+  formatPoints,
+  formatScore,
+  formatTime,
+  isGrading,
+  verdictCode,
+} from "@/lib/submissionFormat";
 
 /** `--v-<verdict>` for the 3px rail, through the one tone resolver's families. */
 const RAIL = new Map<string, string>([
@@ -53,6 +61,7 @@ export function SubmissionRow({
   onAbort: (id: number | string) => void;
 }) {
   const t = useTranslations("submissions");
+  const scored = row.scored;
   const grading = isGrading(row.status);
   const code = verdictCode(row);
   const score = formatScore(row.casePoints, row.caseTotal);
@@ -97,7 +106,23 @@ export function SubmissionRow({
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-3 py-2 max-[700px]:order-1 max-[700px]:basis-[calc(100%-3px)]">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <span className="shrink-0 font-mono text-sm font-medium tabular-nums text-foreground">
-            {showScore ? (
+            {showScore && scored ? (
+              // A scored problem's points, not its case score, which is only the
+              // judge's checks; the tooltip names the kind and keeps the checks.
+              <Tooltip
+                content={t("scored.rowTooltip", {
+                  kind: t("scored.kind", { kind: scored.kind }),
+                  earned: score.earned,
+                  total: score.total,
+                })}
+              >
+                <span className="relative z-10">
+                  {formatPoints(scored.points)}
+                  <span className="text-muted-foreground"> / {formatPoints(scored.outOf)}</span>
+                  <span className="sr-only"> {t("scored.kind", { kind: scored.kind })}</span>
+                </span>
+              </Tooltip>
+            ) : showScore ? (
               <>
                 {score.earned}
                 <span className="text-muted-foreground"> / {score.total}</span>

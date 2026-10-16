@@ -34,6 +34,7 @@ import {
 import type { StatusExtras } from "@/lib/submissionsData";
 import { AnsiBlock } from "./AnsiBlock";
 import styles from "./code.module.css";
+import { ScoringExplanation } from "./ScoringExplanation";
 
 type Detail = NonNullable<FunctionReturnType<typeof api.submissions.detail>>;
 
@@ -145,6 +146,7 @@ export function StatusView({
 }) {
   const { absoluteTime } = useDateFormatters();
   const t = useTranslations("submissions.status");
+  const scoredText = useTranslations("submissions.scored");
   const live = useQuery(api.submissions.detail, { submissionId: String(extras.id) });
   const detail = live ?? initial;
   const row = detail.submission;
@@ -154,6 +156,10 @@ export function StatusView({
   const groups = groupCases(detail.cases);
   const strip = statusStrip(groups, !grading);
   const maxExecutionTime = detail.cases.reduce((slowest, item) => Math.max(slowest, item.time), 0);
+  const settled = !grading && row.status !== "IE" && row.status !== "CE" && row.status !== "AB";
+  // A scored problem's points are not its case score, so they lead and the
+  // cases are labelled as the judge's checks.
+  const scored = row.scored;
 
   return (
     <div className="grid gap-4">
@@ -161,8 +167,13 @@ export function StatusView({
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <VerdictPill verdict={code} judging={grading} label={grading ? row.status : undefined} size="lg" />
           <span className="font-mono text-h2 font-medium tabular-nums text-foreground">
-            {grading || row.status === "IE" || row.status === "CE" || row.status === "AB" ? (
+            {!settled ? (
               <span className="text-muted-foreground">{DASH}</span>
+            ) : scored ? (
+              <>
+                {formatPoints(scored.points)}
+                <span className="text-muted-foreground"> / {formatPoints(scored.outOf)}</span>
+              </>
             ) : (
               <>
                 {score.earned}
@@ -170,12 +181,17 @@ export function StatusView({
               </>
             )}
           </span>
+          {scored ? <Badge variant="accent">{scoredText("kind", { kind: scored.kind })}</Badge> : null}
           {row.masked ? (
             <Badge variant="run">{t("maskedBadge")}</Badge>
           ) : row.isPretested ? (
             <Badge variant="warn">{t("pretestsBadge")}</Badge>
           ) : null}
         </div>
+
+        {settled && detail.scoring ? (
+          <ScoringExplanation scoring={detail.scoring} cases={detail.cases} />
+        ) : null}
 
         <dl className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
           <Meta label={t("metaProblem")} first>
@@ -198,15 +214,17 @@ export function StatusView({
           <Meta label={t("metaSubmitted")}>
             <LocalTime value={extras.date} format="absolute" className="font-mono tabular-nums" />
           </Meta>
-          <Meta label={t("metaPoints")}>
-            <span className="font-mono tabular-nums">
-              {formatPoints(extras.contest ? extras.contest.points : row.points)}
-              <span className="text-muted-foreground">
-                {" / "}
-                {formatPoints(extras.contest ? extras.contest.total : extras.problem.points)}
+          {scored ? null : (
+            <Meta label={t("metaPoints")}>
+              <span className="font-mono tabular-nums">
+                {formatPoints(extras.contest ? extras.contest.points : row.points)}
+                <span className="text-muted-foreground">
+                  {" / "}
+                  {formatPoints(extras.contest ? extras.contest.total : extras.problem.points)}
+                </span>
               </span>
-            </span>
-          </Meta>
+            </Meta>
+          )}
           <Meta label={t("metaTime")} icon={<Clock aria-hidden className="size-3.5" />}>
             <span className="font-mono tabular-nums">
               {row.result === "TLE" ? DASH : formatTime(row.time, 3)}
@@ -289,6 +307,10 @@ export function StatusView({
             </div>
           ) : null}
 
+          {scored && groups.length > 0 ? (
+            <p className="text-sm text-muted-foreground">{scoredText("checksNote")}</p>
+          ) : null}
+
           {groups.map((group, index) => (
             <CaseGroup
               key={group.batch ? `batch-${group.batch}` : `cases-${index}`}
@@ -319,18 +341,39 @@ export function StatusView({
                       </span>
                     </Line>
                   ) : null}
-                  <Line label={row.isPretested ? t("finalPretestScore") : t("finalScore")}>
-                    <span className="font-mono tabular-nums">
-                      {score.earned} / {score.total}
-                      <span className="text-muted-foreground">
-                        {" "}
-                        {t("pointsOf", {
-                          earned: formatPoints(extras.contest ? extras.contest.points : row.points),
-                          total: formatPoints(extras.contest ? extras.contest.total : extras.problem.points),
-                        })}
+                  {scored ? (
+                    <>
+                      <Line label={row.isPretested ? t("finalPretestScore") : t("finalScore")}>
+                        <span className="font-mono tabular-nums">
+                          {formatPoints(scored.points)} / {formatPoints(scored.outOf)}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {" "}
+                          {scoredText("kind", { kind: scored.kind })}
+                        </span>
+                      </Line>
+                      <Line label={scoredText("judgeChecks")}>
+                        <span className="font-mono tabular-nums">
+                          {score.earned} / {score.total}
+                        </span>
+                      </Line>
+                    </>
+                  ) : (
+                    <Line label={row.isPretested ? t("finalPretestScore") : t("finalScore")}>
+                      <span className="font-mono tabular-nums">
+                        {score.earned} / {score.total}
+                        <span className="text-muted-foreground">
+                          {" "}
+                          {t("pointsOf", {
+                            earned: formatPoints(extras.contest ? extras.contest.points : row.points),
+                            total: formatPoints(
+                              extras.contest ? extras.contest.total : extras.problem.points,
+                            ),
+                          })}
+                        </span>
                       </span>
-                    </span>
-                  </Line>
+                    </Line>
+                  )}
                   {row.isPretested && row.result === "AC" ? (
                     <p className="text-sm italic text-muted-foreground">{t("pretestNote")}</p>
                   ) : null}
