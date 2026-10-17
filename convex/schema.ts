@@ -20,6 +20,7 @@ export const submissionStatus = v.union(
   v.literal("IE"),
   v.literal("CE"),
   v.literal("AB"),
+  v.literal("RV"),
 );
 
 export const submissionResult = v.union(
@@ -307,6 +308,8 @@ export default defineSchema({
     organizationIds: v.array(v.id("organizations")),
     isOrganizationPrivate: v.boolean(),
     scoring: v.optional(problemScoring),
+    // No judge runs a submission: it waits as `RV` for staff to score it.
+    manualGrading: v.optional(v.boolean()),
     legacyId: v.optional(v.number()),
   })
     .index("by_code", ["code"])
@@ -582,6 +585,11 @@ export default defineSchema({
     inBatch: v.optional(v.boolean()),
     // Set at grading end on a problem with a scoring kind, cleared on requeue.
     scoringMeasure: v.optional(scoringMeasure),
+    // A staff-scored submission's score, by whom and when, and what they told
+    // its author. Cleared when it goes back to `RV`.
+    reviewFeedback: v.optional(v.string()),
+    reviewedByProfileId: v.optional(v.id("profiles")),
+    reviewedAt: v.optional(v.number()),
     legacyId: v.optional(v.number()),
   })
     .index("by_date", ["date"])

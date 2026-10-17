@@ -846,9 +846,10 @@ export const get = query({
 
     // A scored problem shows its best in the viewer's scope: the contest's
     // while they are in one, the problem's own otherwise.
-    const scoring = problem.scoring
-      ? { ...problem.scoring, best: await scopeBest(ctx, problem._id, contestProblem?._id) }
-      : null;
+    const scoring =
+      problem.scoring && !problem.manualGrading
+        ? { ...problem.scoring, best: await scopeBest(ctx, problem._id, contestProblem?._id) }
+        : null;
 
     return {
       id: problem._id,
@@ -858,6 +859,7 @@ export const get = query({
       points: problem.points,
       partial: problem.partial,
       scoring,
+      manualGrading: problem.manualGrading === true,
       timeLimit: problem.timeLimit,
       memoryLimit: problem.memoryLimit,
       shortCircuit: problem.shortCircuit,

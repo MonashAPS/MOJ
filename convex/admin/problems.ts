@@ -16,6 +16,7 @@ import { type MutationCtx, mutation, type QueryCtx, query } from "../_generated/
 import { artefactSnapshot, artefactsOfProblem } from "../artefacts/names";
 import { labelForProblem } from "../contests/formats";
 import type { JobArgs } from "../jobs";
+import { queueWaitingForReview } from "../judging";
 import { writeRevision } from "../lib/community";
 import { forbidden, invalid, notFound } from "../lib/errors";
 import { resetBests, scoringChoice, scoringFromChoice } from "../lib/scoring";
@@ -466,6 +467,7 @@ export const update = mutation({
       v.union(v.literal("A"), v.literal("S"), v.literal("O"), v.literal("F")),
     ),
     scoring: v.optional(scoringChoice),
+    manualGrading: v.optional(v.boolean()),
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -497,6 +499,8 @@ export const update = mutation({
     if (args.memoryLimit !== undefined) patch.memoryLimit = args.memoryLimit;
 
     if (args.shortCircuit !== undefined) patch.shortCircuit = args.shortCircuit;
+
+    if (args.manualGrading !== undefined) patch.manualGrading = args.manualGrading;
 
     if (args.isManuallyManaged !== undefined) patch.isManuallyManaged = args.isManuallyManaged;
 
@@ -567,6 +571,9 @@ export const update = mutation({
 
     await ctx.db.patch(problem._id, patch);
     await writeProblemRevision(ctx, problem._id, profile._id, args.reason ?? "Edited the problem.");
+
+    // Judges take over whatever was still waiting for staff to score it.
+    if (problem.manualGrading && args.manualGrading === false) await queueWaitingForReview(ctx, problem._id);
 
     // `save_model` rescores when any of these change.
     const rescoreFields: (keyof Doc<"problems">)[] = ["isPublic", "organizationIds", "points", "partial"];

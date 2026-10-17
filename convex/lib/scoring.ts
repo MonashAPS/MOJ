@@ -207,7 +207,8 @@ export async function contestScoring(
   for (const contestProblem of contestProblems) {
     const problem = await ctx.db.get(contestProblem.problemId);
 
-    if (!problem?.scoring) continue;
+    // Staff score a manually graded problem's submissions themselves.
+    if (!problem?.scoring || problem.manualGrading) continue;
     scored.set(contestProblem._id, {
       scoring: problem.scoring,
       best: await scopeBest(ctx, problem._id, contestProblem._id),

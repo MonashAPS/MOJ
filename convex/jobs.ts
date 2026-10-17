@@ -203,6 +203,9 @@ export function matchesFilter(submission: Doc<"submissions">, filter: RejudgeFil
     return false;
   }
 
+  // Waiting for a score already; rejudging it would only restart the wait.
+  if (submission.status === "RV") return false;
+
   if (filter.idRange) {
     const id = submission.legacyId;
 
@@ -410,7 +413,10 @@ export const rescoreChunk = internalMutation({
     let done = args.done;
     const profileIds = new Set<Id<"profiles">>(args.profileIds);
     const participationIds = new Set<Id<"contestParticipations">>();
-    const best = problem.scoring ? await scopeBest(ctx, problem._id) : null;
+    // A staff score is case points like any other, and always takes part marks.
+    const manual = problem.manualGrading === true;
+    const scoring = manual ? undefined : problem.scoring;
+    const best = scoring ? await scopeBest(ctx, problem._id) : null;
 
     for (const submission of page.page) {
       let points = pyRound(
@@ -418,13 +424,15 @@ export const rescoreChunk = internalMutation({
         1,
       );
 
-      if (!problem.partial && points < problem.points) points = 0;
+      if (!problem.partial && !manual && points < problem.points) points = 0;
 
       // A scored problem's points come from the best so far, not the cases.
-      if (problem.scoring)
-        points = scoringPoints(problem.scoring, submission.scoringMeasure, best, problem.points);
+      if (scoring) points = scoringPoints(scoring, submission.scoringMeasure, best, problem.points);
 
-      if (submission.points !== points) await ctx.db.patch(submission._id, { points });
+      // One still waiting for its score has no points to rescore.
+      if (submission.status !== "RV" && submission.points !== points) {
+        await ctx.db.patch(submission._id, { points });
+      }
 
       if (submission.participationId) participationIds.add(submission.participationId);
       profileIds.add(submission.profileId);

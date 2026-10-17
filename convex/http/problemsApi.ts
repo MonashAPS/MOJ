@@ -43,6 +43,7 @@ import {
   type MutationCtx,
 } from "../_generated/server";
 import { groupIdByName, typeIdsByName, writeProblemRevision } from "../admin/problems";
+import { queueWaitingForReview } from "../judging";
 import { profileForUserId as profileByUserId } from "../lib/auth";
 import { sha256Hex } from "../lib/hash";
 import type { JsonValue } from "../lib/json";
@@ -266,6 +267,7 @@ export const upsertProblem = internalMutation({
       checkAll: v.optional(v.boolean()),
       languageLimits: v.optional(v.record(v.string(), languageLimitValidator)),
       scoring: v.optional(scoringChoice),
+      manualGrading: v.optional(v.boolean()),
       languages: v.optional(v.array(v.string())),
     }),
   },
@@ -394,6 +396,7 @@ export const upsertProblem = internalMutation({
         organizationIds: [],
         isOrganizationPrivate: false,
         scoring,
+        manualGrading: body.manualGrading,
       });
     } else {
       problemId = existing._id;
@@ -413,6 +416,8 @@ export const upsertProblem = internalMutation({
       if (body.shortCircuit !== undefined) patch.shortCircuit = body.shortCircuit;
 
       if (body.partial !== undefined) patch.partial = body.partial;
+
+      if (body.manualGrading !== undefined) patch.manualGrading = body.manualGrading;
 
       if (body.isPublic !== undefined) patch.isPublic = body.isPublic;
 
@@ -439,6 +444,8 @@ export const upsertProblem = internalMutation({
 
       // group, types, publishOn and checkAll are create-only and ignored here.
       if (Object.keys(patch).length > 0) await ctx.db.patch(problemId, patch);
+
+      if (existing.manualGrading && body.manualGrading === false) await queueWaitingForReview(ctx, problemId);
     }
 
     // Language limits: replace every named key, leave the rest alone.
@@ -581,6 +588,7 @@ export const upsertProblem = internalMutation({
         languageLimits,
         allowedLanguages: languageKeys,
         scoring: problem.scoring ?? { kind: "standard" as const },
+        manualGrading: problem.manualGrading === true,
       },
     };
   },

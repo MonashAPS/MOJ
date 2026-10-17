@@ -32,7 +32,7 @@ import { toContestRow } from "../contests/formats";
 import { resolveSubmission } from "../judging";
 import { globalSourceVisibility, siteSettings } from "../lib/community";
 import { canSeeContestAssociation, hasSolvedProblem, loadViewerContext, toCoreProblem } from "../problems";
-import { viewerContext } from "../submissions";
+import { mayReview, reviewOutOf, viewerContext } from "../submissions";
 
 /* -------------------------------------------------------------------------- */
 /* Filter options                                                             */
@@ -287,6 +287,9 @@ export type SubmissionStatusExtras = {
   canAbort: boolean;
   canRejudge: boolean;
   canResubmit: boolean;
+  /** The viewer may score this staff-scored submission, out of `reviewOutOf`. */
+  canReview: boolean;
+  reviewOutOf: number | null;
 };
 
 /**
@@ -377,6 +380,8 @@ export const statusExtras = query({
           { now },
         );
 
+    const canReview = problem.manualGrading === true && mayReview(viewer, problem, contest);
+
     return {
       found: true,
       canSeeDetail,
@@ -428,6 +433,8 @@ export const statusExtras = query({
         coreHasPerm(viewer, "judge.abort_any_submission") || (isOwn && submission.rejudgedDate === undefined),
       canRejudge: coreHasPerm(viewer, "judge.rejudge_submission") && (!locked || coreIsSuperuser(viewer)),
       canResubmit: isOwn || coreHasPerm(viewer, "judge.resubmit_other"),
+      canReview,
+      reviewOutOf: canReview ? await reviewOutOf(ctx, submission, problem) : null,
     };
   },
 });
