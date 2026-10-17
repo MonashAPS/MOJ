@@ -70,7 +70,8 @@
         "flatpages": "Flat pages",
         "blog": "Blog",
         "licenses": "Licences",
-        "tags": "Tags"
+        "tags": "Tags",
+        "review": "Review"
       }
     }
   },
@@ -136,7 +137,9 @@
         "organizations": "Organisations",
         "organizationsHint": "Naming any organisation makes the problem private to them.",
         "everyone": "Everyone",
-        "statement": "Statement"
+        "statement": "Statement",
+        "manualGrading": "Staff score submissions",
+        "manualGradingHint": "No judge runs a submission. Staff score each one by hand from the review queue, and part marks count."
       }
     },
     "list": {
@@ -876,7 +879,8 @@
       "done": "Done",
       "compileError": "Compile error",
       "internalError": "Internal error",
-      "aborted": "Aborted"
+      "aborted": "Aborted",
+      "review": "Awaiting review"
     },
     "units": {
       "megabytes": "{value} MB",
@@ -2303,5 +2307,39 @@
   },
   "statementPreview": {
     "tooLong": "This statement is too long to preview; it must contain at most {count, number} characters."
+  },
+  "review": {
+    "metaTitle": "Review queue",
+    "title": "Review queue",
+    "caption": "Submissions waiting for a staff score",
+    "intro": "Submissions to staff-scored problems wait here until someone scores them, oldest first.",
+    "columns": {
+      "id": "ID",
+      "problem": "Problem",
+      "user": "User",
+      "contest": "Contest",
+      "language": "Language",
+      "submitted": "Submitted",
+      "outOf": "Out of"
+    },
+    "filters": {
+      "problem": "Problem",
+      "contest": "Contest",
+      "anyProblem": "Any problem",
+      "anyContest": "Any contest"
+    },
+    "emptyTitle": "Nothing to score",
+    "emptyDescription": "Every submission to a staff-scored problem has its score.",
+    "emptyFilteredTitle": "Nothing waiting here",
+    "emptyFilteredDescription": "Nothing waiting matches these filters.",
+    "clearFilters": "Clear filters",
+    "truncated": "Showing the first {count} waiting submissions. Score some to see the rest.",
+    "score": "Score",
+    "sheetTitle": "Submission {id}",
+    "source": "Submission",
+    "loadingSource": "Loading the submission…",
+    "noSource": "You may not read this submission's source.",
+    "openStatus": "Open status page",
+    "practice": "Practice"
   }
 }

@@ -66,7 +66,7 @@ export function SubmissionRow({
   const code = verdictCode(row);
   const score = formatScore(row.casePoints, row.caseTotal);
   const showScore = !grading && row.status !== "IE" && row.status !== "CE" && row.status !== "AB";
-  const noUsage = ["QU", "P", "G", "CE", "IE", "AB"].includes(row.status);
+  const noUsage = ["QU", "P", "G", "CE", "IE", "AB", "RV"].includes(row.status);
   const isOwn = permissions.username !== null && permissions.username === row.user?.username;
 
   const canRejudge =

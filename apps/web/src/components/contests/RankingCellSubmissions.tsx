@@ -27,7 +27,7 @@ import { DASH, formatMemory, formatTime, isGrading, verdictCode } from "@/lib/su
 const PAGE_SIZE = 20;
 
 /** `SubmissionRow`'s `noUsage`: these states carry no score, run time or memory. */
-const WITHOUT_NUMBERS = new Set(["QU", "P", "G", "CE", "IE", "AB"]);
+const WITHOUT_NUMBERS = new Set(["QU", "P", "G", "CE", "IE", "AB", "RV"]);
 
 /**
  * A ranking cell that opens the attempts behind it.

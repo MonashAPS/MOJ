@@ -70,7 +70,8 @@
         "flatpages": "Halaman statis",
         "blog": "Blog",
         "licenses": "Lisensi",
-        "tags": "Tag"
+        "tags": "Tag",
+        "review": "Tinjauan"
       }
     }
   },
@@ -136,7 +137,9 @@
         "organizations": "Organisasi",
         "organizationsHint": "Menyebutkan organisasi mana pun akan membuat soal ini privat khusus untuk mereka.",
         "everyone": "Semua orang",
-        "statement": "Deskripsi"
+        "statement": "Deskripsi",
+        "manualGrading": "Staf menilai kiriman",
+        "manualGradingHint": "Tidak ada juri yang menjalankan kiriman. Staf menilai setiap kiriman secara manual dari antrean tinjauan, dan nilai sebagian dihitung."
       }
     },
     "list": {
@@ -876,7 +879,8 @@
       "done": "Selesai",
       "compileError": "Kesalahan kompilasi",
       "internalError": "Kesalahan internal",
-      "aborted": "Dibatalkan"
+      "aborted": "Dibatalkan",
+      "review": "Menunggu tinjauan"
     },
     "units": {
       "megabytes": "{value} MB",
@@ -2303,5 +2307,39 @@
   },
   "statementPreview": {
     "tooLong": "Deskripsi ini terlalu panjang untuk dipratinjau; maksimal boleh berisi {count, number} karakter."
+  },
+  "review": {
+    "metaTitle": "Antrean tinjauan",
+    "title": "Antrean tinjauan",
+    "caption": "Kiriman yang menunggu nilai dari staf",
+    "intro": "Kiriman ke soal yang dinilai staf menunggu di sini sampai seseorang menilainya, dari yang terlama.",
+    "columns": {
+      "id": "ID",
+      "problem": "Soal",
+      "user": "Pengguna",
+      "contest": "Kontes",
+      "language": "Bahasa",
+      "submitted": "Dikirim",
+      "outOf": "Dari"
+    },
+    "filters": {
+      "problem": "Soal",
+      "contest": "Kontes",
+      "anyProblem": "Semua soal",
+      "anyContest": "Semua kontes"
+    },
+    "emptyTitle": "Tidak ada yang perlu dinilai",
+    "emptyDescription": "Setiap kiriman ke soal yang dinilai staf sudah memiliki nilai.",
+    "emptyFilteredTitle": "Tidak ada yang menunggu di sini",
+    "emptyFilteredDescription": "Tidak ada kiriman yang menunggu yang cocok dengan filter ini.",
+    "clearFilters": "Hapus filter",
+    "truncated": "Menampilkan {count} kiriman pertama yang menunggu. Nilai beberapa untuk melihat sisanya.",
+    "score": "Nilai",
+    "sheetTitle": "Kiriman {id}",
+    "source": "Kiriman",
+    "loadingSource": "Memuat kiriman…",
+    "noSource": "Anda tidak boleh membaca kode kiriman ini.",
+    "openStatus": "Buka halaman status",
+    "practice": "Latihan"
   }
 }

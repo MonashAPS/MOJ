@@ -178,7 +178,9 @@
     "chooseFile": "Choose file",
     "dropHere": "Drop a source file to load it",
     "notText": "That file is not source code.",
-    "openFullPage": "Open the full submit page"
+    "openFullPage": "Open the full submit page",
+    "manualTitle": "Scored by staff",
+    "manualBody": "No judge runs this problem. Your submission waits until a problem setter scores it."
   },
   "rank": {
     "titleFor": "Best solutions for {name}",

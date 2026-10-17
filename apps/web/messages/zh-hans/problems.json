@@ -178,7 +178,9 @@
     "chooseFile": "选择文件",
     "dropHere": "拖入源代码文件即可载入",
     "notText": "该文件不是源代码。",
-    "openFullPage": "打开完整提交页面"
+    "openFullPage": "打开完整提交页面",
+    "manualTitle": "由工作人员评分",
+    "manualBody": "评测机不运行此题。你的提交将等待出题人评分。"
   },
   "rank": {
     "titleFor": "{name} 的最佳解答",

@@ -3,7 +3,7 @@
 import { api } from "@convex/_generated/api";
 import { Alert, AlertDescription, AlertTitle, Button, Kbd, KbdGroup, Select } from "@moj/ui";
 import { useMutation, useQuery } from "convex/react";
-import { Paperclip, TriangleAlert, Upload } from "lucide-react";
+import { ClipboardCheck, Paperclip, TriangleAlert, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -59,7 +59,9 @@ export function SubmitForm({
 
   const languages = usable?.languages ?? [];
   const language = languages.find((row) => row.key === languageKey) ?? null;
-  const noJudges = usable !== undefined && usable !== null && usable.onlineJudges === 0;
+  const manual = usable?.manualGrading === true;
+  // A staff-scored problem needs no judge at all.
+  const noJudges = usable !== undefined && usable !== null && !manual && usable.onlineJudges === 0;
   const exhausted = submissionsLeft !== null && submissionsLeft <= 0;
 
   // The member's default first; then something a judge can actually run; then
@@ -189,6 +191,14 @@ export function SubmitForm({
         </Alert>
       ) : null}
 
+      {manual ? (
+        <Alert variant="info">
+          <ClipboardCheck size={16} aria-hidden />
+          <AlertTitle>{t("manualTitle")}</AlertTitle>
+          <AlertDescription>{t("manualBody")}</AlertDescription>
+        </Alert>
+      ) : null}
+
       {submissionsLeft !== null ? (
         <Alert variant={exhausted ? "danger" : "warning"}>
           <TriangleAlert size={16} aria-hidden />
@@ -282,7 +292,7 @@ export function SubmitForm({
         </div>
 
         <div className="flex h-12 shrink-0 items-center gap-3 border-t border-border bg-secondary px-3">
-          {canPinJudge ? (
+          {canPinJudge && !manual ? (
             <Select
               ariaLabel={t("judge")}
               size="sm"

@@ -125,7 +125,9 @@
     "finalScore": "Final score",
     "pointsOf": "({earned}/{total} points)",
     "pretestNote": "Passing pretests does not guarantee a full score on system tests.",
-    "lastRead": "Last read at {time}."
+    "lastRead": "Last read at {time}.",
+    "awaitingReview": "Awaiting review",
+    "awaitingReviewDescription": "Staff score this problem by hand. The score appears here once someone has reviewed the submission."
   },
   "cases": {
     "pretestsTitle": "Pretests",
@@ -156,5 +158,22 @@
     "copy": "Copy",
     "copied": "Copied",
     "copiedAnnouncement": "Copied to clipboard"
+  },
+  "review": {
+    "panelTitle": "Score this submission",
+    "rescoreTitle": "Change the score",
+    "score": "Score",
+    "outOf": "out of {total}",
+    "scoreHint": "Part marks count. Full marks is an accept and none a wrong answer.",
+    "feedback": "Note for the author",
+    "feedbackOptional": "Optional",
+    "feedbackPlaceholder": "What they did well, and what they missed",
+    "save": "Save score",
+    "saved": "Score saved",
+    "failed": "The score was not saved.",
+    "invalid": "Enter a number from 0 to {total}.",
+    "noteTitle": "Reviewer's note",
+    "scoredBy": "Scored by {reviewer}",
+    "badge": "Staff scored"
   }
 }

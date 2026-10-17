@@ -125,7 +125,9 @@
     "finalScore": "最终得分",
     "pointsOf": "（{earned}/{total} 分）",
     "pretestNote": "通过预测试并不保证在系统测试中获得满分。",
-    "lastRead": "最后读取于 {time}。"
+    "lastRead": "最后读取于 {time}。",
+    "awaitingReview": "等待评审",
+    "awaitingReviewDescription": "此题由工作人员手动评分。有人评审后，分数会显示在这里。"
   },
   "cases": {
     "pretestsTitle": "预测试",
@@ -156,5 +158,22 @@
     "copy": "复制",
     "copied": "已复制",
     "copiedAnnouncement": "已复制到剪贴板"
+  },
+  "review": {
+    "panelTitle": "为此提交评分",
+    "rescoreTitle": "修改分数",
+    "score": "分数",
+    "outOf": "满分 {total}",
+    "scoreHint": "部分分有效。满分记为通过，零分记为答案错误。",
+    "feedback": "给作者的备注",
+    "feedbackOptional": "可选",
+    "feedbackPlaceholder": "做得好的地方，以及遗漏的地方",
+    "save": "保存分数",
+    "saved": "分数已保存",
+    "failed": "分数未保存。",
+    "invalid": "请输入 0 到 {total} 之间的数字。",
+    "noteTitle": "评审备注",
+    "scoredBy": "评分人：{reviewer}",
+    "badge": "工作人员评分"
   }
 }

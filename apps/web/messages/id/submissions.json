@@ -125,7 +125,9 @@
     "finalScore": "Skor akhir",
     "pointsOf": "({earned}/{total} poin)",
     "pretestNote": "Lolos pretest tidak menjamin skor penuh pada system test.",
-    "lastRead": "Terakhir dibaca pada {time}."
+    "lastRead": "Terakhir dibaca pada {time}.",
+    "awaitingReview": "Menunggu tinjauan",
+    "awaitingReviewDescription": "Staf menilai soal ini secara manual. Nilainya akan muncul di sini setelah seseorang meninjau kiriman."
   },
   "cases": {
     "pretestsTitle": "Pretest",
@@ -156,5 +158,22 @@
     "copy": "Salin",
     "copied": "Disalin",
     "copiedAnnouncement": "Disalin ke clipboard"
+  },
+  "review": {
+    "panelTitle": "Nilai kiriman ini",
+    "rescoreTitle": "Ubah nilai",
+    "score": "Nilai",
+    "outOf": "dari {total}",
+    "scoreHint": "Nilai sebagian dihitung. Nilai penuh berarti diterima dan nol berarti jawaban salah.",
+    "feedback": "Catatan untuk penulis",
+    "feedbackOptional": "Opsional",
+    "feedbackPlaceholder": "Apa yang sudah baik, dan apa yang terlewat",
+    "save": "Simpan nilai",
+    "saved": "Nilai disimpan",
+    "failed": "Nilai tidak tersimpan.",
+    "invalid": "Masukkan angka dari 0 sampai {total}.",
+    "noteTitle": "Catatan peninjau",
+    "scoredBy": "Dinilai oleh {reviewer}",
+    "badge": "Dinilai staf"
   }
 }

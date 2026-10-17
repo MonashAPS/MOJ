@@ -125,7 +125,9 @@
     "finalScore": "Puntuación final",
     "pointsOf": "({earned}/{total} puntos)",
     "pretestNote": "Pasar los pretests no garantiza la puntuación máxima en los tests del sistema.",
-    "lastRead": "Última lectura a las {time}."
+    "lastRead": "Última lectura a las {time}.",
+    "awaitingReview": "Pendiente de revisión",
+    "awaitingReviewDescription": "El personal puntúa este problema a mano. La puntuación aparecerá aquí cuando alguien haya revisado el envío."
   },
   "cases": {
     "pretestsTitle": "Pretests",
@@ -156,5 +158,22 @@
     "copy": "Copiar",
     "copied": "Copiado",
     "copiedAnnouncement": "Copiado al portapapeles"
+  },
+  "review": {
+    "panelTitle": "Puntuar este envío",
+    "rescoreTitle": "Cambiar la puntuación",
+    "score": "Puntuación",
+    "outOf": "sobre {total}",
+    "scoreHint": "Las puntuaciones parciales cuentan. La puntuación máxima es una aceptación y cero una respuesta incorrecta.",
+    "feedback": "Nota para el autor",
+    "feedbackOptional": "Opcional",
+    "feedbackPlaceholder": "Qué hizo bien y qué le faltó",
+    "save": "Guardar puntuación",
+    "saved": "Puntuación guardada",
+    "failed": "No se guardó la puntuación.",
+    "invalid": "Introduce un número entre 0 y {total}.",
+    "noteTitle": "Nota del revisor",
+    "scoredBy": "Puntuado por {reviewer}",
+    "badge": "Puntuado por el personal"
   }
 }
