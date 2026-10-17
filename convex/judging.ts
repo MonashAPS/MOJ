@@ -69,6 +69,9 @@ export const MAX_FEEDBACK_LENGTH = 50;
 /** A claim that has produced nothing for this long is assumed dead. */
 export const STALE_CLAIM_MS = 15 * 60_000;
 
+/** How stale `lastSeen` may get before a claim refreshes it. Well inside the heartbeat timeout. */
+export const CLAIM_SEEN_REFRESH_MS = 5_000;
+
 /* -------------------------------------------------------------------------- */
 /* Validators                                                                 */
 /* -------------------------------------------------------------------------- */
@@ -249,13 +252,9 @@ export async function claimNext(
   // One judge grades one submission at a time.
   if (judge.currentSubmissionId) return null;
 
-  const now = Date.now();
-  const judgeDocs = await ctx.db.query("judges").collect();
-  const judgeRows = judgeDocs.map((row) => toJudgeRow(row, now));
-  const thisJudge = judgeRows.find((row) => row.id === judgeId);
-
-  if (!thisJudge) return null;
-
+  // The queue first: an idle claim that never reads the judges table cannot
+  // conflict with every other judge's claim and heartbeat, which it otherwise
+  // did twice a second per judge.
   const queued = await ctx.db
     .query("submissions")
     .withIndex("by_status_priority", (q) => q.eq("status", "QU"))
@@ -263,6 +262,13 @@ export async function claimNext(
     .take(CLAIM_SCAN_LIMIT);
 
   if (queued.length === 0) return null;
+
+  const now = Date.now();
+  const judgeDocs = await ctx.db.query("judges").collect();
+  const judgeRows = judgeDocs.map((row) => toJudgeRow(row, now));
+  const thisJudge = judgeRows.find((row) => row.id === judgeId);
+
+  if (!thisJudge) return null;
 
   const problems = new Map<Id<"problems">, Doc<"problems"> | null>();
   const languages = new Map<Id<"languages">, Doc<"languages"> | null>();
@@ -1055,8 +1061,14 @@ export const claim = internalMutation({
   args: judgeAuthArgs,
   handler: async (ctx, args): Promise<{ submission: ClaimedSubmissionPayload | null }> => {
     const judge = await authenticateJudge(ctx, args.judgeName, args.authKeyHash);
+    const now = Date.now();
+
     // Claiming is also a sign of life; a judge that is claiming is not dead.
-    await ctx.db.patch(judge._id, { online: true, lastSeen: Date.now() });
+    // Only every few seconds, though: heartbeats already keep it fresh, and a
+    // write on every claim is a conflict with every other judge's claim.
+    if (!judge.online || now - (judge.lastSeen ?? 0) >= CLAIM_SEEN_REFRESH_MS) {
+      await ctx.db.patch(judge._id, { online: true, lastSeen: now });
+    }
 
     if (judge.isDisabled) return { submission: null };
 
