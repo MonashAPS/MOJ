@@ -42,6 +42,33 @@ describe("judge authentication", () => {
     expect((await judgeClient(t, "local", "secret").claim()).status).toBe(200);
   });
 
+  it("refreshes a judge's last sign of life from a claim only every few seconds", async () => {
+    const { t } = await fixture();
+    const now = Date.now();
+    const fresh = await insertJudge(t, { name: "fresh", key: "secret", online: true, lastSeen: now - 1_000 });
+
+    const stale = await insertJudge(t, {
+      name: "stale",
+      key: "secret",
+      online: true,
+      lastSeen: now - 30_000,
+    });
+
+    const away = await insertJudge(t, { name: "away", key: "secret", online: false, lastSeen: now - 1_000 });
+
+    for (const name of ["fresh", "stale", "away"]) {
+      expect((await judgeClient(t, name, "secret").claim()).status).toBe(200);
+    }
+
+    const rows = await t.run(async (ctx) => Promise.all([fresh, stale, away].map((id) => ctx.db.get(id))));
+
+    // A judge seen a second ago is left alone, so idle claims write nothing.
+    expect(rows[0]?.lastSeen).toBe(now - 1_000);
+    expect(rows[1]?.lastSeen).toBeGreaterThanOrEqual(now);
+    expect(rows[2]?.online).toBe(true);
+    expect(rows[2]?.lastSeen).toBeGreaterThanOrEqual(now);
+  });
+
   it("stores the runtimes from the handshake", async () => {
     const { t } = await fixture();
     const judgeId = await insertJudge(t, { name: "local", runtimeKeys: [] });
