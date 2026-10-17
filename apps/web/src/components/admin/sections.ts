@@ -1,6 +1,7 @@
 import {
   Boxes,
   Building2,
+  ClipboardCheck,
   Files,
   FileText,
   FlaskConical,
@@ -44,6 +45,7 @@ export const ADMIN_SECTIONS: AdminSectionGroup[] = [
       { key: "problems", href: "/admin/problems/", icon: ListChecks },
       { key: "contests", href: "/admin/contests/", icon: Trophy },
       { key: "submissions", href: "/admin/submissions/", icon: FlaskConical },
+      { key: "review", href: "/admin/review/", icon: ClipboardCheck },
       { key: "scoreboards", href: "/admin/scoreboards/", icon: Gauge },
       { key: "jobs", href: "/admin/jobs/", icon: LayoutList },
       { key: "proctor", href: "/admin/proctor/", icon: MonitorPlay },

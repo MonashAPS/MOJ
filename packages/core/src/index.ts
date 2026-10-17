@@ -30,6 +30,8 @@ export * from "./proctor";
 
 export * from "./ratings";
 
+export * from "./review";
+
 export * from "./scoreboard";
 
 export * from "./scoring/index";

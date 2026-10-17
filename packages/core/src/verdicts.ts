@@ -23,7 +23,7 @@ export const SUBMISSION_RESULTS: readonly SubmissionResult[] = [
 ];
 
 /** `Submission.STATUS`, in DMOJ's declaration order. */
-export const SUBMISSION_STATUSES: readonly SubmissionStatus[] = ["QU", "P", "G", "D", "IE", "CE", "AB"];
+export const SUBMISSION_STATUSES: readonly SubmissionStatus[] = ["QU", "P", "G", "D", "IE", "CE", "AB", "RV"];
 
 /** `Submission.IN_PROGRESS_GRADING_STATUS`. */
 export const IN_PROGRESS_GRADING_STATUS: readonly SubmissionStatus[] = ["QU", "P", "G"];
@@ -70,6 +70,7 @@ export const USER_DISPLAY_CODES: VerdictNames = {
   G: "Grading",
   D: "Completed",
   AB: "Aborted",
+  RV: "Awaiting Review",
 };
 
 /** DMOJ's CSS class for a verdict cell. `_AC` is a partial accept. */
@@ -151,6 +152,7 @@ const TONES: Readonly<Record<ResultClass, VerdictTone>> = {
   P: "pending",
   G: "pending",
   D: "neutral",
+  RV: "pending",
 };
 
 /** Whether a stored code is one of the verdict and status codes MOJ renders. */

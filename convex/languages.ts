@@ -106,7 +106,8 @@ export const usableForProblem = query({
 
       if (!language) continue;
 
-      if (!runtimeKeys.has(language.key)) continue;
+      // No judge runs a staff-scored problem's submissions, so any allowed language will do.
+      if (!problem.manualGrading && !runtimeKeys.has(language.key)) continue;
       const limit = limitByLanguage.get(language._id);
       out.push({
         key: language.key,
@@ -125,7 +126,12 @@ export const usableForProblem = query({
 
     out.sort((a, b) => a.name.localeCompare(b.name) || a.key.localeCompare(b.key));
 
-    return { problemCode: problem.code, languages: out, onlineJudges: judges.length };
+    return {
+      problemCode: problem.code,
+      languages: out,
+      onlineJudges: judges.length,
+      manualGrading: problem.manualGrading === true,
+    };
   },
 });
 

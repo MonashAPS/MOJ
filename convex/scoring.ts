@@ -39,7 +39,7 @@ export const rebuildBest = internalMutation({
   handler: async (ctx, { problemId, contestProblemId }): Promise<null> => {
     const problem = await ctx.db.get(problemId);
 
-    if (!problem?.scoring) return null;
+    if (!problem?.scoring || problem.manualGrading) return null;
 
     let submissions: Doc<"submissions">[];
 
@@ -97,7 +97,7 @@ export const rescorePractice = internalMutation({
   handler: async (ctx, args): Promise<null> => {
     const problem = await ctx.db.get(args.problemId);
 
-    if (!problem?.scoring) return null;
+    if (!problem?.scoring || problem.manualGrading) return null;
 
     const best = await scopeBest(ctx, problem._id);
 

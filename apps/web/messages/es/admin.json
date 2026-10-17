@@ -70,7 +70,8 @@
         "flatpages": "Páginas estáticas",
         "blog": "Blog",
         "licenses": "Licencias",
-        "tags": "Etiquetas"
+        "tags": "Etiquetas",
+        "review": "Revisión"
       }
     }
   },
@@ -136,7 +137,9 @@
         "organizations": "Organizaciones",
         "organizationsHint": "Nombrar cualquier organización hace que el problema sea privado para ellas.",
         "everyone": "Todos",
-        "statement": "Enunciado"
+        "statement": "Enunciado",
+        "manualGrading": "El personal puntúa los envíos",
+        "manualGradingHint": "Ningún juez ejecuta los envíos. El personal puntúa cada uno a mano desde la cola de revisión, y cuentan las puntuaciones parciales."
       }
     },
     "list": {
@@ -876,7 +879,8 @@
       "done": "Terminado",
       "compileError": "Error de compilación",
       "internalError": "Error interno",
-      "aborted": "Abortado"
+      "aborted": "Abortado",
+      "review": "Pendiente de revisión"
     },
     "units": {
       "megabytes": "{value} MB",
@@ -2303,5 +2307,39 @@
   },
   "statementPreview": {
     "tooLong": "Este enunciado es demasiado largo para previsualizarlo; debe contener como máximo {count, number} caracteres."
+  },
+  "review": {
+    "metaTitle": "Cola de revisión",
+    "title": "Cola de revisión",
+    "caption": "Envíos pendientes de puntuación del personal",
+    "intro": "Los envíos a problemas puntuados por el personal esperan aquí hasta que alguien los puntúe, del más antiguo al más reciente.",
+    "columns": {
+      "id": "ID",
+      "problem": "Problema",
+      "user": "Usuario",
+      "contest": "Concurso",
+      "language": "Lenguaje",
+      "submitted": "Enviado",
+      "outOf": "Sobre"
+    },
+    "filters": {
+      "problem": "Problema",
+      "contest": "Concurso",
+      "anyProblem": "Cualquier problema",
+      "anyContest": "Cualquier concurso"
+    },
+    "emptyTitle": "Nada que puntuar",
+    "emptyDescription": "Todos los envíos a problemas puntuados por el personal tienen su puntuación.",
+    "emptyFilteredTitle": "Nada pendiente aquí",
+    "emptyFilteredDescription": "Ningún envío pendiente coincide con estos filtros.",
+    "clearFilters": "Quitar filtros",
+    "truncated": "Se muestran los primeros {count} envíos pendientes. Puntúa algunos para ver el resto.",
+    "score": "Puntuar",
+    "sheetTitle": "Envío {id}",
+    "source": "Envío",
+    "loadingSource": "Cargando el envío…",
+    "noSource": "No puedes leer el código de este envío.",
+    "openStatus": "Abrir la página de estado",
+    "practice": "Práctica"
   }
 }

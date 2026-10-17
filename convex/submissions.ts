@@ -13,6 +13,7 @@ import {
   type ContestParticipationRow,
   type Viewer as CoreViewer,
   canSeeSubmissionDetail,
+  contestIsEditableBy,
   contestIsVisibleTo,
   contestScoreboardIsPublic,
   hasPerm as coreHasPerm,
@@ -23,6 +24,8 @@ import {
   problemIsAccessibleBy,
   problemIsEditableBy,
   problemIsVisibleTo,
+  ReviewScoreError,
+  reviewOutcome,
   type ScoringBest,
   type ScoringKind,
   type ScoringMeasure,
@@ -33,7 +36,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, type QueryCtx, query } from "./_generated/server";
 import { toContestRow } from "./contests/formats";
-import { allocateSubmissionNumber, queueSubmission, resolveSubmission } from "./judging";
+import { allocateSubmissionNumber, finishReview, queueSubmission, resolveSubmission } from "./judging";
 import { optionalViewer, requireViewer } from "./lib/auth";
 import { globalSourceVisibility, siteSettings } from "./lib/community";
 import { forbidden, invalid, mojError, notFound } from "./lib/errors";
@@ -430,7 +433,7 @@ async function scoredPoints(
   problem: Doc<"problems"> | null,
   shown: { contestShown: boolean; points: number | null; contestPoints: number | null },
 ): Promise<SubmissionScored | null> {
-  if (!problem?.scoring) return null;
+  if (!problem?.scoring || problem.manualGrading) return null;
   const contestProblemId = scoredContestProblem(submission, shown.contestShown);
 
   if (!contestProblemId) {
@@ -683,9 +686,26 @@ export const detail = query({
     const caches = newCaches();
     const row = await buildRow(ctx, caches, submission, viewerCtx, now);
 
+    const manualGrading =
+      (await cachedGet(ctx, caches.problems, submission.problemId))?.manualGrading === true;
+
     if (!row.canSeeDetail) {
-      return { submission: row, cases: [], batches: [], error: null, canSeeDetail: false, scoring: null };
+      return {
+        submission: row,
+        cases: [],
+        batches: [],
+        error: null,
+        canSeeDetail: false,
+        scoring: null,
+        manualGrading,
+        review: null,
+      };
     }
+
+    const reviewer =
+      !row.masked && submission.reviewedByProfileId
+        ? await cachedGet(ctx, caches.profiles, submission.reviewedByProfileId)
+        : null;
 
     const cases = row.masked
       ? []
@@ -701,6 +721,16 @@ export const detail = query({
       canSeeDetail: true,
       error: row.masked ? null : (submission.error ?? null),
       scoring: await scoringOf(ctx, submission, row),
+      manualGrading,
+      // A blind freeze hides the score, and the note that came with it would give it away.
+      review:
+        row.masked || submission.reviewedAt === undefined
+          ? null
+          : {
+              feedback: submission.reviewFeedback ?? null,
+              reviewedAt: submission.reviewedAt,
+              reviewer: reviewer?.username ?? null,
+            },
       cases: cases.map((testCase) => ({
         case: testCase.case,
         status: testCase.status,
@@ -965,7 +995,8 @@ export const submit = mutation({
 
     let judgePin: Id<"judges"> | undefined;
 
-    const judgeName = args.judgePin;
+    // No judge ever sees a staff-scored problem's submission, so there is nothing to pin.
+    const judgeName = problem.manualGrading ? undefined : args.judgePin;
 
     if (judgeName) {
       // DMOJ only offers the judge picker to a problem's editors.
@@ -995,12 +1026,12 @@ export const submit = mutation({
       problemId: problem._id,
       date: now,
       languageId: language._id,
-      status: "QU",
+      status: problem.manualGrading ? "RV" : "QU",
       currentTestcase: 0,
       batch: false,
       casePoints: 0,
       caseTotal: 0,
-      isPretested,
+      isPretested: isPretested && !problem.manualGrading,
       isArchived: false,
       // judge/judge_priority.py: contest submissions jump the queue.
       priority: contestProblem ? 0 : 1,
@@ -1025,7 +1056,8 @@ export const submit = mutation({
 
     await ctx.db.insert("submissionSources", { submissionId, source: args.source });
 
-    // Nothing is pushed: the judge is polling /judge/claim and will pick this up.
+    // Nothing is pushed: the judge is polling /judge/claim and will pick this
+    // up, and a staff-scored one waits in the review queue instead.
     const stored = await ctx.db.get(submissionId);
 
     return { submissionId, id: stored?.legacyId ?? 0 };
@@ -1061,7 +1093,7 @@ export const abort = mutation({
     // Aborting a finished submission would falsely mark it aborted.
     if (submission.status === "D") return { aborted: false, pending: false };
 
-    if (submission.status === "QU") {
+    if (submission.status === "QU" || submission.status === "RV") {
       await ctx.db.patch(submission._id, {
         status: "AB",
         result: "AB",
@@ -1108,5 +1140,89 @@ export const rejudge = mutation({
     if (!queued) throw invalid("This submission is already being judged.");
 
     return { ok: true };
+  },
+});
+
+/* -------------------------------------------------------------------------- */
+/* Staff scoring                                                              */
+/* -------------------------------------------------------------------------- */
+
+/** The longest note a reviewer may leave on a submission. */
+export const MAX_REVIEW_FEEDBACK_LENGTH = 4000;
+
+/**
+ * Who may score a staff-scored submission: anyone who may edit its problem,
+ * or, for a contest submission, its contest.
+ */
+export function mayReview(
+  viewer: CoreViewer,
+  problem: Doc<"problems">,
+  contest: Doc<"contests"> | null,
+): boolean {
+  if (problemIsEditableBy(toCoreProblem(problem), viewer)) return true;
+
+  return contest !== null && contestIsEditableBy(toContestRow(contest), viewer);
+}
+
+/** What a staff score is out of: the contest problem's points in a contest, the problem's otherwise. */
+export async function reviewOutOf(
+  ctx: QueryCtx,
+  submission: Doc<"submissions">,
+  problem: Doc<"problems">,
+): Promise<number> {
+  const contestProblem = submission.contestProblemId ? await ctx.db.get(submission.contestProblemId) : null;
+
+  return contestProblem?.points ?? problem.points;
+}
+
+/**
+ * Score a submission to a staff-scored problem, or score it again. The score
+ * is out of the number `reviewOutOf` gives and stands until someone rejudges
+ * the submission, which sends it back to wait.
+ */
+export const review = mutation({
+  args: {
+    submissionId: v.union(v.string(), v.number()),
+    score: v.number(),
+    feedback: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const profile = await requireViewer(ctx);
+    const viewer = await coreProfile(ctx, profile);
+    const submission = await resolveSubmission(ctx, args.submissionId);
+
+    if (!submission) throw notFound("Submission");
+    const problem = await ctx.db.get(submission.problemId);
+
+    if (!problem) throw notFound("Problem");
+    const contest = submission.contestId ? await ctx.db.get(submission.contestId) : null;
+
+    if (!mayReview(viewer, problem, contest)) throw forbidden("You may not score this submission.");
+
+    if (!problem.manualGrading) throw invalid("A judge grades this problem's submissions.");
+
+    if (submission.status !== "RV" && submission.status !== "D") {
+      throw invalid("Only a submission waiting for its score, or one already scored, can be scored.");
+    }
+
+    const feedback = (args.feedback ?? "").trim();
+
+    if (feedback.length > MAX_REVIEW_FEEDBACK_LENGTH) {
+      throw invalid(`Feedback must be at most ${MAX_REVIEW_FEEDBACK_LENGTH} characters.`);
+    }
+
+    let outcome: ReturnType<typeof reviewOutcome>;
+
+    try {
+      outcome = reviewOutcome(args.score, await reviewOutOf(ctx, submission, problem), problem.points);
+    } catch (error) {
+      if (error instanceof ReviewScoreError) throw invalid(error.message);
+
+      throw error;
+    }
+
+    await finishReview(ctx, submission, problem, { outcome, feedback, reviewerId: profile._id });
+
+    return { ok: true, result: outcome.result, casePoints: outcome.casePoints, caseTotal: outcome.caseTotal };
   },
 });

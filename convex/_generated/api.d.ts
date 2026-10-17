@@ -73,6 +73,7 @@ import type * as pages_admin_console from "../pages/admin/console.js";
 import type * as pages_admin_contests from "../pages/admin/contests.js";
 import type * as pages_admin_jobs from "../pages/admin/jobs.js";
 import type * as pages_admin_problems from "../pages/admin/problems.js";
+import type * as pages_admin_review from "../pages/admin/review.js";
 import type * as pages_admin_revisions from "../pages/admin/revisions.js";
 import type * as pages_admin_scoreboards from "../pages/admin/scoreboards.js";
 import type * as pages_admin_submissions from "../pages/admin/submissions.js";
@@ -178,6 +179,7 @@ declare const fullApi: ApiFromModules<{
   "pages/admin/contests": typeof pages_admin_contests;
   "pages/admin/jobs": typeof pages_admin_jobs;
   "pages/admin/problems": typeof pages_admin_problems;
+  "pages/admin/review": typeof pages_admin_review;
   "pages/admin/revisions": typeof pages_admin_revisions;
   "pages/admin/scoreboards": typeof pages_admin_scoreboards;
   "pages/admin/submissions": typeof pages_admin_submissions;

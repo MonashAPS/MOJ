@@ -16,7 +16,8 @@ export type Verdict =
   | "QU"
   | "P"
   | "G"
-  | "D";
+  | "D"
+  | "RV";
 
 export type VerdictTone = "good" | "bad" | "warn" | "neutral" | "run" | "ie";
 
@@ -41,6 +42,7 @@ export function verdictTone(code: string): VerdictTone {
     case "QU":
     case "P":
     case "G":
+    case "RV":
       return "run";
     default:
       return "neutral";
@@ -64,6 +66,7 @@ const TITLE: Readonly<Record<Verdict | "_AC", string>> = {
   P: "Processing",
   G: "Grading",
   D: "Done",
+  RV: "Awaiting review",
 };
 
 /** Whether an uppercased code is one this kit has a title for. */

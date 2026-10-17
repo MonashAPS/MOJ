@@ -34,6 +34,7 @@ import {
 import type { StatusExtras } from "@/lib/submissionsData";
 import { AnsiBlock } from "./AnsiBlock";
 import styles from "./code.module.css";
+import { ReviewForm } from "./ReviewForm";
 import { ScoringExplanation } from "./ScoringExplanation";
 
 type Detail = NonNullable<FunctionReturnType<typeof api.submissions.detail>>;
@@ -147,6 +148,7 @@ export function StatusView({
   const { absoluteTime } = useDateFormatters();
   const t = useTranslations("submissions.status");
   const scoredText = useTranslations("submissions.scored");
+  const reviewText = useTranslations("submissions.review");
   const live = useQuery(api.submissions.detail, { submissionId: String(extras.id) });
   const detail = live ?? initial;
   const row = detail.submission;
@@ -156,7 +158,12 @@ export function StatusView({
   const groups = groupCases(detail.cases);
   const strip = statusStrip(groups, !grading);
   const maxExecutionTime = detail.cases.reduce((slowest, item) => Math.max(slowest, item.time), 0);
-  const settled = !grading && row.status !== "IE" && row.status !== "CE" && row.status !== "AB";
+  const awaitingReview = row.status === "RV";
+  const manual = detail.manualGrading;
+
+  const settled =
+    !grading && !awaitingReview && row.status !== "IE" && row.status !== "CE" && row.status !== "AB";
+
   // A scored problem's points are not its case score, so they lead and the
   // cases are labelled as the judge's checks.
   const scored = row.scored;
@@ -182,6 +189,7 @@ export function StatusView({
             )}
           </span>
           {scored ? <Badge variant="accent">{scoredText("kind", { kind: scored.kind })}</Badge> : null}
+          {manual ? <Badge variant="accent">{reviewText("badge")}</Badge> : null}
           {row.masked ? (
             <Badge variant="run">{t("maskedBadge")}</Badge>
           ) : row.isPretested ? (
@@ -217,7 +225,7 @@ export function StatusView({
           {scored ? null : (
             <Meta label={t("metaPoints")}>
               <span className="font-mono tabular-nums">
-                {formatPoints(extras.contest ? extras.contest.points : row.points)}
+                {formatPoints(awaitingReview ? null : extras.contest ? extras.contest.points : row.points)}
                 <span className="text-muted-foreground">
                   {" / "}
                   {formatPoints(extras.contest ? extras.contest.total : extras.problem.points)}
@@ -257,6 +265,43 @@ export function StatusView({
           <AlertTitle>{t("internalErrorTitle")}</AlertTitle>
           <AlertDescription>{t("internalErrorDescription")}</AlertDescription>
         </Alert>
+      ) : awaitingReview ? (
+        <Alert variant="info">
+          <AlertTitle>{t("awaitingReview")}</AlertTitle>
+          <AlertDescription>{t("awaitingReviewDescription")}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {detail.review ? (
+        <Panel title={reviewText("noteTitle")} bodyClassName="grid gap-2 p-4 text-base">
+          {detail.review.feedback ? (
+            <p className="whitespace-pre-wrap break-words text-foreground">{detail.review.feedback}</p>
+          ) : null}
+          <p className="text-sm text-muted-foreground">
+            {detail.review.reviewer
+              ? `${reviewText("scoredBy", { reviewer: detail.review.reviewer })} · `
+              : null}
+            <LocalTime
+              value={detail.review.reviewedAt}
+              format="absolute"
+              className="font-mono tabular-nums"
+            />
+          </p>
+        </Panel>
+      ) : null}
+
+      {extras.canReview && extras.reviewOutOf !== null && (awaitingReview || row.status === "D") ? (
+        <Panel
+          title={awaitingReview ? reviewText("panelTitle") : reviewText("rescoreTitle")}
+          bodyClassName="p-4"
+        >
+          <ReviewForm
+            submissionId={String(extras.id)}
+            outOf={extras.reviewOutOf}
+            initialScore={awaitingReview ? null : row.casePoints}
+            initialFeedback={detail.review?.feedback ?? null}
+          />
+        </Panel>
       ) : null}
 
       {detail.canSeeDetail && detail.error && row.status === "CE" ? (
@@ -323,18 +368,20 @@ export function StatusView({
             />
           ))}
 
-          {!grading ? (
+          {!grading && !awaitingReview ? (
             <Panel title={t("resultTitle")} bodyClassName="grid gap-2 p-3 text-base">
               {row.result === "AB" ? (
                 <p className="font-medium text-foreground">{t("aborted")}</p>
               ) : (
                 <>
-                  <Line label={t("resources")}>
-                    <span className="font-mono tabular-nums">
-                      {row.result === "TLE" ? DASH : formatTime(row.time, 3)}, {formatMemory(row.memory)}
-                    </span>
-                  </Line>
-                  {row.result === "AC" ? (
+                  {manual ? null : (
+                    <Line label={t("resources")}>
+                      <span className="font-mono tabular-nums">
+                        {row.result === "TLE" ? DASH : formatTime(row.time, 3)}, {formatMemory(row.memory)}
+                      </span>
+                    </Line>
+                  )}
+                  {row.result === "AC" && !manual ? (
                     <Line label={t("maxRuntime")}>
                       <span className="font-mono tabular-nums">
                         {formatTime(maxExecutionTime || extras.maxExecutionTime, 3)}

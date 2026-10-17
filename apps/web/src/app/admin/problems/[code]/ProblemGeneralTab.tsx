@@ -73,6 +73,7 @@ export function ProblemGeneralTab({
   const [points, setPoints] = useState(String(problem.points));
   const [partial, setPartial] = useState(problem.partial);
   const [scoring, setScoring] = useState(problem.scoring);
+  const [manualGrading, setManualGrading] = useState(problem.manualGrading);
   const [timeLimit, setTimeLimit] = useState(String(problem.timeLimit));
   const [memoryLimit, setMemoryLimit] = useState(String(problem.memoryLimit));
   const [shortCircuit, setShortCircuit] = useState(problem.shortCircuit);
@@ -113,6 +114,7 @@ export function ProblemGeneralTab({
     Number(points) !== problem.points ||
     partial !== problem.partial ||
     scoring !== problem.scoring ||
+    manualGrading !== problem.manualGrading ||
     Number(timeLimit) !== problem.timeLimit ||
     Number(memoryLimit) !== problem.memoryLimit ||
     shortCircuit !== problem.shortCircuit ||
@@ -140,6 +142,7 @@ export function ProblemGeneralTab({
         points: Number(points) || 0,
         partial,
         scoring: { kind: scoring },
+        manualGrading,
         timeLimit: Number(timeLimit) || 1,
         memoryLimit: Number(memoryLimit) || 1,
         shortCircuit,
@@ -227,6 +230,12 @@ export function ProblemGeneralTab({
               hint={shared("field.shortCircuitHint")}
               checked={shortCircuit}
               onCheckedChange={setShortCircuit}
+            />
+            <AdminCheckField
+              label={shared("field.manualGrading")}
+              hint={shared("field.manualGradingHint")}
+              checked={manualGrading}
+              onCheckedChange={setManualGrading}
             />
             <AdminCheckField
               label={shared("field.public")}

@@ -178,7 +178,9 @@
     "chooseFile": "Elegir archivo",
     "dropHere": "Suelta aquí un archivo de código para cargarlo",
     "notText": "Ese archivo no es código fuente.",
-    "openFullPage": "Abrir la página de envío completa"
+    "openFullPage": "Abrir la página de envío completa",
+    "manualTitle": "Puntuado por el personal",
+    "manualBody": "Ningún juez ejecuta este problema. Tu envío esperará hasta que un autor del problema lo puntúe."
   },
   "rank": {
     "titleFor": "Mejores soluciones para {name}",

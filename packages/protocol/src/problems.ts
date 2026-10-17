@@ -65,6 +65,8 @@ export const problemUpsertInput = z
     curators: z.array(z.string()).optional(),
     summary: z.string().optional(),
     scoring: problemScoringInput.optional(),
+    /** Staff score each submission by hand; no judge runs it. */
+    manualGrading: z.boolean().optional(),
     /** Language keys a submission may use; replaces the whole allowed list. */
     languages: z.array(z.string().min(1)).min(1).optional(),
     // Create-only below this line.
@@ -115,6 +117,7 @@ export const problemSummary = z.object({
   languageLimits: z.record(z.string(), languageLimitInput),
   allowedLanguages: z.array(z.string()),
   scoring: problemScoringInput,
+  manualGrading: z.boolean(),
 });
 
 export type ProblemSummary = z.infer<typeof problemSummary>;

@@ -344,6 +344,27 @@ describe("buildRequest", () => {
     expect((await buildRequest(standard)).body.scoring).toEqual({ kind: "standard" });
   });
 
+  test("sends staff scoring, and only as a yes or a no", async () => {
+    const manual = await writeProblem("essay", {
+      "statement.md": "x",
+      "config.json": JSON.stringify({ title: "Essay", manualGrading: true }),
+    });
+
+    const spelled = await writeProblem("essayword", {
+      "statement.md": "x",
+      "config.json": JSON.stringify({ title: "Essay", manualGrading: "yes" }),
+    });
+
+    const wrong = await writeProblem("essaymaybe", {
+      "statement.md": "x",
+      "config.json": JSON.stringify({ title: "Essay", manualGrading: "maybe" }),
+    });
+
+    expect((await buildRequest(manual)).body.manualGrading).toBe(true);
+    expect((await buildRequest(spelled)).body.manualGrading).toBe(true);
+    await expect(buildRequest(wrong)).rejects.toThrow("config.manualGrading");
+  });
+
   test("refuses a scoring kind it does not know", async () => {
     const dir = await writeProblem("fastest", {
       "statement.md": "x",

@@ -17,6 +17,9 @@ problems; controls they cannot use are not rendered.
   changes the labels.
 - **Submissions**, `/admin/submissions/` — filter by user, problem, contest, judge, status, result, language and
   id range, then **Batch rejudge** the filter as one job. One problem at a time.
+- **Review**, `/admin/review/` — submissions to [staff-scored problems](/problems/format#staff-scoring)
+  waiting for a score, oldest first, filtered by problem or contest. **Score** opens the source beside a score
+  and a note for its author; the next one opens after saving.
 - **Scoreboards**, `/admin/scoreboards/` — hall scoreboard events: key, name, the contests that become
   divisions, theme, flag URL template, badge organisations, which means in person, freeze minutes, public or not,
   and [organisation standings](/using/contests#organisation-standings) with their decay and organisations.

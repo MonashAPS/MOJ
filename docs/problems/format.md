@@ -206,6 +206,7 @@ staff and to users who have solved the problem.
 | `summary` | string | none | Used where the statement is too long. |
 | `public` | boolean | false | Needs the permission to publish problems. |
 | `scoring` | `{"kind": "golf"}` or `"standard"` | `"standard"` | How submissions score; see [Scoring](#scoring). |
+| `manualGrading` | boolean | false | Staff score each submission by hand; see [Staff scoring](#staff-scoring). |
 | `languages` | language keys | every language | The languages a submission may use, such as `["PY3", "CPP20"]`. |
 
 Nothing else in the file is read. On update an absent field is left alone, and `authors: []` means unchanged
@@ -232,3 +233,16 @@ moment it is graded, contest scoreboard included.
 Golf counts every allowed language on the same scale, so pair it with `languages` when the field should be
 narrower. Changing a problem's kind applies to submissions graded from then on; rejudge the problem to rescore
 the ones before.
+
+### Staff scoring
+
+`"manualGrading": true`, or **Staff score submissions** in the staff console, means no judge runs a submission.
+It waits as `RV` (awaiting review) until someone who can edit the problem, or the submission's contest, gives it
+a score on its status page or in the console's [review queue](/admin/staff-console). A contest submission is
+scored out of the contest problem's points, any other out of the problem's. Part marks always count, whatever
+`partial` says; full marks are an accept and no marks a wrong answer. The reviewer can leave a note, which the
+author sees with the score.
+
+The problem needs no test data and takes every allowed language, whether or not a judge runs it, including
+plain text. Rejudging a scored submission sends it back to wait and takes its points away. Turning staff scoring
+off sends everything still waiting to the judges. `scoring` is ignored while it is on.

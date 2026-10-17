@@ -53,6 +53,7 @@ const STATUSES = [
   { value: "CE", labelKey: "compileError" },
   { value: "IE", labelKey: "internalError" },
   { value: "AB", labelKey: "aborted" },
+  { value: "RV", labelKey: "review" },
 ] as const;
 
 const PAGE_SIZE = 50;
@@ -212,7 +213,9 @@ export function SubmissionsAdmin() {
               ? t("statuses.queued")
               : row.status === "G"
                 ? t("statuses.grading")
-                : row.status}
+                : row.status === "RV"
+                  ? t("statuses.review")
+                  : row.status}
           </Badge>
         ),
     },

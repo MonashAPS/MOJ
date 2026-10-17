@@ -191,7 +191,7 @@ describe("verdicts", () => {
       "SC",
       "AB",
     ]);
-    expect(SUBMISSION_STATUSES).toEqual(["QU", "P", "G", "D", "IE", "CE", "AB"]);
+    expect(SUBMISSION_STATUSES).toEqual(["QU", "P", "G", "D", "IE", "CE", "AB", "RV"]);
     expect(IN_PROGRESS_GRADING_STATUS).toEqual(["QU", "P", "G"]);
     expect(RESULT_NAMES.AC).toBe("Accepted");
     expect(USER_DISPLAY_CODES.IE).toBe("Internal Error (judging server error)");

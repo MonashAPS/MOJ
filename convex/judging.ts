@@ -24,6 +24,7 @@ import {
   decodeCaseStatus,
   type JudgeRow,
   REJUDGE_PRIORITY,
+  type ReviewOutcome,
   type SubmissionResult,
   type SubmissionTestCaseRow,
   scoringPoints,
@@ -465,6 +466,7 @@ export async function recomputeParticipation(
 
   const contestProblemById = new Map(contestProblems.map((row) => [row._id, row]));
   const scored = await contestScoring(ctx, contestProblems);
+  const manual = await manuallyGraded(ctx, contestProblems);
 
   const submissions = await ctx.db
     .query("submissions")
@@ -485,7 +487,10 @@ export async function recomputeParticipation(
 
     const points = scope
       ? scoringPoints(scope.scoring, submission.scoringMeasure, scope.best, contestProblem.points)
-      : computeContestSubmissionPoints(submission, contestProblem);
+      : computeContestSubmissionPoints(submission, {
+          points: contestProblem.points,
+          partial: contestProblem.partial || manual.has(contestProblem._id),
+        });
 
     if (submission.contestPoints !== points) {
       await ctx.db.patch(submission._id, { contestPoints: points });
@@ -536,7 +541,7 @@ export async function recomputeParticipation(
       contestId: row.contestId,
       problemId: row.problemId,
       points: row.points,
-      partial: row.partial,
+      partial: row.partial || manual.has(row._id),
       isPretested: row.isPretested,
       order: row.order,
       maxSubmissions: row.maxSubmissions ?? null,
@@ -550,6 +555,20 @@ export async function recomputeParticipation(
     tiebreaker: update.tiebreaker,
     formatData: update.formatData,
   });
+}
+
+/** The contest problems staff score by hand, which take part marks whatever `partial` says. */
+async function manuallyGraded(
+  ctx: QueryCtx,
+  contestProblems: readonly Doc<"contestProblems">[],
+): Promise<Set<Id<"contestProblems">>> {
+  const manual = new Set<Id<"contestProblems">>();
+
+  for (const contestProblem of contestProblems) {
+    if ((await ctx.db.get(contestProblem.problemId))?.manualGrading) manual.add(contestProblem._id);
+  }
+
+  return manual;
 }
 
 function toCoreTestCase(row: Doc<"submissionTestCases">): SubmissionTestCaseRow {
@@ -733,7 +752,15 @@ export async function finishGrading(ctx: MutationCtx, submissionId: Id<"submissi
     scoringMeasure: scored?.measure ?? undefined,
   });
   await releaseSubmission(ctx, submission);
+  await recomputeFinished(ctx, submission, problem);
+}
 
+/** The three things a submission's points change: its author's, its problem's and its contest's. */
+async function recomputeFinished(
+  ctx: MutationCtx,
+  submission: Doc<"submissions">,
+  problem: Doc<"problems">,
+): Promise<void> {
   if (problem.isPublic && !problem.isOrganizationPrivate) {
     await recomputeProfilePoints(ctx, submission.profileId);
   }
@@ -743,6 +770,38 @@ export async function finishGrading(ctx: MutationCtx, submissionId: Id<"submissi
   if (submission.participationId) {
     await recomputeParticipation(ctx, submission.participationId);
   }
+}
+
+/**
+ * A staff-scored submission's score, written the way grading end writes a
+ * judged one's and followed by the same recomputes. Scoring one that already
+ * has a score replaces it.
+ */
+export async function finishReview(
+  ctx: MutationCtx,
+  submission: Doc<"submissions">,
+  problem: Doc<"problems">,
+  review: { outcome: ReviewOutcome; feedback: string; reviewerId: Id<"profiles"> },
+): Promise<void> {
+  const now = Date.now();
+
+  const patch: Partial<WithoutSystemFields<Doc<"submissions">>> = {
+    status: "D",
+    result: review.outcome.result,
+    points: review.outcome.points,
+    casePoints: review.outcome.casePoints,
+    caseTotal: review.outcome.caseTotal,
+    time: undefined,
+    memory: undefined,
+    error: undefined,
+    judgedDate: now,
+    reviewFeedback: review.feedback || undefined,
+    reviewedByProfileId: review.reviewerId,
+    reviewedAt: now,
+  };
+
+  await ctx.db.patch(submission._id, patch);
+  await recomputeFinished(ctx, submission, problem);
 }
 
 /** `on_compile_error`, `on_internal_error` and `on_submission_terminated`. */
@@ -848,6 +907,17 @@ export async function applyJudgeEvent(
 /* Queue entry: rejudge, resubmit and the first submit all go through here     */
 /* -------------------------------------------------------------------------- */
 
+/** What a submission holds of a grade, emptied when it goes back to be graded. */
+const UNGRADED = {
+  result: undefined,
+  time: undefined,
+  memory: undefined,
+  points: undefined,
+  error: undefined,
+  casePoints: 0,
+  caseTotal: 0,
+} satisfies Partial<WithoutSystemFields<Doc<"submissions">>>;
+
 export interface QueueOptions {
   rejudge?: boolean;
   batchRejudge?: boolean;
@@ -871,6 +941,26 @@ export async function queueSubmission(
   if (submission.status === "P" || submission.status === "G") return false;
 
   const rejudged = options.rejudge === true || options.batchRejudge === true;
+  const problem = await ctx.db.get(submission.problemId);
+
+  // Rejudging a staff-scored submission takes its score away until someone
+  // scores it again. Nothing re-runs it, so its points move now.
+  if (problem?.manualGrading) {
+    await withdrawMeasure(ctx, submission);
+    await ctx.db.patch(submissionId, {
+      ...UNGRADED,
+      status: "RV",
+      scoringMeasure: undefined,
+      rejudgedDate: rejudged ? Date.now() : submission.rejudgedDate,
+      reviewFeedback: undefined,
+      reviewedByProfileId: undefined,
+      reviewedAt: undefined,
+    });
+    await deleteTestCases(ctx, submissionId);
+    await recomputeFinished(ctx, submission, problem);
+
+    return true;
+  }
 
   let isPretested = submission.isPretested;
   let priority = DEFAULT_PRIORITY;
@@ -889,14 +979,8 @@ export async function queueSubmission(
   await freeJudge(ctx, submission.claimedByJudgeId, submission._id);
 
   const patch: Partial<WithoutSystemFields<Doc<"submissions">>> = {
+    ...UNGRADED,
     status: "QU",
-    result: undefined,
-    time: undefined,
-    memory: undefined,
-    points: undefined,
-    error: undefined,
-    casePoints: 0,
-    caseTotal: 0,
     currentTestcase: 0,
     batch: false,
     isPretested,
@@ -919,6 +1003,19 @@ export async function queueSubmission(
   await deleteTestCases(ctx, submissionId);
 
   return true;
+}
+
+/**
+ * A problem that stops being staff-scored hands whatever was still waiting for
+ * a score to the judges.
+ */
+export async function queueWaitingForReview(ctx: MutationCtx, problemId: Id<"problems">): Promise<void> {
+  const waiting = await ctx.db
+    .query("submissions")
+    .withIndex("by_problem_status", (q) => q.eq("problemId", problemId).eq("status", "RV"))
+    .collect();
+
+  for (const submission of waiting) await queueSubmission(ctx, submission._id);
 }
 
 /* -------------------------------------------------------------------------- */

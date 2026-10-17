@@ -70,7 +70,8 @@
         "flatpages": "静态页面",
         "blog": "博客",
         "licenses": "许可证",
-        "tags": "标签"
+        "tags": "标签",
+        "review": "评审"
       }
     }
   },
@@ -136,7 +137,9 @@
         "organizations": "组织",
         "organizationsHint": "指定任意组织后，该题目将仅对这些组织私有。",
         "everyone": "所有人",
-        "statement": "题面"
+        "statement": "题面",
+        "manualGrading": "由工作人员评分",
+        "manualGradingHint": "评测机不运行提交。工作人员在评审队列中逐一手动评分，部分分有效。"
       }
     },
     "list": {
@@ -876,7 +879,8 @@
       "done": "已完成",
       "compileError": "编译错误",
       "internalError": "内部错误",
-      "aborted": "已中止"
+      "aborted": "已中止",
+      "review": "等待评审"
     },
     "units": {
       "megabytes": "{value} MB",
@@ -2303,5 +2307,39 @@
   },
   "statementPreview": {
     "tooLong": "该题面太长，无法预览；最多只能包含 {count, number} 个字符。"
+  },
+  "review": {
+    "metaTitle": "评审队列",
+    "title": "评审队列",
+    "caption": "等待工作人员评分的提交",
+    "intro": "由工作人员评分的题目的提交在此等待评分，最早的排在前面。",
+    "columns": {
+      "id": "ID",
+      "problem": "题目",
+      "user": "用户",
+      "contest": "比赛",
+      "language": "语言",
+      "submitted": "提交时间",
+      "outOf": "满分"
+    },
+    "filters": {
+      "problem": "题目",
+      "contest": "比赛",
+      "anyProblem": "所有题目",
+      "anyContest": "所有比赛"
+    },
+    "emptyTitle": "没有需要评分的提交",
+    "emptyDescription": "由工作人员评分的题目的提交都已评分。",
+    "emptyFilteredTitle": "这里没有等待评分的提交",
+    "emptyFilteredDescription": "没有等待评分的提交符合这些筛选条件。",
+    "clearFilters": "清除筛选",
+    "truncated": "仅显示前 {count} 个等待评分的提交。评完一些后可看到其余的。",
+    "score": "评分",
+    "sheetTitle": "提交 {id}",
+    "source": "提交内容",
+    "loadingSource": "正在加载提交…",
+    "noSource": "你无权查看此提交的代码。",
+    "openStatus": "打开状态页面",
+    "practice": "练习"
   }
 }
