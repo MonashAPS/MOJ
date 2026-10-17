@@ -471,6 +471,8 @@ export async function buildRequest(problemDir, { statementOnly = false } = {}) {
 
   if (has("scoring")) body.scoring = scoringConfig(config.scoring);
 
+  if (has("manualGrading")) body.manualGrading = boolean(config.manualGrading, "config.manualGrading");
+
   if (has("languages")) body.languages = languageList(config.languages);
 
   // create-problem.mjs wrote the python3 and pypy3 rows whenever a time limit
