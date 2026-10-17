@@ -48,6 +48,9 @@ case score; the case score is in the tooltip. A golf submission's status page le
 the shortest it was scored against, and its cases are the judge's checks of whether it is accepted. See
 [Scoring](/problems/format#scoring).
 
+A staff-scored problem says so above the submit button. No judge runs your submission: it shows `RV`
+(awaiting review) until a problem setter or contest organiser scores it, then its score and any note they left.
+
 ## Getting around
 
 Ctrl+K, Cmd+K, or `/` when you are not typing in a field opens the command palette, which searches problems,
