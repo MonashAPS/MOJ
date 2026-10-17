@@ -29,7 +29,8 @@ export interface JsonObject {
 
 export type SubmissionResult = "AC" | "WA" | "TLE" | "MLE" | "OLE" | "IR" | "RTE" | "CE" | "IE" | "SC" | "AB";
 
-export type SubmissionStatus = "QU" | "P" | "G" | "D" | "IE" | "CE" | "AB";
+/** `RV` is MOJ's own: a submission to a staff-scored problem, waiting for its score. */
+export type SubmissionStatus = "QU" | "P" | "G" | "D" | "IE" | "CE" | "AB" | "RV";
 
 /** Problem.submission_source_visibility_mode. */
 export type SubmissionSourceVisibility = "A" | "S" | "O" | "F";
