@@ -225,7 +225,7 @@ export function StatusView({
           {scored ? null : (
             <Meta label={t("metaPoints")}>
               <span className="font-mono tabular-nums">
-                {formatPoints(extras.contest ? extras.contest.points : row.points)}
+                {formatPoints(awaitingReview ? null : extras.contest ? extras.contest.points : row.points)}
                 <span className="text-muted-foreground">
                   {" / "}
                   {formatPoints(extras.contest ? extras.contest.total : extras.problem.points)}
