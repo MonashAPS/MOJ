@@ -232,6 +232,8 @@ export const auth = betterAuth({
       "/forget-password": { window: 60, max: 10 },
       "/change-email": { window: 60, max: 10 },
       "/send-verification-email": { window: 60, max: 10 },
+      // The Convex backend fetches the public keys from the box's own address on most requests.
+      "/jwks": false,
     },
   },
 
