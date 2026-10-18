@@ -124,11 +124,16 @@ async function foldIntoScope(
 }
 
 /**
- * The contest problem whose best a submission counts towards, if any. Only a
- * live participation's do: a virtual or spectating entrant is scored against
- * the live best but never moves it, so nobody who sat the contest loses
- * points to someone who took it afterwards.
+ * Whether a participation's submissions move its contest's bests. A virtual or
+ * spectating entrant is scored against the live best but never moves it, so
+ * nobody who sat the contest loses points to someone who took it afterwards,
+ * and a disqualified entrant's results stop counting against everyone else.
  */
+export function setsContestBest(participation: Doc<"contestParticipations"> | null): boolean {
+  return participation?.virtual === PARTICIPATION_LIVE && !participation.isDisqualified;
+}
+
+/** The contest problem whose best a submission counts towards, if any. */
 async function liveContestProblem(
   ctx: QueryCtx,
   submission: Doc<"submissions">,
@@ -136,7 +141,7 @@ async function liveContestProblem(
   if (!submission.contestProblemId || !submission.participationId) return undefined;
   const participation = await ctx.db.get(submission.participationId);
 
-  return participation?.virtual === PARTICIPATION_LIVE ? submission.contestProblemId : undefined;
+  return setsContestBest(participation) ? submission.contestProblemId : undefined;
 }
 
 /**

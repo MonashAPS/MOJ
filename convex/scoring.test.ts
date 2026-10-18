@@ -275,6 +275,69 @@ describe("code golf scoring", () => {
     expect(mineEntry?.score).toBe(50);
   });
 
+  it("never lets a disqualified entrant's solution set the contest's best", async () => {
+    const { t, languageId, problemId } = await golfSetup();
+    const { contestId, contestProblemId } = await makeContest(t, problemId);
+    const honest = await insertProfile(t);
+    const cheat = await insertProfile(t);
+    const realStart = Date.now() - 600_000;
+    const honestEntry = await insertParticipation(t, { contestId, profileId: honest, realStart });
+
+    const cheatEntry = await insertParticipation(t, {
+      contestId,
+      profileId: cheat,
+      realStart,
+      isDisqualified: true,
+    });
+
+    const honestSubmission = await insertSubmission(t, {
+      profileId: honest,
+      problemId,
+      languageId,
+      status: "QU",
+      legacyId: 1,
+      date: 1,
+      source: sourceOf(100),
+      participationId: honestEntry,
+      contestId,
+      contestProblemId,
+    });
+
+    await grade(t);
+    await t.finishAllScheduledFunctions(() => {});
+
+    await insertSubmission(t, {
+      profileId: cheat,
+      problemId,
+      languageId,
+      status: "QU",
+      legacyId: 2,
+      date: 2,
+      source: sourceOf(10),
+      participationId: cheatEntry,
+      contestId,
+      contestProblemId,
+    });
+
+    await grade(t);
+    await t.finishAllScheduledFunctions(() => {});
+
+    const [kept, best] = await t.run(async (ctx) =>
+      Promise.all([
+        ctx.db.get(honestSubmission),
+        ctx.db
+          .query("scoringBests")
+          .withIndex("by_problem_contestProblem", (q) =>
+            q.eq("problemId", problemId).eq("contestProblemId", contestProblemId),
+          )
+          .unique(),
+      ]),
+    );
+
+    expect(best?.best).toEqual({ kind: "golf", bytes: 100 });
+    expect(kept?.contestPoints).toBe(50);
+  });
+
   it("rescores practice submissions and their authors' profile points", async () => {
     const { t, languageId, problemId } = await golfSetup();
     const first = await insertProfile(t);
