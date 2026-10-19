@@ -878,11 +878,12 @@ export function createClient({ judgeUrl, apiKey, fetchImpl = globalThis.fetch })
       const send = (method) =>
         fetchImpl(uploadUrl, { method, headers: { "content-type": "application/zip" }, body: bytes });
 
-      // Storage backends differ on which write verb they take; try both rather
-      // than make the caller care.
-      let response = await send("PUT");
+      // Convex storage takes POST. PUT is the fallback for a backend that wants
+      // it, and not the first try: Convex refuses a PUT before reading its body,
+      // so a large archive behind a proxy comes back 502 rather than 405.
+      let response = await send("POST");
 
-      if (response.status === 405 || response.status === 501) response = await send("POST");
+      if (response.status === 405 || response.status === 501) response = await send("PUT");
 
       if (!response.ok) throw new UploadError(`${code}: data upload: ${await describe(response)}`);
 
