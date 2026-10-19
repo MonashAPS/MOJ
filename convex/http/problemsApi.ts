@@ -124,7 +124,9 @@ async function verifyWithBetterAuth(
 
   // Better Auth keeps its verify endpoint server-only, so a 404 is the web app
   // saying it cannot answer over HTTP at all; the mirrored hash decides instead.
-  if (response.status >= 500 || response.status === 404) return "unreachable";
+  // A 429 is its rate limiter, which a bulk upload trips: it says nothing about
+  // the key, so the hash decides then too.
+  if (response.status >= 500 || response.status === 404 || response.status === 429) return "unreachable";
 
   if (!response.ok) return null;
 
