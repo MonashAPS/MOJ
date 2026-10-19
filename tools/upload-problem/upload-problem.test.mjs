@@ -947,12 +947,26 @@ describe("run, publishing test data", () => {
     expect(second.uploaded[0].data.fileCount).toBe(5);
   });
 
-  test("falls back to POST when the storage host refuses PUT", async () => {
+  test("posts the archive to storage first, as Convex takes it", async () => {
+    await writeDataProblem("aplusb");
+    const judge = mockJudge();
+
+    const result = await run(["--problems-root", path.join(workdir, "problems")], {
+      ...silent(),
+      env: ENV,
+      fetchImpl: judge.fetchImpl,
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(judge.calls.blobs.map((blob) => blob.method)).toEqual(["POST"]);
+  });
+
+  test("falls back to PUT when the storage host refuses POST", async () => {
     await writeDataProblem("aplusb");
     const judge = mockJudge();
 
     const fetchImpl = async (url, init = {}) => {
-      if (new URL(url).host === "storage.test" && (init.method ?? "GET") === "PUT") {
+      if (new URL(url).host === "storage.test" && (init.method ?? "GET") === "POST") {
         return jsonResponse(405, { error: { code: "invalid", message: "Method not allowed." } });
       }
 
@@ -966,7 +980,7 @@ describe("run, publishing test data", () => {
     });
 
     expect(result.exitCode).toBe(0);
-    expect(judge.calls.blobs.map((blob) => blob.method)).toEqual(["POST"]);
+    expect(judge.calls.blobs.map((blob) => blob.method)).toEqual(["PUT"]);
   });
 
   test("--skip-data publishes the statement and nothing else", async () => {

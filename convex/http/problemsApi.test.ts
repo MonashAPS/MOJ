@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { sha256Hex } from "../lib/hash";
 import type { JsonValue } from "../lib/json";
 import { insertProblem, insertProfile, insertTaxonomy } from "../test.fixtures";
@@ -112,6 +112,27 @@ describe("PUT /api/problems/:code authentication", () => {
       if (row) await ctx.db.patch(row._id, { expiresAt: Date.now() - 1000 });
     });
     expect((await put(t, "aplusb", { name: "A" })).status).toBe(401);
+  });
+});
+
+describe("PUT /api/problems/:code when Better Auth answers", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  test("its rate limiter does not reject a key the table holds", async () => {
+    const { t } = await setup();
+    const realFetch = globalThis.fetch;
+    vi.stubEnv("AUTH_URL", "https://auth.test");
+    vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).startsWith("https://auth.test/")
+        ? Promise.resolve(new Response("Too many requests", { status: 429 }))
+        : realFetch(input, init),
+    );
+
+    const response = await put(t, "aplusb", { name: "A plus B" });
+    expect(response.status).toBe(200);
   });
 });
 
