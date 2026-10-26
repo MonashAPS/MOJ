@@ -6,6 +6,6 @@
   "description": "Vendored anti-slop Oxlint rules; see UPSTREAM.md",
   "exports": "./index.ts",
   "dependencies": {
-    "@oxlint/plugins": "1.87.0"
+    "@oxlint/plugins": "1.89.0"
   }
 }
